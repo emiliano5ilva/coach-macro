@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Coach Macro — Fuel Smarter. Train Harder.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,800;1,900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0A0A;
+  --s1:#111;
+  --s2:#161616;
+  --bd:#1E1E1E;
+  --mu:#555;
+  --dim:#222;
+  --prot:#2979FF;
+  --carb:#00E676;
+  --fat:#FFD740;
+  --white:#fff;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--white);font-family:'Inter',system-ui,sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.disp{font-family:'Barlow Condensed',sans-serif}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,10,.95);backdrop-filter:blur(12px);border-bottom:1px solid #111}
+.logo-mark{display:flex;align-items:center;gap:10px}
+.logo-bars{display:flex;align-items:flex-end;gap:3px;height:22px}
+.logo-bars span{display:block;width:6px;border-radius:2px}
+.logo-bars span:nth-child(1){height:22px;background:var(--prot)}
+.logo-bars span:nth-child(2){height:16px;background:var(--carb)}
+.logo-bars span:nth-child(3){height:11px;background:var(--fat)}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:3px;font-size:19px;line-height:1}
+.logo-text .t1{color:#fff}
+.logo-text .t2 .c1{color:var(--prot)}
+.logo-text .t2 .c2{color:var(--carb)}
+.logo-text .t2 .c3{color:var(--fat)}
+.logo-text .t2 .c4{color:#fff}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{color:var(--mu);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s;letter-spacing:.3px}
+.nav-links a:hover{color:#fff}
+.nav-cta{background:var(--prot);color:#fff;padding:10px 22px;border-radius:7px;font-weight:700;font-size:14px;text-decoration:none;letter-spacing:.3px;transition:opacity .2s}
+.nav-cta:hover{opacity:.85}
+@media(max-width:768px){nav{padding:14px 18px}.nav-links{display:none}}
+
+/* ── HERO — MacroFactor style full-bleed ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 0 0;position:relative;overflow:hidden}
+.hero-headline{padding:120px 48px 0;position:relative;z-index:2}
+.hero-headline h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(80px,13vw,160px);font-weight:900;font-style:italic;line-height:.88;letter-spacing:-.02em;color:#fff}
+.hero-headline h1 em{color:var(--prot);font-style:italic}
+.hero-sub-row{display:flex;align-items:flex-end;justify-content:space-between;padding:24px 48px 0;gap:40px;position:relative;z-index:2}
+.hero-desc{font-size:clamp(15px,1.6vw,18px);color:#666;max-width:420px;line-height:1.7;font-weight:400}
+.hero-actions{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
+.btn-hero{background:var(--prot);color:#fff;padding:16px 36px;border-radius:8px;font-weight:700;font-size:16px;text-decoration:none;letter-spacing:.3px;white-space:nowrap;transition:opacity .2s}
+.btn-hero:hover{opacity:.85}
+.hero-note{font-size:12px;color:#333;text-align:right}
+
+/* ── PHONE GRID — full-width, edge-to-edge ── */
+.phone-strip{display:flex;align-items:flex-end;gap:0;overflow:hidden;margin-top:48px;padding:0 48px;position:relative;z-index:2}
+.phone-slot{flex:1;position:relative}
+.phone-frame{background:#111;border:1px solid #222;border-radius:40px 40px 0 0;overflow:hidden;position:relative}
+.phone-frame.hero-main{border-radius:40px 40px 0 0}
+.phone-frame.side{opacity:.5;transform:scale(.92);transform-origin:bottom center;border-radius:34px 34px 0 0}
+.phone-frame.far{opacity:.25;transform:scale(.82);transform-origin:bottom center;border-radius:28px 28px 0 0}
+.phone-screen{padding:20px 16px;background:#0A0A0A;min-height:520px}
+.phone-notch{width:80px;height:6px;background:#1A1A1A;border-radius:3px;margin:0 auto 16px}
+
+/* Phone screen elements */
+.ps-label{font-size:8px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#444;margin-bottom:3px}
+.ps-big{font-size:40px;font-weight:900;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.ps-muted{font-size:10px;color:#333;margin-top:3px}
+.ps-ring-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:14px}
+.ps-bar{height:4px;background:#1A1A1A;border-radius:2px;overflow:hidden;margin-bottom:6px}
+.ps-bar-fill{height:100%;border-radius:2px}
+.ps-card{background:#111;border:1px solid #1A1A1A;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.ps-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #111;font-size:9px}
+.ps-tag{display:inline-block;padding:3px 8px;border-radius:20px;font-size:7px;font-weight:700;letter-spacing:.5px}
+.ps-set-row{display:grid;grid-template-columns:.4fr 1fr 1fr .8fr;gap:4px;padding:6px 0;border-bottom:1px solid #111;font-size:9px;align-items:center}
+.ps-elapsed{display:flex;gap:16px;margin-bottom:10px;font-size:8px;color:#444;font-variant-numeric:tabular-nums}
+.ps-elapsed span b{color:#888;font-size:9px}
+.ps-timer-big{font-size:52px;font-weight:900;color:#fff;text-align:center;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-2px;margin:16px 0}
+.ps-prog-card{background:#1C1C1C;border:1px solid #2A2A2A;border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.ps-prog-row{display:flex;justify-content:space-between;padding:5px 0;font-size:9px;color:#666;border-bottom:1px solid #161616}
+.ps-prog-row:last-child{border-bottom:none}
+.ps-chart-line{height:40px;width:100%;margin-bottom:8px;position:relative}
+.ps-food-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #111;font-size:9px}
+.ps-food-icon{width:22px;height:22px;border-radius:5px;background:#1A1A1A;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+
+/* ── SECTION HEADLINES — MacroFactor style ── */
+.section-headline{padding:0 48px;margin-bottom:0}
+.section-headline .pre{font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--mu);display:block;margin-bottom:12px}
+.section-headline h2{font-family:'Barlow Condensed',sans-serif;font-size:clamp(56px,9vw,120px);font-weight:900;font-style:italic;line-height:.9;letter-spacing:-.02em;color:#fff}
+.section-headline h2 em{color:var(--prot)}
+.section-headline h2 .green{color:var(--carb)}
+.section-headline h2 .gold{color:var(--fat)}
+
+/* ── FEATURE BLOCKS — alternating layout ── */
+.feat-block{display:grid;align-items:center;min-height:100vh;padding:80px 48px;gap:60px;position:relative;overflow:hidden}
+.feat-block.two-col{grid-template-columns:1fr 1fr}
+.feat-block.full{grid-template-columns:1fr}
+.feat-block.flip{direction:rtl}
+.feat-block.flip>*{direction:ltr}
+.feat-text .overline{font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--mu);display:block;margin-bottom:16px}
+.feat-text h3{font-family:'Barlow Condensed',sans-serif;font-size:clamp(48px,7vw,88px);font-weight:900;font-style:italic;line-height:.92;letter-spacing:-.01em;margin-bottom:18px}
+.feat-text h3 em{font-style:italic}
+.feat-text p{font-size:16px;color:#666;line-height:1.75;max-width:420px;margin-bottom:24px}
+.feat-text ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.feat-text li{display:flex;gap:12px;font-size:14px;color:#999;align-items:flex-start}
+.feat-text li::before{content:"";width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.feat-text li.blue::before{background:var(--prot)}
+.feat-text li.green::before{background:var(--carb)}
+.feat-text li.gold::before{background:var(--fat)}
+.feat-visual{display:flex;align-items:center;justify-content:center}
+
+/* ── MOCK PHONE (standalone) ── */
+.mock{background:#111;border:1px solid #1E1E1E;border-radius:44px;overflow:hidden;width:100%;max-width:320px;margin:0 auto;box-shadow:0 40px 80px rgba(0,0,0,.6)}
+.mock-screen{background:#0A0A0A;padding:20px 18px;min-height:580px}
+.mock-notch{width:70px;height:5px;background:#1A1A1A;border-radius:3px;margin:0 auto 18px}
+
+/* ── STATS STRIP ── */
+.stats-strip{border-top:1px solid #111;border-bottom:1px solid #111;padding:0;display:flex}
+.stat-block{flex:1;padding:40px 32px;text-align:center;border-right:1px solid #111}
+.stat-block:last-child{border-right:none}
+.stat-n{font-family:'Barlow Condensed',sans-serif;font-size:72px;font-weight:900;line-height:1;letter-spacing:-2px}
+.stat-l{font-size:13px;color:var(--mu);margin-top:6px;line-height:1.5}
+
+/* ── MACRO COLOR SHOWCASE ── */
+.macro-row{display:flex;gap:1px;background:var(--bd)}
+.macro-col{flex:1;padding:48px 40px;background:var(--bg)}
+.macro-col .m-label{font-size:10px;font-weight:700;letterSpacing:3px;text-transform:uppercase;margin-bottom:12px;display:block}
+.macro-col h4{font-family:'Barlow Condensed',sans-serif;font-size:56px;font-weight:900;line-height:1;margin-bottom:8px}
+.macro-col p{font-size:13px;color:var(--mu);line-height:1.65;max-width:220px}
+.macro-bar-demo{height:6px;border-radius:3px;margin-top:20px;margin-bottom:6px}
+.macro-nums{display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px}
+
+/* ── INTEGRATION ROW ── */
+.int-row{display:flex;gap:12px;flex-wrap:wrap;padding:0 48px 80px}
+.int-pill{background:var(--s1);border:1px solid var(--bd);border-radius:40px;padding:14px 22px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px}
+.int-pill-icon{font-size:22px}
+.int-pill-name{font-weight:600;font-size:14px;line-height:1.2}
+.int-pill-sub{font-size:11px;color:var(--mu)}
+.int-badge{font-size:8px;font-weight:700;letter-spacing:1px;color:var(--carb);text-transform:uppercase;margin-top:2px}
+
+/* ── PRICING ── */
+.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:720px;margin:48px 48px 0}
+.price-card{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:36px 32px;position:relative}
+.price-card.featured{border:1.5px solid var(--prot);background:#050A14}
+.price-pop{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--prot);color:#fff;font-size:9px;font-weight:800;padding:4px 14px;border-radius:9px;letter-spacing:1.5px;white-space:nowrap}
+.price-tier{font-size:10px;color:var(--mu);font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px}
+.price-amount{font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:900;line-height:1;letter-spacing:-2px;margin-bottom:4px}
+.price-per{font-size:13px;color:var(--mu);margin-bottom:8px}
+.price-today{font-size:12px;color:var(--carb);font-weight:700;margin-bottom:24px}
+.price-feats{list-style:none;margin-bottom:28px}
+.price-feats li{padding:8px 0;border-bottom:1px solid #111;font-size:13px;display:flex;gap:9px;color:#ccc}
+.price-feats li::before{content:"✓";color:var(--prot);font-weight:800;flex-shrink:0}
+.price-feats li.off{color:var(--mu)}
+.price-feats li.off::before{content:"·";color:#2A2A2A}
+.price-btn{display:block;text-align:center;padding:14px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:opacity .2s}
+.price-btn.p{background:var(--prot);color:#fff}
+.price-btn.p:hover{opacity:.87}
+.price-btn.g{background:none;color:#fff;border:1px solid #1E1E1E}
+.price-btn.g:hover{background:#111}
+
+/* ── FINAL CTA ── */
+.cta-block{padding:120px 48px;position:relative;overflow:hidden}
+.cta-block h2{font-family:'Barlow Condensed',sans-serif;font-size:clamp(60px,11vw,140px);font-weight:900;font-style:italic;line-height:.88;letter-spacing:-.02em;margin-bottom:20px}
+.cta-block h2 em{color:var(--prot)}
+.cta-block p{font-size:18px;color:#666;max-width:460px;line-height:1.65;margin-bottom:36px}
+.cta-note{font-size:12px;color:#333;margin-top:14px}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid #111;padding:32px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-links{display:flex;gap:20px;list-style:none}
+.footer-links a{color:#2A2A2A;font-size:13px;text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:#fff}
+.footer-copy{font-size:12px;color:#1E1E1E}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s ease}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .feat-block.two-col{grid-template-columns:1fr}
+  .feat-block.flip{direction:ltr}
+  .feat-text p{max-width:100%}
+  .section-headline,.hero-headline,.hero-sub-row,.phone-strip,.int-row,.pricing-grid,.cta-block,footer{padding-left:20px;padding-right:20px}
+  .pricing-grid{grid-template-columns:1fr}
+  .macro-row{flex-direction:column;gap:0}
+  .phone-strip{padding:0}
+  .phone-frame.side,.phone-frame.far{display:none}
+  .stats-strip{flex-wrap:wrap}
+  .stat-block{min-width:50%;border-right:none;border-bottom:1px solid #111}
+  .stat-block:last-child{border-bottom:none}
+  .feat-block{padding:60px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo-mark">
+    <div class="logo-bars">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="logo-text">
+      <div class="t1">COACH</div>
+      <div class="t2"><span class="c1">M</span><span class="c2">A</span><span class="c3">C</span><span class="c4">RO</span></div>
+    </div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#fuel">Fuel</a></li>
+    <li><a href="#train">Train</a></li>
+    <li><a href="#sync">Connect</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <a href="#pricing" class="nav-cta">Start Free</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-headline">
+    <h1 class="disp">FUEL<br>SMARTER.<br><em>TRAIN<br>HARDER.</em></h1>
+  </div>
+  <div class="hero-sub-row">
+    <p class="hero-desc">The only app where your nutrition and your training share one brain — and automatically adjust to each other every single day.</p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-hero">Start 7-Day Free Trial →</a>
+      <span class="hero-note">No credit card required</span>
+    </div>
+  </div>
+
+  <!-- Phone strip — 3 phones, edge to edge -->
+  <div class="phone-strip">
+
+    <!-- Phone 1: Fuel dashboard -->
+    <div class="phone-slot">
+      <div class="phone-frame hero-main">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div><div style="font-size:9px;color:#444">Tuesday · Training</div><div style="font-size:14px;font-weight:800">Hey, Marcus</div></div>
+            <div class="ps-tag" style="background:#2979FF18;border:1px solid #2979FF40;color:#2979FF">💪 PUSH</div>
+          </div>
+          <!-- Macro ring -->
+          <div class="ps-ring-wrap">
+            <svg width="130" height="130" style="transform:rotate(-90deg)">
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#1A1A1A" stroke-width="11"/>
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#2979FF" stroke-width="11" stroke-dasharray="109 218" stroke-dashoffset="0" stroke-linecap="round"/>
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#00E676" stroke-width="11" stroke-dasharray="87 218" stroke-dashoffset="-109" stroke-linecap="round"/>
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#FFD740" stroke-width="11" stroke-dasharray="55 218" stroke-dashoffset="-196" stroke-linecap="round"/>
+            </svg>
+            <div style="margin-top:-78px;text-align:center;font-size:32px;font-weight:900;color:#fff;line-height:1">962</div>
+            <div style="font-size:8px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-top:46px;margin-bottom:8px">kcal remaining</div>
+          </div>
+          <!-- Earned cals -->
+          <div style="background:#2979FF12;border:1px solid #2979FF25;border-radius:7px;padding:6px 9px;display:flex;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:8px;color:#2979FF;font-weight:700">🔥 Strava run · earned</span>
+            <span style="color:#2979FF;font-weight:900;font-size:10px">+420 kcal</span>
+          </div>
+          <!-- Macro bars -->
+          <div style="margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:3px"><span style="color:#2979FF;font-weight:700">Protein</span><span style="color:#555">195 / 240g</span></div>
+            <div class="ps-bar"><div class="ps-bar-fill" style="width:81%;background:#2979FF"></div></div>
+          </div>
+          <div style="margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:3px"><span style="color:#00E676;font-weight:700">Carbs</span><span style="color:#555">186 / 320g</span></div>
+            <div class="ps-bar"><div class="ps-bar-fill" style="width:58%;background:#00E676"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:3px"><span style="color:#FFD740;font-weight:700">Fat</span><span style="color:#555">47 / 68g</span></div>
+            <div class="ps-bar"><div class="ps-bar-fill" style="width:69%;background:#FFD740"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone 2: Active workout + rest timer -->
+    <div class="phone-slot">
+      <div class="phone-frame side" style="margin-left:-20px">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="ps-elapsed">
+            <span>ELAPSED <b>00:52:18</b></span>
+            <span>REST <b>00:12:08</b></span>
+            <span>118 BPM</span>
+          </div>
+          <!-- Rest timer — Strongsplit style -->
+          <div style="text-align:center;margin:10px 0 16px">
+            <div style="font-size:8px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">REST</div>
+            <div class="ps-timer-big" style="font-size:46px">1m 28s</div>
+            <!-- Ruler -->
+            <div style="display:flex;justify-content:center;gap:3px;margin-bottom:12px">
+              {['30s','1m','1m30','2m'].map((t,i)=>'')}
+              <div style="display:flex;align-items:flex-end;gap:1px">
+                {Array.from({length:20}).map((_,i)=>`<div style='width:2px;height:${i===10?14:6}px;background:${i===10?"#2979FF":"#222"};border-radius:1px'></div>`).join('')}
+              </div>
+            </div>
+            <div style="font-size:8px;color:#333;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">1m 25s &nbsp;·&nbsp; <b style='color:#666'>1m 30s</b> &nbsp;·&nbsp; 1m 35s</div>
+            <div style="background:#1A1A1A;border-radius:20px;padding:9px 24px;display:inline-block;font-size:11px;color:#888;font-weight:600;margin-bottom:14px">Skip</div>
+          </div>
+          <div style="font-size:8px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">TARGET SET</div>
+          <div style="font-size:9px;color:#888">#3 Bench Press &nbsp; 140kg, 10 reps, 8 RPE</div>
+          <!-- Progression suggestion -->
+          <div style="background:#1C1C1C;border:1px solid #2A2A2A;border-radius:9px;padding:10px 12px;margin-top:12px;display:flex;justify-content:space-between">
+            <div><div style="font-size:7px;color:#555;font-weight:700;letter-spacing:1px">LAST SESSION</div><div style="font-size:13px;font-weight:800;color:#fff;margin-top:2px">140kg × 10</div><div style="font-size:8px;color:#555">(8 RPE)</div></div>
+            <div style="color:#555;font-size:14px;align-self:center">→</div>
+            <div style="text-align:right"><div style="font-size:7px;color:#2979FF;font-weight:700;letter-spacing:1px">SUGGESTED</div><div style="font-size:13px;font-weight:800;color:#2979FF;margin-top:2px">148kg × 10</div><div style="font-size:8px;color:#4A6285">(8 RPE) +5%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone 3: Progressive overload / sets -->
+    <div class="phone-slot">
+      <div class="phone-frame far" style="margin-left:-32px">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div style="font-size:10px;font-weight:700;color:#fff;margin-bottom:3px">Bench Press</div>
+          <div style="font-size:8px;color:#555;margin-bottom:12px">Chest › Middle (Sternal head) · Triceps</div>
+          <!-- Progression settings -->
+          <div class="ps-prog-card">
+            <div style="font-size:7px;color:#555;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">PROGRESSION</div>
+            <div class="ps-prog-row"><span>Rep Range</span><span style="color:#2979FF">8 – 12 ›</span></div>
+            <div class="ps-prog-row"><span>RPE</span><span style="color:#2979FF">≤ 10 ›</span></div>
+            <div class="ps-prog-row"><span># Sets Per Session</span><span style="color:#2979FF">≥ 2 ›</span></div>
+            <div class="ps-prog-row"><span>Weight Increment</span><span style="color:#2979FF">+20kg ›</span></div>
+          </div>
+          <!-- Set log -->
+          <div style="background:#0F2010;border:1px solid #1A3020;border-radius:9px;padding:10px 12px">
+            {[['140kg × 8','1RM: 174kg',true],['140kg × 9','1RM: 180kg (+4%)',true],['140kg × 10','1RM: 187kg (+4%)',true]].map(([w,r,c])=>(
+              `<div style='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1A2A18'>
+                <div><div style='font-size:10px;font-weight:700;color:${c?"#00E676":"#666"}'>${w}</div><div style='font-size:7px;color:#2A4A28'>${r}</div></div>
+                <div style='color:${c?"#00E676":"#333"};font-size:12px'>✓</div>
+              </div>`
+            ))}
+            <div style="padding:5px 0">
+              <div style="font-size:9px;color:#444">140kg × 12</div>
+              <div style="font-size:7px;color:#2A2A2A">1RM: 202kg (+4%)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-strip reveal">
+  <div class="stat-block"><div class="stat-n disp" style="color:var(--prot)">25</div><div class="stat-l">data points in your metabolic equation</div></div>
+  <div class="stat-block"><div class="stat-n disp" style="color:var(--carb)">3</div><div class="stat-l">ways to log food — AI, barcode, or quick add</div></div>
+  <div class="stat-block"><div class="stat-n disp" style="color:var(--fat)">4</div><div class="stat-l">device integrations — Strava, Apple, Garmin, Fitbit</div></div>
+  <div class="stat-block"><div class="stat-n disp" style="color:#fff">$0</div><div class="stat-l">charged today — 7-day free trial</div></div>
+</div>
+
+<!-- FUEL SECTION -->
+<section id="fuel" style="padding:120px 0 0">
+  <div class="section-headline reveal">
+    <span class="pre">⚡ Fuel</span>
+    <h2>NUTRITION<br>THAT<br><span class="green">MOVES</span><br>WITH YOU.</h2>
+  </div>
+  <div class="feat-block two-col" style="padding-top:60px;padding-bottom:60px">
+    <div class="feat-text reveal">
+      <span class="overline">Dynamic macros</span>
+      <h3>YOUR NUMBERS<br>CHANGE<br><em>EVERY DAY.</em></h3>
+      <p>Training day? Higher carbs, more total calories. Rest day? More protein, fewer carbs. Your macros recalculate every morning based on what you're doing — automatically.</p>
+      <ul>
+        <li class="blue">Protein tracked in <strong>electric blue</strong></li>
+        <li class="green">Carbs tracked in <strong>vivid green</strong></li>
+        <li class="gold">Fat tracked in <strong>pure gold</strong></li>
+        <li class="blue">Workout calories earned → added to your budget in real time</li>
+      </ul>
+    </div>
+    <div class="feat-visual reveal d1">
+      <div class="mock">
+        <div class="mock-screen">
+          <div class="mock-notch"></div>
+          <div style="font-size:10px;color:var(--mu);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">⚡ FUEL</div>
+          <!-- Macro comparison: training vs rest -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+            <div style="background:#111;border:1px solid #1E1E1E;border-radius:10px;padding:12px">
+              <div style="font-size:8px;color:var(--prot);font-weight:700;letter-spacing:1px;margin-bottom:8px">TRAINING DAY</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div><div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:2px"><span style="color:var(--prot)">Protein</span><span style="color:#555">200g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:75%;background:var(--prot);border-radius:2px"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:2px"><span style="color:var(--carb)">Carbs</span><span style="color:#555">320g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:85%;background:var(--carb);border-radius:2px"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:2px"><span style="color:var(--fat)">Fat</span><span style="color:#555">68g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:60%;background:var(--fat);border-radius:2px"></div></div></div>
+              </div>
+              <div style="font-size:11px;font-weight:800;color:var(--prot);margin-top:8px">2,847 kcal</div>
+            </div>
+            <div style="background:#111;border:1px solid #1E1E1E;border-radius:10px;padding:12px">
+              <div style="font-size:8px;color:var(--mu);font-weight:700;letter-spacing:1px;margin-bottom:8px">REST DAY</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div><div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:2px"><span style="color:var(--prot)">Protein</span><span style="color:#555">240g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:90%;background:var(--prot);border-radius:2px"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:2px"><span style="color:var(--carb)">Carbs</span><span style="color:#555">160g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:45%;background:var(--carb);border-radius:2px"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:2px"><span style="color:var(--fat)">Fat</span><span style="color:#555">72g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:65%;background:var(--fat);border-radius:2px"></div></div></div>
+              </div>
+              <div style="font-size:11px;font-weight:800;color:var(--mu);margin-top:8px">1,960 kcal</div>
+            </div>
+          </div>
+          <!-- Food log -->
+          <div style="font-size:8px;color:var(--mu);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Today's Log</div>
+          <div class="ps-food-row"><div style="display:flex;gap:8px;align-items:center"><div class="ps-food-icon">🍗</div><div><div style="font-size:10px;font-weight:600">Grilled Chicken 200g</div><div style="font-size:8px;color:#555">P:46g · C:0g · F:4g</div></div></div><div style="color:var(--prot);font-weight:700;font-size:11px">220</div></div>
+          <div class="ps-food-row"><div style="display:flex;gap:8px;align-items:center"><div class="ps-food-icon">🍚</div><div><div style="font-size:10px;font-weight:600">Brown Rice 1 cup</div><div style="font-size:8px;color:#555">P:5g · C:45g · F:2g</div></div></div><div style="color:var(--carb);font-weight:700;font-size:11px">215</div></div>
+          <div class="ps-food-row"><div style="display:flex;gap:8px;align-items:center"><div class="ps-food-icon">🥑</div><div><div style="font-size:10px;font-weight:600">Avocado ½</div><div style="font-size:8px;color:#555">P:1g · C:4g · F:11g</div></div></div><div style="color:var(--fat);font-weight:700;font-size:11px">118</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MACRO COLORS -->
+<div class="macro-row reveal" id="macros">
+  <div class="macro-col">
+    <span class="m-label" style="color:var(--prot)">Protein</span>
+    <h4 style="color:var(--prot)">#2979FF</h4>
+    <div class="macro-bar-demo" style="background:var(--prot)"></div>
+    <div class="macro-nums"><span style="color:var(--prot);font-weight:700;font-size:13px">195g consumed</span><span style="color:var(--mu);font-size:12px">240g target</span></div>
+    <p>Building blocks. Muscle. Recovery. Electric cobalt — the priority macro gets the most visible color.</p>
+  </div>
+  <div class="macro-col">
+    <span class="m-label" style="color:var(--carb)">Carbs</span>
+    <h4 style="color:var(--carb)">#00E676</h4>
+    <div class="macro-bar-demo" style="background:var(--carb)"></div>
+    <div class="macro-nums"><span style="color:var(--carb);font-weight:700;font-size:13px">186g consumed</span><span style="color:var(--mu);font-size:12px">320g target</span></div>
+    <p>Energy. Fuel. Go. Shifts the most between training and rest days — brightest color tracks the biggest change.</p>
+  </div>
+  <div class="macro-col">
+    <span class="m-label" style="color:var(--fat)">Fat</span>
+    <h4 style="color:var(--fat)">#FFD740</h4>
+    <div class="macro-bar-demo" style="background:var(--fat)"></div>
+    <div class="macro-nums"><span style="color:var(--fat);font-weight:700;font-size:13px">47g consumed</span><span style="color:var(--mu);font-size:12px">68g target</span></div>
+    <p>Dense. Steady. Sustained. Gold represents richness and consistency — fat stays relatively stable day to day.</p>
+  </div>
+</div>
+
+<!-- TRAIN SECTION -->
+<section id="train" style="padding:120px 0 0">
+  <div class="section-headline reveal">
+    <span class="pre">🏋️ Train</span>
+    <h2>WORKOUTS<br>THAT<br><em>KNOW</em><br>YOUR BODY.</h2>
+  </div>
+
+  <!-- Progressive overload feature -->
+  <div class="feat-block two-col flip" style="padding-top:60px;padding-bottom:40px">
+    <div class="feat-text reveal">
+      <span class="overline">Progressive Overload</span>
+      <h3>LAST SESSION<br>VS<br><em>SUGGESTED.</em></h3>
+      <p>Every set logged. Next session Coach Macro tells you exactly what weight and reps to hit. Double progression rules — reps first, then weight. No guesswork.</p>
+      <ul>
+        <li class="blue">Full strength splits — Push/Pull/Legs, Upper/Lower, Bro Split, Arnold Split</li>
+        <li class="blue">All three deltoid heads hit on every shoulder day</li>
+        <li class="blue">Lats trained for width AND thickness separately on pull days</li>
+        <li class="blue">Deload weeks auto-triggered when stalls detected</li>
+      </ul>
+    </div>
+    <div class="feat-visual reveal d1">
+      <div class="mock">
+        <div class="mock-screen">
+          <div class="mock-notch"></div>
+          <div style="font-size:9px;color:var(--mu);margin-bottom:4px">Bench Press</div>
+          <div style="font-size:8px;color:#444;margin-bottom:14px">Chest › Middle · Triceps</div>
+          <!-- Last vs Suggested card — Strongsplit style -->
+          <div style="background:#1C1020;border:1px solid #2A1840;border-radius:11px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:7px;color:#8B60CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">LAST SESSION</div><div style="font-size:20px;font-weight:900;color:#fff;line-height:1">140kg × 10</div><div style="font-size:8px;color:#6B4090;margin-top:2px">(8 RPE)</div><div style="font-size:8px;color:#5A3070;margin-top:2px">1RM: 201.5kg</div></div>
+            <div style="text-align:center"><div style="color:#5A3070;font-size:16px">→</div><div style="font-size:9px;color:#8B60CC;font-weight:700">+5%</div></div>
+            <div style="text-align:right"><div style="font-size:7px;color:var(--prot);font-weight:700;letter-spacing:1px;margin-bottom:6px">SUGGESTED</div><div style="font-size:20px;font-weight:900;color:var(--prot);line-height:1">148kg × 10</div><div style="font-size:8px;color:#4A72C0;margin-top:2px">(8 RPE)</div><div style="font-size:8px;color:#3A5090;margin-top:2px">1RM: 211.5kg</div></div>
+          </div>
+          <!-- Set rows -->
+          <div style="font-size:8px;color:var(--mu);display:grid;grid-template-columns:.3fr .9fr .9fr .7fr;gap:4px;margin-bottom:6px;font-weight:700;letter-spacing:.5px">
+            <span>#</span><span>WEIGHT</span><span>REPS</span><span>REST</span>
+          </div>
+          {[['W₁','80kg','10','1m 30s',false],['1','100kg','10','1m 30s',false],['2','120kg','10','1m 30s',true]].map(([n,w,r,rs,curr])=>(
+            `<div style='display:grid;grid-template-columns:.3fr .9fr .9fr .7fr;gap:4px;padding:6px 0;border-bottom:1px solid #111;align-items:center'>
+              <span style='font-size:9px;color:${curr?"var(--prot)":n==="W₁"?"#FF9500":"#666"};font-weight:700'>${n}</span>
+              <span style='font-size:10px;font-weight:700;color:${curr?"var(--prot)":"#ccc"}'>${w}</span>
+              <span style='font-size:10px;color:${curr?"var(--prot)":"#888"}'>${r}</span>
+              <span style='font-size:9px;color:#444'>${rs}</span>
+            </div>`
+          ))}
+          <!-- Progression note -->
+          <div style="background:#0A1A0A;border:1px solid #1A3A1A;border-radius:8px;padding:8px 10px;margin-top:10px">
+            <div style="font-size:9px;color:var(--carb);font-weight:700">✓ Need 1 more set for current progression</div>
+            <div style="font-size:8px;color:#2A5A2A;margin-top:2px">Target: ≥ 140kg, 11 reps, 10 RPE × 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rest timer + Hybrid/Hyrox -->
+  <div class="feat-block two-col" style="padding-top:0;padding-bottom:60px">
+    <div class="feat-visual reveal">
+      <div class="mock">
+        <div class="mock-screen">
+          <div class="mock-notch"></div>
+          <!-- Rest timer full screen -->
+          <div style="text-align:center;padding:10px 0">
+            <div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px">REST</div>
+            <div style="font-size:58px;font-weight:900;letter-spacing:-3px;font-variant-numeric:tabular-nums;margin-bottom:4px">1m 28s</div>
+            <!-- Ruler indicator -->
+            <div style="display:flex;justify-content:center;align-items:flex-end;gap:2px;margin:12px auto;width:200px">
+              ${Array.from({length:24}).map((_,i)=>`<div style="width:2.5px;height:${Math.abs(i-12)<2?16:Math.abs(i-12)<5?10:6}px;background:${Math.abs(i-12)<2?"#2979FF":"#1E1E1E"};border-radius:1px;flex-shrink:0"></div>`).join('')}
+            </div>
+            <div style="display:flex;justify-content:center;gap:16px;font-size:8px;color:#333;margin-bottom:16px">
+              <span>1m 20s</span><span style="color:#666">1m 25s</span><span style="color:#aaa;font-weight:700">1m 30s</span><span style="color:#666">1m 35s</span>
+            </div>
+            <div style="background:#1A0A0A;border-radius:20px;padding:10px 40px;display:inline-block;font-size:13px;color:#666;font-weight:600;margin-bottom:16px;border:1px solid #2A0A0A">Skip</div>
+          </div>
+          <div style="border-top:1px solid #111;padding-top:10px">
+            <div style="font-size:8px;color:#444;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">TARGET SET</div>
+            <div style="font-size:9px;color:#888">#3 Incline DB Press &nbsp; 45kg, 10 reps, 10 RPE</div>
+          </div>
+          <!-- Hybrid mode badges -->
+          <div style="display:flex;gap:6px;margin-top:12px">
+            <div style="background:#2979FF12;border:1px solid #2979FF30;border-radius:14px;padding:4px 10px;font-size:8px;font-weight:700;color:var(--prot)">🏃 HYBRID RUN</div>
+            <div style="background:#FFD74012;border:1px solid #FFD74030;border-radius:14px;padding:4px 10px;font-size:8px;font-weight:700;color:var(--fat)">🔥 HYROX</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feat-text reveal d1">
+      <span class="overline">Smart Rest Timer + Modes</span>
+      <h3>EVERY<br>SECOND<br><em>COUNTS.</em></h3>
+      <p>Auto-starts after every logged set. Compounds get 3 minutes, isolation gets 60 seconds. Haptic tap at 10 seconds. Skip, extend, or override any time.</p>
+      <ul>
+        <li class="blue">Running plans — 5K to marathon, pace zones auto-calculated</li>
+        <li class="blue">Hyrox training — full 8-station simulations with 1km runs between</li>
+        <li class="blue">Hybrid mode — lift + run, algorithm protects recovery</li>
+        <li class="blue">Every workout burns calories → auto-added to your Fuel budget</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CONNECT / SYNC -->
+<section id="sync">
+  <div class="section-headline reveal" style="margin-bottom:48px">
+    <span class="pre">🔗 Connect</span>
+    <h2>EVERY<br>WORKOUT<br><em>EARNS</em><br>CALORIES.</h2>
+  </div>
+  <div class="int-row reveal">
+    <div class="int-pill"><span class="int-pill-icon">🟠</span><div><div class="int-pill-name">Strava</div><div class="int-pill-sub">Runs · Rides · Workouts</div><div class="int-badge">Live API Sync</div></div></div>
+    <div class="int-pill"><span class="int-pill-icon">🍎</span><div><div class="int-pill-name">Apple Health</div><div class="int-pill-sub">Workouts · Steps · Sleep</div><div class="int-badge">XML Import</div></div></div>
+    <div class="int-pill"><span class="int-pill-icon">⌚</span><div><div class="int-pill-name">Garmin Connect</div><div class="int-pill-sub">Activities · HR · Pace</div><div class="int-badge">CSV Import</div></div></div>
+    <div class="int-pill"><span class="int-pill-icon">💜</span><div><div class="int-pill-name">Fitbit</div><div class="int-pill-sub">Workouts · Steps</div><div class="int-badge">CSV Import</div></div></div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" style="padding:80px 0 0">
+  <div class="section-headline reveal" style="margin-bottom:0">
+    <span class="pre">Pricing</span>
+    <h2>START<br><em>FREE.</em></h2>
+  </div>
+  <div class="pricing-grid reveal">
+    <div class="price-card">
+      <div class="price-tier">Monthly</div>
+      <div class="price-amount disp">$4.99<span style="font-size:24px;font-weight:400;color:var(--mu)">/mo</span></div>
+      <div class="price-per">billed monthly · cancel anytime</div>
+      <div class="price-today">Today: $0.00 — 7 days free</div>
+      <ul class="price-feats">
+        <li>AI food logging</li>
+        <li>Dynamic daily macros</li>
+        <li>AI workout generation</li>
+        <li>Restaurant & recipe recs</li>
+        <li>Barcode scanner</li>
+        <li>Fasting tracker</li>
+        <li>Device integrations</li>
+        <li>Progressive overload tracking</li>
+      </ul>
+      <a href="https://buy.stripe.com/test_6oU6oI4ir4PafDa5Vd7wA01" class="price-btn g">Start Free Trial →</a>
+    </div>
+    <div class="price-card featured">
+      <div class="price-pop">BEST VALUE</div>
+      <div class="price-tier">Yearly</div>
+      <div class="price-amount disp" style="color:var(--prot)">$19.99<span style="font-size:24px;font-weight:400;color:var(--mu)">/yr</span></div>
+      <div class="price-per">$1.67/mo · billed annually · 67% off</div>
+      <div class="price-today">Today: $0.00 — 7 days free</div>
+      <ul class="price-feats">
+        <li>Everything in Monthly</li>
+        <li>Hyrox training mode</li>
+        <li>Hybrid splits (strength + run + Hyrox)</li>
+        <li>Full running plans (5K → marathon)</li>
+        <li>Cycle-aware macro targets</li>
+        <li>Health condition adjustments</li>
+        <li>Metabolic adaptation algorithm</li>
+        <li>Early access to new features</li>
+      </ul>
+      <a href="https://buy.stripe.com/test_4gM8wQaGPepKaiQ83l7wA00" class="price-btn p">Start Free Trial →</a>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#222;padding:16px 48px 0">Both plans include everything. Yearly is just cheaper.</p>
+</section>
+
+<!-- FINAL CTA -->
+<div class="cta-block reveal">
+  <h2 class="disp">STOP<br>GUESSING.<br><em>START<br>KNOWING.</em></h2>
+  <p>Your macros. Your workouts. Your data. One system built around how your body actually works.</p>
+  <a href="#pricing" class="btn-hero">Start Free for 7 Days →</a>
+  <div class="cta-note">No credit card · Free trial · Cancel anytime</div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo-mark">
+    <div class="logo-bars"><span></span><span></span><span></span></div>
+    <div class="logo-text"><div class="t1">COACH</div><div class="t2"><span class="c1">M</span><span class="c2">A</span><span class="c3">C</span><span class="c4">RO</span></div></div>
+  </div>
+  <ul class="footer-links">
+    <li><a href="#fuel">Fuel</a></li>
+    <li><a href="#train">Train</a></li>
+    <li><a href="#sync">Connect</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+  </ul>
+  <div class="footer-copy">© 2026 Coach Macro</div>
+</footer>
+
+<script>
+const ro=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('in')})},{threshold:.08});
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+</script>
+</body>
+</html>
