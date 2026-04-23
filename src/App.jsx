@@ -1498,11 +1498,12 @@ function PromoScreen({profile, onValidCode, onNoCode}) {
         </div>
 
         {/* Headline */}
+        <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:'uppercase',marginBottom:12}}>Final Step</div>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,fontStyle:'italic',lineHeight:.9,marginBottom:12}}>
-          ONE LAST STEP,<br/><span style={{color:T.prot}}>{profile?.name || 'ATHLETE'}.</span>
+          GOT A CODE,<br/><span style={{color:T.prot}}>{profile?.name?.toUpperCase() || 'ATHLETE'}?</span>
         </div>
         <p style={{fontSize:15,color:'#888',lineHeight:1.7,marginBottom:36}}>
-          Your personalized plan is ready. If you have a promo code, enter it now to unlock free access. Otherwise, start your 7-day free trial — no charge until day 8.
+          Your plan is built. Enter a promo code for free access — or skip to start your 7-day free trial. No charge until day 8.
         </p>
 
         {/* Code input */}
