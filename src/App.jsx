@@ -6,13 +6,6 @@ const sb = createClient(
   "https://oxxihlwqukbakmnnavuy.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk"
 );
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// ─── SUPABASE ─────────────────────────────────────────────────────────────────
-const SUPA_URL = "https://oxxihlwqukbakmnnavuy.supabase.co";
-const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk";
-const sb = createClient(SUPA_URL, SUPA_KEY);
-
 
 // ─── STRIPE PAYMENT LINKS ─────────────────────────────────────────────────────
 // Replace these two URLs with your actual Stripe Payment Links
@@ -1823,62 +1816,6 @@ function AuthScreen({onAuth}) {
 }
 
 // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
-function AuthScreen({onAuth}) {
-  const [mode,setMode]=useState("login");
-  const [email,setEmail]=useState("");
-  const [password,setPassword]=useState("");
-  const [loading,setLoading]=useState(false);
-  const [error,setError]=useState("");
-  const [msg,setMsg]=useState("");
-
-  async function handle() {
-    if(!email||!password){setError("Please enter your email and password.");return;}
-    if(password.length<6){setError("Password must be at least 6 characters.");return;}
-    setLoading(true);setError("");setMsg("");
-    try {
-      if(mode==="signup") {
-        const {data,error:e}=await sb.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
-        if(e)throw e;
-        if(data.user) onAuth(data.user);
-      } else {
-        const {data,error:e}=await sb.auth.signInWithPassword({email,password});
-        if(e)throw e;
-        onAuth(data.user);
-      }
-    } catch(e){setError(e.message||"Something went wrong.");}
-    setLoading(false);
-  }
-
-  const inp=(v,sv,type="text",ph="")=>(<input value={v} onChange={e=>sv(e.target.value)} type={type} placeholder={ph} onKeyDown={e=>e.key==="Enter"&&handle()} style={{width:"100%",background:T.s2,border:`1.5px solid ${v?T.prot:T.bd}`,borderRadius:11,padding:"13px 16px",color:"#fff",fontSize:15,outline:"none",fontFamily:"'Inter',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>);
-
-  return(
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-      <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
-      <div style={{width:"100%",maxWidth:420}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}>
-          <svg width={52} height={22} viewBox="0 0 52 22"><rect x={0} y={0} width={14} height={22} rx={3} fill={T.prot}/><rect x={19} y={5} width={14} height={17} rx={3} fill={T.carb}/><rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/></svg>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}><div style={{color:"#fff"}}>COACH</div><div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:"#fff"}}>RO</span></div></div>
-        </div>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:12}}>
-          {mode==="login"?<div>WELCOME<br/><span style={{color:T.prot}}>BACK.</span></div>:<div>LET'S BUILD<br/><span style={{color:T.prot}}>YOUR PLAN.</span></div>}
-        </div>
-        <p style={{fontSize:14,color:"#888",marginBottom:28,lineHeight:1.65}}>{mode==="login"?"Sign in to pick up where you left off.":"Create your account — your plan takes about 3 minutes to build."}</p>
-        <div style={{display:"flex",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:10,padding:4,marginBottom:24,gap:4}}>
-          {["login","signup"].map(m=>(<button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode===m?T.prot:"none",color:mode===m?"#fff":T.mu,fontWeight:700,fontSize:14,fontFamily:"'Inter',sans-serif",transition:"all .2s"}}>{m==="login"?"Sign In":"Create Account"}</button>))}
-        </div>
-        <div style={{marginBottom:14}}><label style={{display:"block",fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Email</label>{inp(email,setEmail,"email","you@email.com")}</div>
-        <div style={{marginBottom:24}}><label style={{display:"block",fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Password</label>{inp(password,setPassword,"password","Min 6 characters")}</div>
-        {error&&<div style={{background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.25)",borderRadius:9,padding:"11px 14px",marginBottom:16,fontSize:13,color:"#FF4D6D"}}>{error}</div>}
-        {msg&&<div style={{background:"rgba(0,230,118,.08)",border:"1px solid rgba(0,230,118,.25)",borderRadius:9,padding:"11px 14px",marginBottom:16,fontSize:13,color:T.carb}}>{msg}</div>}
-        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"15px",background:loading?T.s3:T.prot,color:loading?T.mu:"#fff",fontWeight:700,fontSize:15,letterSpacing:.5,border:"none",borderRadius:11,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"'Inter',sans-serif",transition:"all .2s"}}>
-          {loading?"...":(mode==="login"?"Sign In →":"Create Account →")}
-        </button>
-        <div style={{textAlign:"center",marginTop:20,fontSize:12,color:"#333"}}>Your data is stored securely. We never sell it.</div>
-      </div>
-    </div>
-  );
-}
-
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function CoachMacro() {
   const [phase,setPhase]=useState("loading"); // loading | auth | onboarding | promo | paywall | app
