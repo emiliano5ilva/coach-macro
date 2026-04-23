@@ -2037,7 +2037,7 @@ function AuthScreen({onAuth}) {
 // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function CoachMacro() {
-  const [phase,setPhase]=useState("loading"); // loading | auth | onboarding | promo | paywall | app
+  const [phase,setPhase]=useState("auth"); // auth | loading | onboarding | promo | paywall | app
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
@@ -2046,12 +2046,18 @@ export default function CoachMacro() {
   const [earnedCals,setEarnedCals]=useState(0);
 
   useEffect(()=>{
-    // onAuthStateChange fires immediately with current session state — use as primary listener
+    // Check for existing session on mount
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session?.user){
+        setUser(session.user);
+        loadProfile(session.user.id);
+      }
+      // If no session, stay on auth (already default)
+    });
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
-      console.log("Auth event:",event,"session:",session?.user?.email||"none");
       if(event==="SIGNED_OUT"||!session){
         setUser(null);setProfile(null);setPhase("auth");
-      } else if(session?.user){
+      } else if(session?.user && event!=="INITIAL_SESSION"){
         setUser(session.user);
         loadProfile(session.user.id);
       }
