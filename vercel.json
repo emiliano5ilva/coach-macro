@@ -1,9 +1,5 @@
 {
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/", "dest": "/public/landing.html" },
-    { "src": "/landing.html", "dest": "/public/landing.html" },
-    { "src": "/(.*\\.(js|jsx|css|svg|png|ico))", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
