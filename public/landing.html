@@ -330,15 +330,44 @@ footer{border-top:1px solid var(--bd);padding:36px 56px;display:grid;grid-templa
   <div class="stat"><div class="stat-n" style="color:#fff">$0</div><div class="stat-l">charged today<br>7-day free trial</div></div>
 </div>
 
-<!-- DRIVEN BY SCIENCE — MacroFactor style section -->
+<!-- OVERVIEW — Both sides working together -->
 <section class="sec dark">
   <div style="max-width:1100px;margin:0 auto">
-    <div class="reveal" style="margin-bottom:48px">
+    <div class="reveal" style="margin-bottom:56px;text-align:center">
       <span class="overline">Why Coach Macro</span>
-      <h2 class="sec-h">DRIVEN BY SCIENCE.<br><em>FEELS LIKE MAGIC.</em></h2>
-      <p class="sec-sub">Two apps in one — your nutrition and training finally connected. Most apps track one side. This one tracks both and makes them work together.</p>
+      <h2 class="sec-h" style="font-size:clamp(56px,7vw,100px)">DRIVEN BY SCIENCE.<br><em>FEELS LIKE MAGIC.</em></h2>
+      <p class="sec-sub" style="margin:0 auto">Two apps in one — nutrition and training finally connected. Most apps track one or the other. Coach Macro tracks both and makes them work together, automatically, every single day.</p>
     </div>
-    <!-- 3 feature phones like MacroFactor -->
+    <!-- Two big side-by-side feature intros -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--bd);border:1px solid var(--bd);border-radius:20px;overflow:hidden;margin-bottom:56px" class="reveal d1">
+      <!-- FUEL side -->
+      <div style="background:var(--s1);padding:48px 40px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(41,121,255,.08),transparent 70%);pointer-events:none"></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(72px,8vw,108px);font-weight:900;font-style:italic;line-height:.85;letter-spacing:-.02em;color:var(--p);margin-bottom:20px">FUEL</div>
+        <p style="font-size:15px;color:#999;line-height:1.7;max-width:360px;margin-bottom:24px">Your nutrition isn't static. It shifts every single morning based on what your body is doing that day — training, running, Hyrox, or recovering.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--p);font-size:16px">⚡</span>Dynamic macros — different every day</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--p);font-size:16px">🧠</span>AI food logging — describe any meal</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--c);font-size:16px">📷</span>Barcode scanner — 3M+ products</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--f);font-size:16px">🍽️</span>Restaurant AI — exact orders to hit macros</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--c);font-size:16px">⏱️</span>Fasting tracker — 16:8, OMAD, custom</div>
+        </div>
+      </div>
+      <!-- TRAIN side -->
+      <div style="background:var(--bg);padding:48px 40px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-60px;left:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(0,230,118,.06),transparent 70%);pointer-events:none"></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(72px,8vw,108px);font-weight:900;font-style:italic;line-height:.85;letter-spacing:-.02em;color:var(--c);margin-bottom:20px">TRAIN</div>
+        <p style="font-size:15px;color:#999;line-height:1.7;max-width:360px;margin-bottom:24px">Every set logged. Every muscle tracked. Progressive overload calculated automatically. Your workouts earn calories that go straight into your Fuel budget.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--c);font-size:16px">📈</span>Progressive overload — last vs suggested</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--p);font-size:16px">💪</span>Muscle volume tracker — optimal zone</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--c);font-size:16px">⏸️</span>Smart rest timer — auto-starts every set</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--f);font-size:16px">🔥</span>Hyrox + running plans built in</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#ccc"><span style="color:var(--p);font-size:16px">⚡</span>Hybrid mode — strength + cardio + Hyrox</div>
+        </div>
+      </div>
+    </div>
+    <!-- 3 phones -->
     <div class="phones-three reveal d1">
       <!-- Phone 1: Expenditure chart -->
       <div>
@@ -380,7 +409,7 @@ footer{border-top:1px solid var(--bd);padding:36px 56px;display:grid;grid-templa
             <div style="font-size:8px;color:#555;margin-bottom:6px;font-weight:700;letter-spacing:1px">3 PM PICKS</div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #0A0A0A">
               <div style="display:flex;gap:8px;align-items:center"><div style="width:22px;height:22px;border-radius:5px;background:#1A1A1A;display:flex;align-items:center;justify-content:center;font-size:12px">🍗</div><div><div style="font-size:9px;font-weight:600">Chicken Breast 200g</div><div style="font-size:7px;color:#555">46P · 0C · 4F</div></div></div>
-              <div style="background:#1A1A1A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer">+</div>
+              <div style="background:#1A1A1A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px">+</div>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #0A0A0A">
               <div style="display:flex;gap:8px;align-items:center"><div style="width:22px;height:22px;border-radius:5px;background:#1A1A1A;display:flex;align-items:center;justify-content:center;font-size:12px">🍚</div><div><div style="font-size:9px;font-weight:600">Brown Rice 1 cup</div><div style="font-size:7px;color:#555">5P · 45C · 2F</div></div></div>
@@ -398,87 +427,39 @@ footer{border-top:1px solid var(--bd);padding:36px 56px;display:grid;grid-templa
         </div>
         <div class="ph3-label">Log foods fast</div>
       </div>
-      <!-- Phone 3: Muscle optimization dashboard -->
+      <!-- Phone 3: Muscle optimization -->
       <div>
         <div class="ph3">
           <div class="ph3-scr">
             <div style="width:52px;height:4px;background:#1A1A1A;border-radius:2px;margin:0 auto 14px"></div>
             <div style="font-size:8px;color:#555;margin-bottom:2px;font-weight:700;letter-spacing:1px">MUSCLES · 13–19 APR</div>
             <div style="font-size:7px;color:#333;margin-bottom:10px">Weekly volume vs optimal zone</div>
-            <!-- Muscle rows with green border optimization -->
             <div style="display:flex;flex-direction:column;gap:5px">
-              <!-- Shoulders — optimal -->
               <div style="background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);border-radius:7px;padding:6px 8px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:9px;color:#555;font-weight:700">1</span>
-                    <span style="font-size:10px;font-weight:700;color:var(--p)">Shoulders</span>
-                    <span style="background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.35);border-radius:8px;font-size:7px;color:var(--c);font-weight:700;padding:1px 5px">✓ Optimal</span>
-                  </div>
+                  <div style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#555;font-weight:700">1</span><span style="font-size:10px;font-weight:700;color:var(--p)">Shoulders</span><span style="background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.35);border-radius:8px;font-size:7px;color:var(--c);font-weight:700;padding:1px 5px">✓ Optimal</span></div>
                   <span style="font-size:11px;font-weight:800;color:var(--p)">14</span>
                 </div>
-                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px">
-                  <div style="height:100%;width:70%;background:var(--p);border-radius:3px;opacity:.7"></div>
-                  <div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div>
-                  <div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div>
-                </div>
-                <!-- Sub muscles -->
+                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px"><div style="height:100%;width:70%;background:var(--p);border-radius:3px;opacity:.7"></div><div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div><div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div></div>
                 <div style="display:flex;gap:6px;margin-top:5px">
                   <div style="flex:1;background:#0A0A0A;border-radius:5px;padding:3px 5px"><div style="font-size:7px;color:#555">Posterior</div><div style="font-size:8px;font-weight:700;color:#888">8 sets</div></div>
                   <div style="flex:1;background:#0A0A0A;border-radius:5px;padding:3px 5px"><div style="font-size:7px;color:#555">Lateral</div><div style="font-size:8px;font-weight:700;color:#888">4 sets</div></div>
                   <div style="flex:1;background:#0A0A0A;border-radius:5px;padding:3px 5px"><div style="font-size:7px;color:#555">Anterior</div><div style="font-size:8px;font-weight:700;color:#888">2 sets</div></div>
                 </div>
               </div>
-              <!-- Legs — optimal -->
               <div style="background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.25);border-radius:7px;padding:6px 8px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:9px;color:#555;font-weight:700">2</span>
-                    <span style="font-size:10px;font-weight:700;color:var(--run)">Legs</span>
-                    <span style="background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.35);border-radius:8px;font-size:7px;color:var(--c);font-weight:700;padding:1px 5px">✓ Optimal</span>
-                  </div>
-                  <span style="font-size:11px;font-weight:800;color:var(--run)">12</span>
-                </div>
-                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px">
-                  <div style="height:100%;width:60%;background:var(--run);border-radius:3px;opacity:.7"></div>
-                  <div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div>
-                  <div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div>
-                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#555;font-weight:700">2</span><span style="font-size:10px;font-weight:700;color:var(--run)">Legs</span><span style="background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.35);border-radius:8px;font-size:7px;color:var(--c);font-weight:700;padding:1px 5px">✓ Optimal</span></div><span style="font-size:11px;font-weight:800;color:var(--run)">12</span></div>
+                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px"><div style="height:100%;width:60%;background:var(--run);border-radius:3px;opacity:.7"></div><div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div><div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.7)"></div></div>
               </div>
-              <!-- Back — needs more volume -->
               <div style="background:#0D0D0D;border:1px solid #1C1C1C;border-radius:7px;padding:6px 8px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:9px;color:#555;font-weight:700">3</span>
-                    <span style="font-size:10px;font-weight:700;color:#ccc">Back</span>
-                    <span style="background:rgba(255,215,64,.1);border:1px solid rgba(255,215,64,.2);border-radius:8px;font-size:7px;color:var(--f);font-weight:700;padding:1px 5px">+ Add sets</span>
-                  </div>
-                  <span style="font-size:11px;font-weight:800;color:#888">8</span>
-                </div>
-                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px">
-                  <div style="height:100%;width:40%;background:#555;border-radius:3px"></div>
-                  <div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div>
-                  <div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div>
-                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#555;font-weight:700">3</span><span style="font-size:10px;font-weight:700;color:#ccc">Back</span><span style="background:rgba(255,215,64,.1);border:1px solid rgba(255,215,64,.2);border-radius:8px;font-size:7px;color:var(--f);font-weight:700;padding:1px 5px">+ Add sets</span></div><span style="font-size:11px;font-weight:800;color:#888">8</span></div>
+                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px"><div style="height:100%;width:40%;background:#555;border-radius:3px"></div><div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div></div>
               </div>
-              <!-- Chest -->
               <div style="background:#0D0D0D;border:1px solid #1C1C1C;border-radius:7px;padding:6px 8px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:9px;color:#555;font-weight:700">4</span>
-                    <span style="font-size:10px;font-weight:700;color:#ccc">Chest</span>
-                    <span style="background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.35);border-radius:8px;font-size:7px;color:var(--c);font-weight:700;padding:1px 5px">✓ Optimal</span>
-                  </div>
-                  <span style="font-size:11px;font-weight:800;color:#888">10</span>
-                </div>
-                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px">
-                  <div style="height:100%;width:50%;background:#2979FF;border-radius:3px;opacity:.5"></div>
-                  <div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div>
-                  <div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div>
-                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#555;font-weight:700">4</span><span style="font-size:10px;font-weight:700;color:#ccc">Chest</span><span style="background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.35);border-radius:8px;font-size:7px;color:var(--c);font-weight:700;padding:1px 5px">✓ Optimal</span></div><span style="font-size:11px;font-weight:800;color:#888">10</span></div>
+                <div style="position:relative;height:5px;background:#0A0A0A;border-radius:3px"><div style="height:100%;width:50%;background:#2979FF;border-radius:3px;opacity:.5"></div><div style="position:absolute;top:-2px;left:50%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-2px;right:0%;width:1.5px;height:9px;background:rgba(0,230,118,.5)"></div></div>
               </div>
             </div>
-            <!-- Legend -->
             <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:8px;border-top:1px solid #111">
               <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:2px;background:rgba(0,230,118,.6);border-radius:1px"></div><span style="font-size:7px;color:#2A6040">Optimal zone</span></div>
               <div style="margin-left:auto;font-size:8px;color:#444">Total: <b style="color:#888">64 sets</b></div>
@@ -495,45 +476,55 @@ footer{border-top:1px solid var(--bd);padding:36px 56px;display:grid;grid-templa
 <section class="sec" id="fuel">
   <div class="feat-split">
     <div class="reveal">
-      <span class="overline">⚡ Fuel</span>
-      <h2 class="sec-h">NUTRITION THAT<br>KNOWS YOUR<br><em>SCHEDULE.</em></h2>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(80px,10vw,130px);font-weight:900;font-style:italic;line-height:.85;color:var(--p);margin-bottom:16px;letter-spacing:-.02em">FUEL</div>
+      <h2 class="sec-h" style="font-size:clamp(32px,4vw,52px);color:#fff;margin-bottom:16px">NUTRITION THAT<br>KNOWS YOUR SCHEDULE.</h2>
+      <p style="font-size:16px;color:#999;line-height:1.72;max-width:420px;margin-bottom:32px">Every other tracker gives you the same macros every day. Coach Macro shifts them every morning based on what you're actually doing — training, running, resting, or racing.</p>
       <ul class="feat-points">
-        <li class="fp"><span class="fp-dot" style="background:var(--p)"></span><div><div class="fp-title">Dynamic Daily Macros</div><div class="fp-sub">Training day gets higher carbs and more calories. Rest day gets more protein. Recalculates every morning — no other app does this.</div></div></li>
-        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">AI Food Logging</div><div class="fp-sub">Describe your meal in plain language. Macros estimated instantly. No searching, no scrolling.</div></div></li>
-        <li class="fp"><span class="fp-dot" style="background:var(--p)"></span><div><div class="fp-title">Barcode Scanner</div><div class="fp-sub">3M+ products. Exact nutrition data in one tap.</div></div></li>
-        <li class="fp"><span class="fp-dot" style="background:var(--f)"></span><div><div class="fp-title">Restaurant AI</div><div class="fp-sub">Short on protein? AI finds the exact order at Chipotle, Chick-fil-A or wherever's near you to hit your remaining macros.</div></div></li>
-        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">Fasting Tracker</div><div class="fp-sub">16:8, 18:6, 20:4, OMAD or custom. Live countdown. Targets compress into your eating window.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--p)"></span><div><div class="fp-title">Dynamic Daily Macros</div><div class="fp-sub">Training day = higher carbs, more calories. Rest day = more protein, fewer carbs. Recalculates every morning. No other app does this.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">AI Food Logging</div><div class="fp-sub">Describe your meal in plain English. Macros estimated instantly. No searching, no barcode required — just type what you ate.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--p)"></span><div><div class="fp-title">Barcode Scanner</div><div class="fp-sub">3M+ products in the database. Exact nutrition data logged in one tap.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--f)"></span><div><div class="fp-title">Restaurant AI</div><div class="fp-sub">Short on protein tonight? AI finds the exact order at Chipotle, Chick-fil-A, Subway — wherever's near you — to hit your remaining macros.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">Recipe Generator + Fasting Tracker</div><div class="fp-sub">Home recipes built around what you still need. 16:8, 18:6, 20:4, OMAD or custom fasting with live countdown.</div></div></li>
       </ul>
     </div>
     <div class="reveal d1">
       <div class="mock">
         <div class="mock-scr">
           <div class="mock-notch"></div>
-          <div style="font-size:9px;color:var(--mu);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">⚡ FUEL</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-            <div style="background:#111;border:1px solid #1C1C1C;border-radius:9px;padding:11px">
-              <div style="font-size:7px;color:var(--p);font-weight:700;letter-spacing:1px;margin-bottom:7px">TRAINING DAY</div>
-              <div style="display:flex;flex-direction:column;gap:4px">
-                <div><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--p)">Protein</span><span style="color:#555">200g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:75%;background:var(--p);border-radius:2px"></div></div></div>
-                <div><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--c)">Carbs</span><span style="color:#555">320g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:88%;background:var(--c);border-radius:2px"></div></div></div>
-                <div><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--f)">Fat</span><span style="color:#555">68g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:60%;background:var(--f);border-radius:2px"></div></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div><div style="font-size:7px;color:#444">Tuesday · Training Day</div><div style="font-size:12px;font-weight:800">Hey Marcus 👋</div></div>
+            <div style="background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.3);border-radius:18px;padding:3px 8px;font-size:6px;font-weight:700;color:var(--p)">💪 PUSH</div>
+          </div>
+          <div style="text-align:center;margin-bottom:8px">
+            <svg width="130" height="130" style="transform:rotate(-90deg)">
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#1A1A1A" stroke-width="11"/>
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#2979FF" stroke-width="11" stroke-dasharray="109 327" stroke-dashoffset="0" stroke-linecap="round"/>
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#00E676" stroke-width="11" stroke-dasharray="87 327" stroke-dashoffset="-109" stroke-linecap="round"/>
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#FFD740" stroke-width="11" stroke-dasharray="55 327" stroke-dashoffset="-196" stroke-linecap="round"/>
+            </svg>
+            <div style="margin-top:-87px;text-align:center"><div style="font-size:30px;font-weight:900;line-height:1">962</div><div style="font-size:7px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-top:1px">kcal left</div></div>
+            <div style="margin-top:56px;display:flex;justify-content:center;gap:16px;font-size:9px"><span style="color:#666">Budget <b style="color:#fff">2,847</b></span><span style="color:#666">Eaten <b style="color:#fff">1,885</b></span></div>
+          </div>
+          <div style="background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.18);border-radius:7px;padding:5px 9px;display:flex;justify-content:space-between;margin-bottom:9px"><span style="font-size:7px;color:var(--p);font-weight:700">🔥 Strava run · earned</span><span style="color:var(--p);font-weight:900;font-size:9px">+420 kcal</span></div>
+          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--p);font-weight:700">Protein</span><span style="color:#555">195/240g</span></div><div style="height:4px;background:#1A1A1A;border-radius:2px;overflow:hidden"><div style="height:100%;width:81%;background:var(--p);border-radius:2px"></div></div></div>
+          <div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--c);font-weight:700">Carbs</span><span style="color:#555">186/320g</span></div><div style="height:4px;background:#1A1A1A;border-radius:2px;overflow:hidden"><div style="height:100%;width:58%;background:var(--c);border-radius:2px"></div></div></div>
+          <div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--f);font-weight:700">Fat</span><span style="color:#555">47/68g</span></div><div style="height:4px;background:#1A1A1A;border-radius:2px;overflow:hidden"><div style="height:100%;width:69%;background:var(--f);border-radius:2px"></div></div></div>
+          <!-- Training vs rest comparison -->
+          <div style="border-top:1px solid #111;padding-top:10px">
+            <div style="font-size:7px;color:#444;font-weight:700;letter-spacing:1px;margin-bottom:7px">TODAY VS REST DAY</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div style="background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.2);border-radius:7px;padding:8px">
+                <div style="font-size:7px;color:var(--p);font-weight:700;margin-bottom:5px">TRAINING</div>
+                <div style="font-size:10px;font-weight:800;color:#fff">2,847 kcal</div>
+                <div style="font-size:7px;color:#555;margin-top:2px">Carbs ↑ 320g</div>
               </div>
-              <div style="font-size:11px;font-weight:800;color:var(--p);margin-top:8px">2,847 kcal</div>
-            </div>
-            <div style="background:#111;border:1px solid #1C1C1C;border-radius:9px;padding:11px">
-              <div style="font-size:7px;color:var(--mu);font-weight:700;letter-spacing:1px;margin-bottom:7px">REST DAY</div>
-              <div style="display:flex;flex-direction:column;gap:4px">
-                <div><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--p)">Protein</span><span style="color:#555">240g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:92%;background:var(--p);border-radius:2px"></div></div></div>
-                <div><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--c)">Carbs</span><span style="color:#555">160g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:44%;background:var(--c);border-radius:2px"></div></div></div>
-                <div><div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:2px"><span style="color:var(--f)">Fat</span><span style="color:#555">72g</span></div><div style="height:3px;background:#1A1A1A;border-radius:2px"><div style="height:100%;width:66%;background:var(--f);border-radius:2px"></div></div></div>
+              <div style="background:#111;border:1px solid #1A1A1A;border-radius:7px;padding:8px">
+                <div style="font-size:7px;color:#555;font-weight:700;margin-bottom:5px">REST DAY</div>
+                <div style="font-size:10px;font-weight:800;color:#888">1,960 kcal</div>
+                <div style="font-size:7px;color:#555;margin-top:2px">Protein ↑ 240g</div>
               </div>
-              <div style="font-size:11px;font-weight:800;color:var(--mu);margin-top:8px">1,960 kcal</div>
             </div>
           </div>
-          <div style="font-size:7px;color:var(--mu);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Today's Log</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #0A0A0A;font-size:8px"><div style="display:flex;gap:7px;align-items:center"><span>🍗</span><div><div style="font-weight:600">Grilled Chicken 200g</div><div style="color:#555;font-size:7px">P:46g · C:0g · F:4g · 🧠 AI</div></div></div><span style="color:var(--p);font-weight:700">220</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #0A0A0A;font-size:8px"><div style="display:flex;gap:7px;align-items:center"><span>🍚</span><div><div style="font-weight:600">Brown Rice 1 cup</div><div style="color:#555;font-size:7px">P:5g · C:45g · F:2g · 📷 Scan</div></div></div><span style="color:var(--c);font-weight:700">215</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:8px"><div style="display:flex;gap:7px;align-items:center"><span>🥑</span><div><div style="font-weight:600">Avocado ½</div><div style="color:#555;font-size:7px">P:1g · C:4g · F:11g · 📷 Scan</div></div></div><span style="color:var(--f);font-weight:700">118</span></div>
         </div>
       </div>
     </div>
@@ -544,13 +535,14 @@ footer{border-top:1px solid var(--bd);padding:36px 56px;display:grid;grid-templa
 <section class="sec dark" id="train">
   <div class="feat-split flip">
     <div class="reveal">
-      <span class="overline">🏋️ Train</span>
-      <h2 class="sec-h">BUILD MUSCLE.<br>GAIN STRENGTH.<br><em>LIFT SMARTER.</em></h2>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(80px,10vw,130px);font-weight:900;font-style:italic;line-height:.85;color:var(--c);margin-bottom:16px;letter-spacing:-.02em">TRAIN</div>
+      <h2 class="sec-h" style="font-size:clamp(32px,4vw,52px);color:#fff;margin-bottom:16px">BUILD MUSCLE.<br>LIFT SMARTER.</h2>
+      <p style="font-size:16px;color:#999;line-height:1.72;max-width:420px;margin-bottom:32px">Every set you log is tracked. Every workout earns calories that go straight into your Fuel budget. Your training and nutrition finally share the same data.</p>
       <ul class="feat-points">
-        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">Data-Driven Progressive Overload</div><div class="fp-sub">Every set logged. Next session shows your last performance alongside the optimal target — weight, reps, RPE. No guesswork, ever.</div></div></li>
-        <li class="fp"><span class="fp-dot" style="background:var(--p)"></span><div><div class="fp-title">Muscle Volume Tracker</div><div class="fp-sub">See exactly which muscles you've trained this week, how many sets, and whether you're in the optimal training zone — or need more volume before Friday.</div></div></li>
-        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">Smart Rest Timer</div><div class="fp-sub">Auto-starts after every logged set. Compounds get 3 minutes, isolation gets 60–90 seconds. Haptic notification at 10 seconds.</div></div></li>
-        <li class="fp"><span class="fp-dot" style="background:var(--f)"></span><div><div class="fp-title">Running Plans + Hyrox Mode</div><div class="fp-sub">5K to marathon with auto-calculated pace zones. Full Hyrox race simulations — 8 stations, 1km runs between each.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">Data-Driven Progressive Overload</div><div class="fp-sub">Every set logged. Next session shows last performance alongside the optimal target — weight, reps, RPE. No guesswork, ever.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--p)"></span><div><div class="fp-title">Muscle Volume Tracker</div><div class="fp-sub">See every muscle group, how many sets you've hit this week, and whether you're in the optimal training zone or need more volume.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--c)"></span><div><div class="fp-title">Smart Rest Timer</div><div class="fp-sub">Auto-starts after every logged set. Compounds get 3 minutes, isolation 60–90 seconds. Haptic notification at 10 seconds.</div></div></li>
+        <li class="fp"><span class="fp-dot" style="background:var(--f)"></span><div><div class="fp-title">Running Plans + Hyrox Mode</div><div class="fp-sub">5K to marathon with auto-calculated pace zones. Full Hyrox simulations — 8 stations, 1km runs between each.</div></div></li>
         <li class="fp"><span class="fp-dot" style="background:var(--p)"></span><div><div class="fp-title">Hybrid Athlete</div><div class="fp-sub">Mix strength, running, and Hyrox in any combination. Algorithm prevents recovery conflicts automatically.</div></div></li>
       </ul>
     </div>
@@ -558,70 +550,41 @@ footer{border-top:1px solid var(--bd);padding:36px 56px;display:grid;grid-templa
       <div class="mock">
         <div class="mock-scr">
           <div class="mock-notch"></div>
-          <!-- Header: Sleep / Recovery / Nutrition scores like Strongsplit -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
             <div style="background:linear-gradient(135deg,#1A1060,#0D0A3A);border:1px solid #2A1880;border-radius:9px;padding:8px 6px;text-align:center">
               <div style="font-size:8px;color:#9B7FFF;font-weight:700;letter-spacing:.5px;margin-bottom:3px">SLEEP</div>
               <div style="font-size:16px;font-weight:900;color:#fff;line-height:1">90<span style="font-size:9px;color:#666">/100</span></div>
               <div style="height:2px;background:#1A1A3A;border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:100%;width:90%;background:#9B7FFF;border-radius:1px"></div></div>
-              <div style="font-size:7px;color:#5A4A90;margin-top:3px">70–90</div>
             </div>
             <div style="background:linear-gradient(135deg,#1A0A40,#200A50);border:1px solid #3A1060;border-radius:9px;padding:8px 6px;text-align:center">
               <div style="font-size:8px;color:#C060FF;font-weight:700;letter-spacing:.5px;margin-bottom:3px">RECOVERY</div>
               <div style="font-size:16px;font-weight:900;color:#fff;line-height:1">88<span style="font-size:9px;color:#666">/100</span></div>
               <div style="height:2px;background:#1A0A3A;border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:100%;width:88%;background:#C060FF;border-radius:1px"></div></div>
-              <div style="font-size:7px;color:#6A3080;margin-top:3px">70–90</div>
             </div>
             <div style="background:linear-gradient(135deg,#0A1A10,#0A2018);border:1px solid #1A4028;border-radius:9px;padding:8px 6px;text-align:center">
               <div style="font-size:8px;color:#00E676;font-weight:700;letter-spacing:.5px;margin-bottom:3px">NUTRITION</div>
               <div style="font-size:16px;font-weight:900;color:#fff;line-height:1">1.8k<span style="font-size:9px;color:#666"> kcal</span></div>
               <div style="height:2px;background:#0A1A0A;border-radius:1px;margin-top:5px;overflow:hidden"><div style="height:100%;width:72%;background:var(--c);border-radius:1px"></div></div>
-              <div style="font-size:7px;color:#2A6040;margin-top:3px">1.3k–1.7k</div>
             </div>
           </div>
-          <!-- Muscle volume table — Strongsplit style -->
           <div style="background:#0D0D0D;border:1px solid #1C1C1C;border-radius:9px;overflow:hidden;margin-bottom:8px">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:1px solid #111">
               <div style="font-size:8px;color:#888;font-weight:700">Muscles: 13–19 Apr</div>
               <div style="font-size:8px;color:#555">↕ Sets</div>
             </div>
-            <!-- Shoulders — highlighted, most trained -->
             <div style="background:rgba(41,121,255,.15);border-left:3px solid var(--p);padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A">
-              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:var(--mu);font-weight:700">1</span><span style="font-size:10px;font-weight:700;color:var(--p)">Shoulders</span></div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:60px;height:4px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="position:absolute;top:0;left:0;height:100%;width:85%;background:linear-gradient(90deg,var(--p),rgba(41,121,255,.4));border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:6px;width:1px;background:rgba(0,230,118,.6)"></div><div style="position:absolute;top:-1px;right:15%;height:6px;width:1px;background:rgba(0,230,118,.6)"></div></div>
-                <span style="font-size:9px;font-weight:800;color:var(--p)">14</span>
-              </div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:var(--mu);font-weight:700">1</span><span style="font-size:10px;font-weight:700;color:var(--p)">Shoulders</span><span style="background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.3);border-radius:8px;font-size:7px;color:var(--c);font-weight:700;padding:1px 5px">✓ Optimal</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:4px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="position:absolute;top:0;left:0;height:100%;width:85%;background:linear-gradient(90deg,var(--p),rgba(41,121,255,.4));border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:6px;width:1px;background:rgba(0,230,118,.6)"></div><div style="position:absolute;top:-1px;right:15%;height:6px;width:1px;background:rgba(0,230,118,.6)"></div></div><span style="font-size:9px;font-weight:800;color:var(--p)">14</span></div>
             </div>
-            <!-- Sub: posterior & lateral -->
-            <div style="padding:4px 10px 4px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #0A0A0A">
-              <span style="font-size:8px;color:#555">Posterior head</span>
-              <div style="display:flex;align-items:center;gap:8px"><div style="width:40px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden"><div style="height:100%;width:70%;background:rgba(41,121,255,.5);border-radius:2px"></div></div><span style="font-size:8px;color:#555">8</span></div>
-            </div>
-            <div style="padding:4px 10px 4px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #111">
-              <span style="font-size:8px;color:#555">Lateral head</span>
-              <div style="display:flex;align-items:center;gap:8px"><div style="width:40px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden"><div style="height:100%;width:35%;background:rgba(41,121,255,.4);border-radius:2px"></div></div><span style="font-size:8px;color:#555">4</span></div>
-            </div>
-            <!-- Other muscles -->
-            <!-- Other muscles — static -->
-            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">2</span><span style="font-size:10px;color:#ccc">Legs</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:7px;color:#444">3d</span><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:72%;background:rgba(41,121,255,.55);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">12</span></div></div>
-            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">3</span><span style="font-size:10px;color:#ccc">Chest</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:7px;color:#444">1d</span><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:88%;background:rgba(41,121,255,.55);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">10</span></div></div>
-            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">4</span><span style="font-size:10px;color:#ccc">Back</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:7px;color:#444">5d</span><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:45%;background:rgba(41,121,255,.35);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">8</span></div></div>
-            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">5</span><span style="font-size:10px;color:#ccc">Biceps</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:7px;color:#444">1d</span><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:80%;background:rgba(41,121,255,.55);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">9</span></div></div>
-            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">6</span><span style="font-size:10px;color:#ccc">Triceps</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:7px;color:#444">1d</span><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:85%;background:rgba(41,121,255,.55);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">11</span></div></div>
+            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">2</span><span style="font-size:10px;color:#ccc">Legs</span></div><div style="display:flex;align-items:center;gap:8px"><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:72%;background:rgba(41,121,255,.55);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">12</span></div></div>
+            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">3</span><span style="font-size:10px;color:#ccc">Chest</span></div><div style="display:flex;align-items:center;gap:8px"><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:88%;background:rgba(41,121,255,.55);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">10</span></div></div>
+            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0A0A0A"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">4</span><span style="font-size:10px;color:#ccc">Back</span><span style="background:rgba(255,215,64,.1);border:1px solid rgba(255,215,64,.2);border-radius:8px;font-size:7px;color:var(--f);font-weight:700;padding:1px 5px;margin-left:4px">+ Add sets</span></div><div style="display:flex;align-items:center;gap:8px"><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:45%;background:rgba(41,121,255,.35);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">8</span></div></div>
+            <div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:#444;font-weight:700">5</span><span style="font-size:10px;color:#ccc">Biceps</span></div><div style="display:flex;align-items:center;gap:8px"><div style="width:50px;height:3px;background:#1A1A1A;border-radius:2px;overflow:hidden;position:relative"><div style="height:100%;width:80%;background:rgba(41,121,255,.55);border-radius:2px"></div><div style="position:absolute;top:-1px;left:60%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div><div style="position:absolute;top:-1px;right:18%;height:5px;width:1px;background:rgba(0,230,118,.5)"></div></div><span style="font-size:9px;color:#888;font-weight:700">9</span></div></div>
           </div>
-          <!-- Bottom tags -->
           <div style="display:flex;gap:6px;align-items:center">
             <div style="background:#111;border:1px solid #1C1C1C;border-radius:20px;padding:4px 10px;font-size:8px;color:#888;font-weight:700">📊 10–20 sets</div>
             <div style="background:#111;border:1px solid #1C1C1C;border-radius:20px;padding:4px 10px;font-size:8px;color:#888">👁 Recovery</div>
             <div style="margin-left:auto;font-size:8px;color:#555;font-weight:700">Total: 64 sets</div>
-          </div>
-          <!-- Optimal zone legend -->
-          <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
-            <div style="width:16px;height:2px;background:rgba(0,230,118,.6);border-radius:1px"></div>
-            <span style="font-size:8px;color:#2A6040">Optimal training zone</span>
-            <div style="width:16px;height:2px;background:rgba(41,121,255,.4);border-radius:1px;margin-left:8px"></div>
-            <span style="font-size:8px;color:#4A72C0">Current volume</span>
           </div>
         </div>
       </div>
