@@ -379,11 +379,11 @@ function Logo({size=32,text=true}) {
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────────────────
-function Onboarding({onComplete, user}) {
+function Onboarding({onComplete, user, signupName}) {
   const [sc,setSc]=useState(0);
   const [chatReply,setCR]=useState("");
   const [goalRate,setGR]=useState("");
-  const [d,setD]=useState({name:"",email:user?.email||"",healthConn:false,sex:"",dobMonth:"Jan",dobDay:"15",dobYear:"1995",hUnit:"ft",hFt:"5",hIn:"10",hCm:"178",wUnit:"lbs",weight:"185",wHistory:"",wTrend:"",bodyFat:"",job:"",steps:"",freq:"",trainType:"",intensity:"",activity:"",sleep:"",sleepQ:"",metHistory:"",protein:"",conditions:[],cycle:"",liftExp:"",cardioExp:"",goal:"",goalTimeline:"",targetWeight:""});
+  const [d,setD]=useState({name:signupName||"",email:user?.email||"",healthConn:false,sex:"",dobMonth:"Jan",dobDay:"15",dobYear:"1995",hUnit:"ft",hFt:"5",hIn:"10",hCm:"178",wUnit:"lbs",weight:"185",wHistory:"",wTrend:"",bodyFat:"",job:"",steps:"",freq:"",trainType:"",intensity:"",activity:"",sleep:"",sleepQ:"",metHistory:"",protein:"",conditions:[],cycle:"",liftExp:"",cardioExp:"",goal:"",goalTimeline:"",targetWeight:""});
   const upd=(k,v)=>setD(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(next,260);};
   const tdee=calcTDEE(d);
@@ -1943,98 +1943,83 @@ function Paywall({profile}) {
 
 // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
 function AuthScreen({onAuth}) {
-  const [mode,setMode]=useState("login"); // login | signup
+  const [mode,setMode]=useState("signup"); // signup | login
+  const [name,setName]=useState("");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
-  const [msg,setMsg]=useState("");
 
   async function handle() {
-    if(!email||!password){setError("Please enter your email and password.");return;}
+    if(mode==="signup"&&!name.trim()){setError("Please enter your name.");return;}
+    if(!email.trim()){setError("Please enter your email.");return;}
     if(password.length<6){setError("Password must be at least 6 characters.");return;}
-    setLoading(true);setError("");setMsg("");
+    setLoading(true);setError("");
     try {
       if(mode==="signup") {
         const {data,error:e}=await sb.auth.signUp({email,password});
         if(e)throw e;
-        if(data.user) {
-          setMsg("Account created! Checking profile...");
-          onAuth(data.user);
-        }
+        if(data.user) onAuth(data.user, name.trim());
       } else {
         const {data,error:e}=await sb.auth.signInWithPassword({email,password});
         if(e)throw e;
-        onAuth(data.user);
+        onAuth(data.user, null);
       }
-    } catch(e) {
-      setError(e.message||"Something went wrong. Try again.");
-    }
+    } catch(e){setError(e.message||"Something went wrong. Try again.");}
     setLoading(false);
   }
 
+  const field=(label,val,setVal,type="text",ph="")=>(
+    <div style={{marginBottom:14}}>
+      <label style={{display:"block",fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>{label}</label>
+      <input value={val} onChange={e=>setVal(e.target.value)} type={type} placeholder={ph}
+        onKeyDown={e=>e.key==="Enter"&&handle()}
+        style={{width:"100%",background:T.s2,border:`1.5px solid ${val?T.prot:T.bd}`,borderRadius:11,padding:"13px 16px",color:"#fff",fontSize:15,outline:"none",fontFamily:"'Inter',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>
+    </div>
+  );
+
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-      <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
+      <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
       <div style={{width:"100%",maxWidth:420}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}>
-          <svg width={52} height={22} viewBox="0 0 52 22">
-            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
-            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
-            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
-          </svg>
+          <svg width={52} height={22} viewBox="0 0 52 22"><rect x={0} y={0} width={14} height={22} rx={3} fill={T.prot}/><rect x={19} y={5} width={14} height={17} rx={3} fill={T.carb}/><rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/></svg>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
             <div style={{color:"#fff"}}>COACH</div>
             <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:"#fff"}}>RO</span></div>
           </div>
         </div>
 
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:10}}>
-          {mode==="login"?"WELCOME<br/>BACK.".split("<br/>").map((l,i)=><div key={i}>{i===1?<span style={{color:T.prot}}>{l}</span>:l}</div>)
-          :<div>LET'S<br/><span style={{color:T.prot}}>BUILD<br/>YOUR PLAN.</span></div>}
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:12}}>
+          {mode==="signup"?<div>CREATE YOUR<br/><span style={{color:T.prot}}>ACCOUNT.</span></div>:<div>WELCOME<br/><span style={{color:T.prot}}>BACK.</span></div>}
         </div>
         <p style={{fontSize:14,color:"#888",marginBottom:28,lineHeight:1.65}}>
-          {mode==="login"?"Sign in to access your dashboard and pick up where you left off.":"Create your account to get started. Your plan takes about 3 minutes to build."}
+          {mode==="signup"?"One account. Your plan, your logs, your progress — all saved.":"Sign in to pick up where you left off."}
         </p>
 
         {/* Toggle */}
         <div style={{display:"flex",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:10,padding:4,marginBottom:24,gap:4}}>
-          {["login","signup"].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError("");setMsg("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode===m?T.prot:"none",color:mode===m?"#fff":T.mu,fontWeight:700,fontSize:14,fontFamily:"'Inter',sans-serif",transition:"all .2s"}}>
-              {m==="login"?"Sign In":"Create Account"}
-            </button>
+          {[["signup","Create Account"],["login","Sign In"]].map(([m,l])=>(
+            <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode===m?T.prot:"none",color:mode===m?"#fff":T.mu,fontWeight:700,fontSize:14,fontFamily:"'Inter',sans-serif",transition:"all .2s"}}>{l}</button>
           ))}
         </div>
 
-        <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Email</label>
-          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@email.com"
-            onKeyDown={e=>e.key==="Enter"&&handle()}
-            style={{width:"100%",background:T.s2,border:`1.5px solid ${email?T.prot:T.bd}`,borderRadius:11,padding:"13px 16px",color:"#fff",fontSize:15,outline:"none",fontFamily:"'Inter',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>
-        </div>
-        <div style={{marginBottom:24}}>
-          <label style={{display:"block",fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Password</label>
-          <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Min 6 characters"
-            onKeyDown={e=>e.key==="Enter"&&handle()}
-            style={{width:"100%",background:T.s2,border:`1.5px solid ${password?T.prot:T.bd}`,borderRadius:11,padding:"13px 16px",color:"#fff",fontSize:15,outline:"none",fontFamily:"'Inter',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>
-        </div>
+        {mode==="signup"&&field("Your Name",name,setName,"text","e.g. Marcus")}
+        {field("Email",email,setEmail,"email","you@email.com")}
+        {field("Password",password,setPassword,"password","Min 6 characters")}
 
         {error&&<div style={{background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.25)",borderRadius:9,padding:"11px 14px",marginBottom:16,fontSize:13,color:"#FF4D6D"}}>{error}</div>}
-        {msg&&<div style={{background:"rgba(0,230,118,.08)",border:"1px solid rgba(0,230,118,.25)",borderRadius:9,padding:"11px 14px",marginBottom:16,fontSize:13,color:T.carb}}>{msg}</div>}
 
-        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"15px",background:loading?T.s3:T.prot,color:loading?T.mu:"#fff",fontWeight:700,fontSize:15,letterSpacing:.5,border:"none",borderRadius:11,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"'Inter',sans-serif",transition:"opacity .2s"}}>
-          {loading?"...":(mode==="login"?"Sign In →":"Create Account →")}
+        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"15px",background:loading?T.s3:T.prot,color:loading?T.mu:"#fff",fontWeight:700,fontSize:15,letterSpacing:.5,border:"none",borderRadius:11,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:16}}>
+          {loading?"...":(mode==="signup"?"Create Account →":"Sign In →")}
         </button>
-
-        <div style={{textAlign:"center",marginTop:20,fontSize:12,color:"#333"}}>
-          Your data is stored securely. We never sell it.
-        </div>
+        <div style={{textAlign:"center",fontSize:12,color:"#333"}}>Your data is stored securely. We never sell it.</div>
       </div>
     </div>
   );
 }
 
-// ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
+
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function CoachMacro() {
   const [phase,setPhase]=useState("auth"); // auth | loading | onboarding | promo | paywall | app
@@ -2044,22 +2029,22 @@ export default function CoachMacro() {
   const [wPrefs,setWPrefs]=useState({splitType:"Push/Pull/Legs",equipment:"Full Gym",isHybrid:false,isHyrox:false});
   const [dayFocus,setDayFocus]=useState(autoFocus({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"},"Push/Pull/Legs"));
   const [earnedCals,setEarnedCals]=useState(0);
+  const [signupName,setSignupName]=useState("");
 
   useEffect(()=>{
-    // Check for existing session on mount
-    sb.auth.getSession().then(({data:{session}})=>{
-      if(session?.user){
-        setUser(session.user);
-        loadProfile(session.user.id);
+    // Only use getSession — ignore onAuthStateChange on initial load to avoid race
+    sb.auth.getSession().then(({data:{session},error})=>{
+      if(error||!session?.user){
+        setPhase("auth");
+        return;
       }
-      // If no session, stay on auth (already default)
+      setUser(session.user);
+      loadProfile(session.user.id);
     });
+    // Only listen for explicit sign-out after initial load
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
-      if(event==="SIGNED_OUT"||!session){
+      if(event==="SIGNED_OUT"){
         setUser(null);setProfile(null);setPhase("auth");
-      } else if(session?.user && event!=="INITIAL_SESSION"){
-        setUser(session.user);
-        loadProfile(session.user.id);
       }
     });
     return()=>subscription.unsubscribe();
@@ -2083,6 +2068,7 @@ export default function CoachMacro() {
   }
 
   async function handleAuth(authUser) {
+    setPhase("loading");
     setUser(authUser);
     await loadProfile(authUser.id);
   }
@@ -2129,7 +2115,7 @@ export default function CoachMacro() {
   );
 
   if(phase==="auth")       return <AuthScreen onAuth={handleAuth}/>;
-  if(phase==="onboarding") return <Onboarding onComplete={handleComplete} user={user}/>;
+  if(phase==="onboarding") return <Onboarding onComplete={handleComplete} user={user} signupName={signupName}/>;
   if(phase==="promo")      return <PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
   if(phase==="paywall")    return <Paywall profile={profile}/>;
   return <App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user}/>;
