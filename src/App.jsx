@@ -1941,6 +1941,190 @@ function Paywall({profile}) {
   );
 }
 
+// ─── LANDING PAGE ─────────────────────────────────────────────────────────────
+function LandingPage({onSignUp}) {
+  const [scrolled,setScrolled]=useState(false);
+  useEffect(()=>{
+    const h=()=>setScrolled(window.scrollY>40);
+    window.addEventListener("scroll",h);
+    return()=>window.removeEventListener("scroll",h);
+  },[]);
+
+  const Btn=({children,style={}})=>(
+    <button onClick={onSignUp} style={{background:T.prot,color:"#fff",border:"none",borderRadius:9,padding:"14px 28px",fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"'Inter',sans-serif",transition:"all .2s",...style}}>{children}</button>
+  );
+
+  return(
+    <div style={{minHeight:"100vh",background:"#080808",color:"#fff",fontFamily:"'Inter',system-ui,sans-serif",overflowX:"hidden"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        ::selection{background:#2979FF;color:#fff}
+      `}</style>
+
+      {/* NAV */}
+      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:200,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 48px",background:scrolled?"rgba(8,8,8,.95)":"transparent",backdropFilter:scrolled?"blur(16px)":"none",borderBottom:scrolled?"1px solid rgba(255,255,255,.04)":"none",transition:"all .3s"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <svg width={52} height={22} viewBox="0 0 52 22"><rect x={0} y={0} width={14} height={22} rx={3} fill="#2979FF"/><rect x={19} y={5} width={14} height={17} rx={3} fill="#00E676"/><rect x={38} y={10} width={14} height={12} rx={3} fill="#FFD740"/></svg>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
+            <div style={{color:"#fff"}}>COACH</div>
+            <div><span style={{color:"#2979FF"}}>M</span><span style={{color:"#00E676"}}>A</span><span style={{color:"#FFD740"}}>C</span><span style={{color:"#fff"}}>RO</span></div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <button onClick={onSignUp} style={{color:"#aaa",fontSize:14,fontWeight:500,padding:"9px 18px",borderRadius:8,border:"1px solid #1C1C1C",background:"none",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}>Log in</button>
+          <button onClick={onSignUp} style={{background:"#2979FF",color:"#fff",fontSize:14,fontWeight:700,padding:"10px 22px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit"}}>Start Free →</button>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section style={{minHeight:"100vh",padding:"140px 56px 80px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:80,alignItems:"center",maxWidth:1200,margin:"0 auto"}}>
+        <div>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(41,121,255,.08)",border:"1px solid rgba(41,121,255,.18)",borderRadius:24,padding:"7px 18px",fontSize:11,fontWeight:700,letterSpacing:3,textTransform:"uppercase",color:"#2979FF",marginBottom:28}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:"#2979FF",display:"inline-block"}}></span>
+            AI Fitness Platform
+          </div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(68px,7.5vw,110px)",fontWeight:900,fontStyle:"italic",lineHeight:.88,letterSpacing:"-.02em",marginBottom:24}}>
+            FUEL<br/>SMARTER.<br/><span style={{color:"#2979FF"}}>TRAIN<br/>HARDER.</span>
+          </div>
+          <p style={{fontSize:18,color:"#666",lineHeight:1.7,maxWidth:420,marginBottom:32}}>The only app where your nutrition and training share one brain — adjusting every day based on what you actually do.</p>
+          <div style={{display:"flex",gap:12,marginBottom:40,flexWrap:"wrap"}}>
+            <Btn style={{fontSize:15,padding:"15px 30px"}}>Start Free for 7 Days →</Btn>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <div style={{display:"flex"}}>
+              {["#2979FF","#00E676","#FFD740","#00C9A7"].map((c,i)=>(
+                <div key={i} style={{width:32,height:32,borderRadius:"50%",background:`linear-gradient(135deg,${c},${c}88)`,border:"2px solid #080808",marginLeft:i?-9:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>
+                  {["M","J","S","A"][i]}
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{color:"#FFD740",fontSize:13,letterSpacing:2}}>★★★★★</div>
+              <div style={{fontSize:13,color:"#666",marginTop:2}}>Loved by <b style={{color:"#fff"}}>400+ athletes</b> · 7-day free trial</div>
+            </div>
+          </div>
+        </div>
+        {/* Hero visual */}
+        <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
+          <div style={{background:"#0D0D0D",border:"1px solid #1C1C1C",borderRadius:36,overflow:"hidden",width:260,boxShadow:"0 40px 80px rgba(0,0,0,.7)"}}>
+            <div style={{background:"#060606",padding:"20px 16px",minHeight:480}}>
+              <div style={{width:58,height:4,background:"#1A1A1A",borderRadius:2,margin:"0 auto 16px"}}></div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <div><div style={{fontSize:8,color:"#444"}}>Training Day</div><div style={{fontSize:13,fontWeight:800}}>Hey Marcus 👋</div></div>
+                <div style={{background:"rgba(41,121,255,.15)",border:"1px solid rgba(41,121,255,.3)",borderRadius:18,padding:"3px 8px",fontSize:7,fontWeight:700,color:"#2979FF"}}>💪 PUSH</div>
+              </div>
+              <div style={{textAlign:"center",marginBottom:10}}>
+                <svg width="130" height="130" style={{transform:"rotate(-90deg)"}}>
+                  <circle cx="65" cy="65" r="52" fill="none" stroke="#1A1A1A" strokeWidth="11"/>
+                  <circle cx="65" cy="65" r="52" fill="none" stroke="#2979FF" strokeWidth="11" strokeDasharray="109 327" strokeDashoffset="0" strokeLinecap="round"/>
+                  <circle cx="65" cy="65" r="52" fill="none" stroke="#00E676" strokeWidth="11" strokeDasharray="87 327" strokeDashoffset="-109" strokeLinecap="round"/>
+                  <circle cx="65" cy="65" r="52" fill="none" stroke="#FFD740" strokeWidth="11" strokeDasharray="55 327" strokeDashoffset="-196" strokeLinecap="round"/>
+                </svg>
+                <div style={{marginTop:-87,textAlign:"center"}}><div style={{fontSize:30,fontWeight:900,lineHeight:1}}>962</div><div style={{fontSize:7,color:"#444",textTransform:"uppercase",letterSpacing:1,marginTop:1}}>kcal left</div></div>
+                <div style={{marginTop:56,display:"flex",justifyContent:"center",gap:16,fontSize:9}}><span style={{color:"#666"}}>Budget <b style={{color:"#fff"}}>2,847</b></span><span style={{color:"#666"}}>Eaten <b style={{color:"#fff"}}>1,885</b></span></div>
+              </div>
+              {[["Protein","#2979FF","195/240g",81],["Carbs","#00E676","186/320g",58],["Fat","#FFD740","47/68g",69]].map(([n,c,v,p])=>(
+                <div key={n} style={{marginBottom:6}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:8,marginBottom:2}}><span style={{color:c,fontWeight:700}}>{n}</span><span style={{color:"#555"}}>{v}</span></div>
+                  <div style={{height:4,background:"#1A1A1A",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}></div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* STATS */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderTop:"1px solid #1C1C1C",borderBottom:"1px solid #1C1C1C"}}>
+        {[["25","metabolic variables","#2979FF"],["3M+","foods in database","#00E676"],["4","device integrations","#FFD740"],["$0","charged today","#fff"]].map(([n,l,c])=>(
+          <div key={n} style={{padding:"36px 24px",textAlign:"center",borderRight:"1px solid #1C1C1C"}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:56,fontWeight:900,lineHeight:1,color:c}}>{n}</div>
+            <div style={{fontSize:12,color:"#4A4A4A",marginTop:6}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* WHY */}
+      <section style={{padding:"96px 56px",maxWidth:1100,margin:"0 auto",textAlign:"center"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(48px,6.5vw,88px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
+          MOST PEOPLE TRAIN HARD<br/>AND <span style={{color:"#2979FF"}}>STILL DON'T SEE RESULTS.</span>
+        </div>
+        <p style={{fontSize:16,color:"#666",maxWidth:520,margin:"0 auto 56px",lineHeight:1.72}}>It's not effort. It's the missing connection between what you eat and how you train.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:"#1C1C1C",border:"1px solid #1C1C1C",borderRadius:16,overflow:"hidden",marginBottom:56}}>
+          {[["73%","of lifters undereat on training days","Carb needs increase 30–50% on heavy training days. Eating the same every day leaves performance on the floor.","#2979FF"],
+            ["2–3×","more strength gained with tracked overload","Athletes who log volume and progression consistently outperform those who train by feel — across every study.","#00E676"],
+            ["68%","never hit their protein target consistently","0.7–1g per lb is the proven minimum for muscle growth. Most people miss it more days than they hit it.","#FFD740"]
+          ].map(([n,h,b,c])=>(
+            <div key={n} style={{background:"#0F0F0F",padding:"32px 28px"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:56,fontWeight:900,color:c,lineHeight:1,marginBottom:8}}>{n}</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:8}}>{h}</div>
+              <div style={{fontSize:13,color:"#666",lineHeight:1.7}}>{b}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:2,background:"#1C1C1C",border:"1px solid #1C1C1C",borderRadius:16,overflow:"hidden",maxWidth:900,margin:"0 auto 56px"}}>
+          <div style={{background:"#0F0F0F",padding:"48px 40px"}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(72px,8vw,108px)",fontWeight:900,fontStyle:"italic",lineHeight:.85,color:"#2979FF",marginBottom:20}}>FUEL</div>
+            <p style={{fontSize:15,color:"#999",lineHeight:1.7,marginBottom:24}}>Dynamic nutrition that shifts every morning based on what your body needs today.</p>
+            {["Dynamic macros — different every day","AI food logging — describe any meal","Barcode scanner — 3M+ products","Restaurant AI — exact orders to hit macros","Fasting tracker — 16:8, OMAD, custom"].map(f=>(
+              <div key={f} style={{display:"flex",alignItems:"center",gap:10,fontSize:14,color:"#ccc",marginBottom:10}}><span style={{color:"#2979FF"}}>⚡</span>{f}</div>
+            ))}
+          </div>
+          <div style={{background:"#080808",padding:"48px 40px"}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(72px,8vw,108px)",fontWeight:900,fontStyle:"italic",lineHeight:.85,color:"#00E676",marginBottom:20}}>TRAIN</div>
+            <p style={{fontSize:15,color:"#999",lineHeight:1.7,marginBottom:24}}>Every set logged. Every muscle tracked. Workouts earn calories that go into your Fuel budget.</p>
+            {["Progressive overload — last vs suggested","Muscle volume tracker — optimal zone","Smart rest timer — auto-starts every set","Hyrox + running plans built in","Hybrid mode — strength + cardio + Hyrox"].map(f=>(
+              <div key={f} style={{display:"flex",alignItems:"center",gap:10,fontSize:14,color:"#ccc",marginBottom:10}}><span style={{color:"#00E676"}}>📈</span>{f}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section style={{padding:"96px 56px",textAlign:"center",background:"#050505"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(48px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
+          START FREE.<br/><span style={{color:"#2979FF"}}>STAY BECAUSE IT WORKS.</span>
+        </div>
+        <p style={{fontSize:16,color:"#666",maxWidth:480,margin:"0 auto 48px",lineHeight:1.65}}>7 days free. No credit card required. Cancel before day 8 and pay nothing.</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,maxWidth:760,margin:"0 auto"}}>
+          {[{t:"Monthly",p:"$4.99",per:"/mo",s:"billed monthly",note:"Today: $0.00",featured:false},
+            {t:"Yearly",p:"$19.99",per:"/yr",s:"$1.67/month · 67% off",note:"Today: $0.00",featured:true}
+          ].map(({t,p,per,s,note,featured})=>(
+            <div key={t} style={{background:featured?"#050A14":"#0F0F0F",border:`1.5px solid ${featured?"rgba(41,121,255,.3)":"#1C1C1C"}`,borderRadius:18,padding:"36px 32px",position:"relative"}}>
+              {featured&&<div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"#2979FF",color:"#fff",fontSize:9,fontWeight:800,padding:"4px 14px",borderRadius:9,letterSpacing:1.5,whiteSpace:"nowrap"}}>BEST VALUE</div>}
+              <div style={{fontSize:10,color:"#4A4A4A",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:14}}>{t}</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:68,fontWeight:900,lineHeight:1,letterSpacing:-2,color:featured?"#2979FF":"#fff",marginBottom:4}}>{p}<span style={{fontSize:22,fontWeight:400,color:"#4A4A4A"}}>{per}</span></div>
+              <div style={{fontSize:13,color:"#4A4A4A",marginBottom:6}}>{s}</div>
+              <div style={{fontSize:13,color:"#00E676",fontWeight:700,marginBottom:24}}>{note} — 7 days free</div>
+              <button onClick={onSignUp} style={{display:"block",width:"100%",textAlign:"center",padding:"15px",borderRadius:10,fontWeight:700,fontSize:15,cursor:"pointer",border:"none",fontFamily:"'Inter',sans-serif",background:featured?"#2979FF":"#1C1C1C",color:"#fff"}}>Start Free Trial →</button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{padding:"100px 56px",textAlign:"center"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(56px,8vw,112px)",fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:18}}>
+          STOP GUESSING.<br/><span style={{color:"#2979FF"}}>START KNOWING.</span>
+        </div>
+        <p style={{fontSize:17,color:"#666",maxWidth:420,margin:"0 auto 32px",lineHeight:1.65}}>Your macros. Your workouts. Your data. One system built around how your body actually works.</p>
+        <Btn style={{fontSize:17,padding:"17px 40px"}}>Start Free for 7 Days →</Btn>
+        <div style={{fontSize:13,color:"#1C1C1C",marginTop:14}}>No credit card · Free trial · Cancel anytime</div>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{borderTop:"1px solid #1C1C1C",padding:"36px 56px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <svg width={40} height={17} viewBox="0 0 52 22"><rect x={0} y={0} width={14} height={22} rx={3} fill="#2979FF"/><rect x={19} y={5} width={14} height={17} rx={3} fill="#00E676"/><rect x={38} y={10} width={14} height={12} rx={3} fill="#FFD740"/></svg>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:14,color:"#fff"}}>COACH MACRO</span>
+        </div>
+        <div style={{fontSize:12,color:"#1C1C1C"}}>© 2026 Coach Macro. All rights reserved.</div>
+      </footer>
+    </div>
+  );
+}
+
 // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
 function AuthScreen({onAuth}) {
   const [mode,setMode]=useState("signup"); // signup | login
@@ -2022,7 +2206,7 @@ function AuthScreen({onAuth}) {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function CoachMacro() {
-  const [phase,setPhase]=useState("auth"); // auth | loading | onboarding | promo | paywall | app
+  const [phase,setPhase]=useState("landing"); // landing | auth | onboarding | promo | paywall | app
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
@@ -2044,7 +2228,7 @@ export default function CoachMacro() {
     // Only listen for explicit sign-out after initial load
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       if(event==="SIGNED_OUT"){
-        setUser(null);setProfile(null);setPhase("auth");
+        setUser(null);setProfile(null);setPhase("landing");
       }
     });
     return()=>subscription.unsubscribe();
@@ -2089,7 +2273,7 @@ export default function CoachMacro() {
 
   async function handleSignOut() {
     await sb.auth.signOut();
-    setUser(null);setProfile(null);setPhase("auth");
+    setUser(null);setProfile(null);setPhase("landing");
   }
 
   useEffect(()=>{
@@ -2114,6 +2298,7 @@ export default function CoachMacro() {
     </div>
   );
 
+  if(phase==="landing")    return <LandingPage onSignUp={()=>setPhase("auth")}/>;
   if(phase==="auth")       return <AuthScreen onAuth={handleAuth}/>;
   if(phase==="onboarding") return <Onboarding onComplete={handleComplete} user={user} signupName={signupName}/>;
   if(phase==="promo")      return <PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
