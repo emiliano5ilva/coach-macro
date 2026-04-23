@@ -1,9 +1,11 @@
 {
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/landing.html", "dest": "/public/landing.html" },
     { "src": "/app", "dest": "/index.html" },
     { "src": "/app/(.*)", "dest": "/index.html" },
-    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/", "dest": "/public/landing.html" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { "src": "/(.*\\.(js|jsx|css|svg|png|ico))", "dest": "/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
