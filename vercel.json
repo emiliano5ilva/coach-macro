@@ -1,11 +1,16 @@
 {
+  "rewrites": [
+    { "source": "/app", "destination": "/index.html" },
+    { "source": "/app/(.*)", "destination": "/index.html" }
+  ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/landing.html", "dest": "/public/landing.html" },
-    { "src": "/app", "dest": "/index.html" },
-    { "src": "/app/(.*)", "dest": "/index.html" },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/src/(.*)", "dest": "/src/$1" },
+    { "src": "/favicon.svg", "dest": "/public/favicon.svg" },
     { "src": "/", "dest": "/public/landing.html" },
-    { "src": "/(.*\\.(js|jsx|css|svg|png|ico))", "dest": "/$1" },
+    { "src": "/(.*\\.(js|jsx|css|svg|png|ico|woff|woff2))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
