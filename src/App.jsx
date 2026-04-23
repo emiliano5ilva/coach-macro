@@ -103,20 +103,21 @@ function calcTDEE(p) {
   const male = p.sex==="male";
   const bfPct= p.bodyFat ? (p.bodyFat.startsWith("40")?42:parseInt(p.bodyFat)) : null;
   let bmr = bfPct ? 370+21.6*(wKg*(1-bfPct/100)) : 10*wKg+6.25*hCm-5*age+(male?5:-161);
-  const jm = {desk:0,mix:.08,feet:.14,physical:.23}[p.job]??0.07;
-  const sm = {"u3k":0,"3-6k":.05,"6-10k":.10,"10-15k":.15,"15k+":0.20}[p.steps]??0.07;
-  const fm = {n0:0,"1-3":.10,"4-6":.18,"7+":.26}[p.freq]??0;
-  const im = {light:.04,moderate:.09,hard:.14,extreme:.20}[p.intensity]??0.07;
-  const am = {sedentary:0,moderate:.05,very:.12}[p.activity]??0;
+  // Recalibrated — no phantom defaults, capped at Harris-Benedict max of 1.9x
+  const jm = {desk:0,mix:.06,feet:.11,physical:.17}[p.job]??0;
+  const sm = {"u3k":0,"3-6k":.03,"6-10k":.07,"10-15k":.11,"15k+":0.15}[p.steps]??0;
+  const fm = {n0:0,"1-3":.08,"4-6":.14,"7+":.20}[p.freq]??0;
+  const im = {light:.03,moderate:.06,hard:.10,extreme:.14}[p.intensity]??0;
+  const am = {sedentary:0,moderate:.04,very:.09}[p.activity]??0;
   const fs = p.freq==="7+"?1:p.freq==="4-6"?.85:p.freq==="1-3"?.5:0;
-  const tm = {strength:0,cardio:.04,hybrid:.07,hyrox:.09,run:.06,sport:.05}[p.trainType]??0;
-  let mult = 1.2+jm+sm+fm+(im*fs)+am+tm;
+  const tm = {strength:0,cardio:.03,hybrid:.05,hyrox:.07,run:.04,sport:.03}[p.trainType]??0;
+  let mult = Math.min(1.2+jm+sm+fm+(im*fs)+am+tm, 1.90);
   let tdee = bmr*mult;
   if(p.sleep==="u5")tdee*=0.93; else if(p.sleep==="5-6")tdee*=0.96;
   if(p.metHistory==="3plus")tdee*=0.90; else if(p.metHistory==="u3")tdee*=0.95;
   if((p.conditions||[]).includes("thyroid"))tdee*=0.82;
-  if(p.protein==="high")tdee*=1.04;
-  return { total:Math.round(tdee), bmr:Math.round(bmr), activity:Math.round(tdee*0.55-bmr*0.55), tef:Math.round(tdee*0.08) };
+  if(p.protein==="high")tdee*=1.03;
+  return { total:Math.round(tdee), bmr:Math.round(bmr), activity:Math.round(tdee-bmr-Math.round(tdee*0.08)), tef:Math.round(tdee*0.08) };
 }
 
 function getDayMacros(baseCals, goal, dayType, earnedCals=0) {
@@ -521,6 +522,35 @@ function Onboarding({onComplete}) {
 }
 
 
+
+// ─── BODY FIGURE SVG ─────────────────────────────────────────────────────────
+function BodyFigure({pct, color, selected}) {
+  const w = 28 + pct*0.8;
+  const sh = 22 + pct*0.3;
+  return (
+    <svg width="56" height="84" viewBox="0 0 100 160" style={{display:"block",margin:"0 auto"}}>
+      <ellipse cx="50" cy="18" rx="14" ry="17" fill={selected?color:color+"66"} />
+      <rect x="44" y="33" width="12" height="8" fill={selected?color:color+"66"} />
+      <path d={`M${50-sh},42 C${50-sh-4},42 ${50-w},58 ${50-w},80 Q${50-w},95 50,95 Q${50+w},95 ${50+w},80 C${50+w},58 ${50+sh+4},42 ${50+sh},42 Z`} fill={selected?color:color+"44"} />
+      {pct>22&&<ellipse cx="50" cy={65+pct*0.25} rx={w*0.55} ry={pct*0.3} fill={selected?color+"77":color+"22"} />}
+      <path d={`M${50-sh},50 C${50-sh-8},56 ${50-sh-10},72 ${50-sh-7},86`} fill="none" stroke={selected?color:color+"66"} strokeWidth={4+pct*0.07} strokeLinecap="round"/>
+      <path d={`M${50+sh},50 C${50+sh+8},56 ${50+sh+10},72 ${50+sh+7},86`} fill="none" stroke={selected?color:color+"66"} strokeWidth={4+pct*0.07} strokeLinecap="round"/>
+      <path d={`M${50-10},95 L${50-13-pct*0.1},148`} fill="none" stroke={selected?color:color+"66"} strokeWidth={7+pct*0.08} strokeLinecap="round"/>
+      <path d={`M${50+10},95 L${50+13+pct*0.1},148`} fill="none" stroke={selected?color:color+"66"} strokeWidth={7+pct*0.08} strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+const BF_VISUAL=[
+  {r:"5–7%",   pct:6,  c:"#29B6F6",l:"Athletic",  desc:"Visible striations, very lean"},
+  {r:"8–12%",  pct:10, c:"#00E676", l:"Fit",       desc:"Visible abs, athletic build"},
+  {r:"13–17%", pct:15, c:"#2979FF", l:"Lean",      desc:"Defined, not shredded"},
+  {r:"18–24%", pct:21, c:"#FFD740", l:"Average",   desc:"Soft, no visible abs"},
+  {r:"25–30%", pct:27, c:"#FFA726", l:"Above avg", desc:"Rounded belly, soft arms"},
+  {r:"31–40%", pct:35, c:"#EF6C00", l:"High",      desc:"Significant fat coverage"},
+  {r:"40+%",   pct:43, c:"#FF4D6D", l:"Obese",     desc:"High health risk range"},
+];
+
 function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
   const FACTS={
@@ -552,7 +582,7 @@ function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
     10:{num:"10",q:"Daily step count?",sub:"Be honest — most people overestimate this one.",choices:[{v:"u3k",l:"Under 3,000"},{v:"3-6k",l:"3,000–6,000"},{v:"6-10k",l:"6,000–10,000"},{v:"10-15k",l:"10,000–15,000"},{v:"15k+",l:"15,000+",sub:"High activity lifestyle"}],key:"steps"},
     11:{num:"11",q:"Training sessions per week?",choices:[{v:"n0",l:"0 / week"},{v:"1-3",l:"1–3 / week"},{v:"4-6",l:"4–6 / week"},{v:"7+",l:"7+ / week",sub:"Training every day"}],key:"freq"},
     12:{num:"12",q:"Primary training type?",sub:"Pick the one that dominates your week.",choices:[{v:"strength",l:"Strength / Lifting",e:"🏋️"},{v:"run",l:"Running / Cardio",e:"🏃"},{v:"hyrox",l:"Hyrox / CrossFit",e:"🔥"},{v:"hybrid",l:"Hybrid — mix of types",e:"⚡"},{v:"sport",l:"Sport specific",e:"🏅"}],key:"trainType"},
-    13:{num:"13",q:"Workout intensity?",sub:"Average RPE across most of your sessions.",choices:[{v:"light",l:"Light",e:"💧",sub:"RPE 3–4 · Conversational"},{v:"moderate",l:"Moderate",e:"💦",sub:"RPE 5–6 · Somewhat hard"},{v:"hard",l:"Hard",e:"🔥",sub:"RPE 7–8 · Very hard"},{v:"extreme",l:"Extreme",e:"⚡",sub:"RPE 9–10 · Maximum effort"}],key:"intensity"},
+    13:{num:"13",q:"Workout intensity?",sub:"Average RPE across most of your sessions.",choices:[{v:"light",l:"Light",e:"💧",sub:"Mostly moving, never out of breath"},{v:"moderate",l:"Moderate",e:"💦",sub:"Sweating, slightly challenging, could hold a short conversation"},{v:"hard",l:"Hard",e:"🔥",sub:"Breathing heavy, hard to talk, push through discomfort"},{v:"extreme",l:"Extreme",e:"⚡",sub:"All out — near max effort every session, very uncomfortable"}],key:"intensity"},
     14:{num:"14",q:"Activity outside workouts?",sub:"Lifestyle activity (NEAT) is often bigger than your workouts.",choices:[{v:"sedentary",l:"Mostly sedentary",e:"🛋️",sub:"Gym → couch"},{v:"moderate",l:"Moderately active",e:"🚶",sub:"Regular errands, weekend activities"},{v:"very",l:"Very active",e:"🏃",sub:"High energy lifestyle outside the gym"}],key:"activity"},
     15:{num:"15",q:"Average sleep hours?",sub:"This directly reduces your metabolic rate if you're under 7.",choices:[{v:"u5",l:"Under 5 hours"},{v:"5-6",l:"5–6 hours"},{v:"6-7",l:"6–7 hours"},{v:"7-8",l:"7–8 hours",sub:"Optimal recovery range"},{v:"8+",l:"8+ hours"}],key:"sleep"},
     16:{num:"16",q:"Sleep quality?",choices:[{v:"poor",l:"Poor",e:"😴"},{v:"fair",l:"Fair",e:"😐"},{v:"good",l:"Good",e:"🙂"},{v:"excellent",l:"Excellent",e:"⚡"}],key:"sleepQ"},
@@ -585,25 +615,68 @@ function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   };
 
   // Body fat screen
+  // SVG body figure for each body fat level — torso silhouette that gets wider
+  function BodyFigure({pct, color, selected}) {
+    // Body shape params: waist width increases with body fat
+    const w = 28 + pct*0.8;  // waist gets wider
+    const sh = 22 + pct*0.3; // shoulders slightly wider
+    const ab = pct > 20 ? `M${50-w/3},52 Q50,${52+pct*0.4} ${50+w/3},52` : `M${50-w/3},52 L${50+w/3},52`;
+    return (
+      <svg width="60" height="90" viewBox="0 0 100 160" style={{display:"block",margin:"0 auto"}}>
+        {/* Head */}
+        <ellipse cx="50" cy="18" rx="14" ry="17" fill={selected?color:color+"55"} />
+        {/* Neck */}
+        <rect x="44" y="33" width="12" height="8" fill={selected?color:color+"55"} />
+        {/* Torso — wider with more body fat */}
+        <path d={`M${50-sh},42 C${50-sh-4},42 ${50-w},55 ${50-w},80 Q${50-w},95 50,95 Q${50+w},95 ${50+w},80 C${50+w},55 ${50+sh+4},42 ${50+sh},42 Z`} fill={selected?color:color+"44"} />
+        {/* Belly bump for higher bf */}
+        {pct>20&&<ellipse cx="50" cy={68+pct*0.3} rx={w*0.6} ry={pct*0.35} fill={selected?color+"88":color+"22"} />}
+        {/* Arms */}
+        <path d={`M${50-sh},48 C${50-sh-8},52 ${50-sh-10},70 ${50-sh-8},85`} fill="none" stroke={selected?color:color+"55"} strokeWidth={4+pct*0.08} strokeLinecap="round"/>
+        <path d={`M${50+sh},48 C${50+sh+8},52 ${50+sh+10},70 ${50+sh+8},85`} fill="none" stroke={selected?color:color+"55"} strokeWidth={4+pct*0.08} strokeLinecap="round"/>
+        {/* Legs */}
+        <path d={`M${50-12},95 L${50-14-pct*0.1},145`} fill="none" stroke={selected?color:color+"55"} strokeWidth={7+pct*0.1} strokeLinecap="round"/>
+        <path d={`M${50+12},95 L${50+14+pct*0.1},145`} fill="none" stroke={selected?color:color+"55"} strokeWidth={7+pct*0.1} strokeLinecap="round"/>
+      </svg>
+    );
+  }
+
+  const BF_VISUAL=[
+    {r:"5–7%",   pct:6,  c:"#29B6F6",l:"Athletic",desc:"Visible striations, very low fat"},
+    {r:"8–12%",  pct:10, c:"#00E676", l:"Fit",     desc:"Visible abs, lean look"},
+    {r:"13–17%", pct:15, c:T.prot,   l:"Lean",    desc:"Defined but not shredded"},
+    {r:"18–24%", pct:21, c:T.fat,    l:"Average", desc:"Soft, no visible abs"},
+    {r:"25–30%", pct:27, c:"#FFA726", l:"Above avg",desc:"Rounded belly, soft arms"},
+    {r:"31–40%", pct:35, c:"#EF6C00", l:"High",   desc:"Significant fat coverage"},
+    {r:"40+%",   pct:43, c:T.red,    l:"Obese",   desc:"High health risk range"},
+  ];
+
   if(sc===8) return(
     <div style={{animation:"fadeIn 0.25s ease"}}>
       <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 8</div>
       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Estimate your body fat.</div>
-      <p style={{fontSize:13,color:T.mu,marginBottom:16}}>This unlocks the Katch-McArdle equation — significantly more accurate than standard BMR. Pick closest match.</p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9}}>
-        {BF_DATA.map(b=>(
-          <div key={b.r} onClick={()=>auto("bodyFat",b.r)} style={{background:T.s2,border:`2px solid ${d.bodyFat===b.r?b.c:T.bd}`,borderRadius:11,padding:"12px 6px",textAlign:"center",cursor:"pointer",transition:"all 0.15s"}}>
-            <div style={{width:42,height:42,borderRadius:"50%",margin:"0 auto 8px",background:`radial-gradient(circle at 38% 35%,${b.c}CC,${b.c}33)`,border:`2px solid ${d.bodyFat===b.r?b.c:b.c+"22"}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{width:d.bodyFat===b.r?30:22,height:d.bodyFat===b.r?30:22,borderRadius:"50%",background:`radial-gradient(circle,${b.c}55,transparent)`,transition:"all 0.15s"}}/>
-            </div>
-            <div style={{fontSize:11,fontWeight:700,color:d.bodyFat===b.r?b.c:"#fff"}}>{b.r}</div>
+      <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Pick the figure that most closely matches your current build. This unlocks a more accurate metabolic equation.</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+        {BF_VISUAL.slice(0,4).map(b=>(
+          <div key={b.r} onClick={()=>auto("bodyFat",b.r)} style={{background:d.bodyFat===b.r?`${b.c}14`:T.s2,border:`2px solid ${d.bodyFat===b.r?b.c:T.bd}`,borderRadius:12,padding:"10px 6px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
+            <BodyFigure pct={b.pct} color={b.c} selected={d.bodyFat===b.r}/>
+            <div style={{fontSize:11,fontWeight:700,color:d.bodyFat===b.r?b.c:"#ccc",marginTop:6}}>{b.r}</div>
             <div style={{fontSize:9,color:T.mu,marginTop:2}}>{b.l}</div>
           </div>
         ))}
       </div>
-      {d.bodyFat&&<div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px",marginTop:14}}>
-        <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Equation Upgrade</div>
-        <div style={{fontSize:13,color:"#ccc",lineHeight:1.6}}>Switching to <b style={{color:T.prot}}>Katch-McArdle</b> — uses your lean body mass for a 5–8% more accurate BMR estimate.</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:8}}>
+        {BF_VISUAL.slice(4).map(b=>(
+          <div key={b.r} onClick={()=>auto("bodyFat",b.r)} style={{background:d.bodyFat===b.r?`${b.c}14`:T.s2,border:`2px solid ${d.bodyFat===b.r?b.c:T.bd}`,borderRadius:12,padding:"10px 6px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
+            <BodyFigure pct={b.pct} color={b.c} selected={d.bodyFat===b.r}/>
+            <div style={{fontSize:11,fontWeight:700,color:d.bodyFat===b.r?b.c:"#ccc",marginTop:6}}>{b.r}</div>
+            <div style={{fontSize:9,color:T.mu,marginTop:2}}>{b.l}</div>
+          </div>
+        ))}
+      </div>
+      {d.bodyFat&&<div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
+        <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Equation Upgrade Unlocked</div>
+        <div style={{fontSize:13,color:"#ccc",lineHeight:1.6}}>Switching to <b style={{color:T.prot}}>Katch-McArdle</b> — uses your lean body mass for a 5–8% more accurate BMR estimate than standard equations.</div>
       </div>}
       {fact&&<FactCard emoji={fact.emoji} stat={fact.stat} text={fact.text} color={T.prot}/>}
     </div>
@@ -703,13 +776,30 @@ function TDEEReveal({tdee,animTDEE,d,chatReply,setCR,next}) {
 }
 
 function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
-  const rates={cut:["−750","−500","−250","−125"],bulk:["+125","+250","+500"]};
-  const rLabels={"−750":"−750 kcal · ~1.5 lb/wk loss","−500":"−500 kcal · ~1 lb/wk","−250":"−250 kcal · ~0.5 lb/wk","−125":"−125 kcal · ~0.25 lb/wk","+125":"+125 kcal · ~0.25 lb/wk gain","+250":"+250 kcal · ~0.5 lb/wk gain","+500":"+500 kcal · ~1 lb/wk gain"};
+  const rates={cut:["−500","−250","−125"],bulk:["+125","+250","+500"]};
+  const getExpertRec=()=>{
+    const hasAdaptation=d.metHistory==="3plus"||d.metHistory==="offon";
+    const isActive=["4-6","7+"].includes(d.freq);
+    if(d.goal==="cut"){
+      if(hasAdaptation)return{rate:"−250",reason:"Expert pick for you",why:"Your dieting history suggests metabolic adaptation. A smaller deficit preserves more muscle and prevents further slowdown. Slower is smarter here."};
+      if(isActive)return{rate:"−500",reason:"Expert pick for you",why:"You train frequently — a moderate deficit keeps performance high while losing fat. Research shows −500 kcal is optimal for trained athletes."};
+      return{rate:"−500",reason:"Expert pick for you",why:"A 500 kcal deficit produces ~1 lb/week fat loss — the rate with the most research support for maintaining muscle mass while cutting."};
+    }
+    if(d.goal==="bulk"){
+      if(d.liftExp==="beginner")return{rate:"+250",reason:"Expert pick for beginners",why:"Beginners gain muscle fastest. A small surplus maximizes muscle while minimizing fat gain — the proven lean bulk approach."};
+      return{rate:"+125",reason:"Expert pick for you",why:"Intermediate and advanced lifters gain muscle slowly regardless of surplus size. A small surplus is all you need — bigger just adds fat."};
+    }
+    return null;
+  };
+  const rec=d.goal&&d.goal!=="maintain"?getExpertRec():null;
+  const rateInfo={"−500":{label:"−500 kcal/day",result:"~1 lb fat loss per week",tag:"Most researched"},"−250":{label:"−250 kcal/day",result:"~0.5 lb per week",tag:"Most sustainable"},
+    "−125":{label:"−125 kcal/day",result:"~0.25 lb per week",tag:"Gentlest approach"},"+125":{label:"+125 kcal/day",result:"~0.25 lb/wk muscle",tag:"Lean bulk"},"+250":{label:"+250 kcal/day",result:"~0.5 lb per week",tag:"Moderate bulk"},"+500":{label:"+500 kcal/day",result:"~1 lb per week",tag:"Aggressive bulk"}};
   return (
     <div style={{animation:"fadeIn 0.25s ease"}}>
-      <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>24 / 25</div>
-      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:20}}>Set your goal.</div>
-      <div style={{display:"flex",gap:10,marginBottom:18}}>
+      <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Final Question</div>
+      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>What's your goal?</div>
+      <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Based on your answers, we'll recommend the right approach and tell you exactly why.</p>
+      <div style={{display:"flex",gap:10,marginBottom:20}}>
         {[{v:"cut",l:"Cut",e:"🔥",sub:"Lose fat"},{v:"maintain",l:"Maintain",e:"⚖️",sub:"Hold weight"},{v:"bulk",l:"Bulk",e:"💪",sub:"Build muscle"}].map(o=>(
           <div key={o.v} onClick={()=>{upd("goal",o.v);setGR("");}} style={{flex:1,background:d.goal===o.v?`${T.prot}10`:T.s2,border:`2px solid ${d.goal===o.v?T.prot:T.bd}`,borderRadius:12,padding:"18px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
             <div style={{fontSize:26,marginBottom:6}}>{o.e}</div>
@@ -718,19 +808,32 @@ function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
           </div>
         ))}
       </div>
-      {d.goal&&d.goal!=="maintain"&&(
+      {d.goal==="maintain"&&<div style={{background:`${T.carb}10`,border:`1px solid ${T.carb}30`,borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+        <div style={{fontSize:11,color:T.carb,fontWeight:700,marginBottom:4}}>💡 Great for body recomposition</div>
+        <div style={{fontSize:13,color:"#aaa",lineHeight:1.65}}>Maintenance calories let you lose fat and build muscle simultaneously — especially effective if you're new to structured training or returning after a break. Requires consistent protein and training.</div>
+      </div>}
+      {d.goal&&d.goal!=="maintain"&&<>
+        {rec&&<div style={{background:`${T.prot}08`,border:`1.5px solid ${T.prot}40`,borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{fontSize:14}}>⭐</div><div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>{rec.reason}</div></div>
+          <div style={{fontSize:13,color:"#ccc",lineHeight:1.65,marginBottom:10}}>{rec.why}</div>
+          <button onClick={()=>setGR(rec.rate)} style={{padding:"8px 16px",background:goalRate===rec.rate?T.prot:`${T.prot}20`,color:goalRate===rec.rate?"#fff":T.prot,border:`1px solid ${T.prot}50`,borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>{goalRate===rec.rate?"✓ Selected":"Select This →"}</button>
+        </div>}
         <div style={{marginBottom:16}}>
-          {(rates[d.goal]||[]).map(r=>(<div key={r} onClick={()=>setGR(r)} style={{background:goalRate===r?`${T.prot}10`:T.s2,border:`1.5px solid ${goalRate===r?T.prot:T.bd}`,borderRadius:11,padding:"13px 15px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:goalRate===r?T.prot:"#fff"}}>{rLabels[r]}</div>{goalRate===r&&<div style={{color:T.prot}}>✓</div>}</div>))}
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>All options</div>
+          {(rates[d.goal]||[]).map(r=>{const info=rateInfo[r];const isRec=rec&&r===rec.rate;return(
+            <div key={r} onClick={()=>setGR(r)} style={{background:goalRate===r?`${T.prot}10`:T.s2,border:`1.5px solid ${goalRate===r?T.prot:isRec?`${T.prot}30`:T.bd}`,borderRadius:11,padding:"12px 15px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontSize:13,fontWeight:600,color:goalRate===r?T.prot:"#fff"}}>{info.label}</div><div style={{fontSize:11,color:T.mu,marginTop:2}}>{info.result}</div></div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>{isRec&&<div style={{fontSize:9,color:T.prot,background:`${T.prot}15`,border:`1px solid ${T.prot}30`,borderRadius:8,padding:"2px 7px",fontWeight:700}}>Recommended</div>}{goalRate===r&&<div style={{color:T.prot,fontSize:16}}>✓</div>}</div>
+            </div>
+          );})}
         </div>
-      )}
-      {d.goal&&(
-        <div style={{background:"#070E1A",border:`1px solid ${T.prot}30`,borderRadius:13,padding:"16px",marginBottom:20}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Daily Target</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:T.prot,lineHeight:1}}>{(d.goal==="maintain"?tdee.total:goalCals).toLocaleString()}</div>
-          <div style={{fontSize:13,color:T.mu,marginTop:4}}>kcal / day · {d.goal} phase</div>
-        </div>
-      )}
-      <PrimaryBtn onClick={onComplete} label="Launch Coach Macro →" disabled={!d.goal||(d.goal!=="maintain"&&!goalRate)}/>
+      </>}
+      {d.goal&&<div style={{background:"#070E1A",border:`1px solid ${T.prot}30`,borderRadius:13,padding:"16px",marginBottom:20}}>
+        <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Your Daily Target</div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:T.prot,lineHeight:1}}>{(d.goal==="maintain"?tdee.total:goalCals).toLocaleString()}</div>
+        <div style={{fontSize:13,color:T.mu,marginTop:4}}>kcal / day · {d.goal} phase</div>
+      </div>}
+      <PrimaryBtn onClick={onComplete} label="Build My Dashboard →" disabled={!d.goal||(d.goal!=="maintain"&&!goalRate)}/>
     </div>
   );
 }
