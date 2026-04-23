@@ -1,1 +1,9 @@
-{"rewrites":[{"source":"/((?!api|landing).*)","destination":"/"}]}
+{
+  "routes": [
+    { "src": "/app", "dest": "/index.html" },
+    { "src": "/app/(.*)", "dest": "/index.html" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/", "dest": "/public/landing.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
