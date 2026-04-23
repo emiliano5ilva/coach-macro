@@ -2046,12 +2046,15 @@ export default function CoachMacro() {
   const [earnedCals,setEarnedCals]=useState(0);
 
   useEffect(()=>{
-    sb.auth.getSession().then(({data:{session}})=>{
-      if(session?.user){setUser(session.user);loadProfile(session.user.id);}
-      else setPhase("auth");
-    });
-    const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{
-      if(!session){setUser(null);setProfile(null);setPhase("auth");}
+    // onAuthStateChange fires immediately with current session state — use as primary listener
+    const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
+      console.log("Auth event:",event,"session:",session?.user?.email||"none");
+      if(event==="SIGNED_OUT"||!session){
+        setUser(null);setProfile(null);setPhase("auth");
+      } else if(session?.user){
+        setUser(session.user);
+        loadProfile(session.user.id);
+      }
     });
     return()=>subscription.unsubscribe();
   },[]);
