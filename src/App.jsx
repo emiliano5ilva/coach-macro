@@ -147,7 +147,7 @@ function LandingPage({onSignUp}) {
               ))}
             </div>
           </div>
-        </div>
+        </div></div>
       </section>
 
       {/* STATS */}
