@@ -21,7 +21,8 @@ import { T, GLOBAL_CSS, WDAYS, MONTHS_A, DAYS_A, YEARS_A, FT_A, IN_A, CM_A, LBS_
   RUN_PLANS, HYROX_STATIONS, Ring, MacroRing, MacroBar, Toggle, CC, PrimaryBtn,
   UnitToggle, Rolodex, SectionCard, Spinner, Logo, BodyFigure } from "./components.jsx";
 import { Onboarding } from "./ob_screens.jsx";
-import { App, FuelSection, TrainSection, ConnectSection, SettingsSection,
+import { App } from "./ob_screens2.jsx";
+import { FuelSection, TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, SPLITS_WITH_DAYS, GVT_INFO,
   LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES, PROMOS,
   PromoScreen, Paywall } from "./sections.jsx";
