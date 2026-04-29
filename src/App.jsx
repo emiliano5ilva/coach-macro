@@ -24,7 +24,7 @@ import { T, GLOBAL_CSS, WDAYS, MONTHS_A, DAYS_A, YEARS_A, FT_A, IN_A, CM_A, LBS_
   calcTDEE, useCountUp, lookupBarcode } from "./components.jsx";
 import { Onboarding } from "./ob_screens.jsx";
 import { App } from "./ob_screens2.jsx";
-import { LandingPage } from "./sections.jsx";
+import { LandingPage } from "./landing.jsx";
 import { FuelSection, TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, SPLITS_WITH_DAYS, GVT_INFO,
   LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES, PROMOS,
