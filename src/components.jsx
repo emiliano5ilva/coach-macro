@@ -366,26 +366,95 @@ export function Spinner() {
 }
 
 // ─── LOGO ─────────────────────────────────────────────────────────────────────
-export function Logo({size=32,text=true}) {
-  const bar=size*.42, gap=size*.08;
+export function Logo({size=32, text=true, textColor="#fff"}) {
+  // Icon: 3 ascending bars — perfect golden ratio proportions
+  // Heights: 40%, 65%, 100% of total height
+  // Width: each bar = 28% of icon width, gap = 8%
+  // Corners: 3px radius — premium, not harsh
+  const h = size;
+  const bw = h * 0.28;       // bar width
+  const gap = h * 0.09;      // gap between bars
+  const r = h * 0.1;         // corner radius
+  const iw = bw*3 + gap*2;   // total icon width
+
+  // Bar heights — ascending left to right
+  const h1 = h * 0.42;   // protein bar — shortest
+  const h2 = h * 0.68;   // carbs bar — mid
+  const h3 = h * 1.00;   // fat/energy bar — tallest
+
+  // Y positions (bars sit on bottom baseline)
+  const y1 = h - h1;
+  const y2 = h - h2;
+  const y3 = h - h3;
+
+  // Colors
+  const c1 = "#2979FF";   // blue — protein
+  const c2 = "#00E676";   // green — carbs
+  const c3 = "#FFD740";   // gold — fat/energy
+
+  const fontSize = size * 0.52;
+  const letterSpacing = size * 0.06;
+
   return (
-    <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-      <svg width={bar*3+gap*2} height={size} viewBox={`0 0 ${bar*3+gap*2} ${size}`}>
-        <rect x={0}          y={0}           width={bar} height={size}       rx={3} fill={T.prot}/>
-        <rect x={bar+gap}    y={size*.22}    width={bar} height={size*.78}   rx={3} fill={T.carb}/>
-        <rect x={(bar+gap)*2}y={size*.44}    width={bar} height={size*.56}   rx={3} fill={T.fat}/>
+    <div style={{display:"flex",alignItems:"center",gap:size*0.28,flexShrink:0,userSelect:"none"}}>
+      {/* Icon */}
+      <svg width={iw} height={h} viewBox={`0 0 ${iw} ${h}`} style={{display:"block",flexShrink:0}}>
+        {/* Glow layers for premium depth */}
+        <defs>
+          <filter id="logo-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        {/* Bar 1 — Blue — protein */}
+        <rect x={0} y={y1} width={bw} height={h1} rx={r} ry={r} fill={c1} filter="url(#logo-glow)"/>
+        {/* Top cap — slightly lighter for 3D premium feel */}
+        <rect x={0} y={y1} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.18)"/>
+
+        {/* Bar 2 — Green — carbs */}
+        <rect x={bw+gap} y={y2} width={bw} height={h2} rx={r} ry={r} fill={c2} filter="url(#logo-glow)"/>
+        <rect x={bw+gap} y={y2} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.15)"/>
+
+        {/* Bar 3 — Gold — energy */}
+        <rect x={(bw+gap)*2} y={y3} width={bw} height={h3} rx={r} ry={r} fill={c3} filter="url(#logo-glow)"/>
+        <rect x={(bw+gap)*2} y={y3} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.12)"/>
+
+        {/* Connecting baseline — ultra thin, unifies the mark */}
+        <rect x={0} y={h-1.5} width={iw} height={1.5} rx={0.75} fill="rgba(255,255,255,0.12)"/>
       </svg>
-      {text&&<div>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:size*.65,fontWeight:900,letterSpacing:3,color:"#fff",lineHeight:1}}>COACH</div>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:size*.65,fontWeight:900,letterSpacing:3,lineHeight:1}}>
-          <span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:"#fff"}}>RO</span>
+
+      {/* Wordmark */}
+      {text&&(
+        <div style={{display:"flex",flexDirection:"column",lineHeight:1,gap:0}}>
+          <div style={{
+            fontFamily:"'Barlow Condensed',sans-serif",
+            fontWeight:900,
+            fontStyle:"italic",
+            fontSize:fontSize*0.7,
+            letterSpacing:letterSpacing*0.8,
+            color:"rgba(255,255,255,0.45)",
+            textTransform:"uppercase",
+            marginBottom:1,
+          }}>Coach</div>
+          <div style={{
+            fontFamily:"'Barlow Condensed',sans-serif",
+            fontWeight:900,
+            fontSize:fontSize,
+            letterSpacing:letterSpacing,
+            color:textColor,
+            textTransform:"uppercase",
+            lineHeight:0.85,
+            background:"linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.85) 100%)",
+            WebkitBackgroundClip:"text",
+            WebkitTextFillColor:"transparent",
+          }}>MACRO</div>
         </div>
-      </div>}
+      )}
     </div>
   );
 }
 
-// ─── ONBOARDING ───────────────────────────────────────────────────────────────
 
 export function BodyFigure({pct, color, selected}) {
   const w = 28 + pct*0.8;
