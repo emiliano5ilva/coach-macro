@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 export const T = {
   bg:   "#060D1A", // page background
@@ -609,3 +609,15 @@ export function MuscleMap({dayFocus, isMobile}) {
   );
 }
 
+export function FAQItem({q, a}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{borderBottom:`1px solid #111`,overflow:"hidden"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{width:"100%",padding:"20px 0",background:"none",border:"none",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,fontFamily:"inherit",textAlign:"left"}}>
+        <div style={{fontSize:16,fontWeight:700,color:"#fff",lineHeight:1.4}}>{q}</div>
+        <div style={{fontSize:20,color:"#2979FF",flexShrink:0,transform:open?"rotate(45deg)":"rotate(0deg)",transition:"transform .2s"}}>+</div>
+      </button>
+      {open&&<div style={{fontSize:14,color:"#888",lineHeight:1.75,paddingBottom:20}}>{a}</div>}
+    </div>
+  );
+}
