@@ -19,7 +19,9 @@ const STRIPE = {
 import { T, GLOBAL_CSS, WDAYS, MONTHS_A, DAYS_A, YEARS_A, FT_A, IN_A, CM_A, LBS_A, KG_A,
   BF_DATA, FOCUS_MUSCLES, SPLIT_CYCLES, DAY_CFG, FASTING_PROTOCOLS, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, Ring, MacroRing, MacroBar, Toggle, CC, PrimaryBtn,
-  UnitToggle, Rolodex, SectionCard, Spinner, Logo, BodyFigure } from "./components.jsx";
+  UnitToggle, Rolodex, SectionCard, Spinner, Logo, BodyFigure,
+  autoFocus, getDayMacros, getTodayKey, isToday, hap, pad2,
+  calcTDEE, useCountUp, lookupBarcode } from "./components.jsx";
 import { Onboarding } from "./ob_screens.jsx";
 import { App } from "./ob_screens2.jsx";
 import { FuelSection, TrainSection, ConnectSection, SettingsSection,
