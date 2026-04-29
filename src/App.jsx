@@ -123,87 +123,72 @@ function LandingPage({onSignUp}) {
             </div>
           </div>
         </div>
-                {/* Hero visual — hidden on mobile */}
-        <div className="hero-phone" style={{justifyContent:"center",alignItems:"center"}}><div className="phone-float">
-          <div style={{background:"#0A0A12",border:"1px solid #1C1C2E",borderRadius:36,overflow:"hidden",width:260,boxShadow:"0 40px 80px rgba(0,0,0,.8),0 0 60px rgba(232,24,90,.08)"}}>
-            {/* Status bar */}
-            <div style={{background:"#060610",padding:"12px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{width:48,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 10px"}}></div>
-            </div>
-            <div style={{background:"#060610",padding:"0 14px 16px"}}>
-              {/* Header */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div>
-                  <div style={{fontSize:9,color:"#444",letterSpacing:1,marginBottom:2}}>MONDAY — PUSH DAY</div>
-                  <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Hey Marcus 👋</div>
-                </div>
-                <div style={{background:"rgba(232,24,90,.15)",border:"1px solid rgba(232,24,90,.3)",borderRadius:16,padding:"3px 8px",fontSize:7,fontWeight:700,color:"#E8185A"}}>🏋️ CHEST · SHOULDERS</div>
-              </div>
 
-              {/* Macro ring */}
-              <div style={{textAlign:"center",marginBottom:12,position:"relative"}}>
-                <svg width="130" height="130" style={{transform:"rotate(-90deg)"}}>
-                  <circle cx="65" cy="65" r="50" fill="none" stroke="#1A1A2E" strokeWidth="10"/>
-                  <circle cx="65" cy="65" r="50" fill="none" stroke="#2979FF" strokeWidth="10" strokeDasharray="105 315" strokeLinecap="round"/>
-                  <circle cx="65" cy="65" r="50" fill="none" stroke="#00E676" strokeWidth="10" strokeDasharray="84 315" strokeDashoffset="-105" strokeLinecap="round"/>
-                  <circle cx="65" cy="65" r="50" fill="none" stroke="#FFD740" strokeWidth="10" strokeDasharray="52 315" strokeDashoffset="-189" strokeLinecap="round"/>
-                </svg>
-                <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
-                  <div style={{fontSize:28,fontWeight:900,lineHeight:1,color:"#fff"}}>847</div>
-                  <div style={{fontSize:7,color:"#444",letterSpacing:1,marginTop:1}}>KCAL LEFT</div>
-                </div>
-              </div>
-
-              {/* Macro bars */}
-              {[["Protein","#2979FF","195g","240g",81],["Carbs","#00E676","186g","320g",58],["Fat","#FFD740","47g","68g",69]].map(([n,c,v,t,p])=>(
-                <div key={n} style={{marginBottom:5}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:8,marginBottom:2}}>
-                    <span style={{color:c,fontWeight:700}}>{n}</span>
-                    <span style={{color:"#555"}}>{v} / {t}</span>
+        {/* Hero phone mockup — hidden on mobile */}
+        <div className="hero-phone" style={{alignItems:"center"}}>
+          <div className="phone-float">
+            <div style={{background:"#0A0A12",border:"1px solid #1C1C2E",borderRadius:36,overflow:"hidden",width:260,boxShadow:"0 40px 80px rgba(0,0,0,.8),0 0 60px rgba(232,24,90,.08)"}}>
+              <div style={{background:"#060610",padding:"12px 16px 8px"}}>
+                <div style={{width:48,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 12px"}}/>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <div>
+                    <div style={{fontSize:9,color:"#444",letterSpacing:1,marginBottom:2}}>MONDAY — PUSH DAY</div>
+                    <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Hey Marcus 👋</div>
                   </div>
-                  <div style={{height:3,background:"#1A1A2E",borderRadius:2}}>
-                    <div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}/>
+                  <div style={{background:"rgba(232,24,90,.15)",border:"1px solid rgba(232,24,90,.3)",borderRadius:16,padding:"3px 8px",fontSize:7,fontWeight:700,color:"#E8185A"}}>🏋️ PUSH</div>
+                </div>
+                <div style={{textAlign:"center",marginBottom:12,position:"relative"}}>
+                  <svg width="130" height="130" style={{transform:"rotate(-90deg)"}}>
+                    <circle cx="65" cy="65" r="50" fill="none" stroke="#1A1A2E" strokeWidth="10"/>
+                    <circle cx="65" cy="65" r="50" fill="none" stroke="#2979FF" strokeWidth="10" strokeDasharray="105 315" strokeLinecap="round"/>
+                    <circle cx="65" cy="65" r="50" fill="none" stroke="#00E676" strokeWidth="10" strokeDasharray="84 315" strokeDashoffset="-105" strokeLinecap="round"/>
+                    <circle cx="65" cy="65" r="50" fill="none" stroke="#FFD740" strokeWidth="10" strokeDasharray="52 315" strokeDashoffset="-189" strokeLinecap="round"/>
+                  </svg>
+                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
+                    <div style={{fontSize:28,fontWeight:900,lineHeight:1,color:"#fff"}}>847</div>
+                    <div style={{fontSize:7,color:"#444",letterSpacing:1,marginTop:1}}>KCAL LEFT</div>
                   </div>
                 </div>
-              ))}
-
-              {/* Divider */}
-              <div style={{height:1,background:"#1A1A2E",margin:"10px 0"}}/>
-
-              {/* Mini muscle map preview */}
-              <div style={{marginBottom:8}}>
-                <div style={{fontSize:8,color:"#444",letterSpacing:1,marginBottom:6}}>TODAY'S TARGET MUSCLES</div>
-                <div style={{display:"flex",gap:6,justifyContent:"center"}}>
-                  {[["Chest","#E8185A"],["Shoulders","#E8185A"],["Triceps","#8B1A6B"]].map(([m,c])=>(
-                    <div key={m} style={{background:`${c}20`,border:`1px solid ${c}40`,borderRadius:8,padding:"4px 8px",fontSize:8,color:c,fontWeight:700}}>{m}</div>
-                  ))}
+                {[["Protein","#2979FF","195g","240g",81],["Carbs","#00E676","186g","320g",58],["Fat","#FFD740","47g","68g",69]].map(([n,c,v,t,p])=>(
+                  <div key={n} style={{marginBottom:5}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:8,marginBottom:2}}>
+                      <span style={{color:c,fontWeight:700}}>{n}</span>
+                      <span style={{color:"#555"}}>{v} / {t}</span>
+                    </div>
+                    <div style={{height:3,background:"#1A1A2E",borderRadius:2}}>
+                      <div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}/>
+                    </div>
+                  </div>
+                ))}
+                <div style={{height:1,background:"#1A1A2E",margin:"10px 0"}}/>
+                <div style={{marginBottom:8}}>
+                  <div style={{fontSize:8,color:"#444",letterSpacing:1,marginBottom:6}}>TARGET MUSCLES</div>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                    {[["Chest","#E8185A"],["Shoulders","#E8185A"],["Triceps","#8B1A6B"]].map(([m,c])=>(
+                      <div key={m} style={{background:`${c}20`,border:`1px solid ${c}40`,borderRadius:6,padding:"3px 7px",fontSize:7,color:c,fontWeight:700}}>{m}</div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              {/* Activity chart */}
-              <div style={{background:"#0D0D1A",borderRadius:10,padding:"8px 10px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <div style={{fontSize:8,color:"#444",letterSpacing:1}}>THIS WEEK</div>
-                  <div style={{fontSize:8,color:"#E8185A",fontWeight:700}}>4/5 sessions ✓</div>
-                </div>
-                <svg width="100%" height="36" viewBox="0 0 220 36">
-                  {/* Activity bars */}
-                  {[[0,28,"#E8185A"],[32,32,"#E8185A"],[64,12,"#333"],[96,36,"#E8185A"],[128,24,"#E8185A"],[160,0,"#222"],[192,0,"#222"]].map(([x,h,c],i)=>(
-                    <rect key={i} x={x} y={36-h} width="24" height={h||2} rx="4" fill={c}/>
-                  ))}
-                  {/* Today indicator */}
-                  <rect x="128" y="0" width="24" height="36" rx="4" fill="rgba(232,24,90,.08)"/>
-                </svg>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
-                  {["M","T","W","T","F","S","S"].map((d,i)=>(
-                    <div key={i} style={{fontSize:7,color:i===4?"#E8185A":"#333",fontWeight:i===4?700:400,width:24,textAlign:"center"}}>{d}</div>
-                  ))}
+                <div style={{background:"#0D0D1A",borderRadius:10,padding:"8px 10px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <div style={{fontSize:8,color:"#444"}}>THIS WEEK</div>
+                    <div style={{fontSize:8,color:"#E8185A",fontWeight:700}}>4/5 ✓</div>
+                  </div>
+                  <svg width="100%" height="32" viewBox="0 0 220 32">
+                    {[[0,24,"#E8185A"],[32,28,"#E8185A"],[64,10,"#333"],[96,32,"#E8185A"],[128,20,"#E8185A"],[160,0,"#222"],[192,0,"#222"]].map(([x,h,c],i)=>(
+                      <rect key={i} x={x} y={32-h} width="24" height={h||2} rx="3" fill={c}/>
+                    ))}
+                  </svg>
+                  <div style={{display:"flex",justifyContent:"space-around",marginTop:3}}>
+                    {["M","T","W","T","F","S","S"].map((d,i)=>(
+                      <div key={i} style={{fontSize:7,color:i===4?"#E8185A":"#333",fontWeight:i===4?700:400}}>{d}</div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        </div></div>
       </section>
 
       {/* STATS */}
