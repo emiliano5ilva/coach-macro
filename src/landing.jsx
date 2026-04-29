@@ -350,7 +350,7 @@ export function LandingPage({onSignUp}) {
                 {[
                   {name:"Chick-fil-A",order:"Grilled Chicken Sandwich · no sauce + Side Salad",cal:"390 kcal",p:"40g",c:"42g",f:"8g",match:"97%"},
                   {name:"Chipotle",order:"Burrito Bowl · chicken + fajita veggies + salsa · no rice",cal:"405 kcal",p:"36g",c:"44g",f:"9g",match:"94%"},
-                  {name:"Subway",order:"6" Rotisserie Chicken · wheat · mustard · all veggies",cal:"350 kcal",p:"34g",c:"41g",f:"7g",match:"91%"},
+                  {name:"Subway",order:"6-inch Rotisserie Chicken · wheat · mustard · all veggies",cal:"350 kcal",p:"34g",c:"41g",f:"7g",match:"91%"},
                 ].map(r=>(
                   <div key={r.name} style={{background:"#0D0D1A",borderRadius:10,padding:"10px",marginBottom:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
