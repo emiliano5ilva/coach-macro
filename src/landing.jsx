@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { T, GLOBAL_CSS, FAQItem } from "./components.jsx";
+import { T, GLOBAL_CSS, FAQItem, Logo } from "./components.jsx";
 
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 export function LandingPage({onSignUp}) {
@@ -22,7 +22,7 @@ export function LandingPage({onSignUp}) {
   );
 
   return(
-    <div style={{minHeight:"100vh",background:"#080808",color:"#fff",fontFamily:"'Inter',system-ui,sans-serif",overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
+    <div style={{minHeight:"100vh",background:"#060D1A",color:"#fff",fontFamily:"'Inter',system-ui,sans-serif",overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');
         *{margin:0;padding:0;box-sizing:border-box}
@@ -32,11 +32,7 @@ export function LandingPage({onSignUp}) {
       {/* NAV */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:200,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",background:scrolled?"rgba(8,8,8,.95)":"transparent",backdropFilter:scrolled?"blur(16px)":"none",borderBottom:scrolled?"1px solid rgba(255,255,255,.04)":"none",transition:"all .3s"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <svg width={52} height={22} viewBox="0 0 52 22"><rect x={0} y={0} width={14} height={22} rx={3} fill="#2979FF"/><rect x={19} y={5} width={14} height={17} rx={3} fill="#00E676"/><rect x={38} y={10} width={14} height={12} rx={3} fill="#FFD740"/></svg>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
-            <div style={{color:"#fff"}}>COACH</div>
-            <div><span style={{color:"#2979FF"}}>M</span><span style={{color:"#00E676"}}>A</span><span style={{color:"#FFD740"}}>C</span><span style={{color:"#fff"}}>RO</span></div>
-          </div>
+          <Logo size={28} text={true}/>
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           <button onClick={onSignUp} style={{color:"#aaa",fontSize:14,fontWeight:500,padding:"9px 18px",borderRadius:8,border:"1px solid #1C1C1C",background:"none",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}>Log in</button>
@@ -60,7 +56,7 @@ export function LandingPage({onSignUp}) {
           }}/>
         ))}
         {/* Grid overlay */}
-        <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(41,121,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(41,121,255,.03) 1px,transparent 1px)",backgroundSize:"60px 60px"}}/>
+        <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(41,121,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(41,121,255,.04) 1px,transparent 1px)",backgroundSize:"60px 60px"}}/>
         {/* Gradient orbs */}
         <div style={{position:"absolute",top:"15%",left:"10%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(41,121,255,.06),transparent 70%)",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:"20%",right:"5%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,230,118,.04),transparent 70%)",pointerEvents:"none"}}/>
@@ -98,51 +94,51 @@ export function LandingPage({onSignUp}) {
         {/* Hero phone mockup — hidden on mobile */}
         <div className="hero-phone" style={{alignItems:"center"}}>
           <div className="phone-float">
-            <div style={{background:"#0A0A12",border:"1px solid #1C1C2E",borderRadius:36,overflow:"hidden",width:260,boxShadow:"0 40px 80px rgba(0,0,0,.8),0 0 60px rgba(232,24,90,.08)"}}>
-              <div style={{background:"#060610",padding:"12px 16px 8px"}}>
-                <div style={{width:48,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 12px"}}/>
+            <div style={{background:"#0A1424",border:"1px solid #1C1C2E",borderRadius:36,overflow:"hidden",width:260,boxShadow:"0 40px 80px rgba(0,0,0,.8),0 0 60px rgba(232,24,90,.08)"}}>
+              <div style={{background:"#060D1A",padding:"12px 16px 8px"}}>
+                <div style={{width:48,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 12px"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div>
-                    <div style={{fontSize:9,color:"#444",letterSpacing:1,marginBottom:2}}>MONDAY — PUSH DAY</div>
+                    <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:2}}>MONDAY — PUSH DAY</div>
                     <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Hey Marcus 👋</div>
                   </div>
                   <div style={{background:"rgba(232,24,90,.15)",border:"1px solid rgba(232,24,90,.3)",borderRadius:16,padding:"3px 8px",fontSize:7,fontWeight:700,color:"#E8185A"}}>🏋️ PUSH</div>
                 </div>
                 <div style={{textAlign:"center",marginBottom:12,position:"relative"}}>
                   <svg width="130" height="130" style={{transform:"rotate(-90deg)"}}>
-                    <circle cx="65" cy="65" r="50" fill="none" stroke="#1A1A2E" strokeWidth="10"/>
+                    <circle cx="65" cy="65" r="50" fill="none" stroke="#1C2A3A" strokeWidth="10"/>
                     <circle cx="65" cy="65" r="50" fill="none" stroke="#2979FF" strokeWidth="10" strokeDasharray="105 315" strokeLinecap="round"/>
                     <circle cx="65" cy="65" r="50" fill="none" stroke="#00E676" strokeWidth="10" strokeDasharray="84 315" strokeDashoffset="-105" strokeLinecap="round"/>
                     <circle cx="65" cy="65" r="50" fill="none" stroke="#FFD740" strokeWidth="10" strokeDasharray="52 315" strokeDashoffset="-189" strokeLinecap="round"/>
                   </svg>
                   <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
                     <div style={{fontSize:28,fontWeight:900,lineHeight:1,color:"#fff"}}>847</div>
-                    <div style={{fontSize:7,color:"#444",letterSpacing:1,marginTop:1}}>KCAL LEFT</div>
+                    <div style={{fontSize:7,color:"#4A6080",letterSpacing:1,marginTop:1}}>KCAL LEFT</div>
                   </div>
                 </div>
                 {[["Protein","#2979FF","195g","240g",81],["Carbs","#00E676","186g","320g",58],["Fat","#FFD740","47g","68g",69]].map(([n,c,v,t,p])=>(
                   <div key={n} style={{marginBottom:5}}>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:8,marginBottom:2}}>
                       <span style={{color:c,fontWeight:700}}>{n}</span>
-                      <span style={{color:"#555"}}>{v} / {t}</span>
+                      <span style={{color:"#4A6080"}}>{v} / {t}</span>
                     </div>
-                    <div style={{height:3,background:"#1A1A2E",borderRadius:2}}>
+                    <div style={{height:3,background:"#1C2A3A",borderRadius:2}}>
                       <div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}/>
                     </div>
                   </div>
                 ))}
-                <div style={{height:1,background:"#1A1A2E",margin:"10px 0"}}/>
+                <div style={{height:1,background:"#1C2A3A",margin:"10px 0"}}/>
                 <div style={{marginBottom:8}}>
-                  <div style={{fontSize:8,color:"#444",letterSpacing:1,marginBottom:6}}>TARGET MUSCLES</div>
+                  <div style={{fontSize:8,color:"#4A6080",letterSpacing:1,marginBottom:6}}>TARGET MUSCLES</div>
                   <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                     {[["Chest","#E8185A"],["Shoulders","#E8185A"],["Triceps","#8B1A6B"]].map(([m,c])=>(
                       <div key={m} style={{background:`${c}20`,border:`1px solid ${c}40`,borderRadius:6,padding:"3px 7px",fontSize:7,color:c,fontWeight:700}}>{m}</div>
                     ))}
                   </div>
                 </div>
-                <div style={{background:"#0D0D1A",borderRadius:10,padding:"8px 10px"}}>
+                <div style={{background:"#0D1828",borderRadius:10,padding:"8px 10px"}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <div style={{fontSize:8,color:"#444"}}>THIS WEEK</div>
+                    <div style={{fontSize:8,color:"#4A6080"}}>THIS WEEK</div>
                     <div style={{fontSize:8,color:"#E8185A",fontWeight:700}}>4/5 ✓</div>
                   </div>
                   <svg width="100%" height="32" viewBox="0 0 220 32">
@@ -173,7 +169,7 @@ export function LandingPage({onSignUp}) {
       </div>
 
       {/* WHAT SEPARATES US */}
-      <section style={{padding:"80px 24px",background:"#050505",position:"relative",overflow:"hidden"}}>
+      <section style={{padding:"80px 24px",background:"#04080F",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:800,height:400,borderRadius:"50%",background:"radial-gradient(ellipse,rgba(41,121,255,.04),transparent 70%)",pointerEvents:"none"}}/>
         <div style={{maxWidth:1100,margin:"0 auto",position:"relative"}}>
           <div className="reveal" style={{textAlign:"center",marginBottom:64}}>
@@ -188,7 +184,7 @@ export function LandingPage({onSignUp}) {
           <div className="reveal" style={{borderRadius:20,overflow:"hidden",marginBottom:48,border:"1px solid #E5E5E5",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
             {/* Table header */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
-              <div style={{padding:"16px 24px",fontSize:11,fontWeight:700,letterSpacing:2,color:"#999",textTransform:"uppercase",background:"#111",borderBottom:"1px solid #222"}}>Feature</div>
+              <div style={{padding:"16px 24px",fontSize:11,fontWeight:700,letterSpacing:2,color:"#999",textTransform:"uppercase",background:"#1C2A3A",borderBottom:"1px solid #222"}}>Feature</div>
               <div style={{padding:"16px 24px",fontSize:11,fontWeight:700,letterSpacing:2,color:"#333",textTransform:"uppercase",borderLeft:"1px solid #E5E5E5",textAlign:"center",background:"#fff",borderBottom:"1px solid #E5E5E5"}}>Other Apps</div>
               <div style={{padding:"16px 24px",fontSize:11,fontWeight:700,letterSpacing:2,color:"#2979FF",textTransform:"uppercase",borderLeft:"1px solid #1C2A4A",textAlign:"center",background:"#060D1A",borderBottom:"1px solid #1C2A4A"}}>Coach Macro</div>
             </div>
@@ -205,8 +201,8 @@ export function LandingPage({onSignUp}) {
               ["Recovery-aware (sleep → volume)","❌ Programs in a vacuum","✅ Adjusts when you're tired"],
             ].map(([f,bad,good],i)=>(
               <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
-                <div style={{padding:"14px 24px",fontSize:13,color:"#888",background:"#111",borderBottom:"1px solid #222"}}>{f}</div>
-                <div style={{padding:"14px 24px",fontSize:13,color:"#111",fontWeight:500,borderLeft:"1px solid #E5E5E5",textAlign:"center",background:"#fff",borderBottom:"1px solid #E5E5E5"}}>{bad}</div>
+                <div style={{padding:"14px 24px",fontSize:13,color:"#888",background:"#1C2A3A",borderBottom:"1px solid #222"}}>{f}</div>
+                <div style={{padding:"14px 24px",fontSize:13,color:"#1C2A3A",fontWeight:500,borderLeft:"1px solid #E5E5E5",textAlign:"center",background:"#fff",borderBottom:"1px solid #E5E5E5"}}>{bad}</div>
                 <div style={{padding:"14px 24px",fontSize:13,color:"#7FBAFF",borderLeft:"1px solid #1C2A4A",textAlign:"center",background:"#060D1A",borderBottom:"1px solid #1C2A4A"}}>{good}</div>
               </div>
             ))}
@@ -219,7 +215,7 @@ export function LandingPage({onSignUp}) {
               {icon:"🧠",color:"#00E676",title:"AI That Knows You",desc:"25 data points from onboarding. Every recommendation — workouts, macros, restaurants, recipes — is built around YOUR body, not a generic user."},
               {icon:"📈",color:"#FFD740",title:"Progressive Everything",desc:"Overload on every set. Volume tracking per muscle. GVT cycles. Deload detection. Built by people who actually lift, not just engineers."},
             ].map(({icon,color,title,desc},i)=>(
-              <div key={i} className="reveal" style={{background:"#0A0A0A",border:`1px solid ${color}20`,borderRadius:16,padding:"28px 24px",position:"relative",overflow:"hidden"}}>
+              <div key={i} className="reveal" style={{background:"#080F1A",border:`1px solid ${color}20`,borderRadius:16,padding:"28px 24px",position:"relative",overflow:"hidden"}}>
                 <div style={{position:"absolute",top:0,right:0,width:120,height:120,borderRadius:"50%",background:`radial-gradient(circle,${color}08,transparent 70%)`,transform:"translate(30%,-30%)"}}/>
                 <div style={{fontSize:32,marginBottom:16}}>{icon}</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color,lineHeight:1,marginBottom:10}}>{title}</div>
@@ -232,7 +228,7 @@ export function LandingPage({onSignUp}) {
 
 
       {/* APP SCREENSHOTS — scrollable row */}
-      <section style={{padding:"80px 0 80px",background:"#050505",overflow:"hidden"}}>
+      <section style={{padding:"80px 0 80px",background:"#04080F",overflow:"hidden"}}>
         <div style={{textAlign:"center",padding:"0 24px",marginBottom:48}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Inside the App</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(44px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
@@ -247,37 +243,37 @@ export function LandingPage({onSignUp}) {
           {[
             {title:"Fuel Dashboard",sub:"Dynamic macros · AI food logging · Restaurant finder",
              content:(
-              <div style={{background:"#060610",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 14px"}}/>
+              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
+                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <div><div style={{fontSize:9,color:"#444",letterSpacing:1}}>TRAINING DAY</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Fuel 🔥</div></div>
+                  <div><div style={{fontSize:9,color:"#4A6080",letterSpacing:1}}>TRAINING DAY</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Fuel 🔥</div></div>
                   <div style={{background:"rgba(41,121,255,.12)",border:"1px solid rgba(41,121,255,.25)",borderRadius:20,padding:"4px 10px",fontSize:8,color:"#2979FF",fontWeight:700}}>+312 earned</div>
                 </div>
                 <div style={{position:"relative",textAlign:"center",marginBottom:14}}>
                   <svg width="150" height="150" style={{transform:"rotate(-90deg)",display:"block",margin:"0 auto"}}>
-                    <circle cx="75" cy="75" r="62" fill="none" stroke="#111" strokeWidth="12"/>
+                    <circle cx="75" cy="75" r="62" fill="none" stroke="#1C2A3A" strokeWidth="12"/>
                     <circle cx="75" cy="75" r="62" fill="none" stroke="#2979FF" strokeWidth="12" strokeDasharray="196 194" strokeLinecap="round"/>
                     <circle cx="75" cy="75" r="62" fill="none" stroke="#00E676" strokeWidth="12" strokeDasharray="116 274" strokeDashoffset="-196" strokeLinecap="round"/>
                     <circle cx="75" cy="75" r="62" fill="none" stroke="#FFD740" strokeWidth="12" strokeDasharray="58 332" strokeDashoffset="-312" strokeLinecap="round"/>
                   </svg>
                   <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:"#fff",lineHeight:1}}>847</div>
-                    <div style={{fontSize:8,color:"#555",letterSpacing:1}}>KCAL LEFT</div>
+                    <div style={{fontSize:8,color:"#4A6080",letterSpacing:1}}>KCAL LEFT</div>
                   </div>
                 </div>
                 {[["Protein","#2979FF","195g","240g",81],["Carbs","#00E676","186g","320g",58],["Fat","#FFD740","47g","68g",69]].map(([n,c,v,t,p])=>(
                   <div key={n} style={{marginBottom:7}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:9,marginBottom:3}}><span style={{color:c,fontWeight:700}}>{n}</span><span style={{color:"#555"}}>{v}/{t}</span></div>
-                    <div style={{height:4,background:"#111",borderRadius:2}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}/></div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:9,marginBottom:3}}><span style={{color:c,fontWeight:700}}>{n}</span><span style={{color:"#4A6080"}}>{v}/{t}</span></div>
+                    <div style={{height:4,background:"#1C2A3A",borderRadius:2}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}/></div>
                   </div>
                 ))}
                 <div style={{marginTop:12,borderTop:"1px solid #111",paddingTop:10}}>
-                  <div style={{fontSize:8,color:"#444",letterSpacing:1,marginBottom:6}}>TODAY'S LOG</div>
+                  <div style={{fontSize:8,color:"#4A6080",letterSpacing:1,marginBottom:6}}>TODAY'S LOG</div>
                   {[["Greek Yogurt + Berries","🥣","312 kcal"],["Grilled Chicken Breast","🍗","280 kcal"],["Brown Rice + Broccoli","🍚","240 kcal"]].map(([food,e,cal])=>(
-                    <div key={food} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5,padding:"5px 8px",background:"#0D0D1A",borderRadius:7}}>
+                    <div key={food} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5,padding:"5px 8px",background:"#0D1828",borderRadius:7}}>
                       <div style={{fontSize:12}}>{e}</div>
                       <div style={{flex:1,fontSize:8,color:"#ccc"}}>{food}</div>
-                      <div style={{fontSize:8,color:"#555"}}>{cal}</div>
+                      <div style={{fontSize:8,color:"#4A6080"}}>{cal}</div>
                     </div>
                   ))}
                 </div>
@@ -285,15 +281,15 @@ export function LandingPage({onSignUp}) {
             )},
             {title:"Train Dashboard",sub:"Muscle map · Progressive overload · Auto rest timer",
              content:(
-              <div style={{background:"#060610",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 14px"}}/>
+              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
+                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div><div style={{fontSize:9,color:"#444",letterSpacing:1}}>MONDAY</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Train 💪</div></div>
+                  <div><div style={{fontSize:9,color:"#4A6080",letterSpacing:1}}>MONDAY</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Train 💪</div></div>
                   <div style={{background:"rgba(0,201,167,.1)",border:"1px solid rgba(0,201,167,.25)",borderRadius:20,padding:"4px 10px",fontSize:8,color:"#00C9A7",fontWeight:700}}>Push Day</div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}}>
-                  <div style={{background:"#0D0D1A",borderRadius:10,padding:8}}>
-                    <div style={{fontSize:8,color:"#444",marginBottom:6}}>TARGET MUSCLES</div>
+                  <div style={{background:"#0D1828",borderRadius:10,padding:8}}>
+                    <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>TARGET MUSCLES</div>
                     {[["Chest","#E8185A"],["Shoulders","#E8185A"],["Triceps","#8B1A6B"]].map(([m,c])=>(
                       <div key={m} style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
                         <span style={{fontSize:8,color:"#ccc"}}>{m}</span>
@@ -301,23 +297,23 @@ export function LandingPage({onSignUp}) {
                       </div>
                     ))}
                   </div>
-                  <div style={{background:"#0D0D1A",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <div style={{background:"#0D1828",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
                     <svg viewBox="0 0 100 160" width="60" height="96">
-                      <ellipse cx="50" cy="14" rx="14" ry="12" fill="#1A1A2E"/>
-                      <rect x="44" y="24" width="12" height="7" fill="#1A1A2E"/>
+                      <ellipse cx="50" cy="14" rx="14" ry="12" fill="#1C2A3A"/>
+                      <rect x="44" y="24" width="12" height="7" fill="#1C2A3A"/>
                       <path d="M32,32 Q28,40 30,56 Q50,60 70,56 Q72,40 68,32 Z" fill="#E8185A" opacity="0.85"/>
                       <ellipse cx="26" cy="38" rx="9" ry="11" fill="#E8185A" opacity="0.8"/>
                       <ellipse cx="74" cy="38" rx="9" ry="11" fill="#E8185A" opacity="0.8"/>
                       <path d="M18,34 Q10,48 12,64" fill="none" stroke="#8B1A6B" strokeWidth="6" strokeLinecap="round"/>
                       <path d="M82,34 Q90,48 88,64" fill="none" stroke="#8B1A6B" strokeWidth="6" strokeLinecap="round"/>
-                      <path d="M36,56 Q34,72 36,84 Q50,88 64,84 Q66,72 64,56 Z" fill="#1A1A2E"/>
-                      <path d="M36,84 L30,140" fill="none" stroke="#1A1A2E" strokeWidth="10" strokeLinecap="round"/>
-                      <path d="M64,84 L70,140" fill="none" stroke="#1A1A2E" strokeWidth="10" strokeLinecap="round"/>
+                      <path d="M36,56 Q34,72 36,84 Q50,88 64,84 Q66,72 64,56 Z" fill="#1C2A3A"/>
+                      <path d="M36,84 L30,140" fill="none" stroke="#1C2A3A" strokeWidth="10" strokeLinecap="round"/>
+                      <path d="M64,84 L70,140" fill="none" stroke="#1C2A3A" strokeWidth="10" strokeLinecap="round"/>
                     </svg>
                   </div>
                 </div>
-                <div style={{background:"#0D0D1A",borderRadius:10,padding:10,marginBottom:8}}>
-                  <div style={{fontSize:8,color:"#444",marginBottom:6}}>ACTIVE SESSION</div>
+                <div style={{background:"#0D1828",borderRadius:10,padding:10,marginBottom:8}}>
+                  <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>ACTIVE SESSION</div>
                   {[["Barbell Bench Press","4×8 · 185 lbs","↑ +5 from last"],["Incline DB Press","3×10 · 65 lbs","PR ⚡"],["Cable Fly","3×12 · 40 lbs",""]].map(([ex,detail,note])=>(
                     <div key={ex} style={{display:"flex",justifyContent:"space-between",marginBottom:6,paddingBottom:5,borderBottom:"1px solid #111"}}>
                       <div><div style={{fontSize:8,color:"#ccc",fontWeight:600}}>{ex}</div><div style={{fontSize:7,color:"#00C9A7"}}>{note||detail}</div></div>
@@ -331,69 +327,70 @@ export function LandingPage({onSignUp}) {
                 </div>
               </div>
             )},
-            {title:"Restaurant AI",sub:"Exact menu items · Real macros · Any restaurant",
+            {title:"Restaurant AI",sub:"Describe your city · Get exact orders · Hit your macros",
              content:(
-              <div style={{background:"#060610",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{marginBottom:14}}>
-                  <div style={{fontSize:9,color:"#444",letterSpacing:1,marginBottom:4}}>NEARBY EATS</div>
-                  <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:4}}>What to order 🍗</div>
-                  <div style={{background:"#0D0D1A",borderRadius:10,padding:"8px 10px",marginBottom:8}}>
-                    <div style={{fontSize:8,color:"#555",marginBottom:4}}>Remaining macros</div>
-                    <div style={{display:"flex",gap:10}}>
-                      {[["412","kcal"],["38g","protein"],["45g","carbs"],["9g","fat"]].map(([v,l])=>(
-                        <div key={l} style={{textAlign:"center"}}><div style={{fontSize:13,fontWeight:800,color:"#fff"}}>{v}</div><div style={{fontSize:7,color:"#444"}}>{l}</div></div>
-                      ))}
-                    </div>
+              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
+                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
+                <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:4}}>NEARBY EATS</div>
+                <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:10}}>What to order 🍗</div>
+                <div style={{background:"#0D1828",border:"1px solid #1C2A3A",borderRadius:10,padding:"10px",marginBottom:8}}>
+                  <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>YOUR REMAINING MACROS</div>
+                  <div style={{display:"flex",gap:12,justifyContent:"space-between"}}>
+                    {[["412","kcal","#fff"],["38g","protein","#2979FF"],["45g","carbs","#00E676"],["9g","fat","#FFD740"]].map(([v,l,c])=>(
+                      <div key={l} style={{textAlign:"center"}}>
+                        <div style={{fontSize:16,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
+                        <div style={{fontSize:7,color:"#4A6080",marginTop:2}}>{l}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                {[
-                  {name:"Chick-fil-A",order:"Grilled Chicken Sandwich · no sauce + Side Salad",cal:"390 kcal",p:"40g",c:"42g",f:"8g",match:"97%"},
-                  {name:"Chipotle",order:"Burrito Bowl · chicken + fajita veggies + salsa · no rice",cal:"405 kcal",p:"36g",c:"44g",f:"9g",match:"94%"},
-                  {name:"Subway",order:"6-inch Rotisserie Chicken · wheat · mustard · all veggies",cal:"350 kcal",p:"34g",c:"41g",f:"7g",match:"91%"},
-                ].map(r=>(
-                  <div key={r.name} style={{background:"#0D0D1A",borderRadius:10,padding:"10px",marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <div style={{fontSize:10,fontWeight:700,color:"#fff"}}>{r.name}</div>
-                      <div style={{fontSize:9,color:"#00E676",fontWeight:700}}>{r.match} match</div>
+                <div style={{background:"#0D1828",border:"1px solid #1C2A3A",borderRadius:10,padding:"10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{fontSize:11,color:"#ccc"}}>📍 Edinburg, TX</div>
+                  <div style={{fontSize:9,color:"#2979FF",fontWeight:700}}>Find meals →</div>
+                </div>
+                <div style={{background:"#0D1828",border:"1px solid #1C2A3A",borderRadius:10,padding:"12px"}}>
+                  <div style={{fontSize:8,color:"#2979FF",fontWeight:700,letterSpacing:1,marginBottom:10}}>🤖 AI RECOMMENDATIONS</div>
+                  {[
+                    ["Chick-fil-A","Grilled Chicken Sandwich (no sauce) + Side Salad","~390 kcal · P:40g · C:42g · F:8g"],
+                    ["Chipotle","Burrito Bowl · chicken + fajita veggies + salsa · no rice","~405 kcal · P:36g · C:44g · F:9g"],
+                    ["Home meal","6oz grilled chicken + 1 cup rice + broccoli","~420 kcal · P:42g · C:48g · F:7g"],
+                  ].map(([name,order,macros],i)=>(
+                    <div key={i} style={{marginBottom:i<2?10:0,paddingBottom:i<2?10:0,borderBottom:i<2?"1px solid #1C2A3A":"none"}}>
+                      <div style={{fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{i+1}. {name}</div>
+                      <div style={{fontSize:9,color:"#888",marginBottom:2,lineHeight:1.4}}>{order}</div>
+                      <div style={{fontSize:8,color:"#4A6080"}}>{macros}</div>
                     </div>
-                    <div style={{fontSize:8,color:"#888",marginBottom:6,lineHeight:1.4}}>{r.order}</div>
-                    <div style={{display:"flex",gap:8}}>
-                      {[["Cal",r.cal,"#fff"],["P",r.p,"#2979FF"],["C",r.c,"#00E676"],["F",r.f,"#FFD740"]].map(([l,v,c])=>(
-                        <div key={l} style={{textAlign:"center"}}><div style={{fontSize:9,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:7,color:"#444"}}>{l}</div></div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )},
             {title:"Lift Smarter",sub:"6 splits · Arnold · GVT · matched to your schedule",
              content:(
-              <div style={{background:"#060610",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{fontSize:9,color:"#444",letterSpacing:1,marginBottom:4}}>LIFT SMARTER</div>
+              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
+                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
+                <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:4}}>LIFT SMARTER</div>
                 <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:12}}>Choose your split</div>
-                <div style={{fontSize:8,color:"#555",marginBottom:10}}>Based on 6 days/week · Intermediate</div>
+                <div style={{fontSize:8,color:"#4A6080",marginBottom:10}}>Based on 6 days/week · Intermediate</div>
                 {[
                   {id:"ppl",l:"Push / Pull / Legs",e:"🔄",rec:true,desc:"Each muscle 2x/week · Optimal frequency",days:"6 days"},
                   {id:"arnold",l:"Arnold Split",e:"🏆",rec:false,desc:"Arnold's 6-day double split · Max volume",days:"6 days"},
                   {id:"ul",l:"Upper / Lower",e:"⬆️",rec:false,desc:"2 upper + 2 lower · Balanced strength",days:"4 days"},
                 ].map(s=>(
-                  <div key={s.id} style={{background:s.rec?"rgba(41,121,255,.08)":"#0D0D1A",border:`1px solid ${s.rec?"rgba(41,121,255,.3)":"#111"}`,borderRadius:10,padding:"10px",marginBottom:7,position:"relative"}}>
+                  <div key={s.id} style={{background:s.rec?"rgba(41,121,255,.08)":"#0D1828",border:`1px solid ${s.rec?"rgba(41,121,255,.3)":"#1C2A3A"}`,borderRadius:10,padding:"10px",marginBottom:7,position:"relative"}}>
                     {s.rec&&<div style={{position:"absolute",top:-7,left:10,background:"#2979FF",color:"#fff",fontSize:7,fontWeight:800,padding:"2px 7px",borderRadius:5}}>⭐ RECOMMENDED</div>}
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                       <div style={{display:"flex",alignItems:"center",gap:6}}>
                         <span style={{fontSize:14}}>{s.e}</span>
                         <span style={{fontSize:10,fontWeight:700,color:s.rec?"#2979FF":"#ccc"}}>{s.l}</span>
                       </div>
-                      <span style={{fontSize:7,color:"#555",background:"#111",borderRadius:5,padding:"2px 6px"}}>{s.days}</span>
+                      <span style={{fontSize:7,color:"#4A6080",background:"#1C2A3A",borderRadius:5,padding:"2px 6px"}}>{s.days}</span>
                     </div>
-                    <div style={{fontSize:8,color:"#555"}}>{s.desc}</div>
+                    <div style={{fontSize:8,color:"#4A6080"}}>{s.desc}</div>
                   </div>
                 ))}
                 <div style={{background:"rgba(255,215,64,.06)",border:"1px solid rgba(255,215,64,.2)",borderRadius:10,padding:"10px",marginTop:4}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div><div style={{fontSize:9,color:"#FFD740",fontWeight:700}}>💀 GVT Weeks</div><div style={{fontSize:7,color:"#555",marginTop:2}}>10×10 every 4th week · Auto-scheduled</div></div>
+                    <div><div style={{fontSize:9,color:"#FFD740",fontWeight:700}}>💀 GVT Weeks</div><div style={{fontSize:7,color:"#4A6080",marginTop:2}}>10×10 every 4th week · Auto-scheduled</div></div>
                     <div style={{width:32,height:18,borderRadius:9,background:"#FFD740",position:"relative"}}><div style={{position:"absolute",top:2,right:2,width:14,height:14,borderRadius:"50%",background:"#000"}}/></div>
                   </div>
                 </div>
@@ -401,51 +398,51 @@ export function LandingPage({onSignUp}) {
             )},
             {title:"Progress Tracking",sub:"Program progress · PR tracker · Weight trend",
              content:(
-              <div style={{background:"#060610",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 14px"}}/>
+              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
+                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div><div style={{fontSize:9,color:"#444",letterSpacing:1}}>WEEK 4 OF 12</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Progress 📈</div></div>
+                  <div><div style={{fontSize:9,color:"#4A6080",letterSpacing:1}}>WEEK 4 OF 12</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Progress 📈</div></div>
                   <div style={{background:"rgba(255,215,64,.1)",border:"1px solid rgba(255,215,64,.25)",borderRadius:20,padding:"4px 10px",fontSize:8,color:"#FFD740",fontWeight:700}}>PPL Split</div>
                 </div>
-                <div style={{background:"#0D0D1A",borderRadius:10,padding:10,marginBottom:10}}>
+                <div style={{background:"#0D1828",borderRadius:10,padding:10,marginBottom:10}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:9,color:"#888"}}>Program progress</span><span style={{fontSize:9,color:"#FFD740",fontWeight:700}}>33%</span></div>
-                  <div style={{height:5,background:"#111",borderRadius:3,marginBottom:6}}><div style={{height:"100%",width:"33%",background:"linear-gradient(90deg,#2979FF,#FFD740)",borderRadius:3}}/></div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:7,color:"#444"}}>
+                  <div style={{height:5,background:"#1C2A3A",borderRadius:3,marginBottom:6}}><div style={{height:"100%",width:"33%",background:"linear-gradient(90deg,#2979FF,#FFD740)",borderRadius:3}}/></div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:7,color:"#4A6080"}}>
                     <span>Week 1</span><span style={{color:"#FFD740"}}>Week 4 ←</span><span>Week 12</span>
                   </div>
                 </div>
-                <div style={{background:"#0D0D1A",borderRadius:10,padding:10,marginBottom:10}}>
-                  <div style={{fontSize:8,color:"#444",marginBottom:8}}>PERSONAL RECORDS</div>
+                <div style={{background:"#0D1828",borderRadius:10,padding:10,marginBottom:10}}>
+                  <div style={{fontSize:8,color:"#4A6080",marginBottom:8}}>PERSONAL RECORDS</div>
                   {[["Bench Press","225","↑ +20 lbs"],["Squat","315","↑ +35 lbs"],["Deadlift","365","↑ +40 lbs"]].map(([l,w,n])=>(
                     <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
                       <div><div style={{fontSize:8,color:"#ccc"}}>{l}</div><div style={{fontSize:7,color:"#00E676"}}>{n}</div></div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{w}<span style={{fontSize:8,color:"#444"}}> lbs</span></div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{w}<span style={{fontSize:8,color:"#4A6080"}}> lbs</span></div>
                     </div>
                   ))}
                 </div>
-                <div style={{background:"#0D0D1A",borderRadius:10,padding:10}}>
-                  <div style={{fontSize:8,color:"#444",marginBottom:6}}>WEIGHT TREND</div>
+                <div style={{background:"#0D1828",borderRadius:10,padding:10}}>
+                  <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>WEIGHT TREND</div>
                   <svg width="100%" height="44" viewBox="0 0 220 44">
                     <path d="M0,36 L55,30 L110,24 L165,18 L220,12" fill="none" stroke="#2979FF" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.4"/>
                     <path d="M0,36 L55,32 L110,27 L165,23" fill="none" stroke="#00E676" strokeWidth="2" strokeLinecap="round"/>
                     {[[0,36],[55,32],[110,27],[165,23]].map(([x,y],i)=>(<circle key={i} cx={x} cy={y} r="3" fill="#00E676"/>))}
                   </svg>
                   <div style={{display:"flex",gap:12,marginTop:3}}>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:2,background:"#2979FF",opacity:.5}}/><span style={{fontSize:7,color:"#444"}}>Projected</span></div>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:2,background:"#00E676"}}/><span style={{fontSize:7,color:"#444"}}>Actual</span></div>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:2,background:"#2979FF",opacity:.5}}/><span style={{fontSize:7,color:"#4A6080"}}>Projected</span></div>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:2,background:"#00E676"}}/><span style={{fontSize:7,color:"#4A6080"}}>Actual</span></div>
                   </div>
                 </div>
               </div>
             )},
             {title:"TDEE & Macros",sub:"25 data points · Katch-McArdle · Fully personalized",
              content:(
-              <div style={{background:"#060610",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1A1A2E",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{fontSize:9,color:"#444",letterSpacing:1,marginBottom:4}}>YOUR METABOLISM</div>
+              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
+                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
+                <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:4}}>YOUR METABOLISM</div>
                 <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:14}}>TDEE Breakdown</div>
                 <div style={{textAlign:"center",marginBottom:14}}>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:"#2979FF",lineHeight:1}}>2,847</div>
-                  <div style={{fontSize:9,color:"#555"}}>kcal/day to maintain weight</div>
+                  <div style={{fontSize:9,color:"#4A6080"}}>kcal/day to maintain weight</div>
                 </div>
                 {[
                   {l:"Base BMR",v:1842,pct:65,c:"#2979FF",note:"Mifflin-St Jeor + body fat adjusted"},
@@ -454,27 +451,27 @@ export function LandingPage({onSignUp}) {
                 ].map(({l,v,pct,c,note})=>(
                   <div key={l} style={{marginBottom:10}}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <div><div style={{fontSize:9,fontWeight:700,color:"#ccc"}}>{l}</div><div style={{fontSize:7,color:"#555"}}>{note}</div></div>
-                      <div style={{textAlign:"right"}}><div style={{fontSize:11,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:7,color:"#444"}}>kcal</div></div>
+                      <div><div style={{fontSize:9,fontWeight:700,color:"#ccc"}}>{l}</div><div style={{fontSize:7,color:"#4A6080"}}>{note}</div></div>
+                      <div style={{textAlign:"right"}}><div style={{fontSize:11,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:7,color:"#4A6080"}}>kcal</div></div>
                     </div>
-                    <div style={{height:4,background:"#111",borderRadius:2}}><div style={{height:"100%",width:`${pct}%`,background:c,borderRadius:2}}/></div>
+                    <div style={{height:4,background:"#1C2A3A",borderRadius:2}}><div style={{height:"100%",width:`${pct}%`,background:c,borderRadius:2}}/></div>
                   </div>
                 ))}
                 <div style={{background:"rgba(0,230,118,.06)",border:"1px solid rgba(0,230,118,.15)",borderRadius:10,padding:"10px",marginTop:8}}>
                   <div style={{fontSize:8,color:"#00E676",fontWeight:700,marginBottom:4}}>🎯 Your cutting target</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#00E676"}}>2,347 <span style={{fontSize:12,color:"#555",fontWeight:400}}>kcal/day</span></div>
-                  <div style={{fontSize:8,color:"#555",marginTop:2}}>−500 kcal deficit · ~1 lb/week fat loss</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#00E676"}}>2,347 <span style={{fontSize:12,color:"#4A6080",fontWeight:400}}>kcal/day</span></div>
+                  <div style={{fontSize:8,color:"#4A6080",marginTop:2}}>−500 kcal deficit · ~1 lb/week fat loss</div>
                 </div>
               </div>
             )},
           ].map((screen,i)=>(
             <div key={i} className="snap-child" style={{width:240}}>
-              <div style={{background:"#0A0A12",border:"1px solid #1C1C2E",borderRadius:32,overflow:"hidden",boxShadow:"0 20px 40px rgba(0,0,0,.6)"}}>
+              <div style={{background:"#0A1424",border:"1px solid #1C1C2E",borderRadius:32,overflow:"hidden",boxShadow:"0 20px 40px rgba(0,0,0,.6)"}}>
                 {screen.content}
               </div>
               <div style={{textAlign:"center",marginTop:14,padding:"0 8px"}}>
                 <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:3}}>{screen.title}</div>
-                <div style={{fontSize:11,color:"#555",lineHeight:1.5}}>{screen.sub}</div>
+                <div style={{fontSize:11,color:"#4A6080",lineHeight:1.5}}>{screen.sub}</div>
               </div>
             </div>
           ))}
@@ -483,7 +480,7 @@ export function LandingPage({onSignUp}) {
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{padding:"80px 24px",background:"#080808"}}>
+      <section style={{padding:"80px 24px",background:"#060D1A"}}>
         <div style={{textAlign:"center",marginBottom:64,maxWidth:1100,margin:"0 auto 64px"}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Simple by design</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(44px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
@@ -491,7 +488,7 @@ export function LandingPage({onSignUp}) {
           </div>
           <p style={{fontSize:16,color:"#666",maxWidth:480,margin:"0 auto",lineHeight:1.65}}>No spreadsheets. No manual calculations. Coach Macro figures it out.</p>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:2,maxWidth:1100,margin:"0 auto",background:"#1C1C1C",border:"1px solid #1C1C1C",borderRadius:20,overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:2,maxWidth:1100,margin:"0 auto",background:"#142238",border:"1px solid #1C1C1C",borderRadius:20,overflow:"hidden"}}>
           {[
             {n:"01",color:"#2979FF",title:"Build your profile",sub:"3 minutes",
              desc:"Answer 25 questions about your body, lifestyle, and goals. We calculate your exact metabolic rate using Katch-McArdle — 5-8% more accurate than standard equations.",
@@ -503,7 +500,7 @@ export function LandingPage({onSignUp}) {
              desc:"Log food by describing it in plain English, scanning a barcode, or letting our restaurant AI build your order. Every set logged, every rep counted, every PR tracked.",
              details:["AI food logging — just describe it","Barcode scanner — 3M+ products","Restaurant AI — exact menu orders","Progressive overload auto-tracked"]},
           ].map(({n,color,title,sub,desc,details})=>(
-            <div key={n} style={{background:"#0A0A0A",padding:"48px 40px",position:"relative",overflow:"hidden"}}>
+            <div key={n} style={{background:"#080F1A",padding:"48px 40px",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:-20,right:-20,fontFamily:"'Barlow Condensed',sans-serif",fontSize:120,fontWeight:900,color:`${color}06`,lineHeight:1,userSelect:"none"}}>{n}</div>
               <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:48,height:48,borderRadius:12,background:`${color}15`,border:`1px solid ${color}30`,marginBottom:20}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color}}>{n}</div>
@@ -523,7 +520,7 @@ export function LandingPage({onSignUp}) {
       </section>
 
       {/* COMPETITOR COMPARISON */}
-      <section style={{padding:"80px 24px",background:"#050505"}}>
+      <section style={{padding:"80px 24px",background:"#04080F"}}>
         <div style={{textAlign:"center",marginBottom:48,maxWidth:1100,margin:"0 auto 48px"}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Honest comparison</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(40px,5.5vw,72px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
@@ -534,7 +531,7 @@ export function LandingPage({onSignUp}) {
           <table style={{width:"100%",borderCollapse:"collapse",minWidth:640}}>
             <thead>
               <tr>
-                <th style={{padding:"14px 20px",textAlign:"left",fontSize:11,color:"#555",fontWeight:700,letterSpacing:2,textTransform:"uppercase",background:"#0A0A0A",borderBottom:"1px solid #1C1C1C"}}>Feature</th>
+                <th style={{padding:"14px 20px",textAlign:"left",fontSize:11,color:"#4A6080",fontWeight:700,letterSpacing:2,textTransform:"uppercase",background:"#080F1A",borderBottom:"1px solid #1C1C1C"}}>Feature</th>
                 {[["MyFitnessPal","#888","#fff"],["MacroFactor","#888","#fff"],["Cronometer","#888","#fff"],["Coach Macro","#2979FF","#060D1A"]].map(([name,tc,bg])=>(
                   <th key={name} style={{padding:"14px 16px",textAlign:"center",fontSize:12,color:tc,fontWeight:800,background:bg==="#060D1A"?"#060D1A":"#fff",borderBottom:`1px solid ${bg==="#060D1A"?"#1C2A4A":"#E5E5E5"}`,borderLeft:"1px solid #1C1C1C"}}>{name}</th>
                 ))}
@@ -557,9 +554,9 @@ export function LandingPage({onSignUp}) {
                 ["Free trial","✅","✅","❌","✅"],
               ].map(([feature,...vals],ri)=>(
                 <tr key={feature} style={{borderBottom:"1px solid #111"}}>
-                  <td style={{padding:"12px 20px",fontSize:13,color:"#888",background:"#0A0A0A"}}>{feature}</td>
+                  <td style={{padding:"12px 20px",fontSize:13,color:"#888",background:"#080F1A"}}>{feature}</td>
                   {vals.map((v,ci)=>(
-                    <td key={ci} style={{padding:"12px 16px",textAlign:"center",fontSize:15,background:ci===3?"#060D1A":"#fff",borderLeft:"1px solid #1C1C1C",color:ci===3?(v==="✅"?"#2979FF":"#333"):(v==="✅"?"#111":"#ccc"),fontWeight:v==="✅"?"700":"400"}}>{v}</td>
+                    <td key={ci} style={{padding:"12px 16px",textAlign:"center",fontSize:15,background:ci===3?"#060D1A":"#fff",borderLeft:"1px solid #1C1C1C",color:ci===3?(v==="✅"?"#2979FF":"#333"):(v==="✅"?"#1C2A3A":"#ccc"),fontWeight:v==="✅"?"700":"400"}}>{v}</td>
                   ))}
                 </tr>
               ))}
@@ -570,7 +567,7 @@ export function LandingPage({onSignUp}) {
       </section>
 
       {/* FAQ */}
-      <section style={{padding:"80px 24px",background:"#080808"}}>
+      <section style={{padding:"80px 24px",background:"#060D1A"}}>
         <div style={{textAlign:"center",marginBottom:56}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Got questions</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(44px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9}}>
@@ -592,7 +589,7 @@ export function LandingPage({onSignUp}) {
       </section>
 
             {/* INTEGRATIONS */}
-      <section style={{padding:"64px 24px",background:"#080808"}}>
+      <section style={{padding:"64px 24px",background:"#060D1A"}}>
         <div style={{textAlign:"center",marginBottom:36}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Connect</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(40px,6vw,72px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
@@ -602,7 +599,7 @@ export function LandingPage({onSignUp}) {
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,maxWidth:1100,margin:"0 auto"}}>
           {[["🟠","Strava","Runs · Rides · Workouts","Live API Sync"],["🍎","Apple Health","Workouts · Steps · Sleep","Import"],["⌚","Garmin Connect","Activities · HR · Pace","Import"],["💜","Fitbit","Workouts · Steps","Import"]].map(([icon,name,sub,badge])=>(
-            <div key={name} style={{background:"#0F0F0F",border:"1px solid #1C1C1C",borderRadius:14,padding:22}}>
+            <div key={name} style={{background:"#0A1220",border:"1px solid #1C1C1C",borderRadius:14,padding:22}}>
               <div style={{fontSize:26,marginBottom:10}}>{icon}</div>
               <div style={{fontSize:15,fontWeight:700,marginBottom:3,color:"#fff"}}>{name}</div>
               <div style={{fontSize:12,color:"#666",marginBottom:8}}>{sub}</div>
@@ -613,7 +610,7 @@ export function LandingPage({onSignUp}) {
       </section>
 
             {/* PRICING */}
-      <section style={{padding:"64px 24px",textAlign:"center",background:"#050505"}}>
+      <section style={{padding:"64px 24px",textAlign:"center",background:"#04080F"}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(48px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
           START FREE.<br/><span style={{color:"#2979FF"}}>STAY BECAUSE IT WORKS.</span>
         </div>
@@ -622,13 +619,13 @@ export function LandingPage({onSignUp}) {
           {[{t:"Monthly",p:"$4.99",per:"/mo",s:"billed monthly",note:"Today: $0.00",featured:false},
             {t:"Yearly",p:"$19.99",per:"/yr",s:"$1.67/month · 67% off",note:"Today: $0.00",featured:true}
           ].map(({t,p,per,s,note,featured})=>(
-            <div key={t} style={{background:featured?"#050A14":"#0F0F0F",border:`1.5px solid ${featured?"rgba(41,121,255,.3)":"#1C1C1C"}`,borderRadius:18,padding:"36px 32px",position:"relative"}}>
+            <div key={t} style={{background:featured?"#050A14":"#0A1220",border:`1.5px solid ${featured?"rgba(41,121,255,.3)":"#142238"}`,borderRadius:18,padding:"36px 32px",position:"relative"}}>
               {featured&&<div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"#2979FF",color:"#fff",fontSize:9,fontWeight:800,padding:"4px 14px",borderRadius:9,letterSpacing:1.5,whiteSpace:"nowrap"}}>BEST VALUE</div>}
               <div style={{fontSize:10,color:"#4A4A4A",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:14}}>{t}</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:68,fontWeight:900,lineHeight:1,letterSpacing:-2,color:featured?"#2979FF":"#fff",marginBottom:4}}>{p}<span style={{fontSize:22,fontWeight:400,color:"#4A4A4A"}}>{per}</span></div>
               <div style={{fontSize:13,color:"#4A4A4A",marginBottom:6}}>{s}</div>
               <div style={{fontSize:13,color:"#00E676",fontWeight:700,marginBottom:24}}>{note} — 7 days free</div>
-              <button onClick={onSignUp} style={{display:"block",width:"100%",textAlign:"center",padding:"15px",borderRadius:10,fontWeight:700,fontSize:15,cursor:"pointer",border:"none",fontFamily:"'Inter',sans-serif",background:featured?"#2979FF":"#1C1C1C",color:"#fff"}}>Start Free Trial →</button>
+              <button onClick={onSignUp} style={{display:"block",width:"100%",textAlign:"center",padding:"15px",borderRadius:10,fontWeight:700,fontSize:15,cursor:"pointer",border:"none",fontFamily:"'Inter',sans-serif",background:featured?"#2979FF":"#142238",color:"#fff"}}>Start Free Trial →</button>
             </div>
           ))}
         </div>
@@ -641,16 +638,15 @@ export function LandingPage({onSignUp}) {
         </div>
         <p style={{fontSize:17,color:"#666",maxWidth:420,margin:"0 auto 32px",lineHeight:1.65}}>Your macros. Your workouts. Your data. One system built around how your body actually works.</p>
         <Btn style={{fontSize:17,padding:"17px 40px"}}>Start Free for 7 Days →</Btn>
-        <div style={{fontSize:13,color:"#1C1C1C",marginTop:14}}>No credit card · Free trial · Cancel anytime</div>
+        <div style={{fontSize:13,color:"#142238",marginTop:14}}>No credit card · Free trial · Cancel anytime</div>
       </section>
 
       {/* FOOTER */}
       <footer style={{borderTop:"1px solid #1C1C1C",padding:"28px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <svg width={40} height={17} viewBox="0 0 52 22"><rect x={0} y={0} width={14} height={22} rx={3} fill="#2979FF"/><rect x={19} y={5} width={14} height={17} rx={3} fill="#00E676"/><rect x={38} y={10} width={14} height={12} rx={3} fill="#FFD740"/></svg>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:14,color:"#fff"}}>COACH MACRO</span>
+          <Logo size={22} text={true}/>
         </div>
-        <div style={{fontSize:12,color:"#1C1C1C"}}>© 2026 Coach Macro. All rights reserved.</div>
+        <div style={{fontSize:12,color:"#142238"}}>© 2026 Coach Macro. All rights reserved.</div>
       </footer>
     </div>
   );
