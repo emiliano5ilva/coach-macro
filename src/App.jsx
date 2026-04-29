@@ -290,7 +290,7 @@ export default function CoachMacro() {
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <style>{GLOBAL_CSS}</style>
       <div style={{textAlign:"center"}}>
-        <svg width={52} height={22} viewBox="0 0 52 22" style={{marginBottom:16}}><rect x={0} y={0} width={14} height={22} rx={3} fill={T.prot}/><rect x={19} y={5} width={14} height={17} rx={3} fill={T.carb}/><rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/></svg>
+        <div style={{marginBottom:16}}><Logo size={36} text={false}/></div>
         <div style={{fontSize:13,color:T.mu,letterSpacing:2}}>LOADING...</div>
       </div>
     </div>
