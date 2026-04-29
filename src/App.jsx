@@ -202,27 +202,7 @@ function LandingPage({onSignUp}) {
               </div>
             </div>
           </div>
-        </div></div>
-                <div style={{background:"rgba(41,121,255,.15)",border:"1px solid rgba(41,121,255,.3)",borderRadius:18,padding:"3px 8px",fontSize:7,fontWeight:700,color:"#2979FF"}}>💪 PUSH</div>
-              </div>
-              <div style={{textAlign:"center",marginBottom:10}}>
-                <svg width="130" height="130" style={{transform:"rotate(-90deg)"}}>
-                  <circle cx="65" cy="65" r="52" fill="none" stroke="#1A1A1A" strokeWidth="11"/>
-                  <circle cx="65" cy="65" r="52" fill="none" stroke="#2979FF" strokeWidth="11" strokeDasharray="109 327" strokeDashoffset="0" strokeLinecap="round"/>
-                  <circle cx="65" cy="65" r="52" fill="none" stroke="#00E676" strokeWidth="11" strokeDasharray="87 327" strokeDashoffset="-109" strokeLinecap="round"/>
-                  <circle cx="65" cy="65" r="52" fill="none" stroke="#FFD740" strokeWidth="11" strokeDasharray="55 327" strokeDashoffset="-196" strokeLinecap="round"/>
-                </svg>
-                <div style={{marginTop:-87,textAlign:"center"}}><div style={{fontSize:30,fontWeight:900,lineHeight:1}}>962</div><div style={{fontSize:7,color:"#444",textTransform:"uppercase",letterSpacing:1,marginTop:1}}>kcal left</div></div>
-                <div style={{marginTop:56,display:"flex",justifyContent:"center",gap:16,fontSize:9}}><span style={{color:"#666"}}>Budget <b style={{color:"#fff"}}>2,847</b></span><span style={{color:"#666"}}>Eaten <b style={{color:"#fff"}}>1,885</b></span></div>
-              </div>
-              {[["Protein","#2979FF","195/240g",81],["Carbs","#00E676","186/320g",58],["Fat","#FFD740","47/68g",69]].map(([n,c,v,p])=>(
-                <div key={n} style={{marginBottom:6}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:8,marginBottom:2}}><span style={{color:c,fontWeight:700}}>{n}</span><span style={{color:"#555"}}>{v}</span></div>
-                  <div style={{height:4,background:"#1A1A1A",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}></div></div>
-                </div>
-              ))}
-            </div>
-          </div>
+        </div>
         </div></div>
       </section>
 
