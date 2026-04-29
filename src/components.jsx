@@ -407,200 +407,341 @@ export function BodyFigure({pct, color, selected}) {
 // ─── MUSCLE MAP ───────────────────────────────────────────────────────────────
 export function MuscleMap({dayFocus, isMobile}) {
   const [selected, setSelected] = useState(null);
-  const [view, setView] = useState("front"); // front | back
+  const [view, setView] = useState("front");
 
-  // Calculate volume per muscle from this week's schedule
   const getVolume = (muscle) => {
-    const muscleToFocus = {
-      chest:    ["Push","Arnold A","Full Body","Chest+Triceps","Upper"],
-      shoulders:["Push","Arnold A","Full Body","Shoulders+Arms","Upper"],
-      triceps:  ["Push","Arnold A","Full Body","Chest+Triceps","Shoulders+Arms","Upper"],
-      biceps:   ["Pull","Arnold B","Full Body","Back+Biceps","Shoulders+Arms","Upper"],
-      back:     ["Pull","Arnold B","Full Body","Back+Biceps","Upper"],
-      traps:    ["Pull","Arnold B","Full Body","Upper"],
-      core:     ["Full Body","Legs","Lower"],
-      quads:    ["Legs","Full Body","Lower"],
-      hamstrings:["Legs","Full Body","Lower"],
-      glutes:   ["Legs","Full Body","Lower"],
-      calves:   ["Legs","Full Body","Lower"],
-      forearms: ["Pull","Arnold B","Full Body","Back+Biceps","Upper"],
+    const map = {
+      chest:      ["Push","Arnold A","Full Body","Upper","Chest+Triceps"],
+      shoulders:  ["Push","Arnold A","Full Body","Upper","Shoulders+Arms"],
+      biceps:     ["Pull","Arnold B","Full Body","Upper","Back+Biceps","Shoulders+Arms"],
+      triceps:    ["Push","Arnold A","Full Body","Upper","Chest+Triceps","Shoulders+Arms"],
+      forearms:   ["Pull","Arnold B","Full Body","Upper","Back+Biceps"],
+      abs:        ["Full Body","Legs","Lower"],
+      quads:      ["Legs","Full Body","Lower"],
+      hamstrings: ["Legs","Full Body","Lower"],
+      glutes:     ["Legs","Full Body","Lower"],
+      calves:     ["Legs","Full Body","Lower"],
+      lats:       ["Pull","Arnold B","Full Body","Upper","Back+Biceps"],
+      traps:      ["Pull","Arnold B","Full Body","Upper"],
+      rhomboids:  ["Pull","Arnold B","Full Body","Upper","Back+Biceps"],
+      lower_back: ["Legs","Full Body","Lower"],
     };
-    const focusDays = muscleToFocus[muscle] || [];
-    const sessions = Object.values(dayFocus||{}).filter(f => focusDays.includes(f)).length;
-    return sessions * 3; // ~3 sets per session
+    const focusDays = map[muscle] || [];
+    const sessions = Object.values(dayFocus||{}).filter(f=>focusDays.includes(f)).length;
+    return sessions * 3;
   };
 
   const getColor = (muscle) => {
     const sets = getVolume(muscle);
-    if (sets === 0) return "#1A1A2E";
-    if (sets < 6)  return "#4A1942";   // low — purple tint
-    if (sets < 10) return "#8B1A6B";   // getting there — pink
-    if (sets <= 20) return "#E8185A";  // optimal — red (like Fitbod)
-    return "#FF4D6D";                  // overreached — bright red
+    if(sets === 0)  return "#2A3A50";      // inactive — dark blue-grey
+    if(sets < 6)    return "#6B2D5E";      // low — dark purple
+    if(sets < 10)   return "#C0392B";      // building — medium red
+    if(sets <= 20)  return "#E8185A";      // optimal — bright red (like reference)
+    return "#FF6B6B";                       // overreached
   };
 
-  const getStatus = (muscle) => {
+  const getOpacity = (muscle) => {
     const sets = getVolume(muscle);
-    if (sets === 0) return {label:"Not trained",color:"#444"};
-    if (sets < 6)  return {label:`${sets} sets — needs more`,color:"#8B1A6B"};
-    if (sets < 10) return {label:`${sets} sets — building`,color:"#E8185A"};
-    if (sets <= 20) return {label:`${sets} sets — optimal ✓`,color:"#00E676"};
-    return {label:`${sets} sets — deload soon`,color:"#FF4D6D"};
+    return sets === 0 ? 0.35 : 0.9;
   };
 
-  const muscles = ["chest","shoulders","triceps","biceps","back","traps","core","quads","hamstrings","glutes","calves","forearms"];
+  const sel = (m) => () => setSelected(selected===m?null:m);
+  const isSelected = (m) => selected === m;
+  const mc = (m) => isSelected(m) ? "#FF4D6D" : getColor(m);
+  const mo = (m) => isSelected(m) ? 1 : getOpacity(m);
+
+  const BODY_BASE = "#3D5A73";   // base body color — matches reference blue-grey
+  const OUTLINE = "#2A4A5E";    // darker outline
+  const LINE = "#1E3A52";       // muscle separation lines
+
+  const status = (m) => {
+    const s = getVolume(m);
+    if(s===0) return {l:"Not trained this week",c:"#4A6080"};
+    if(s<6)   return {l:`${s} sets — add more volume`,c:"#C0392B"};
+    if(s<10)  return {l:`${s} sets — building up`,c:"#E8185A"};
+    if(s<=20) return {l:`${s} sets — optimal ✓`,c:"#00E676"};
+    return {l:`${s} sets — consider deload`,c:"#FFD740"};
+  };
 
   return (
     <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:24,alignItems:"start"}}>
-      {/* Figure + controls */}
       <div>
         {/* View toggle */}
         <div style={{display:"flex",background:T.s3,borderRadius:10,padding:3,marginBottom:16,gap:3}}>
           {["front","back"].map(v=>(
-            <button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:view===v?T.prot:"none",color:view===v?"#fff":T.mu,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize",transition:"all .2s"}}>{v}</button>
+            <button key={v} onClick={()=>{setView(v);setSelected(null);}} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:view===v?T.prot:"none",color:view===v?"#fff":T.mu,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize",transition:"all .2s"}}>{v} view</button>
           ))}
         </div>
 
-        {/* SVG anatomical figure */}
-        <div style={{position:"relative",margin:"0 auto",maxWidth:240}}>
-          {view==="front" ? (
-            <svg viewBox="0 0 200 420" style={{width:"100%",height:"auto"}}>
-              {/* HEAD */}
-              <ellipse cx="100" cy="28" rx="22" ry="26" fill="#2A2A3E" stroke="#333" strokeWidth="1"/>
-              {/* NECK */}
-              <rect x="91" y="52" width="18" height="16" rx="4" fill="#2A2A3E"/>
-              {/* TRAPS */}
-              <path d="M78,58 Q100,52 122,58 L126,74 Q100,68 74,74 Z" fill={getColor("traps")} onClick={()=>setSelected("traps")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* CHEST — left */}
-              <path d="M74,74 Q68,82 68,98 Q80,104 100,102 Q100,86 94,76 Z" fill={getColor("chest")} onClick={()=>setSelected("chest")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* CHEST — right */}
-              <path d="M126,74 Q132,82 132,98 Q120,104 100,102 Q100,86 106,76 Z" fill={getColor("chest")} onClick={()=>setSelected("chest")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* SHOULDERS — left */}
-              <ellipse cx="62" cy="78" rx="14" ry="16" fill={getColor("shoulders")} onClick={()=>setSelected("shoulders")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* SHOULDERS — right */}
-              <ellipse cx="138" cy="78" rx="14" ry="16" fill={getColor("shoulders")} onClick={()=>setSelected("shoulders")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* BICEPS — left */}
-              <path d="M50,92 Q42,108 44,128 Q52,132 60,128 Q62,108 66,94 Z" fill={getColor("biceps")} onClick={()=>setSelected("biceps")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* BICEPS — right */}
-              <path d="M150,92 Q158,108 156,128 Q148,132 140,128 Q138,108 134,94 Z" fill={getColor("biceps")} onClick={()=>setSelected("biceps")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* TRICEPS — left (side) */}
-              <path d="M46,92 Q36,110 38,132 Q42,134 46,130 Q44,110 52,92 Z" fill={getColor("triceps")} onClick={()=>setSelected("triceps")} style={{cursor:"pointer",transition:"fill .3s"}} opacity="0.7"/>
-              {/* TRICEPS — right (side) */}
-              <path d="M154,92 Q164,110 162,132 Q158,134 154,130 Q156,110 148,92 Z" fill={getColor("triceps")} onClick={()=>setSelected("triceps")} style={{cursor:"pointer",transition:"fill .3s"}} opacity="0.7"/>
-              {/* FOREARMS — left */}
-              <path d="M44,130 Q38,148 40,168 Q48,172 56,168 Q58,148 60,130 Z" fill={getColor("forearms")} onClick={()=>setSelected("forearms")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* FOREARMS — right */}
-              <path d="M156,130 Q162,148 160,168 Q152,172 144,168 Q142,148 140,130 Z" fill={getColor("forearms")} onClick={()=>setSelected("forearms")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* ABS / CORE */}
-              <path d="M80,102 Q74,110 74,148 Q88,154 100,154 Q112,154 126,148 Q126,110 120,102 Q100,108 80,102 Z" fill={getColor("core")} onClick={()=>setSelected("core")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* Ab lines */}
-              <line x1="100" y1="102" x2="100" y2="154" stroke="#111" strokeWidth="1.5" opacity="0.5"/>
-              <line x1="78" y1="120" x2="122" y2="120" stroke="#111" strokeWidth="1" opacity="0.4"/>
-              <line x1="78" y1="134" x2="122" y2="134" stroke="#111" strokeWidth="1" opacity="0.4"/>
-              <line x1="80" y1="148" x2="120" y2="148" stroke="#111" strokeWidth="1" opacity="0.3"/>
-              {/* HIP/GROIN */}
-              <path d="M74,148 Q78,162 100,166 Q122,162 126,148 Z" fill="#1E1E2E"/>
-              {/* QUADS — left */}
-              <path d="M76,164 Q68,182 68,214 Q80,220 92,216 Q96,184 98,164 Z" fill={getColor("quads")} onClick={()=>setSelected("quads")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* QUADS — right */}
-              <path d="M124,164 Q132,182 132,214 Q120,220 108,216 Q104,184 102,164 Z" fill={getColor("quads")} onClick={()=>setSelected("quads")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* Quad separation line */}
-              <line x1="87" y1="168" x2="82" y2="214" stroke="#111" strokeWidth="1" opacity="0.3"/>
-              <line x1="113" y1="168" x2="118" y2="214" stroke="#111" strokeWidth="1" opacity="0.3"/>
-              {/* KNEE */}
-              <ellipse cx="83" cy="222" rx="12" ry="10" fill="#1E1E2E" stroke="#333" strokeWidth="1"/>
-              <ellipse cx="117" cy="222" rx="12" ry="10" fill="#1E1E2E" stroke="#333" strokeWidth="1"/>
-              {/* CALVES — left */}
-              <path d="M72,230 Q68,254 70,280 Q80,286 90,280 Q92,254 92,230 Z" fill={getColor("calves")} onClick={()=>setSelected("calves")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* CALVES — right */}
-              <path d="M128,230 Q132,254 130,280 Q120,286 110,280 Q108,254 108,230 Z" fill={getColor("calves")} onClick={()=>setSelected("calves")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* FEET */}
-              <ellipse cx="81" cy="286" rx="13" ry="7" fill="#1A1A2E"/>
-              <ellipse cx="119" cy="286" rx="13" ry="7" fill="#1A1A2E"/>
-            </svg>
-          ) : (
-            <svg viewBox="0 0 200 420" style={{width:"100%",height:"auto"}}>
-              {/* HEAD back */}
-              <ellipse cx="100" cy="28" rx="22" ry="26" fill="#2A2A3E" stroke="#333" strokeWidth="1"/>
-              <rect x="91" y="52" width="18" height="16" rx="4" fill="#2A2A3E"/>
-              {/* TRAPS — back (bigger, more prominent) */}
-              <path d="M74,58 Q100,48 126,58 L130,80 Q100,72 70,80 Z" fill={getColor("traps")} onClick={()=>setSelected("traps")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* REAR DELTS */}
-              <ellipse cx="62" cy="80" rx="14" ry="16" fill={getColor("shoulders")} onClick={()=>setSelected("shoulders")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              <ellipse cx="138" cy="80" rx="14" ry="16" fill={getColor("shoulders")} onClick={()=>setSelected("shoulders")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* LATS */}
-              <path d="M70,80 Q62,100 64,128 Q80,136 100,134 Q100,110 94,80 Z" fill={getColor("back")} onClick={()=>setSelected("back")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              <path d="M130,80 Q138,100 136,128 Q120,136 100,134 Q100,110 106,80 Z" fill={getColor("back")} onClick={()=>setSelected("back")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* RHOMBOIDS / MID BACK */}
-              <path d="M80,80 Q100,76 120,80 L118,108 Q100,112 82,108 Z" fill={getColor("back")} onClick={()=>setSelected("back")} style={{cursor:"pointer",transition:"fill .3s"}} opacity="0.85"/>
-              {/* Back line */}
-              <line x1="100" y1="76" x2="100" y2="134" stroke="#111" strokeWidth="1.5" opacity="0.4"/>
-              {/* TRICEPS — back */}
-              <path d="M50,88 Q40,110 42,134 Q48,136 54,134 Q52,110 58,88 Z" fill={getColor("triceps")} onClick={()=>setSelected("triceps")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              <path d="M150,88 Q160,110 158,134 Q152,136 146,134 Q148,110 142,88 Z" fill={getColor("triceps")} onClick={()=>setSelected("triceps")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* FOREARMS back */}
-              <path d="M42,136 Q36,154 38,174 Q46,178 54,174 Q56,154 56,136 Z" fill={getColor("forearms")} onClick={()=>setSelected("forearms")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              <path d="M158,136 Q164,154 162,174 Q154,178 146,174 Q144,154 144,136 Z" fill={getColor("forearms")} onClick={()=>setSelected("forearms")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* LOWER BACK */}
-              <path d="M80,130 Q76,148 78,160 Q100,164 122,160 Q124,148 120,130 Q100,136 80,130 Z" fill={getColor("core")} onClick={()=>setSelected("core")} style={{cursor:"pointer",transition:"fill .3s"}} opacity="0.7"/>
-              {/* GLUTES */}
-              <path d="M76,160 Q72,178 76,196 Q100,204 124,196 Q128,178 124,160 Q100,168 76,160 Z" fill={getColor("glutes")} onClick={()=>setSelected("glutes")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              <line x1="100" y1="160" x2="100" y2="204" stroke="#111" strokeWidth="1.5" opacity="0.4"/>
-              {/* HAMSTRINGS — left */}
-              <path d="M76,200 Q68,222 70,248 Q82,254 92,248 Q94,222 90,200 Z" fill={getColor("hamstrings")} onClick={()=>setSelected("hamstrings")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* HAMSTRINGS — right */}
-              <path d="M124,200 Q132,222 130,248 Q118,254 108,248 Q106,222 110,200 Z" fill={getColor("hamstrings")} onClick={()=>setSelected("hamstrings")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* CALVES — back */}
-              <path d="M72,254 Q68,276 70,296 Q80,302 90,296 Q92,276 90,254 Z" fill={getColor("calves")} onClick={()=>setSelected("calves")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              <path d="M128,254 Q132,276 130,296 Q120,302 110,296 Q108,276 110,254 Z" fill={getColor("calves")} onClick={()=>setSelected("calves")} style={{cursor:"pointer",transition:"fill .3s"}}/>
-              {/* FEET */}
-              <ellipse cx="81" cy="302" rx="13" ry="7" fill="#1A1A2E"/>
-              <ellipse cx="119" cy="302" rx="13" ry="7" fill="#1A1A2E"/>
-            </svg>
-          )}
+        {/* SVG — Front View */}
+        {view==="front"&&(
+          <svg viewBox="0 0 200 460" style={{width:"100%",maxWidth:280,display:"block",margin:"0 auto"}}>
+            {/* ── BODY SILHOUETTE ── */}
+            {/* Head */}
+            <ellipse cx="100" cy="30" rx="22" ry="26" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            {/* Neck */}
+            <path d="M88,54 L88,68 Q100,72 112,68 L112,54 Q100,58 88,54Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Torso */}
+            <path d="M58,68 Q42,74 36,90 L34,160 Q38,176 60,182 L68,220 L132,220 L140,182 Q162,176 166,160 L164,90 Q158,74 142,68 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            {/* Hips */}
+            <path d="M60,218 Q50,228 48,248 L56,280 L90,280 L96,248 L96,220 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M140,218 Q150,228 152,248 L144,280 L110,280 L104,248 L104,220 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Left arm upper */}
+            <path d="M36,90 Q16,94 12,130 L16,168 Q30,172 44,162 L44,120 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            {/* Right arm upper */}
+            <path d="M164,90 Q184,94 188,130 L184,168 Q170,172 156,162 L156,120 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            {/* Left forearm */}
+            <path d="M16,168 Q10,200 12,228 L22,232 Q36,224 44,202 L44,162 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Right forearm */}
+            <path d="M184,168 Q190,200 188,228 L178,232 Q164,224 156,202 L156,162 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Left hand */}
+            <ellipse cx="14" cy="238" rx="9" ry="12" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Right hand */}
+            <ellipse cx="186" cy="238" rx="9" ry="12" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Left quad */}
+            <path d="M56,278 Q48,296 46,330 Q48,360 56,374 L80,374 Q90,360 92,330 Q92,296 90,278 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            {/* Right quad */}
+            <path d="M144,278 Q152,296 154,330 Q152,360 144,374 L120,374 Q110,360 108,330 Q108,296 110,278 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            {/* Knees */}
+            <ellipse cx="68" cy="380" rx="16" ry="10" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <ellipse cx="132" cy="380" rx="16" ry="10" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Left shin */}
+            <path d="M53,388 Q50,414 52,440 L84,440 Q86,414 83,388 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Right shin */}
+            <path d="M117,388 Q114,414 116,440 L148,440 Q150,414 147,388 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            {/* Feet */}
+            <ellipse cx="65" cy="446" rx="16" ry="8" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <ellipse cx="135" cy="446" rx="16" ry="8" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
 
-          {/* Selected muscle label */}
-          {selected&&<div style={{textAlign:"center",marginTop:8,padding:"8px 16px",background:T.s2,borderRadius:10,border:`1px solid ${getColor(selected)}40`}}>
-            <div style={{fontSize:14,fontWeight:700,color:"#fff",textTransform:"capitalize",marginBottom:2}}>{selected}</div>
-            <div style={{fontSize:12,color:getStatus(selected).color,fontWeight:600}}>{getStatus(selected).label}</div>
-          </div>}
-        </div>
+            {/* ── MUSCLE GROUPS — FRONT ── */}
+
+            {/* CHEST — left pec */}
+            <path onClick={sel("chest")} style={{cursor:"pointer"}} d="M64,78 Q56,86 54,106 Q68,118 96,116 L96,90 Q82,82 64,78Z" fill={mc("chest")} opacity={mo("chest")} stroke={isSelected("chest")?"#FF4D6D":"none"} strokeWidth="1.5">
+              <title>Chest</title></path>
+            {/* CHEST — right pec */}
+            <path onClick={sel("chest")} style={{cursor:"pointer"}} d="M136,78 Q144,86 146,106 Q132,118 104,116 L104,90 Q118,82 136,78Z" fill={mc("chest")} opacity={mo("chest")} stroke={isSelected("chest")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* Chest separation line */}
+            <line x1="100" y1="76" x2="100" y2="118" stroke={LINE} strokeWidth="1" opacity="0.6"/>
+            {/* Lower chest curve */}
+            <path d="M54,108 Q76,122 100,118 Q124,122 146,108" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+
+            {/* SHOULDERS — left */}
+            <path onClick={sel("shoulders")} style={{cursor:"pointer"}} d="M36,88 Q24,86 16,100 Q14,116 22,126 Q34,120 44,110 Z" fill={mc("shoulders")} opacity={mo("shoulders")} stroke={isSelected("shoulders")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* SHOULDERS — right */}
+            <path onClick={sel("shoulders")} style={{cursor:"pointer"}} d="M164,88 Q176,86 184,100 Q186,116 178,126 Q166,120 156,110 Z" fill={mc("shoulders")} opacity={mo("shoulders")} stroke={isSelected("shoulders")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+
+            {/* BICEPS — left */}
+            <path onClick={sel("biceps")} style={{cursor:"pointer"}} d="M18,108 Q10,120 12,144 Q22,152 38,144 L40,118 Z" fill={mc("biceps")} opacity={mo("biceps")} stroke={isSelected("biceps")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* BICEPS — right */}
+            <path onClick={sel("biceps")} style={{cursor:"pointer"}} d="M182,108 Q190,120 188,144 Q178,152 162,144 L160,118 Z" fill={mc("biceps")} opacity={mo("biceps")} stroke={isSelected("biceps")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* Bicep peak line */}
+            <path d="M18,122 Q24,118 34,122" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.5"/>
+            <path d="M182,122 Q176,118 166,122" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.5"/>
+
+            {/* TRICEPS — left (visible from front at side) */}
+            <path onClick={sel("triceps")} style={{cursor:"pointer"}} d="M12,128 Q8,148 10,168 L18,170 Q24,152 26,132 Z" fill={mc("triceps")} opacity={mo("triceps")*0.7} stroke="none"/>
+            {/* TRICEPS — right */}
+            <path onClick={sel("triceps")} style={{cursor:"pointer"}} d="M188,128 Q192,148 190,168 L182,170 Q176,152 174,132 Z" fill={mc("triceps")} opacity={mo("triceps")*0.7} stroke="none"/>
+
+            {/* FOREARMS — left */}
+            <path onClick={sel("forearms")} style={{cursor:"pointer"}} d="M12,170 Q8,196 10,224 L22,228 Q30,204 34,172 Z" fill={mc("forearms")} opacity={mo("forearms")} stroke={isSelected("forearms")?"#FF4D6D":"none"} strokeWidth="1"/>
+            {/* FOREARMS — right */}
+            <path onClick={sel("forearms")} style={{cursor:"pointer"}} d="M188,170 Q192,196 190,224 L178,228 Q170,204 166,172 Z" fill={mc("forearms")} opacity={mo("forearms")} stroke={isSelected("forearms")?"#FF4D6D":"none"} strokeWidth="1"/>
+
+            {/* ABS */}
+            <path onClick={sel("abs")} style={{cursor:"pointer"}} d="M68,118 Q64,136 64,162 Q80,170 100,170 Q120,170 136,162 Q136,136 132,118 Q116,126 100,126 Q84,126 68,118Z" fill={mc("abs")} opacity={mo("abs")} stroke={isSelected("abs")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* Ab lines */}
+            <line x1="100" y1="126" x2="100" y2="170" stroke={LINE} strokeWidth="1" opacity="0.6"/>
+            <path d="M68,138 Q84,143 100,141 Q116,143 132,138" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+            <path d="M66,152 Q82,157 100,155 Q118,157 134,152" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+            <path d="M66,165 Q82,169 100,168 Q118,169 134,165" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+            {/* Obliques */}
+            <path d="M64,130 Q60,150 62,170" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.4"/>
+            <path d="M136,130 Q140,150 138,170" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.4"/>
+
+            {/* TRAPS front (small visible portion) */}
+            <path onClick={sel("traps")} style={{cursor:"pointer"}} d="M88,68 Q80,72 70,78 Q78,80 100,80 Q122,80 130,78 Q120,72 112,68 Z" fill={mc("traps")} opacity={mo("traps")*0.6} stroke="none"/>
+
+            {/* QUADS — left (4 heads visible) */}
+            <path onClick={sel("quads")} style={{cursor:"pointer"}} d="M56,280 Q46,300 46,334 Q50,360 60,372 L82,372 Q90,358 92,332 Q92,298 88,280 Z" fill={mc("quads")} opacity={mo("quads")} stroke={isSelected("quads")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* Quad separation lines */}
+            <path d="M62,285 Q66,320 68,368" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+            <path d="M74,282 Q76,318 76,370" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+            <path d="M82,284 Q84,320 82,368" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+
+            {/* QUADS — right */}
+            <path onClick={sel("quads")} style={{cursor:"pointer"}} d="M144,280 Q154,300 154,334 Q150,360 140,372 L118,372 Q110,358 108,332 Q108,298 112,280 Z" fill={mc("quads")} opacity={mo("quads")} stroke={isSelected("quads")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            <path d="M138,285 Q134,320 132,368" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+            <path d="M126,282 Q124,318 124,370" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+
+            {/* CALVES — left (shin/tibialis) */}
+            <path onClick={sel("calves")} style={{cursor:"pointer"}} d="M54,390 Q50,416 52,438 L82,438 Q85,416 83,390 Z" fill={mc("calves")} opacity={mo("calves")} stroke={isSelected("calves")?"#FF4D6D":"none"} strokeWidth="1"/>
+            <path d="M62,392 Q62,420 64,436" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+
+            {/* CALVES — right */}
+            <path onClick={sel("calves")} style={{cursor:"pointer"}} d="M146,390 Q150,416 148,438 L118,438 Q115,416 117,390 Z" fill={mc("calves")} opacity={mo("calves")} stroke={isSelected("calves")?"#FF4D6D":"none"} strokeWidth="1"/>
+
+            {/* Selected muscle highlight ring */}
+            {selected&&<text x="100" y="458" textAnchor="middle" fill="#E8185A" fontSize="9" fontWeight="700">{selected.replace("_"," ").toUpperCase()}</text>}
+          </svg>
+        )}
+
+        {/* SVG — Back View */}
+        {view==="back"&&(
+          <svg viewBox="0 0 200 460" style={{width:"100%",maxWidth:280,display:"block",margin:"0 auto"}}>
+            {/* ── BODY SILHOUETTE BACK ── */}
+            <ellipse cx="100" cy="30" rx="22" ry="26" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            <path d="M88,54 L88,68 Q100,72 112,68 L112,54 Q100,58 88,54Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M58,68 Q42,74 36,90 L34,160 Q38,176 60,182 L68,220 L132,220 L140,182 Q162,176 166,160 L164,90 Q158,74 142,68 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            <path d="M60,218 Q48,230 46,252 L54,280 L92,280 L96,248 L96,220 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M140,218 Q152,230 154,252 L146,280 L108,280 L104,248 L104,220 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M36,90 Q16,94 12,130 L16,168 Q30,172 44,162 L44,120 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            <path d="M164,90 Q184,94 188,130 L184,168 Q170,172 156,162 L156,120 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            <path d="M16,168 Q10,200 12,228 L22,232 Q36,224 44,202 L44,162 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M184,168 Q190,200 188,228 L178,232 Q164,224 156,202 L156,162 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <ellipse cx="14" cy="238" rx="9" ry="12" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <ellipse cx="186" cy="238" rx="9" ry="12" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M56,278 Q46,298 44,334 Q46,362 56,376 L82,376 Q90,360 90,332 Q90,298 90,278 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            <path d="M144,278 Q154,298 156,334 Q154,362 144,376 L118,376 Q110,360 110,332 Q110,298 110,278 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1.5"/>
+            <ellipse cx="68" cy="382" rx="16" ry="10" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <ellipse cx="132" cy="382" rx="16" ry="10" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M53,390 Q50,416 52,440 L84,440 Q86,416 83,390 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <path d="M117,390 Q114,416 116,440 L148,440 Q150,416 147,390 Z" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <ellipse cx="65" cy="446" rx="16" ry="8" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+            <ellipse cx="135" cy="446" rx="16" ry="8" fill={BODY_BASE} stroke={OUTLINE} strokeWidth="1"/>
+
+            {/* ── MUSCLE GROUPS — BACK ── */}
+
+            {/* TRAPS — upper (diamond shape) */}
+            <path onClick={sel("traps")} style={{cursor:"pointer"}} d="M78,68 Q70,74 60,84 Q80,92 100,88 Q120,92 140,84 Q130,74 122,68 Q110,76 100,76 Q90,76 78,68Z" fill={mc("traps")} opacity={mo("traps")} stroke={isSelected("traps")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* Trap spine line */}
+            <line x1="100" y1="76" x2="100" y2="88" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+
+            {/* REAR DELTOIDS — left */}
+            <path onClick={sel("shoulders")} style={{cursor:"pointer"}} d="M36,88 Q24,86 16,102 Q16,118 26,126 Q38,118 46,106 Z" fill={mc("shoulders")} opacity={mo("shoulders")} stroke={isSelected("shoulders")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* REAR DELTOIDS — right */}
+            <path onClick={sel("shoulders")} style={{cursor:"pointer"}} d="M164,88 Q176,86 184,102 Q184,118 174,126 Q162,118 154,106 Z" fill={mc("shoulders")} opacity={mo("shoulders")} stroke={isSelected("shoulders")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+
+            {/* LATS — left (big triangular fan) */}
+            <path onClick={sel("lats")} style={{cursor:"pointer"}} d="M60,86 Q40,96 36,120 Q36,148 44,166 Q62,172 80,166 Q88,148 90,120 Q88,96 80,86 Z" fill={mc("lats")} opacity={mo("lats")} stroke={isSelected("lats")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* LATS — right */}
+            <path onClick={sel("lats")} style={{cursor:"pointer"}} d="M140,86 Q160,96 164,120 Q164,148 156,166 Q138,172 120,166 Q112,148 110,120 Q112,96 120,86 Z" fill={mc("lats")} opacity={mo("lats")} stroke={isSelected("lats")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* Lat fan lines */}
+            <path d="M62,90 Q52,112 50,148" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.4"/>
+            <path d="M70,86 Q64,110 64,152" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+            <path d="M138,90 Q148,112 150,148" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.4"/>
+            <path d="M130,86 Q136,110 136,152" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+
+            {/* RHOMBOIDS / MID BACK */}
+            <path onClick={sel("rhomboids")} style={{cursor:"pointer"}} d="M80,86 Q76,96 76,112 Q88,118 100,116 Q112,118 124,112 Q124,96 120,86 Q110,94 100,94 Q90,94 80,86Z" fill={mc("rhomboids")} opacity={mo("rhomboids")} stroke={isSelected("rhomboids")?"#FF4D6D":"none"} strokeWidth="1"/>
+            {/* Mid back line */}
+            <line x1="100" y1="94" x2="100" y2="166" stroke={LINE} strokeWidth="1" opacity="0.5"/>
+
+            {/* TRICEPS — left (full view from back) */}
+            <path onClick={sel("triceps")} style={{cursor:"pointer"}} d="M16,106 Q8,122 10,152 Q20,160 36,152 L40,120 Q28,112 16,106Z" fill={mc("triceps")} opacity={mo("triceps")} stroke={isSelected("triceps")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            {/* Tricep head separation */}
+            <path d="M18,120 Q26,128 34,124" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+            <path d="M14,138 Q22,134 32,138" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+            {/* TRICEPS — right */}
+            <path onClick={sel("triceps")} style={{cursor:"pointer"}} d="M184,106 Q192,122 190,152 Q180,160 164,152 L160,120 Q172,112 184,106Z" fill={mc("triceps")} opacity={mo("triceps")} stroke={isSelected("triceps")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            <path d="M182,120 Q174,128 166,124" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+
+            {/* FOREARMS — back */}
+            <path onClick={sel("forearms")} style={{cursor:"pointer"}} d="M10,156 Q6,186 8,222 L20,226 Q30,200 36,164 Z" fill={mc("forearms")} opacity={mo("forearms")} stroke={isSelected("forearms")?"#FF4D6D":"none"} strokeWidth="1"/>
+            <path onClick={sel("forearms")} style={{cursor:"pointer"}} d="M190,156 Q194,186 192,222 L180,226 Q170,200 164,164 Z" fill={mc("forearms")} opacity={mo("forearms")} stroke={isSelected("forearms")?"#FF4D6D":"none"} strokeWidth="1"/>
+
+            {/* LOWER BACK / ERECTORS */}
+            <path onClick={sel("lower_back")} style={{cursor:"pointer"}} d="M80,162 Q76,178 76,202 Q88,212 100,210 Q112,212 124,202 Q124,178 120,162 Q110,170 100,170 Q90,170 80,162Z" fill={mc("lower_back")} opacity={mo("lower_back")} stroke={isSelected("lower_back")?"#FF4D6D":"none"} strokeWidth="1"/>
+            <line x1="100" y1="170" x2="100" y2="210" stroke={LINE} strokeWidth="1" opacity="0.5"/>
+            <path d="M86,175 Q88,190 88,208" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+            <path d="M114,175 Q112,190 112,208" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+
+            {/* GLUTES */}
+            <path onClick={sel("glutes")} style={{cursor:"pointer"}} d="M62,216 Q48,228 46,256 Q50,276 66,280 Q80,282 92,274 Q100,264 100,252 Q100,232 96,218 Z" fill={mc("glutes")} opacity={mo("glutes")} stroke={isSelected("glutes")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            <path onClick={sel("glutes")} style={{cursor:"pointer"}} d="M138,216 Q152,228 154,256 Q150,276 134,280 Q120,282 108,274 Q100,264 100,252 Q100,232 104,218 Z" fill={mc("glutes")} opacity={mo("glutes")} stroke={isSelected("glutes")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            <line x1="100" y1="218" x2="100" y2="280" stroke={LINE} strokeWidth="1" opacity="0.5"/>
+            {/* Glute crease */}
+            <path d="M48,264 Q68,272 100,268 Q132,272 152,264" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.4"/>
+
+            {/* HAMSTRINGS — left */}
+            <path onClick={sel("hamstrings")} style={{cursor:"pointer"}} d="M54,280 Q44,300 44,336 Q46,362 56,378 L82,378 Q90,362 90,334 Q90,300 90,280 Z" fill={mc("hamstrings")} opacity={mo("hamstrings")} stroke={isSelected("hamstrings")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            <path d="M62,284 Q60,320 62,372" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+            <path d="M72,282 Q72,318 74,372" fill="none" stroke={LINE} strokeWidth="0.7" opacity="0.4"/>
+            {/* HAMSTRINGS — right */}
+            <path onClick={sel("hamstrings")} style={{cursor:"pointer"}} d="M146,280 Q156,300 156,336 Q154,362 144,378 L118,378 Q110,362 110,334 Q110,300 110,280 Z" fill={mc("hamstrings")} opacity={mo("hamstrings")} stroke={isSelected("hamstrings")?"#FF4D6D":"none"} strokeWidth="1.5"/>
+            <path d="M138,284 Q140,320 138,372" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+
+            {/* CALVES — back (gastrocnemius — the diamond shape) */}
+            <path onClick={sel("calves")} style={{cursor:"pointer"}} d="M52,390 Q48,408 50,428 Q58,440 68,438 L80,436 Q84,422 84,402 Q80,390 70,388 Z" fill={mc("calves")} opacity={mo("calves")} stroke={isSelected("calves")?"#FF4D6D":"none"} strokeWidth="1"/>
+            {/* Calf split */}
+            <path d="M66,392 Q64,414 66,434" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+            {/* CALVES — right */}
+            <path onClick={sel("calves")} style={{cursor:"pointer"}} d="M148,390 Q152,408 150,428 Q142,440 132,438 L120,436 Q116,422 116,402 Q120,390 130,388 Z" fill={mc("calves")} opacity={mo("calves")} stroke={isSelected("calves")?"#FF4D6D":"none"} strokeWidth="1"/>
+            <path d="M134,392 Q136,414 134,434" fill="none" stroke={LINE} strokeWidth="0.8" opacity="0.5"/>
+
+            {selected&&<text x="100" y="458" textAnchor="middle" fill="#E8185A" fontSize="9" fontWeight="700">{selected.replace("_"," ").toUpperCase()}</text>}
+          </svg>
+        )}
+
+        {/* Selected muscle info */}
+        {selected&&(
+          <div style={{background:T.s2,border:`1px solid ${status(selected).c}30`,borderRadius:12,padding:"12px 16px",marginTop:12,textAlign:"center"}}>
+            <div style={{fontSize:15,fontWeight:700,color:"#fff",textTransform:"capitalize",marginBottom:4}}>{selected.replace("_"," ")}</div>
+            <div style={{fontSize:13,color:status(selected).c,fontWeight:600}}>{status(selected).l}</div>
+          </div>
+        )}
+        {!selected&&<div style={{textAlign:"center",marginTop:8,fontSize:11,color:T.mu}}>Tap any muscle to see volume status</div>}
       </div>
 
-      {/* Muscle list with volume bars */}
+      {/* Volume bars list */}
       <div>
-        <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>Weekly Volume</div>
+        <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>Weekly Volume</div>
         <div style={{display:"flex",flexDirection:"column",gap:0}}>
-          {muscles.map(m=>{
+          {[
+            {m:"chest",    label:"Chest"},
+            {m:"shoulders",label:"Shoulders"},
+            {m:"lats",     label:"Lats"},
+            {m:"traps",    label:"Traps"},
+            {m:"rhomboids",label:"Rhomboids"},
+            {m:"lower_back",label:"Lower Back"},
+            {m:"biceps",   label:"Biceps"},
+            {m:"triceps",  label:"Triceps"},
+            {m:"forearms", label:"Forearms"},
+            {m:"abs",      label:"Abs / Core"},
+            {m:"quads",    label:"Quads"},
+            {m:"hamstrings",label:"Hamstrings"},
+            {m:"glutes",   label:"Glutes"},
+            {m:"calves",   label:"Calves"},
+          ].map(({m,label})=>{
             const sets=getVolume(m);
             const pct=Math.min(sets/20,1);
-            const isOptimal=sets>=10&&sets<=20;
-            const needsMore=sets<10&&sets>0;
-            const notTrained=sets===0;
-            const color=isOptimal?"#E8185A":needsMore?"#8B1A6B":"#1A1A2E";
+            const optimal=sets>=10&&sets<=20;
+            const low=sets>0&&sets<10;
+            const c=optimal?"#E8185A":low?"#C0392B":sets===0?"#2A3A50":"#6B2D5E";
+            const isThisSel=selected===m;
             return(
-              <div key={m} onClick={()=>setSelected(m)} style={{padding:"10px 0",borderBottom:`1px solid ${T.dim}`,cursor:"pointer",transition:"background .2s"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                  <span style={{fontSize:13,fontWeight:600,color:selected===m?"#E8185A":"#ccc",textTransform:"capitalize"}}>{m}</span>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    {isOptimal&&<span style={{fontSize:9,color:"#00E676",background:"rgba(0,230,118,.1)",border:"1px solid rgba(0,230,118,.2)",borderRadius:6,padding:"1px 6px",fontWeight:700}}>✓ Optimal</span>}
-                    {needsMore&&<span style={{fontSize:9,color:"#8B1A6B",background:"rgba(139,26,107,.1)",border:"1px solid rgba(139,26,107,.2)",borderRadius:6,padding:"1px 6px",fontWeight:700}}>Low</span>}
-                    <span style={{fontSize:12,fontWeight:700,color:notTrained?T.dim:isOptimal?"#E8185A":"#888"}}>{notTrained?"—":`${sets} sets`}</span>
+              <div key={m} onClick={()=>setSelected(isThisSel?null:m)} style={{padding:"9px 0",borderBottom:`1px solid ${T.dim}`,cursor:"pointer",background:isThisSel?`${T.prot}05`:"transparent",transition:"background .15s"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:13,fontWeight:600,color:isThisSel?"#E8185A":"#ccc",textTransform:"capitalize"}}>{label}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    {optimal&&<span style={{fontSize:9,color:"#00E676",background:"rgba(0,230,118,.08)",border:"1px solid rgba(0,230,118,.15)",borderRadius:6,padding:"1px 7px",fontWeight:700}}>✓ Optimal</span>}
+                    {low&&<span style={{fontSize:9,color:"#C0392B",background:"rgba(192,57,43,.08)",border:"1px solid rgba(192,57,43,.2)",borderRadius:6,padding:"1px 7px",fontWeight:700}}>Need more</span>}
+                    <span style={{fontSize:12,fontWeight:700,color:sets===0?T.dim:c}}>{sets===0?"—":`${sets} sets`}</span>
                   </div>
                 </div>
                 <div style={{height:4,background:T.s3,borderRadius:2,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${pct*100}%`,background:isOptimal?"#E8185A":needsMore?"#8B1A6B":"#333",borderRadius:2,transition:"width .6s ease"}}/>
+                  <div style={{height:"100%",width:`${pct*100}%`,background:c,borderRadius:2,transition:"width .5s ease"}}/>
                 </div>
               </div>
             );
           })}
         </div>
-        <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:6}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Legend</div>
-          {[{c:"#E8185A",l:"Optimal (10–20 sets)"},{c:"#8B1A6B",l:"Building (6–9 sets)"},{c:"#4A1942",l:"Low (1–5 sets)"},{c:"#1A1A2E",l:"Not trained"}].map(({c,l})=>(
-            <div key={l} style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:12,height:12,borderRadius:2,background:c,flexShrink:0}}/>
-              <span style={{fontSize:11,color:T.mu}}>{l}</span>
+        {/* Legend */}
+        <div style={{marginTop:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+          {[{c:"#E8185A",l:"Optimal (10–20)"},{c:"#C0392B",l:"Building (6–9)"},{c:"#6B2D5E",l:"Low (1–5)"},{c:"#2A3A50",l:"Not trained"}].map(({c,l})=>(
+            <div key={l} style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:10,height:10,borderRadius:2,background:c,flexShrink:0}}/>
+              <span style={{fontSize:10,color:T.mu}}>{l}</span>
             </div>
           ))}
         </div>
