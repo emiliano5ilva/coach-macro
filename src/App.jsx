@@ -120,51 +120,69 @@ export default function CoachMacro() {
   const [dayFocus,setDayFocus]=useState(autoFocus({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"},"Push/Pull/Legs"));
   const [earnedCals,setEarnedCals]=useState(0);
   const [signupName,setSignupName]=useState("");
+  const [saveErr,setSaveErr]=useState("");
 
   async function loadProfile(uid) {
+    console.log("[loadProfile] starting for uid:", uid);
     try {
+      // Diagnostic: count all rows in the table
+      const {data:countData,error:countErr}=await sb.from("profiles").select("id");
+      console.log("[loadProfile] total profile rows in table:", countData?.length, "countErr:", countErr?.message);
+
       const {data,error}=await sb.from("profiles").select("*").eq("id",uid).maybeSingle();
+      console.log("[loadProfile] row for this user:", data ? "FOUND" : "NOT FOUND", "error:", error?.message);
       if(error){
-        console.error("Profile query error:", error.message);
+        console.error("[loadProfile] query error:", error.message, error.code);
         setPhase("landing");
         return;
       }
       if(!data){
+        console.log("[loadProfile] no profile row — routing to onboarding");
         setPhase("onboarding");
         return;
       }
+      console.log("[loadProfile] profile_data keys:", Object.keys(data.profile_data||{}));
       if(data.profile_data) setProfile(data.profile_data);
       if(data.schedule) setSchedule(data.schedule);
       if(data.wprefs) setWPrefs(data.wprefs);
+      console.log("[loadProfile] done — routing to app");
       setPhase("app");
     } catch(e){
-      console.error("loadProfile exception:", e);
+      console.error("[loadProfile] exception:", e);
       setPhase("landing");
     }
   }
 
   // Returns true if the row was confirmed saved, false otherwise.
   async function saveProfile(uid,prof,sch,wp) {
-    if(!uid){ console.error("saveProfile: no uid"); return false; }
+    console.log("[saveProfile] called — uid:", uid, "profile keys:", Object.keys(prof||{}));
+    if(!uid){ console.error("[saveProfile] no uid — aborting"); return false; }
     try {
-      const {error}=await sb.from("profiles")
-        .upsert(
-          {id:uid, profile_data:prof, schedule:sch, wprefs:wp, updated_at:new Date().toISOString()},
-          {onConflict:"id"}
-        );
-      if(error){ console.error("saveProfile upsert error:", error.message, error.code, error.details); return false; }
+      const payload={id:uid, profile_data:prof, schedule:sch, wprefs:wp, updated_at:new Date().toISOString()};
+      console.log("[saveProfile] upserting payload keys:", Object.keys(payload));
+      const {data:upsertData,error}=await sb.from("profiles")
+        .upsert(payload, {onConflict:"id"})
+        .select("id");
+      console.log("[saveProfile] upsert result — data:", upsertData, "error:", error?.message, error?.code, error?.details);
+      if(error){
+        console.error("[saveProfile] upsert error:", error.message, error.code, error.details, error.hint);
+        return false;
+      }
 
       // Verify the row actually landed in the DB
       const {data:check,error:checkErr}=await sb.from("profiles").select("id").eq("id",uid).maybeSingle();
+      console.log("[saveProfile] verification read — found:", !!check, "err:", checkErr?.message);
       if(checkErr||!check){
-        console.error("saveProfile verification failed — row not found after upsert");
+        console.error("[saveProfile] verification failed — row not found after upsert");
         return false;
       }
+      console.log("[saveProfile] SUCCESS — row confirmed in DB");
       return true;
-    } catch(e){ console.error("saveProfile exception:", e); return false; }
+    } catch(e){ console.error("[saveProfile] exception:", e); return false; }
   }
 
   async function handleAuth(authUser, name="") {
+    console.log("[handleAuth] uid:", authUser?.id, "name:", name);
     setPhase("loading");
     setUser(authUser);
     if(name) setSignupName(name);
@@ -173,6 +191,7 @@ export default function CoachMacro() {
 
   // Step 1: Profile onboarding done — go to fuel onboarding
   function handleProfileDone(od,tdee) {
+    console.log("[handleProfileDone] building base profile for:", od.name);
     const baseProf={
       name:od.name,
       email:od.email||user?.email||"",
@@ -199,18 +218,21 @@ export default function CoachMacro() {
     setProfile(baseProf);
     setPhase("onboarding-fuel");
   }
-  
+
   // Step 2: Fuel onboarding done — go to train onboarding
   function handleFuelDone(fuelData) {
+    console.log("[handleFuelDone] goal:", fuelData.goal);
     const updated={...profile,...fuelData};
     // getDayMacros expects title-case goal: "Cut" | "Maintain" | "Bulk"
     if(updated.goal) updated.goal=updated.goal.charAt(0).toUpperCase()+updated.goal.slice(1).toLowerCase();
     setProfile(updated);
     setPhase("onboarding-train");
   }
-  
+
   // Step 3: Train onboarding done — save everything and go to promo
   async function handleTrainDone(trainData) {
+    console.log("[handleTrainDone] called — user:", user?.id, "trainType:", trainData.trainType, "split:", trainData.split, "freq:", trainData.freq);
+    setSaveErr("");
     const finalProf={...profile,...trainData};
 
     // Map TrainOnboarding freq values ("1-2","3","4","5","6","7") to actual day lists
@@ -251,20 +273,38 @@ export default function CoachMacro() {
       weakPoints:trainData.weakPoints||[],
       injuries:trainData.injuries||[],
     };
-    
+
+    console.log("[handleTrainDone] schedule:", sch, "wprefs splitType:", wp.splitType);
     setSchedule(sch);
     setWPrefs(wp);
     setProfile(finalProf);
-    setPhase("loading"); // show spinner while saving
+    setPhase("loading");
 
-    if(user){
-      const saved=await saveProfile(user.id,finalProf,sch,wp);
-      if(!saved){
-        // Retry once before giving up
-        console.warn("First save attempt failed, retrying...");
-        await saveProfile(user.id,finalProf,sch,wp);
-      }
+    if(!user){
+      console.error("[handleTrainDone] no authenticated user — cannot save profile");
+      setSaveErr("Not logged in. Please sign in again.");
+      return; // stay on loading with error shown
     }
+
+    console.log("[handleTrainDone] attempt 1 — saving for uid:", user.id);
+    const saved=await saveProfile(user.id,finalProf,sch,wp);
+
+    if(!saved){
+      console.warn("[handleTrainDone] attempt 1 failed — retrying in 1500ms...");
+      await new Promise(r=>setTimeout(r,1500));
+      console.log("[handleTrainDone] attempt 2 — saving for uid:", user.id);
+      const saved2=await saveProfile(user.id,finalProf,sch,wp);
+      if(!saved2){
+        console.error("[handleTrainDone] BOTH attempts failed — not proceeding to promo");
+        setSaveErr("Could not save your profile. Check your connection and try again.");
+        return; // do NOT advance — stay on loading screen showing error
+      }
+      console.log("[handleTrainDone] attempt 2 succeeded");
+    } else {
+      console.log("[handleTrainDone] attempt 1 succeeded");
+    }
+
+    console.log("[handleTrainDone] profile saved — routing to promo");
     setPhase("promo");
   }
 
@@ -286,11 +326,17 @@ export default function CoachMacro() {
   },[wPrefs.splitType,schedule,profile]);
 
   if(phase==="loading") return(
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
       <style>{GLOBAL_CSS}</style>
-      <div style={{textAlign:"center"}}>
+      <div style={{textAlign:"center",maxWidth:340}}>
         <div style={{marginBottom:16}}><Logo size={36} text={false}/></div>
-        <div style={{fontSize:13,color:T.mu,letterSpacing:2}}>LOADING...</div>
+        {saveErr
+          ?<>
+            <div style={{fontSize:13,color:"#FF4D6D",marginBottom:16,lineHeight:1.6}}>{saveErr}</div>
+            <button onClick={()=>{setSaveErr("");window.location.reload();}} style={{padding:"12px 28px",background:T.prot,color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>Try Again</button>
+          </>
+          :<div style={{fontSize:13,color:T.mu,letterSpacing:2}}>SAVING YOUR PLAN...</div>
+        }
       </div>
     </div>
   );
