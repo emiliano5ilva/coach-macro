@@ -5,9 +5,10 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   SectionCard, Spinner, Logo, CC, BodyFigure,
   calcTDEE, autoFocus, useCountUp, lookupBarcode,
   getDayMacros, getTodayKey, isToday, hap, pad2 } from "./components.jsx";
-import { FuelSection, TrainSection, ConnectSection, SettingsSection,
+import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES,
   SPLITS_WITH_DAYS, GVT_INFO, PROMOS } from "./sections.jsx";
+import { FuelSection } from "./fuel.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
