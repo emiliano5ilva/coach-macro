@@ -5,6 +5,9 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus } from "./components.jsx";
 import { sb } from "./client.js";
+import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS } from "./programs.js";
+import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS } from "./running_programs.js";
+import { getEquipmentExercise, applyEquipmentToWorkout } from "./exercise_database.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -397,6 +400,64 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile}) {
   const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
+  const [showGVT,setShowGVT]=useState(false);
+
+  // ── Program detection ────────────────────────────────────────────────────
+  const trainingDays=WDAYS.filter(d=>schedule[d]==="training");
+  const daysPerWeek=trainingDays.length||3;
+  const startDate=profile?.startDate?new Date(profile.startDate):new Date();
+  const daysSinceStart=Math.max(0,Math.floor((new Date()-startDate)/86400000));
+  const weekNum=Math.floor(daysSinceStart/7)+1;
+  const dayIndex=daysSinceStart%(daysPerWeek||1);
+  const isLifting=!wPrefs.isHyrox&&!wPrefs.isHybrid&&!(wPrefs.splitType||"").toLowerCase().includes("run");
+  const isGVTWeek=isLifting&&weekNum%4===0&&todayType==="training";
+
+  let prescType="lifting";
+  if(wPrefs.isHyrox&&wPrefs.isHybrid)prescType="hybrid-hyrox";
+  else if(wPrefs.isHyrox)prescType="hyrox";
+  else if(wPrefs.isHybrid)prescType="hybrid";
+  else if((wPrefs.splitType||"").toLowerCase().includes("run"))prescType="running";
+
+  let todayPrescription=null;
+  let todayProgObj=null;
+  if(prescType==="lifting"&&todayType==="training"){
+    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym");
+    exs=applyEquipmentToWorkout(exs,wPrefs.equipment||"Full Gym");
+    if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
+    todayPrescription=exs;
+  }else if(prescType==="running"){
+    todayProgObj=RUNNING_PROGRAMS[wPrefs.runPlan||"Couch to 5K"];
+    todayPrescription=getTodayRunWorkout(todayProgObj,weekNum,todayKey);
+  }else if(prescType==="hyrox"){
+    todayProgObj=HYROX_PROGRAM;
+    todayPrescription=getTodayHyroxWorkout(todayProgObj,weekNum,todayKey);
+  }else if(prescType==="hybrid-hyrox"){
+    todayProgObj=HYBRID_PROGRAMS["Hyrox Hybrid"];
+    todayPrescription=getTodayHybridWorkout(todayProgObj,todayKey);
+  }else if(prescType==="hybrid"){
+    todayProgObj=HYBRID_PROGRAMS[wPrefs.hybridTemplate||"Balanced Hybrid"];
+    todayPrescription=getTodayHybridWorkout(todayProgObj,todayKey);
+  }
+
+  function startFromProgram(){
+    let exercises;
+    if(prescType==="lifting"&&Array.isArray(todayPrescription)){
+      exercises=todayPrescription.map(ex=>({
+        name:ex.name,notes:ex.notes||"",
+        sets:Array.from({length:Number(ex.sets)||3},()=>({weight:"",reps:String(ex.reps||10),done:false})),
+      }));
+    }else{
+      const e=todayPrescription||{};
+      const dur=e.duration?`${e.duration} min`:"";
+      const dist=e.distance?` · ${e.distance}km`:"";
+      exercises=[{name:e.label||"Today's Session",notes:(e.description||"")+(dur?`\n${dur}${dist}`:""),sets:[{weight:"",reps:dur||"Complete",done:false}]}];
+    }
+    setActiveWorkout({exercises});
+    setTrainScreen("active");
+  }
+
+  const ZONE_COLOR={1:"#aaa",2:"#00C9A7",3:"#4fc3f7",4:"#f5a623",5:"#FF4D6D"};
+  const ZONE_LABEL={1:"Zone 1 Recovery",2:"Zone 2 Aerobic",3:"Zone 3 Tempo",4:"Zone 4 Threshold",5:"Zone 5 VO₂ Max"};
 
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
@@ -422,8 +483,43 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 16px",fontSize:12,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
               </div>
               <div style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.6}}>💡 {FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
+              {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>TODAY'S LIFT · {todayPrescription.length} EXERCISES</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                    {todayPrescription.slice(0,5).map((ex,i)=>(
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:T.s2,borderRadius:9,border:`1px solid ${T.bd}`}}>
+                        <div style={{fontSize:13,fontWeight:600}}>{ex.name}</div>
+                        <div style={{fontSize:11,color:T.mu,flexShrink:0}}>{ex.sets}×{ex.reps}</div>
+                      </div>
+                    ))}
+                    {todayPrescription.length>5&&<div style={{fontSize:11,color:T.mu,textAlign:"center",padding:"4px 0"}}>+{todayPrescription.length-5} more exercises</div>}
+                  </div>
+                </div>
+              )}
+              {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(
+                <div style={{background:T.s2,borderRadius:12,padding:"14px 16px",border:`1px solid ${T.bd}`,marginBottom:14}}>
+                  <div style={{fontWeight:700,fontSize:14,marginBottom:8}}>{todayPrescription.label}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                    {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:`${T.prot}18`,color:T.prot,padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
+                    {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
+                    {todayPrescription.distance&&<span style={{fontSize:10,fontWeight:700,background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
+                    {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
+                  </div>
+                  {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:todayProgObj?.nutritionNote?10:0}}>{todayPrescription.description}</div>}
+                  {todayProgObj?.nutritionNote&&(
+                    <div style={{background:`${T.carb}08`,borderRadius:9,padding:"10px 12px",border:`1px solid ${T.carb}20`}}>
+                      <div style={{fontSize:9,color:T.carb,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>🍽 NUTRITION BRIDGE</div>
+                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div style={{display:"flex",gap:10}}>
-                <button onClick={()=>setTrainScreen("builder")} style={{flex:1,padding:"14px",background:T.carb,color:"#000",fontWeight:800,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"inherit"}}>🏋️ Build Workout →</button>
+                {todayType==="training"&&todayPrescription
+                  ?<button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.carb,color:"#000",fontWeight:800,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"inherit"}}>▶ Start Workout →</button>
+                  :<button onClick={()=>setTrainScreen("builder")} style={{flex:1,padding:"14px",background:T.carb,color:"#000",fontWeight:800,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"inherit"}}>🏋️ Build Workout →</button>
+                }
                 {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.carb}15`,color:T.carb,fontWeight:700,fontSize:14,border:`1px solid ${T.carb}40`,borderRadius:12,cursor:"pointer",fontFamily:"inherit"}}>▶ Resume Session</button>}
               </div>
             </div>
