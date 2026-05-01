@@ -698,6 +698,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}
+
 export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAthlete,stravaActs,connectStrava,ahActs,garminActs,fitbitActs,importStatus,handleFile,fileRef,allActs,todayActs,earnedCals,isMobile}) {
   return (
     <div style={{paddingBottom:isMobile?20:0,padding:isMobile?"12px 18px":"0"}}>
