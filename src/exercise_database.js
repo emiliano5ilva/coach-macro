@@ -415,6 +415,112 @@ export const EQUIPMENT_ALTERNATIVES = {
     "Bodyweight Only":"Burpee Broad Jump",
     "Cables Only":    "Burpee Broad Jump",
     "Machines Only":  "Burpee Broad Jump"
+  },
+
+  // ── GLUTE & LOWER BODY ────────────────────────────────────────────────────
+  "Barbell Hip Thrust": {
+    "Full Gym":       "Barbell Hip Thrust",
+    "Home Gym":       "Barbell Hip Thrust",
+    "Dumbbells Only": "Dumbbell Hip Thrust",
+    "Bodyweight Only":"Glute Bridge",
+    "Cables Only":    "Cable Pull Through",
+    "Machines Only":  "Machine Hip Thrust"
+  },
+  "Cable Kickback": {
+    "Full Gym":       "Cable Kickback",
+    "Home Gym":       "Band Kickback",
+    "Dumbbells Only": "Band Kickback",
+    "Bodyweight Only":"Donkey Kick",
+    "Cables Only":    "Cable Kickback",
+    "Machines Only":  "Machine Kickback"
+  },
+  "Lateral Band Walk": {
+    "Full Gym":       "Lateral Band Walk",
+    "Home Gym":       "Lateral Band Walk",
+    "Dumbbells Only": "Lateral Band Walk",
+    "Bodyweight Only":"Lateral Band Walk",
+    "Cables Only":    "Lateral Band Walk",
+    "Machines Only":  "Lateral Band Walk"
+  },
+  "Sumo Deadlift": {
+    "Full Gym":       "Barbell Sumo Deadlift",
+    "Home Gym":       "Barbell Sumo Deadlift",
+    "Dumbbells Only": "Dumbbell Sumo Deadlift",
+    "Bodyweight Only":"Sumo Squat",
+    "Cables Only":    "Cable Pull Through",
+    "Machines Only":  "Machine Romanian Deadlift"
+  },
+  "Hip Thrust Pulse": {
+    "Full Gym":       "Barbell Hip Thrust Pulse",
+    "Home Gym":       "Glute Bridge Pulse",
+    "Dumbbells Only": "Glute Bridge Pulse",
+    "Bodyweight Only":"Glute Bridge Pulse",
+    "Cables Only":    "Glute Bridge Pulse",
+    "Machines Only":  "Machine Hip Thrust Pulse"
+  },
+  "Good Morning": {
+    "Full Gym":       "Barbell Good Morning",
+    "Home Gym":       "Barbell Good Morning",
+    "Dumbbells Only": "Dumbbell Good Morning",
+    "Bodyweight Only":"Bodyweight Good Morning",
+    "Cables Only":    "Cable Good Morning",
+    "Machines Only":  "Dumbbell Good Morning"
+  },
+  "Curtsy Lunge": {
+    "Full Gym":       "Curtsy Lunge",
+    "Home Gym":       "Curtsy Lunge",
+    "Dumbbells Only": "Dumbbell Curtsy Lunge",
+    "Bodyweight Only":"Curtsy Lunge",
+    "Cables Only":    "Cable Curtsy Lunge",
+    "Machines Only":  "Curtsy Lunge"
+  },
+  "Donkey Kick": {
+    "Full Gym":       "Cable Donkey Kick",
+    "Home Gym":       "Band Donkey Kick",
+    "Dumbbells Only": "Band Donkey Kick",
+    "Bodyweight Only":"Donkey Kick",
+    "Cables Only":    "Cable Donkey Kick",
+    "Machines Only":  "Machine Donkey Kick"
+  },
+  "Cable Pull Through": {
+    "Full Gym":       "Cable Pull Through",
+    "Home Gym":       "Band Pull Through",
+    "Dumbbells Only": "Dumbbell Romanian Deadlift",
+    "Bodyweight Only":"Bodyweight Hip Hinge",
+    "Cables Only":    "Cable Pull Through",
+    "Machines Only":  "Machine Pull Through"
+  },
+  "Nordic Curl": {
+    "Full Gym":       "Nordic Curl",
+    "Home Gym":       "Nordic Curl",
+    "Dumbbells Only": "Dumbbell Leg Curl",
+    "Bodyweight Only":"Nordic Curl",
+    "Cables Only":    "Cable Leg Curl",
+    "Machines Only":  "Leg Curl Machine"
+  },
+  "Clamshell": {
+    "Full Gym":       "Clamshell",
+    "Home Gym":       "Clamshell",
+    "Dumbbells Only": "Clamshell",
+    "Bodyweight Only":"Clamshell",
+    "Cables Only":    "Clamshell",
+    "Machines Only":  "Clamshell"
+  },
+  "Glute Bridge": {
+    "Full Gym":       "Glute Bridge",
+    "Home Gym":       "Glute Bridge",
+    "Dumbbells Only": "Glute Bridge",
+    "Bodyweight Only":"Glute Bridge",
+    "Cables Only":    "Glute Bridge",
+    "Machines Only":  "Machine Hip Thrust"
+  },
+  "Sumo Squat": {
+    "Full Gym":       "Barbell Sumo Squat",
+    "Home Gym":       "Barbell Sumo Squat",
+    "Dumbbells Only": "Dumbbell Sumo Squat",
+    "Bodyweight Only":"Sumo Squat",
+    "Cables Only":    "Cable Sumo Squat",
+    "Machines Only":  "Leg Press"
   }
 };
 

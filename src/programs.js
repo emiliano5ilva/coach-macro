@@ -387,6 +387,128 @@ export const PROGRAMS_BY_DAYS = {
   }
 };
 
+// ─── GLUTE & LOWER BODY PROGRAMS ─────────────────────────────────────────────
+export const GLUTE_PROGRAMS = {
+  "Glute Focus 3-Day": {
+    description: "3 days per week dedicated to glute and lower body development. Progressive overload on hip thrusts is the key driver.",
+    days: ["Glute Heavy", "Hamstring + Posterior", "Glute Pump"],
+    workouts: {
+      "Glute Heavy": [
+        { name:"Barbell Hip Thrust", sets:4, reps:"8-10", notes:"Most important glute exercise. Drive through heels, squeeze at top. Add 5-10lbs when all reps completed.", primary:true },
+        { name:"Sumo Deadlift", sets:4, reps:"6-8", notes:"Wide stance targets glutes and inner thighs. Add 5lbs when all reps completed.", primary:true },
+        { name:"Bulgarian Split Squat", sets:3, reps:"10-12 each", notes:"Back foot elevated. Lean forward slightly to hit glutes more than quads.", primary:false },
+        { name:"Cable Kickback", sets:4, reps:"15-20 each", notes:"Full extension at top. Squeeze the glute hard. Control the return.", primary:false },
+        { name:"Lateral Band Walk", sets:3, reps:"20 each direction", notes:"Band above knees. Stay low. Feel the glute med burning.", primary:false },
+        { name:"Glute Bridge", sets:3, reps:"20", notes:"Burnout finisher. Squeeze at top for 1 second each rep.", primary:false }
+      ],
+      "Hamstring + Posterior": [
+        { name:"Romanian Deadlift", sets:4, reps:"8-10", notes:"Feel the hamstring stretch at the bottom. Add 5lbs when all reps completed.", primary:true },
+        { name:"Dumbbell Hip Thrust", sets:4, reps:"12-15", notes:"Same movement as barbell but with dumbbell on hips. Focus on squeeze.", primary:false },
+        { name:"Leg Curl", sets:4, reps:"12-15", notes:"Slow on the way down — 3 second negative.", primary:false },
+        { name:"Good Morning", sets:3, reps:"12", notes:"Hinge at hips, soft knee bend. Posterior chain builder.", primary:false },
+        { name:"Reverse Lunge", sets:3, reps:"12 each", notes:"Step back, not forward. Keeps tension on the glute.", primary:false },
+        { name:"Clamshell", sets:3, reps:"20 each", notes:"Band above knees. Targets glute medius — critical for round glutes.", primary:false }
+      ],
+      "Glute Pump": [
+        { name:"Cable Pull Through", sets:4, reps:"15-20", notes:"Hinge at hips, drive through with glutes. Great mind-muscle connection builder.", primary:false },
+        { name:"Curtsy Lunge", sets:3, reps:"12 each", notes:"Step behind and across. Hits glutes from a unique angle.", primary:false },
+        { name:"Sumo Squat", sets:3, reps:"15", notes:"Wide stance, toes out. Dumbbell or barbell.", primary:false },
+        { name:"Donkey Kick", sets:3, reps:"20 each", notes:"Cable or bodyweight. Full extension, squeeze hard at top.", primary:false },
+        { name:"Lateral Band Walk", sets:3, reps:"20 each direction", notes:"", primary:false },
+        { name:"Hip Thrust Pulse", sets:2, reps:"30", notes:"Lightweight, stay at top, small pulses. Burnout finisher.", primary:false }
+      ]
+    }
+  },
+
+  "Glute Focus 4-Day": {
+    description: "4 days for serious glute development. Separates heavy loading days from pump/isolation days for maximum growth.",
+    days: ["Heavy Glutes", "Hamstrings", "Quad + Glute Balance", "Glute Isolation + Core"],
+    workouts: {
+      "Heavy Glutes": [
+        { name:"Barbell Hip Thrust", sets:5, reps:"6-8", notes:"HEAVY. This is your primary strength movement. Add 10lbs when all reps completed.", primary:true },
+        { name:"Sumo Deadlift", sets:4, reps:"5-6", notes:"Heavy. Add 5lbs when all reps completed.", primary:true },
+        { name:"Bulgarian Split Squat", sets:3, reps:"8-10 each", notes:"Heavy dumbbell. Lean forward for glute emphasis.", primary:false },
+        { name:"Cable Kickback", sets:3, reps:"15 each", notes:"", primary:false },
+        { name:"Lateral Band Walk", sets:3, reps:"20 each", notes:"", primary:false }
+      ],
+      "Hamstrings": [
+        { name:"Romanian Deadlift", sets:4, reps:"8-10", notes:"Add 5lbs when all reps completed.", primary:true },
+        { name:"Leg Curl", sets:4, reps:"12-15", notes:"3 second negative on every rep.", primary:false },
+        { name:"Good Morning", sets:3, reps:"12", notes:"", primary:false },
+        { name:"Nordic Curl", sets:3, reps:"6-8", notes:"Hardest hamstring exercise. Use assistance if needed.", primary:false },
+        { name:"Dumbbell Hip Thrust", sets:3, reps:"15", notes:"", primary:false },
+        { name:"Clamshell", sets:3, reps:"20 each", notes:"Band above knees.", primary:false }
+      ],
+      "Quad + Glute Balance": [
+        { name:"Barbell Squat", sets:4, reps:"8-10", notes:"Feet shoulder width. Sit back and down.", primary:true },
+        { name:"Leg Press", sets:3, reps:"12-15", notes:"High foot placement for glute emphasis.", primary:false },
+        { name:"Walking Lunge", sets:3, reps:"12 each", notes:"Long stride for more glute activation.", primary:false },
+        { name:"Leg Extension", sets:3, reps:"15", notes:"", primary:false },
+        { name:"Barbell Hip Thrust", sets:3, reps:"15", notes:"Lighter than Monday — pump focus.", primary:false },
+        { name:"Calf Raise", sets:4, reps:"20", notes:"", primary:false }
+      ],
+      "Glute Isolation + Core": [
+        { name:"Cable Pull Through", sets:4, reps:"15-20", notes:"Build that mind-muscle connection.", primary:false },
+        { name:"Donkey Kick", sets:4, reps:"20 each", notes:"Cable or bodyweight. Squeeze hard.", primary:false },
+        { name:"Curtsy Lunge", sets:3, reps:"12 each", notes:"", primary:false },
+        { name:"Sumo Squat", sets:3, reps:"15", notes:"", primary:false },
+        { name:"Clamshell", sets:3, reps:"25 each", notes:"", primary:false },
+        { name:"Lateral Band Walk", sets:3, reps:"25 each", notes:"", primary:false },
+        { name:"Plank", sets:3, reps:"45 sec", notes:"", primary:false },
+        { name:"Glute Bridge", sets:3, reps:"25", notes:"Burnout. Squeeze every rep.", primary:false }
+      ]
+    }
+  },
+
+  "Lower Body Only 5-Day": {
+    description: "5 dedicated lower body days for maximum glute and leg development. Not for beginners — requires recovery discipline.",
+    days: ["Glutes Heavy", "Hamstrings", "Active Recovery", "Quads + Glutes", "Glute Pump + Abs"],
+    workouts: {
+      "Glutes Heavy": [
+        { name:"Barbell Hip Thrust", sets:5, reps:"5-8", notes:"Heaviest session of the week. Add 10lbs when all reps completed.", primary:true },
+        { name:"Sumo Deadlift", sets:4, reps:"5-6", notes:"Add 5lbs when all reps completed.", primary:true },
+        { name:"Bulgarian Split Squat", sets:4, reps:"8 each", notes:"Heavy. Lean forward.", primary:false },
+        { name:"Cable Kickback", sets:4, reps:"15 each", notes:"", primary:false },
+        { name:"Lateral Band Walk", sets:3, reps:"20 each", notes:"", primary:false }
+      ],
+      "Hamstrings": [
+        { name:"Romanian Deadlift", sets:5, reps:"8-10", notes:"Add 5lbs when all reps completed.", primary:true },
+        { name:"Leg Curl", sets:4, reps:"12-15", notes:"3 second negative.", primary:false },
+        { name:"Nordic Curl", sets:3, reps:"5-8", notes:"Brutal but effective.", primary:false },
+        { name:"Good Morning", sets:3, reps:"12", notes:"", primary:false },
+        { name:"Dumbbell Hip Thrust", sets:3, reps:"20", notes:"Lighter — pump focus.", primary:false },
+        { name:"Clamshell", sets:3, reps:"25 each", notes:"", primary:false }
+      ],
+      "Active Recovery": [
+        { name:"20 Min Walk", sets:1, reps:"20 min", notes:"Easy pace. Get blood moving.", primary:false },
+        { name:"Hip Flexor Stretch", sets:3, reps:"60 sec each", notes:"Tight hip flexors limit glute activation.", primary:false },
+        { name:"Pigeon Pose", sets:3, reps:"90 sec each", notes:"Best glute stretch.", primary:false },
+        { name:"Glute Bridge", sets:2, reps:"20", notes:"Activation work only — very light.", primary:false },
+        { name:"Foam Rolling", sets:1, reps:"10 min", notes:"Quads, hamstrings, glutes, IT band.", primary:false }
+      ],
+      "Quads + Glutes": [
+        { name:"Barbell Squat", sets:4, reps:"8-10", notes:"Add 5lbs when all reps completed.", primary:true },
+        { name:"Leg Press", sets:4, reps:"12-15", notes:"High foot placement.", primary:false },
+        { name:"Walking Lunge", sets:3, reps:"15 each", notes:"Long stride.", primary:false },
+        { name:"Leg Extension", sets:3, reps:"15-20", notes:"", primary:false },
+        { name:"Barbell Hip Thrust", sets:3, reps:"15", notes:"", primary:false },
+        { name:"Calf Raise", sets:5, reps:"20", notes:"Calves need high volume.", primary:false }
+      ],
+      "Glute Pump + Abs": [
+        { name:"Cable Pull Through", sets:4, reps:"20", notes:"", primary:false },
+        { name:"Donkey Kick", sets:4, reps:"20 each", notes:"", primary:false },
+        { name:"Curtsy Lunge", sets:3, reps:"15 each", notes:"", primary:false },
+        { name:"Sumo Squat", sets:3, reps:"20", notes:"Lighter weight — pump.", primary:false },
+        { name:"Lateral Band Walk", sets:3, reps:"25 each", notes:"", primary:false },
+        { name:"Clamshell", sets:3, reps:"25 each", notes:"", primary:false },
+        { name:"Ab Wheel Rollout", sets:3, reps:"12", notes:"", primary:false },
+        { name:"Hanging Leg Raise", sets:3, reps:"15", notes:"", primary:false },
+        { name:"Plank", sets:3, reps:"60 sec", notes:"", primary:false }
+      ]
+    }
+  }
+};
+
 // GVT overlay — auto-scheduled week 4
 export const GVT_OVERLAY = {
   description: "German Volume Training — 10 sets × 10 reps. Week 4 only. 60% of 1RM. 90 sec rest between sets.",

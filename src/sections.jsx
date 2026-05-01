@@ -5,7 +5,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus } from "./components.jsx";
 import { sb } from "./client.js";
-import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS } from "./programs.js";
+import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS } from "./running_programs.js";
 import { getEquipmentExercise, applyEquipmentToWorkout } from "./exercise_database.js";
 
@@ -118,8 +118,8 @@ export const HYBRID_TEMPLATES = {
 };
 
 export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startStructured,workout,workoutLoading,isMobile,todayFocus}) {
-  const [step,setStep]=useState("type"); // type | split | run | hybrid | exercises | generated
-  const [type,setType]=useState(""); // lifting | running | hybrid
+  const [step,setStep]=useState("type"); // type | split | run | hybrid | glute | glute-preview | exercises | generated
+  const [type,setType]=useState(""); // lifting | running | hybrid | glute
   const [split,setSplit]=useState("");
   const [runPlanLocal,setRunPlanLocal]=useState("");
   const [runDays,setRunDays]=useState(3);
@@ -128,7 +128,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 
   function handleTypeSelect(t) {
     setType(t);
-    setStep(t==="lifting"?"split":t==="running"?"run":"hybrid");
+    setStep(t==="lifting"?"split":t==="running"?"run":t==="glute"?"glute":"hybrid");
   }
 
   function handleGenerate() {
@@ -147,9 +147,9 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 
       {/* Step indicator */}
       <div style={{display:"flex",gap:6,marginBottom:24,flexWrap:"wrap"}}>
-        {[["type","1. Training Type"],["split|run|hybrid","2. Your Plan"],["generated","3. Your Session"]].map(([s,l])=>{
-          const active=s==="type"?step==="type":s==="split|run|hybrid"?["split","run","hybrid"].includes(step):step==="generated";
-          const done=s==="type"?(step!=="type"):s==="split|run|hybrid"?(step==="generated"):false;
+        {[["type","1. Training Type"],["split|run|hybrid|glute","2. Your Plan"],["generated","3. Your Session"]].map(([s,l])=>{
+          const active=s==="type"?step==="type":s==="split|run|hybrid|glute"?["split","run","hybrid","glute","glute-preview","exercises"].includes(step):step==="generated";
+          const done=s==="type"?(step!=="type"):s==="split|run|hybrid|glute"?(step==="generated"):false;
           return(<div key={s} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,background:active?`${T.carb}15`:done?"rgba(0,230,118,.05)":T.s2,border:`1px solid ${active?T.carb:done?"rgba(0,230,118,.2)":T.bd}`}}>
             <div style={{width:16,height:16,borderRadius:"50%",background:active?T.carb:done?"rgba(0,230,118,.5)":T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:active?"#000":done?"#000":T.mu}}>{done?"✓":l[0]}</div>
             <span style={{fontSize:11,fontWeight:700,color:active?T.carb:done?"rgba(0,230,118,.7)":T.mu}}>{l.slice(3)}</span>
@@ -160,11 +160,12 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {/* STEP 1 — Training Type */}
       {step==="type"&&<div>
         <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:16}}>What kind of training?</div>
-        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:12}}>
           {[
             {v:"lifting",e:"🏋️",l:"Lifting",d:"Strength training splits — build muscle and get stronger"},
             {v:"running",e:"🏃",l:"Running",d:"Structured run plans from 5K to marathon"},
             {v:"hybrid",e:"⚡",l:"Hybrid",d:"Mix lifting, running, and Hyrox in one program"},
+            {v:"glute",e:"🍑",l:"Glute Focus",d:"Lower body & glute programs built for maximum growth"},
           ].map(o=>(
             <div key={o.v} onClick={()=>handleTypeSelect(o.v)} style={{background:T.s2,border:`2px solid ${T.bd}`,borderRadius:14,padding:"24px 16px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor=T.carb;e.currentTarget.style.background=`${T.carb}08`;}}
@@ -296,6 +297,62 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
         </button>}
       </div>}
 
+      {/* STEP 2E — Glute Program Selection */}
+      {step==="glute"&&<div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+          <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>Choose your program</div>
+        </div>
+        <div style={{background:`rgba(255,153,0,.08)`,border:`1px solid rgba(255,153,0,.2)`,borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:12,color:"#ffb347",lineHeight:1.6}}>
+          🍑 <b>Hip thrust progressive overload</b> is the #1 driver of glute growth. Add weight every time you hit the top rep range — that's the entire strategy.
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {Object.entries(GLUTE_PROGRAMS).map(([key,p])=>(
+            <div key={key} onClick={()=>{setSplit(key);setStep("glute-preview");}} style={{background:split===key?`${T.carb}08`:T.s2,border:`1.5px solid ${split===key?T.carb:T.bd}`,borderRadius:14,padding:"18px 20px",cursor:"pointer",transition:"all .2s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:16,fontWeight:700,color:split===key?T.carb:"#fff",marginBottom:4}}>{key}</div>
+                  <div style={{fontSize:12,color:T.mu,lineHeight:1.6,maxWidth:480}}>{p.description}</div>
+                </div>
+                <div style={{background:T.s3,borderRadius:8,padding:"3px 9px",fontSize:10,color:T.mu,fontWeight:700,flexShrink:0,marginLeft:12}}>{p.days.length} days/week</div>
+              </div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {p.days.map(day=>(
+                  <div key={day} style={{background:T.s3,borderRadius:6,padding:"3px 10px",fontSize:11,color:"#ccc"}}>{day}</div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>}
+
+      {/* STEP 2F — Glute Program Preview */}
+      {step==="glute-preview"&&split&&GLUTE_PROGRAMS[split]&&<div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+          <button onClick={()=>setStep("glute")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
+          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>{split}</div>
+        </div>
+        {GLUTE_PROGRAMS[split].days.map(dayName=>(
+          <div key={dayName} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,padding:"16px 20px",marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:10,color:T.carb}}>{dayName}</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {(GLUTE_PROGRAMS[split].workouts[dayName]||[]).map((ex,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:T.s2,borderRadius:8,border:`1px solid ${ex.primary?`${T.carb}30`:T.dim}`}}>
+                  <div>
+                    <span style={{fontSize:13,fontWeight:ex.primary?700:500,color:ex.primary?T.carb:"#ddd"}}>{ex.name}</span>
+                    {ex.notes&&<div style={{fontSize:10,color:T.mu,marginTop:2,maxWidth:280}}>{ex.notes}</div>}
+                  </div>
+                  <div style={{fontSize:11,color:T.mu,flexShrink:0,marginLeft:8}}>{ex.sets}×{ex.reps}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.carb,color:"#000",fontWeight:800,fontSize:15,border:"none",borderRadius:11,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase",letterSpacing:.5,marginTop:4}}>
+          Build Today's Glute Session →
+        </button>
+      </div>}
+
       {/* STEP 3 — Generated workout as structured cards */}
       {step==="generated"&&(()=>{
         // Parse AI text into structured exercise cards
@@ -331,7 +388,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
                 <div style={{fontSize:12,color:T.mu,marginTop:4}}>{split||runPlanLocal||hybridTemplate} · {wPrefs.equipment}</div>
               </div>
-              <button onClick={()=>setStep(type==="lifting"?"exercises":type==="running"?"run":"hybrid")} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"8px 14px",color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>← Change</button>
+              <button onClick={()=>setStep(type==="lifting"?"exercises":type==="running"?"run":type==="glute"?"glute-preview":"hybrid")} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"8px 14px",color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>← Change</button>
             </div>
 
             {workoutLoading
