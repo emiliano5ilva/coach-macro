@@ -7,8 +7,9 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   getDayMacros, getTodayKey, isToday, hap, pad2 } from "./components.jsx";
 import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES,
-  SPLITS_WITH_DAYS, GVT_INFO, PROMOS } from "./sections.jsx";
+  PROMOS } from "./sections.jsx";
 import { FuelSection } from "./fuel.jsx";
+import { sb, ai } from "./client.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -368,6 +369,28 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [fuelScreen,setFuelScreen]=useState("home");    // home | log | recs | recipes | fast
 
   useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(id);},[]);
+
+  // Load today's food logs and workout history on mount
+  useEffect(()=>{
+    if(!user)return;
+    const today=new Date().toISOString().split("T")[0];
+    sb.from("food_logs").select("*").eq("user_id",user.id).eq("logged_at",today).then(({data})=>{
+      if(data&&data.length>0)setLog(data.map(l=>l.entry));
+    });
+    sb.from("workout_logs").select("*").eq("user_id",user.id).order("logged_at",{ascending:false}).limit(50).then(({data})=>{
+      if(data&&data.length>0){
+        const hist={};
+        data.forEach(w=>{
+          (w.entry?.exercises||[]).forEach(ex=>{
+            const k=ex.name.toLowerCase().replace(/\s+/g,"_");
+            if(!hist[k])hist[k]=[];
+            hist[k].push({date:w.logged_at,sets:ex.sets});
+          });
+        });
+        setHistory(hist);
+      }
+    });
+  },[user]);
 
   const todayKey=getTodayKey();
   const todayType=schedule[todayKey]||"rest";

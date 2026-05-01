@@ -4,6 +4,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus } from "./components.jsx";
+import { sb } from "./client.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────

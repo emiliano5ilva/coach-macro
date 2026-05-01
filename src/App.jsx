@@ -1,11 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-// ─── SUPABASE ─────────────────────────────────────────────────────────────────
-const sb = createClient(
-  "https://oxxihlwqukbakmnnavuy.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk"
-);
+import { sb } from "./client.js";
 
 // ─── STRIPE PAYMENT LINKS ─────────────────────────────────────────────────────
 // Replace these two URLs with your actual Stripe Payment Links
@@ -27,8 +21,7 @@ import { App } from "./ob_screens2.jsx";
 import { LandingPage } from "./landing.jsx";
 import { FuelSection } from "./fuel.jsx";
 import { TrainSection, ConnectSection, SettingsSection,
-  WorkoutBuilder, SPLITS_WITH_DAYS, GVT_INFO,
-  LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES, PROMOS,
+  WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES, PROMOS,
   PromoScreen, Paywall } from "./sections.jsx";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 
@@ -114,7 +107,7 @@ function AuthScreen({onAuth}) {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function CoachMacro() {
-  const [phase,setPhase]=useState("landing"); // landing | auth | onboarding | promo | paywall | app
+  const [phase,setPhase]=useState("landing"); // landing | loading | auth | onboarding | promo | paywall | app
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
@@ -123,83 +116,53 @@ export default function CoachMacro() {
   const [earnedCals,setEarnedCals]=useState(0);
   const [signupName,setSignupName]=useState("");
 
-  useEffect(()=>{
-    // Only use getSession — ignore onAuthStateChange on initial load to avoid race
-    sb.auth.getSession().then(({data:{session},error})=>{
-      if(error||!session?.user){ return; /* no session = stay on landing */ }
-      setUser(session.user);
-      loadProfile(session.user.id);
-    });
-    // Only listen for explicit sign-out after initial load
-    const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
-      if(event==="SIGNED_OUT"){
-        setUser(null);setProfile(null);setPhase("landing");
-      }
-    });
-    return()=>subscription.unsubscribe();
-  },[]);
-
   async function loadProfile(uid) {
-    console.log("Loading profile for uid:", uid);
     try {
-      const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
-      console.log("Profile load result:", {data,error});
-      if(error||!data){
-        console.log("No profile found, going to onboarding. Error:", error?.message);
-        setPhase("onboarding");return;
+      const {data,error}=await sb.from("profiles").select("*").eq("id",uid).maybeSingle();
+      if(error){
+        console.error("Profile query error:", error.message);
+        setPhase("landing");
+        return;
       }
-      console.log("Profile found:", data.profile_data?.name);
-      setProfile(data.profile_data);
-      if(data.schedule)setSchedule(data.schedule);
-      if(data.wprefs)setWPrefs(data.wprefs);
-      // Load today's food logs
-      const today=new Date().toISOString().split("T")[0];
-      const {data:logs}=await sb.from("food_logs").select("*").eq("user_id",uid).eq("logged_at",today);
-      if(logs&&logs.length>0)setLog(logs.map(l=>l.entry));
-      // Load workout history
-      const {data:wlogs}=await sb.from("workout_logs").select("*").eq("user_id",uid).order("logged_at",{ascending:false}).limit(50);
-      if(wlogs&&wlogs.length>0){
-        const hist={};
-        wlogs.forEach(w=>{
-          (w.entry?.exercises||[]).forEach(ex=>{
-            const k=ex.name.toLowerCase().replace(/\s+/g,"_");
-            if(!hist[k])hist[k]=[];
-            hist[k].push({date:w.logged_at,sets:ex.sets});
-          });
-        });
-        setHistory(hist);
+      if(!data){
+        setPhase("onboarding");
+        return;
       }
+      if(data.profile_data) setProfile(data.profile_data);
+      if(data.schedule) setSchedule(data.schedule);
+      if(data.wprefs) setWPrefs(data.wprefs);
       setPhase("app");
     } catch(e){
       console.error("loadProfile exception:", e);
-      setPhase("onboarding");
+      setPhase("landing");
     }
   }
 
+  // Returns true if the row was confirmed saved, false otherwise.
   async function saveProfile(uid,prof,sch,wp) {
-    console.log("Saving profile for uid:", uid, "name:", prof?.name);
-    if(!uid){console.error("No uid provided to saveProfile");return;}
+    if(!uid){ console.error("saveProfile: no uid"); return false; }
     try {
-      // Try upsert first
-      const {data,error}=await sb.from("profiles")
-        .upsert({id:uid,profile_data:prof,schedule:sch,wprefs:wp,updated_at:new Date().toISOString()})
-        .select();
-      if(error){
-        console.error("Upsert error:", error.message, error.code, error.details);
-        // Try insert as fallback
-        const {data:d2,error:e2}=await sb.from("profiles")
-          .insert({id:uid,profile_data:prof,schedule:sch,wprefs:wp});
-        if(e2)console.error("Insert fallback error:", e2.message);
-        else console.log("Profile inserted successfully (fallback)");
-      } else {
-        console.log("Profile upserted successfully:", data);
+      const {error}=await sb.from("profiles")
+        .upsert(
+          {id:uid, profile_data:prof, schedule:sch, wprefs:wp, updated_at:new Date().toISOString()},
+          {onConflict:"id"}
+        );
+      if(error){ console.error("saveProfile upsert error:", error.message, error.code, error.details); return false; }
+
+      // Verify the row actually landed in the DB
+      const {data:check,error:checkErr}=await sb.from("profiles").select("id").eq("id",uid).maybeSingle();
+      if(checkErr||!check){
+        console.error("saveProfile verification failed — row not found after upsert");
+        return false;
       }
-    } catch(e){console.error("saveProfile exception:",e);}
+      return true;
+    } catch(e){ console.error("saveProfile exception:", e); return false; }
   }
 
-  async function handleAuth(authUser) {
+  async function handleAuth(authUser, name="") {
     setPhase("loading");
     setUser(authUser);
+    if(name) setSignupName(name);
     await loadProfile(authUser.id);
   }
 
@@ -235,6 +198,8 @@ export default function CoachMacro() {
   // Step 2: Fuel onboarding done — go to train onboarding
   function handleFuelDone(fuelData) {
     const updated={...profile,...fuelData};
+    // getDayMacros expects title-case goal: "Cut" | "Maintain" | "Bulk"
+    if(updated.goal) updated.goal=updated.goal.charAt(0).toUpperCase()+updated.goal.slice(1).toLowerCase();
     setProfile(updated);
     setPhase("onboarding-train");
   }
@@ -242,15 +207,38 @@ export default function CoachMacro() {
   // Step 3: Train onboarding done — save everything and go to promo
   async function handleTrainDone(trainData) {
     const finalProf={...profile,...trainData};
-    
-    // Build schedule from training days
-    const trainDays={n0:[],["1-3"]:["Mon","Wed","Fri"],["4-6"]:["Mon","Tue","Thu","Fri","Sat"],["7+"]:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]}[trainData.freq]||["Mon","Wed","Fri"];
+
+    // Map TrainOnboarding freq values ("1-2","3","4","5","6","7") to actual day lists
+    const trainDaysMap={
+      "1-2":["Mon","Thu"],
+      "3":  ["Mon","Wed","Fri"],
+      "4":  ["Mon","Tue","Thu","Fri"],
+      "5":  ["Mon","Tue","Wed","Thu","Fri"],
+      "6":  ["Mon","Tue","Wed","Thu","Fri","Sat"],
+      "7":  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    };
+    const trainDays=trainDaysMap[trainData.freq]||["Mon","Wed","Fri"];
     const sch={Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"};
     trainDays.forEach(d=>{sch[d]="training";});
-    if(trainData.trainType==="run"||trainData.trainType==="hybrid"){["Tue","Thu"].filter(d=>sch[d]==="rest").slice(0,1).forEach(d=>{sch[d]="cardio";});}
-    
+    if(trainData.trainType==="running"||trainData.trainType==="hybrid"){
+      ["Tue","Thu"].filter(d=>sch[d]==="rest").slice(0,1).forEach(d=>{sch[d]="cardio";});
+    }
+
+    // Map split IDs from TrainOnboarding to SPLIT_CYCLES keys used throughout the app
+    const splitTypeMap={
+      "full_body":"Full Body","ppl_half":"Push/Pull/Legs","upper_lower_3":"Upper/Lower",
+      "upper_lower":"Upper/Lower","ppl_upper":"Push/Pull/Legs","bro_4":"Bro Split",
+      "bro_split":"Bro Split","upper_lower_5":"Upper/Lower","ppl_upper_lower":"Push/Pull/Legs",
+      "ppl_6":"Push/Pull/Legs","arnold":"Arnold Split","upper_lower_6":"Upper/Lower",
+      "ppl_7":"Push/Pull/Legs","bro_7":"Bro Split",
+      "c25k":"Full Body","5k_sub25":"Full Body","10k":"Full Body","half":"Full Body","marathon":"Full Body",
+      "hyrox_12w":"Full Body","hyrox_strength":"Full Body","hyrox_run":"Full Body",
+      "strength_run":"Push/Pull/Legs","ppl_hyrox":"Push/Pull/Legs",
+      "upper_lower_run":"Upper/Lower","hyrox_hybrid":"Full Body",
+    };
+
     const wp={
-      splitType:trainData.split||"Push/Pull/Legs",
+      splitType:splitTypeMap[trainData.split]||"Push/Pull/Legs",
       equipment:trainData.equipment||"Full Gym",
       isHybrid:trainData.trainType==="hybrid",
       isHyrox:trainData.trainType==="hyrox",
@@ -262,10 +250,15 @@ export default function CoachMacro() {
     setSchedule(sch);
     setWPrefs(wp);
     setProfile(finalProf);
-    
+    setPhase("loading"); // show spinner while saving
+
     if(user){
-      console.log("Saving complete profile to Supabase. User id:", user.id);
-      await saveProfile(user.id,finalProf,sch,wp);
+      const saved=await saveProfile(user.id,finalProf,sch,wp);
+      if(!saved){
+        // Retry once before giving up
+        console.warn("First save attempt failed, retrying...");
+        await saveProfile(user.id,finalProf,sch,wp);
+      }
     }
     setPhase("promo");
   }
