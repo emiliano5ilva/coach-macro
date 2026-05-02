@@ -27,6 +27,10 @@ import { useState, useEffect, useRef } from "react";
 
   -- profiles: add referral_code column if not already present
   alter table profiles add column if not exists referral_code text;
+
+  -- profiles RLS: run these if INSERT/UPDATE are being blocked
+  create policy "Users can insert own profile" on profiles for insert with check (auth.uid() = id);
+  create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
 */
 import { createClient } from "@supabase/supabase-js";
 
@@ -185,6 +189,8 @@ export default function CoachMacro() {
   // Returns true if the row was confirmed saved, false otherwise.
   async function saveProfile(uid,prof,sch,wp) {
     console.log("[saveProfile] called — uid:", uid, "profile keys:", Object.keys(prof||{}));
+    console.log("Attempting save for user:", uid);
+    console.log("Profile data:", JSON.stringify(prof).slice(0,200));
     if(!uid){ console.error("[saveProfile] no uid — aborting"); return false; }
     try {
       const payload={id:uid, profile_data:prof, schedule:sch, wprefs:wp, updated_at:new Date().toISOString()};
@@ -194,6 +200,7 @@ export default function CoachMacro() {
         .select("id");
       console.log("[saveProfile] upsert result — data:", upsertData, "error:", error?.message, error?.code, error?.details);
       if(error){
+        console.log("Supabase error:", JSON.stringify(error));
         console.error("[saveProfile] upsert error:", error.message, error.code, error.details, error.hint);
         return false;
       }
