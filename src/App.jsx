@@ -32,12 +32,7 @@ import { useState, useEffect, useRef } from "react";
   create policy "Users can insert own profile" on profiles for insert with check (auth.uid() = id);
   create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
 */
-import { createClient } from "@supabase/supabase-js";
-
-const sb = createClient(
-  "https://oxxihlwqukbakmnnavuy.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk"
-);
+import { sb } from "./supabase.js";
 
 // ─── STRIPE PAYMENT LINKS ─────────────────────────────────────────────────────
 // Replace these two URLs with your actual Stripe Payment Links
