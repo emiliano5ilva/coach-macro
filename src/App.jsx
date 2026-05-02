@@ -188,31 +188,30 @@ export default function CoachMacro() {
 
   // Returns true if the row was confirmed saved, false otherwise.
   async function saveProfile(uid,prof,sch,wp) {
-    console.log("[saveProfile] called — uid:", uid, "profile keys:", Object.keys(prof||{}));
-    console.log("Attempting save for user:", uid);
-    console.log("Profile data:", JSON.stringify(prof).slice(0,200));
+    console.log("User at save time:", uid, typeof uid);
+    console.log("prof first 100:", JSON.stringify(prof).slice(0,100));
+    console.log("sch first 100:", JSON.stringify(sch).slice(0,100));
+    console.log("wp first 100:", JSON.stringify(wp).slice(0,100));
     if(!uid){ console.error("[saveProfile] no uid — aborting"); return false; }
     try {
-      const payload={id:uid, profile_data:prof, schedule:sch, wprefs:wp, updated_at:new Date().toISOString()};
-      console.log("[saveProfile] upserting payload keys:", Object.keys(payload));
-      const {data:upsertData,error}=await sb.from("profiles")
-        .upsert(payload, {onConflict:"id"})
-        .select("id");
-      console.log("[saveProfile] upsert result — data:", upsertData, "error:", error?.message, error?.code, error?.details);
-      if(error){
-        console.log("Supabase error:", JSON.stringify(error));
-        console.error("[saveProfile] upsert error:", error.message, error.code, error.details, error.hint);
-        return false;
+      const { data, error } = await sb
+        .from("profiles")
+        .upsert({
+          id: uid,
+          profile_data: prof,
+          schedule: sch,
+          wprefs: wp,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "id" })
+        .select();
+
+      console.log("Save result - data:", data, "error:", error);
+
+      if (error) {
+        console.error("FULL ERROR:", JSON.stringify(error));
+        throw error;
       }
 
-      // Verify the row actually landed in the DB
-      const {data:check,error:checkErr}=await sb.from("profiles").select("id").eq("id",uid).maybeSingle();
-      console.log("[saveProfile] verification read — found:", !!check, "err:", checkErr?.message);
-      if(checkErr||!check){
-        console.error("[saveProfile] verification failed — row not found after upsert");
-        return false;
-      }
-      console.log("[saveProfile] SUCCESS — row confirmed in DB");
       return true;
     } catch(e){ console.error("[saveProfile] exception:", e); return false; }
   }
