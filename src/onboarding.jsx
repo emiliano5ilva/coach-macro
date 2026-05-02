@@ -447,11 +447,11 @@ export function TrainOnboarding({d, onComplete, onBack}) {
             const dayColors={"training":{bg:`${T.carb}20`,border:T.carb,text:T.carb,label:"🏋️ Lift"},"cardio":{bg:`${T.prot}20`,border:T.prot,text:T.prot,label:"🏃 Run"},"rest":{bg:T.s2,border:T.bd,text:T.mu,label:"😴 Rest"}};
             const cycleDay=(day)=>{
               const cur=sch[day];
-              let next;
-              if(isHybrid) next=cur==="rest"?"training":cur==="training"?"cardio":"rest";
-              else if(isRun) next=cur==="rest"?"cardio":"rest";
-              else next=cur==="rest"?"training":"rest";
-              upd("selectedDays",{...sch,[day]:next});
+              let nextState;
+              if(isHybrid) nextState=cur==="rest"?"training":cur==="training"?"cardio":"rest";
+              else if(isRun) nextState=cur==="rest"?"cardio":"rest";
+              else nextState=cur==="rest"?"training":"rest";
+              upd("selectedDays",{...sch,[day]:nextState});
             };
             const liftCount=Object.values(sch).filter(v=>v==="training").length;
             const runCount=Object.values(sch).filter(v=>v==="cardio").length;

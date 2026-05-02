@@ -5,7 +5,7 @@ export async function ai(prompt, max = 900) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-4-6",
       max_tokens: max,
       messages: [{ role: "user", content: prompt }],
     }),
