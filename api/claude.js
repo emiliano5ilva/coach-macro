@@ -1,4 +1,7 @@
 export default async function handler(req, res) {
+  console.log('API route hit - method:', req.method);
+  console.log('API key exists:', !!process.env.ANTHROPIC_API_KEY);
+  console.log('API key prefix:', process.env.ANTHROPIC_API_KEY?.slice(0, 10));
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
