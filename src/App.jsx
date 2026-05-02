@@ -271,20 +271,18 @@ export default function CoachMacro() {
       console.log("[handleTrainDone] generated referral code:", finalProf.referralCode);
     }
 
-    // Map TrainOnboarding freq values ("1-2","3","4","5","6","7") to actual day lists
-    const trainDaysMap={
-      "1-2":["Mon","Thu"],
-      "3":  ["Mon","Wed","Fri"],
-      "4":  ["Mon","Tue","Thu","Fri"],
-      "5":  ["Mon","Tue","Wed","Thu","Fri"],
-      "6":  ["Mon","Tue","Wed","Thu","Fri","Sat"],
-      "7":  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-    };
-    const trainDays=trainDaysMap[trainData.freq]||["Mon","Wed","Fri"];
-    const sch={Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"};
-    trainDays.forEach(d=>{sch[d]="training";});
-    if(trainData.trainType==="running"||trainData.trainType==="hybrid"){
-      ["Tue","Thu"].filter(d=>sch[d]==="rest").slice(0,1).forEach(d=>{sch[d]="cardio";});
+    // Use user-selected days from day picker, or fall back to auto-assign from freq
+    let sch;
+    if(trainData.selectedDays&&Object.values(trainData.selectedDays).some(v=>v!=="rest")){
+      sch=trainData.selectedDays;
+    }else{
+      const trainDaysMap={"1-2":["Mon","Thu"],"3":["Mon","Wed","Fri"],"4":["Mon","Tue","Thu","Fri"],"5":["Mon","Tue","Wed","Thu","Fri"],"6":["Mon","Tue","Wed","Thu","Fri","Sat"],"7":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]};
+      const trainDays=trainDaysMap[trainData.freq]||["Mon","Wed","Fri"];
+      sch={Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"};
+      trainDays.forEach(d=>{sch[d]="training";});
+      if(trainData.trainType==="running"||trainData.trainType==="hybrid"){
+        ["Tue","Thu"].filter(d=>sch[d]==="rest").slice(0,1).forEach(d=>{sch[d]="cardio";});
+      }
     }
 
     // Map split IDs from TrainOnboarding to SPLIT_CYCLES keys used throughout the app

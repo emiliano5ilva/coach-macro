@@ -117,7 +117,7 @@ export const HYBRID_TEMPLATES = {
   },
 };
 
-export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startStructured,workout,workoutLoading,isMobile,todayFocus}) {
+export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startStructured,workout,workoutLoading,isMobile,todayFocus,schedule,setActiveWorkout,setTrainScreen}) {
   const [step,setStep]=useState("type"); // type | split | run | hybrid | glute | glute-preview | exercises | generated
   const [type,setType]=useState(""); // lifting | running | hybrid | glute
   const [split,setSplit]=useState("");
@@ -125,6 +125,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
   const [runDays,setRunDays]=useState(3);
   const [longRunDay,setLongRunDay]=useState("Sunday");
   const [hybridTemplate,setHybridTemplate]=useState("");
+  const [genExercises,setGenExercises]=useState(null);
 
   function handleTypeSelect(t) {
     setType(t);
@@ -133,11 +134,27 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 
   function handleGenerate() {
     setStep("generated");
-    generateWorkout(type,split,runPlanLocal,hybridTemplate);
+    // Build real exercises from programs.js directly — no AI parsing needed
+    const daysPerWeek=Object.values(schedule||{}).filter(v=>v==="training").length||3;
+    const startD=new Date(profile?.startDate||Date.now());
+    const dayIdx=Math.max(0,Math.floor((Date.now()-startD.getTime())/86400000))%(daysPerWeek||1);
+    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym");
+    exs=applyEquipmentToWorkout(exs||[],wPrefs.equipment||"Full Gym");
+    setGenExercises(exs.length?exs:[{name:"Session Ready",sets:3,reps:"8-12",weight:"",notes:"Start your session"}]);
+    generateWorkout(type,split,runPlanLocal,hybridTemplate); // still call AI for notes in background
   }
-  
+
   function handleStartSession() {
-    startStructured(split,runPlanLocal,hybridTemplate);
+    if(genExercises&&genExercises.length&&setActiveWorkout&&setTrainScreen){
+      const activeEx=genExercises.map(ex=>({
+        name:ex.name,notes:ex.notes||"",restSecs:ex.restSecs||120,
+        sets:Array.from({length:Number(ex.sets)||3},()=>({weight:"",reps:String(ex.reps||10),done:false}))
+      }));
+      setActiveWorkout({title:todayFocus,exercises:activeEx});
+      setTrainScreen("active");
+    }else{
+      startStructured(split,runPlanLocal,hybridTemplate);
+    }
   }
 
   return (
@@ -355,31 +372,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 
       {/* STEP 3 — Generated workout as structured cards */}
       {step==="generated"&&(()=>{
-        // Parse AI text into structured exercise cards
-        const parseWorkout = (text) => {
-          if(!text) return [];
-          const lines = text.split("\n").filter(l=>l.trim());
-          const exercises = [];
-          let current = null;
-          for(const line of lines){
-            const trimmed = line.trim();
-            // Match exercise header: "1. Barbell Bench Press" or "Barbell Bench Press"
-            const exMatch = trimmed.match(/^(?:\d+\.\s*)?([A-Z][\w\s]+?)(?:\s*[-–]\s*(.+))?$/);
-            const setsMatch = trimmed.match(/(\d+)\s*[x×]\s*(\d+(?:-\d+)?)(?:\s*(?:reps?|@|at)?\s*([\d.]+(?:-[\d.]+)?)?\s*(?:lbs?|kg)?)?/i);
-            if(setsMatch && current){
-              current.sets = parseInt(setsMatch[1]);
-              current.reps = setsMatch[2];
-              current.weight = setsMatch[3]||"";
-            } else if(trimmed.match(/^(?:\d+\.\s*)?[A-Z]/) && trimmed.length > 4 && !setsMatch){
-              if(current) exercises.push(current);
-              current = {name:trimmed.replace(/^\d+\.\s*/,"").split(/\s*[-–]/)[0].trim(), sets:3, reps:"8-12", weight:"", notes:trimmed.split(/[-–]/)[1]?.trim()||""};
-            }
-          }
-          if(current) exercises.push(current);
-          return exercises.length>0 ? exercises : [{name:"Session generated",sets:3,reps:"8-12",weight:"",notes:text}];
-        };
-
-        const exercises = parseWorkout(workout);
+        const exercises = genExercises||[{name:"Loading…",sets:3,reps:"8-12",weight:"",notes:""}];
 
         return(
           <div>
@@ -443,7 +436,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
                 {/* Actions */}
                 <div style={{display:"flex",gap:10}}>
                   <button onClick={handleGenerate} style={{flex:1,padding:"13px",background:T.s2,color:T.carb,fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:`1px solid ${T.carb}25`,borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Regenerate</button>
-                  <button onClick={()=>{startStructured(split,runPlanLocal,hybridTemplate);}} style={{flex:2,padding:"13px",background:T.carb,color:"#000",fontSize:14,fontWeight:800,border:"none",borderRadius:11,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>▶ Start This Session →</button>
+                  <button onClick={handleStartSession} style={{flex:2,padding:"13px",background:T.carb,color:"#000",fontSize:14,fontWeight:800,border:"none",borderRadius:11,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>▶ Start This Session →</button>
                 </div>
               </>
             }
@@ -611,7 +604,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── LIFT SMARTER BUILDER ── */}
-        {trainScreen==="builder"&&<WorkoutBuilder profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} generateWorkout={generateWorkout} startStructured={startStructured} workout={workout} workoutLoading={workoutLoading} isMobile={isMobile} todayFocus={todayFocus}/>}
+        {trainScreen==="builder"&&<WorkoutBuilder profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} generateWorkout={generateWorkout} startStructured={startStructured} workout={workout} workoutLoading={workoutLoading} isMobile={isMobile} todayFocus={todayFocus} schedule={schedule} setActiveWorkout={setActiveWorkout} setTrainScreen={setTrainScreen}/>}
 
         {/* ── ACTIVE WORKOUT ── */}
         {trainScreen==="active"&&(

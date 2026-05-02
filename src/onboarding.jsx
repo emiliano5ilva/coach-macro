@@ -315,13 +315,33 @@ export function TrainOnboarding({d, onComplete, onBack}) {
     freq:"", trainType:"lifting", split:"", equipment:"Full Gym",
     sessionLength:60, weakPoints:[], injuries:[], longRunDay:"Sunday",
     liftExp:"", cardioExp:"", gvt:false, hybridStyle:"",
+    selectedDays:{Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"},
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
   const next=()=>setSc(s=>s+1);
   const back=()=>sc===0?onBack():setSc(s=>s-1);
-  const SCREENS=8;
+  const SCREENS=9;
   const pct=Math.round((sc/SCREENS)*100);
+
+  function getRecDays(freq,trainType){
+    const sch={Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"};
+    const n={"1-2":2,"3":3,"4":4,"5":5,"6":6,"7":7}[freq]||3;
+    const all=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    if(trainType==="running"){
+      const spread=n<=3?["Mon","Wed","Fri"]:n===4?["Mon","Tue","Thu","Fri"]:all.slice(0,n);
+      spread.slice(0,n).forEach(d=>{sch[d]="cardio";});
+    }else if(trainType==="hybrid"){
+      const liftDays=n<=3?["Mon","Wed","Fri"]:["Mon","Wed","Fri","Sat"].slice(0,Math.ceil(n/2));
+      const runDays=["Tue","Thu","Sat","Sun"].filter(d=>!liftDays.includes(d)).slice(0,Math.floor(n/2));
+      liftDays.forEach(d=>{sch[d]="training";});
+      runDays.forEach(d=>{sch[d]="cardio";});
+    }else{
+      const spread=n<=3?["Mon","Wed","Fri"]:n===4?["Mon","Tue","Thu","Fri"]:n===5?["Mon","Tue","Wed","Thu","Fri"]:n===6?["Mon","Tue","Wed","Thu","Fri","Sat"]:all;
+      spread.slice(0,n).forEach(d=>{sch[d]="training";});
+    }
+    return sch;
+  }
 
   const daysNum={n0:0,"1-2":2,"3":3,"4":4,"5":5,"6":6,"7":7}[data.freq]||0;
   const availableSplits=SPLITS_WITH_DAYS[daysNum]||SPLITS_WITH_DAYS[3];
@@ -410,11 +430,60 @@ export function TrainOnboarding({d, onComplete, onBack}) {
             <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>{recSplit.l}</div>
             <div style={{fontSize:12,color:T.mu,lineHeight:1.65}}>{recSplit.desc}</div>
           </div>}
-          <PrimaryBtn onClick={next} label="Continue →" disabled={!data.freq}/>
+          <PrimaryBtn onClick={()=>{upd("selectedDays",getRecDays(data.freq,data.trainType));next();}} label="Continue →" disabled={!data.freq}/>
         </div>}
 
-        {/* SCREEN 3 — Split / Program selection — context-aware by trainType */}
-        {sc===3&&(()=>{
+        {/* SCREEN 3 — Day picker */}
+        {sc===3&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 4</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+            PICK YOUR<br/><span style={{color:T.prot}}>TRAINING DAYS.</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:16,lineHeight:1.6}}>Tap each day to assign it. We've pre-filled a recommendation — override it completely.</p>
+          {(()=>{
+            const sch=data.selectedDays;
+            const isHybrid=data.trainType==="hybrid";
+            const isRun=data.trainType==="running";
+            const dayColors={"training":{bg:`${T.carb}20`,border:T.carb,text:T.carb,label:"🏋️ Lift"},"cardio":{bg:`${T.prot}20`,border:T.prot,text:T.prot,label:"🏃 Run"},"rest":{bg:T.s2,border:T.bd,text:T.mu,label:"😴 Rest"}};
+            const cycleDay=(day)=>{
+              const cur=sch[day];
+              let next;
+              if(isHybrid) next=cur==="rest"?"training":cur==="training"?"cardio":"rest";
+              else if(isRun) next=cur==="rest"?"cardio":"rest";
+              else next=cur==="rest"?"training":"rest";
+              upd("selectedDays",{...sch,[day]:next});
+            };
+            const liftCount=Object.values(sch).filter(v=>v==="training").length;
+            const runCount=Object.values(sch).filter(v=>v==="cardio").length;
+            const target={"1-2":2,"3":3,"4":4,"5":5,"6":6,"7":7}[data.freq]||3;
+            return(
+              <>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,marginBottom:16}}>
+                  {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{
+                    const t=sch[day]||"rest";
+                    const c=dayColors[t];
+                    return(
+                      <div key={day} onClick={()=>cycleDay(day)} style={{background:c.bg,border:`1.5px solid ${c.border}`,borderRadius:12,padding:"12px 4px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
+                        <div style={{fontSize:9,fontWeight:700,color:c.text,marginBottom:6,letterSpacing:1}}>{day}</div>
+                        <div style={{fontSize:14,marginBottom:4}}>{t==="training"?"🏋️":t==="cardio"?"🏃":"😴"}</div>
+                        <div style={{fontSize:8,color:c.text,lineHeight:1.2}}>{c.label.split(" ")[1]}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:20}}>
+                  {isHybrid||!isRun?<div><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.carb}}>{liftCount}</span><span style={{fontSize:11,color:T.mu,marginLeft:4}}>lift days</span></div>:null}
+                  {isHybrid||isRun?<div><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.prot}}>{runCount}</span><span style={{fontSize:11,color:T.mu,marginLeft:4}}>run days</span></div>:null}
+                  <div style={{marginLeft:"auto",fontSize:11,color:T.mu}}>Target: {target} days</div>
+                </div>
+              </>
+            );
+          })()}
+          <PrimaryBtn onClick={next} label="Continue →"/>
+        </div>}
+
+        {/* SCREEN 4 — Split / Program selection — context-aware by trainType */}
+        {sc===4&&(()=>{
           // Running programs
           const RUN_PROGRAMS=[
             {id:"c25k",e:"🏃",l:"5K — Beginner (Couch to 5K)",desc:"Run/walk intervals building to a full 5K in 8 weeks. 3 days/week. No experience needed.",days:3,rec:["beginner"],gvt:false},
@@ -500,9 +569,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           );
         })()}
 
-        {/* SCREEN 4 — Equipment */}
-        {sc===4&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 5</div>
+        {/* SCREEN 5 — Equipment */}
+        {sc===5&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 6</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             EQUIPMENT<br/><span style={{color:T.prot}}>ACCESS.</span>
           </div>
@@ -522,9 +591,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 5 — Session Length */}
-        {sc===5&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 6</div>
+        {/* SCREEN 6 — Session Length */}
+        {sc===6&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 7</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             SESSION<br/><span style={{color:T.prot}}>LENGTH.</span>
           </div>
@@ -540,9 +609,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →"/>
         </div>}
 
-        {/* SCREEN 6 — Weak Points */}
-        {sc===6&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 7</div>
+        {/* SCREEN 7 — Weak Points */}
+        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 8</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             WEAK POINTS<br/><span style={{color:T.prot}}>TO PRIORITIZE.</span>
           </div>
@@ -559,8 +628,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →"/>
         </div>}
 
-        {/* SCREEN 7 — Injuries + GVT + Done */}
-        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
+        {/* SCREEN 8 — Injuries + GVT + Done */}
+        {sc===8&&<div style={{animation:"fadeIn .25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Final Step</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             LAST FEW<br/><span style={{color:T.prot}}>THINGS.</span>
