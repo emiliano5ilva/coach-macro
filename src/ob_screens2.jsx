@@ -8,6 +8,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
 import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES,
   PROMOS } from "./sections.jsx";
+import { getWorkoutForDay } from "./programs.js";
 import { FuelSection } from "./fuel.jsx";
 import { sb, ai } from "./client.js";
 
@@ -367,24 +368,39 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const fileRef=useRef({});
   const [trainScreen,setTrainScreen]=useState("today"); // today | workout | active | plan | progress | settings
   const [fuelScreen,setFuelScreen]=useState("home");    // home | log | recs | recipes | fast
+  const [workoutSavedMsg,setWorkoutSavedMsg]=useState("");
 
   useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(id);},[]);
+
+  // ── Persist food log: single row per day, entries = full jsonb array ────────
+  async function saveFoodLog(uid,entries){
+    const today=new Date().toISOString().split("T")[0];
+    const {error}=await sb.from("food_logs")
+      .upsert({user_id:uid,date:today,entries},{onConflict:"user_id,date"});
+    if(error)console.error("[saveFoodLog] error:",error.message,error.code);
+    else console.log("[saveFoodLog] saved",entries.length,"entries");
+  }
 
   // Load today's food logs and workout history on mount
   useEffect(()=>{
     if(!user)return;
     const today=new Date().toISOString().split("T")[0];
-    sb.from("food_logs").select("*").eq("user_id",user.id).eq("logged_at",today).then(({data})=>{
-      if(data&&data.length>0)setLog(data.map(l=>l.entry));
+    // Food log — single row per day
+    sb.from("food_logs").select("entries").eq("user_id",user.id).eq("date",today).maybeSingle().then(({data,error})=>{
+      console.log("[loadFoodLog] entries:",data?.entries?.length||0,"error:",error?.message);
+      if(data?.entries)setLog(data.entries);
     });
-    sb.from("workout_logs").select("*").eq("user_id",user.id).order("logged_at",{ascending:false}).limit(50).then(({data})=>{
+    // Workout history — last 50 sessions
+    sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50).then(({data,error})=>{
+      console.log("[loadWorkoutHistory] rows:",data?.length||0,"error:",error?.message);
       if(data&&data.length>0){
         const hist={};
         data.forEach(w=>{
-          (w.entry?.exercises||[]).forEach(ex=>{
+          const exercises=w.workout?.exercises||w.entry?.exercises||[];
+          exercises.forEach(ex=>{
             const k=ex.name.toLowerCase().replace(/\s+/g,"_");
             if(!hist[k])hist[k]=[];
-            hist[k].push({date:w.logged_at,sets:ex.sets});
+            hist[k].push({date:w.date||w.logged_at,sets:ex.sets});
           });
         });
         setHistory(hist);
@@ -426,37 +442,34 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       const raw=await ai(`Estimate macros for: "${foodInput}". Reply ONLY valid JSON no markdown: {"food":"short name","calories":0,"protein":0,"carbs":0,"fat":0}`);
       const p=JSON.parse(raw.trim());
       const entry={...p,id:Date.now(),method:"ai"};
-      setLog(prev=>[entry,...prev]);
+      const newLog=[entry,...log];
+      setLog(newLog);
       setLogMsg(`✓ ${p.food} — ${p.calories} kcal`);
       setFoodInput("");
-      // Save to Supabase
-      if(user){
-        try{await sb.from("food_logs").insert({user_id:user.id,logged_at:new Date().toISOString().split("T")[0],entry});}
-        catch(e){console.error("Food log save error:",e);}
-      }
+      if(user)saveFoodLog(user.id,newLog);
     }
-    catch{setLogMsg("Couldn't estimate. Try again.");}
+    catch(e){console.error("[aiLog] error:",e);setLogMsg("⚠️ AI unavailable. Try again.");}
     setLogging(false);
   }
   async function scanBarcode(){
     if(!barcodeInput.trim())return;setBarcodeLoading(true);setBarcodeResult(null);
     const result=await lookupBarcode(barcodeInput.trim());setBarcodeResult(result);setBarcodeLoading(false);
   }
-  function addBarcode(){if(!barcodeResult)return;setLog(prev=>[{...barcodeResult,id:Date.now(),method:"barcode"},...prev]);setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);}
-  function addQuick(){if(!quickFields.calories)return;setLog(prev=>[{food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick"},...prev]);setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
-  function removeLog(id){setLog(prev=>prev.filter(i=>i.id!==id));}
+  function addBarcode(){if(!barcodeResult)return;const entry={...barcodeResult,id:Date.now(),method:"barcode"};const newLog=[entry,...log];setLog(newLog);if(user)saveFoodLog(user.id,newLog);setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);}
+  function addQuick(){if(!quickFields.calories)return;const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick"};const newLog=[entry,...log];setLog(newLog);if(user)saveFoodLog(user.id,newLog);setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
+  function removeLog(id){const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
 
   async function fetchRecs(){
     setRecsLoading(true);setRecs("");
     const actCtx=todayActs.length>0?`\nToday's activity: ${todayActs.map(a=>`${a.type} (${a.calories} kcal via ${a.source})`).join(", ")}\n`:"";
     try{const txt=await ai(`You are a precision nutrition coach. The user needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.\n\nUsing REAL menu items with VERIFIED nutritional data from these chains: Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell:\n\nProvide exactly 3 restaurant options. For each:\n• Restaurant name\n• Exact order (item + any customizations like "no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers. No vague suggestions.`,900);setRecs(txt);}
-    catch{setRecs("Error. Try again.");}setRecsLoading(false);
+    catch(e){console.error("[fetchRecs] error:",e);setRecs("⚠️ AI temporarily unavailable. Tap 'Get Recommendations' to retry.");}setRecsLoading(false);
   }
 
   async function fetchRecipes(){
     setRecipesLoading(true);setRecipes("");
     try{const txt=await ai(`Remaining macros I need to hit:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal} · Day: ${todayType}\n\nGive 3 simple home recipes. Each: name, ingredients (max 6 with amounts), steps (max 5), macro breakdown, prep time. Easy to cook. Hit the protein and calorie targets.`,900);setRecipes(txt);}
-    catch{setRecipes("Error. Try again.");}setRecipesLoading(false);
+    catch(e){console.error("[fetchRecipes] error:",e);setRecipes("⚠️ AI temporarily unavailable. Tap 'Get Recipes' to retry.");}setRecipesLoading(false);
   }
 
   async function generateWorkout(type="lifting",split="",runPlan="",hybridTemplate=""){
@@ -466,7 +479,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const prompt=todayType==="rest"
       ?`REST DAY recovery for ${profile.goal} athlete. Mobility, stretching, foam rolling, recovery nutrition. Equipment: ${wPrefs.equipment}. Clear sections.`
       :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"}${actCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
-    try{const txt=await ai(prompt,1000);setWorkout(txt);}catch{setWorkout("Error. Tap retry.");}setWorkoutLoading(false);
+    try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);setWorkout("⚠️ AI temporarily unavailable. Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
   }
 
   async function startStructured(splitName="",runPlanName="",hybridName=""){
@@ -494,8 +507,19 @@ Rules:
       const parsed=JSON.parse(cleaned);
       setActiveWorkout(parsed);setTrainScreen("active");
     }catch(e){
-      console.error("startStructured error:",e);
-      setWorkout("Couldn't build structured session. Try the Lift Smarter tab.");
+      console.error("[startStructured] AI error — falling back to hardcoded program:",e);
+      try{
+        const daysPerWeek=Object.values(schedule).filter(v=>v==="training").length||3;
+        const startD=new Date(profile?.startDate||Date.now());
+        const dayIdx=Math.floor((new Date()-startD)/(24*60*60*1000))%(daysPerWeek||1);
+        const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym");
+        if(exs&&exs.length){
+          setActiveWorkout({title:todayFocus,exercises:exs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}))});
+          setTrainScreen("active");
+        }else{
+          setWorkout("⚠️ AI unavailable. Use Today tab → Start Workout to begin.");
+        }
+      }catch(fe){setWorkout("⚠️ AI unavailable. Use Today tab → Start Workout to begin.");}
     }
     setWorkoutLoading(false);
   }
@@ -519,21 +543,23 @@ Rules:
         }
       });
       setHistory(nh);
-      // Calories burned — avg 6 kcal/min lifting, 11 kcal/min cardio
       const burn=todayType==="training"?Math.round(45*6):Math.round(45*11);
       if(onEarnedCals)onEarnedCals(burn);
-      // Save workout to Supabase
       if(user){
         try{
           await sb.from("workout_logs").insert({
             user_id:user.id,
-            logged_at:new Date().toISOString().split("T")[0],
-            entry:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType}
+            date:new Date().toISOString().split("T")[0],
+            workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType}
           });
-        }catch(e){console.error("Workout save error:",e);}
+          console.log("[finishWorkout] saved",setsLogged.length,"exercises to Supabase");
+          setWorkoutSavedMsg(`✓ Workout saved. Great session! ${setsLogged.length} exercise${setsLogged.length===1?"":"s"} logged.`);
+          setTimeout(()=>setWorkoutSavedMsg(""),4000);
+        }catch(e){console.error("[finishWorkout] save error:",e);}
       }
     }
-    setActiveWorkout(null);setTrainScreen("today");
+    setActiveWorkout(null);
+    setTrainScreen("progress");
   }
 
   function getSuggestion(name){
@@ -577,6 +603,7 @@ Rules:
   return (
     <div style={{display:"flex",height:"100vh",overflow:"hidden",background:T.bg}}>
       <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
+      {workoutSavedMsg&&<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"#00C9A7",color:"#000",padding:"13px 22px",borderRadius:12,fontSize:14,fontWeight:700,zIndex:1000,boxShadow:"0 4px 20px rgba(0,0,0,.5)",whiteSpace:"nowrap",pointerEvents:"none"}}>{workoutSavedMsg}</div>}
 
       {/* ── DESKTOP SIDEBAR ── */}
       {!isMobile&&(
@@ -660,7 +687,7 @@ Rules:
         {isMobile&&(
           <div style={{position:"sticky",bottom:0,background:"rgba(6,13,26,0.97)",borderTop:`1px solid ${T.bd}`,display:"flex",zIndex:50,flexShrink:0}}>
             {NAV_ITEMS.map(item=>(
-              <button key={item.id} onClick={()=>setSection(item.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"10px 0",fontSize:8,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",fontFamily:"inherit",color:section===item.id?item.color:T.mu,position:"relative"}}>
+              <button key={item.id} onClick={()=>setSection(item.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"10px 0",minHeight:56,fontSize:8,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",fontFamily:"inherit",color:section===item.id?item.color:T.mu,position:"relative"}}>
                 <div style={{fontSize:18,marginBottom:2}}>{item.icon}</div>
                 {item.label}
                 {item.id==="connect"&&connCount>0&&<span style={{position:"absolute",top:6,left:"58%",background:T.prot,color:"#fff",borderRadius:6,fontSize:8,fontWeight:800,padding:"0 3px",lineHeight:"12px"}}>{connCount}</span>}

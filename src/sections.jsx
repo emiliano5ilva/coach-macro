@@ -906,6 +906,19 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [checkIns,setCheckIns]=useState([]);
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
+  const [settingsSaved,setSettingsSaved]=useState(false);
+
+  async function saveSettings(newWPrefs,newSchedule){
+    if(!user)return;
+    try{
+      const {error}=await sb.from("profiles").upsert(
+        {id:user.id,wprefs:newWPrefs||wPrefs,schedule:newSchedule||schedule},
+        {onConflict:"id"}
+      );
+      if(error){console.error("[saveSettings] error:",error.message);}
+      else{console.log("[saveSettings] saved");setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);}
+    }catch(e){console.error("[saveSettings] exception:",e);}
+  }
 
   // Load weight check-ins from Supabase
   useEffect(()=>{
@@ -1023,21 +1036,21 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </div>
         </SectionCard>
 
-        <SectionCard title="Workout Split">
+        <SectionCard title={`Workout Split${settingsSaved?" — ✓ Saved":""}`}>
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-            {Object.keys(SPLIT_CYCLES).map(s=>(<button key={s} onClick={()=>setWPrefs(p=>({...p,splitType:s}))} style={{padding:"9px 13px",borderRadius:9,border:`1.5px solid ${wPrefs.splitType===s?T.carb:T.bd}`,background:wPrefs.splitType===s?`${T.carb}15`:T.s3,color:wPrefs.splitType===s?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s}</button>))}
+            {Object.keys(SPLIT_CYCLES).map(s=>(<button key={s} onClick={()=>{const wp={...wPrefs,splitType:s};setWPrefs(wp);saveSettings(wp,null);}} style={{padding:"9px 13px",minHeight:44,borderRadius:9,border:`1.5px solid ${wPrefs.splitType===s?T.carb:T.bd}`,background:wPrefs.splitType===s?`${T.carb}15`:T.s3,color:wPrefs.splitType===s?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s}</button>))}
           </div>
         </SectionCard>
 
         <SectionCard title="Equipment">
           <div style={{display:"flex",gap:8}}>
-            {["Full Gym","Home Gym","Bodyweight Only"].map(e=>(<button key={e} onClick={()=>setWPrefs(p=>({...p,equipment:e}))} style={{flex:1,padding:"11px 6px",borderRadius:9,border:`1.5px solid ${wPrefs.equipment===e?T.carb:T.bd}`,background:wPrefs.equipment===e?`${T.carb}15`:T.s3,color:wPrefs.equipment===e?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{e}</button>))}
+            {["Full Gym","Home Gym","Bodyweight Only"].map(e=>(<button key={e} onClick={()=>{const wp={...wPrefs,equipment:e};setWPrefs(wp);saveSettings(wp,null);}} style={{flex:1,padding:"11px 6px",minHeight:44,borderRadius:9,border:`1.5px solid ${wPrefs.equipment===e?T.carb:T.bd}`,background:wPrefs.equipment===e?`${T.carb}15`:T.s3,color:wPrefs.equipment===e?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{e}</button>))}
           </div>
         </SectionCard>
 
         <SectionCard title="Athlete Modes">
-          <Toggle on={wPrefs.isHybrid} onChange={v=>setWPrefs(p=>({...p,isHybrid:v}))} label="🏃 Hybrid Athlete" sub="Adds structured run blocks to training days"/>
-          <Toggle on={wPrefs.isHyrox}  onChange={v=>setWPrefs(p=>({...p,isHyrox:v}))}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
+          <Toggle on={wPrefs.isHybrid} onChange={v=>{const wp={...wPrefs,isHybrid:v};setWPrefs(wp);saveSettings(wp,null);}} label="🏃 Hybrid Athlete" sub="Adds structured run blocks to training days"/>
+          <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
         </SectionCard>
 
         <SectionCard title="Your Profile">
@@ -1045,6 +1058,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             {[["Name",profile.name],["Goal",profile.goal],["Daily Target",`${profile.goalCals} kcal`],["Base TDEE",`${profile.baseTDEE} kcal`],["Start Weight",`${profile.startWeight||"—"} ${profile.wUnit||"lbs"}`],["Start Date",profile.startDate||"—"]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:`1px solid ${T.dim}`}}><span style={{fontSize:13,color:T.mu}}>{l}</span><span style={{fontSize:13,fontWeight:600}}>{v}</span></div>))}
           </div>
         </SectionCard>
+
+        {/* Referral Code */}
+        {profile.referralCode&&<SectionCard title="Refer a Friend">
+          <div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:12}}>Share your code. Your friend gets 30 days free on signup — and so do you.</div>
+          <div style={{background:T.s2,border:`2px dashed ${T.prot}`,borderRadius:12,padding:"16px",textAlign:"center",marginBottom:12}}>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Your Referral Code</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,color:T.prot,letterSpacing:4}}>{profile.referralCode}</div>
+          </div>
+          <button onClick={()=>navigator.clipboard?.writeText(profile.referralCode).then(()=>{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);})} style={{width:"100%",padding:"13px",minHeight:44,background:T.s3,border:`1px solid ${T.bd}`,borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>{settingsSaved?"✓ Copied!":"Copy Code"}</button>
+        </SectionCard>}
 
         {/* Account Actions */}
         <SectionCard title="Account">

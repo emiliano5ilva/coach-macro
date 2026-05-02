@@ -1,4 +1,33 @@
 import { useState, useEffect, useRef } from "react";
+/*
+  Supabase DDL — run once in Supabase SQL editor:
+
+  -- food_logs: one row per user per day, full log as JSON array
+  create table if not exists food_logs (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade,
+    date date not null,
+    entries jsonb default '[]',
+    created_at timestamptz default now(),
+    unique(user_id, date)
+  );
+  alter table food_logs enable row level security;
+  create policy "Users manage own food logs" on food_logs for all using (auth.uid() = user_id);
+
+  -- workout_logs: one row per session
+  create table if not exists workout_logs (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade,
+    date date not null,
+    workout jsonb,
+    created_at timestamptz default now()
+  );
+  alter table workout_logs enable row level security;
+  create policy "Users manage own workout logs" on workout_logs for all using (auth.uid() = user_id);
+
+  -- profiles: add referral_code column if not already present
+  alter table profiles add column if not exists referral_code text;
+*/
 import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(
@@ -234,6 +263,12 @@ export default function CoachMacro() {
     console.log("[handleTrainDone] called — user:", user?.id, "trainType:", trainData.trainType, "split:", trainData.split, "freq:", trainData.freq);
     setSaveErr("");
     const finalProf={...profile,...trainData};
+    // Generate stable referral code if not already set
+    if(!finalProf.referralCode){
+      const first=(finalProf.name||"USER").split(" ")[0].replace(/[^A-Za-z]/g,"").toUpperCase().slice(0,8)||"USER";
+      finalProf.referralCode=first+Math.floor(1000+Math.random()*9000);
+      console.log("[handleTrainDone] generated referral code:", finalProf.referralCode);
+    }
 
     // Map TrainOnboarding freq values ("1-2","3","4","5","6","7") to actual day lists
     const trainDaysMap={
@@ -304,8 +339,8 @@ export default function CoachMacro() {
       console.log("[handleTrainDone] attempt 1 succeeded");
     }
 
-    console.log("[handleTrainDone] profile saved — routing to promo");
-    setPhase("promo");
+    console.log("[handleTrainDone] profile saved — routing to celebrate");
+    setPhase("celebrate");
   }
 
   async function handleSignOut() {
@@ -346,6 +381,44 @@ export default function CoachMacro() {
   if(phase==="onboarding") return <Onboarding onComplete={(d,tdee)=>handleProfileDone(d,tdee)} user={user} signupName={signupName}/>;
   if(phase==="onboarding-fuel") return <FuelOnboarding d={profile} onComplete={handleFuelDone} onBack={()=>setPhase("onboarding")}/>;
   if(phase==="onboarding-train") return <TrainOnboarding d={profile} onComplete={handleTrainDone} onBack={()=>setPhase("onboarding-fuel")}/>;
+  if(phase==="celebrate"){
+    const cKey=getTodayKey();
+    const cType=schedule[cKey]||"training";
+    const cMacros=getDayMacros(profile?.goalCals,profile?.goal,cType,0);
+    const cFocus=dayFocus[cKey]||"Full Body";
+    return(
+      <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+        <style>{GLOBAL_CSS}</style>
+        <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
+          <div style={{fontSize:64,marginBottom:8}}>🎉</div>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Your Plan Is Ready</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:24}}>
+            LET'S GO,<br/><span style={{color:T.prot}}>{profile?.name?.toUpperCase()||"ATHLETE"}.</span>
+          </div>
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"20px 24px",marginBottom:16,textAlign:"left"}}>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>Today's Targets</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+              {[["Cals",cMacros.calories,"kcal",T.prot],["Protein",cMacros.protein,"g",T.prot],["Carbs",cMacros.carbs,"g",T.carb],["Fat",cMacros.fat,"g",T.fat]].map(([l,v,u,c])=>(
+                <div key={l} style={{background:T.s2,borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
+                  <div style={{fontSize:9,color:T.mu,marginTop:2}}>{u}</div>
+                  <div style={{fontSize:9,color:T.mu,marginTop:1}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"16px 24px",marginBottom:24,textAlign:"left"}}>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Today's Focus</div>
+            <div style={{fontSize:20,fontWeight:700,color:T.carb}}>{cFocus}</div>
+            <div style={{fontSize:12,color:T.mu,marginTop:4,lineHeight:1.5}}>{FOCUS_MUSCLES[cFocus]||"Full body movement — every major muscle pattern covered."}</div>
+          </div>
+          <button onClick={()=>setPhase("promo")} style={{width:"100%",padding:"16px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:800,fontSize:16,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase",letterSpacing:.5,minHeight:52}}>
+            Let's Go →
+          </button>
+        </div>
+      </div>
+    );
+  }
   if(phase==="promo")      return <PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
   if(phase==="paywall")    return <Paywall profile={profile}/>;
   return <App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user}/>;
