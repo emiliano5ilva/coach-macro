@@ -66,7 +66,7 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
     return(
       <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px",marginTop:14}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>Your TDEE so far</div>
+          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Your TDEE so far</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:T.prot,lineHeight:1}}>{tdee.total.toLocaleString()} <span style={{fontSize:11,color:T.mu,fontWeight:400}}>kcal</span></div>
         </div>
         {vars.map(v=><MiniBar key={v.label} label={v.label} val={v.val} max={maxV} color={v.color}/>)}
@@ -136,7 +136,7 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
         ))}
       </div>
       {d.bodyFat&&<div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
-        <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Equation Upgrade Unlocked</div>
+        <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Equation Upgrade Unlocked</div>
         <div style={{fontSize:13,color:"#ccc",lineHeight:1.6}}>Switching to <b style={{color:T.prot}}>Katch-McArdle</b> — uses your lean body mass for a 5–8% more accurate BMR estimate than standard equations.</div>
       </div>}
       {fact&&<FactCard emoji={fact.emoji} stat={fact.stat} text={fact.text} color={T.prot}/>}
@@ -205,7 +205,7 @@ export function TDEEReveal({tdee,animTDEE,d,chatReply,setCR,next}) {
   ];
   return (
     <div style={{animation:"fadeIn 0.3s ease"}}>
-      <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:12}}>Your Results</div>
+      <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12,fontFamily:"'DM Mono',monospace"}}>Your Results</div>
       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>DAILY EXPENDITURE</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Based on 25 data points about you</p>
       <div style={{textAlign:"center",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:16,padding:"28px 20px",marginBottom:14}}>
@@ -256,7 +256,7 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
     "−125":{label:"−125 kcal/day",result:"~0.25 lb per week",tag:"Gentlest approach"},"+125":{label:"+125 kcal/day",result:"~0.25 lb/wk muscle",tag:"Lean bulk"},"+250":{label:"+250 kcal/day",result:"~0.5 lb per week",tag:"Moderate bulk"},"+500":{label:"+500 kcal/day",result:"~1 lb per week",tag:"Aggressive bulk"}};
   return (
     <div style={{animation:"fadeIn 0.25s ease"}}>
-      <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Final Question</div>
+      <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,fontFamily:"'DM Mono',monospace"}}>Final Question</div>
       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>What's your goal?</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Based on your answers, we'll recommend the right approach and tell you exactly why.</p>
       <div style={{display:"flex",gap:10,marginBottom:20}}>
@@ -279,7 +279,7 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
           <button onClick={()=>setGR(rec.rate)} style={{padding:"8px 16px",background:goalRate===rec.rate?T.prot:`${T.prot}20`,color:goalRate===rec.rate?"#fff":T.prot,border:`1px solid ${T.prot}50`,borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>{goalRate===rec.rate?"✓ Selected":"Select This →"}</button>
         </div>}
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>All options</div>
+          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>All options</div>
           {(rates[d.goal]||[]).map(r=>{const info=rateInfo[r];const isRec=rec&&r===rec.rate;return(
             <div key={r} onClick={()=>setGR(r)} style={{background:goalRate===r?`${T.prot}10`:T.s2,border:`1.5px solid ${goalRate===r?T.prot:isRec?`${T.prot}30`:T.bd}`,borderRadius:11,padding:"12px 15px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div><div style={{fontSize:13,fontWeight:600,color:goalRate===r?T.prot:"#fff"}}>{info.label}</div><div style={{fontSize:11,color:T.mu,marginTop:2}}>{info.result}</div></div>
@@ -289,13 +289,13 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
         </div>
       </>}
       {d.goal&&<div style={{background:"#070E1A",border:`1px solid ${T.prot}30`,borderRadius:13,padding:"16px",marginBottom:20}}>
-        <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Your Daily Target</div>
+        <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Your Daily Target</div>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:T.prot,lineHeight:1}}>{(d.goal==="maintain"?tdee.total:goalCals).toLocaleString()}</div>
         <div style={{fontSize:13,color:T.mu,marginTop:4}}>kcal / day · {d.goal} phase</div>
       </div>}
       {/* Goal timeline */}
       {d.goal&&goalRate&&<>
-        <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8,marginTop:4}}>When do you want to reach this goal?</div>
+        <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8,marginTop:4}}>When do you want to reach this goal?</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {(d.goal==="cut"?[
             {v:"4w",l:"4 Weeks",sub:"Aggressive timeline"},
@@ -602,8 +602,8 @@ Rules:
 
   return (
     <div style={{display:"flex",height:"100vh",overflow:"hidden",background:T.bg}}>
-      <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
-      {workoutSavedMsg&&<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"#00C9A7",color:"#000",padding:"13px 22px",borderRadius:12,fontSize:14,fontWeight:700,zIndex:1000,boxShadow:"0 4px 20px rgba(0,0,0,.5)",whiteSpace:"nowrap",pointerEvents:"none"}}>{workoutSavedMsg}</div>}
+      <style>{GLOBAL_CSS}</style>
+      {workoutSavedMsg&&<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.prot,color:T.white,padding:"13px 22px",borderRadius:14,fontSize:14,fontWeight:700,zIndex:1000,boxShadow:"0 4px 32px rgba(232,52,28,0.5)",whiteSpace:"nowrap",pointerEvents:"none",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}}>{workoutSavedMsg}</div>}
 
       {/* ── DESKTOP SIDEBAR ── */}
       {!isMobile&&(
@@ -614,11 +614,11 @@ Rules:
           <div style={{padding:"0 12px",flex:1}}>
             {NAV_ITEMS.map(item=>(
               <button key={item.id} onClick={()=>setSection(item.id)}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"inherit",marginBottom:4,
-                  background:section===item.id?`${item.color}15`:"none",
-                  color:section===item.id?item.color:T.mu,
-                  fontSize:14,fontWeight:section===item.id?700:500,
-                  borderLeft:section===item.id?`3px solid ${item.color}`:"3px solid transparent",
+                style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:4,
+                  background:section===item.id?`${T.prot}12`:"none",
+                  color:section===item.id?T.prot:T.mu,
+                  fontSize:15,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",
+                  borderLeft:section===item.id?`3px solid ${T.prot}`:"3px solid transparent",
                   transition:"all 0.15s"}}>
                 <span style={{fontSize:16}}>{item.icon}</span>
                 {item.label}
@@ -628,7 +628,7 @@ Rules:
           </div>
           {/* Sidebar bottom: today summary */}
           <div style={{padding:"16px",borderTop:`1px solid ${T.bd}`}}>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Today</div>
+            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,fontFamily:"'DM Mono',monospace"}}>Today</div>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
               <span style={{fontSize:12,color:T.mu}}>Calories</span>
               <span style={{fontSize:12,fontWeight:700,color:remaining.calories<0?T.red:"#fff"}}>{remaining.calories} left</span>
@@ -656,11 +656,11 @@ Rules:
         {!isMobile&&(
           <div style={{padding:"20px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <div>
-              <div style={{fontSize:13,color:T.mu}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-              <div style={{fontSize:22,fontWeight:800}}>Hey, {profile.name} 👋</div>
+              <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,fontStyle:"italic",textTransform:"uppercase",color:T.white,marginTop:2}}>Hey, {profile.name}</div>
             </div>
             <div style={{display:"flex",gap:8}}>
-              <div style={{background:`${cfg.color}18`,border:`1px solid ${cfg.color}`,borderRadius:20,padding:"5px 14px",color:cfg.color,fontSize:11,fontWeight:700,letterSpacing:2}}>{cfg.emoji} {todayType.toUpperCase()}</div>
+              <div style={{background:`rgba(232,52,28,0.1)`,border:`1px solid rgba(232,52,28,0.25)`,borderRadius:20,padding:"5px 14px",color:T.prot,fontSize:10,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{cfg.emoji} {todayType.toUpperCase()}</div>
             </div>
           </div>
         )}
@@ -670,7 +670,7 @@ Rules:
           <div style={{padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${T.bd}`,flexShrink:0,background:T.s1}}>
             <Logo size={24}/>
             <div style={{display:"flex",gap:6}}>
-              <div style={{background:`${cfg.color}18`,border:`1px solid ${cfg.color}`,borderRadius:20,padding:"4px 10px",color:cfg.color,fontSize:9,fontWeight:700,letterSpacing:1}}>{cfg.emoji} {todayFocus.slice(0,8).toUpperCase()}</div>
+              <div style={{background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:20,padding:"4px 10px",color:T.prot,fontSize:9,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{cfg.emoji} {todayFocus.slice(0,10).toUpperCase()}</div>
             </div>
           </div>
         )}
@@ -685,12 +685,12 @@ Rules:
 
         {/* Mobile bottom nav */}
         {isMobile&&(
-          <div style={{position:"sticky",bottom:0,background:"rgba(6,13,26,0.97)",borderTop:`1px solid ${T.bd}`,display:"flex",zIndex:50,flexShrink:0}}>
+          <div style={{position:"sticky",bottom:0,background:`${T.bg}f5`,backdropFilter:"blur(16px)",borderTop:`1px solid ${T.bd}`,display:"flex",zIndex:50,flexShrink:0,paddingBottom:"env(safe-area-inset-bottom)"}}>
             {NAV_ITEMS.map(item=>(
-              <button key={item.id} onClick={()=>setSection(item.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"10px 0",minHeight:56,fontSize:8,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",fontFamily:"inherit",color:section===item.id?item.color:T.mu,position:"relative"}}>
-                <div style={{fontSize:18,marginBottom:2}}>{item.icon}</div>
+              <button key={item.id} onClick={()=>setSection(item.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"10px 0",minHeight:56,fontSize:9,fontWeight:500,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",color:section===item.id?T.prot:T.mu,position:"relative",transition:"color 0.15s"}}>
+                <div style={{fontSize:20,marginBottom:3,filter:section===item.id?"drop-shadow(0 0 8px rgba(232,52,28,0.5))":"none",transition:"filter 0.15s"}}>{item.icon}</div>
                 {item.label}
-                {item.id==="connect"&&connCount>0&&<span style={{position:"absolute",top:6,left:"58%",background:T.prot,color:"#fff",borderRadius:6,fontSize:8,fontWeight:800,padding:"0 3px",lineHeight:"12px"}}>{connCount}</span>}
+                {item.id==="connect"&&connCount>0&&<span style={{position:"absolute",top:6,left:"58%",background:T.prot,color:T.white,borderRadius:6,fontSize:8,fontWeight:800,padding:"0 3px",lineHeight:"12px"}}>{connCount}</span>}
               </button>
             ))}
           </div>

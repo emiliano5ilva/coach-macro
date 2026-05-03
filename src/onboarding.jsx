@@ -221,7 +221,7 @@ export function FuelOnboarding({d, onComplete, onBack}) {
             ))}
           </div>
           {data.goalRate&&<div style={{background:"#070E1A",border:`1px solid ${T.carb}30`,borderRadius:12,padding:"16px",marginBottom:16}}>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Daily Target</div>
+            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Daily Target</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:T.carb,lineHeight:1}}>{goalCals.toLocaleString()}</div>
             <div style={{fontSize:13,color:T.mu,marginTop:4}}>kcal/day · {data.goal} phase</div>
           </div>}

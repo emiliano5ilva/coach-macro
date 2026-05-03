@@ -89,36 +89,32 @@ function AuthScreen({onAuth}) {
 
   const field=(label,val,setVal,type="text",ph="")=>(
     <div style={{marginBottom:14}}>
-      <label style={{display:"block",fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>{label}</label>
+      <label style={{display:"block",fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"'DM Mono',monospace"}}>{label}</label>
       <input value={val} onChange={e=>setVal(e.target.value)} type={type} placeholder={ph}
         onKeyDown={e=>e.key==="Enter"&&handle()}
-        style={{width:"100%",background:T.s2,border:`1.5px solid ${val?T.prot:T.bd}`,borderRadius:11,padding:"13px 16px",color:"#fff",fontSize:15,outline:"none",fontFamily:"'Inter',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>
+        style={{width:"100%",background:T.s2,border:`1.5px solid ${val?T.prot:T.bd}`,borderRadius:12,padding:"13px 16px",color:T.white,fontSize:15,outline:"none",fontFamily:"'Barlow',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>
     </div>
   );
 
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-      <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
+      <style>{GLOBAL_CSS}</style>
       <div style={{width:"100%",maxWidth:420}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}>
-          <svg width={52} height={22} viewBox="0 0 52 22"><rect x={0} y={0} width={14} height={22} rx={3} fill={T.prot}/><rect x={19} y={5} width={14} height={17} rx={3} fill={T.carb}/><rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/></svg>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
-            <div style={{color:"#fff"}}>COACH</div>
-            <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:"#fff"}}>RO</span></div>
-          </div>
+        <div style={{marginBottom:40}}>
+          <Logo size={32} text={true}/>
         </div>
 
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:12}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:12,color:T.white}}>
           {mode==="signup"?<div>CREATE YOUR<br/><span style={{color:T.prot}}>ACCOUNT.</span></div>:<div>WELCOME<br/><span style={{color:T.prot}}>BACK.</span></div>}
         </div>
-        <p style={{fontSize:14,color:"#888",marginBottom:28,lineHeight:1.65}}>
+        <p style={{fontSize:14,color:T.mu,marginBottom:28,lineHeight:1.65,fontFamily:"'Barlow',sans-serif"}}>
           {mode==="signup"?"One account. Your plan, your logs, your progress — all saved.":"Sign in to pick up where you left off."}
         </p>
 
         {/* Toggle */}
         <div style={{display:"flex",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:10,padding:4,marginBottom:24,gap:4}}>
           {[["signup","Create Account"],["login","Sign In"]].map(([m,l])=>(
-            <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode===m?T.prot:"none",color:mode===m?"#fff":T.mu,fontWeight:700,fontSize:14,fontFamily:"'Inter',sans-serif",transition:"all .2s"}}>{l}</button>
+            <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode===m?T.prot:"none",color:mode===m?T.white:T.mu,fontWeight:700,fontSize:14,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase",transition:"all .2s"}}>{l}</button>
           ))}
         </div>
 
@@ -126,12 +122,12 @@ function AuthScreen({onAuth}) {
         {field("Email",email,setEmail,"email","you@email.com")}
         {field("Password",password,setPassword,"password","Min 6 characters")}
 
-        {error&&<div style={{background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.25)",borderRadius:9,padding:"11px 14px",marginBottom:16,fontSize:13,color:"#FF4D6D"}}>{error}</div>}
+        {error&&<div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:10,padding:"11px 14px",marginBottom:16,fontSize:13,color:T.red,fontFamily:"'Barlow',sans-serif"}}>{error}</div>}
 
-        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"15px",background:loading?T.s3:T.prot,color:loading?T.mu:"#fff",fontWeight:700,fontSize:15,letterSpacing:.5,border:"none",borderRadius:11,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:16}}>
+        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"15px",background:loading?T.s3:T.prot,color:loading?T.mu:T.white,fontWeight:700,fontSize:16,letterSpacing:1,border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:16}}>
           {loading?"...":(mode==="signup"?"Create Account →":"Sign In →")}
         </button>
-        <div style={{textAlign:"center",fontSize:12,color:"#333"}}>Your data is stored securely. We never sell it.</div>
+        <div style={{textAlign:"center",fontSize:11,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.08em"}}>Your data is stored securely. We never sell it.</div>
       </div>
     </div>
   );
@@ -363,13 +359,13 @@ export default function CoachMacro() {
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
       <style>{GLOBAL_CSS}</style>
       <div style={{textAlign:"center",maxWidth:340}}>
-        <div style={{marginBottom:16}}><Logo size={36} text={false}/></div>
+        <div style={{marginBottom:16}}><Logo size={36} text={true}/></div>
         {saveErr
           ?<>
-            <div style={{fontSize:13,color:"#FF4D6D",marginBottom:16,lineHeight:1.6}}>{saveErr}</div>
-            <button onClick={()=>{setSaveErr("");window.location.reload();}} style={{padding:"12px 28px",background:T.prot,color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>Try Again</button>
+            <div style={{fontSize:13,color:T.red,marginBottom:16,lineHeight:1.6,fontFamily:"'Barlow',sans-serif"}}>{saveErr}</div>
+            <button onClick={()=>{setSaveErr("");window.location.reload();}} style={{padding:"12px 28px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}}>Try Again</button>
           </>
-          :<div style={{fontSize:13,color:T.mu,letterSpacing:2}}>SAVING YOUR PLAN...</div>
+          :<div style={{fontSize:11,color:T.mu,letterSpacing:"0.16em",fontFamily:"'DM Mono',monospace",textTransform:"uppercase"}}>SAVING YOUR PLAN...</div>
         }
       </div>
     </div>
@@ -390,28 +386,28 @@ export default function CoachMacro() {
         <style>{GLOBAL_CSS}</style>
         <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
           <div style={{fontSize:64,marginBottom:8}}>🎉</div>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Your Plan Is Ready</div>
+          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Your Plan Is Ready</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:24}}>
             LET'S GO,<br/><span style={{color:T.prot}}>{profile?.name?.toUpperCase()||"ATHLETE"}.</span>
           </div>
           <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"20px 24px",marginBottom:16,textAlign:"left"}}>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>Today's Targets</div>
+            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14,fontFamily:"'DM Mono',monospace"}}>Today's Targets</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
               {[["Cals",cMacros.calories,"kcal",T.prot],["Protein",cMacros.protein,"g",T.prot],["Carbs",cMacros.carbs,"g",T.carb],["Fat",cMacros.fat,"g",T.fat]].map(([l,v,u,c])=>(
                 <div key={l} style={{background:T.s2,borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
-                  <div style={{fontSize:9,color:T.mu,marginTop:2}}>{u}</div>
-                  <div style={{fontSize:9,color:T.mu,marginTop:1}}>{l}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,fontStyle:"italic",color:c,lineHeight:1}}>{v}</div>
+                  <div style={{fontSize:9,color:T.mu,marginTop:2,fontFamily:"'DM Mono',monospace"}}>{u}</div>
+                  <div style={{fontSize:9,color:T.mu,marginTop:1,fontFamily:"'DM Mono',monospace"}}>{l}</div>
                 </div>
               ))}
             </div>
           </div>
           <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"16px 24px",marginBottom:24,textAlign:"left"}}>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Today's Focus</div>
-            <div style={{fontSize:20,fontWeight:700,color:T.carb}}>{cFocus}</div>
-            <div style={{fontSize:12,color:T.mu,marginTop:4,lineHeight:1.5}}>{FOCUS_MUSCLES[cFocus]||"Full body movement — every major muscle pattern covered."}</div>
+            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Today's Focus</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,fontStyle:"italic",color:T.carb,textTransform:"uppercase"}}>{cFocus}</div>
+            <div style={{fontSize:12,color:T.mu,marginTop:4,lineHeight:1.5,fontFamily:"'Barlow',sans-serif"}}>{FOCUS_MUSCLES[cFocus]||"Full body movement — every major muscle pattern covered."}</div>
           </div>
-          <button onClick={()=>setPhase("promo")} style={{width:"100%",padding:"16px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:800,fontSize:16,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase",letterSpacing:.5,minHeight:52}}>
+          <button onClick={()=>setPhase("promo")} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,border:"none",borderRadius:14,fontWeight:700,fontSize:16,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,minHeight:52}}>
             Let's Go →
           </button>
         </div>

@@ -79,7 +79,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={{fontSize:13,fontWeight:700}}>Today&apos;s Log</div>
-                <button onClick={()=>setFuelScreen("log")} style={{background:T.prot,color:"#fff",border:"none",borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Food</button>
+                <button onClick={()=>setFuelScreen("log")} style={{background:T.prot,color:T.white,border:"none",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:0.5}}>+ Add Food</button>
               </div>
               {log.length===0
                 ?<div style={{textAlign:"center",padding:"28px 0",color:T.mu,border:`1px dashed ${T.bd}`,borderRadius:12}}>
@@ -134,7 +134,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             </>}
             {logMode==="barcode"&&<>
               <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
-                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Barcode number</div>
+                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Barcode number</div>
                 <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value)} placeholder="e.g. 0070038642824" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"11px 13px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit",letterSpacing:1}}/>
                 <div style={{fontSize:10,color:T.mu,marginTop:7}}>Tip: Use your phone camera app to scan — it shows the barcode number. Paste it here.</div>
               </div>
@@ -172,7 +172,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             {/* Remaining macros strip */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
               <div>
-                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Remaining today</div>
+                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:4}}>Remaining today</div>
                 <div style={{display:"flex",gap:20}}>
                   {[["kcal",remaining.calories,"#fff"],["protein",`${remaining.protein}g`,T.prot],["carbs",`${remaining.carbs}g`,T.carb],["fat",`${remaining.fat}g`,T.fat]].map(([l,v,c])=>(
                     <div key={l}>
@@ -186,7 +186,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
 
             {/* City input */}
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Your City</div>
+              <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Your City</div>
               <div style={{display:"flex",gap:8}}>
                 <input value={city} onChange={e=>setCity(e.target.value)} placeholder="e.g. Miami FL, Austin TX…" style={{flex:1,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
                 <button onClick={fetchRecs} disabled={recsLoading||!city.trim()} style={{padding:"12px 20px",background:recsLoading?T.s3:T.prot,color:recsLoading?T.mu:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:recsLoading?"default":"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
@@ -251,7 +251,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
               </div>
               <div style={{fontSize:12,color:T.mu}}>{fastProto==="custom"?`${fastCustomH}h fast · ${24-fastCustomH}h eat`:FASTING_PROTOCOLS.find(p=>p.id===fastProto)?.desc}</div>
               {fastProto==="custom"&&<div style={{marginTop:12}}>
-                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Fasting hours: {fastCustomH}h</div>
+                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Fasting hours: {fastCustomH}h</div>
                 <input type="range" min="12" max="23" value={fastCustomH} onChange={e=>{setFastCustomH(parseInt(e.target.value));hap();}} style={{width:"100%"}}/>
               </div>}
             </SectionCard>
@@ -266,7 +266,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             {!fastActive?<PrimaryBtn onClick={()=>{setFastActive(true);setFastStart(Date.now());hap();}} label="Start Fasting →"/>
               :<div style={{display:"flex",gap:8}}>
                 <button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:1,padding:"14px",background:T.s2,color:T.red,fontWeight:700,fontSize:13,border:`1px solid ${T.red}30`,borderRadius:11,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>End Fast</button>
-                {eatOpen&&<button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:2,padding:"14px",background:T.carb,color:"#000",fontWeight:800,fontSize:14,border:"none",borderRadius:11,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>Break Fast 🎉</button>}
+                {eatOpen&&<button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:2,padding:"14px",background:T.green||"#22c55e",color:"#000",fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Break Fast 🎉</button>}
               </div>}
           </div>
         )}

@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 
 export const T = {
-  bg:   "#060D1A", // page background
-  s1:   "#0A1424", // surface 1 — sidebar, cards
-  s2:   "#0D1828", // surface 2 — inner cards
-  s3:   "#0F1C30", // surface 3 — input backgrounds
-  bd:   "#1A2A44", // borders
-  mu:   "#4A6285", // muted text
-  dim:  "#0F1C30", // dimmed backgrounds
-  prot: "#2979FF", // protein — electric blue
-  carb: "#00E676", // carbs   — vivid emerald
-  fat:  "#FFD740", // fat     — vivid gold
-  red:  "#FF4D6D", // error / danger
-  white:"#FFFFFF",
+  bg:   "#0a0e1a", // --navy
+  s1:   "#161e35", // --navy-light / cards
+  s2:   "#111827", // --navy-card / inner cards
+  s3:   "#0f1628", // --navy-mid / inputs
+  bd:   "rgba(245,245,240,0.08)", // --white-border
+  mu:   "rgba(245,245,240,0.4)",  // --white-faint muted
+  dim:  "#0f1628",
+  prot: "#e8341c", // --red primary accent
+  carb: "#60a5fa", // --blue carbs
+  fat:  "#f59e0b", // --amber fat
+  red:  "#e8341c", // error / danger / primary
+  white:"#f5f5f0", // --white warm
+  green:"#22c55e", // success green
 };
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
@@ -39,13 +40,13 @@ export const BF_DATA = [
 ];
 
 export const BF_VISUAL=[
-  {r:"5–7%",   pct:6,  c:"#29B6F6",l:"Athletic",  desc:"Visible striations, very lean"},
-  {r:"8–12%",  pct:10, c:"#00E676", l:"Fit",       desc:"Visible abs, athletic build"},
-  {r:"13–17%", pct:15, c:"#2979FF", l:"Lean",      desc:"Defined, not shredded"},
-  {r:"18–24%", pct:21, c:"#FFD740", l:"Average",   desc:"Soft, no visible abs"},
+  {r:"5–7%",   pct:6,  c:"#60a5fa",l:"Athletic",  desc:"Visible striations, very lean"},
+  {r:"8–12%",  pct:10, c:"#22c55e", l:"Fit",       desc:"Visible abs, athletic build"},
+  {r:"13–17%", pct:15, c:"#60a5fa", l:"Lean",      desc:"Defined, not shredded"},
+  {r:"18–24%", pct:21, c:"#f59e0b", l:"Average",   desc:"Soft, no visible abs"},
   {r:"25–30%", pct:27, c:"#FFA726", l:"Above avg", desc:"Rounded belly, soft arms"},
   {r:"31–40%", pct:35, c:"#EF6C00", l:"High",      desc:"Significant fat coverage"},
-  {r:"40+%",   pct:43, c:"#FF4D6D", l:"Obese",     desc:"High health risk range"},
+  {r:"40+%",   pct:43, c:"#e8341c", l:"Obese",     desc:"High health risk range"},
 ];
 
 export const FOCUS_MUSCLES = {
@@ -199,20 +200,22 @@ export function useCountUp(target, dur=1400) {
 
 // ─── GLOBAL STYLES ─────────────────────────────────────────────────────────────
 export const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#root{height:100%;background:${T.bg}}
-  body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
+  body{font-family:'Barlow',system-ui,-apple-system,sans-serif;color:${T.white};-webkit-font-smoothing:antialiased}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:${T.bd};border-radius:2px}
-  ::-webkit-scrollbar-thumb:hover{background:#2A3A5A}
+  ::-webkit-scrollbar-thumb{background:rgba(245,245,240,0.12);border-radius:2px}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(245,245,240,0.2)}
   @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   @keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
   @keyframes floatUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
   @keyframes glowPulse{0%,100%{opacity:.3}50%{opacity:.7}}
-  .grad-text{background:linear-gradient(135deg,#2979FF 0%,#00E676 50%,#FFD740 100%);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gradientShift 4s ease infinite}
+  @keyframes fabPulse{0%,100%{box-shadow:0 12px 32px rgba(232,52,28,0.5)}50%{box-shadow:0 12px 48px rgba(232,52,28,0.75)}}
+  .grad-text{background:linear-gradient(135deg,#e8341c 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   .hero-title{animation:slideUp .9s cubic-bezier(.16,1,.3,1) forwards}
   .hero-sub{animation:slideUp .9s cubic-bezier(.16,1,.3,1) .15s both}
   .hero-cta{animation:slideUp .9s cubic-bezier(.16,1,.3,1) .3s both}
@@ -263,15 +266,15 @@ export function MacroRing({protein,carbs,fat,pTarget,cTarget,fTarget,size=200,sw
 export function MacroBar({label,consumed,target,color}) {
   const pct=Math.min(consumed/target,1), rem=target-consumed;
   return (
-    <div style={{background:T.s2,borderRadius:12,padding:"13px 15px",marginBottom:8,border:`1px solid ${T.bd}`}}>
+    <div style={{background:T.s2,borderRadius:14,padding:"13px 15px",marginBottom:8,border:`1px solid ${T.bd}`}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
-        <span style={{color,fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>{label}</span>
-        <span style={{fontFamily:"monospace",fontSize:13,color:"#fff"}}>{consumed}g <span style={{color:T.mu}}>/ {target}g</span></span>
+        <span style={{color,fontSize:10,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{label}</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:T.white}}>{consumed}g <span style={{color:T.mu}}>/ {target}g</span></span>
       </div>
       <div style={{height:4,background:T.s3,borderRadius:2,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${pct*100}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
       </div>
-      <div style={{fontSize:10,color:T.mu,marginTop:4}}>{rem>0?`${rem}g remaining`:"✓ Hit"}</div>
+      <div style={{fontSize:10,color:T.mu,marginTop:4,fontFamily:"'DM Mono',monospace"}}>{rem>0?`${rem}g remaining`:"✓ Hit"}</div>
     </div>
   );
 }
@@ -279,7 +282,7 @@ export function MacroBar({label,consumed,target,color}) {
 export function Toggle({on,onChange,label,sub}) {
   return (
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${T.bd}`}}>
-      <div><div style={{fontSize:14,color:on?"#fff":T.mu}}>{label}</div>{sub&&<div style={{fontSize:11,color:T.mu,marginTop:2}}>{sub}</div>}</div>
+      <div><div style={{fontSize:14,color:on?T.white:T.mu,fontFamily:"'Barlow',sans-serif"}}>{label}</div>{sub&&<div style={{fontSize:11,color:T.mu,marginTop:2,fontFamily:"'DM Mono',monospace"}}>{sub}</div>}</div>
       <div onClick={()=>onChange(!on)} style={{width:44,height:24,borderRadius:12,background:on?T.prot:T.s3,cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:on?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
         <div style={{width:18,height:18,borderRadius:9,background:"#fff"}}/>
       </div>
@@ -289,11 +292,11 @@ export function Toggle({on,onChange,label,sub}) {
 
 export function CC({label,sub,sel,onClick,icon,accent=T.prot}) {
   return (
-    <div onClick={onClick} style={{background:sel?`${accent}08`:T.s2,border:`1.5px solid ${sel?accent:T.bd}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"border-color 0.15s"}}>
+    <div onClick={onClick} style={{background:sel?`${accent}15`:T.s2,border:`1.5px solid ${sel?accent:T.bd}`,borderRadius:14,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"border-color 0.15s"}}>
       {icon&&<div style={{fontSize:18,flexShrink:0}}>{icon}</div>}
-      <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:sel?accent:"#fff"}}>{label}</div>{sub&&<div style={{fontSize:12,color:T.mu,marginTop:2,lineHeight:1.5}}>{sub}</div>}</div>
-      <div style={{width:18,height:18,borderRadius:9,border:`2px solid ${sel?accent:T.dim}`,background:sel?accent:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-        {sel&&<div style={{width:7,height:7,borderRadius:4,background:"#000"}}/>}
+      <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:sel?accent:T.white,fontFamily:"'Barlow',sans-serif"}}>{label}</div>{sub&&<div style={{fontSize:12,color:T.mu,marginTop:2,lineHeight:1.5,fontFamily:"'Barlow',sans-serif"}}>{sub}</div>}</div>
+      <div style={{width:18,height:18,borderRadius:9,border:`2px solid ${sel?accent:T.bd}`,background:sel?accent:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        {sel&&<div style={{width:7,height:7,borderRadius:4,background:"#fff"}}/>}
       </div>
     </div>
   );
@@ -302,7 +305,7 @@ export function CC({label,sub,sel,onClick,icon,accent=T.prot}) {
 export function PrimaryBtn({onClick,label,disabled,style:sx={}}) {
   return (
     <button onClick={onClick} disabled={disabled}
-      style={{width:"100%",padding:"15px",background:disabled?T.s3:T.prot,color:disabled?T.mu:"#fff",fontWeight:700,fontSize:15,letterSpacing:.5,border:"none",borderRadius:11,cursor:disabled?"default":"pointer",textTransform:"uppercase",fontFamily:"inherit",transition:"opacity 0.2s",...sx}}>
+      style={{width:"100%",padding:"15px",background:disabled?T.s3:T.prot,color:disabled?T.mu:T.white,fontWeight:700,fontSize:16,letterSpacing:1,border:"none",borderRadius:14,cursor:disabled?"default":"pointer",textTransform:"uppercase",fontFamily:"'Barlow Condensed',sans-serif",transition:"opacity 0.2s",opacity:disabled?0.5:1,...sx}}>
       {label}
     </button>
   );
@@ -310,9 +313,9 @@ export function PrimaryBtn({onClick,label,disabled,style:sx={}}) {
 
 export function UnitToggle({opts,val,onChange}) {
   return (
-    <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:3,marginBottom:18,width:"fit-content"}}>
+    <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,marginBottom:18,width:"fit-content"}}>
       {opts.map(o=>(
-        <button key={o.val} onClick={()=>onChange(o.val)} style={{padding:"7px 16px",borderRadius:7,border:"none",cursor:"pointer",background:val===o.val?T.prot:"none",color:val===o.val?"#fff":T.mu,fontWeight:600,fontSize:13,fontFamily:"inherit",transition:"all 0.2s"}}>
+        <button key={o.val} onClick={()=>onChange(o.val)} style={{padding:"7px 16px",borderRadius:8,border:"none",cursor:"pointer",background:val===o.val?T.prot:"none",color:val===o.val?T.white:T.mu,fontWeight:700,fontSize:13,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase",transition:"all 0.2s"}}>
           {o.label}
         </button>
       ))}
@@ -338,22 +341,22 @@ export function Rolodex({items,sel,onChange,itemH=56}) {
           <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});hap();}}
             style={{height:itemH,display:"flex",alignItems:"center",justifyContent:"center",scrollSnapAlign:"center",
               fontSize:i===li?22:d===1?17:13,fontWeight:i===li?800:400,
-              color:i===li?"#fff":d===1?"#2A3A5A":"#162030",transition:"all 0.08s",fontVariantNumeric:"tabular-nums",cursor:"pointer"}}>
+              color:i===li?T.white:d===1?"rgba(245,245,240,0.25)":"rgba(245,245,240,0.08)",transition:"all 0.08s",fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
             {item}
           </div>
         );})}<div style={{height:itemH}}/>
       </div>
       <div style={{position:"absolute",inset:0,background:`linear-gradient(${T.bg} 12%,transparent 36%,transparent 64%,${T.bg} 88%)`,pointerEvents:"none",zIndex:2}}/>
-      <div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid ${T.prot}45`,borderBottom:`1px solid ${T.prot}45`,pointerEvents:"none",zIndex:1}}/>
+      <div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(232,52,28,0.35)`,borderBottom:`1px solid rgba(232,52,28,0.35)`,pointerEvents:"none",zIndex:1}}/>
     </div>
   );
 }
 
 export function SectionCard({title,children,action}) {
   return (
-    <div style={{background:T.s1,borderRadius:16,border:`1px solid ${T.bd}`,overflow:"hidden",marginBottom:16}}>
+    <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,overflow:"hidden",marginBottom:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 20px",borderBottom:`1px solid ${T.bd}`}}>
-        <div style={{fontSize:12,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:T.mu}}>{title}</div>
+        <div style={{fontSize:11,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",color:T.prot,fontFamily:"'DM Mono',monospace"}}>{title}</div>
         {action}
       </div>
       <div style={{padding:"16px 20px"}}>{children}</div>
@@ -388,9 +391,9 @@ export function Logo({size=32, text=true, textColor="#fff"}) {
   const y3 = h - h3;
 
   // Colors
-  const c1 = "#2979FF";   // blue — protein
-  const c2 = "#00E676";   // green — carbs
-  const c3 = "#FFD740";   // gold — fat/energy
+  const c1 = "#e8341c";   // red — primary
+  const c2 = "#60a5fa";   // blue — carbs
+  const c3 = "#f59e0b";   // amber — fat/energy
 
   const fontSize = size * 0.52;
   const letterSpacing = size * 0.06;
