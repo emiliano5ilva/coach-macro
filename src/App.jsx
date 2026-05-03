@@ -89,7 +89,7 @@ function AuthScreen({onAuth}) {
 
   const field=(label,val,setVal,type="text",ph="")=>(
     <div style={{marginBottom:14}}>
-      <label style={{display:"block",fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"'DM Mono',monospace"}}>{label}</label>
+      <label style={{display:"block",fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"'DM Mono',monospace"}}>{label}</label>
       <input value={val} onChange={e=>setVal(e.target.value)} type={type} placeholder={ph}
         onKeyDown={e=>e.key==="Enter"&&handle()}
         style={{width:"100%",background:T.s2,border:`1.5px solid ${val?T.prot:T.bd}`,borderRadius:12,padding:"13px 16px",color:T.white,fontSize:15,outline:"none",fontFamily:"'Barlow',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>

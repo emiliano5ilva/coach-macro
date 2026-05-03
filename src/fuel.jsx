@@ -134,7 +134,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             </>}
             {logMode==="barcode"&&<>
               <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
-                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Barcode number</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Barcode number</div>
                 <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value)} placeholder="e.g. 0070038642824" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"11px 13px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit",letterSpacing:1}}/>
                 <div style={{fontSize:10,color:T.mu,marginTop:7}}>Tip: Use your phone camera app to scan — it shows the barcode number. Paste it here.</div>
               </div>
@@ -172,7 +172,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             {/* Remaining macros strip */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
               <div>
-                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:4}}>Remaining today</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:4}}>Remaining today</div>
                 <div style={{display:"flex",gap:20}}>
                   {[["kcal",remaining.calories,"#fff"],["protein",`${remaining.protein}g`,T.prot],["carbs",`${remaining.carbs}g`,T.carb],["fat",`${remaining.fat}g`,T.fat]].map(([l,v,c])=>(
                     <div key={l}>
@@ -186,7 +186,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
 
             {/* City input */}
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Your City</div>
+              <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Your City</div>
               <div style={{display:"flex",gap:8}}>
                 <input value={city} onChange={e=>setCity(e.target.value)} placeholder="e.g. Miami FL, Austin TX…" style={{flex:1,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
                 <button onClick={fetchRecs} disabled={recsLoading||!city.trim()} style={{padding:"12px 20px",background:recsLoading?T.s3:T.prot,color:recsLoading?T.mu:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:recsLoading?"default":"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
@@ -251,7 +251,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
               </div>
               <div style={{fontSize:12,color:T.mu}}>{fastProto==="custom"?`${fastCustomH}h fast · ${24-fastCustomH}h eat`:FASTING_PROTOCOLS.find(p=>p.id===fastProto)?.desc}</div>
               {fastProto==="custom"&&<div style={{marginTop:12}}>
-                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Fasting hours: {fastCustomH}h</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Fasting hours: {fastCustomH}h</div>
                 <input type="range" min="12" max="23" value={fastCustomH} onChange={e=>{setFastCustomH(parseInt(e.target.value));hap();}} style={{width:"100%"}}/>
               </div>}
             </SectionCard>

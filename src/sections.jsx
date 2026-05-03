@@ -176,7 +176,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 
       {/* STEP 1 — Training Type */}
       {step==="type"&&<div>
-        <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:16}}>What kind of training?</div>
+        <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif",marginBottom:16}}>What kind of training?</div>
         <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:12}}>
           {[
             {v:"lifting",e:"🏋️",l:"Lifting",d:"Strength training splits — build muscle and get stronger"},
@@ -199,7 +199,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="split"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Choose your split</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your split</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {Object.entries(LIFTING_SPLITS).map(([key,s])=>(
@@ -228,7 +228,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="exercises"&&split&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("split")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{LIFTING_SPLITS[split]?.label}</div>
+          <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{LIFTING_SPLITS[split]?.label}</div>
         </div>
         <div style={{background:`${T.carb}08`,border:`1px solid ${T.carb}25`,borderRadius:14,padding:"16px 20px",marginBottom:20}}>
           <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Muscles covered this week</div>
@@ -255,7 +255,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="run"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Choose your run plan</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your run plan</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
           {Object.entries(RUN_PLANS_DETAIL).map(([key,p])=>(
@@ -273,7 +273,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
         </div>
         {runPlanLocal&&<>
           <div style={{marginBottom:16}}>
-            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:10}}>When's your long run?</div>
+            <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif",marginBottom:10}}>When's your long run?</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               {["Saturday","Sunday"].map(d=>(
                 <button key={d} onClick={()=>setLongRunDay(d)} style={{padding:"10px 20px",borderRadius:9,border:`1.5px solid ${longRunDay===d?T.carb:T.bd}`,background:longRunDay===d?`${T.carb}15`:T.s2,color:longRunDay===d?T.carb:T.mu,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{d}</button>
@@ -290,7 +290,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="hybrid"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Choose your hybrid template</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your hybrid template</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
           {Object.entries(HYBRID_TEMPLATES).map(([key,h])=>(
@@ -318,7 +318,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="glute"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Choose your program</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your program</div>
         </div>
         <div style={{background:`rgba(255,153,0,.08)`,border:`1px solid rgba(255,153,0,.2)`,borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:12,color:"#ffb347",lineHeight:1.6}}>
           🍑 <b>Hip thrust progressive overload</b> is the #1 driver of glute growth. Add weight every time you hit the top rep range — that's the entire strategy.
@@ -347,7 +347,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="glute-preview"&&split&&GLUTE_PROGRAMS[split]&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("glute")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{split}</div>
+          <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{split}</div>
         </div>
         {GLUTE_PROGRAMS[split].days.map(dayName=>(
           <div key={dayName} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,padding:"16px 20px",marginBottom:12}}>
@@ -535,7 +535,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.6}}>💡 {FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
               {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
                 <div style={{marginBottom:14}}>
-                  <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>TODAY'S LIFT · {todayPrescription.length} EXERCISES</div>
+                  <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>TODAY'S LIFT · {todayPrescription.length} EXERCISES</div>
                   <div style={{display:"flex",flexDirection:"column",gap:5}}>
                     {todayPrescription.slice(0,5).map((ex,i)=>(
                       <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:T.s2,borderRadius:9,border:`1px solid ${T.bd}`}}>
@@ -716,7 +716,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
               {planMode==="hybrid"&&<div style={{borderTop:`1px solid ${T.bd}`,paddingTop:14}}>
-                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:10}}>Mix</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:10}}>Mix</div>
                 <Toggle on={hybridMix.strength} onChange={v=>setHybridMix(p=>({...p,strength:v}))} label="💪 Strength splits"/>
                 <Toggle on={hybridMix.run}      onChange={v=>setHybridMix(p=>({...p,run:v}))}      label="🏃 Running plan"/>
                 <Toggle on={hybridMix.hyrox}    onChange={v=>setHybridMix(p=>({...p,hyrox:v}))}    label="🔥 Hyrox blocks"/>
@@ -977,7 +977,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* Weight Trend Chart */}
         <SectionCard title="Weight Progress" style={{gridColumn:isMobile?"1":"1 / -1"}}>
           <div style={{marginBottom:12}}>
-            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Log Today's Weight</div>
+            <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Log Today's Weight</div>
             <div style={{display:"flex",gap:8}}>
               <input value={checkInWeight} onChange={e=>setCheckInWeight(e.target.value)} type="number" placeholder={`e.g. ${startW}`} style={{flex:1,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"10px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
               <div style={{fontSize:11,color:T.mu,alignSelf:"center"}}>{profile.wUnit||"lbs"}</div>
@@ -989,15 +989,15 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginTop:8}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
               <div>
-                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Start Weight</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Start Weight</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#fff",lineHeight:1}}>{startW}<span style={{fontSize:13,color:T.mu,fontWeight:400}}> {profile.wUnit||"lbs"}</span></div>
               </div>
               {actualPoints.length>0&&<div>
-                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Current</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Current</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:T.carb,lineHeight:1}}>{actualPoints[actualPoints.length-1].actual}<span style={{fontSize:13,color:T.mu,fontWeight:400}}> {profile.wUnit||"lbs"}</span></div>
               </div>}
               <div>
-                <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Goal Rate</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Goal Rate</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.prot,lineHeight:1}}>{Object.keys(rateMap).find(k=>rateMap[k]===(parseFloat(profile.goalRate?.replace("−","-"))||0))||"Maintain"}</div>
               </div>
             </div>
@@ -1056,7 +1056,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {profile.referralCode&&<SectionCard title="Refer a Friend">
           <div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:12}}>Share your code. Your friend gets 30 days free on signup — and so do you.</div>
           <div style={{background:T.s2,border:`2px dashed ${T.prot}`,borderRadius:12,padding:"16px",textAlign:"center",marginBottom:12}}>
-            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Your Referral Code</div>
+            <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Your Referral Code</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,color:T.prot,letterSpacing:4}}>{profile.referralCode}</div>
           </div>
           <button onClick={()=>navigator.clipboard?.writeText(profile.referralCode).then(()=>{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);})} style={{width:"100%",padding:"13px",minHeight:44,background:T.s3,border:`1px solid ${T.bd}`,borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>{settingsSaved?"✓ Copied!":"Copy Code"}</button>
