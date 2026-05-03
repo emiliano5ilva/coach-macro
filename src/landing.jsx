@@ -1,652 +1,854 @@
 import React, { useState, useEffect, useRef } from "react";
-import { T, GLOBAL_CSS, FAQItem, Logo } from "./components.jsx";
 
-// ─── LANDING PAGE ─────────────────────────────────────────────────────────────
-export function LandingPage({onSignUp}) {
-  const [scrolled,setScrolled]=useState(false);
-  useEffect(()=>{
-    const h=()=>setScrolled(window.scrollY>40);
-    window.addEventListener("scroll",h);
-    // Intersection observer for reveal animations
-    const obs=new IntersectionObserver((entries)=>{
-      entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible");});
-    },{threshold:.15});
-    setTimeout(()=>{
-      document.querySelectorAll(".reveal").forEach(el=>obs.observe(el));
-    },100);
-    return()=>{window.removeEventListener("scroll",h);obs.disconnect();};
-  },[]);
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800;1,900&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@400;500&display=swap');
 
-  const Btn=({children,style={}})=>(
-    <button onClick={onSignUp} style={{background:T.prot,color:"#fff",border:"none",borderRadius:9,padding:"14px 28px",fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"'Inter',sans-serif",transition:"all .2s",...style}}>{children}</button>
+  :root {
+    --navy: #0a0e1a;
+    --navy-mid: #0f1628;
+    --navy-light: #161e35;
+    --navy-card: #111827;
+    --red: #e8341c;
+    --red-dim: #c42d18;
+    --white: #f5f5f0;
+    --white-dim: rgba(245,245,240,0.7);
+    --white-faint: rgba(245,245,240,0.12);
+    --white-border: rgba(245,245,240,0.08);
+    --mono: 'DM Mono', monospace;
+    --condensed: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+  }
+
+  .lp * { box-sizing: border-box; margin: 0; padding: 0; }
+  .lp { background: var(--navy); color: var(--white); font-family: var(--body); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+  .lp-grid-texture {
+    background-image: linear-gradient(rgba(245,245,240,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(245,245,240,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* NAV */
+  .lp-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 48px; height: 64px;
+    border-bottom: 1px solid var(--white-border);
+    background: rgba(10,14,26,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .lp-nav-logo { font-family: var(--condensed); font-weight: 800; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white); text-decoration: none; }
+  .lp-nav-logo span { color: var(--red); }
+  .lp-nav-links { display: flex; align-items: center; gap: 8px; }
+  .lp-nav-link { font-family: var(--body); font-size: 13px; font-weight: 500; letter-spacing: 0.04em; color: var(--white-dim); text-decoration: none; padding: 8px 16px; transition: color 0.2s; background: none; border: none; cursor: pointer; }
+  .lp-nav-link:hover { color: var(--white); }
+  .lp-nav-cta { font-family: var(--body); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: var(--white); background: var(--red); border: none; cursor: pointer; padding: 10px 20px; transition: background 0.2s; white-space: nowrap; }
+  .lp-nav-cta:hover { background: var(--red-dim); }
+
+  /* HERO */
+  .lp-hero { position: relative; min-height: 100vh; overflow: hidden; display: flex; align-items: flex-start; padding-bottom: 80px; }
+  .lp-hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; opacity: 0.45; }
+  .lp-hero-overlay { position: absolute; inset: 0; background: linear-gradient(105deg, rgba(10,14,26,0.97) 0%, rgba(10,14,26,0.88) 38%, rgba(10,14,26,0.35) 65%, rgba(10,14,26,0.15) 100%); }
+  .lp-hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(245,245,240,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(245,245,240,0.018) 1px, transparent 1px); background-size: 60px 60px; pointer-events: none; }
+  .lp-hero-content { position: relative; z-index: 2; max-width: 680px; padding: 0 48px; padding-top: 140px; }
+  .lp-hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+  .lp-hero-eyebrow-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: lp-pulse 2s infinite; }
+  @keyframes lp-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+  .lp-hero-eyebrow-text { font-family: var(--mono); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--red); }
+  .lp-hero-headline { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(56px, 6.4vw, 92px); line-height: 0.92; text-transform: uppercase; letter-spacing: -0.01em; color: var(--white); margin-bottom: 28px; }
+  .lp-hero-headline em { font-style: normal; color: var(--red); position: relative; }
+  .lp-hero-headline em::after { content: ''; position: absolute; inset: -10% -5%; background: radial-gradient(ellipse at center, rgba(232,52,28,0.35), transparent 70%); z-index: -1; filter: blur(20px); }
+  .lp-hero-sub { font-family: var(--body); font-size: 18px; font-weight: 300; line-height: 1.6; color: var(--white-dim); max-width: 480px; margin-bottom: 44px; }
+  .lp-hero-cta-group { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+  .lp-hero-cta-btn { display: inline-flex; align-items: center; gap: 10px; font-family: var(--condensed); font-weight: 700; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white); background: var(--red); border: none; cursor: pointer; padding: 16px 32px; transition: background 0.2s, transform 0.15s; }
+  .lp-hero-cta-btn:hover { background: var(--red-dim); transform: translateX(2px); }
+  .lp-hero-proof { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: rgba(245,245,240,0.4); text-transform: uppercase; }
+  .lp-hero-proof span { color: rgba(245,245,240,0.55); }
+
+  /* Floating metric cards */
+  .lp-hero-metrics { position: absolute; right: 48px; bottom: 80px; z-index: 3; display: flex; flex-direction: column; gap: 12px; align-items: flex-end; }
+  .lp-metric-card { display: flex; align-items: center; gap: 12px; background: rgba(15,22,40,0.85); border: 1px solid var(--white-border); backdrop-filter: blur(16px); padding: 12px 18px; animation: lp-float-in 0.6s ease both, lp-drift 5s ease-in-out infinite 1.6s; }
+  .lp-metric-card:nth-child(1) { animation-delay: 0.8s, 1.6s; }
+  .lp-metric-card:nth-child(2) { animation-delay: 1.1s, 2.1s; }
+  .lp-metric-card:nth-child(3) { animation-delay: 1.4s, 2.6s; }
+  @keyframes lp-float-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes lp-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .lp-metric-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .lp-metric-dot.green { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+  .lp-metric-dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .lp-metric-dot.blue { background: #60a5fa; box-shadow: 0 0 8px #60a5fa88; }
+  .lp-metric-text { font-family: var(--mono); font-size: 12px; color: var(--white); letter-spacing: 0.04em; }
+  .lp-metric-text strong { font-weight: 500; }
+
+  /* LIQUID GLASS */
+  .lp-liquid-glass {
+    position: relative;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.35);
+  }
+  .lp-liquid-glass::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,0.18), transparent 50%); opacity: 0; transition: opacity 0.3s; pointer-events: none; border-radius: inherit; }
+  .lp-liquid-glass:hover::before { opacity: 1; }
+
+  /* TILT BUTTONS */
+  .lp-tilt { transform-style: preserve-3d; transition: transform 0.18s cubic-bezier(.2,.7,.3,1), background 0.2s; will-change: transform; position: relative; }
+  .lp-tilt::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,0.25), transparent 45%); opacity: 0; transition: opacity 0.25s; pointer-events: none; mix-blend-mode: overlay; }
+  .lp-tilt:hover::after { opacity: 1; }
+
+  /* CURSOR GLOW */
+  .lp-cursor-glow { position: fixed; top: 0; left: 0; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(232,52,28,0.16) 0%, transparent 60%); pointer-events: none; z-index: 1; transform: translate3d(-50%,-50%,0); transition: opacity 0.4s; mix-blend-mode: screen; filter: blur(20px); opacity: 0; }
+  .lp.cursor-active .lp-cursor-glow { opacity: 1; }
+
+  /* SECTION GLOBALS */
+  .lp section { position: relative; }
+  .lp-section-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--red); margin-bottom: 16px; text-align: center; }
+  .lp-section-title { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(48px, 5vw, 76px); line-height: 0.95; text-transform: uppercase; text-align: center; margin-bottom: 80px; }
+
+  /* PROBLEM */
+  .lp-problem { background: var(--navy-mid); padding: 140px 0; overflow: hidden; }
+  .lp-problem-inner { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 48px; }
+  .lp-problem-block { margin-bottom: 80px; }
+  .lp-problem-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--red); margin-bottom: 20px; }
+  .lp-problem-headline { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(42px, 5.5vw, 80px); line-height: 0.95; text-transform: uppercase; letter-spacing: -0.01em; color: var(--white); }
+  .lp-problem-headline.dim { color: rgba(245,245,240,0.35); }
+  .lp-problem-divider { width: 60px; height: 2px; background: var(--red); margin: 60px 0; }
+  .lp-problem-resolution { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(48px, 6vw, 90px); line-height: 0.95; text-transform: uppercase; letter-spacing: -0.01em; color: var(--white); }
+  .lp-problem-resolution .accent { color: var(--red); }
+
+  /* HOW */
+  .lp-how { background: var(--navy); padding: 140px 48px; }
+  .lp-how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; max-width: 1200px; margin: 0 auto; }
+  .lp-how-card { background: var(--navy-light); padding: 48px 40px; position: relative; overflow: hidden; transition: transform 0.35s cubic-bezier(.2,.7,.3,1), background 0.3s; }
+  .lp-how-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--white-border); transition: background 0.3s; }
+  .lp-how-card:hover::before { background: var(--red); }
+  .lp-how-card:hover { transform: translateY(-6px); background: linear-gradient(135deg, rgba(245,245,240,0.05), rgba(232,52,28,0.04)); }
+  .lp-how-number { font-family: var(--condensed); font-weight: 900; font-size: 96px; line-height: 1; color: rgba(245,245,240,0.06); position: absolute; top: 24px; right: 32px; letter-spacing: -0.04em; }
+  .lp-how-step { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); margin-bottom: 24px; }
+  .lp-how-card-title { font-family: var(--condensed); font-weight: 800; font-size: 28px; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 20px; color: var(--white); }
+  .lp-how-card-body { font-family: var(--body); font-size: 15px; font-weight: 300; line-height: 1.7; color: var(--white-dim); }
+  .lp-how-card-body strong { color: var(--white); font-weight: 500; }
+
+  /* COMPARE */
+  .lp-compare { background: var(--navy-mid); padding: 140px 48px; overflow: hidden; }
+  .lp-compare-inner { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; }
+  .lp-compare-table { width: 100%; border-collapse: collapse; margin-top: 60px; }
+  .lp-compare-table th { font-family: var(--condensed); font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; padding: 16px 24px; text-align: left; }
+  .lp-compare-table th:first-child { color: var(--white-dim); width: 45%; }
+  .lp-compare-table th.col-other { color: rgba(245,245,240,0.35); text-align: center; }
+  .lp-compare-table th.col-cm { color: var(--white); text-align: center; background: rgba(232,52,28,0.08); border-top: 2px solid var(--red); }
+  .lp-compare-table td { padding: 14px 24px; border-top: 1px solid var(--white-border); font-family: var(--body); font-size: 14px; font-weight: 400; }
+  .lp-compare-table td:first-child { color: var(--white-dim); }
+  .lp-compare-table td.col-other { text-align: center; color: rgba(245,245,240,0.3); font-size: 18px; }
+  .lp-compare-table td.col-cm { text-align: center; background: rgba(232,52,28,0.05); font-size: 18px; }
+  .lp-compare-table tr:hover td { background: rgba(245,245,240,0.02); }
+  .lp-compare-table tr:hover td.col-cm { background: rgba(232,52,28,0.08); }
+  .lp-check { color: var(--red); font-size: 16px; font-weight: 700; }
+  .lp-cross { color: rgba(245,245,240,0.25); }
+
+  /* SCREENS */
+  .lp-screens { background: var(--navy); padding: 140px 0; overflow: hidden; }
+  .lp-screens-scroll { display: flex; gap: 24px; padding: 0 48px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; cursor: grab; user-select: none; }
+  .lp-screens-scroll::-webkit-scrollbar { display: none; }
+  .lp-screen-card { flex-shrink: 0; width: 280px; background: var(--navy-light); border: 1px solid var(--white-border); overflow: hidden; transition: transform 0.3s, border-color 0.3s; }
+  .lp-screen-card:hover { transform: translateY(-6px); border-color: rgba(245,245,240,0.18); }
+  .lp-screen-header { padding: 14px 20px 10px; border-bottom: 1px solid var(--white-border); display: flex; align-items: center; justify-content: space-between; }
+  .lp-screen-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--white-dim); }
+  .lp-screen-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+  .lp-screen-body { padding: 24px 20px; min-height: 360px; }
+  .lp-macro-ring-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+  .lp-macro-ring { position: relative; width: 120px; height: 120px; }
+  .lp-macro-ring svg { transform: rotate(-90deg); }
+  .lp-macro-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .lp-macro-ring-cal { font-family: var(--condensed); font-weight: 800; font-size: 26px; line-height: 1; color: var(--white); }
+  .lp-macro-ring-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--white-dim); text-transform: uppercase; margin-top: 2px; }
+  .lp-macro-bars { display: flex; flex-direction: column; gap: 10px; }
+  .lp-macro-bar-row { display: flex; align-items: center; gap: 10px; }
+  .lp-macro-bar-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--white-dim); width: 18px; text-transform: uppercase; }
+  .lp-macro-bar-track { flex: 1; height: 4px; background: rgba(245,245,240,0.08); border-radius: 2px; overflow: hidden; }
+  .lp-macro-bar-fill { height: 100%; border-radius: 2px; }
+  .lp-macro-bar-val { font-family: var(--mono); font-size: 10px; color: var(--white-dim); width: 40px; text-align: right; }
+  .lp-muscle-map { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
+  .lp-muscle-figure { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .lp-muscle-figure-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--white-dim); text-transform: uppercase; }
+  .lp-muscle-legend { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .lp-muscle-legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9px; color: var(--white-dim); letter-spacing: 0.06em; text-transform: uppercase; }
+  .lp-muscle-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .lp-session-active-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); padding: 5px 10px; margin-bottom: 16px; }
+  .lp-session-active-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: lp-pulse 1.5s infinite; }
+  .lp-session-active-text { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #22c55e; }
+  .lp-session-stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--white-border); }
+  .lp-session-stat-label { font-family: var(--body); font-size: 13px; color: var(--white-dim); }
+  .lp-session-stat-val { font-family: var(--mono); font-size: 13px; color: var(--white); font-weight: 500; }
+  .lp-ai-message { background: rgba(245,245,240,0.05); border-left: 2px solid var(--red); padding: 12px 14px; margin-bottom: 12px; }
+  .lp-ai-message-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red); margin-bottom: 6px; }
+  .lp-ai-message-text { font-family: var(--body); font-size: 13px; font-weight: 300; line-height: 1.5; color: var(--white); }
+  .lp-food-item-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--white-border); }
+  .lp-food-item-name { font-family: var(--body); font-size: 13px; color: var(--white); }
+  .lp-food-item-macros { font-family: var(--mono); font-size: 10px; color: var(--white-dim); letter-spacing: 0.06em; }
+  .lp-progress-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; margin-bottom: 16px; }
+  .lp-progress-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .lp-progress-bar { width: 100%; border-radius: 2px 2px 0 0; }
+  .lp-progress-bar-week { font-family: var(--mono); font-size: 8px; color: rgba(245,245,240,0.3); letter-spacing: 0.06em; }
+  .lp-tdee-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .lp-tdee-label { font-family: var(--body); font-size: 12px; color: var(--white-dim); }
+  .lp-tdee-val { font-family: var(--condensed); font-weight: 700; font-size: 22px; color: var(--white); }
+  .lp-tdee-unit { font-family: var(--mono); font-size: 10px; color: var(--white-dim); margin-left: 4px; }
+
+  /* PROOF */
+  .lp-proof { background: var(--navy-light); padding: 100px 48px; }
+  .lp-proof-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; max-width: 900px; margin: 0 auto 80px; }
+  .lp-proof-stat { background: var(--navy-card); padding: 40px 36px; text-align: center; }
+  .lp-proof-stat-num { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 72px; line-height: 1; color: var(--white); margin-bottom: 8px; }
+  .lp-proof-stat-num span { color: var(--red); }
+  .lp-proof-stat-label { font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--white-dim); letter-spacing: 0.04em; }
+  .lp-testimonials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1100px; margin: 0 auto; }
+  .lp-testimonial { background: var(--navy-card); padding: 32px; border: 1px solid var(--white-border); position: relative; transition: transform 0.35s cubic-bezier(.2,.7,.3,1), border-color 0.3s; }
+  .lp-testimonial:hover { transform: translateY(-4px); border-color: rgba(232,52,28,0.3); }
+  .lp-testimonial::before { content: '"'; font-family: var(--condensed); font-size: 80px; font-weight: 900; color: rgba(232,52,28,0.15); position: absolute; top: 16px; left: 24px; line-height: 1; }
+  .lp-testimonial-text { font-family: var(--body); font-size: 14px; font-weight: 400; line-height: 1.7; color: var(--white); margin-bottom: 20px; margin-top: 20px; position: relative; z-index: 1; }
+  .lp-testimonial-name { font-family: var(--condensed); font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--white); }
+  .lp-testimonial-role { font-family: var(--mono); font-size: 10px; color: var(--white-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+
+  /* PRICING */
+  .lp-pricing { background: var(--navy); padding: 140px 48px; }
+  .lp-pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; max-width: 800px; margin: 0 auto; }
+  .lp-pricing-card { background: var(--navy-light); padding: 48px 40px; position: relative; transition: transform 0.4s cubic-bezier(.2,.7,.3,1); }
+  .lp-pricing-card:hover { transform: translateY(-4px); }
+  .lp-pricing-card.featured { background: var(--navy-card); border: 1px solid rgba(232,52,28,0.3); }
+  .lp-pricing-badge { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--white); background: var(--red); padding: 5px 10px; margin-bottom: 24px; }
+  .lp-pricing-plan { font-family: var(--condensed); font-weight: 800; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white-dim); margin-bottom: 16px; }
+  .lp-pricing-price { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 72px; line-height: 1; color: var(--white); margin-bottom: 4px; }
+  .lp-pricing-price sup { font-size: 32px; vertical-align: top; margin-top: 14px; font-style: normal; }
+  .lp-pricing-period { font-family: var(--body); font-size: 13px; color: var(--white-dim); margin-bottom: 32px; }
+  .lp-pricing-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
+  .lp-pricing-features li { font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--white-dim); display: flex; align-items: center; gap: 10px; }
+  .lp-pricing-features li::before { content: '→'; color: var(--red); font-weight: 700; flex-shrink: 0; }
+  .lp-pricing-cta { display: block; text-align: center; font-family: var(--condensed); font-weight: 700; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; padding: 16px 32px; border: none; cursor: pointer; transition: all 0.2s; width: 100%; }
+  .lp-pricing-cta.primary { background: var(--red); color: var(--white); }
+  .lp-pricing-cta.primary:hover { background: var(--red-dim); }
+  .lp-pricing-cta.secondary { background: transparent; border: 1px solid var(--white-border); color: var(--white-dim); }
+  .lp-pricing-cta.secondary:hover { border-color: rgba(245,245,240,0.25); color: var(--white); }
+  .lp-pricing-value { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: rgba(245,245,240,0.35); text-align: center; margin-top: 14px; }
+
+  /* FAQ */
+  .lp-faq { background: var(--navy-mid); padding: 140px 48px; }
+  .lp-faq-list { max-width: 760px; margin: 0 auto; }
+  .lp-faq-item { border-bottom: 1px solid var(--white-border); }
+  .lp-faq-question { width: 100%; background: none; border: none; text-align: left; padding: 24px 0; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 24px; }
+  .lp-faq-question-text { font-family: var(--condensed); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--white); line-height: 1.2; }
+  .lp-faq-icon { font-family: var(--mono); font-size: 20px; color: var(--red); flex-shrink: 0; transition: transform 0.2s; }
+  .lp-faq-item.open .lp-faq-icon { transform: rotate(45deg); }
+  .lp-faq-answer { font-family: var(--body); font-size: 15px; font-weight: 300; line-height: 1.75; color: var(--white-dim); max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding-bottom 0.35s ease; }
+  .lp-faq-item.open .lp-faq-answer { max-height: 400px; padding-bottom: 24px; }
+
+  /* FINAL CTA */
+  .lp-final-cta { background: var(--navy-mid); padding: 160px 48px; text-align: center; position: relative; overflow: hidden; }
+  .lp-final-cta-inner { position: relative; z-index: 1; }
+  .lp-final-headline { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(80px, 10vw, 160px); line-height: 0.9; text-transform: uppercase; letter-spacing: -0.02em; color: var(--white); margin-bottom: 48px; }
+  .lp-final-headline span { color: var(--red); display: block; }
+  .lp-final-cta-btn { display: inline-flex; align-items: center; gap: 12px; font-family: var(--condensed); font-weight: 700; font-size: 20px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white); background: var(--red); border: none; cursor: pointer; padding: 20px 48px; transition: background 0.2s, transform 0.15s; }
+  .lp-final-cta-btn:hover { background: var(--red-dim); transform: translateX(2px); }
+
+  /* FOOTER */
+  .lp-footer { background: var(--navy); border-top: 1px solid var(--white-border); padding: 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .lp-footer-logo { font-family: var(--condensed); font-weight: 800; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white-dim); }
+  .lp-footer-logo span { color: var(--red); }
+  .lp-footer-links { display: flex; gap: 24px; }
+  .lp-footer-link { font-family: var(--mono); font-size: 11px; color: rgba(245,245,240,0.35); text-decoration: none; letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; background: none; border: none; cursor: pointer; }
+  .lp-footer-link:hover { color: var(--white-dim); }
+  .lp-footer-copy { font-family: var(--mono); font-size: 11px; color: rgba(245,245,240,0.25); letter-spacing: 0.06em; }
+
+  /* SCROLL REVEAL */
+  .lp .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .lp .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 768px) {
+    .lp-nav { padding: 0 20px; }
+    .lp-nav-link { display: none; }
+    .lp-hero-content { padding: 0 24px; padding-top: 100px; }
+    .lp-hero-metrics { display: none !important; }
+    .lp-how-grid { grid-template-columns: 1fr; }
+    .lp-proof-stats { grid-template-columns: 1fr; }
+    .lp-testimonials { grid-template-columns: 1fr; }
+    .lp-pricing-grid { grid-template-columns: 1fr; }
+    .lp-footer { flex-direction: column; text-align: center; }
+  }
+`;
+
+function useLiquidEffects(containerRef) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const glow = container.querySelector('.lp-cursor-glow');
+    let raf = null;
+    let mx = 0, my = 0, gx = 0, gy = 0;
+
+    const onMove = (e) => {
+      mx = e.clientX; my = e.clientY;
+      container.classList.add('cursor-active');
+      if (!raf) raf = requestAnimationFrame(loop);
+    };
+
+    const loop = () => {
+      gx += (mx - gx) * 0.15;
+      gy += (my - gy) * 0.15;
+      if (glow) glow.style.transform = `translate3d(${gx - 240}px, ${gy - 240}px, 0)`;
+      if (Math.abs(mx - gx) > 0.5 || Math.abs(my - gy) > 0.5) {
+        raf = requestAnimationFrame(loop);
+      } else {
+        raf = null;
+      }
+    };
+
+    window.addEventListener('mousemove', onMove);
+
+    const tiltEls = container.querySelectorAll('[data-tilt]');
+    const tiltHandlers = [];
+    tiltEls.forEach(el => {
+      const enter = () => { el.style.transition = 'transform 0.15s cubic-bezier(.2,.7,.3,1)'; };
+      const move = (e) => {
+        const r = el.getBoundingClientRect();
+        const x = e.clientX - r.left, y = e.clientY - r.top;
+        const cx = r.width / 2, cy = r.height / 2;
+        const rotY = ((x - cx) / cx) * 12;
+        const rotX = -((y - cy) / cy) * 12;
+        el.style.setProperty('--mx', ((x / r.width) * 100) + '%');
+        el.style.setProperty('--my', ((y / r.height) * 100) + '%');
+        el.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(4px) scale(1.03)`;
+        el.style.transition = 'transform 0.08s linear';
+      };
+      const leave = () => {
+        el.style.transition = 'transform 0.4s cubic-bezier(.2,.7,.3,1)';
+        el.style.transform = 'perspective(600px) rotateX(0) rotateY(0) translateZ(0) scale(1)';
+      };
+      el.addEventListener('mouseenter', enter);
+      el.addEventListener('mousemove', move);
+      el.addEventListener('mouseleave', leave);
+      tiltHandlers.push({ el, enter, move, leave });
+    });
+
+    const glassEls = container.querySelectorAll('.lp-liquid-glass, .lp-how-card, .lp-testimonial, .lp-pricing-card, .lp-screen-card');
+    const glassHandlers = [];
+    glassEls.forEach(el => {
+      const move = (e) => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+        el.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+      };
+      el.addEventListener('mousemove', move);
+      glassHandlers.push({ el, move });
+    });
+
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      tiltHandlers.forEach(({ el, enter, move, leave }) => {
+        el.removeEventListener('mouseenter', enter);
+        el.removeEventListener('mousemove', move);
+        el.removeEventListener('mouseleave', leave);
+      });
+      glassHandlers.forEach(({ el, move }) => el.removeEventListener('mousemove', move));
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+}
+
+function useScrollReveal(containerRef) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.12 });
+    container.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+}
+
+function MacroRingScreen() {
+  const r = 48, cx = 60, cy = 60;
+  const circ = 2 * Math.PI * r;
+  const dash = 0.62 * circ;
+  return (
+    <div className="lp-macro-ring-wrap">
+      <div className="lp-macro-ring">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="10"/>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e8341c" strokeWidth="10"
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="butt"/>
+        </svg>
+        <div className="lp-macro-ring-center">
+          <div className="lp-macro-ring-cal">1,847</div>
+          <div className="lp-macro-ring-label">kcal left</div>
+        </div>
+      </div>
+    </div>
   );
+}
 
-  return(
-    <div style={{minHeight:"100vh",background:"#060D1A",color:"#fff",fontFamily:"'Inter',system-ui,sans-serif",overflowX:"hidden",width:"100%",maxWidth:"100vw"}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');
-        *{margin:0;padding:0;box-sizing:border-box}
-        ::selection{background:#2979FF;color:#fff}
-      `}</style>
+function MuscleFigure({ label, front }) {
+  const m = front
+    ? { chest: '#e8341c', shoulders: '#e8341c88', quads: '#3b82f6', biceps: '#22c55e88', abs: 'rgba(245,245,240,0.1)' }
+    : { glutes: '#e8341c88', hamstrings: '#3b82f6', traps: 'rgba(245,245,240,0.1)', lats: '#22c55e88', calves: 'rgba(245,245,240,0.1)' };
+  return (
+    <div className="lp-muscle-figure">
+      <svg width="54" height="110" viewBox="0 0 54 110">
+        <ellipse cx="27" cy="8" rx="8" ry="9" fill="rgba(245,245,240,0.12)"/>
+        <rect x="23" y="16" width="8" height="6" fill="rgba(245,245,240,0.12)"/>
+        {front ? (
+          <>
+            <rect x="14" y="22" width="26" height="28" rx="2" fill={m.chest}/>
+            <rect x="16" y="50" width="10" height="16" rx="1" fill={m.abs}/>
+            <rect x="28" y="50" width="10" height="16" rx="1" fill={m.abs}/>
+          </>
+        ) : (
+          <>
+            <rect x="14" y="22" width="26" height="28" rx="2" fill={m.lats}/>
+            <rect x="14" y="22" width="26" height="10" rx="2" fill={m.traps}/>
+          </>
+        )}
+        <rect x="4" y="22" width="9" height="24" rx="4" fill={front ? m.biceps : 'rgba(245,245,240,0.1)'}/>
+        <rect x="41" y="22" width="9" height="24" rx="4" fill={front ? m.biceps : 'rgba(245,245,240,0.1)'}/>
+        <ellipse cx="11" cy="24" rx="7" ry="6" fill={front ? m.shoulders : 'rgba(245,245,240,0.1)'}/>
+        <ellipse cx="43" cy="24" rx="7" ry="6" fill={front ? m.shoulders : 'rgba(245,245,240,0.1)'}/>
+        <rect x="14" y="66" width="26" height="10" rx="2" fill={front ? 'rgba(245,245,240,0.1)' : m.glutes}/>
+        <rect x="13" y="74" width="12" height="28" rx="4" fill={front ? m.quads : m.hamstrings}/>
+        <rect x="29" y="74" width="12" height="28" rx="4" fill={front ? m.quads : m.hamstrings}/>
+        <rect x="14" y="99" width="10" height="10" rx="3" fill={front ? 'rgba(245,245,240,0.1)' : m.calves}/>
+        <rect x="30" y="99" width="10" height="10" rx="3" fill={front ? 'rgba(245,245,240,0.1)' : m.calves}/>
+      </svg>
+      <div className="lp-muscle-figure-label">{label}</div>
+    </div>
+  );
+}
+
+function ScreenCard({ label, children }) {
+  return (
+    <div className="lp-screen-card">
+      <div className="lp-screen-header">
+        <span className="lp-screen-label">{label}</span>
+        <div className="lp-screen-dot"></div>
+      </div>
+      <div className="lp-screen-body">{children}</div>
+    </div>
+  );
+}
+
+function ScreensSection() {
+  const scrollRef = useRef(null);
+  const dragRef = useRef({ down: false, startX: 0, scrollLeft: 0 });
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const d = dragRef.current;
+    const onDown = e => { d.down = true; d.startX = e.pageX - el.offsetLeft; d.scrollLeft = el.scrollLeft; el.style.cursor = 'grabbing'; };
+    const onUp = () => { d.down = false; el.style.cursor = 'grab'; };
+    const onMove = e => { if (!d.down) return; e.preventDefault(); const x = e.pageX - el.offsetLeft; el.scrollLeft = d.scrollLeft - (x - d.startX) * 1.5; };
+    el.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    el.addEventListener('mousemove', onMove);
+    return () => { el.removeEventListener('mousedown', onDown); window.removeEventListener('mouseup', onUp); el.removeEventListener('mousemove', onMove); };
+  }, []);
+
+  return (
+    <section className="lp-screens">
+      <div className="lp-section-eyebrow" style={{paddingLeft:48, textAlign:'left'}}>{`// The Product`}</div>
+      <h2 className="lp-section-title" style={{paddingLeft:48, textAlign:'left', marginBottom:40}}>REAL DATA.<br/>REAL DESIGN.</h2>
+      <div className="lp-screens-scroll" ref={scrollRef}>
+        <ScreenCard label="Fuel Dashboard">
+          <MacroRingScreen/>
+          <div className="lp-macro-bars">
+            {[{label:'P',val:'182g',fill:'#e8341c',pct:72},{label:'C',val:'241g',fill:'#60a5fa',pct:55},{label:'F',val:'68g',fill:'#f59e0b',pct:80}].map(m=>(
+              <div className="lp-macro-bar-row" key={m.label}>
+                <span className="lp-macro-bar-label">{m.label}</span>
+                <div className="lp-macro-bar-track"><div className="lp-macro-bar-fill" style={{width:`${m.pct}%`,background:m.fill}}/></div>
+                <span className="lp-macro-bar-val">{m.val}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:16,padding:'12px 0',borderTop:'1px solid rgba(245,245,240,0.08)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontFamily:'var(--mono)',fontSize:10,color:'rgba(245,245,240,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>Training Day Bonus</span>
+              <span style={{fontFamily:'var(--mono)',fontSize:10,color:'#22c55e',letterSpacing:'0.06em'}}>+312 kcal</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{fontFamily:'var(--mono)',fontSize:10,color:'rgba(245,245,240,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>Today's goal</span>
+              <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--white)',letterSpacing:'0.06em'}}>2,847 kcal</span>
+            </div>
+          </div>
+        </ScreenCard>
+
+        <ScreenCard label="Train Today">
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--red)',marginBottom:8}}>{`// Push Day · Week 6`}</div>
+            <div style={{fontFamily:'var(--condensed)',fontWeight:800,fontSize:22,textTransform:'uppercase',color:'var(--white)',marginBottom:4}}>Upper Hypertrophy A</div>
+            <div style={{fontFamily:'var(--body)',fontSize:12,color:'var(--white-dim)'}}>5 exercises · ~58 min · High volume</div>
+          </div>
+          <div className="lp-muscle-map">
+            <MuscleFigure label="Front" front={true}/>
+            <MuscleFigure label="Back" front={false}/>
+          </div>
+          <div className="lp-muscle-legend">
+            <div className="lp-muscle-legend-item"><div className="lp-muscle-legend-dot" style={{background:'#e8341c'}}/> Primary</div>
+            <div className="lp-muscle-legend-item"><div className="lp-muscle-legend-dot" style={{background:'#3b82f6'}}/> Secondary</div>
+            <div className="lp-muscle-legend-item"><div className="lp-muscle-legend-dot" style={{background:'#22c55e88'}}/> Stabilizer</div>
+          </div>
+        </ScreenCard>
+
+        <ScreenCard label="Active Session">
+          <div className="lp-session-active-badge">
+            <div className="lp-session-active-dot"/>
+            <span className="lp-session-active-text">Session Live — 38:14</span>
+          </div>
+          <div style={{fontFamily:'var(--condensed)',fontWeight:800,fontSize:20,textTransform:'uppercase',color:'var(--white)',marginBottom:16}}>Bench Press</div>
+          {[{label:'Set 3 of 4',val:'100kg × 8'},{label:'Last Set',val:'100kg × 9'},{label:'Volume Today',val:'3,240 kg'},{label:'Est. 1RM',val:'127 kg'},{label:'RPE Target',val:'8.0'},{label:'Kcal Burned',val:'284 kcal'}].map(s=>(
+            <div className="lp-session-stat-row" key={s.label}>
+              <span className="lp-session-stat-label">{s.label}</span>
+              <span className="lp-session-stat-val">{s.val}</span>
+            </div>
+          ))}
+        </ScreenCard>
+
+        <ScreenCard label="Restaurant AI">
+          <div className="lp-ai-message">
+            <div className="lp-ai-message-label">{`// Coach Analysis`}</div>
+            <div className="lp-ai-message-text">You're 44g of protein short. Order the grilled salmon — it's 42g. Skip the fries, get the side salad. Stays in budget.</div>
+          </div>
+          <div style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'0.14em',color:'rgba(245,245,240,0.35)',textTransform:'uppercase',marginBottom:10}}>Detected: Nobu Restaurant</div>
+          {[{name:'Grilled Salmon',macros:'42P · 0C · 18F'},{name:'Edamame',macros:'11P · 8C · 5F'},{name:'Miso Soup',macros:'3P · 4C · 1F'},{name:'Side Salad',macros:'2P · 6C · 8F'}].map(f=>(
+            <div className="lp-food-item-row" key={f.name}>
+              <span className="lp-food-item-name">{f.name}</span>
+              <span className="lp-food-item-macros">{f.macros}</span>
+            </div>
+          ))}
+        </ScreenCard>
+
+        <ScreenCard label="Progress">
+          <div className="lp-tdee-row">
+            <span className="lp-tdee-label">Current TDEE</span>
+            <span><span className="lp-tdee-val">3,240</span><span className="lp-tdee-unit">kcal/day</span></span>
+          </div>
+          <div className="lp-progress-chart">
+            {[{h:45,w:'W1',c:'rgba(232,52,28,0.4)'},{h:52,w:'W2',c:'rgba(232,52,28,0.5)'},{h:60,w:'W3',c:'rgba(232,52,28,0.6)'},{h:55,w:'W4',c:'rgba(232,52,28,0.55)'},{h:68,w:'W5',c:'rgba(232,52,28,0.7)'},{h:75,w:'W6',c:'rgba(232,52,28,0.8)'},{h:88,w:'W7',c:'#e8341c'}].map(b=>(
+              <div className="lp-progress-bar-col" key={b.w}>
+                <div className="lp-progress-bar" style={{height:`${b.h}%`,background:b.c}}/>
+                <span className="lp-progress-bar-week">{b.w}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {[{label:'Bodyweight',val:'+1.2kg'},{label:'Avg Training Volume',val:'+18%'},{label:'Adherence Score',val:'94%'}].map(s=>(
+              <div key={s.label} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid rgba(245,245,240,0.06)'}}>
+                <span style={{fontFamily:'var(--body)',fontSize:12,color:'var(--white-dim)'}}>{s.label}</span>
+                <span style={{fontFamily:'var(--mono)',fontSize:12,color:'#22c55e'}}>{s.val}</span>
+              </div>
+            ))}
+          </div>
+        </ScreenCard>
+
+        <ScreenCard label="TDEE Breakdown">
+          <div style={{marginBottom:20}}>
+            <div style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--red)',marginBottom:8}}>{`// Today's Energy Balance`}</div>
+          </div>
+          {[{label:'Basal Metabolic Rate',val:'1,820 kcal',pct:56,c:'rgba(245,245,240,0.25)'},{label:'NEAT (daily activity)',val:'520 kcal',pct:16,c:'#60a5fa'},{label:'Workout (Push Day)',val:'632 kcal',pct:20,c:'#e8341c'},{label:'Thermic Effect of Food',val:'268 kcal',pct:8,c:'#f59e0b'}].map(r=>(
+            <div key={r.label} style={{marginBottom:16}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                <span style={{fontFamily:'var(--body)',fontSize:12,color:'var(--white-dim)'}}>{r.label}</span>
+                <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--white)'}}>{r.val}</span>
+              </div>
+              <div style={{height:3,background:'rgba(245,245,240,0.06)',borderRadius:2}}>
+                <div style={{height:'100%',width:`${r.pct}%`,background:r.c,borderRadius:2}}/>
+              </div>
+            </div>
+          ))}
+          <div style={{borderTop:'1px solid rgba(245,245,240,0.08)',paddingTop:14,display:'flex',justifyContent:'space-between'}}>
+            <span style={{fontFamily:'var(--condensed)',fontWeight:700,fontSize:16,textTransform:'uppercase',color:'var(--white)'}}>Total TDEE</span>
+            <span style={{fontFamily:'var(--condensed)',fontWeight:800,fontSize:22,color:'#e8341c'}}>3,240 kcal</span>
+          </div>
+        </ScreenCard>
+      </div>
+      <div style={{padding:'24px 48px 0',color:'rgba(245,245,240,0.25)',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase'}}>
+        ← Drag to explore →
+      </div>
+    </section>
+  );
+}
+
+function FaqSection() {
+  const [open, setOpen] = useState(null);
+  const faqs = [
+    {q:'How is this different from just using MyFitnessPal and a workout app together?',a:"Those apps run in isolation. Coach Macro's intelligence sits in the connection — when you log a workout, your macros change automatically. When you're in a deficit, your training load adjusts. No manual re-entry. No guesswork. One system that knows the full picture."},
+    {q:'Do I need to be advanced to use this?',a:"Not at all. Whether you're just starting your fitness journey or you've been training for years, Coach Macro adapts to where you are. The system handles the complex math behind the scenes — you just log your meals and workouts, and we do the rest."},
+    {q:'How accurate is the metabolic rate calculation?',a:"We use 25 data inputs — body composition estimates, training history, activity patterns, and biometric data — to build a metabolic profile that is 8% more accurate than standard equations like Harris-Benedict or Mifflin-St Jeor. This compounds over time as the model learns your patterns."},
+    {q:'What does "training day adjustment" actually mean?',a:"On a training day, your carbohydrate targets increase proportionally to session volume and intensity. After you log a completed workout, your remaining calorie and carb budgets update in real time. Rest days have a reduced carb and calorie target. It's automatic — you don't touch a setting."},
+    {q:'Does it work for runners and endurance athletes, or just lifters?',a:"Both. The system handles volume-based endurance work the same way it handles resistance training — it calculates energy expenditure and adjusts macros accordingly. Hybrid athletes and Hyrox competitors are some of our most active users."},
+    {q:'Can I connect my wearable or smartwatch?',a:"Garmin, Whoop, Apple Watch, and Polar integrations are in active development. For now, the app uses manual session logging and its own METs-based energy calculation."},
+    {q:'What happens after the 7-day trial?',a:"You choose a plan or you stop. No charge, no dark patterns. If you want to continue, you select monthly or annual. If not, your account downgrades to read-only — your data stays, you just can't log new entries."},
+    {q:'Is my data private?',a:"Your data is never sold. Never shared with third parties. We use it only to run your personalized model. You can export or delete everything at any time from within the app."},
+  ];
+  return (
+    <section className="lp-faq" id="faq">
+      <div className="lp-section-eyebrow">{`// FAQ`}</div>
+      <h2 className="lp-section-title fade-up">GOT QUESTIONS.</h2>
+      <div className="lp-faq-list">
+        {faqs.map((f,i)=>(
+          <div className={`lp-faq-item ${open===i?'open':''}`} key={i}>
+            <button className="lp-faq-question" onClick={()=>setOpen(open===i?null:i)}>
+              <span className="lp-faq-question-text">{f.q}</span>
+              <span className="lp-faq-icon">+</span>
+            </button>
+            <div className="lp-faq-answer">{f.a}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function LandingPage({ onSignUp }) {
+  const containerRef = useRef(null);
+  useLiquidEffects(containerRef);
+  useScrollReveal(containerRef);
+
+  const pricingFeatures = [
+    'Adaptive daily macro targets',
+    'Unified food + lift tracking',
+    'Muscle recovery map',
+    'AI restaurant scanner',
+    'Personalized training plans',
+    'Real-time TDEE calculation',
+    'Progress & body comp tracking',
+  ];
+
+  return (
+    <div className="lp" ref={containerRef}>
+      <style>{CSS}</style>
+
+      <div className="lp-cursor-glow"/>
 
       {/* NAV */}
-      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:200,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",background:scrolled?"rgba(8,8,8,.95)":"transparent",backdropFilter:scrolled?"blur(16px)":"none",borderBottom:scrolled?"1px solid rgba(255,255,255,.04)":"none",transition:"all .3s"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <Logo size={28} text={true}/>
-        </div>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          <button onClick={onSignUp} style={{color:"#aaa",fontSize:14,fontWeight:500,padding:"9px 18px",borderRadius:8,border:"1px solid #1C1C1C",background:"none",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}>Log in</button>
-          <button onClick={onSignUp} style={{background:"#2979FF",color:"#fff",fontSize:14,fontWeight:700,padding:"10px 22px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit"}}>Start Free →</button>
+      <nav className="lp-nav">
+        <span className="lp-nav-logo">Coach<span>Macro</span></span>
+        <div className="lp-nav-links">
+          <a href="#how" className="lp-nav-link">How It Works</a>
+          <a href="#pricing" className="lp-nav-link">Pricing</a>
+          <a href="#faq" className="lp-nav-link">FAQ</a>
+          <button className="lp-nav-cta lp-tilt" data-tilt onClick={onSignUp}>Start Free Trial</button>
         </div>
       </nav>
 
-      {/* PARTICLES BACKGROUND */}
-      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,pointerEvents:"none",zIndex:0,overflow:"hidden"}}>
-        {[...Array(20)].map((_,i)=>(
-          <div key={i} style={{
-            position:"absolute",
-            width:i%3===0?3:i%3===1?2:1.5,
-            height:i%3===0?3:i%3===1?2:1.5,
-            borderRadius:"50%",
-            background:i%3===0?"#2979FF":i%3===1?"#00E676":"#FFD740",
-            left:`${(i*17+7)%100}%`,
-            top:`${(i*23+11)%100}%`,
-            opacity:.3+((i%4)*.1),
-            animation:`glow ${2+i%3}s ease-in-out ${i*.3}s infinite`,
-          }}/>
-        ))}
-        {/* Grid overlay */}
-        <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(41,121,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(41,121,255,.04) 1px,transparent 1px)",backgroundSize:"60px 60px"}}/>
-        {/* Gradient orbs */}
-        <div style={{position:"absolute",top:"15%",left:"10%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(41,121,255,.06),transparent 70%)",pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:"20%",right:"5%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,230,118,.04),transparent 70%)",pointerEvents:"none"}}/>
-      </div>
-
       {/* HERO */}
-      <section style={{minHeight:"100vh",padding:"120px 24px 60px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:40,alignItems:"center",maxWidth:1200,margin:"0 auto",position:"relative",zIndex:1}}>
-        <div>
-          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(41,121,255,.08)",border:"1px solid rgba(41,121,255,.18)",borderRadius:24,padding:"7px 18px",fontSize:11,fontWeight:700,letterSpacing:3,textTransform:"uppercase",color:"#2979FF",marginBottom:28}}>
-            <span style={{width:6,height:6,borderRadius:"50%",background:"#2979FF",display:"inline-block"}}></span>
-            AI Fitness Platform
+      <section className="lp-hero">
+        <video className="lp-hero-video" autoPlay muted loop playsInline preload="auto">
+          <source src="/hero.mp4" type="video/mp4"/>
+        </video>
+        <div className="lp-hero-overlay"/>
+        <div className="lp-hero-grid"/>
+        <div className="lp-hero-content">
+          <div className="lp-hero-eyebrow">
+            <div className="lp-hero-eyebrow-dot"/>
+            <span className="lp-hero-eyebrow-text">The First Unified Athlete OS</span>
           </div>
-          <div className="hero-title" style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(68px,7.5vw,110px)",fontWeight:900,fontStyle:"italic",lineHeight:.88,letterSpacing:"-.02em",marginBottom:24}}>
-            FUEL<br/>SMARTER.<br/><span className="grad-text">TRAIN<br/>HARDER.</span>
-          </div>
-          <p style={{fontSize:18,color:"#666",lineHeight:1.7,maxWidth:420,marginBottom:32}}>The only app where your nutrition and training share one brain — adjusting every day based on what you actually do.</p>
-          <div style={{display:"flex",gap:12,marginBottom:40,flexWrap:"wrap"}}>
-            <Btn style={{fontSize:15,padding:"15px 30px"}}>Start Free for 7 Days →</Btn>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:14}}>
-            <div style={{display:"flex"}}>
-              {["#2979FF","#00E676","#FFD740","#00C9A7"].map((c,i)=>(
-                <div key={i} style={{width:32,height:32,borderRadius:"50%",background:`linear-gradient(135deg,${c},${c}88)`,border:"2px solid #080808",marginLeft:i?-9:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff"}}>
-                  {["M","J","S","A"][i]}
-                </div>
-              ))}
-            </div>
-            <div>
-              <div style={{color:"#FFD740",fontSize:13,letterSpacing:2}}>★★★★★</div>
-              <div style={{fontSize:13,color:"#666",marginTop:2}}>Loved by <b style={{color:"#fff"}}>400+ athletes</b> · 7-day free trial</div>
-            </div>
+          <h1 className="lp-hero-headline">
+            YOUR FOOD AND<br/>
+            YOUR TRAINING<br/>
+            <em>FINALLY</em> TALK<br/>
+            TO EACH OTHER.
+          </h1>
+          <p className="lp-hero-sub">
+            Coach Macro is the only app where your workout changes your nutrition — and your nutrition changes your workout. Every day. Automatically.
+          </p>
+          <div className="lp-hero-cta-group">
+            <button className="lp-hero-cta-btn lp-tilt" data-tilt onClick={onSignUp}>
+              Start Free — 7 Day Trial <span style={{fontSize:20,transition:'transform 0.2s'}}>→</span>
+            </button>
+            <span className="lp-hero-proof">
+              <span>Trusted by 400+ athletes</span> · Cancel anytime
+            </span>
           </div>
         </div>
-
-        {/* Hero phone mockup — hidden on mobile */}
-        <div className="hero-phone" style={{alignItems:"center"}}>
-          <div className="phone-float">
-            <div style={{background:"#0A1424",border:"1px solid #1C1C2E",borderRadius:36,overflow:"hidden",width:260,boxShadow:"0 40px 80px rgba(0,0,0,.8),0 0 60px rgba(232,24,90,.08)"}}>
-              <div style={{background:"#060D1A",padding:"12px 16px 8px"}}>
-                <div style={{width:48,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 12px"}}/>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div>
-                    <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:2}}>MONDAY — PUSH DAY</div>
-                    <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Hey Marcus 👋</div>
-                  </div>
-                  <div style={{background:"rgba(232,24,90,.15)",border:"1px solid rgba(232,24,90,.3)",borderRadius:16,padding:"3px 8px",fontSize:7,fontWeight:700,color:"#E8185A"}}>🏋️ PUSH</div>
-                </div>
-                <div style={{textAlign:"center",marginBottom:12,position:"relative"}}>
-                  <svg width="130" height="130" style={{transform:"rotate(-90deg)"}}>
-                    <circle cx="65" cy="65" r="50" fill="none" stroke="#1C2A3A" strokeWidth="10"/>
-                    <circle cx="65" cy="65" r="50" fill="none" stroke="#2979FF" strokeWidth="10" strokeDasharray="105 315" strokeLinecap="round"/>
-                    <circle cx="65" cy="65" r="50" fill="none" stroke="#00E676" strokeWidth="10" strokeDasharray="84 315" strokeDashoffset="-105" strokeLinecap="round"/>
-                    <circle cx="65" cy="65" r="50" fill="none" stroke="#FFD740" strokeWidth="10" strokeDasharray="52 315" strokeDashoffset="-189" strokeLinecap="round"/>
-                  </svg>
-                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
-                    <div style={{fontSize:28,fontWeight:900,lineHeight:1,color:"#fff"}}>847</div>
-                    <div style={{fontSize:7,color:"#4A6080",letterSpacing:1,marginTop:1}}>KCAL LEFT</div>
-                  </div>
-                </div>
-                {[["Protein","#2979FF","195g","240g",81],["Carbs","#00E676","186g","320g",58],["Fat","#FFD740","47g","68g",69]].map(([n,c,v,t,p])=>(
-                  <div key={n} style={{marginBottom:5}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:8,marginBottom:2}}>
-                      <span style={{color:c,fontWeight:700}}>{n}</span>
-                      <span style={{color:"#4A6080"}}>{v} / {t}</span>
-                    </div>
-                    <div style={{height:3,background:"#1C2A3A",borderRadius:2}}>
-                      <div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}/>
-                    </div>
-                  </div>
-                ))}
-                <div style={{height:1,background:"#1C2A3A",margin:"10px 0"}}/>
-                <div style={{marginBottom:8}}>
-                  <div style={{fontSize:8,color:"#4A6080",letterSpacing:1,marginBottom:6}}>TARGET MUSCLES</div>
-                  <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                    {[["Chest","#E8185A"],["Shoulders","#E8185A"],["Triceps","#8B1A6B"]].map(([m,c])=>(
-                      <div key={m} style={{background:`${c}20`,border:`1px solid ${c}40`,borderRadius:6,padding:"3px 7px",fontSize:7,color:c,fontWeight:700}}>{m}</div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{background:"#0D1828",borderRadius:10,padding:"8px 10px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <div style={{fontSize:8,color:"#4A6080"}}>THIS WEEK</div>
-                    <div style={{fontSize:8,color:"#E8185A",fontWeight:700}}>4/5 ✓</div>
-                  </div>
-                  <svg width="100%" height="32" viewBox="0 0 220 32">
-                    {[[0,24,"#E8185A"],[32,28,"#E8185A"],[64,10,"#333"],[96,32,"#E8185A"],[128,20,"#E8185A"],[160,0,"#222"],[192,0,"#222"]].map(([x,h,c],i)=>(
-                      <rect key={i} x={x} y={32-h} width="24" height={h||2} rx="3" fill={c}/>
-                    ))}
-                  </svg>
-                  <div style={{display:"flex",justifyContent:"space-around",marginTop:3}}>
-                    {["M","T","W","T","F","S","S"].map((d,i)=>(
-                      <div key={i} style={{fontSize:7,color:i===4?"#E8185A":"#333",fontWeight:i===4?700:400}}>{d}</div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="lp-hero-metrics">
+          <div className="lp-metric-card lp-liquid-glass">
+            <div className="lp-metric-dot green"/>
+            <span className="lp-metric-text"><strong>+312 kcal earned</strong> · Push Day active</span>
+          </div>
+          <div className="lp-metric-card lp-liquid-glass">
+            <div className="lp-metric-dot red"/>
+            <span className="lp-metric-text"><strong>847 kcal remaining</strong> · Adjusted for session</span>
+          </div>
+          <div className="lp-metric-card lp-liquid-glass">
+            <div className="lp-metric-dot blue"/>
+            <span className="lp-metric-text"><strong>Legs recovering</strong> · 36h to full output</span>
           </div>
         </div>
       </section>
 
-      {/* STATS */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",borderTop:"1px solid #1C1C1C",borderBottom:"1px solid #1C1C1C"}}>
-        {[["25","metabolic variables","#2979FF"],["3M+","foods in database","#00E676"],["4","device integrations","#FFD740"],["$0","charged today","#fff"]].map(([n,l,c])=>(
-          <div key={n} style={{padding:"36px 24px",textAlign:"center",borderRight:"1px solid #1C1C1C"}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:56,fontWeight:900,lineHeight:1,color:c}}>{n}</div>
-            <div style={{fontSize:12,color:"#4A4A4A",marginTop:6}}>{l}</div>
+      {/* PROBLEM */}
+      <section className="lp-problem">
+        <div className="lp-grid-texture" style={{position:'absolute',inset:0,pointerEvents:'none'}}/>
+        <div className="lp-problem-inner">
+          <div className="lp-problem-block fade-up">
+            <div className="lp-problem-label">{`// The Disconnect`}</div>
+            <div className="lp-problem-headline">YOUR GARMIN KNOWS<br/>YOU SLEPT 5 HOURS.</div>
+            <div className="lp-problem-headline dim">YOUR TRAINING APP<br/>DOESN'T.</div>
           </div>
-        ))}
-      </div>
-
-      {/* WHAT SEPARATES US */}
-      <section style={{padding:"80px 24px",background:"#04080F",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:800,height:400,borderRadius:"50%",background:"radial-gradient(ellipse,rgba(41,121,255,.04),transparent 70%)",pointerEvents:"none"}}/>
-        <div style={{maxWidth:1100,margin:"0 auto",position:"relative"}}>
-          <div className="reveal" style={{textAlign:"center",marginBottom:64}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Why Coach Macro</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(48px,7vw,96px)",fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:16}}>
-              EVERY OTHER APP<br/><span className="grad-text">MISSES THIS.</span>
-            </div>
-            <p style={{fontSize:16,color:"#666",maxWidth:560,margin:"0 auto",lineHeight:1.72}}>Nutrition apps don't know you trained. Workout apps don't know what you ate. Coach Macro is the first app where both sides of the equation share one brain.</p>
+          <div className="lp-problem-divider"/>
+          <div className="lp-problem-block fade-up">
+            <div className="lp-problem-headline">YOUR NUTRITION APP<br/>GIVES YOU 2,000 CALORIES.</div>
+            <div className="lp-problem-headline dim">WHETHER YOU LIFTED<br/>OR NOT.</div>
           </div>
-
-          {/* Comparison table */}
-          <div className="reveal" style={{borderRadius:20,overflow:"hidden",marginBottom:48,border:"1px solid #E5E5E5",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
-            {/* Table header */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
-              <div style={{padding:"16px 24px",fontSize:11,fontWeight:700,letterSpacing:2,color:"#999",textTransform:"uppercase",background:"#1C2A3A",borderBottom:"1px solid #222"}}>Feature</div>
-              <div style={{padding:"16px 24px",fontSize:11,fontWeight:700,letterSpacing:2,color:"#333",textTransform:"uppercase",borderLeft:"1px solid #E5E5E5",textAlign:"center",background:"#fff",borderBottom:"1px solid #E5E5E5"}}>Other Apps</div>
-              <div style={{padding:"16px 24px",fontSize:11,fontWeight:700,letterSpacing:2,color:"#2979FF",textTransform:"uppercase",borderLeft:"1px solid #1C2A4A",textAlign:"center",background:"#060D1A",borderBottom:"1px solid #1C2A4A"}}>Coach Macro</div>
-            </div>
-            {[
-              ["Macros adjust for training days","❌ Same every day","✅ Changes every morning"],
-              ["Workout earns extra calories","❌ Disconnected","✅ Auto-adjusts budget"],
-              ["Restaurant AI for remaining macros","❌ Generic suggestions","✅ Exact orders, real menus"],
-              ["Muscle volume optimization","❌ Not tracked","✅ 10–20 sets optimal zone"],
-              ["Split recommendation by days","❌ One-size-fits-all","✅ Matched to your schedule"],
-              ["Progressive overload tracking","❌ Manual logging only","✅ Last session vs target"],
-              ["GVT periodization weeks","❌ Not available","✅ Auto week 4 every month"],
-              ["Hyrox race programming","❌ Not available","✅ 12-week race prep built in"],
-              ["Arnold Split + advanced programs","❌ Basic splits only","✅ 13 programs, all levels"],
-              ["Recovery-aware (sleep → volume)","❌ Programs in a vacuum","✅ Adjusts when you're tired"],
-            ].map(([f,bad,good],i)=>(
-              <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
-                <div style={{padding:"14px 24px",fontSize:13,color:"#888",background:"#1C2A3A",borderBottom:"1px solid #222"}}>{f}</div>
-                <div style={{padding:"14px 24px",fontSize:13,color:"#1C2A3A",fontWeight:500,borderLeft:"1px solid #E5E5E5",textAlign:"center",background:"#fff",borderBottom:"1px solid #E5E5E5"}}>{bad}</div>
-                <div style={{padding:"14px 24px",fontSize:13,color:"#7FBAFF",borderLeft:"1px solid #1C2A4A",textAlign:"center",background:"#060D1A",borderBottom:"1px solid #1C2A4A"}}>{good}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* 3 key differentiators */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
-            {[
-              {icon:"🔁",color:"#2979FF",title:"Fuel ↔ Train Loop",desc:"The only app where your nutrition and training share data. Train hard → eat more. Rest day → eat less. Automatic, every day."},
-              {icon:"🧠",color:"#00E676",title:"AI That Knows You",desc:"25 data points from onboarding. Every recommendation — workouts, macros, restaurants, recipes — is built around YOUR body, not a generic user."},
-              {icon:"📈",color:"#FFD740",title:"Progressive Everything",desc:"Overload on every set. Volume tracking per muscle. GVT cycles. Deload detection. Built by people who actually lift, not just engineers."},
-            ].map(({icon,color,title,desc},i)=>(
-              <div key={i} className="reveal" style={{background:"#080F1A",border:`1px solid ${color}20`,borderRadius:16,padding:"28px 24px",position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",top:0,right:0,width:120,height:120,borderRadius:"50%",background:`radial-gradient(circle,${color}08,transparent 70%)`,transform:"translate(30%,-30%)"}}/>
-                <div style={{fontSize:32,marginBottom:16}}>{icon}</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color,lineHeight:1,marginBottom:10}}>{title}</div>
-                <div style={{fontSize:14,color:"#777",lineHeight:1.72}}>{desc}</div>
-              </div>
-            ))}
+          <div className="lp-problem-divider"/>
+          <div className="lp-problem-block fade-up">
+            <div className="lp-problem-headline dim">NOBODY CONNECTED<br/>THE TWO.</div>
+            <div className="lp-problem-resolution">UNTIL <span className="accent">NOW.</span></div>
           </div>
         </div>
-      </section>
-
-
-      {/* APP SCREENSHOTS — scrollable row */}
-      <section style={{padding:"80px 0 80px",background:"#04080F",overflow:"hidden"}}>
-        <div style={{textAlign:"center",padding:"0 24px",marginBottom:48}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Inside the App</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(44px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
-            BUILT FOR ATHLETES<br/><span style={{color:"#2979FF"}}>WHO MEAN IT.</span>
-          </div>
-          <p style={{fontSize:16,color:"#666",maxWidth:480,margin:"0 auto",lineHeight:1.65}}>Every screen designed around your goal. Real data. Real decisions. Not generic.</p>
-        </div>
-        <div style={{display:"flex",gap:20,overflowX:"auto",paddingBottom:20,paddingLeft:48,paddingRight:48,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
-          <style>{`.snap-child{scroll-snap-align:start;flex-shrink:0}`}</style>
-
-          {/* SCREEN 1 — Fuel Dashboard */}
-          {[
-            {title:"Fuel Dashboard",sub:"Dynamic macros · AI food logging · Restaurant finder",
-             content:(
-              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <div><div style={{fontSize:9,color:"#4A6080",letterSpacing:1}}>TRAINING DAY</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Fuel 🔥</div></div>
-                  <div style={{background:"rgba(41,121,255,.12)",border:"1px solid rgba(41,121,255,.25)",borderRadius:20,padding:"4px 10px",fontSize:8,color:"#2979FF",fontWeight:700}}>+312 earned</div>
-                </div>
-                <div style={{position:"relative",textAlign:"center",marginBottom:14}}>
-                  <svg width="150" height="150" style={{transform:"rotate(-90deg)",display:"block",margin:"0 auto"}}>
-                    <circle cx="75" cy="75" r="62" fill="none" stroke="#1C2A3A" strokeWidth="12"/>
-                    <circle cx="75" cy="75" r="62" fill="none" stroke="#2979FF" strokeWidth="12" strokeDasharray="196 194" strokeLinecap="round"/>
-                    <circle cx="75" cy="75" r="62" fill="none" stroke="#00E676" strokeWidth="12" strokeDasharray="116 274" strokeDashoffset="-196" strokeLinecap="round"/>
-                    <circle cx="75" cy="75" r="62" fill="none" stroke="#FFD740" strokeWidth="12" strokeDasharray="58 332" strokeDashoffset="-312" strokeLinecap="round"/>
-                  </svg>
-                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:"#fff",lineHeight:1}}>847</div>
-                    <div style={{fontSize:8,color:"#4A6080",letterSpacing:1}}>KCAL LEFT</div>
-                  </div>
-                </div>
-                {[["Protein","#2979FF","195g","240g",81],["Carbs","#00E676","186g","320g",58],["Fat","#FFD740","47g","68g",69]].map(([n,c,v,t,p])=>(
-                  <div key={n} style={{marginBottom:7}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:9,marginBottom:3}}><span style={{color:c,fontWeight:700}}>{n}</span><span style={{color:"#4A6080"}}>{v}/{t}</span></div>
-                    <div style={{height:4,background:"#1C2A3A",borderRadius:2}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:2}}/></div>
-                  </div>
-                ))}
-                <div style={{marginTop:12,borderTop:"1px solid #111",paddingTop:10}}>
-                  <div style={{fontSize:8,color:"#4A6080",letterSpacing:1,marginBottom:6}}>TODAY'S LOG</div>
-                  {[["Greek Yogurt + Berries","🥣","312 kcal"],["Grilled Chicken Breast","🍗","280 kcal"],["Brown Rice + Broccoli","🍚","240 kcal"]].map(([food,e,cal])=>(
-                    <div key={food} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5,padding:"5px 8px",background:"#0D1828",borderRadius:7}}>
-                      <div style={{fontSize:12}}>{e}</div>
-                      <div style={{flex:1,fontSize:8,color:"#ccc"}}>{food}</div>
-                      <div style={{fontSize:8,color:"#4A6080"}}>{cal}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )},
-            {title:"Train Dashboard",sub:"Muscle map · Progressive overload · Auto rest timer",
-             content:(
-              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div><div style={{fontSize:9,color:"#4A6080",letterSpacing:1}}>MONDAY</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Train 💪</div></div>
-                  <div style={{background:"rgba(0,201,167,.1)",border:"1px solid rgba(0,201,167,.25)",borderRadius:20,padding:"4px 10px",fontSize:8,color:"#00C9A7",fontWeight:700}}>Push Day</div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}}>
-                  <div style={{background:"#0D1828",borderRadius:10,padding:8}}>
-                    <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>TARGET MUSCLES</div>
-                    {[["Chest","#E8185A"],["Shoulders","#E8185A"],["Triceps","#8B1A6B"]].map(([m,c])=>(
-                      <div key={m} style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                        <span style={{fontSize:8,color:"#ccc"}}>{m}</span>
-                        <span style={{fontSize:7,color:c,background:`${c}15`,borderRadius:4,padding:"1px 5px"}}>Optimal</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{background:"#0D1828",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    <svg viewBox="0 0 100 160" width="60" height="96">
-                      <ellipse cx="50" cy="14" rx="14" ry="12" fill="#1C2A3A"/>
-                      <rect x="44" y="24" width="12" height="7" fill="#1C2A3A"/>
-                      <path d="M32,32 Q28,40 30,56 Q50,60 70,56 Q72,40 68,32 Z" fill="#E8185A" opacity="0.85"/>
-                      <ellipse cx="26" cy="38" rx="9" ry="11" fill="#E8185A" opacity="0.8"/>
-                      <ellipse cx="74" cy="38" rx="9" ry="11" fill="#E8185A" opacity="0.8"/>
-                      <path d="M18,34 Q10,48 12,64" fill="none" stroke="#8B1A6B" strokeWidth="6" strokeLinecap="round"/>
-                      <path d="M82,34 Q90,48 88,64" fill="none" stroke="#8B1A6B" strokeWidth="6" strokeLinecap="round"/>
-                      <path d="M36,56 Q34,72 36,84 Q50,88 64,84 Q66,72 64,56 Z" fill="#1C2A3A"/>
-                      <path d="M36,84 L30,140" fill="none" stroke="#1C2A3A" strokeWidth="10" strokeLinecap="round"/>
-                      <path d="M64,84 L70,140" fill="none" stroke="#1C2A3A" strokeWidth="10" strokeLinecap="round"/>
-                    </svg>
-                  </div>
-                </div>
-                <div style={{background:"#0D1828",borderRadius:10,padding:10,marginBottom:8}}>
-                  <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>ACTIVE SESSION</div>
-                  {[["Barbell Bench Press","4×8 · 185 lbs","↑ +5 from last"],["Incline DB Press","3×10 · 65 lbs","PR ⚡"],["Cable Fly","3×12 · 40 lbs",""]].map(([ex,detail,note])=>(
-                    <div key={ex} style={{display:"flex",justifyContent:"space-between",marginBottom:6,paddingBottom:5,borderBottom:"1px solid #111"}}>
-                      <div><div style={{fontSize:8,color:"#ccc",fontWeight:600}}>{ex}</div><div style={{fontSize:7,color:"#00C9A7"}}>{note||detail}</div></div>
-                      <div style={{fontSize:8,color:"#888"}}>{detail.split("·")[0]}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{background:"rgba(0,201,167,.08)",border:"1px solid rgba(0,201,167,.2)",borderRadius:10,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:9,color:"#00C9A7",fontWeight:700}}>REST TIMER</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#00C9A7"}}>1:32</div>
-                </div>
-              </div>
-            )},
-            {title:"Restaurant AI",sub:"Describe your city · Get exact orders · Hit your macros",
-             content:(
-              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:4}}>NEARBY EATS</div>
-                <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:10}}>What to order 🍗</div>
-                <div style={{background:"#0D1828",border:"1px solid #1C2A3A",borderRadius:10,padding:"10px",marginBottom:8}}>
-                  <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>YOUR REMAINING MACROS</div>
-                  <div style={{display:"flex",gap:12,justifyContent:"space-between"}}>
-                    {[["412","kcal","#fff"],["38g","protein","#2979FF"],["45g","carbs","#00E676"],["9g","fat","#FFD740"]].map(([v,l,c])=>(
-                      <div key={l} style={{textAlign:"center"}}>
-                        <div style={{fontSize:16,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
-                        <div style={{fontSize:7,color:"#4A6080",marginTop:2}}>{l}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{background:"#0D1828",border:"1px solid #1C2A3A",borderRadius:10,padding:"10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:11,color:"#ccc"}}>📍 Edinburg, TX</div>
-                  <div style={{fontSize:9,color:"#2979FF",fontWeight:700}}>Find meals →</div>
-                </div>
-                <div style={{background:"#0D1828",border:"1px solid #1C2A3A",borderRadius:10,padding:"12px"}}>
-                  <div style={{fontSize:8,color:"#2979FF",fontWeight:700,letterSpacing:1,marginBottom:10}}>🤖 AI RECOMMENDATIONS</div>
-                  {[
-                    ["Chick-fil-A","Grilled Chicken Sandwich (no sauce) + Side Salad","~390 kcal · P:40g · C:42g · F:8g"],
-                    ["Chipotle","Burrito Bowl · chicken + fajita veggies + salsa · no rice","~405 kcal · P:36g · C:44g · F:9g"],
-                    ["Home meal","6oz grilled chicken + 1 cup rice + broccoli","~420 kcal · P:42g · C:48g · F:7g"],
-                  ].map(([name,order,macros],i)=>(
-                    <div key={i} style={{marginBottom:i<2?10:0,paddingBottom:i<2?10:0,borderBottom:i<2?"1px solid #1C2A3A":"none"}}>
-                      <div style={{fontSize:10,fontWeight:700,color:"#fff",marginBottom:2}}>{i+1}. {name}</div>
-                      <div style={{fontSize:9,color:"#888",marginBottom:2,lineHeight:1.4}}>{order}</div>
-                      <div style={{fontSize:8,color:"#4A6080"}}>{macros}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )},
-            {title:"Lift Smarter",sub:"6 splits · Arnold · GVT · matched to your schedule",
-             content:(
-              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:4}}>LIFT SMARTER</div>
-                <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:12}}>Choose your split</div>
-                <div style={{fontSize:8,color:"#4A6080",marginBottom:10}}>Based on 6 days/week · Intermediate</div>
-                {[
-                  {id:"ppl",l:"Push / Pull / Legs",e:"🔄",rec:true,desc:"Each muscle 2x/week · Optimal frequency",days:"6 days"},
-                  {id:"arnold",l:"Arnold Split",e:"🏆",rec:false,desc:"Arnold's 6-day double split · Max volume",days:"6 days"},
-                  {id:"ul",l:"Upper / Lower",e:"⬆️",rec:false,desc:"2 upper + 2 lower · Balanced strength",days:"4 days"},
-                ].map(s=>(
-                  <div key={s.id} style={{background:s.rec?"rgba(41,121,255,.08)":"#0D1828",border:`1px solid ${s.rec?"rgba(41,121,255,.3)":"#1C2A3A"}`,borderRadius:10,padding:"10px",marginBottom:7,position:"relative"}}>
-                    {s.rec&&<div style={{position:"absolute",top:-7,left:10,background:"#2979FF",color:"#fff",fontSize:7,fontWeight:800,padding:"2px 7px",borderRadius:5}}>⭐ RECOMMENDED</div>}
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{fontSize:14}}>{s.e}</span>
-                        <span style={{fontSize:10,fontWeight:700,color:s.rec?"#2979FF":"#ccc"}}>{s.l}</span>
-                      </div>
-                      <span style={{fontSize:7,color:"#4A6080",background:"#1C2A3A",borderRadius:5,padding:"2px 6px"}}>{s.days}</span>
-                    </div>
-                    <div style={{fontSize:8,color:"#4A6080"}}>{s.desc}</div>
-                  </div>
-                ))}
-                <div style={{background:"rgba(255,215,64,.06)",border:"1px solid rgba(255,215,64,.2)",borderRadius:10,padding:"10px",marginTop:4}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div><div style={{fontSize:9,color:"#FFD740",fontWeight:700}}>💀 GVT Weeks</div><div style={{fontSize:7,color:"#4A6080",marginTop:2}}>10×10 every 4th week · Auto-scheduled</div></div>
-                    <div style={{width:32,height:18,borderRadius:9,background:"#FFD740",position:"relative"}}><div style={{position:"absolute",top:2,right:2,width:14,height:14,borderRadius:"50%",background:"#000"}}/></div>
-                  </div>
-                </div>
-              </div>
-            )},
-            {title:"Progress Tracking",sub:"Program progress · PR tracker · Weight trend",
-             content:(
-              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div><div style={{fontSize:9,color:"#4A6080",letterSpacing:1}}>WEEK 4 OF 12</div><div style={{fontSize:15,fontWeight:800,color:"#fff"}}>Progress 📈</div></div>
-                  <div style={{background:"rgba(255,215,64,.1)",border:"1px solid rgba(255,215,64,.25)",borderRadius:20,padding:"4px 10px",fontSize:8,color:"#FFD740",fontWeight:700}}>PPL Split</div>
-                </div>
-                <div style={{background:"#0D1828",borderRadius:10,padding:10,marginBottom:10}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:9,color:"#888"}}>Program progress</span><span style={{fontSize:9,color:"#FFD740",fontWeight:700}}>33%</span></div>
-                  <div style={{height:5,background:"#1C2A3A",borderRadius:3,marginBottom:6}}><div style={{height:"100%",width:"33%",background:"linear-gradient(90deg,#2979FF,#FFD740)",borderRadius:3}}/></div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:7,color:"#4A6080"}}>
-                    <span>Week 1</span><span style={{color:"#FFD740"}}>Week 4 ←</span><span>Week 12</span>
-                  </div>
-                </div>
-                <div style={{background:"#0D1828",borderRadius:10,padding:10,marginBottom:10}}>
-                  <div style={{fontSize:8,color:"#4A6080",marginBottom:8}}>PERSONAL RECORDS</div>
-                  {[["Bench Press","225","↑ +20 lbs"],["Squat","315","↑ +35 lbs"],["Deadlift","365","↑ +40 lbs"]].map(([l,w,n])=>(
-                    <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                      <div><div style={{fontSize:8,color:"#ccc"}}>{l}</div><div style={{fontSize:7,color:"#00E676"}}>{n}</div></div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{w}<span style={{fontSize:8,color:"#4A6080"}}> lbs</span></div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{background:"#0D1828",borderRadius:10,padding:10}}>
-                  <div style={{fontSize:8,color:"#4A6080",marginBottom:6}}>WEIGHT TREND</div>
-                  <svg width="100%" height="44" viewBox="0 0 220 44">
-                    <path d="M0,36 L55,30 L110,24 L165,18 L220,12" fill="none" stroke="#2979FF" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.4"/>
-                    <path d="M0,36 L55,32 L110,27 L165,23" fill="none" stroke="#00E676" strokeWidth="2" strokeLinecap="round"/>
-                    {[[0,36],[55,32],[110,27],[165,23]].map(([x,y],i)=>(<circle key={i} cx={x} cy={y} r="3" fill="#00E676"/>))}
-                  </svg>
-                  <div style={{display:"flex",gap:12,marginTop:3}}>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:2,background:"#2979FF",opacity:.5}}/><span style={{fontSize:7,color:"#4A6080"}}>Projected</span></div>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:2,background:"#00E676"}}/><span style={{fontSize:7,color:"#4A6080"}}>Actual</span></div>
-                  </div>
-                </div>
-              </div>
-            )},
-            {title:"TDEE & Macros",sub:"25 data points · Katch-McArdle · Fully personalized",
-             content:(
-              <div style={{background:"#060D1A",padding:"16px 14px 14px",minHeight:480}}>
-                <div style={{width:40,height:4,background:"#1C2A3A",borderRadius:2,margin:"0 auto 14px"}}/>
-                <div style={{fontSize:9,color:"#4A6080",letterSpacing:1,marginBottom:4}}>YOUR METABOLISM</div>
-                <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:14}}>TDEE Breakdown</div>
-                <div style={{textAlign:"center",marginBottom:14}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:"#2979FF",lineHeight:1}}>2,847</div>
-                  <div style={{fontSize:9,color:"#4A6080"}}>kcal/day to maintain weight</div>
-                </div>
-                {[
-                  {l:"Base BMR",v:1842,pct:65,c:"#2979FF",note:"Mifflin-St Jeor + body fat adjusted"},
-                  {l:"Activity",v:712,pct:25,c:"#00E676",note:"6-10k steps + 4 training days/week"},
-                  {l:"TEF",v:293,pct:10,c:"#FFD740",note:"Thermic effect of food"},
-                ].map(({l,v,pct,c,note})=>(
-                  <div key={l} style={{marginBottom:10}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <div><div style={{fontSize:9,fontWeight:700,color:"#ccc"}}>{l}</div><div style={{fontSize:7,color:"#4A6080"}}>{note}</div></div>
-                      <div style={{textAlign:"right"}}><div style={{fontSize:11,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:7,color:"#4A6080"}}>kcal</div></div>
-                    </div>
-                    <div style={{height:4,background:"#1C2A3A",borderRadius:2}}><div style={{height:"100%",width:`${pct}%`,background:c,borderRadius:2}}/></div>
-                  </div>
-                ))}
-                <div style={{background:"rgba(0,230,118,.06)",border:"1px solid rgba(0,230,118,.15)",borderRadius:10,padding:"10px",marginTop:8}}>
-                  <div style={{fontSize:8,color:"#00E676",fontWeight:700,marginBottom:4}}>🎯 Your cutting target</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#00E676"}}>2,347 <span style={{fontSize:12,color:"#4A6080",fontWeight:400}}>kcal/day</span></div>
-                  <div style={{fontSize:8,color:"#4A6080",marginTop:2}}>−500 kcal deficit · ~1 lb/week fat loss</div>
-                </div>
-              </div>
-            )},
-          ].map((screen,i)=>(
-            <div key={i} className="snap-child" style={{width:240}}>
-              <div style={{background:"#0A1424",border:"1px solid #1C1C2E",borderRadius:32,overflow:"hidden",boxShadow:"0 20px 40px rgba(0,0,0,.6)"}}>
-                {screen.content}
-              </div>
-              <div style={{textAlign:"center",marginTop:14,padding:"0 8px"}}>
-                <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:3}}>{screen.title}</div>
-                <div style={{fontSize:11,color:"#4A6080",lineHeight:1.5}}>{screen.sub}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{textAlign:"center",marginTop:16,fontSize:12,color:"#333"}}>← Scroll to see all screens →</div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{padding:"80px 24px",background:"#060D1A"}}>
-        <div style={{textAlign:"center",marginBottom:64,maxWidth:1100,margin:"0 auto 64px"}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Simple by design</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(44px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
-            THREE STEPS.<br/><span style={{color:"#2979FF"}}>ONE SYSTEM.</span>
-          </div>
-          <p style={{fontSize:16,color:"#666",maxWidth:480,margin:"0 auto",lineHeight:1.65}}>No spreadsheets. No manual calculations. Coach Macro figures it out.</p>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:2,maxWidth:1100,margin:"0 auto",background:"#142238",border:"1px solid #1C1C1C",borderRadius:20,overflow:"hidden"}}>
+      <section className="lp-how" id="how">
+        <div className="lp-section-eyebrow">{`// Three Steps`}</div>
+        <h2 className="lp-section-title">THE SYSTEM</h2>
+        <div className="lp-how-grid">
           {[
-            {n:"01",color:"#2979FF",title:"Build your profile",sub:"3 minutes",
-             desc:"Answer 25 questions about your body, lifestyle, and goals. We calculate your exact metabolic rate using Katch-McArdle — 5-8% more accurate than standard equations.",
-             details:["Body stats + body fat estimate","Job, steps, sleep quality","Training frequency and intensity","Goal + timeline + the why"]},
-            {n:"02",color:"#00E676",title:"App adapts daily",sub:"Every morning",
-             desc:"Your macro targets change every day based on what's scheduled. Training day? Carbs go up. Rest day? Budget drops. Worked out extra? Budget adjusts automatically.",
-             details:["Training days get more carbs","Rest days reduce total budget","Workout calories added in real-time","Sleep and recovery factored in"]},
-            {n:"03",color:"#FFD740",title:"Track everything",sub:"In one place",
-             desc:"Log food by describing it in plain English, scanning a barcode, or letting our restaurant AI build your order. Every set logged, every rep counted, every PR tracked.",
-             details:["AI food logging — just describe it","Barcode scanner — 3M+ products","Restaurant AI — exact menu orders","Progressive overload auto-tracked"]},
-          ].map(({n,color,title,sub,desc,details})=>(
-            <div key={n} style={{background:"#080F1A",padding:"48px 40px",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-20,right:-20,fontFamily:"'Barlow Condensed',sans-serif",fontSize:120,fontWeight:900,color:`${color}06`,lineHeight:1,userSelect:"none"}}>{n}</div>
-              <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:48,height:48,borderRadius:12,background:`${color}15`,border:`1px solid ${color}30`,marginBottom:20}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color}}>{n}</div>
-              </div>
-              <div style={{fontSize:10,color,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{sub}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:14}}>{title}</div>
-              <p style={{fontSize:14,color:"#666",lineHeight:1.75,marginBottom:20}}>{desc}</p>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {details.map(d=>(<div key={d} style={{display:"flex",alignItems:"center",gap:10,fontSize:13,color:"#888"}}>
-                  <div style={{width:5,height:5,borderRadius:"50%",background:color,flexShrink:0}}/>
-                  {d}
-                </div>))}
-              </div>
+            {n:'01',step:'Step One',title:'Build Your Profile',body:<>Three minutes. 25 data points. We calculate your <strong>exact metabolic rate</strong> — 8% more accurate than standard equations. This is the foundation everything else builds on.</>},
+            {n:'02',step:'Step Two',title:'App Adapts Daily',body:<>Training day? <strong>Carbs go up.</strong> Rest day? Budget drops. Just finished a workout? Calories adjust in real time. Your plan changes before you even log your first meal.</>},
+            {n:'03',step:'Step Three',title:'Track Everything',body:<>Food. Lifts. Sets. PRs. Recovery. Progress. <strong>One place. One system.</strong> Finally. No more switching between apps that don't know the other exists.</>},
+          ].map(card=>(
+            <div className="lp-how-card fade-up" key={card.n}>
+              <div className="lp-how-number">{card.n}</div>
+              <div className="lp-how-step">{`// ${card.step}`}</div>
+              <div className="lp-how-card-title">{card.title}</div>
+              <p className="lp-how-card-body">{card.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* COMPETITOR COMPARISON */}
-      <section style={{padding:"80px 24px",background:"#04080F"}}>
-        <div style={{textAlign:"center",marginBottom:48,maxWidth:1100,margin:"0 auto 48px"}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Honest comparison</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(40px,5.5vw,72px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
-            HOW WE STACK UP<br/><span style={{color:"#2979FF"}}>AGAINST THE REST.</span>
-          </div>
-        </div>
-        <div style={{maxWidth:1000,margin:"0 auto",overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",minWidth:640}}>
+      {/* COMPARE */}
+      <section className="lp-compare">
+        <div className="lp-grid-texture" style={{position:'absolute',inset:0,pointerEvents:'none'}}/>
+        <div className="lp-compare-inner">
+          <div className="lp-section-eyebrow">{`// The Difference`}</div>
+          <h2 className="lp-section-title fade-up">EVERY OTHER APP<br/>MISSES THIS.</h2>
+          <table className="lp-compare-table">
             <thead>
               <tr>
-                <th style={{padding:"14px 20px",textAlign:"left",fontSize:11,color:"#4A6080",fontWeight:700,letterSpacing:2,textTransform:"uppercase",background:"#080F1A",borderBottom:"1px solid #1C1C1C"}}>Feature</th>
-                {[["MyFitnessPal","#888","#fff"],["MacroFactor","#888","#fff"],["Cronometer","#888","#fff"],["Coach Macro","#2979FF","#060D1A"]].map(([name,tc,bg])=>(
-                  <th key={name} style={{padding:"14px 16px",textAlign:"center",fontSize:12,color:tc,fontWeight:800,background:bg==="#060D1A"?"#060D1A":"#fff",borderBottom:`1px solid ${bg==="#060D1A"?"#1C2A4A":"#E5E5E5"}`,borderLeft:"1px solid #1C1C1C"}}>{name}</th>
-                ))}
+                <th/>
+                <th className="col-other">MyFitnessPal /<br/>Cronometer</th>
+                <th className="col-other">Strong /<br/>Hevy</th>
+                <th className="col-cm">CoachMacro</th>
               </tr>
             </thead>
             <tbody>
-              {[
-                ["Dynamic macros (train vs rest days)","❌","❌","❌","✅"],
-                ["Workout tracking built in","❌","❌","❌","✅"],
-                ["Workouts earn extra calories","❌","❌","❌","✅"],
-                ["Restaurant AI (exact orders)","❌","❌","❌","✅"],
-                ["Muscle volume optimization","❌","❌","❌","✅"],
-                ["Progressive overload tracking","❌","❌","❌","✅"],
-                ["Hyrox programming","❌","❌","❌","✅"],
-                ["AI food logging (plain English)","❌","❌","❌","✅"],
-                ["Split recommendation by days/week","❌","❌","❌","✅"],
-                ["GVT periodization built in","❌","❌","❌","✅"],
-                ["Barcode scanner","✅","✅","✅","✅"],
-                ["Macro tracking","✅","✅","✅","✅"],
-                ["Free trial","✅","✅","❌","✅"],
-              ].map(([feature,...vals],ri)=>(
-                <tr key={feature} style={{borderBottom:"1px solid #111"}}>
-                  <td style={{padding:"12px 20px",fontSize:13,color:"#888",background:"#080F1A"}}>{feature}</td>
-                  {vals.map((v,ci)=>(
-                    <td key={ci} style={{padding:"12px 16px",textAlign:"center",fontSize:15,background:ci===3?"#060D1A":"#fff",borderLeft:"1px solid #1C1C1C",color:ci===3?(v==="✅"?"#2979FF":"#333"):(v==="✅"?"#1C2A3A":"#ccc"),fontWeight:v==="✅"?"700":"400"}}>{v}</td>
-                  ))}
+              {['Adapts macros to training day','Adjusts calories post-workout','Muscle recovery tracking','Unified food + lifting log','Real-time TDEE calculation','AI restaurant & food scan','Periodized training plans','RPE-based load adjustment','Sleep & recovery integration','Progress + body comp tracking'].map((f,i)=>(
+                <tr key={i}>
+                  <td>{f}</td>
+                  <td className="col-other"><span className="lp-cross">✕</span></td>
+                  <td className="col-other"><span className="lp-cross">✕</span></td>
+                  <td className="col-cm"><span className="lp-check">✓</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p style={{textAlign:"center",fontSize:12,color:"#333",marginTop:20,maxWidth:600,margin:"16px auto 0"}}>Based on publicly available feature information as of 2026. All trademarks are property of their respective owners.</p>
+      </section>
+
+      {/* SCREENS */}
+      <ScreensSection/>
+
+      {/* PROOF */}
+      <section className="lp-proof">
+        <div className="lp-section-eyebrow">{`// Athlete Results`}</div>
+        <h2 className="lp-section-title fade-up">THE NUMBERS<br/>DON'T LIE.</h2>
+        <div className="lp-proof-stats">
+          {[{num:'40',suffix:'%',label:'Of athletes underfuel without realizing it'},{num:'2x',suffix:'',label:'Faster recovery when carbs match training load'},{num:'94',suffix:'%',label:'Report better performance in 30 days'}].map(s=>(
+            <div className="lp-proof-stat fade-up" key={s.num}>
+              <div className="lp-proof-stat-num">{s.num}<span>{s.suffix}</span></div>
+              <div className="lp-proof-stat-label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="lp-testimonials">
+          {[
+            {text:"I've been using MyFitnessPal for 4 years. This is what MFP should have been the whole time. My macros actually match what I'm doing in the gym.",name:'Marcus T.',role:'Powerlifter · 4 years training'},
+            {text:"Training for Hyrox. Calorie adjustment on hard run days vs strength days is the exact thing I needed. I'm not underfueling for the first time in two years.",name:'Jess L.',role:'Hyrox Athlete · 3x finisher'},
+            {text:"The muscle recovery map made me realize I was training the same muscles three days in a row. My progress exploded once I actually programmed around recovery.",name:'Ryan K.',role:'Hybrid Athlete · 5 days/wk'},
+          ].map(t=>(
+            <div className="lp-testimonial fade-up" key={t.name}>
+              <div className="lp-testimonial-text">{t.text}</div>
+              <div>
+                <div className="lp-testimonial-name">{t.name}</div>
+                <div className="lp-testimonial-role">{t.role}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section className="lp-pricing" id="pricing">
+        <div className="lp-section-eyebrow">{`// Simple Pricing`}</div>
+        <h2 className="lp-section-title fade-up">NO SURPRISES.<br/>START FREE.<br/>STAY BECAUSE IT WORKS.</h2>
+        <div className="lp-pricing-grid">
+          <div className="lp-pricing-card lp-liquid-glass">
+            <div className="lp-pricing-plan">Monthly</div>
+            <div className="lp-pricing-price"><sup>$</sup>4.99</div>
+            <div className="lp-pricing-period">per month · billed monthly</div>
+            <ul className="lp-pricing-features">
+              {pricingFeatures.map(f=><li key={f}>{f}</li>)}
+            </ul>
+            <button className="lp-pricing-cta secondary lp-tilt" data-tilt onClick={onSignUp}>Start Free Trial</button>
+          </div>
+          <div className="lp-pricing-card featured lp-liquid-glass">
+            <div className="lp-pricing-badge">Most Popular</div>
+            <div className="lp-pricing-plan">Annual</div>
+            <div className="lp-pricing-price"><sup>$</sup>19.99</div>
+            <div className="lp-pricing-period">per year · $1.67/month · saves 67%</div>
+            <ul className="lp-pricing-features">
+              {pricingFeatures.map(f=><li key={f}>{f}</li>)}
+              <li style={{color:'var(--white)'}}>Priority support</li>
+            </ul>
+            <button className="lp-pricing-cta primary lp-tilt" data-tilt onClick={onSignUp}>Start Free Trial</button>
+            <div className="lp-pricing-value">Less than one PT session per year.</div>
+          </div>
+        </div>
+        <div style={{textAlign:'center',marginTop:24,fontFamily:'var(--mono)',fontSize:11,color:'rgba(245,245,240,0.3)',letterSpacing:'0.08em'}}>
+          7-day free trial · Cancel anytime
+        </div>
       </section>
 
       {/* FAQ */}
-      <section style={{padding:"80px 24px",background:"#060D1A"}}>
-        <div style={{textAlign:"center",marginBottom:56}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Got questions</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(44px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9}}>
-            FREQUENTLY<br/><span style={{color:"#2979FF"}}>ASKED.</span>
+      <FaqSection/>
+
+      {/* FINAL CTA */}
+      <section className="lp-final-cta">
+        <div className="lp-grid-texture" style={{position:'absolute',inset:0,pointerEvents:'none'}}/>
+        <div className="lp-final-cta-inner">
+          <div className="lp-final-headline">
+            STOP GUESSING.
+            <span>START KNOWING.</span>
+          </div>
+          <button className="lp-final-cta-btn lp-tilt" data-tilt onClick={onSignUp}>
+            Start Your Free Trial <span>→</span>
+          </button>
+          <div style={{marginTop:20,fontFamily:'var(--mono)',fontSize:11,color:'rgba(245,245,240,0.3)',letterSpacing:'0.1em',textTransform:'uppercase'}}>
+            7 days free · Cancel anytime
           </div>
         </div>
-        <div style={{maxWidth:720,margin:"0 auto",display:"flex",flexDirection:"column",gap:0}}>
-          {[
-            {q:"Is this just for bodybuilders?",a:"Not at all. Coach Macro works for anyone with a physical goal — cutting, bulking, maintaining, running a 5K, training for Hyrox, or just eating better. The onboarding builds a plan around what you actually do, not a generic template."},
-            {q:"What makes the macros 'dynamic'?",a:"Most apps give you the same numbers every day. Coach Macro changes your targets every morning based on what's scheduled. Training day? You get more carbs to fuel performance and recovery. Rest day? Budget drops. Do an extra workout? Your calories adjust in real-time."},
-            {q:"Do I need to count every calorie perfectly?",a:"No. The AI food logging lets you describe meals in plain English — 'a big bowl of pasta with chicken and olive oil' — and it estimates the macros. It's not perfect but it's fast, and consistent logging beats perfect logging every time."},
-            {q:"What is the 7-day free trial?",a:"You get full access to everything for 7 days. No credit card required to start. If you want to keep using it after day 7, you choose a plan. If not, you walk away and owe nothing."},
-            {q:"Does it work for running and Hyrox?",a:"Yes. Coach Macro has structured run plans (5K through marathon), a full 12-week Hyrox prep program with race simulations, and hybrid templates that mix lifting and running. Your nutrition adjusts based on whether it's a run day or a lift day."},
-            {q:"Can I use it without going to a gym?",a:"Yes. Equipment options include full gym, home gym, dumbbells only, and bodyweight only. The workout builder substitutes exercises based on what you have access to."},
-            {q:"What happens to my data if I cancel?",a:"Your data stays in your account for 30 days after cancellation. You can export or delete it at any time. We don't sell your data to anyone."},
-            {q:"How is this different from MyFitnessPal?",a:"MyFitnessPal tracks food. That's it. Coach Macro tracks food AND workouts, and makes them talk to each other. Your workout earns calories. Your training schedule changes your macros. It's one system instead of two apps that never communicate."},
-          ].map(({q,a},i)=>(<FAQItem key={i} q={q} a={a}/>))}
-        </div>
-      </section>
-
-            {/* INTEGRATIONS */}
-      <section style={{padding:"64px 24px",background:"#060D1A"}}>
-        <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"#4A4A4A",marginBottom:14}}>Connect</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(40px,6vw,72px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
-            EVERY WORKOUT<br/><span style={{color:"#2979FF"}}>EARNS CALORIES.</span>
-          </div>
-          <p style={{fontSize:16,color:"#666",maxWidth:480,margin:"0 auto",lineHeight:1.65}}>Burned calories flow straight into your Fuel budget. Connect once, syncs automatically.</p>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,maxWidth:1100,margin:"0 auto"}}>
-          {[["🟠","Strava","Runs · Rides · Workouts","Live API Sync"],["🍎","Apple Health","Workouts · Steps · Sleep","Import"],["⌚","Garmin Connect","Activities · HR · Pace","Import"],["💜","Fitbit","Workouts · Steps","Import"]].map(([icon,name,sub,badge])=>(
-            <div key={name} style={{background:"#0A1220",border:"1px solid #1C1C1C",borderRadius:14,padding:22}}>
-              <div style={{fontSize:26,marginBottom:10}}>{icon}</div>
-              <div style={{fontSize:15,fontWeight:700,marginBottom:3,color:"#fff"}}>{name}</div>
-              <div style={{fontSize:12,color:"#666",marginBottom:8}}>{sub}</div>
-              <div style={{display:"inline-block",fontSize:9,fontWeight:700,letterSpacing:1,color:"#00E676",background:"rgba(0,230,118,.08)",border:"1px solid rgba(0,230,118,.15)",borderRadius:20,padding:"3px 10px"}}>{badge}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-            {/* PRICING */}
-      <section style={{padding:"64px 24px",textAlign:"center",background:"#04080F"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(48px,6vw,80px)",fontWeight:900,fontStyle:"italic",lineHeight:.9,marginBottom:16}}>
-          START FREE.<br/><span style={{color:"#2979FF"}}>STAY BECAUSE IT WORKS.</span>
-        </div>
-        <p style={{fontSize:16,color:"#666",maxWidth:480,margin:"0 auto 48px",lineHeight:1.65}}>7 days free. No credit card required. Cancel before day 8 and pay nothing.</p>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:14,maxWidth:760,margin:"0 auto"}}>
-          {[{t:"Monthly",p:"$4.99",per:"/mo",s:"billed monthly",note:"Today: $0.00",featured:false},
-            {t:"Yearly",p:"$19.99",per:"/yr",s:"$1.67/month · 67% off",note:"Today: $0.00",featured:true}
-          ].map(({t,p,per,s,note,featured})=>(
-            <div key={t} style={{background:featured?"#050A14":"#0A1220",border:`1.5px solid ${featured?"rgba(41,121,255,.3)":"#142238"}`,borderRadius:18,padding:"36px 32px",position:"relative"}}>
-              {featured&&<div style={{position:"absolute",top:-11,left:"50%",transform:"translateX(-50%)",background:"#2979FF",color:"#fff",fontSize:9,fontWeight:800,padding:"4px 14px",borderRadius:9,letterSpacing:1.5,whiteSpace:"nowrap"}}>BEST VALUE</div>}
-              <div style={{fontSize:10,color:"#4A4A4A",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:14}}>{t}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:68,fontWeight:900,lineHeight:1,letterSpacing:-2,color:featured?"#2979FF":"#fff",marginBottom:4}}>{p}<span style={{fontSize:22,fontWeight:400,color:"#4A4A4A"}}>{per}</span></div>
-              <div style={{fontSize:13,color:"#4A4A4A",marginBottom:6}}>{s}</div>
-              <div style={{fontSize:13,color:"#00E676",fontWeight:700,marginBottom:24}}>{note} — 7 days free</div>
-              <button onClick={onSignUp} style={{display:"block",width:"100%",textAlign:"center",padding:"15px",borderRadius:10,fontWeight:700,fontSize:15,cursor:"pointer",border:"none",fontFamily:"'Inter',sans-serif",background:featured?"#2979FF":"#142238",color:"#fff"}}>Start Free Trial →</button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section style={{padding:"72px 24px",textAlign:"center"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:"clamp(56px,8vw,112px)",fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:18}}>
-          STOP GUESSING.<br/><span style={{color:"#2979FF"}}>START KNOWING.</span>
-        </div>
-        <p style={{fontSize:17,color:"#666",maxWidth:420,margin:"0 auto 32px",lineHeight:1.65}}>Your macros. Your workouts. Your data. One system built around how your body actually works.</p>
-        <Btn style={{fontSize:17,padding:"17px 40px"}}>Start Free for 7 Days →</Btn>
-        <div style={{fontSize:13,color:"#142238",marginTop:14}}>No credit card · Free trial · Cancel anytime</div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{borderTop:"1px solid #1C1C1C",padding:"28px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <Logo size={22} text={true}/>
+      <footer className="lp-footer">
+        <div className="lp-footer-logo">Coach<span>Macro</span></div>
+        <div className="lp-footer-links">
+          <button className="lp-footer-link">Privacy</button>
+          <button className="lp-footer-link">Terms</button>
+          <button className="lp-footer-link">Contact</button>
         </div>
-        <div style={{fontSize:12,color:"#142238"}}>© 2026 Coach Macro. All rights reserved.</div>
+        <div className="lp-footer-copy">© 2026 CoachMacro · All rights reserved</div>
       </footer>
     </div>
   );
