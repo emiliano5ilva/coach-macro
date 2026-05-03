@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 
 export const T = {
-  bg:   "#0a0e1a", // --navy
-  s1:   "#161e35", // --navy-light / cards
-  s2:   "#111827", // --navy-card / inner cards
-  s3:   "#0f1628", // --navy-mid / inputs
-  bd:   "rgba(245,245,240,0.08)", // --white-border
-  mu:   "rgba(245,245,240,0.4)",  // --white-faint muted
-  dim:  "#0f1628",
-  prot: "#e8341c", // --red primary accent
-  carb: "#60a5fa", // --blue carbs
-  fat:  "#f59e0b", // --amber fat
-  red:  "#e8341c", // error / danger / primary
-  white:"#f5f5f0", // --white warm
-  green:"#22c55e", // success green
+  bg:   "#050810",
+  s1:   "#161e35",
+  s2:   "#111827",
+  s3:   "#0f1628",
+  bd:   "rgba(245,245,240,0.08)",
+  mu:   "rgba(245,245,240,0.4)",
+  dim:  "rgba(245,245,240,0.65)",
+  prot: "#e8341c",
+  carb: "#60a5fa",
+  fat:  "#f59e0b",
+  red:  "#e8341c",
+  white:"#f5f5f0",
+  green:"#22c55e",
 };
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
@@ -202,8 +202,8 @@ export function useCountUp(target, dur=1400) {
 export const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body,#root{height:100%;background:${T.bg}}
-  body{font-family:'Barlow',system-ui,-apple-system,sans-serif;color:${T.white};-webkit-font-smoothing:antialiased}
+  html,body,#root{height:100%}
+  body{font-family:'Barlow',system-ui,-apple-system,sans-serif;color:${T.white};-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(96,165,250,0.06),transparent 50%)}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:rgba(245,245,240,0.12);border-radius:2px}
@@ -233,7 +233,7 @@ export function Ring({value,max,color,size=140,sw=11}) {
   const r=(size-sw)/2, circ=2*Math.PI*r, pct=Math.min(Math.max(value/max,0),1);
   return (
     <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.s3} strokeWidth={sw}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(245,245,240,0.08)" strokeWidth={sw}/>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={sw}
         strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} strokeLinecap="round"
         style={{transition:"stroke-dashoffset 0.6s ease"}}/>
@@ -271,7 +271,7 @@ export function MacroBar({label,consumed,target,color}) {
         <span style={{color,fontSize:10,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{label}</span>
         <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:T.white}}>{consumed}g <span style={{color:T.mu}}>/ {target}g</span></span>
       </div>
-      <div style={{height:4,background:T.s3,borderRadius:2,overflow:"hidden"}}>
+      <div style={{height:4,background:"rgba(245,245,240,0.08)",borderRadius:2,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${pct*100}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
       </div>
       <div style={{fontSize:10,color:T.mu,marginTop:4,fontFamily:"'DM Mono',monospace"}}>{rem>0?`${rem}g remaining`:"✓ Hit"}</div>
@@ -283,7 +283,7 @@ export function Toggle({on,onChange,label,sub}) {
   return (
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${T.bd}`}}>
       <div><div style={{fontSize:14,color:on?T.white:T.mu,fontFamily:"'Barlow',sans-serif"}}>{label}</div>{sub&&<div style={{fontSize:11,color:T.mu,marginTop:2,fontFamily:"'DM Mono',monospace"}}>{sub}</div>}</div>
-      <div onClick={()=>onChange(!on)} style={{width:44,height:24,borderRadius:12,background:on?T.prot:T.s3,cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:on?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
+      <div onClick={()=>onChange(!on)} style={{width:44,height:24,borderRadius:12,background:on?T.prot:"rgba(245,245,240,0.15)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:on?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
         <div style={{width:18,height:18,borderRadius:9,background:"#fff"}}/>
       </div>
     </div>
@@ -356,7 +356,7 @@ export function SectionCard({title,children,action}) {
   return (
     <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,overflow:"hidden",marginBottom:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 20px",borderBottom:`1px solid ${T.bd}`}}>
-        <div style={{fontSize:11,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",color:T.prot,fontFamily:"'DM Mono',monospace"}}>{title}</div>
+        <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>{title}</div>
         {action}
       </div>
       <div style={{padding:"16px 20px"}}>{children}</div>
@@ -760,7 +760,7 @@ export function MuscleMap({dayFocus, isMobile}) {
 
       {/* Volume list */}
       <div>
-        <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>Weekly Volume</div>
+        <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:14}}>Weekly Volume</div>
         <div style={{display:"flex",flexDirection:"column",gap:0}}>
           {[
             {m:"chest",l:"Chest"},{m:"shoulders",l:"Shoulders"},
@@ -777,7 +777,7 @@ export function MuscleMap({dayFocus, isMobile}) {
             const c=optimal?"#E8185A":low?"#C0392B":sets===0?"#2A3A50":"#6B2D5E";
             const isSel=selected===m;
             return(
-              <div key={m} onClick={()=>setSelected(isSel?null:m)} style={{padding:"8px 0",borderBottom:`1px solid ${T.dim}`,cursor:"pointer",background:isSel?`${T.prot}06`:"transparent",paddingLeft:isSel?8:0,transition:"all .15s",borderRadius:isSel?6:0}}>
+              <div key={m} onClick={()=>setSelected(isSel?null:m)} style={{padding:"8px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`,cursor:"pointer",background:isSel?`${T.prot}06`:"transparent",paddingLeft:isSel?8:0,transition:"all .15s",borderRadius:isSel?6:0}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                   <span style={{fontSize:13,fontWeight:600,color:isSel?"#E8185A":"#ccc"}}>{l}</span>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>

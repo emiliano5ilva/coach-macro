@@ -154,7 +154,7 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
         {[{v:"thyroid",l:"Thyroid condition",sub:"Reduces BMR by up to 25%"},{v:"pcos",l:"PCOS",sub:"Affects insulin sensitivity and fat storage"},{v:"diabetes",l:"Type 1 or 2 Diabetes",sub:"Impacts glucose metabolism"},{v:"meds",l:"Weight-affecting medication",sub:"Many medications alter metabolism"},{v:"none",l:"None of the above"}].map(o=>(
           <div key={o.v} onClick={()=>toggle(o.v)} style={{background:d.conditions.includes(o.v)?`${T.prot}08`:T.s2,border:`1.5px solid ${d.conditions.includes(o.v)?T.prot:T.bd}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
             <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:d.conditions.includes(o.v)?T.prot:"#fff"}}>{o.l}</div>{o.sub&&<div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>}</div>
-            <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.conditions.includes(o.v)?T.prot:T.dim}`,background:d.conditions.includes(o.v)?T.prot:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.conditions.includes(o.v)?T.prot:T.bd}`,background:d.conditions.includes(o.v)?T.prot:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               {d.conditions.includes(o.v)&&<div style={{fontSize:11,color:"#000",fontWeight:800}}>✓</div>}
             </div>
           </div>
@@ -616,7 +616,7 @@ Rules:
               <button key={item.id} onClick={()=>setSection(item.id)}
                 style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:4,
                   background:section===item.id?`${T.prot}12`:"none",
-                  color:section===item.id?T.prot:T.mu,
+                  color:section===item.id?T.white:T.mu,
                   fontSize:15,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",
                   borderLeft:section===item.id?`3px solid ${T.prot}`:"3px solid transparent",
                   transition:"all 0.15s"}}>
@@ -685,12 +685,42 @@ Rules:
 
         {/* Mobile bottom nav */}
         {isMobile&&(
-          <div style={{position:"sticky",bottom:0,background:`${T.bg}f5`,backdropFilter:"blur(16px)",borderTop:`1px solid ${T.bd}`,display:"flex",zIndex:50,flexShrink:0,paddingBottom:"env(safe-area-inset-bottom)"}}>
+          <div style={{
+            position:"sticky", bottom:0,
+            background:"rgba(10,14,26,0.7)",
+            backdropFilter:"blur(28px) saturate(180%)",
+            WebkitBackdropFilter:"blur(28px) saturate(180%)",
+            borderTop:"1px solid rgba(245,245,240,0.06)",
+            display:"flex", zIndex:50, flexShrink:0,
+            padding:"8px 8px 22px",
+            paddingBottom:"max(22px, env(safe-area-inset-bottom))"
+          }}>
             {NAV_ITEMS.map(item=>(
-              <button key={item.id} onClick={()=>setSection(item.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"10px 0",minHeight:56,fontSize:9,fontWeight:500,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",color:section===item.id?T.prot:T.mu,position:"relative",transition:"color 0.15s"}}>
-                <div style={{fontSize:20,marginBottom:3,filter:section===item.id?"drop-shadow(0 0 8px rgba(232,52,28,0.5))":"none",transition:"filter 0.15s"}}>{item.icon}</div>
-                {item.label}
-                {item.id==="connect"&&connCount>0&&<span style={{position:"absolute",top:6,left:"58%",background:T.prot,color:T.white,borderRadius:6,fontSize:8,fontWeight:800,padding:"0 3px",lineHeight:"12px"}}>{connCount}</span>}
+              <button key={item.id} onClick={()=>setSection(item.id)} style={{
+                flex:1, background:"none", border:"none", cursor:"pointer",
+                padding:"8px 4px", minHeight:56, display:"flex", flexDirection:"column",
+                alignItems:"center", gap:3, position:"relative",
+                color: section===item.id ? T.white : "rgba(245,245,240,0.4)",
+                transition:"color 0.2s"
+              }}>
+                <div style={{position:"relative"}}>
+                  {section===item.id && <div style={{
+                    position:"absolute", inset:"-8px -14px",
+                    background:"radial-gradient(circle, rgba(232,52,28,0.25), transparent 70%)",
+                    zIndex:-1, pointerEvents:"none"
+                  }}/>}
+                  <div style={{fontSize:22}}>{item.icon}</div>
+                </div>
+                <div style={{
+                  fontFamily:"'DM Mono',monospace", fontSize:9,
+                  letterSpacing:"0.1em", textTransform:"uppercase",
+                  color: section===item.id ? T.prot : "rgba(245,245,240,0.4)"
+                }}>{item.label}</div>
+                {item.id==="connect"&&connCount>0&&<span style={{
+                  position:"absolute",top:6,left:"58%",
+                  background:T.prot,color:T.white,borderRadius:6,
+                  fontSize:8,fontWeight:800,padding:"0 3px",lineHeight:"12px"
+                }}>{connCount}</span>}
               </button>
             ))}
           </div>

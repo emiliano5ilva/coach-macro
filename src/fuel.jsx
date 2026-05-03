@@ -78,8 +78,8 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             {/* FOOD LOG */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={{fontSize:13,fontWeight:700}}>Today&apos;s Log</div>
-                <button onClick={()=>setFuelScreen("log")} style={{background:T.prot,color:T.white,border:"none",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:0.5}}>+ Add Food</button>
+                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Today&apos;s Log</div>
+                <button onClick={()=>setFuelScreen("log")} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Add Food</button>
               </div>
               {log.length===0
                 ?<div style={{textAlign:"center",padding:"28px 0",color:T.mu,border:`1px dashed ${T.bd}`,borderRadius:12}}>
@@ -89,26 +89,26 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
                 </div>
                 :<div>
                   {log.slice(0,8).map((item,i)=>(
-                    <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<Math.min(log.length,8)-1?`1px solid ${T.dim}`:""}}>
+                    <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<Math.min(log.length,8)-1?`1px solid rgba(245,245,240,0.05)`:""}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
                         <div style={{width:34,height:34,borderRadius:10,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{item.method==="barcode"?"📷":item.method==="quick"?"✏️":"🧠"}</div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
-                          <div style={{fontSize:10,color:T.mu,marginTop:2}}>
+                          <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
+                          <div style={{fontSize:10,color:T.mu,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
                             <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
                           </div>
                         </div>
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
                         <div style={{textAlign:"right"}}>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{item.calories}</div>
-                          <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
+                          <div style={{fontSize:9,color:T.mu,fontFamily:"'DM Mono',monospace"}}>kcal</div>
                         </div>
                         <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                       </div>
                     </div>
                   ))}
-                  {log.length>8&&<div style={{fontSize:12,color:T.mu,textAlign:"center",marginTop:10,paddingTop:10,borderTop:`1px solid ${T.dim}`}}>+{log.length-8} more entries</div>}
+                  {log.length>8&&<div style={{fontSize:12,color:T.mu,textAlign:"center",marginTop:10,paddingTop:10,borderTop:`1px solid rgba(245,245,240,0.05)`}}>+{log.length-8} more entries</div>}
                 </div>
               }
             </div>

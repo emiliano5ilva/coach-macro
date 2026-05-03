@@ -354,7 +354,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
             <div style={{fontSize:13,fontWeight:700,marginBottom:10,color:T.carb}}>{dayName}</div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
               {(GLUTE_PROGRAMS[split].workouts[dayName]||[]).map((ex,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:T.s2,borderRadius:8,border:`1px solid ${ex.primary?`${T.carb}30`:T.dim}`}}>
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:T.s2,borderRadius:8,border:`1px solid ${ex.primary?`${T.carb}30`:T.bd}`}}>
                   <div>
                     <span style={{fontSize:13,fontWeight:ex.primary?700:500,color:ex.primary?T.carb:"#ddd"}}>{ex.name}</span>
                     {ex.notes&&<div style={{fontSize:10,color:T.mu,marginTop:2,maxWidth:280}}>{ex.notes}</div>}
@@ -576,7 +576,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* WEEK SCHEDULE */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>This Week</div>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:14}}>This Week</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
                 {WDAYS.map(day=>{
                   const t=schedule[day];
@@ -584,7 +584,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const isT=day===todayKey;
                   const f=dayFocus[day];
                   return(
-                    <div key={day} style={{background:isT?`${T.prot}12`:T.s2,border:`1.5px solid ${isT?T.prot:T.dim}`,borderRadius:12,padding:"10px 4px",textAlign:"center",transition:"all .2s"}}>
+                    <div key={day} style={{background:isT?`${T.prot}12`:T.s2,border:`1.5px solid ${isT?T.prot:T.bd}`,borderRadius:12,padding:"10px 4px",textAlign:"center",transition:"all .2s"}}>
                       <div style={{fontSize:9,fontWeight:700,color:isT?T.prot:T.mu,marginBottom:4,letterSpacing:1}}>{day}</div>
                       <div style={{fontSize:18,marginBottom:4}}>{c.emoji}</div>
                       <div style={{fontSize:8,color:isT?T.prot:T.dim,lineHeight:1.2}}>{f?.slice(0,6)||"Rest"}</div>
@@ -596,7 +596,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* MUSCLE RECOVERY MAP */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>Muscle Recovery Map</div>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:4}}>Muscle Recovery Map</div>
               <div style={{fontSize:11,color:T.mu,marginBottom:16}}>Tap any muscle to see weekly volume status</div>
               <MuscleMap dayFocus={dayFocus} isMobile={isMobile}/>
             </div>
@@ -731,13 +731,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             <SectionCard title="Weekly Schedule">
               {WDAYS.map(day=>{const t=schedule[day];const c=DAY_CFG[t]||DAY_CFG.rest;const isT=day===todayKey;const f=dayFocus[day];return(
-                <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.dim}`}}>
+                <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontWeight:700,fontSize:13,color:isT?T.prot:"#fff",width:32}}>{day}</span>
                     <span style={{background:c.bg,color:c.color,fontSize:9,fontWeight:700,letterSpacing:1,padding:"2px 8px",borderRadius:20,textTransform:"uppercase"}}>{f}</span>
                   </div>
                   <div style={{display:"flex",gap:4}}>
-                    {["training","cardio","run","hyrox","rest"].map(tp=>(<button key={tp} onClick={()=>setSchedule(s=>({...s,[day]:tp}))} style={{fontSize:13,padding:"4px 6px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.dim}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",cursor:"pointer"}}>{(DAY_CFG[tp]||DAY_CFG.rest).emoji}</button>))}
+                    {["training","cardio","run","hyrox","rest"].map(tp=>(<button key={tp} onClick={()=>setSchedule(s=>({...s,[day]:tp}))} style={{fontSize:13,padding:"4px 6px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.bd}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",cursor:"pointer"}}>{(DAY_CFG[tp]||DAY_CFG.rest).emoji}</button>))}
                   </div>
                 </div>
               );})}
@@ -783,7 +783,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* PR Tracker */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontSize:13,fontWeight:700}}>Personal Records 🏆</div>
+                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Personal Records 🏆</div>
                 <div style={{fontSize:11,color:T.mu}}>Updated every session</div>
               </div>
               {Object.keys(history).length===0
@@ -830,7 +830,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* Weight Trend */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontSize:13,fontWeight:700}}>Weight Trend 📊</div>
+                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Weight Trend 📊</div>
                 <div style={{display:"flex",gap:8}}>
                   <div style={{fontSize:11,color:T.mu}}>Start: <b style={{color:"#fff"}}>{profile?.startWeight||"—"} {profile?.wUnit||"lbs"}</b></div>
                   {profile?.goalWeight&&<div style={{fontSize:11,color:T.mu}}>Goal: <b style={{color:T.carb}}>{profile?.goalWeight} {profile?.wUnit||"lbs"}</b></div>}
@@ -881,7 +881,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
       </div>
       {allActs.length>0&&<div style={{marginTop:16}}>
         <SectionCard title={`Activity Feed — ${allActs.length} total`}>
-          {allActs.slice(0,10).map(a=>(<div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${T.dim}`}}>
+          {allActs.slice(0,10).map(a=>(<div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}>
             <div style={{display:"flex",gap:10}}><div style={{fontSize:20}}>{a.icon}</div><div><div style={{fontSize:13,fontWeight:700}}>{a.title||a.type}</div><div style={{fontSize:11,color:T.mu}}>{a.sourceIcon} {a.source} · {a.date?new Date(a.date).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—"}</div></div></div>
             <div style={{textAlign:"right"}}>{isToday(a.date)&&<div style={{background:`${T.carb}20`,color:T.carb,fontSize:8,fontWeight:700,padding:"2px 7px",borderRadius:8,marginBottom:2}}>TODAY</div>}<div style={{color:T.fat,fontWeight:800,fontSize:14}}>{a.calories} kcal</div></div>
           </div>))}
@@ -1007,7 +1007,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={T.carb} stopOpacity=".15"/><stop offset="100%" stopColor={T.carb} stopOpacity="0"/></linearGradient>
               </defs>
               {/* Grid lines */}
-              {[0,25,50,75,100].map(y=>(<line key={y} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} stroke={T.dim} strokeWidth="0.5"/>))}
+              {[0,25,50,75,100].map(y=>(<line key={y} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} stroke="rgba(245,245,240,0.08)" strokeWidth="0.5"/>))}
               {/* Today marker */}
               <line x1={`${xScale(daysSinceStart)}%`} y1="0" x2={`${xScale(daysSinceStart)}%`} y2="100%" stroke={T.prot} strokeWidth="1" strokeDasharray="3,3" opacity="0.4"/>
               <text x={`${xScale(daysSinceStart)}%`} y="8" fill={T.prot} fontSize="7" textAnchor="middle" opacity="0.7">TODAY</text>
@@ -1048,7 +1048,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
         <SectionCard title="Your Profile">
           <div style={{display:"flex",flexDirection:"column",gap:0}}>
-            {[["Name",profile.name],["Goal",profile.goal],["Daily Target",`${profile.goalCals} kcal`],["Base TDEE",`${profile.baseTDEE} kcal`],["Start Weight",`${profile.startWeight||"—"} ${profile.wUnit||"lbs"}`],["Start Date",profile.startDate||"—"]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:`1px solid ${T.dim}`}}><span style={{fontSize:13,color:T.mu}}>{l}</span><span style={{fontSize:13,fontWeight:600}}>{v}</span></div>))}
+            {[["Name",profile.name],["Goal",profile.goal],["Daily Target",`${profile.goalCals} kcal`],["Base TDEE",`${profile.baseTDEE} kcal`],["Start Weight",`${profile.startWeight||"—"} ${profile.wUnit||"lbs"}`],["Start Date",profile.startDate||"—"]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}><span style={{fontSize:13,color:T.mu,fontFamily:"'Barlow',sans-serif"}}>{l}</span><span style={{fontSize:13,fontWeight:600}}>{v}</span></div>))}
           </div>
         </SectionCard>
 
@@ -1222,7 +1222,7 @@ export function Paywall({profile}) {
           <div style={{fontSize:13,color:T.carb,fontWeight:700,marginBottom:20}}>{p.note}</div>
           <div style={{display:'flex',flexDirection:'column',gap:0,marginBottom:24,borderTop:`1px solid ${T.bd}`,paddingTop:16}}>
             {['Everything in one app — Fuel + Train','Dynamic macros that shift daily with your schedule','AI food logging — describe any meal instantly','Progressive overload tracking — every set, every session','Restaurant AI, recipe generator, barcode scanner','Strava, Apple Health, Garmin, Fitbit integrations','Running plans, Hyrox mode, Hybrid athlete support'].map(f=>(
-              <div key={f} style={{display:'flex',gap:10,padding:'7px 0',borderBottom:`1px solid ${T.dim}`,fontSize:13,color:'#ccc',alignItems:'flex-start'}}>
+              <div key={f} style={{display:'flex',gap:10,padding:'7px 0',borderBottom:`1px solid rgba(245,245,240,0.05)`,fontSize:13,color:'#ccc',alignItems:'flex-start'}}>
                 <span style={{color:T.prot,fontWeight:800,flexShrink:0}}>✓</span>{f}
               </div>
             ))}
