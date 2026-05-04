@@ -17,6 +17,7 @@ const CSS = `
     --mono: 'DM Mono', monospace;
     --condensed: 'Barlow Condensed', sans-serif;
     --body: 'Barlow', sans-serif;
+    --blue: #2979FF;
   }
 
   .lp * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -210,26 +211,36 @@ const CSS = `
   .lp-testimonial-name { font-family: var(--condensed); font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--white); }
   .lp-testimonial-role { font-family: var(--mono); font-size: 10px; color: var(--white-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
 
-  /* PRICING */
-  .lp-pricing { background: var(--navy); padding: 140px 48px; }
-  .lp-pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; max-width: 800px; margin: 0 auto; }
-  .lp-pricing-card { background: var(--navy-light); padding: 48px 40px; position: relative; transition: transform 0.4s cubic-bezier(.2,.7,.3,1); }
-  .lp-pricing-card:hover { transform: translateY(-4px); }
-  .lp-pricing-card.featured { background: var(--navy-card); border: 1px solid rgba(232,52,28,0.3); }
-  .lp-pricing-badge { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--white); background: var(--red); padding: 5px 10px; margin-bottom: 24px; }
-  .lp-pricing-plan { font-family: var(--condensed); font-weight: 800; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white-dim); margin-bottom: 16px; }
-  .lp-pricing-price { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: 72px; line-height: 1; color: var(--white); margin-bottom: 4px; }
-  .lp-pricing-price sup { font-size: 32px; vertical-align: top; margin-top: 14px; font-style: normal; }
-  .lp-pricing-period { font-family: var(--body); font-size: 13px; color: var(--white-dim); margin-bottom: 32px; }
-  .lp-pricing-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
-  .lp-pricing-features li { font-family: var(--body); font-size: 14px; font-weight: 300; color: var(--white-dim); display: flex; align-items: center; gap: 10px; }
-  .lp-pricing-features li::before { content: '→'; color: var(--red); font-weight: 700; flex-shrink: 0; }
-  .lp-pricing-cta { display: block; text-align: center; font-family: var(--condensed); font-weight: 700; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; padding: 16px 32px; border: none; cursor: pointer; transition: all 0.2s; width: 100%; }
-  .lp-pricing-cta.primary { background: var(--red); color: var(--white); }
-  .lp-pricing-cta.primary:hover { background: var(--red-dim); }
-  .lp-pricing-cta.secondary { background: transparent; border: 1px solid var(--white-border); color: var(--white-dim); }
-  .lp-pricing-cta.secondary:hover { border-color: rgba(245,245,240,0.25); color: var(--white); }
-  .lp-pricing-value { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: rgba(245,245,240,0.35); text-align: center; margin-top: 14px; }
+  /* URL BANNERS */
+  .lp-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 300; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 13px 24px; font-family: var(--body); font-size: 13px; font-weight: 500; text-align: center; line-height: 1.4; }
+  .lp-banner-success { background: rgba(34,197,94,0.14); border-bottom: 1px solid rgba(34,197,94,0.28); color: #22c55e; }
+  .lp-banner-warning { background: rgba(245,158,11,0.14); border-bottom: 1px solid rgba(245,158,11,0.28); color: #f59e0b; }
+  .lp-banner-close { background: none; border: none; cursor: pointer; color: inherit; opacity: 0.55; font-size: 16px; line-height: 1; padding: 0; flex-shrink: 0; transition: opacity 0.15s; }
+  .lp-banner-close:hover { opacity: 1; }
+  .lp.has-banner .lp-nav { top: 48px; }
+
+  /* WAITLIST */
+  .lp-waitlist { background: var(--navy); padding: 140px 48px; position: relative; overflow: hidden; }
+  .lp-waitlist-inner { max-width: 600px; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+  .lp-waitlist-headline { font-family: var(--condensed); font-style: italic; font-weight: 900; font-size: clamp(80px, 10vw, 140px); line-height: 0.9; text-transform: uppercase; letter-spacing: -0.02em; color: var(--white); margin-bottom: 24px; }
+  .lp-waitlist-sub { font-family: var(--body); font-size: 18px; font-weight: 300; line-height: 1.65; color: var(--white-dim); max-width: 460px; margin: 0 auto 28px; }
+  .lp-waitlist-counter { display: inline-flex; align-items: center; gap: 8px; background: rgba(41,121,255,0.1); border: 1px solid rgba(41,121,255,0.2); padding: 8px 16px; margin-bottom: 40px; }
+  .lp-waitlist-counter-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: lp-pulse 2s infinite; }
+  .lp-waitlist-counter-text { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+  .lp-waitlist-form { display: flex; flex-direction: column; gap: 12px; max-width: 460px; margin: 0 auto 16px; }
+  .lp-waitlist-input { background: rgba(245,245,240,0.05); border: 1px solid var(--white-border); padding: 15px 20px; font-family: var(--body); font-size: 15px; color: var(--white); outline: none; transition: border-color 0.2s; width: 100%; }
+  .lp-waitlist-input::placeholder { color: rgba(245,245,240,0.3); }
+  .lp-waitlist-input:focus { border-color: rgba(41,121,255,0.5); }
+  .lp-waitlist-btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; font-family: var(--condensed); font-weight: 700; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white); background: var(--blue); border: none; cursor: pointer; transition: background 0.2s; width: 100%; }
+  .lp-waitlist-btn:hover:not(:disabled) { background: #1565c0; }
+  .lp-waitlist-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+  .lp-waitlist-error { font-family: var(--mono); font-size: 12px; color: var(--red); letter-spacing: 0.06em; }
+  .lp-waitlist-disclaimer { font-family: var(--mono); font-size: 11px; color: rgba(245,245,240,0.3); letter-spacing: 0.1em; text-transform: uppercase; }
+  .lp-waitlist-success { background: rgba(41,121,255,0.07); border: 1px solid rgba(41,121,255,0.2); padding: 44px 36px; text-align: center; max-width: 460px; margin: 0 auto; }
+  .lp-waitlist-success-title { font-family: var(--condensed); font-weight: 800; font-size: 28px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--white); margin-bottom: 12px; }
+  .lp-waitlist-success-text { font-family: var(--body); font-size: 15px; font-weight: 300; color: var(--white-dim); line-height: 1.7; margin: 0; }
+  @keyframes lp-spin { to { transform: rotate(360deg); } }
+  .lp-waitlist-spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: lp-spin 0.7s linear infinite; }
 
   /* FAQ */
   .lp-faq { background: var(--navy-mid); padding: 140px 48px; }
@@ -271,7 +282,7 @@ const CSS = `
     .lp-how-grid { grid-template-columns: 1fr; }
     .lp-proof-stats { grid-template-columns: 1fr; }
     .lp-testimonials { grid-template-columns: 1fr; }
-    .lp-pricing-grid { grid-template-columns: 1fr; }
+    .lp-waitlist { padding: 100px 24px; }
     .lp-footer { flex-direction: column; text-align: center; }
   }
 `;
@@ -576,6 +587,95 @@ function ScreensSection() {
   );
 }
 
+function WaitlistSection() {
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, firstName }),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="lp-waitlist" id="waitlist">
+      <div className="lp-grid-texture" style={{position:'absolute',inset:0,pointerEvents:'none'}}/>
+      <div className="lp-waitlist-inner">
+        {submitted ? (
+          <div className="lp-waitlist-success">
+            <div className="lp-waitlist-success-title">Check your inbox</div>
+            <p className="lp-waitlist-success-text">
+              Check your inbox — we just sent you a confirmation email
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="lp-section-eyebrow fade-up">{`// Waitlist`}</div>
+            <div className="lp-waitlist-headline fade-up">BE FIRST.</div>
+            <p className="lp-waitlist-sub fade-up">Join the waitlist. Get 30 days free at launch. No credit card ever.</p>
+            <div className="lp-waitlist-counter fade-up">
+              <div className="lp-waitlist-counter-dot"/>
+              <span className="lp-waitlist-counter-text">247 members already in line</span>
+            </div>
+            <form className="lp-waitlist-form fade-up" onSubmit={handleSubmit}>
+              <input
+                className="lp-waitlist-input"
+                type="text"
+                placeholder="First name"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                autoComplete="given-name"
+              />
+              <input
+                className="lp-waitlist-input"
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+              <button
+                className="lp-waitlist-btn lp-tilt"
+                data-tilt
+                type="submit"
+                disabled={loading}
+              >
+                {loading
+                  ? <span className="lp-waitlist-spinner"/>
+                  : 'Secure My Spot →'
+                }
+              </button>
+              {error && <div className="lp-waitlist-error">{error}</div>}
+            </form>
+            <div className="lp-waitlist-disclaimer fade-up">Confirmation email sent instantly. No spam. Ever.</div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function FaqSection() {
   const [open, setOpen] = useState(null);
   const faqs = [
@@ -612,28 +712,40 @@ export function LandingPage({ onSignUp }) {
   useLiquidEffects(containerRef);
   useScrollReveal(containerRef);
 
-  const pricingFeatures = [
-    'Adaptive daily macro targets',
-    'Unified food + lift tracking',
-    'Muscle recovery map',
-    'AI restaurant scanner',
-    'Personalized training plans',
-    'Real-time TDEE calculation',
-    'Progress & body comp tracking',
-  ];
+  const [waitlistBanner, setWaitlistBanner] = useState(null);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const w = p.get('waitlist');
+    if (w === 'confirmed') setWaitlistBanner('confirmed');
+    else if (w === 'invalid') setWaitlistBanner('invalid');
+  }, []);
 
   return (
-    <div className="lp" ref={containerRef}>
+    <div className={`lp${waitlistBanner ? ' has-banner' : ''}`} ref={containerRef}>
       <style>{CSS}</style>
 
       <div className="lp-cursor-glow"/>
+
+      {waitlistBanner === 'confirmed' && (
+        <div className="lp-banner lp-banner-success">
+          <span>Your spot is secured. See you at launch.</span>
+          <button className="lp-banner-close" onClick={() => setWaitlistBanner(null)}>✕</button>
+        </div>
+      )}
+      {waitlistBanner === 'invalid' && (
+        <div className="lp-banner lp-banner-warning">
+          <span>That link has expired. Enter your email again.</span>
+          <button className="lp-banner-close" onClick={() => setWaitlistBanner(null)}>✕</button>
+        </div>
+      )}
 
       {/* NAV */}
       <nav className="lp-nav">
         <span className="lp-nav-logo">Coach<span>Macro</span></span>
         <div className="lp-nav-links">
           <a href="#how" className="lp-nav-link">How It Works</a>
-          <a href="#pricing" className="lp-nav-link">Pricing</a>
+          <a href="#waitlist" className="lp-nav-link">Waitlist</a>
           <a href="#faq" className="lp-nav-link">FAQ</a>
           <button className="lp-nav-cta lp-tilt" data-tilt onClick={onSignUp}>Start Free Trial</button>
         </div>
@@ -788,37 +900,8 @@ export function LandingPage({ onSignUp }) {
         </div>
       </section>
 
-      {/* PRICING */}
-      <section className="lp-pricing" id="pricing">
-        <div className="lp-section-eyebrow">{`// Simple Pricing`}</div>
-        <h2 className="lp-section-title fade-up">NO SURPRISES.<br/>START FREE.<br/>STAY BECAUSE IT WORKS.</h2>
-        <div className="lp-pricing-grid">
-          <div className="lp-pricing-card lp-liquid-glass">
-            <div className="lp-pricing-plan">Monthly</div>
-            <div className="lp-pricing-price"><sup>$</sup>4.99</div>
-            <div className="lp-pricing-period">per month · billed monthly</div>
-            <ul className="lp-pricing-features">
-              {pricingFeatures.map(f=><li key={f}>{f}</li>)}
-            </ul>
-            <button className="lp-pricing-cta secondary lp-tilt" data-tilt onClick={onSignUp}>Start Free Trial</button>
-          </div>
-          <div className="lp-pricing-card featured lp-liquid-glass">
-            <div className="lp-pricing-badge">Most Popular</div>
-            <div className="lp-pricing-plan">Annual</div>
-            <div className="lp-pricing-price"><sup>$</sup>19.99</div>
-            <div className="lp-pricing-period">per year · $1.67/month · saves 67%</div>
-            <ul className="lp-pricing-features">
-              {pricingFeatures.map(f=><li key={f}>{f}</li>)}
-              <li style={{color:'var(--white)'}}>Priority support</li>
-            </ul>
-            <button className="lp-pricing-cta primary lp-tilt" data-tilt onClick={onSignUp}>Start Free Trial</button>
-            <div className="lp-pricing-value">Less than one PT session per year.</div>
-          </div>
-        </div>
-        <div style={{textAlign:'center',marginTop:24,fontFamily:'var(--mono)',fontSize:11,color:'rgba(245,245,240,0.3)',letterSpacing:'0.08em'}}>
-          7-day free trial · Cancel anytime
-        </div>
-      </section>
+      {/* WAITLIST */}
+      <WaitlistSection/>
 
       {/* FAQ */}
       <FaqSection/>
