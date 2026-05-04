@@ -109,7 +109,7 @@ function thankYouEmailHtml(firstName) {
         'Unified food + lifting tracker — one system, finally',
         'AI restaurant scanner for eating out without guessing',
         'Real-time TDEE that adjusts on rest vs. training days',
-        '30 days free at launch — no credit card, ever',
+        '30 days free at launch',
       ].map(item => `
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">

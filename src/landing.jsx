@@ -632,7 +632,7 @@ function WaitlistSection() {
           <>
             <div className="lp-section-eyebrow fade-up">{`// Waitlist`}</div>
             <div className="lp-waitlist-headline fade-up">BE FIRST.</div>
-            <p className="lp-waitlist-sub fade-up">Join the waitlist. Get 30 days free at launch. No credit card ever.</p>
+            <p className="lp-waitlist-sub fade-up">Join the waitlist. Get 30 days free at launch.</p>
             <div className="lp-waitlist-counter fade-up">
               <div className="lp-waitlist-counter-dot"/>
               <span className="lp-waitlist-counter-text">247 members already in line</span>
@@ -668,7 +668,7 @@ function WaitlistSection() {
               </button>
               {error && <div className="lp-waitlist-error">{error}</div>}
             </form>
-            <div className="lp-waitlist-disclaimer fade-up">Confirmation email sent instantly. No spam. Ever.</div>
+            <div className="lp-waitlist-disclaimer fade-up">Confirmation email sent instantly. No spam.</div>
           </>
         )}
       </div>
