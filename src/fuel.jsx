@@ -2,11 +2,42 @@ import React, { useState, useEffect, useRef } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
   hap, calcTDEE } from "./components.jsx";
+import { sb } from "./client.js";
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
+
+  // ── Weekend Flex Mode ─────────────────────────────────────────────────────
+  const flexOn=wPrefs?.weekendFlexMode||false;
+  const flexDays=wPrefs?.flexDays||["Sat","Sun"];
+  const flexPct=wPrefs?.flexCalorieIncrease||20;
+  const [dayModal,setDayModal]=useState(null);
+  const DAY_NAMES={Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday",Sat:"Saturday",Sun:"Sunday"};
+
+  async function saveFlexPrefs(newWPrefs){
+    setWPrefs(newWPrefs);
+    if(!user)return;
+    try{await sb.from("profiles").upsert({id:user.id,wprefs:newWPrefs},{onConflict:"id"});}
+    catch(e){console.error("[saveFlexPrefs]",e);}
+  }
+
+  function toggleFlexDay(day){
+    const cur=wPrefs?.flexDays||["Sat","Sun"];
+    const newFlex=cur.includes(day)?cur.filter(d=>d!==day):[...cur,day];
+    saveFlexPrefs({...(wPrefs||{}),flexDays:newFlex,weekendFlexMode:newFlex.length>0});
+  }
+
+  function setDayTypeInSchedule(day,type){
+    const cur=wPrefs?.flexDays||["Sat","Sun"];
+    const newFlex=cur.filter(d=>d!==day);
+    const newSch={...(schedule||{}),[day]:type};
+    if(setSchedule)setSchedule(newSch);
+    const newWPrefs={...(wPrefs||{}),flexDays:newFlex,weekendFlexMode:newFlex.length>0};
+    saveFlexPrefs(newWPrefs);
+    if(user)sb.from("profiles").upsert({id:user.id,schedule:newSch},{onConflict:"id"}).catch(e=>console.error("[setDayType]",e));
+  }
 
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
@@ -27,15 +58,16 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
         {fuelScreen==="home"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* MAIN CARD — ring + macros */}
-            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
+            <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.35)":T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${macros.isFlexDay?"#F59E0B":cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                 <div>
-                  <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{todayType} day</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>Fuel {cfg.emoji}</div>
+                  <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{macros.isFlexDay?"flex day":todayType+" day"}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>Fuel {macros.isFlexDay?"🍕":cfg.emoji}</div>
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
                   {earnedCals>0&&<div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>+{earnedCals} earned 🔥</div>}
+                  {macros.isFlexDay&&<div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontSize:11,color:"#F59E0B",fontWeight:700}}>🍕 Flex Day</div>}
                   <div style={{background:`${cfg.color}12`,border:`1px solid ${cfg.color}30`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
                 </div>
               </div>
@@ -61,9 +93,72 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
                   <MacroBar label="Protein" consumed={consumed.protein} target={macros.protein} color={T.prot}/>
                   <MacroBar label="Carbs"   consumed={consumed.carbs}   target={macros.carbs}   color={T.carb}/>
                   <MacroBar label="Fat"     consumed={consumed.fat}     target={macros.fat}     color={T.fat}/>
+                  {macros.isFlexDay&&<div style={{marginTop:10,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>🍕 Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
+                  {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:10,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days 🍕</div>}
                 </div>
               </div>
             </div>
+
+            {/* WEEKEND FLEX MODE */}
+            <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.3)":T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:flexOn?14:0}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:800,letterSpacing:"0.08em",color:flexOn?"#F59E0B":"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:flexOn?3:0}}>Weekend Flex 🍕</div>
+                  {flexOn&&<div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Weekday deficit covers weekend. Protein stays fixed.</div>}
+                </div>
+                <div onClick={()=>saveFlexPrefs({...(wPrefs||{}),weekendFlexMode:!flexOn,flexDays:!flexOn?["Sat","Sun"]:flexDays,flexCalorieIncrease:flexPct})}
+                  style={{width:44,height:24,borderRadius:12,background:flexOn?"#F59E0B":"rgba(245,245,240,0.15)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:flexOn?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
+                  <div style={{width:18,height:18,borderRadius:9,background:"#fff"}}/>
+                </div>
+              </div>
+              {flexOn&&(
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
+                  {WDAYS.map(day=>{
+                    const isToday=day===todayKey;
+                    const isFlex=flexDays.includes(day);
+                    const schedType=schedule?.[day]||"rest";
+                    const dayIcon=isFlex?"🍕":schedType==="training"?"🏋️":(schedType==="cardio"||schedType==="run"||schedType==="hyrox")?"🏃":"😴";
+                    return(
+                      <button key={day} onClick={()=>setDayModal(day)}
+                        style={{background:isToday?"rgba(41,121,255,.12)":isFlex?"rgba(245,158,11,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(41,121,255,.5)":isFlex?"rgba(245,158,11,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
+                        <div style={{fontSize:9,fontWeight:700,color:isToday?"#2979FF":isFlex?"#F59E0B":"rgba(245,245,240,.4)",marginBottom:3,letterSpacing:1}}>{day}</div>
+                        <div style={{fontSize:14}}>{dayIcon}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* PER-DAY MODAL */}
+            {dayModal&&(
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.88)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setDayModal(null)}>
+                <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+                  <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+                  <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>DAY SETTINGS</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,marginBottom:20}}>{DAY_NAMES[dayModal]||dayModal}</div>
+                  <div style={{display:"flex",gap:8,marginBottom:24}}>
+                    {[["🏋️","Training","training"],["😴","Rest","rest"],["🍕","Flex","flex"]].map(([emoji,label,type])=>{
+                      const isFlex=type==="flex";
+                      const isSelected=isFlex?flexDays.includes(dayModal):(!flexDays.includes(dayModal)&&(schedule?.[dayModal]||"rest")===type);
+                      return(
+                        <button key={type} onClick={()=>{if(type==="flex")toggleFlexDay(dayModal);else setDayTypeInSchedule(dayModal,type);setDayModal(null);}}
+                          style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,158,11,.15)":"rgba(41,121,255,.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,158,11,.5)":"rgba(41,121,255,.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                          <div style={{fontSize:22,marginBottom:4}}>{emoji}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"#F59E0B":"#2979FF"):"rgba(245,245,240,.5)"}}>{label}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{fontSize:12,color:"rgba(245,245,240,.35)",lineHeight:1.8,marginBottom:20}}>
+                    <span style={{color:"rgba(41,121,255,.8)"}}>Training</span> = higher carbs for workout fuel<br/>
+                    <span style={{color:"rgba(245,245,240,.5)"}}>Rest</span> = standard lower calories<br/>
+                    <span style={{color:"rgba(245,158,11,.8)"}}>Flex</span> = +{flexPct}% calories, protein stays fixed
+                  </div>
+                  <button onClick={()=>setDayModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Done</button>
+                </div>
+              </div>
+            )}
 
             {/* QUICK ACTIONS */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>

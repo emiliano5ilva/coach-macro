@@ -138,7 +138,8 @@ export function calcTDEE(p) {
   return { total:Math.round(tdee), bmr:Math.round(bmr), activity:Math.round(tdee-bmr-Math.round(tdee*0.08)), tef:Math.round(tdee*0.08) };
 }
 
-export function getDayMacros(baseCals, goal, dayType, earnedCals=0) {
+export function getDayMacros(baseCals, goal, dayType, earnedCals=0, opts={}) {
+  const {weekendFlexMode=false,flexDays=["Sat","Sun"],flexCalorieIncrease=20,todayKey=""}=opts;
   const mult = {
     training:{Bulk:1.15,Cut:1.05,Maintain:1.10},
     cardio:  {Bulk:1.00,Cut:0.90,Maintain:0.95},
@@ -154,9 +155,24 @@ export function getDayMacros(baseCals, goal, dayType, earnedCals=0) {
     rest:    {Bulk:[.25,.45,.30],Cut:[.20,.50,.30],Maintain:[.25,.40,.35]},
   };
   const g=goal||"Maintain", dt=(dayType&&mult[dayType])?dayType:"rest";
-  const cals = Math.round(baseCals*(mult[dt]?.[g]??1.0))+earnedCals;
-  const [cp,pp,fp] = (splits[dt]?.[g])||[.40,.35,.25];
-  return { calories:cals, protein:Math.round((cals*pp)/4), carbs:Math.round((cals*cp)/4), fat:Math.round((cals*fp)/9) };
+  const baseDayCals=Math.round(baseCals*(mult[dt]?.[g]??1.0))+earnedCals;
+  const [cp,pp,fp]=(splits[dt]?.[g])||[.40,.35,.25];
+  if(!weekendFlexMode||!todayKey||!flexDays.length)
+    return{calories:baseDayCals,protein:Math.round((baseDayCals*pp)/4),carbs:Math.round((baseDayCals*cp)/4),fat:Math.round((baseDayCals*fp)/9),isFlexDay:false};
+  const isFlexDay=flexDays.includes(todayKey);
+  const numFlex=flexDays.length;
+  const numNonFlex=Math.max(1,7-numFlex);
+  const flexPct=(flexCalorieIncrease||20)/100;
+  const bonusPerFlexDay=Math.round(baseCals*flexPct);
+  const dailyDeficit=Math.round((bonusPerFlexDay*numFlex)/numNonFlex);
+  const normalProtein=Math.round((baseDayCals*pp)/4);
+  const normalCarbs=Math.round((baseDayCals*cp)/4);
+  const normalFat=Math.round((baseDayCals*fp)/9);
+  if(isFlexDay){
+    return{calories:baseDayCals+bonusPerFlexDay,protein:normalProtein,carbs:normalCarbs+Math.round((bonusPerFlexDay*0.60)/4),fat:normalFat+Math.round((bonusPerFlexDay*0.40)/9),isFlexDay:true,flexBonus:bonusPerFlexDay};
+  }else{
+    return{calories:Math.max(0,baseDayCals-dailyDeficit),protein:normalProtein,carbs:Math.max(0,normalCarbs-Math.round((dailyDeficit*0.60)/4)),fat:Math.max(0,normalFat-Math.round((dailyDeficit*0.40)/9)),isFlexDay:false,flexDeficit:dailyDeficit};
+  }
 }
 
 export function getTodayKey() { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()]; }
