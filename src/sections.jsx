@@ -565,10 +565,264 @@ function ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen}){
   );
 }
 
+// ─── ADAPT NOW HELPERS ────────────────────────────────────────────────────────
+const ADAPT_CATEGORIES = [
+  {id:"injury",   emoji:"🤕", label:"Injury / Pain",       options:["Upper body injury","Lower body injury","Back pain","Hamstring strain","Knee pain","Other injury"]},
+  {id:"travel",   emoji:"✈️", label:"Traveling / No Gym",   options:["Hotel gym only","Dumbbells only","Bodyweight only","Resistance bands only"]},
+  {id:"recovery", emoji:"😴", label:"Recovery & Wellness",  options:["Poor sleep (under 5 hrs)","Feeling sick","High stress","Feeling great — increase intensity"]},
+  {id:"female",   emoji:"🩸", label:"Female Health",        options:["Menstrual phase (reduce intensity)","Follicular phase (increase intensity)","Ovulation (peak day)","Luteal phase (maintain)"]},
+  {id:"time",     emoji:"⏱️", label:"Time Constraint",      options:["Only 20 minutes","Only 30 minutes","Only 45 minutes"]},
+  {id:"other",    emoji:"✏️", label:"Other",                options:[]},
+];
+
+function getCyclePhase(lastPeriodDate) {
+  if (!lastPeriodDate) return null;
+  const days = Math.floor((Date.now() - new Date(lastPeriodDate)) / 86400000) % 28;
+  if (days <= 4)  return {phase:"menstrual",  label:"🩸 Menstrual Phase",  color:"#FF4D6D", adaptOption:"Menstrual phase (reduce intensity)"};
+  if (days <= 13) return {phase:"follicular", label:"🌸 Follicular Phase", color:"#F472B6", adaptOption:"Follicular phase (increase intensity)"};
+  if (days <= 15) return {phase:"ovulation",  label:"🌟 Ovulation Peak",   color:"#FBBF24", adaptOption:"Ovulation (peak day)"};
+  return               {phase:"luteal",     label:"🍂 Luteal Phase",      color:"#A78BFA", adaptOption:"Luteal phase (maintain)"};
+}
+
+const ADAPT_CSS = `
+  .adapt-overlay{position:fixed;inset:0;background:rgba(6,13,26,.97);z-index:300;display:flex;flex-direction:column;overflow:hidden;}
+  .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .adapt-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;letter-spacing:.04em;}
+  .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .adapt-body{flex:1;overflow-y:auto;padding:20px;}
+  .adapt-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
+  .adapt-cat-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:6px;font-family:inherit;}
+  .adapt-cat-card.sel{border-color:rgba(41,121,255,.5);background:rgba(41,121,255,.08);}
+  .adapt-cat-card:hover{background:rgba(255,255,255,.07);}
+  .adapt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
+  .adapt-chip{padding:9px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(245,245,240,.65);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+  .adapt-chip.sel{border-color:#2979FF;background:rgba(41,121,255,.12);color:#2979FF;}
+  .adapt-footer{padding:16px 20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+  .adapt-primary{width:100%;padding:15px;border:none;border-radius:12px;background:#2979FF;color:#fff;font-size:15px;font-weight:700;letter-spacing:.05em;cursor:pointer;font-family:inherit;}
+  .adapt-primary:disabled{opacity:.35;cursor:not-allowed;}
+  .adapt-secondary{width:100%;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:rgba(245,245,240,.5);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+`;
+
+function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptationsLeft, adaptationsUsed, onUseAdapted, onClose}) {
+  const [screen, setScreen] = useState("categories");
+  const [category, setCategory] = useState(null);
+  const [subOption, setSubOption] = useState(null);
+  const [customText, setCustomText] = useState("");
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState(null);
+
+  const selectedCat = ADAPT_CATEGORIES.find(c => c.id === category);
+  const cyclePhase = getCyclePhase(wPrefs?.lastPeriodDate || profile?.lastPeriodDate);
+  const selectedReason = category === "other" ? customText.trim() : subOption;
+  const canAdapt = !!(selectedReason);
+
+  useEffect(() => {
+    if (category === "female" && cyclePhase && !subOption) setSubOption(cyclePhase.adaptOption);
+  }, [category]);
+
+  async function runAdapt() {
+    if (!canAdapt) return;
+    setScreen("loading"); setErr(null);
+    try {
+      const prompt = `You are an expert personal trainer and coach.
+
+Current program: ${wPrefs.splitType||"General"} — ${wPrefs.liftExp||"intermediate"} level
+Today's session: ${todayFocus}
+User situation: ${selectedReason}
+
+Current planned exercises:
+${JSON.stringify((todayExercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps,notes:e.notes})), null, 2)}
+
+Please adapt this session for the user's situation. Return ONLY a valid JSON object with no extra text:
+{
+  "changes": [
+    { "type": "removed", "exercise": "name", "reason": "why" },
+    { "type": "replaced", "original": "name", "replacement": "name", "reason": "why" },
+    { "type": "modified", "exercise": "name", "change": "what changed", "reason": "why" }
+  ],
+  "adapted_exercises": [
+    { "name": "exercise name", "sets": 3, "reps": "10-12", "notes": "coaching note", "weight": "", "done": false }
+  ],
+  "session_note": "One sentence summary of the adaptation"
+}
+
+Rules:
+- Injury: remove dangerous movements, suggest safer alternatives that work around the injury.
+- Travel/no gym: convert all barbell movements to dumbbell or bodyweight alternatives.
+- Poor recovery/sick: reduce sets by 30-40%, reduce intensity, focus on movement quality.
+- Menstrual phase: reduce volume 30%, remove heavy compound lifts, keep lighter accessory work.
+- Follicular/ovulation: keep or increase intensity — good time for PRs.
+- Time constraints: keep only the primary compound movements, cut accessories to fit the time.
+- Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.`;
+
+      const r = await fetch("/api/claude", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({model:"claude-haiku-4-5-20251001", max_tokens:2000, messages:[{role:"user",content:prompt}]})
+      });
+      const d = await r.json();
+      const text = d.content?.[0]?.text || "";
+      const m = text.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("No JSON");
+      const parsed = JSON.parse(m[0]);
+      if (!parsed.adapted_exercises?.length) throw new Error("No exercises");
+      setResult(parsed); setScreen("results");
+    } catch(e) {
+      setErr("Couldn't adapt session — try again."); setScreen("categories");
+    }
+  }
+
+  const ICONS = {removed:"❌", replaced:"🔄", modified:"📉"};
+
+  if (screen === "loading") return (
+    <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40}}>
+        <div style={{width:52,height:52,border:"3px solid rgba(41,121,255,.2)",borderTop:"3px solid #2979FF",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900}}>ADAPTING SESSION</div>
+        <div style={{fontSize:13,color:"rgba(245,245,240,.45)",textAlign:"center",maxWidth:280}}>{selectedReason}</div>
+      </div>
+    </div>
+  );
+
+  if (screen === "results" && result) return (
+    <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
+      <div className="adapt-header">
+        <div>
+          <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPTED SESSION</div>
+          <div className="adapt-title">YOUR ADAPTED SESSION</div>
+        </div>
+        <button className="adapt-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="adapt-body" style={{animation:"slideUp .3s ease"}}>
+        {result.session_note&&(
+          <div style={{background:"rgba(41,121,255,.08)",border:"1px solid rgba(41,121,255,.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
+            <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>SESSION NOTE</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.85)",lineHeight:1.65}}>{result.session_note}</div>
+          </div>
+        )}
+        {result.changes?.length>0&&(
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:10}}>WHAT CHANGED</div>
+            {result.changes.map((c,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.05)"}}>
+                <span style={{fontSize:16,flexShrink:0,lineHeight:1.5}}>{ICONS[c.type]||"•"}</span>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:2}}>
+                    {c.type==="replaced"?`${c.original} → ${c.replacement}`:(c.exercise||c.original)}
+                    {c.change&&<span style={{color:"rgba(245,245,240,.45)",fontWeight:400}}> — {c.change}</span>}
+                  </div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,.35)"}}>{c.reason}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div>
+          <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:10}}>ADAPTED EXERCISES · {result.adapted_exercises?.length}</div>
+          {(result.adapted_exercises||[]).map((ex,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(255,255,255,.03)",borderRadius:8,marginBottom:6}}>
+              <span style={{fontSize:13,fontWeight:600}}>{ex.name}</span>
+              <span style={{fontSize:11,color:"rgba(245,245,240,.45)",flexShrink:0,marginLeft:8}}>{ex.sets}×{ex.reps}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="adapt-footer">
+        <button className="adapt-primary" onClick={()=>onUseAdapted(result, selectedReason)}>✓ Use This Adapted Session</button>
+        <button className="adapt-secondary" onClick={onClose}>✕ Keep Original Session</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
+      <div className="adapt-header">
+        <div>
+          <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPT NOW · {adaptationsLeft} OF 2 REMAINING</div>
+          <div className="adapt-title">ADAPT YOUR SESSION</div>
+        </div>
+        <button className="adapt-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="adapt-body">
+        {err&&<div style={{background:"rgba(255,77,109,.1)",border:"1px solid rgba(255,77,109,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#FF4D6D"}}>{err}</div>}
+        <div style={{fontSize:12,color:"rgba(245,245,240,.45)",marginBottom:18,lineHeight:1.7}}>What's happening today? We'll adapt your workout to match your situation.</div>
+        <div className="adapt-cat-grid">
+          {ADAPT_CATEGORIES.map(cat=>(
+            <button key={cat.id} className={`adapt-cat-card${category===cat.id?" sel":""}`} onClick={()=>{setCategory(cat.id);setSubOption(null);}}>
+              <span style={{fontSize:24,lineHeight:1}}>{cat.emoji}</span>
+              <span style={{fontSize:13,fontWeight:700,color:"#fff",lineHeight:1.2}}>{cat.label}</span>
+            </button>
+          ))}
+        </div>
+        {selectedCat&&(
+          <div style={{animation:"slideUp .2s ease"}}>
+            <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:12}}>{selectedCat.label}</div>
+            {selectedCat.id==="other"
+              ?<textarea value={customText} onChange={e=>setCustomText(e.target.value)} placeholder="Describe your situation..." rows={4}
+                  style={{width:"100%",background:"rgba(255,255,255,.04)",border:"1.5px solid rgba(255,255,255,.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:13,fontFamily:"inherit",resize:"none",outline:"none",boxSizing:"border-box"}}/>
+              :<div className="adapt-chips">
+                {selectedCat.options.map(opt=>(
+                  <button key={opt} className={`adapt-chip${subOption===opt?" sel":""}`} onClick={()=>setSubOption(opt)}>{opt}</button>
+                ))}
+              </div>
+            }
+          </div>
+        )}
+      </div>
+      <div className="adapt-footer">
+        <button className="adapt-primary" disabled={!canAdapt} onClick={runAdapt}>Adapt My Session →</button>
+      </div>
+    </div>
+  );
+}
+
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile}) {
   const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
+
+  // ── Adapt Now state ──────────────────────────────────────────────────────
+  const [showAdapt,setShowAdapt]=useState(false);
+  const [adaptToast,setAdaptToast]=useState("");
+  const [localAdaptUsed,setLocalAdaptUsed]=useState(null);
+
+  const adaptResetDate=profile?.adaptations_reset_date;
+  const daysSinceReset=adaptResetDate?Math.floor((Date.now()-new Date(adaptResetDate))/86400000):31;
+  const needsAdaptReset=daysSinceReset>30;
+  const adaptUsed=localAdaptUsed!==null?localAdaptUsed:(needsAdaptReset?0:(profile?.adaptations_used||0));
+  const adaptLeft=Math.max(0,2-adaptUsed);
+  const daysUntilReset=needsAdaptReset?0:Math.max(0,30-daysSinceReset);
+
+  useEffect(()=>{
+    if(!needsAdaptReset)return;
+    (async()=>{
+      const {data:{user}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+      if(!user)return;
+      await sb.from("profiles").upsert({id:user.id,adaptations_used:0,adaptations_reset_date:new Date().toISOString().split("T")[0]},{onConflict:"id"});
+    })();
+  },[needsAdaptReset]);
+
+  async function useAdaptedSession(result, reason){
+    const exs=(result.adapted_exercises||[]).map(ex=>({
+      name:ex.name, notes:ex.notes||"",
+      sets:Array.from({length:Number(ex.sets)||3},()=>({weight:ex.weight||"",reps:String(ex.reps||"10"),done:false}))
+    }));
+    setActiveWorkout({exercises:exs});
+    setTrainScreen("active");
+    setShowAdapt(false);
+    const newUsed=adaptUsed+1;
+    setLocalAdaptUsed(newUsed);
+    setAdaptToast(`Adapted session loaded. ${Math.max(0,2-newUsed)} adaptation${2-newUsed===1?"":"s"} remaining this month.`);
+    setTimeout(()=>setAdaptToast(""),4500);
+    try{
+      const {data:{user}}=await sb.auth.getUser();
+      if(user){
+        await sb.from("adaptations").insert({user_id:user.id,reason,original_workout:todayPrescription,adapted_workout:result.adapted_exercises});
+        await sb.from("profiles").upsert({id:user.id,adaptations_used:newUsed,adaptations_reset_date:needsAdaptReset?new Date().toISOString().split("T")[0]:(adaptResetDate||new Date().toISOString().split("T")[0])},{onConflict:"id"});
+      }
+    }catch(e){console.error("[adapt] save error",e);}
+  }
 
   // ── Program detection ────────────────────────────────────────────────────
   const trainingDays=WDAYS.filter(d=>schedule[d]==="training");
@@ -629,6 +883,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
+      {/* Adapt Now Modal */}
+      {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)}/>}
+
+      {/* Toast */}
+      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(41,121,255,.4)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
+
       <div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto"}}>
         {TRAIN_TABS.map(tab=>(
           <button key={tab.id} onClick={()=>setTrainScreen(tab.id)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",background:trainScreen===tab.id?T.carb:"none",color:trainScreen===tab.id?"#000":T.mu,fontSize:13,fontWeight:600,whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0}}>{tab.l}</button>
@@ -701,13 +961,37 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                 );
               })()}
-              <div style={{display:"flex",gap:10}}>
+              {(()=>{
+                const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+                if(!cp)return null;
+                return <div style={{background:`${cp.color}12`,border:`1px solid ${cp.color}30`,borderRadius:10,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:13}}>{cp.label.split(" ")[0]}</span>
+                  <div>
+                    <span style={{fontSize:11,fontWeight:700,color:cp.color}}>{cp.label}</span>
+                    <span style={{fontSize:10,color:T.mu,marginLeft:8}}>Cycle day ~{Math.floor((Date.now()-new Date(wPrefs?.lastPeriodDate||profile?.lastPeriodDate))/86400000)%28+1}</span>
+                  </div>
+                </div>;
+              })()}
+              <div style={{display:"flex",gap:8,marginBottom:8}}>
                 {todayType==="training"&&todayPrescription
                   ?<button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>▶ Start Workout →</button>
                   :<button onClick={()=>setTrainScreen("builder")} style={{flex:1,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Build Workout →</button>
                 }
                 {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.carb}15`,color:T.carb,fontWeight:700,fontSize:14,border:`1px solid ${T.carb}40`,borderRadius:12,cursor:"pointer",fontFamily:"inherit"}}>▶ Resume Session</button>}
+                {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
+                  <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{flexShrink:0,padding:"14px 12px",background:adaptLeft>0?"rgba(255,255,255,.05)":"rgba(255,255,255,.02)",color:adaptLeft>0?"rgba(245,245,240,.75)":"rgba(245,245,240,.25)",fontWeight:700,fontSize:13,border:`1px solid ${adaptLeft>0?"rgba(255,255,255,.12)":"rgba(255,255,255,.06)"}`,borderRadius:12,cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                    🔄 Adapt
+                  </button>
+                )}
               </div>
+              {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
+                <div style={{fontSize:11,color:adaptLeft>0?T.mu:"rgba(245,245,240,.3)",textAlign:"center",marginTop:2}}>
+                  {adaptLeft>0
+                    ?`${adaptLeft} adaptation${adaptLeft===1?"":"s"} remaining this month`
+                    :`Adaptations reset in ${daysUntilReset} day${daysUntilReset===1?"":"s"}`
+                  }
+                </div>
+              )}
             </div>
 
             {/* WEEK SCHEDULE */}
@@ -1203,6 +1487,30 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <Toggle on={wPrefs.isHybrid} onChange={v=>{const wp={...wPrefs,isHybrid:v};setWPrefs(wp);saveSettings(wp,null);}} label="🏃 Hybrid Athlete" sub="Adds structured run blocks to training days"/>
           <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
         </SectionCard>
+
+        {(profile?.sex==="female"||wPrefs?.lastPeriodDate)&&(
+          <SectionCard title="Cycle Tracking">
+            {(()=>{
+              const cp=getCyclePhase(wPrefs?.lastPeriodDate);
+              return(
+                <div>
+                  <div style={{fontSize:12,color:T.mu,marginBottom:14,lineHeight:1.65}}>Track your cycle for personalized workout adaptations. We'll pre-select the right option when you tap "Adapt Now."</div>
+                  {cp&&<div style={{background:`${cp.color}10`,border:`1px solid ${cp.color}25`,borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:18}}>{cp.label.split(" ")[0]}</span>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:700,color:cp.color}}>{cp.label}</div>
+                      <div style={{fontSize:10,color:T.mu,marginTop:2}}>Cycle day {Math.floor((Date.now()-new Date(wPrefs.lastPeriodDate))/86400000)%28+1} of ~28</div>
+                    </div>
+                  </div>}
+                  <div style={{fontSize:10,color:T.dim,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>Last Period Start Date</div>
+                  <input type="date" value={wPrefs?.lastPeriodDate||""} onChange={e=>{const wp={...wPrefs,lastPeriodDate:e.target.value};setWPrefs(wp);saveSettings(wp,null);}}
+                    style={{width:"100%",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"11px 14px",color:"#fff",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",colorScheme:"dark"}}/>
+                  <div style={{fontSize:11,color:T.dim,marginTop:8,lineHeight:1.6}}>Used only to calculate your current phase. Never shared.</div>
+                </div>
+              );
+            })()}
+          </SectionCard>
+        )}
 
         <SectionCard title="Your Profile">
           <div style={{display:"flex",flexDirection:"column",gap:0}}>
