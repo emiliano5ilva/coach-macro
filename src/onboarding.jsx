@@ -314,14 +314,14 @@ export function TrainOnboarding({d, onComplete, onBack}) {
   const [data,setData]=useState({
     freq:"", trainType:"lifting", split:"", equipment:"Full Gym",
     sessionLength:60, weakPoints:[], injuries:[], longRunDay:"Sunday",
-    liftExp:"", cardioExp:"", gvt:false, hybridStyle:"",
+    liftExp:"", cardioExp:"", gvt:false, hybridStyle:"", primaryGoal:"",
     selectedDays:{Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"},
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
   const next=()=>setSc(s=>s+1);
   const back=()=>sc===0?onBack():setSc(s=>s-1);
-  const SCREENS=9;
+  const SCREENS=11;
   const pct=Math.round((sc/SCREENS)*100);
 
   function getRecDays(freq,trainType){
@@ -388,9 +388,38 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 1 — Experience */}
-        {sc===1&&<div style={{animation:"fadeIn .25s ease"}}>
+        {/* SCREEN 1 — Primary Training Goal */}
+        {sc===1&&<div style={{animation:"fadeIn .3s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 2</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+            PRIMARY<br/><span style={{color:T.prot}}>TRAINING GOAL.</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>What are you actually training for? This determines your program recommendation.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {[
+              {v:"build_muscle",  e:"💪",l:"Build Muscle",     sub:"Hypertrophy focused training for maximum size"},
+              {v:"get_stronger",  e:"🏋️",l:"Get Stronger",     sub:"Powerlifting and powerbuilding for maximum strength"},
+              {v:"lose_fat",      e:"🔥",l:"Lose Fat",         sub:"Metabolic training, circuits, and HIIT for fat loss"},
+              {v:"athleticism",   e:"⚡",l:"Improve Athleticism",sub:"Functional and hybrid training for performance"},
+              {v:"race",          e:"🏃",l:"Train for a Race", sub:"Running, Hyrox, and endurance programming"},
+              {v:"recomp",        e:"🎯",l:"Body Recomposition",sub:"Build muscle and lose fat simultaneously"},
+              {v:"general",       e:"🌟",l:"General Fitness",  sub:"Feel better, move better, live better"},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>auto("primaryGoal",o.v)} style={{background:data.primaryGoal===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.primaryGoal===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:16}}>
+                <div style={{fontSize:24,flexShrink:0,width:32,textAlign:"center"}}>{o.e}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:15,fontWeight:700,color:data.primaryGoal===o.v?T.prot:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:12,color:T.mu,marginTop:2,lineHeight:1.4}}>{o.sub}</div>
+                </div>
+                {data.primaryGoal===o.v&&<div style={{color:T.prot,fontSize:16,flexShrink:0}}>✓</div>}
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* SCREEN 2 — Experience */}
+        {sc===2&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 3</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             TRAINING<br/><span style={{color:T.prot}}>EXPERIENCE.</span>
           </div>
@@ -410,9 +439,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 2 — Days per week */}
-        {sc===2&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 3</div>
+        {/* SCREEN 3 — Days per week */}
+        {sc===3&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 4</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             DAYS PER<br/><span style={{color:T.prot}}>WEEK.</span>
           </div>
@@ -433,9 +462,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={()=>{upd("selectedDays",getRecDays(data.freq,data.trainType));next();}} label="Continue →" disabled={!data.freq}/>
         </div>}
 
-        {/* SCREEN 3 — Day picker */}
-        {sc===3&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 4</div>
+        {/* SCREEN 4 — Day picker */}
+        {sc===4&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 5</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             PICK YOUR<br/><span style={{color:T.prot}}>TRAINING DAYS.</span>
           </div>
@@ -482,8 +511,105 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →"/>
         </div>}
 
-        {/* SCREEN 4 — Split / Program selection — context-aware by trainType */}
-        {sc===4&&(()=>{
+        {/* SCREEN 5 — Goal-based Recommendation */}
+        {sc===5&&(()=>{
+          const days={n0:0,"1-2":2,"3":3,"4":4,"5":5,"6":6,"7":7}[data.freq]||3;
+          const exp=data.liftExp||"intermediate";
+          const goal=data.primaryGoal;
+          const ttype=data.trainType;
+
+          // Map goal → recommendation
+          const REC_MAP={
+            build_muscle:{
+              beginner:{id:"full_body",name:"Full Body 3×",why:"As a beginner, your nervous system adapts fastest when you practice every pattern every session. Full body gives you 3 practice sessions per week with every compound — you'll build size, strength, and coordination simultaneously."},
+              intermediate:days>=5?{id:"ppl_6",name:"Push/Pull/Legs ×2",why:"At 5+ days, PPL twice per week is the gold standard. Every muscle hit twice with a dedicated day — this is how most advanced physiques are built."}
+                :days===4?{id:"upper_lower",name:"Upper/Lower 4-Day",why:"Upper/Lower at 4 days is the most scientifically validated split. Heavy compounds Monday/Thursday, volume Tuesday/Friday. Every muscle twice per week at optimal frequency."}
+                :{id:"ppl_half",name:"Push/Pull/Legs",why:"3-day PPL gives you dedicated push, pull, and leg sessions with full recovery between each. More volume than full body at this stage, which is what you need to keep growing."},
+              advanced:days>=6?{id:"arnold",name:"Arnold Split",why:"You've earned it. Arnold's double split puts massive volume on every muscle group twice per week — chest+back supersets, then arms+shoulders. Nothing matches it for advanced hypertrophy."}
+                :{id:"ppl_6",name:"Push/Pull/Legs ×2",why:"PPL 6-day is the proven ceiling for natural lifters. Every muscle hit twice per week with A days (heavy) and B days (volume). Your body knows how to respond — this gives it the stimulus to keep responding."},
+            },
+            get_stronger:{
+              beginner:{id:"full_body",name:"Full Body 3× (Strength)",why:"Strength is a skill. The more you practice the squat, bench, and deadlift, the stronger you get. Full body 3 days per week lets you do all three movements every session — maximum practice, maximum progress."},
+              intermediate:days>=5?{id:"ppl_6",name:"Push/Pull/Legs ×2",why:"At intermediate level and 5+ days, PPL keeps strength moving. Heavy A days on the main compounds, volume B days for hypertrophy that feeds strength. Deadlift stays on Pull A where it belongs."}
+                :{id:"upper_lower",name:"Upper/Lower 4-Day (Powerbuilding)",why:"Upper/Lower at 4 days is a powerbuilder's dream. Upper A is your strength day — heavy bench, heavy row. Lower A is squat and deadlift day. Upper B and Lower B are volume days that build the muscle you'll lift with."},
+              advanced:{id:"ppl_6",name:"Push/Pull/Legs ×2",why:"Advanced strength athletes need both heavy neural work and hypertrophy volume. PPL 6-day gives you max frequency on the competition lifts while building the muscle mass that lets you keep adding weight."},
+            },
+            lose_fat:{
+              beginner:{id:"full_body",name:"Full Body Circuit",why:"Full body circuits elevate your heart rate while building muscle — the best of both worlds for fat loss. You'll burn more calories per session than isolation work, and the muscle you build raises your resting metabolic rate."},
+              intermediate:{id:"upper_lower",name:"Upper/Lower 4-Day",why:"The most effective fat loss approach for intermediate lifters is keeping your strength while eating in a deficit. Upper/Lower keeps you on the key compound movements so you don't lose the muscle you've built."},
+              advanced:{id:"ppl_6",name:"Push/Pull/Legs ×2",why:"Don't change what works. Stay on high-frequency PPL while in a deficit. The volume keeps the muscle signal strong enough to preserve everything you've built."},
+            },
+            athleticism:{
+              beginner:{id:"full_body",name:"Full Body 3×",why:"Athletic foundation first. Full body three days per week builds the movement quality, mobility, and baseline strength that all athletic development depends on."},
+              intermediate:{id:"strength_run",name:"Strength + Run Hybrid",why:"True athleticism requires both strength and conditioning. 3 lifting days + 2 run days builds the aerobic engine and the power output that separate athletic bodies from just gym bodies."},
+              advanced:{id:"upper_lower_run",name:"Upper/Lower + Running",why:"Advanced hybrid training. Upper/lower 4 days gives you strength frequency, while 2 dedicated run days build your aerobic capacity. Separate them to avoid interference effect."},
+            },
+            race:{
+              beginner:{id:"c25k",name:"Couch to 5K",why:"Start here. Couch to 5K uses run/walk intervals that let your joints adapt at the same rate your cardio does. Most injuries happen when people progress too fast — this program prevents that."},
+              intermediate:days>=5?{id:"half",name:"Half Marathon Plan",why:"16 weeks, 5 days per week. Long run builds to 13+ miles with proper aerobic base development. Built for runners who can already run 5K comfortably."}
+                :{id:"5k_sub25",name:"Sub-25 5K Plan",why:"The sub-25 5K is a real athletic achievement. Speed work, tempo runs, and structured intervals will cut minutes off your time in 8 weeks."},
+              advanced:{id:"half",name:"Half Marathon Plan",why:"The half marathon is where running gets serious. 16 weeks of structured training with proper long run progression, tempo work, and race-week taper."},
+            },
+            recomp:{
+              beginner:{id:"full_body",name:"Full Body 3×",why:"Body recomp is hardest for experienced lifters and easiest for beginners. You can build muscle and lose fat simultaneously — full body 3 days keeps the training stimulus high while leaving room for recovery."},
+              intermediate:{id:"upper_lower",name:"Upper/Lower 4-Day",why:"Recomp at intermediate level requires maximum muscle stimulus with precise nutrition. Upper/Lower hits every muscle twice per week — enough frequency to grow muscle even in a mild deficit."},
+              advanced:{id:"ppl_6",name:"Push/Pull/Legs ×2",why:"Advanced recomp is challenging but doable with high frequency. PPL 6-day keeps the muscle signal strong enough to grow (or maintain) while you drop body fat slowly."},
+            },
+            general:{
+              beginner:{id:"full_body",name:"Full Body 3×",why:"Three days per week, full body — this is the most sustainable training structure on earth. Hit every major muscle, get in and out, and build a habit that lasts."},
+              intermediate:{id:"upper_lower",name:"Upper/Lower 4-Day",why:"Four days per week gives you more to train, better results, and still leaves plenty of room for life. Upper/Lower is the right step up from full body."},
+              advanced:{id:"ppl_6",name:"Push/Pull/Legs ×2",why:"You know how to train. PPL six days keeps you sharp, provides structure, and gives you a clear plan for every session."},
+            },
+          };
+
+          // For running/hyrox/hybrid trainTypes, force specific recs
+          let rec;
+          if(ttype==="running"){
+            rec=days>=5?{id:"half",name:"Half Marathon Plan",why:"With 5+ days available, the half marathon plan gives you enough volume to build a serious running base with proper taper and race prep."}
+              :{id:"c25k",name:"Couch to 5K",why:"3 days per week is the perfect running schedule. Run/walk intervals build the aerobic base and joint integrity needed to run comfortably and injury-free."};
+          }else if(ttype==="hyrox"){
+            rec={id:"hyrox_12w",name:"Hyrox 12-Week Race Prep",why:"Purpose-built for Hyrox. 8 functional stations + 1km runs, replicated in the gym across 12 weeks. Your weaknesses become strengths on race day."};
+          }else if(ttype==="hybrid"){
+            rec=days>=6?{id:"upper_lower_run",name:"Upper/Lower + Running",why:"6 days gives you 4 lifting days and 2 running days with full separation. This is the most complete hybrid athlete template."}
+              :{id:"strength_run",name:"Strength + Run",why:"3 lifting + 2 running days in the same week. Train them on separate days to prevent interference. Strong legs will make you faster."};
+          }else{
+            const goalMap=REC_MAP[goal]||REC_MAP["general"];
+            rec=goalMap[exp]||goalMap["intermediate"]||{id:"upper_lower",name:"Upper/Lower 4-Day",why:"A solid, research-backed program that works for most goals and experience levels."};
+          }
+
+          const splitNameMap={
+            full_body:"Full Body",upper_lower:"Upper/Lower",ppl_half:"Push/Pull/Legs",
+            ppl_6:"Push/Pull/Legs",arnold:"Arnold Split",bro_split:"Bro Split",
+            c25k:"Running Plan",half:"Running Plan","5k_sub25":"Running Plan",
+            hyrox_12w:"Hyrox Program",strength_run:"Hybrid Program",upper_lower_run:"Hybrid Program",
+          };
+
+          return(
+            <div style={{animation:"fadeIn .3s ease"}}>
+              <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 6</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,lineHeight:.9,marginBottom:20}}>
+                BASED ON YOUR<br/><span style={{color:T.prot}}>ANSWERS, WE RECOMMEND:</span>
+              </div>
+              <div style={{background:`${T.prot}08`,border:`1.5px solid ${T.prot}35`,borderRadius:16,padding:"24px",marginBottom:20}}>
+                <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>⭐ Best program for you</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#fff",marginBottom:4}}>{rec.name}</div>
+                <div style={{fontSize:11,color:T.mu,marginBottom:16}}>{splitNameMap[rec.id]||"Program"} · {data.freq} days/week · {exp}</div>
+                <div style={{fontSize:14,color:"#ccc",lineHeight:1.75}}>{rec.why}</div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <button onClick={()=>{upd("split",rec.id);setSc(7);}} style={{width:"100%",padding:"16px",background:T.prot,color:"#000",fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>
+                  Use This Program →
+                </button>
+                <button onClick={()=>setSc(6)} style={{width:"100%",padding:"14px",background:"none",color:T.mu,fontWeight:600,fontSize:14,border:`1.5px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"inherit"}}>
+                  Browse All Programs
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* SCREEN 6 — Split / Program selection — context-aware by trainType */}
+        {sc===6&&(()=>{
           // Running programs
           const RUN_PROGRAMS=[
             {id:"c25k",e:"🏃",l:"5K — Beginner (Couch to 5K)",desc:"Run/walk intervals building to a full 5K in 8 weeks. 3 days/week. No experience needed.",days:3,rec:["beginner"],gvt:false},
@@ -569,9 +695,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           );
         })()}
 
-        {/* SCREEN 5 — Equipment */}
-        {sc===5&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 6</div>
+        {/* SCREEN 7 — Equipment */}
+        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 8</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             EQUIPMENT<br/><span style={{color:T.prot}}>ACCESS.</span>
           </div>
@@ -591,9 +717,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 6 — Session Length */}
-        {sc===6&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 7</div>
+        {/* SCREEN 8 — Session Length */}
+        {sc===8&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 9</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             SESSION<br/><span style={{color:T.prot}}>LENGTH.</span>
           </div>
@@ -609,9 +735,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →"/>
         </div>}
 
-        {/* SCREEN 7 — Weak Points */}
-        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 8</div>
+        {/* SCREEN 9 — Weak Points */}
+        {sc===9&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 10</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             WEAK POINTS<br/><span style={{color:T.prot}}>TO PRIORITIZE.</span>
           </div>
@@ -628,8 +754,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →"/>
         </div>}
 
-        {/* SCREEN 8 — Injuries + GVT + Done */}
-        {sc===8&&<div style={{animation:"fadeIn .25s ease"}}>
+        {/* SCREEN 10 — Injuries + GVT + Done */}
+        {sc===10&&<div style={{animation:"fadeIn .25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Final Step</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             LAST FEW<br/><span style={{color:T.prot}}>THINGS.</span>

@@ -5,7 +5,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus } from "./components.jsx";
 import { sb } from "./client.js";
-import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS } from "./programs.js";
+import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS } from "./running_programs.js";
 import { getEquipmentExercise, applyEquipmentToWorkout } from "./exercise_database.js";
 
@@ -447,8 +447,126 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
   );
 }
 
+const CATEGORY_ORDER=["Hypertrophy","Strength","Fat Loss & Conditioning","Running","Hyrox","Hybrid","Glute Focus"];
+
+function ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen}){
+  const [confirmProg,setConfirmProg]=useState(null);
+  const [switching,setSwitching]=useState(false);
+
+  const currentId=wPrefs._libraryId||null;
+
+  async function confirmSwitch(prog){
+    setSwitching(true);
+    try{
+      const newWPrefs={...wPrefs,_libraryId:prog.id};
+      if(prog.isRun){newWPrefs.splitType=prog.name;newWPrefs.runPlan=prog.name;newWPrefs.isHybrid=false;newWPrefs.isHyrox=false;}
+      else if(prog.isHyrox&&prog.isHybrid){newWPrefs.isHyrox=true;newWPrefs.isHybrid=true;newWPrefs.splitType=prog.name;}
+      else if(prog.isHyrox){newWPrefs.isHyrox=true;newWPrefs.isHybrid=false;newWPrefs.splitType=prog.name;}
+      else if(prog.isHybrid){newWPrefs.isHybrid=true;newWPrefs.isHyrox=false;newWPrefs.splitType=prog.name;}
+      else if(prog.isConditioning){newWPrefs.splitType=prog.name;newWPrefs.isHybrid=false;newWPrefs.isHyrox=false;}
+      else if(prog.splitKey){newWPrefs.splitType=prog.splitKey;newWPrefs.isHybrid=false;newWPrefs.isHyrox=false;}
+      const newStartDate=new Date().toISOString().split("T")[0];
+      setWPrefs(newWPrefs);
+      const {data:{user}}=await sb.auth.getUser();
+      if(user){
+        await sb.from("profiles").upsert(
+          {id:user.id,wprefs:newWPrefs,startDate:newStartDate},
+          {onConflict:"id"}
+        );
+      }
+      setConfirmProg(null);
+      setTrainScreen("today");
+    }catch(e){console.error("[ProgramLibrary] switch error:",e);}
+    finally{setSwitching(false);}
+  }
+
+  const LIB_CSS=`
+    .lib-wrap{padding:20px 0 40px;}
+    .lib-cat-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,245,240,.4);margin:28px 0 10px;}
+    .lib-cat-title:first-child{margin-top:0;}
+    .lib-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
+    .lib-card.lib-current{border-color:rgba(41,121,255,.4);background:rgba(41,121,255,.06);}
+    .lib-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+    .lib-card-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.01em;}
+    .lib-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+    .lib-badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:4px;background:rgba(255,255,255,.07);color:rgba(245,245,240,.55);}
+    .lib-badge.beg{background:rgba(52,211,153,.12);color:#34D399;}
+    .lib-badge.int{background:rgba(251,191,36,.12);color:#FBbF24;}
+    .lib-badge.adv{background:rgba(248,113,113,.12);color:#F87171;}
+    .lib-best{font-size:12px;color:rgba(245,245,240,.5);line-height:1.5;}
+    .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(41,121,255,.5);background:rgba(41,121,255,.1);color:#2979FF;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
+    .lib-switch-btn:hover{background:rgba(41,121,255,.2);border-color:#2979FF;}
+    .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:#2979FF;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(41,121,255,.3);background:rgba(41,121,255,.06);}
+    .lib-soon{font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(245,245,240,.25);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);}
+    .lib-modal-overlay{position:fixed;inset:0;background:rgba(6,13,26,.85);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+    .lib-modal{background:#0A1222;border:1px solid rgba(255,255,255,.1);border-radius:14px 14px 0 0;padding:28px 24px 36px;max-width:480px;width:100%;}
+    .lib-modal h3{margin:0 0 8px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:.02em;}
+    .lib-modal p{margin:0 0 24px;font-size:13px;color:rgba(245,245,240,.55);line-height:1.6;}
+    .lib-modal-btns{display:flex;flex-direction:column;gap:10px;}
+    .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:#2979FF;color:#fff;cursor:pointer;font-family:inherit;}
+    .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
+  `;
+
+  return(
+    <div>
+      <style>{LIB_CSS}</style>
+      <div className="lib-wrap">
+        {CATEGORY_ORDER.map(cat=>{
+          const progs=PROGRAM_LIBRARY.filter(p=>p.category===cat);
+          if(!progs.length)return null;
+          return(
+            <div key={cat}>
+              <div className="lib-cat-title">{cat}</div>
+              {progs.map(prog=>{
+                const isCurrent=currentId===prog.id;
+                const lvlClass=prog.level==="Beginner"?"beg":prog.level==="Advanced"?"adv":"int";
+                return(
+                  <div key={prog.id} className={`lib-card${isCurrent?" lib-current":""}`}>
+                    <div className="lib-card-top">
+                      <div>
+                        <div className="lib-card-name">{prog.name}</div>
+                        <div className="lib-badges">
+                          <span className={`lib-badge ${lvlClass}`}>{prog.level}</span>
+                          <span className="lib-badge">{prog.days}d/wk</span>
+                          {prog.weeks&&<span className="lib-badge">{prog.weeks}wk</span>}
+                        </div>
+                      </div>
+                      {isCurrent
+                        ?<span className="lib-current-badge">CURRENT</span>
+                        :prog.comingSoon
+                          ?<span className="lib-soon">SOON</span>
+                          :<button className="lib-switch-btn" onClick={()=>setConfirmProg(prog)}>Switch →</button>
+                      }
+                    </div>
+                    <div className="lib-best">{prog.bestFor}</div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {confirmProg&&(
+        <div className="lib-modal-overlay" onClick={()=>!switching&&setConfirmProg(null)}>
+          <div className="lib-modal" onClick={e=>e.stopPropagation()}>
+            <h3>Switch to {confirmProg.name}?</h3>
+            <p>Your current history and PRs will be kept. Your program week will restart from today.</p>
+            <div className="lib-modal-btns">
+              <button className="lib-confirm-btn" disabled={switching} onClick={()=>confirmSwitch(confirmProg)}>
+                {switching?"Switching…":"Switch Program →"}
+              </button>
+              <button className="lib-cancel-btn" disabled={switching} onClick={()=>setConfirmProg(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile}) {
-  const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"progress",l:"Progress"}];
+  const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
 
@@ -744,6 +862,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </SectionCard>
           </div>
         )}
+
+        {/* ── LIBRARY ── */}
+        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen}/>}
 
         {/* ── PROGRESS ── */}
         {trainScreen==="progress"&&(

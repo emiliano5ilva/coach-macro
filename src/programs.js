@@ -540,6 +540,122 @@ export const GVT_OVERLAY = {
   }
 };
 
+// ─── CONDITIONING PROGRAMS ────────────────────────────────────────────────────
+export const CONDITIONING_PROGRAMS = {
+  "HIIT Program": {
+    description: "3 days per week of high-intensity interval training. Tabata, EMOM, and AMRAP formats. No equipment needed.",
+    days: ["Tabata", "EMOM", "AMRAP"],
+    workouts: {
+      "Tabata": [
+        { name:"Tabata Block", sets:8, reps:"20 sec on / 10 sec off", notes:"8 rounds total. Cycle through: Burpees → Jump Squats → Mountain Climbers → High Knees. 4 min total. Rest 1 min then repeat 2 more times.", primary:true },
+        { name:"Burpees", sets:2, reps:"20 sec", notes:"Full burpee — chest to ground. Maximum effort.", primary:false },
+        { name:"Jump Squats", sets:2, reps:"20 sec", notes:"Explosive — land soft.", primary:false },
+        { name:"Mountain Climbers", sets:2, reps:"20 sec", notes:"Drive knees to chest fast.", primary:false },
+        { name:"High Knees", sets:2, reps:"20 sec", notes:"Drive arms, stay on balls of feet.", primary:false },
+      ],
+      "EMOM": [
+        { name:"EMOM 20 min — Push Up / Air Squat", sets:20, reps:"Every minute on the minute", notes:"Odd minutes: 10 Push Ups. Even minutes: 10 Air Squats. Scale reps if needed — rest of the minute is your rest.", primary:true },
+        { name:"Push Up", sets:10, reps:"10", notes:"Odd minutes. Chest to floor, full lockout.", primary:false },
+        { name:"Air Squat", sets:10, reps:"10", notes:"Even minutes. Below parallel, stand tall.", primary:false },
+      ],
+      "AMRAP": [
+        { name:"AMRAP 15 min", sets:1, reps:"As many rounds as possible", notes:"15 minutes straight. Complete rounds of: 5 Pull Ups → 10 Push Ups → 15 Air Squats. Note total rounds + reps at end.", primary:true },
+        { name:"Pull Up", sets:1, reps:"5 per round", notes:"Full hang to chin over bar. Scale to ring rows if needed.", primary:false },
+        { name:"Push Up", sets:1, reps:"10 per round", notes:"Chest to floor. No sagging hips.", primary:false },
+        { name:"Air Squat", sets:1, reps:"15 per round", notes:"Hips below parallel every rep.", primary:false },
+      ],
+    }
+  },
+  "Full Body Circuit": {
+    description: "3 days per week. Two circuits, 4 rounds each. Minimal rest — keeps heart rate elevated while building strength.",
+    days: ["Circuit A", "Circuit B", "Circuit A/B"],
+    workouts: {
+      "Circuit A": [
+        { name:"Circuit A — 4 rounds", sets:4, reps:"12 reps each / 30 sec rest between rounds", notes:"Complete all exercises back to back, then rest 30 seconds. 4 total rounds.", primary:true },
+        { name:"Squat", sets:4, reps:"12", notes:"Barbell or goblet. Full depth.", primary:false },
+        { name:"Push Up", sets:4, reps:"12", notes:"Add weight vest or elevate feet to progress.", primary:false },
+        { name:"Dumbbell Row", sets:4, reps:"12 each", notes:"Single arm. Full row — elbow to hip.", primary:false },
+        { name:"Walking Lunge", sets:4, reps:"12 each leg", notes:"Knee just above floor.", primary:false },
+        { name:"Plank", sets:4, reps:"30 sec", notes:"Hold position — squeeze everything.", primary:false },
+      ],
+      "Circuit B": [
+        { name:"Circuit B — 4 rounds", sets:4, reps:"10 reps each / 30 sec rest", notes:"Complete all exercises back to back, then rest 30 seconds. 4 total rounds.", primary:true },
+        { name:"Deadlift", sets:4, reps:"10", notes:"Hinge, brace, drive hips forward. Add 10lbs when all reps easy.", primary:true },
+        { name:"Overhead Press", sets:4, reps:"10", notes:"Bar or dumbbells. Full lockout at top.", primary:false },
+        { name:"Pull Up", sets:4, reps:"10", notes:"Scale to assisted or ring rows.", primary:false },
+        { name:"Step Up", sets:4, reps:"10 each", notes:"Box or bench. Drive through heel.", primary:false },
+        { name:"Ab Wheel Rollout", sets:4, reps:"10", notes:"Full extension — don't let hips sag.", primary:false },
+      ],
+      "Circuit A/B": [
+        { name:"Circuit A — 2 rounds", sets:2, reps:"12 reps each / 30 sec rest", notes:"First 2 rounds: Circuit A movements.", primary:true },
+        { name:"Squat", sets:2, reps:"12", notes:"", primary:false },
+        { name:"Push Up", sets:2, reps:"12", notes:"", primary:false },
+        { name:"Dumbbell Row", sets:2, reps:"12 each", notes:"", primary:false },
+        { name:"Circuit B — 2 rounds", sets:2, reps:"10 reps each / 30 sec rest", notes:"Last 2 rounds: Circuit B movements.", primary:true },
+        { name:"Deadlift", sets:2, reps:"10", notes:"", primary:false },
+        { name:"Overhead Press", sets:2, reps:"10", notes:"", primary:false },
+        { name:"Ab Wheel Rollout", sets:2, reps:"10", notes:"", primary:false },
+      ],
+    }
+  }
+};
+
+// ─── STRONGLIFTS 5×5 ─────────────────────────────────────────────────────────
+export const STRONGLIFTS_5x5 = {
+  description: "The most proven beginner strength program. 3 days per week, alternating A/B. Add weight every session.",
+  days: ["Workout A", "Workout B"],
+  alternating: true,
+  progression: { upper: 5, squat: 10, deadlift: 10 },
+  note: "Alternate A and B each session. Add 5 lbs to upper body lifts and 10 lbs to Squat and Deadlift after every completed session.",
+  workouts: {
+    "Workout A": [
+      { name:"Barbell Squat", sets:5, reps:"5", notes:"5×5. Add 10lbs every session when all 25 reps completed. If you fail 3 sessions in a row, deload 10%.", primary:true },
+      { name:"Barbell Bench Press", sets:5, reps:"5", notes:"5×5. Add 5lbs every session. Alternate bench/OHP — bench is Workout A.", primary:true },
+      { name:"Barbell Row", sets:5, reps:"5", notes:"5×5. Pendlay row — bar from floor each rep. Add 5lbs every session.", primary:true },
+    ],
+    "Workout B": [
+      { name:"Barbell Squat", sets:5, reps:"5", notes:"5×5. Same as Workout A. Squat every session — it's the spine of this program.", primary:true },
+      { name:"Overhead Press", sets:5, reps:"5", notes:"5×5. Add 5lbs every session. Alternates with Bench Press.", primary:true },
+      { name:"Deadlift", sets:1, reps:"5", notes:"1×5 only — not 5×5. Deadlift is the hardest lift to recover from. Add 10lbs every session.", primary:true },
+    ],
+  }
+};
+
+// ─── PROGRAM LIBRARY METADATA ─────────────────────────────────────────────────
+// Used by the Library screen to display all available programs with metadata
+export const PROGRAM_LIBRARY = [
+  // HYPERTROPHY
+  { id:"ppl_6",     name:"Push/Pull/Legs",          category:"Hypertrophy", days:6, weeks:12, level:"Intermediate", bestFor:"Maximum muscle growth with optimal frequency",    splitKey:"Push/Pull/Legs x2" },
+  { id:"arnold",    name:"Arnold Split",             category:"Hypertrophy", days:6, weeks:12, level:"Advanced",     bestFor:"Advanced bodybuilders wanting maximum volume",     splitKey:"Arnold Split" },
+  { id:"upper_lower",name:"Upper/Lower",             category:"Hypertrophy", days:4, weeks:12, level:"Beginner",     bestFor:"First split — science-backed frequency",           splitKey:"Upper/Lower" },
+  { id:"bro_split", name:"Bro Split",                category:"Hypertrophy", days:5, weeks:12, level:"Intermediate", bestFor:"Max isolation volume per muscle group",            splitKey:"Bro Split" },
+  { id:"full_body", name:"Full Body",                category:"Hypertrophy", days:3, weeks:8,  level:"Beginner",     bestFor:"Beginners and those short on time",                splitKey:"Full Body A/B/A" },
+  // STRENGTH
+  { id:"powerbuilding",name:"Powerbuilding Upper/Lower",category:"Strength",days:4, weeks:12, level:"Intermediate", bestFor:"Build strength and size simultaneously",           splitKey:"Upper/Lower" },
+  { id:"5_3_1",     name:"5/3/1",                    category:"Strength", days:4, weeks:null, level:"Intermediate", bestFor:"Long-term strength progression",                   splitKey:null, comingSoon:true },
+  { id:"sl5x5",     name:"Stronglifts 5×5",          category:"Strength", days:3, weeks:12,  level:"Beginner",     bestFor:"Pure beginner strength foundation",                splitKey:null, comingSoon:true },
+  // FAT LOSS & CONDITIONING
+  { id:"circuit",   name:"Full Body Circuit",        category:"Fat Loss & Conditioning", days:3, weeks:8, level:"Beginner", bestFor:"Fat loss while maintaining muscle",         splitKey:null, isConditioning:true },
+  { id:"hiit",      name:"HIIT Program",             category:"Fat Loss & Conditioning", days:3, weeks:6, level:"Beginner", bestFor:"Maximum calorie burn in minimum time",      splitKey:null, isConditioning:true },
+  { id:"metabolic", name:"Metabolic Resistance",     category:"Fat Loss & Conditioning", days:4, weeks:8, level:"Intermediate", bestFor:"Strength + cardio hybrid for fat loss", splitKey:null, comingSoon:true },
+  // RUNNING
+  { id:"c25k",      name:"Couch to 5K",             category:"Running", days:3, weeks:8,  level:"Beginner",     bestFor:"Complete beginners — first 5K ever",               splitKey:null, isRun:true },
+  { id:"5k_sub25",  name:"Sub-25 5K",               category:"Running", days:4, weeks:8,  level:"Intermediate", bestFor:"Break 25 minutes for the 5K distance",            splitKey:null, isRun:true },
+  { id:"10k",       name:"10K Training",            category:"Running", days:4, weeks:10, level:"Intermediate", bestFor:"Build to 10K from a 5K base",                     splitKey:null, isRun:true },
+  { id:"half",      name:"Half Marathon",           category:"Running", days:5, weeks:16, level:"Intermediate", bestFor:"First half marathon or sub-2hr goal",              splitKey:null, isRun:true },
+  // HYROX
+  { id:"hyrox_12w", name:"12-Week Race Prep",       category:"Hyrox",   days:5, weeks:12, level:"Intermediate", bestFor:"First Hyrox or improving race time",              splitKey:null, isHyrox:true },
+  // HYBRID
+  { id:"strength_run",  name:"Strength-Biased Hybrid",  category:"Hybrid", days:5, weeks:12, level:"Intermediate", bestFor:"Lifters adding a running base",               splitKey:null, isHybrid:true },
+  { id:"upper_lower_run",name:"Run-Biased Hybrid",       category:"Hybrid", days:6, weeks:12, level:"Advanced",    bestFor:"Runners adding strength training",             splitKey:null, isHybrid:true },
+  { id:"balanced_hybrid",name:"Balanced Hybrid",         category:"Hybrid", days:5, weeks:12, level:"Intermediate", bestFor:"Equal strength and endurance development",   splitKey:null, isHybrid:true },
+  { id:"ppl_hyrox",     name:"Hyrox Hybrid",            category:"Hybrid", days:5, weeks:12, level:"Advanced",    bestFor:"Strength athletes preparing for Hyrox",       splitKey:null, isHybrid:true, isHyrox:true },
+  // GLUTE FOCUS
+  { id:"glute_3", name:"Glute Focus 3-Day",        category:"Glute Focus", days:3, weeks:10, level:"Beginner",     bestFor:"Hip thrust-led glute development",            splitKey:"Glute Focus 3-Day" },
+  { id:"glute_4", name:"Glute Focus 4-Day",        category:"Glute Focus", days:4, weeks:10, level:"Intermediate", bestFor:"Serious glute and lower body recomposition",  splitKey:"Glute Focus 4-Day" },
+  { id:"lower_5", name:"Lower Body Only 5-Day",   category:"Glute Focus", days:5, weeks:10, level:"Advanced",     bestFor:"Maximum lower body volume and frequency",     splitKey:"Lower Body Only 5-Day" },
+];
+
 export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history) {
   const days = daysPerWeek || 4;
   const program = PROGRAMS_BY_DAYS[days];
