@@ -537,3 +537,74 @@ export function applyEquipmentToWorkout(exercises, equipment) {
     originalName: ex.name
   }));
 }
+
+// ─── MUSCLE GROUP MAPPING ────────────────────────────────────────────────────
+export const EXERCISE_MUSCLE_GROUP = {
+  // CHEST
+  "Barbell Bench Press":"chest","Incline Dumbbell Press":"chest","Incline Barbell Press":"chest",
+  "Decline Barbell Press":"chest","Cable Fly":"chest","Dumbbell Fly":"chest","Push Up":"chest",
+  "Chest Press Machine":"chest","Pec Deck Machine":"chest","Cable Crossover":"chest",
+  "Low Cable Fly":"chest","High Cable Fly":"chest","Decline Dumbbell Press":"chest",
+  "Dumbbell Bench Press":"chest","Cable Chest Press":"chest","Incline Fly":"chest",
+  "Chest Dip":"chest","Push Up Plus":"chest","Feet Elevated Push Up":"chest","Decline Push Up":"chest",
+  // BACK
+  "Deadlift":"back","Barbell Row":"back","Pull Up":"back","Lat Pulldown":"back",
+  "Cable Row":"back","T-Bar Row":"back","Single Arm Dumbbell Row":"back",
+  "Chest-Supported Row":"back","Neutral Grip Pulldown":"back","Face Pull":"back",
+  "Seated Cable Row":"back","Dumbbell Row":"back","Straight Arm Pulldown":"back",
+  "Rack Pull":"back","Pendlay Row":"back",
+  // SHOULDERS
+  "Overhead Press":"shoulders","Dumbbell Shoulder Press":"shoulders",
+  "Arnold Press":"shoulders","Lateral Raise":"shoulders","Cable Lateral Raise":"shoulders",
+  "Front Raise":"shoulders","Reverse Fly":"shoulders","Upright Row":"shoulders",
+  "DB Arnold Press":"shoulders","Machine Lateral Raise":"shoulders",
+  "Dumbbell Lateral Raise":"shoulders","Rear Delt Fly":"shoulders",
+  // LEGS
+  "Barbell Squat":"legs","Romanian Deadlift":"legs","Leg Press":"legs",
+  "Bulgarian Split Squat":"legs","Leg Extension":"legs","Seated Leg Curl":"legs",
+  "Nordic Curl":"legs","Hack Squat":"legs","Goblet Squat":"legs","Lunge":"legs",
+  "Leg Curl":"legs","Barbell Lunge":"legs","Walking Lunge":"legs",
+  "Dumbbell Romanian Deadlift":"legs","Stiff Leg Deadlift":"legs",
+  "Barbell Hack Squat":"legs","Dumbbell Lunge":"legs","Split Squat":"legs",
+  // GLUTES
+  "Hip Thrust":"glutes","Glute Bridge":"glutes","Cable Kickback":"glutes",
+  "Abduction Machine":"glutes","Sumo Squat":"glutes","Clamshell":"glutes",
+  "Barbell Sumo Squat":"glutes","Dumbbell Sumo Squat":"glutes","Machine Hip Thrust":"glutes",
+  // BICEPS
+  "Barbell Curl":"biceps","Dumbbell Curl":"biceps","Hammer Curl":"biceps",
+  "Incline Dumbbell Curl":"biceps","Cable Curl":"biceps","EZ Bar Curl":"biceps",
+  "Concentration Curl":"biceps","Preacher Curl":"biceps","Spider Curl":"biceps",
+  // TRICEPS
+  "Tricep Pushdown":"triceps","Skull Crusher":"triceps","Tricep Dip":"triceps",
+  "Close Grip Bench Press":"triceps","Overhead Tricep Extension":"triceps",
+  "Diamond Push Up":"triceps","Rope Pushdown":"triceps","Tricep Kickback":"triceps",
+  // CORE
+  "Ab Wheel Rollout":"core","Plank":"core","Cable Crunch":"core",
+  "Hanging Leg Raise":"core","Russian Twist":"core","Bicycle Crunch":"core",
+  "Hollow Hold":"core","Dead Bug":"core","Pallof Press":"core",
+  // CALVES
+  "Calf Raise":"calves","Seated Calf Raise":"calves","Standing Calf Raise":"calves",
+  "Machine Calf Raise":"calves",
+};
+
+export const MUSCLE_GROUP_POOL = {
+  chest:["Barbell Bench Press","Incline Dumbbell Press","Dumbbell Bench Press","Incline Barbell Press","Cable Fly","Dumbbell Fly","Push Up","Chest Press Machine","Pec Deck Machine","Cable Crossover","Chest Dip","Decline Barbell Press"],
+  back:["Deadlift","Barbell Row","Pull Up","Lat Pulldown","Cable Row","T-Bar Row","Single Arm Dumbbell Row","Chest-Supported Row","Neutral Grip Pulldown","Face Pull","Seated Cable Row","Rack Pull"],
+  shoulders:["Overhead Press","Dumbbell Shoulder Press","Arnold Press","Lateral Raise","Cable Lateral Raise","Reverse Fly","Front Raise","Machine Lateral Raise","Upright Row"],
+  legs:["Barbell Squat","Romanian Deadlift","Leg Press","Bulgarian Split Squat","Leg Extension","Seated Leg Curl","Nordic Curl","Hack Squat","Goblet Squat","Lunge","Walking Lunge"],
+  glutes:["Hip Thrust","Glute Bridge","Sumo Squat","Cable Kickback","Clamshell","Abduction Machine"],
+  biceps:["Barbell Curl","Dumbbell Curl","Hammer Curl","EZ Bar Curl","Cable Curl","Incline Dumbbell Curl","Concentration Curl","Preacher Curl"],
+  triceps:["Tricep Pushdown","Skull Crusher","Overhead Tricep Extension","Close Grip Bench Press","Tricep Dip","Diamond Push Up","Rope Pushdown"],
+  core:["Ab Wheel Rollout","Plank","Cable Crunch","Hanging Leg Raise","Russian Twist","Hollow Hold","Dead Bug","Pallof Press"],
+  calves:["Calf Raise","Seated Calf Raise","Machine Calf Raise","Standing Calf Raise"],
+};
+
+export function getSwapOptions(exerciseName, equipment="Full Gym", count=6) {
+  const group=EXERCISE_MUSCLE_GROUP[exerciseName];
+  if(!group)return[];
+  const pool=MUSCLE_GROUP_POOL[group]||[];
+  return pool
+    .filter(n=>n!==exerciseName)
+    .map(n=>({name:getEquipmentExercise(n,equipment),originalName:n,muscleGroup:group}))
+    .slice(0,count);
+}

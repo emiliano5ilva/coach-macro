@@ -7,7 +7,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
 import { sb } from "./client.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS } from "./running_programs.js";
-import { getEquipmentExercise, applyEquipmentToWorkout } from "./exercise_database.js";
+import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -505,12 +505,54 @@ function ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen}){
     .lib-modal-btns{display:flex;flex-direction:column;gap:10px;}
     .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:#2979FF;color:#fff;cursor:pointer;font-family:inherit;}
     .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
+    .lib-fav-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.15);border-radius:9px;margin-bottom:6px;}
+    .lib-fav-name{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px;}
+    .lib-fav-group{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(245,245,240,.35);}
+    .lib-fav-remove{font-size:11px;color:rgba(245,245,240,.3);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:6px;}
+    .lib-fav-remove:hover{color:rgba(255,77,109,.7);background:rgba(255,77,109,.08);}
+    .lib-fav-section{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06);}
   `;
+
+  const libFavorites=wPrefs.favorites||[];
+
+  async function removeFavorite(name){
+    const newFavs=libFavorites.filter(f=>f!==name);
+    const newWPrefs={...wPrefs,favorites:newFavs};
+    setWPrefs(newWPrefs);
+    try{
+      const {data:{user}}=await sb.auth.getUser();
+      if(user)await sb.from("profiles").upsert({id:user.id,wprefs:newWPrefs},{onConflict:"id"});
+    }catch(e){console.error("[removeFavorite]",e);}
+  }
 
   return(
     <div>
       <style>{LIB_CSS}</style>
       <div className="lib-wrap">
+        {libFavorites.length>0&&(()=>{
+          const byGroup={};
+          libFavorites.forEach(name=>{
+            const g=EXERCISE_MUSCLE_GROUP[name]||"other";
+            if(!byGroup[g])byGroup[g]=[];
+            byGroup[g].push(name);
+          });
+          return(
+            <div className="lib-fav-section">
+              <div className="lib-cat-title" style={{marginTop:0}}>❤️ My Favorites</div>
+              {Object.entries(byGroup).map(([group,names])=>(
+                <div key={group} style={{marginBottom:10}}>
+                  <div className="lib-fav-group" style={{marginBottom:6}}>{group}</div>
+                  {names.map(name=>(
+                    <div key={name} className="lib-fav-row">
+                      <span className="lib-fav-name">❤️ {name}</span>
+                      <button className="lib-fav-remove" onClick={()=>removeFavorite(name)}>Remove</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
         {CATEGORY_ORDER.map(cat=>{
           const progs=PROGRAM_LIBRARY.filter(p=>p.category===cat);
           if(!progs.length)return null;
@@ -782,6 +824,40 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
 
+  // ── Favorites & Swap state ───────────────────────────────────────────────
+  const favorites=wPrefs.favorites||[];
+  const permanentSwaps=wPrefs.permanentSwaps||{};
+  const [swapModal,setSwapModal]=useState(null);
+  const [selectedSwap,setSelectedSwap]=useState(null);
+  const [swapPermanent,setSwapPermanent]=useState(false);
+
+  useEffect(()=>{if(swapModal){setSelectedSwap(null);setSwapPermanent(false);}},[swapModal]);
+
+  async function saveWPrefs(newWPrefs){
+    setWPrefs(newWPrefs);
+    try{
+      const {data:{user}}=await sb.auth.getUser();
+      if(user)await sb.from("profiles").upsert({id:user.id,wprefs:newWPrefs},{onConflict:"id"});
+    }catch(e){console.error("[saveWPrefs]",e);}
+  }
+
+  function toggleFavorite(name){
+    const isFav=favorites.includes(name);
+    const newFavs=isFav?favorites.filter(f=>f!==name):[...favorites,name];
+    saveWPrefs({...wPrefs,favorites:newFavs});
+  }
+
+  function applySwap(exerciseIdx,swapName,permanent,originalName){
+    const u={...activeWorkout,exercises:[...activeWorkout.exercises]};
+    u.exercises[exerciseIdx]={...u.exercises[exerciseIdx],name:swapName,swappedFrom:originalName};
+    setActiveWorkout(u);
+    if(permanent){
+      saveWPrefs({...wPrefs,permanentSwaps:{...permanentSwaps,[originalName]:swapName}});
+    }
+    setSwapModal(null);
+    setSelectedSwap(null);
+  }
+
   // ── Adapt Now state ──────────────────────────────────────────────────────
   const [showAdapt,setShowAdapt]=useState(false);
   const [adaptToast,setAdaptToast]=useState("");
@@ -806,6 +882,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   async function useAdaptedSession(result, reason){
     const exs=(result.adapted_exercises||[]).map(ex=>({
       name:ex.name, notes:ex.notes||"",
+      originalName:ex.name,
       sets:Array.from({length:Number(ex.sets)||3},()=>({weight:ex.weight||"",reps:String(ex.reps||"10"),done:false}))
     }));
     setActiveWorkout({exercises:exs});
@@ -845,6 +922,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   if(prescType==="lifting"&&todayType==="training"){
     let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp);
     exs=applyEquipmentToWorkout(exs,wPrefs.equipment||"Full Gym");
+    exs=exs.map(ex=>{const c=ex.originalName||ex.name;const sw=permanentSwaps[c];return{...ex,name:sw||ex.name,swappedFrom:sw?c:undefined,isFavorite:favorites.includes(c)};});
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
     todayPrescription=exs;
   }else if(prescType==="running"){
@@ -866,6 +944,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     if(prescType==="lifting"&&Array.isArray(todayPrescription)){
       exercises=todayPrescription.map(ex=>({
         name:ex.name,notes:ex.notes||"",
+        originalName:ex.originalName||ex.name,
+        isFavorite:ex.isFavorite,
+        swappedFrom:ex.swappedFrom,
         sets:Array.from({length:Number(ex.sets)||3},()=>({weight:"",reps:String(ex.reps||10),done:false})),
       }));
     }else{
@@ -885,6 +966,47 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     <div style={{paddingBottom:isMobile?20:0}}>
       {/* Adapt Now Modal */}
       {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)}/>}
+
+      {/* Swap Exercise Modal */}
+      {swapModal&&(()=>{
+        const opts=getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.92)",backdropFilter:"blur(8px)",zIndex:250,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
+            <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+              <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SWAP EXERCISE</div>
+              <div style={{fontSize:18,fontWeight:700,marginBottom:2}}>{swapModal.exerciseName}</div>
+              <div style={{fontSize:12,color:"rgba(245,245,240,.4)",marginBottom:18}}>Choose a replacement — same muscle group</div>
+              {opts.length>0
+                ?<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
+                  {opts.map((opt,i)=>(
+                    <button key={i} onClick={()=>setSelectedSwap(selectedSwap===opt.name?null:opt.name)}
+                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(41,121,255,.15)":"rgba(255,255,255,.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(41,121,255,.5)":"rgba(255,255,255,.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
+                      <span style={{fontSize:14,fontWeight:600,color:"#fff"}}>{opt.name}</span>
+                      {selectedSwap===opt.name&&<span style={{fontSize:14,color:"#2979FF"}}>✓</span>}
+                    </button>
+                  ))}
+                </div>
+                :<div style={{fontSize:13,color:"rgba(245,245,240,.4)",textAlign:"center",padding:"16px 0",marginBottom:18}}>No alternatives for this equipment setup.</div>
+              }
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(255,255,255,.03)",borderRadius:10,border:"1px solid rgba(255,255,255,.06)"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Make permanent</div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Always replace this exercise in my plan</div>
+                </div>
+                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?"#2979FF":"rgba(255,255,255,.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:swapPermanent?19:3}}/>
+                </button>
+              </div>
+              <button onClick={()=>selectedSwap&&applySwap(swapModal.exerciseIdx,selectedSwap,swapPermanent,swapModal.originalName)} disabled={!selectedSwap}
+                style={{width:"100%",padding:15,background:selectedSwap?"#2979FF":"rgba(255,255,255,.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
+                Swap Exercise →
+              </button>
+              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Toast */}
       {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(41,121,255,.4)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
@@ -917,8 +1039,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{display:"flex",flexDirection:"column",gap:5}}>
                     {todayPrescription.slice(0,5).map((ex,i)=>(
                       <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:T.s2,borderRadius:9,border:`1px solid ${T.bd}`}}>
-                        <div style={{fontSize:13,fontWeight:600}}>{ex.name}</div>
-                        <div style={{fontSize:11,color:T.mu,flexShrink:0}}>{ex.sets}×{ex.reps}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
+                          {ex.isFavorite&&<span style={{fontSize:10,flexShrink:0}}>❤️</span>}
+                          {ex.swappedFrom&&<span style={{fontSize:10,flexShrink:0,opacity:.7}}>🔄</span>}
+                        </div>
+                        <div style={{fontSize:11,color:T.mu,flexShrink:0,marginLeft:8}}>{ex.sets}×{ex.reps}</div>
                       </div>
                     ))}
                     {todayPrescription.length>5&&<div style={{fontSize:11,color:T.mu,textAlign:"center",padding:"4px 0"}}>+{todayPrescription.length-5} more exercises</div>}
@@ -1070,7 +1196,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                             <div style={{width:24,height:24,borderRadius:"50%",background:allDone?T.carb:T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>{allDone?"✓":ei+1}</div>
-                            <div style={{fontSize:16,fontWeight:700}}>{ex.name}</div>
+                            <div style={{fontSize:16,fontWeight:700,flex:1}}>{ex.name}</div>
+                            <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:15,lineHeight:1,flexShrink:0}}>{favorites.includes(ex.originalName||ex.name)?"❤️":"🤍"}</button>
+                            <button onClick={()=>setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:14,lineHeight:1,color:"rgba(245,245,240,.35)",flexShrink:0}}>🔄</button>
                           </div>
                           {ex.notes&&<div style={{fontSize:11,color:T.mu,marginLeft:32}}>{ex.notes}</div>}
                         </div>
