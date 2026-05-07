@@ -138,7 +138,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
     const daysPerWeek=Object.values(schedule||{}).filter(v=>v==="training").length||3;
     const startD=new Date(profile?.startDate||Date.now());
     const dayIdx=Math.max(0,Math.floor((Date.now()-startD.getTime())/86400000))%(daysPerWeek||1);
-    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym");
+    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp);
     exs=applyEquipmentToWorkout(exs||[],wPrefs.equipment||"Full Gym");
     setGenExercises(exs.length?exs:[{name:"Session Ready",sets:3,reps:"8-12",weight:"",notes:"Start your session"}]);
     generateWorkout(type,split,runPlanLocal,hybridTemplate); // still call AI for notes in background
@@ -589,7 +589,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   let todayPrescription=null;
   let todayProgObj=null;
   if(prescType==="lifting"&&todayType==="training"){
-    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym");
+    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp);
     exs=applyEquipmentToWorkout(exs,wPrefs.equipment||"Full Gym");
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
     todayPrescription=exs;
@@ -683,6 +683,24 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   )}
                 </div>
               )}
+              {(()=>{
+                const lvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+                const isNov=lvl==="beginner"||lvl==="novice";
+                const isAdv=lvl==="advanced"||lvl==="elite";
+                const badgeColor=isNov?"#34D399":isAdv?"#F87171":"#2979FF";
+                const badgeBg=isNov?"rgba(52,211,153,.1)":isAdv?"rgba(248,113,113,.1)":"rgba(41,121,255,.1)";
+                const badgeLabel=isNov?"Beginner Program":isAdv?"Advanced Program":"Intermediate Program";
+                if(!prescType||prescType!=="lifting"||!todayPrescription||!Array.isArray(todayPrescription))return null;
+                return(
+                  <div style={{background:badgeBg,border:`1px solid ${badgeColor}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                    <div>
+                      <span style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:badgeColor}}>{badgeLabel}</span>
+                      <div style={{fontSize:11,color:T.mu,marginTop:2}}>Exercises selected for your level. <span style={{color:T.mu,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setTrainScreen&&setTrainScreen("settings")}>Update in Settings.</span></div>
+                    </div>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:badgeBg,border:`1.5px solid ${badgeColor}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:14}}>{isNov?"🌱":isAdv?"🔥":"⚡"}</div>
+                  </div>
+                );
+              })()}
               <div style={{display:"flex",gap:10}}>
                 {todayType==="training"&&todayPrescription
                   ?<button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>▶ Start Workout →</button>
@@ -1160,6 +1178,25 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{display:"flex",gap:8}}>
             {["Full Gym","Home Gym","Bodyweight Only"].map(e=>(<button key={e} onClick={()=>{const wp={...wPrefs,equipment:e};setWPrefs(wp);saveSettings(wp,null);}} style={{flex:1,padding:"11px 6px",minHeight:44,borderRadius:9,border:`1.5px solid ${wPrefs.equipment===e?T.carb:T.bd}`,background:wPrefs.equipment===e?`${T.carb}15`:T.s3,color:wPrefs.equipment===e?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{e}</button>))}
           </div>
+        </SectionCard>
+
+        <SectionCard title="Experience Level">
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+            {[
+              {v:"beginner",l:"Beginner",sub:"Less than 1 year — dumbbell-focused, lower volume",color:"#34D399"},
+              {v:"intermediate",l:"Intermediate",sub:"1–3 years — barbell compounds, moderate volume",color:"#2979FF"},
+              {v:"advanced",l:"Advanced",sub:"3+ years — heavy loads, high volume, advanced techniques",color:"#F87171"},
+            ].map(o=>{
+              const cur=(wPrefs.liftExp||profile?.liftExp||"intermediate")===o.v;
+              return(
+                <button key={o.v} onClick={()=>{const wp={...wPrefs,liftExp:o.v};setWPrefs(wp);saveSettings(wp,null);}} style={{textAlign:"left",padding:"13px 16px",minHeight:52,borderRadius:10,border:`1.5px solid ${cur?o.color:T.bd}`,background:cur?`${o.color}12`:T.s3,color:cur?o.color:T.mu,cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",gap:3}}>
+                  <span style={{fontSize:13,fontWeight:700,color:cur?o.color:"#fff"}}>{o.l}</span>
+                  <span style={{fontSize:11,color:T.mu}}>{o.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{fontSize:11,color:T.dim,lineHeight:1.6}}>Exercises will update on your next session.</div>
         </SectionCard>
 
         <SectionCard title="Athlete Modes">

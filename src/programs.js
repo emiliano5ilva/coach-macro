@@ -509,6 +509,683 @@ export const GLUTE_PROGRAMS = {
   }
 };
 
+// ─── SKILL-LEVEL EXERCISE OVERRIDES ──────────────────────────────────────────
+// Keyed by splitType → dayName → { novice, advanced }.
+// Intermediate falls back to the base arrays in PROGRAMS_BY_DAYS.
+export const SKILL_OVERRIDES = {
+  // ── 2-day Full Body ─────────────────────────────────────────────────────────
+  "Full Body": {
+    "Day A": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12-15",notes:"Hold dumbbell at chest. Heels shoulder-width, sit down between knees.",primary:true},
+        {name:"Dumbbell Bench Press",sets:3,reps:"12-15",notes:"Feel the chest stretch at the bottom. Push the bench away, not the weight up.",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"Pull to upper chest. Squeeze lats at the bottom.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12-15",notes:"Stop 2-3 reps before failure.",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"3-5",notes:"Heavy. Pause 1 sec at bottom. Add weight every week.",primary:true},
+        {name:"Barbell Bench Press",sets:5,reps:"3-5",notes:"Add 5lbs when all reps completed. Controlled 2-sec descent.",primary:true},
+        {name:"Barbell Row",sets:4,reps:"4-6",notes:"Hold 1 sec at top. Chest almost touches bar.",primary:true},
+        {name:"Overhead Press",sets:4,reps:"5-7",notes:"Strict. Bar touches clavicle at bottom.",primary:false},
+        {name:"Weighted Pull Up",sets:3,reps:"5-8",notes:"Add weight when you hit 8 clean reps bodyweight.",primary:false},
+        {name:"Barbell Curl",sets:4,reps:"8-10",notes:"Controlled descent — 2 sec negative.",primary:false},
+        {name:"Skull Crusher",sets:3,reps:"8-10",notes:"Elbows stay pointed at the ceiling.",primary:false},
+        {name:"Ab Wheel Rollout",sets:3,reps:"10-12",notes:"Full extension. Don't let hips sag.",primary:false},
+      ],
+    },
+    "Day B": {
+      novice: [
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"Hip hinge — push hips back, not down. Feel the hamstring stretch.",primary:true},
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"30-45 degree incline. Focus on upper chest.",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"Squeeze shoulder blades together at the end.",primary:false},
+        {name:"Leg Press",sets:3,reps:"15",notes:"Feet shoulder-width. Full depth.",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"Light weight. Lead with elbows.",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Deadlift",sets:5,reps:"3-5",notes:"Heavy. Add 10lbs when all reps completed. Belt at 4+ plates.",primary:true},
+        {name:"Romanian Deadlift",sets:4,reps:"6-8",notes:"Pause at bottom for max hamstring stretch.",primary:false},
+        {name:"Incline Dumbbell Press",sets:4,reps:"8-10",notes:"2-sec descent. Full stretch at bottom.",primary:false},
+        {name:"Weighted Pull Up",sets:4,reps:"6-8",notes:"Dead hang to full lockout. Add weight.",primary:true},
+        {name:"Face Pull",sets:4,reps:"20",notes:"External rotation at end. Rear delt and rotator cuff health.",primary:false},
+        {name:"Lateral Raise",sets:4,reps:"15-20",notes:"Rest-pause on last set. This is how you build shoulder width.",primary:false},
+        {name:"Ab Wheel Rollout",sets:3,reps:"12",notes:"",primary:false},
+      ],
+    },
+  },
+
+  // ── 3-day Full Body A/B/A ───────────────────────────────────────────────────
+  "Full Body A/B/A": {
+    "Day A": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12",notes:"Control the descent. Don't let knees cave.",primary:true},
+        {name:"Dumbbell Bench Press",sets:3,reps:"12-15",notes:"Slow descent. Feel the chest stretch.",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"Pull to chin. Full stretch at top.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12",notes:"",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"3-5",notes:"Heavy. Record this — you should hit a PR every 2-3 weeks.",primary:true},
+        {name:"Barbell Bench Press",sets:5,reps:"3-5",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Barbell Row",sets:5,reps:"3-5",notes:"Pendlay-style. Bar from floor each rep.",primary:true},
+        {name:"Overhead Press",sets:4,reps:"4-6",notes:"",primary:false},
+        {name:"Weighted Pull Up",sets:4,reps:"6-8",notes:"",primary:false},
+        {name:"Barbell Curl",sets:4,reps:"8-10",notes:"",primary:false},
+        {name:"Skull Crusher",sets:3,reps:"8-10",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"Shoulder health — don't skip this.",primary:false},
+      ],
+    },
+    "Day B": {
+      novice: [
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"Hinge at hips. Keep back flat. Feel hamstrings load.",primary:true},
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12",notes:"",primary:false},
+        {name:"Leg Press",sets:3,reps:"15",notes:"Full depth.",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"Full range — all the way up, all the way down.",primary:false},
+      ],
+      advanced: [
+        {name:"Deadlift",sets:5,reps:"2-4",notes:"Heaviest lift of the week. Add 10lbs when all reps completed.",primary:true},
+        {name:"Hack Squat",sets:4,reps:"6-8",notes:"Or front squat. Quad depth.",primary:false},
+        {name:"Incline Dumbbell Press",sets:4,reps:"8-10",notes:"2-sec descent.",primary:false},
+        {name:"Lat Pulldown",sets:4,reps:"8-10",notes:"Full stretch — arms fully extended at top.",primary:false},
+        {name:"Romanian Deadlift",sets:4,reps:"8-10",notes:"After deadlift — lighter. Hamstring stretch.",primary:false},
+        {name:"Arnold Press",sets:3,reps:"10-12",notes:"",primary:false},
+        {name:"Face Pull",sets:4,reps:"20",notes:"",primary:false},
+        {name:"Calf Raise",sets:5,reps:"15-20",notes:"",primary:false},
+      ],
+    },
+  },
+
+  // ── 3-day Push/Pull/Legs ────────────────────────────────────────────────────
+  "Push/Pull/Legs": {
+    "Push": {
+      novice: [
+        {name:"Dumbbell Bench Press",sets:3,reps:"12-15",notes:"Focus on feeling the chest contract. Don't worry about weight yet.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12-15",notes:"Control the movement. Stop 2-3 reps before failure.",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"Light weight. Full range of motion.",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Push Up",sets:2,reps:"max",notes:"Burnout. Go until form breaks.",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Bench Press",sets:5,reps:"4-6",notes:"Heavy. This is your primary strength movement. Progressive overload mandatory.",primary:true},
+        {name:"Incline Dumbbell Press",sets:4,reps:"8-10",notes:"Controlled 2-second descent.",primary:false},
+        {name:"Cable Fly",sets:4,reps:"12-15",notes:"Superset with push ups on last 2 sets.",primary:false},
+        {name:"Overhead Press",sets:4,reps:"6-8",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Arnold Press",sets:3,reps:"10-12",notes:"",primary:false},
+        {name:"Lateral Raise",sets:5,reps:"15-20",notes:"Rest-pause on last set. This builds shoulder width.",primary:false},
+        {name:"Skull Crusher",sets:4,reps:"8-10",notes:"",primary:false},
+        {name:"Overhead Tricep Extension",sets:3,reps:"10-12",notes:"Long head emphasis.",primary:false},
+      ],
+    },
+    "Pull": {
+      novice: [
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"Pull to upper chest. Elbows down and back.",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"12-15",notes:"Single arm. Elbow drives to hip. Full row.",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"Squeeze shoulder blades at end of movement.",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"Rear delt health. Every session.",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Hammer Curl",sets:2,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Deadlift",sets:5,reps:"3-5",notes:"Add 10lbs when all reps completed. This is your heaviest day.",primary:true},
+        {name:"Barbell Row",sets:5,reps:"4-6",notes:"Chest almost touches bar. Control the descent.",primary:true},
+        {name:"Weighted Pull Up",sets:4,reps:"5-8",notes:"Add weight when you hit 8 clean reps bodyweight.",primary:false},
+        {name:"Lat Pulldown",sets:4,reps:"8-10",notes:"Full stretch at top — arms fully extended.",primary:false},
+        {name:"Face Pull",sets:4,reps:"20",notes:"External rotation. Non-negotiable for shoulder health.",primary:false},
+        {name:"Barbell Curl",sets:4,reps:"8-10",notes:"",primary:false},
+        {name:"Incline Dumbbell Curl",sets:3,reps:"10-12",notes:"Long head stretch.",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"10-12",notes:"",primary:false},
+        {name:"Cable Curl",sets:3,reps:"15",notes:"Constant tension finisher.",primary:false},
+      ],
+    },
+    "Legs": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12-15",notes:"Dumbbell at chest. Sit between your heels, not in front of them.",primary:true},
+        {name:"Leg Press",sets:3,reps:"15",notes:"Feet shoulder-width. Full depth — don't cut the range.",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"Hip hinge. Feel the hamstring stretch at the bottom.",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Leg Extension",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"Full range of motion.",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"4-6",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Front Squat",sets:4,reps:"6-8",notes:"Or hack squat. Quad depth. Stay upright.",primary:false},
+        {name:"Romanian Deadlift",sets:4,reps:"6-8",notes:"Heavy. Feel the hamstring load.",primary:false},
+        {name:"Leg Press",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Walking Lunge",sets:4,reps:"12 each",notes:"Long stride for glute emphasis.",primary:false},
+        {name:"Leg Curl",sets:4,reps:"12-15",notes:"3-sec negative on every rep.",primary:false},
+        {name:"Leg Extension",sets:4,reps:"15-20",notes:"Squeeze at top.",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"10 each",notes:"Single leg strength. Heavy DB.",primary:false},
+        {name:"Calf Raise",sets:5,reps:"20",notes:"High volume — calves are stubborn.",primary:false},
+      ],
+    },
+  },
+
+  // ── 4-day Upper/Lower ───────────────────────────────────────────────────────
+  "Upper/Lower": {
+    "Upper A": {
+      novice: [
+        {name:"Dumbbell Bench Press",sets:3,reps:"10-12",notes:"Control the descent. Feel the chest stretch.",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"10-12",notes:"Elbow drives to hip. Hold 1 sec at top.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"10-12",notes:"Stop before failure.",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"12",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"12",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Bench Press",sets:5,reps:"3-5",notes:"Primary strength movement. Add 5lbs when all reps completed.",primary:true},
+        {name:"Barbell Row",sets:5,reps:"3-5",notes:"Pendlay-style. Explosive up, controlled down.",primary:true},
+        {name:"Overhead Press",sets:4,reps:"4-6",notes:"",primary:false},
+        {name:"Weighted Pull Up",sets:4,reps:"5-8",notes:"",primary:false},
+        {name:"Barbell Curl",sets:4,reps:"6-8",notes:"",primary:false},
+        {name:"Skull Crusher",sets:4,reps:"6-8",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"Shoulder health.",primary:false},
+      ],
+    },
+    "Lower A": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12-15",notes:"Priority: full depth over heavy weight.",primary:true},
+        {name:"Leg Press",sets:3,reps:"15",notes:"Feet shoulder-width. Full range.",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"Hinge at hips. Flat back throughout.",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"3-sec negative.",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+        {name:"Plank",sets:3,reps:"30 sec",notes:"Squeeze everything.",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"3-5",notes:"Heavy. Add 5lbs when all reps completed.",primary:true},
+        {name:"Romanian Deadlift",sets:4,reps:"5-7",notes:"Heavy hinge. Add weight weekly.",primary:false},
+        {name:"Leg Press",sets:4,reps:"8-12",notes:"",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"8-10 each",notes:"Single-leg strength. Very challenging.",primary:false},
+        {name:"Leg Curl",sets:4,reps:"10-12",notes:"3-sec negative.",primary:false},
+        {name:"Calf Raise",sets:5,reps:"15",notes:"",primary:false},
+        {name:"Ab Wheel Rollout",sets:3,reps:"12",notes:"",primary:false},
+      ],
+    },
+    "Upper B": {
+      novice: [
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"Upper chest focus.",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"Full stretch at top.",primary:false},
+        {name:"Machine Shoulder Press",sets:3,reps:"12-15",notes:"Or dumbbell press.",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"Light weight. Full range.",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"Rear delt health.",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Incline Dumbbell Press",sets:5,reps:"8-10",notes:"Hypertrophy focus. 2-sec descent.",primary:false},
+        {name:"Lat Pulldown",sets:4,reps:"8-12",notes:"Full stretch — arms fully extended at top.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Cable Row",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Cable Fly",sets:4,reps:"12-15",notes:"Full stretch + squeeze.",primary:false},
+        {name:"Face Pull",sets:5,reps:"20",notes:"",primary:false},
+        {name:"Lateral Raise",sets:5,reps:"15-20",notes:"Rest-pause on last set.",primary:false},
+        {name:"Hammer Curl",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Overhead Tricep Extension",sets:3,reps:"12",notes:"Long head.",primary:false},
+      ],
+    },
+    "Lower B": {
+      novice: [
+        {name:"Dumbbell Deadlift",sets:3,reps:"10-12",notes:"Or trap bar if available. Hip hinge pattern.",primary:true},
+        {name:"Leg Press",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Walking Lunge",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Deadlift",sets:5,reps:"3-5",notes:"Add 10lbs when all reps completed.",primary:true},
+        {name:"Leg Press",sets:4,reps:"10-15",notes:"High foot placement for glute emphasis.",primary:false},
+        {name:"Romanian Deadlift",sets:4,reps:"8-10",notes:"Hypertrophy focus. Feel the stretch.",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Walking Lunge",sets:3,reps:"12 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:4,reps:"15-20",notes:"",primary:false},
+        {name:"Leg Curl",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Calf Raise",sets:6,reps:"20",notes:"",primary:false},
+      ],
+    },
+  },
+
+  // ── 5-day Upper/Lower/Push/Pull/Legs ────────────────────────────────────────
+  "Upper/Lower/Push/Pull/Legs": {
+    "Upper": {
+      novice: [
+        {name:"Dumbbell Bench Press",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12",notes:"",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Bench Press",sets:5,reps:"3-5",notes:"Heavy. Add 5lbs.",primary:true},
+        {name:"Barbell Row",sets:5,reps:"3-5",notes:"Heavy.",primary:true},
+        {name:"Overhead Press",sets:4,reps:"4-6",notes:"",primary:false},
+        {name:"Weighted Pull Up",sets:4,reps:"5-8",notes:"",primary:false},
+        {name:"Barbell Curl",sets:4,reps:"6-8",notes:"",primary:false},
+        {name:"Skull Crusher",sets:4,reps:"6-8",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+      ],
+    },
+    "Lower": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12-15",notes:"",primary:true},
+        {name:"Leg Press",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"3-5",notes:"Heavy.",primary:true},
+        {name:"Romanian Deadlift",sets:4,reps:"5-7",notes:"",primary:false},
+        {name:"Leg Press",sets:4,reps:"8-12",notes:"",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"8-10 each",notes:"",primary:false},
+        {name:"Leg Curl",sets:4,reps:"10-12",notes:"3-sec negative.",primary:false},
+        {name:"Calf Raise",sets:5,reps:"15",notes:"",primary:false},
+      ],
+    },
+    "Push": {
+      novice: [
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"Volume day. Upper chest.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Push Up",sets:2,reps:"max",notes:"Burnout.",primary:false},
+      ],
+      advanced: [
+        {name:"Incline Dumbbell Press",sets:4,reps:"8-10",notes:"2-sec descent.",primary:false},
+        {name:"Cable Fly",sets:5,reps:"12-15",notes:"Full stretch + squeeze. This is hypertrophy day.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Lateral Raise",sets:6,reps:"15-20",notes:"Rest-pause on last 2 sets.",primary:false},
+        {name:"Skull Crusher",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Overhead Tricep Extension",sets:4,reps:"10-12",notes:"Long head emphasis.",primary:false},
+        {name:"Cable Crossover",sets:3,reps:"15",notes:"Inner chest finisher.",primary:false},
+      ],
+    },
+    "Pull": {
+      novice: [
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Deadlift",sets:5,reps:"3-5",notes:"Add 10lbs when all reps completed.",primary:true},
+        {name:"Lat Pulldown",sets:4,reps:"8-10",notes:"Full stretch.",primary:false},
+        {name:"Cable Row",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Face Pull",sets:5,reps:"20",notes:"",primary:false},
+        {name:"Incline Dumbbell Curl",sets:4,reps:"10-12",notes:"Long head stretch.",primary:false},
+        {name:"Hammer Curl",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Cable Curl",sets:3,reps:"15",notes:"Constant tension.",primary:false},
+        {name:"Rear Delt Fly",sets:3,reps:"20",notes:"",primary:false},
+      ],
+    },
+    "Legs": {
+      novice: [
+        {name:"Leg Press",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Walking Lunge",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Hack Squat",sets:5,reps:"8-10",notes:"Deep range. High foot placement for quad emphasis.",primary:false},
+        {name:"Walking Lunge",sets:4,reps:"15 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:5,reps:"15-20",notes:"Squeeze at top. Hypertrophy focus.",primary:false},
+        {name:"Leg Curl",sets:5,reps:"12-15",notes:"3-sec negative.",primary:false},
+        {name:"Bulgarian Split Squat",sets:4,reps:"8-10 each",notes:"",primary:false},
+        {name:"Calf Raise",sets:7,reps:"20",notes:"",primary:false},
+        {name:"Ab Wheel Rollout",sets:4,reps:"12",notes:"",primary:false},
+      ],
+    },
+  },
+
+  // ── 5-day Bro Split ─────────────────────────────────────────────────────────
+  "Bro Split": {
+    "Chest": {
+      novice: [
+        {name:"Dumbbell Bench Press",sets:3,reps:"12-15",notes:"Feel the chest stretch. Control the weight.",primary:false},
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"Upper chest. 30-45 degree angle.",primary:false},
+        {name:"Cable Fly",sets:3,reps:"12-15",notes:"Constant tension. Focus on the squeeze.",primary:false},
+        {name:"Push Up",sets:3,reps:"max",notes:"Burnout. Go to failure.",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Bench Press",sets:5,reps:"4-6",notes:"Primary strength movement. Add 5lbs when all reps completed.",primary:true},
+        {name:"Incline Dumbbell Press",sets:5,reps:"6-8",notes:"2-sec controlled descent.",primary:false},
+        {name:"Decline Barbell Press",sets:4,reps:"8-10",notes:"Lower chest emphasis.",primary:false},
+        {name:"Cable Fly",sets:5,reps:"12-15",notes:"Full stretch. Superset with push ups on last 2 sets.",primary:false},
+        {name:"Dumbbell Fly",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Cable Crossover",sets:3,reps:"15",notes:"Inner chest finisher.",primary:false},
+        {name:"Push Up",sets:3,reps:"failure",notes:"Burnout.",primary:false},
+      ],
+    },
+    "Back": {
+      novice: [
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"Pull to upper chest. Elbows drive down and back.",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"12-15",notes:"Single arm. Full range — chest stays proud.",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"Squeeze shoulder blades at end.",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"Rear delt and rotator cuff.",primary:false},
+        {name:"Assisted Pull Up",sets:2,reps:"8",notes:"Or negative pull ups — jump up, lower slowly.",primary:false},
+      ],
+      advanced: [
+        {name:"Deadlift",sets:5,reps:"3-5",notes:"Add 10lbs when all reps completed.",primary:true},
+        {name:"Barbell Row",sets:5,reps:"4-6",notes:"Chest nearly touches bar. Controlled descent.",primary:true},
+        {name:"Weighted Pull Up",sets:4,reps:"4-8",notes:"Dead hang to chin over bar. Add weight.",primary:false},
+        {name:"Lat Pulldown",sets:4,reps:"8-10",notes:"Full stretch at top.",primary:false},
+        {name:"Cable Row",sets:4,reps:"8-12",notes:"",primary:false},
+        {name:"Dumbbell Row",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Face Pull",sets:4,reps:"20",notes:"Non-negotiable.",primary:false},
+      ],
+    },
+    "Shoulders": {
+      novice: [
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12-15",notes:"Stop 2-3 reps from failure.",primary:false},
+        {name:"Lateral Raise",sets:4,reps:"15",notes:"Light weight. Lead with elbows. Full range.",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"Rear delt health.",primary:false},
+        {name:"Front Raise",sets:3,reps:"12",notes:"Alternate arms.",primary:false},
+        {name:"Rear Delt Fly",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Overhead Press",sets:6,reps:"4-6",notes:"Heavy. Add 5lbs when all reps completed.",primary:true},
+        {name:"Arnold Press",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Lateral Raise",sets:6,reps:"15-20",notes:"Rest-pause on last 2 sets. This is the shoulder width exercise.",primary:false},
+        {name:"Face Pull",sets:5,reps:"20",notes:"",primary:false},
+        {name:"Rear Delt Fly",sets:5,reps:"15",notes:"",primary:false},
+        {name:"Shrug",sets:5,reps:"10-12",notes:"Hold at top for 1 second.",primary:false},
+        {name:"Upright Row",sets:3,reps:"12",notes:"",primary:false},
+      ],
+    },
+    "Arms": {
+      novice: [
+        {name:"Dumbbell Curl",sets:3,reps:"12-15",notes:"Slow — feel the bicep work. No swinging.",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"Full extension at bottom.",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Overhead Tricep Extension",sets:3,reps:"15",notes:"Long head emphasis.",primary:false},
+        {name:"Concentration Curl",sets:2,reps:"12",notes:"Squeeze hard at top.",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Curl",sets:5,reps:"6-8",notes:"Primary bicep strength movement. Add 5lbs.",primary:true},
+        {name:"Skull Crusher",sets:5,reps:"6-8",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Incline Dumbbell Curl",sets:4,reps:"8-10",notes:"Long head stretch. Don't let elbows drift forward.",primary:false},
+        {name:"Close Grip Bench Press",sets:4,reps:"6-8",notes:"Elbows tucked. Tricep strength.",primary:false},
+        {name:"Hammer Curl",sets:4,reps:"8-10",notes:"",primary:false},
+        {name:"Overhead Tricep Extension",sets:4,reps:"10-12",notes:"Long head emphasis.",primary:false},
+        {name:"Concentration Curl",sets:3,reps:"12",notes:"Full contraction.",primary:false},
+        {name:"Cable Tricep Kickback",sets:3,reps:"15",notes:"Full extension at end.",primary:false},
+        {name:"Cable Curl",sets:3,reps:"15",notes:"Constant tension.",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+      ],
+    },
+    "Legs": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12-15",notes:"Hold dumbbell at chest. Full depth.",primary:true},
+        {name:"Leg Press",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Walking Lunge",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"4-6",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Romanian Deadlift",sets:5,reps:"6-8",notes:"Heavy hinge. Add weight weekly.",primary:false},
+        {name:"Leg Press",sets:5,reps:"10-12",notes:"",primary:false},
+        {name:"Walking Lunge",sets:4,reps:"12 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:4,reps:"15-20",notes:"",primary:false},
+        {name:"Leg Curl",sets:4,reps:"12-15",notes:"3-sec negative.",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Calf Raise",sets:7,reps:"15-20",notes:"",primary:false},
+      ],
+    },
+  },
+
+  // ── 6-day PPL x2 ────────────────────────────────────────────────────────────
+  "Push/Pull/Legs x2": {
+    "Push A": {
+      novice: [
+        {name:"Dumbbell Bench Press",sets:3,reps:"10-12",notes:"Heavy(ish) day. Still controlled.",primary:false},
+        {name:"Dumbbell Overhead Press",sets:3,reps:"10-12",notes:"",primary:false},
+        {name:"Incline Dumbbell Press",sets:3,reps:"12",notes:"",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Bench Press",sets:5,reps:"3-5",notes:"Heavy day. This is your primary push strength session.",primary:true},
+        {name:"Overhead Press",sets:5,reps:"3-5",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Incline Dumbbell Press",sets:4,reps:"6-8",notes:"2-sec descent.",primary:false},
+        {name:"Lateral Raise",sets:5,reps:"12-15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:4,reps:"8-10",notes:"",primary:false},
+        {name:"Skull Crusher",sets:4,reps:"8-10",notes:"",primary:false},
+        {name:"Cable Fly",sets:3,reps:"15",notes:"",primary:false},
+      ],
+    },
+    "Pull A": {
+      novice: [
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"Heavy(ish) pull session.",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Deadlift",sets:5,reps:"2-4",notes:"Heaviest lift of the week.",primary:true},
+        {name:"Barbell Row",sets:5,reps:"3-5",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Weighted Pull Up",sets:4,reps:"5-8",notes:"",primary:false},
+        {name:"Face Pull",sets:5,reps:"20",notes:"",primary:false},
+        {name:"Barbell Curl",sets:4,reps:"6-8",notes:"",primary:false},
+        {name:"Hammer Curl",sets:4,reps:"8-10",notes:"",primary:false},
+        {name:"Incline Dumbbell Curl",sets:3,reps:"10-12",notes:"Long head.",primary:false},
+      ],
+    },
+    "Legs A": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12-15",notes:"Heavy(ish) leg session.",primary:true},
+        {name:"Leg Press",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"3-5",notes:"Heavy. Add 5lbs when all reps completed.",primary:true},
+        {name:"Romanian Deadlift",sets:4,reps:"5-7",notes:"",primary:false},
+        {name:"Leg Press",sets:4,reps:"8-12",notes:"",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"8-10 each",notes:"",primary:false},
+        {name:"Leg Curl",sets:4,reps:"10-12",notes:"3-sec negative.",primary:false},
+        {name:"Calf Raise",sets:6,reps:"15",notes:"",primary:false},
+      ],
+    },
+    "Push B": {
+      novice: [
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"Volume day. Upper chest focus.",primary:false},
+        {name:"Cable Fly",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Push Up",sets:2,reps:"max",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Incline Dumbbell Press",sets:5,reps:"8-10",notes:"Volume day — hypertrophy focus.",primary:false},
+        {name:"Cable Fly",sets:5,reps:"12-15",notes:"Full stretch. Squeeze hard.",primary:false},
+        {name:"Dumbbell Shoulder Press",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Lateral Raise",sets:6,reps:"15-20",notes:"Rest-pause on last 2 sets.",primary:false},
+        {name:"Rear Delt Fly",sets:4,reps:"15-20",notes:"",primary:false},
+        {name:"Overhead Tricep Extension",sets:4,reps:"10-12",notes:"Long head.",primary:false},
+        {name:"Tricep Pushdown",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Cable Crossover",sets:3,reps:"15",notes:"",primary:false},
+      ],
+    },
+    "Pull B": {
+      novice: [
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"Volume pull day.",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Lat Pulldown",sets:5,reps:"8-10",notes:"Volume day. Full stretch at top.",primary:false},
+        {name:"Cable Row",sets:5,reps:"10-12",notes:"",primary:false},
+        {name:"Dumbbell Row",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Face Pull",sets:5,reps:"20",notes:"",primary:false},
+        {name:"Incline Dumbbell Curl",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Cable Curl",sets:4,reps:"12-15",notes:"Constant tension.",primary:false},
+        {name:"Hammer Curl",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Rear Delt Fly",sets:3,reps:"20",notes:"",primary:false},
+      ],
+    },
+    "Legs B": {
+      novice: [
+        {name:"Leg Press",sets:3,reps:"15",notes:"Volume leg day.",primary:false},
+        {name:"Walking Lunge",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Hack Squat",sets:5,reps:"8-10",notes:"Volume day. Deep range of motion.",primary:false},
+        {name:"Walking Lunge",sets:4,reps:"15 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:5,reps:"15-20",notes:"Squeeze at top.",primary:false},
+        {name:"Leg Curl",sets:5,reps:"12-15",notes:"3-sec negative.",primary:false},
+        {name:"Bulgarian Split Squat",sets:4,reps:"8-10 each",notes:"",primary:false},
+        {name:"Calf Raise",sets:7,reps:"20",notes:"",primary:false},
+        {name:"Ab Wheel Rollout",sets:4,reps:"12-15",notes:"",primary:false},
+      ],
+    },
+  },
+
+  // ── 6-day Arnold Split ───────────────────────────────────────────────────────
+  "Arnold Split": {
+    "Chest+Back A": {
+      novice: [
+        {name:"Dumbbell Bench Press",sets:3,reps:"12-15",notes:"Heavy day. Focus on feel.",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Cable Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Fly",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Bench Press",sets:5,reps:"4-6",notes:"Superset with Pull Up for maximum pump.",primary:true},
+        {name:"Pull Up",sets:5,reps:"6-8",notes:"Superset with Bench. Weighted if possible.",primary:true},
+        {name:"Incline Dumbbell Press",sets:4,reps:"6-8",notes:"Superset with Barbell Row.",primary:false},
+        {name:"Barbell Row",sets:4,reps:"6-8",notes:"Superset with Incline Press.",primary:true},
+        {name:"Cable Fly",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"10-12",notes:"",primary:false},
+        {name:"Face Pull",sets:4,reps:"20",notes:"",primary:false},
+      ],
+    },
+    "Shoulders+Arms A": {
+      novice: [
+        {name:"Dumbbell Shoulder Press",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+        {name:"Dumbbell Curl",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Overhead Press",sets:5,reps:"4-6",notes:"Heavy shoulder strength session.",primary:true},
+        {name:"Arnold Press",sets:4,reps:"8-10",notes:"The signature movement. Full rotation.",primary:false},
+        {name:"Lateral Raise",sets:5,reps:"12-15",notes:"",primary:false},
+        {name:"Barbell Curl",sets:5,reps:"6-8",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Skull Crusher",sets:5,reps:"6-8",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Incline Dumbbell Curl",sets:3,reps:"10-12",notes:"Long head.",primary:false},
+        {name:"Close Grip Bench Press",sets:3,reps:"8-10",notes:"Tricep strength.",primary:false},
+        {name:"Hammer Curl",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Overhead Tricep Extension",sets:3,reps:"12",notes:"",primary:false},
+      ],
+    },
+    "Legs A": {
+      novice: [
+        {name:"Goblet Squat",sets:3,reps:"12-15",notes:"",primary:true},
+        {name:"Leg Press",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Leg Extension",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Barbell Squat",sets:5,reps:"4-6",notes:"Add 5lbs when all reps completed.",primary:true},
+        {name:"Leg Press",sets:5,reps:"8-12",notes:"",primary:false},
+        {name:"Romanian Deadlift",sets:4,reps:"6-8",notes:"",primary:false},
+        {name:"Leg Extension",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Leg Curl",sets:4,reps:"10-12",notes:"3-sec negative.",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Calf Raise",sets:6,reps:"15-20",notes:"",primary:false},
+      ],
+    },
+    "Chest+Back B": {
+      novice: [
+        {name:"Incline Dumbbell Press",sets:3,reps:"12-15",notes:"Volume day.",primary:false},
+        {name:"Lat Pulldown",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Cable Fly",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Dumbbell Row",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Push Up",sets:3,reps:"max",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Incline Barbell Press",sets:5,reps:"5-7",notes:"Volume day — upper chest.",primary:false},
+        {name:"Lat Pulldown",sets:5,reps:"8-10",notes:"Full stretch.",primary:false},
+        {name:"Cable Fly",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Dumbbell Row",sets:4,reps:"10-12",notes:"",primary:false},
+        {name:"Push Up",sets:3,reps:"failure",notes:"Drop set burnout.",primary:false},
+        {name:"Face Pull",sets:5,reps:"20",notes:"",primary:false},
+        {name:"Cable Crossover",sets:3,reps:"15",notes:"Inner chest.",primary:false},
+      ],
+    },
+    "Shoulders+Arms B": {
+      novice: [
+        {name:"Machine Shoulder Press",sets:3,reps:"12-15",notes:"Volume day.",primary:false},
+        {name:"Lateral Raise",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+        {name:"Incline Dumbbell Curl",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Tricep Pushdown",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Hammer Curl",sets:3,reps:"15",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Dumbbell Shoulder Press",sets:5,reps:"10-12",notes:"Volume day — hypertrophy.",primary:false},
+        {name:"Lateral Raise",sets:6,reps:"15-20",notes:"Rest-pause on last 2 sets.",primary:false},
+        {name:"Rear Delt Fly",sets:5,reps:"12-15",notes:"",primary:false},
+        {name:"Incline Dumbbell Curl",sets:5,reps:"10-12",notes:"Long head stretch.",primary:false},
+        {name:"Tricep Pushdown",sets:5,reps:"12-15",notes:"",primary:false},
+        {name:"Cable Curl",sets:4,reps:"12-15",notes:"",primary:false},
+        {name:"Diamond Push Up",sets:3,reps:"failure",notes:"",primary:false},
+        {name:"Face Pull",sets:3,reps:"20",notes:"",primary:false},
+      ],
+    },
+    "Legs B": {
+      novice: [
+        {name:"Leg Press",sets:3,reps:"15",notes:"Volume leg day.",primary:false},
+        {name:"Dumbbell Romanian Deadlift",sets:3,reps:"12-15",notes:"",primary:false},
+        {name:"Walking Lunge",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Leg Curl",sets:3,reps:"15",notes:"",primary:false},
+        {name:"Calf Raise",sets:3,reps:"20",notes:"",primary:false},
+      ],
+      advanced: [
+        {name:"Hack Squat",sets:5,reps:"8-10",notes:"Volume day — quad emphasis.",primary:false},
+        {name:"Romanian Deadlift",sets:5,reps:"10-12",notes:"",primary:false},
+        {name:"Walking Lunge",sets:4,reps:"12 each",notes:"",primary:false},
+        {name:"Leg Extension",sets:5,reps:"15-20",notes:"",primary:false},
+        {name:"Leg Curl",sets:5,reps:"12-15",notes:"3-sec negative.",primary:false},
+        {name:"Bulgarian Split Squat",sets:3,reps:"10 each",notes:"",primary:false},
+        {name:"Calf Raise",sets:7,reps:"20",notes:"",primary:false},
+        {name:"Hanging Leg Raise",sets:4,reps:"15",notes:"",primary:false},
+      ],
+    },
+  },
+};
+
 // GVT overlay — auto-scheduled week 4
 export const GVT_OVERLAY = {
   description: "German Volume Training — 10 sets × 10 reps. Week 4 only. 60% of 1RM. 90 sec rest between sets.",
@@ -656,7 +1333,7 @@ export const PROGRAM_LIBRARY = [
   { id:"lower_5", name:"Lower Body Only 5-Day",   category:"Glute Focus", days:5, weeks:10, level:"Advanced",     bestFor:"Maximum lower body volume and frequency",     splitKey:"Lower Body Only 5-Day" },
 ];
 
-export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history) {
+export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel) {
   const days = daysPerWeek || 4;
   const program = PROGRAMS_BY_DAYS[days];
   if(!program) return null;
@@ -666,7 +1343,15 @@ export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, hi
 
   const dayKeys = split.days;
   const dayKey = dayKeys[dayIndex % dayKeys.length];
-  const exercises = split.workouts[dayKey] || [];
+  const intermediate = split.workouts[dayKey] || [];
+
+  // Resolve skill level → override key
+  const skillKey = (skillLevel === 'beginner' || skillLevel === 'novice') ? 'novice' :
+                   (skillLevel === 'advanced' || skillLevel === 'elite')   ? 'advanced' : null;
+
+  // Look up per-split overrides; fall back to intermediate
+  const splitOverrides = SKILL_OVERRIDES[splitType];
+  const exercises = (skillKey && splitOverrides?.[dayKey]?.[skillKey]) ? splitOverrides[dayKey][skillKey] : intermediate;
 
   return {
     dayName: dayKey,
