@@ -630,6 +630,9 @@ function WaitlistSection() {
           </div>
         ) : (
           <>
+            <div style={{marginBottom:24}} className="fade-up">
+              <img src="/coach-macro-app-icon-1024.png" alt="Coach Macro" style={{width:64,height:64,borderRadius:14}}/>
+            </div>
             <div className="lp-section-eyebrow fade-up">{`// Waitlist`}</div>
             <div className="lp-waitlist-headline fade-up">BE FIRST.</div>
             <p className="lp-waitlist-sub fade-up">Join the waitlist. Get 30 days free at launch.</p>
@@ -742,7 +745,10 @@ export function LandingPage({ onSignUp }) {
 
       {/* NAV */}
       <nav className="lp-nav">
-        <span className="lp-nav-logo">Coach<span>Macro</span></span>
+        <span className="lp-nav-logo" style={{display:'flex',alignItems:'center',gap:10}}>
+          <img src="/coach-macro-app-icon-1024.png" alt="Coach Macro" style={{width:32,height:32,borderRadius:8,flexShrink:0}}/>
+          Coach<span>Macro</span>
+        </span>
         <div className="lp-nav-links">
           <a href="#how" className="lp-nav-link">How It Works</a>
           <a href="#waitlist" className="lp-nav-link">Waitlist</a>
@@ -759,6 +765,9 @@ export function LandingPage({ onSignUp }) {
         <div className="lp-hero-overlay"/>
         <div className="lp-hero-grid"/>
         <div className="lp-hero-content">
+          <div style={{marginBottom:24}}>
+            <img src="/coach-macro-app-icon-1024.png" alt="Coach Macro" style={{width:80,height:80,borderRadius:18,boxShadow:'0 0 30px rgba(232,24,90,0.3)'}}/>
+          </div>
           <div className="lp-hero-eyebrow">
             <div className="lp-hero-eyebrow-dot"/>
             <span className="lp-hero-eyebrow-text">The First Unified Athlete OS</span>
