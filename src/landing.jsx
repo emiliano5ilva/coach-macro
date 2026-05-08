@@ -926,10 +926,21 @@ export function LandingPage({ onSignUp }) {
       {/* FOOTER */}
       <footer className="lp-footer">
         <div className="lp-footer-logo">Coach<span>Macro</span></div>
-        <div className="lp-footer-links">
-          <button className="lp-footer-link">Privacy</button>
-          <button className="lp-footer-link">Terms</button>
-          <button className="lp-footer-link">Contact</button>
+        <div className="lp-footer-links" style={{flexWrap:"wrap",gap:"8px 0"}}>
+          {[
+            ["Privacy Policy","/privacy"],
+            ["Terms","/terms"],
+            ["Health Disclaimer","/health-disclaimer"],
+            ["Health Data Notice","/health-data-notice"],
+            ["Washington Privacy","/washington-privacy"],
+            ["California Privacy","/california-privacy"],
+            ["Support","/support"],
+          ].map(([label,path],i,arr)=>(
+            <span key={path} style={{display:"flex",alignItems:"center"}}>
+              <a href={path} className="lp-footer-link">{label}</a>
+              {i<arr.length-1&&<span style={{color:"rgba(245,245,240,0.15)",padding:"0 10px",fontFamily:"var(--mono)",fontSize:11}}>·</span>}
+            </span>
+          ))}
         </div>
         <div className="lp-footer-copy">© 2026 CoachMacro · All rights reserved</div>
       </footer>

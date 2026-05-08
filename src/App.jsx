@@ -58,7 +58,6 @@ import { TrainSection, ConnectSection, SettingsSection,
   PromoScreen, Paywall } from "./sections.jsx";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 
-
 // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
 function AuthScreen({onAuth}) {
   const [mode,setMode]=useState("signup"); // signup | login
