@@ -747,7 +747,7 @@ export function LandingPage({ onSignUp }) {
           <a href="#how" className="lp-nav-link">How It Works</a>
           <a href="#waitlist" className="lp-nav-link">Waitlist</a>
           <a href="#faq" className="lp-nav-link">FAQ</a>
-          <button className="lp-nav-cta lp-tilt" data-tilt onClick={onSignUp}>Start Free Trial</button>
+          <button className="lp-nav-cta lp-tilt" data-tilt onClick={()=>document.getElementById('waitlist')?.scrollIntoView({behavior:'smooth'})}>Join Waitlist</button>
         </div>
       </nav>
 
@@ -914,8 +914,8 @@ export function LandingPage({ onSignUp }) {
             STOP GUESSING.
             <span>START KNOWING.</span>
           </div>
-          <button className="lp-final-cta-btn lp-tilt" data-tilt onClick={onSignUp}>
-            Start Your Free Trial <span>→</span>
+          <button className="lp-final-cta-btn lp-tilt" data-tilt onClick={()=>document.getElementById('waitlist')?.scrollIntoView({behavior:'smooth'})}>
+            Join Waitlist <span>→</span>
           </button>
           <div style={{marginTop:20,fontFamily:'var(--mono)',fontSize:11,color:'rgba(245,245,240,0.3)',letterSpacing:'0.1em',textTransform:'uppercase'}}>
             7 days free · Cancel anytime
