@@ -453,22 +453,94 @@ export const RUNNING_PROGRAMS = {
     runDays: ["Mon","Wed","Fri","Sat"],
     schedule: [
       { week:1, theme:"Foundation", days:[
-        { day:"Mon", type:"Easy Run", distance:4, duration:44, zone:"Zone 2", description:"4 miles easy. Start conservative." },
-        { day:"Wed", type:"Intervals", distance:5, duration:45, zone:"Zone 4", description:"1 mile warm up. 5x400m at goal pace with 90 sec rest. 1 mile cool down." },
-        { day:"Fri", type:"Easy Run", distance:3, duration:33, zone:"Zone 2", description:"3 miles easy recovery." },
-        { day:"Sat", type:"Long Run", distance:7, duration:75, zone:"Zone 2", description:"7 miles easy. Build 1 mile per week." }
+        { day:"Mon", type:"Easy Run", distance:4, duration:44, zone:"Zone 2", description:"4 miles easy. Start conservative.",
+          skill_variants:{
+            novice:{ description:"2.5 miles easy walk/jog. Walk 90 sec every 8 min if needed. 11:00/mile or slower.", duration:32, distance:2.5, zone:"Zone 1-2", notes:"10K training for beginners starts slower than you think is right." },
+            intermediate:{ description:"4 miles easy at fully conversational pace. Start conservative.", duration:44, distance:4, zone:"Zone 2", notes:"If breathing hard, slow down — this is an aerobic base day." },
+            advanced:{ description:"5 miles easy at 8:30-9:00/mile with 4×20 sec strides at end.", duration:52, distance:5, zone:"Zone 2 with strides", notes:"Strides prime leg turnover without adding meaningful fatigue." }
+          }
+        },
+        { day:"Wed", type:"Intervals", distance:5, duration:45, zone:"Zone 4", description:"1 mile warm up. 5x400m at goal pace with 90 sec rest. 1 mile cool down.",
+          skill_variants:{
+            novice:{ description:"1 mile easy warm up. 4×400m at very comfortable effort (10:30/mile). 2 min walk rest. 1 mile cool down.", duration:40, distance:3.5, zone:"Zone 2-3", notes:"First interval session — effort is more important than pace right now." },
+            intermediate:{ description:"1 mile warm up. 5×400m at goal pace (9:10/mile) with 90 sec rest. 1 mile cool down.", duration:45, distance:5, zone:"Zone 4", notes:"Goal pace feels uncomfortable but controlled — 6-7/10 effort." },
+            advanced:{ description:"1 mile warm up. 8×400m at 8:30/mile with 75 sec rest. 1 mile cool down.", duration:52, distance:6, zone:"Zone 4-5", notes:"8 reps builds a larger speed reserve for race day." }
+          }
+        },
+        { day:"Fri", type:"Easy Run", distance:3, duration:33, zone:"Zone 2", description:"3 miles easy recovery.",
+          skill_variants:{
+            novice:{ description:"2 miles very easy. Walk 60 sec if needed.", duration:25, distance:2, zone:"Zone 1-2", notes:"Recovery day — slower than your Monday easy pace." },
+            intermediate:{ description:"3 miles easy recovery.", duration:33, distance:3, zone:"Zone 2", notes:"Flush Wednesday's intervals. Zone 2 only." },
+            advanced:{ description:"4 miles easy recovery.", duration:44, distance:4, zone:"Zone 2", notes:"More volume recovery supports faster adaptation." }
+          }
+        },
+        { day:"Sat", type:"Long Run", distance:7, duration:75, zone:"Zone 2", description:"7 miles easy. Build 1 mile per week.",
+          skill_variants:{
+            novice:{ description:"4 miles easy with walk break every 10 min. Fully conversational.", duration:52, distance:4, zone:"Zone 1-2", notes:"Long run builds the aerobic infrastructure the 10K demands." },
+            intermediate:{ description:"7 miles easy. Build 1 mile per week.", duration:75, distance:7, zone:"Zone 2", notes:"Conversational means you could hold a phone call the whole way." },
+            advanced:{ description:"9 miles easy. Build to 13 miles by peak week.", duration:93, distance:9, zone:"Zone 2", notes:"Higher aerobic ceiling directly raises your 10K ceiling." }
+          }
+        }
       ]},
       { week:5, theme:"Mid-program push", days:[
-        { day:"Mon", type:"Easy Run", distance:6, duration:65, zone:"Zone 2", description:"6 miles easy." },
-        { day:"Wed", type:"Tempo", distance:6, duration:65, zone:"Zone 3-4", description:"1 mile warm up. 4 miles at 9:30/mile. 1 mile cool down." },
-        { day:"Fri", type:"Easy Run", distance:4, duration:44, zone:"Zone 2", description:"4 miles easy." },
-        { day:"Sat", type:"Long Run", distance:11, duration:120, zone:"Zone 2", description:"11 miles easy. Getting comfortable at distance." }
+        { day:"Mon", type:"Easy Run", distance:6, duration:65, zone:"Zone 2", description:"6 miles easy.",
+          skill_variants:{
+            novice:{ description:"4 miles easy continuous — no walk breaks today.", duration:48, distance:4, zone:"Zone 1-2", notes:"Week 5 — your aerobic system is meaningfully stronger than week 1." },
+            intermediate:{ description:"6 miles easy.", duration:65, distance:6, zone:"Zone 2", notes:"Mid-program. Keep easy days truly easy." },
+            advanced:{ description:"7 miles easy with 6 strides.", duration:72, distance:7, zone:"Zone 2 with strides", notes:"Volume is peaking — strides maintain speed without adding fatigue." }
+          }
+        },
+        { day:"Wed", type:"Tempo", distance:6, duration:65, zone:"Zone 3-4", description:"1 mile warm up. 4 miles at 9:30/mile. 1 mile cool down.",
+          skill_variants:{
+            novice:{ description:"1 mile warm up. 2 miles at 10:30/mile (comfortably hard). 1 mile cool down.", duration:48, distance:4, zone:"Zone 3", notes:"'Comfortably hard' — you can speak 3-4 words but not a full sentence." },
+            intermediate:{ description:"1 mile warm up. 4 miles at 9:30/mile. 1 mile cool down.", duration:65, distance:6, zone:"Zone 3-4", notes:"4-mile tempo is the hardest sustained session of the program." },
+            advanced:{ description:"1 mile warm up. 5 miles at 8:45/mile. 1 mile cool down.", duration:70, distance:7, zone:"Zone 3-4", notes:"5-mile tempo at faster pace — this is where sub-50 10K fitness is built." }
+          }
+        },
+        { day:"Fri", type:"Easy Run", distance:4, duration:44, zone:"Zone 2", description:"4 miles easy.",
+          skill_variants:{
+            novice:{ description:"3 miles easy.", duration:36, distance:3, zone:"Zone 1-2", notes:"Post-tempo recovery — go slower than Monday's easy pace." },
+            intermediate:{ description:"4 miles easy.", duration:44, distance:4, zone:"Zone 2", notes:"Flush Wednesday's tempo. Nothing heroic." },
+            advanced:{ description:"5 miles easy.", duration:52, distance:5, zone:"Zone 2", notes:"Recovery volume supports adaptation." }
+          }
+        },
+        { day:"Sat", type:"Long Run", distance:11, duration:120, zone:"Zone 2", description:"11 miles easy. Getting comfortable at distance.",
+          skill_variants:{
+            novice:{ description:"7 miles easy with walk breaks every 12 min.", duration:88, distance:7, zone:"Zone 1-2", notes:"7 miles is a real achievement — the walk breaks are part of the training." },
+            intermediate:{ description:"11 miles easy. Getting comfortable at distance.", duration:120, distance:11, zone:"Zone 2", notes:"Long run is nearly twice the race distance — the 10K will feel manageable." },
+            advanced:{ description:"14 miles easy.", duration:140, distance:14, zone:"Zone 2", notes:"Peak long run coming in 2 weeks — this is the build." }
+          }
+        }
       ]},
       { week:10, theme:"Race week", days:[
-        { day:"Mon", type:"Easy Run", distance:4, duration:44, zone:"Zone 2", description:"4 miles easy. Taper — you're ready." },
-        { day:"Wed", type:"Shakeout", distance:3, duration:33, zone:"Zone 2", description:"3 miles with 4 strides. Sharp and fresh." },
-        { day:"Fri", type:"Rest", duration:0, description:"Complete rest." },
-        { day:"Sat", type:"RACE DAY", duration:65, description:"10K race. First 2km conservative. Middle 4km at goal pace. Last 4km — give everything." }
+        { day:"Mon", type:"Easy Run", distance:4, duration:44, zone:"Zone 2", description:"4 miles easy. Taper — you're ready.",
+          skill_variants:{
+            novice:{ description:"2.5 miles easy. Race week — trust your training.", duration:30, distance:2.5, zone:"Zone 1-2", notes:"Fitness is locked in. Just stay loose." },
+            intermediate:{ description:"4 miles easy. Taper — you're ready.", duration:44, distance:4, zone:"Zone 2", notes:"Fresh legs are more valuable than one more workout." },
+            advanced:{ description:"5 miles easy with 4 strides.", duration:52, distance:5, zone:"Zone 2 with strides", notes:"Strides on race Monday keep legs sharp through the taper." }
+          }
+        },
+        { day:"Wed", type:"Shakeout", distance:3, duration:33, zone:"Zone 2", description:"3 miles with 4 strides. Sharp and fresh.",
+          skill_variants:{
+            novice:{ description:"2 miles very easy jog. Done.", duration:24, distance:2, zone:"Zone 1-2", notes:"Short and easy. Race is tomorrow. Drink water and sleep well." },
+            intermediate:{ description:"3 miles with 4 strides. Sharp and fresh.", duration:33, distance:3, zone:"Zone 2 with strides", notes:"Strides on race eve activate fast-twitch fibers." },
+            advanced:{ description:"3 miles easy with 6 strides.", duration:33, distance:3, zone:"Zone 2 with strides", notes:"Final shakeout. Legs should feel electric." }
+          }
+        },
+        { day:"Fri", type:"Rest", duration:0, description:"Complete rest.",
+          skill_variants:{
+            novice:{ description:"Complete rest. Eat carbs. Hydrate. Sleep 8 hours.", duration:0, distance:0, zone:"Rest", notes:"Nothing today makes you fitter. Just protect tomorrow." },
+            intermediate:{ description:"Complete rest. Eat well. Drink water. Sleep 8+ hours.", duration:0, distance:0, zone:"Rest", notes:"Carb-focused dinner tonight. Gear laid out. Bed by 10pm." },
+            advanced:{ description:"Complete rest. Carb load. Hydrate aggressively. 8 hours sleep.", duration:0, distance:0, zone:"Rest", notes:"60-80g carbs at dinner. Everything is ready — just sleep." }
+          }
+        },
+        { day:"Sat", type:"RACE DAY", duration:65, description:"10K race. First 2km conservative. Middle 4km at goal pace. Last 4km — give everything.",
+          skill_variants:{
+            novice:{ description:"10K race. Goal: finish strong. First 3km very easy. Middle 4km at effort. Last 3km — whatever you have.", duration:75, distance:10, zone:"Zone 3-4", notes:"You did the work. Cross the finish line." },
+            intermediate:{ description:"10K race. First 2km conservative. Middle 4km at goal pace. Last 4km — give everything.", duration:65, distance:10, zone:"Zone 4-5", notes:"Patience in the first 2km is the entire race plan." },
+            advanced:{ description:"10K race. Target sub-50. First km at 8:15/mile. km 2-8 at 7:55/mile. Last 2km empty the tank.", duration:50, distance:10, zone:"Zone 4-5", notes:"Negative splits — the second half faster than the first." }
+          }
+        }
       ]}
     ]
   },
@@ -481,22 +553,94 @@ export const RUNNING_PROGRAMS = {
     runDays: ["Mon","Wed","Thu","Sat"],
     schedule: [
       { week:1, theme:"Base", days:[
-        { day:"Mon", type:"Easy Run", distance:4, duration:45, zone:"Zone 2", description:"4 miles easy. Build your aerobic base." },
-        { day:"Wed", type:"Tempo", distance:5, duration:55, zone:"Zone 3", description:"1 mile warm up. 3 miles at comfortably hard pace. 1 mile cool down." },
-        { day:"Thu", type:"Easy Run", distance:3, duration:33, zone:"Zone 2", description:"3 miles easy recovery." },
-        { day:"Sat", type:"Long Run", distance:8, duration:90, zone:"Zone 2", description:"8 miles easy. This builds to 11 miles at peak." }
+        { day:"Mon", type:"Easy Run", distance:4, duration:45, zone:"Zone 2", description:"4 miles easy. Build your aerobic base.",
+          skill_variants:{
+            novice:{ description:"3 miles easy. Walk 90 sec every 8 min if needed. Very conversational.", duration:38, distance:3, zone:"Zone 1-2", notes:"Half marathon training starts with walking breaks — that's correct and normal." },
+            intermediate:{ description:"4 miles easy. Build your aerobic base.", duration:45, distance:4, zone:"Zone 2", notes:"Aerobic base is the foundation everything else builds on." },
+            advanced:{ description:"5 miles easy at 8:30-9:00/mile with 4 strides at end.", duration:55, distance:5, zone:"Zone 2 with strides", notes:"Strides keep leg speed sharp through the base-building phase." }
+          }
+        },
+        { day:"Wed", type:"Tempo", distance:5, duration:55, zone:"Zone 3", description:"1 mile warm up. 3 miles at comfortably hard pace. 1 mile cool down.",
+          skill_variants:{
+            novice:{ description:"1 mile easy warm up. 1.5 miles at slightly uncomfortable pace. 1 mile easy cool down.", duration:40, distance:3.5, zone:"Zone 2-3", notes:"First tempo session — effort over pace. 6/10 effort, not racing." },
+            intermediate:{ description:"1 mile warm up. 3 miles at comfortably hard pace. 1 mile cool down.", duration:55, distance:5, zone:"Zone 3", notes:"Comfortably hard means 7/10 effort — sustained but not desperate." },
+            advanced:{ description:"1 mile warm up. 4 miles at 8:30/mile. 1 mile cool down.", duration:60, distance:6, zone:"Zone 3-4", notes:"4-mile tempo builds the lactate threshold the half marathon demands." }
+          }
+        },
+        { day:"Thu", type:"Easy Run", distance:3, duration:33, zone:"Zone 2", description:"3 miles easy recovery.",
+          skill_variants:{
+            novice:{ description:"2 miles very easy. Walk 60 sec if needed.", duration:26, distance:2, zone:"Zone 1-2", notes:"Recovery run — slower than Monday's easy pace." },
+            intermediate:{ description:"3 miles easy recovery.", duration:33, distance:3, zone:"Zone 2", notes:"Flush Wednesday's tempo. Zone 2 only." },
+            advanced:{ description:"4 miles easy recovery.", duration:44, distance:4, zone:"Zone 2", notes:"Active recovery accelerates adaptation." }
+          }
+        },
+        { day:"Sat", type:"Long Run", distance:8, duration:90, zone:"Zone 2", description:"8 miles easy. This builds to 11 miles at peak.",
+          skill_variants:{
+            novice:{ description:"5 miles easy with walk break every 10 min. Conversational the whole way.", duration:65, distance:5, zone:"Zone 1-2", notes:"Long run pace should be so easy it almost feels like cheating." },
+            intermediate:{ description:"8 miles easy. This builds to 11 miles at peak.", duration:90, distance:8, zone:"Zone 2", notes:"Conversational pace — you're building the engine, not racing." },
+            advanced:{ description:"10 miles easy. Build to 14 miles by peak.", duration:105, distance:10, zone:"Zone 2", notes:"Higher long run peak means more aerobic ceiling on race day." }
+          }
+        }
       ]},
       { week:8, theme:"Peak training", days:[
-        { day:"Mon", type:"Easy Run", distance:6, duration:65, zone:"Zone 2", description:"6 miles easy." },
-        { day:"Wed", type:"Tempo", distance:8, duration:85, zone:"Zone 3", description:"1 mile warm up. 6 miles at goal half marathon pace. 1 mile cool down." },
-        { day:"Thu", type:"Easy Run", distance:5, duration:55, zone:"Zone 2", description:"5 miles easy." },
-        { day:"Sat", type:"Long Run", distance:11, duration:125, zone:"Zone 2", description:"11 miles easy. Peak long run. Fuel practice — take a gel at mile 5." }
+        { day:"Mon", type:"Easy Run", distance:6, duration:65, zone:"Zone 2", description:"6 miles easy.",
+          skill_variants:{
+            novice:{ description:"4 miles easy continuous. No walk breaks at this point.", duration:50, distance:4, zone:"Zone 1-2", notes:"8 weeks in — your aerobic system is genuinely strong now." },
+            intermediate:{ description:"6 miles easy.", duration:65, distance:6, zone:"Zone 2", notes:"Peak training week. Keep easy days easy — save it for Wednesday." },
+            advanced:{ description:"7 miles easy with 6 strides.", duration:72, distance:7, zone:"Zone 2 with strides", notes:"Strides during peak week maintain speed while volume peaks." }
+          }
+        },
+        { day:"Wed", type:"Tempo", distance:8, duration:85, zone:"Zone 3", description:"1 mile warm up. 6 miles at goal half marathon pace. 1 mile cool down.",
+          skill_variants:{
+            novice:{ description:"1 mile warm up. 3 miles at 10:30/mile (comfortably hard). 1 mile cool down.", duration:60, distance:5, zone:"Zone 3", notes:"3-mile tempo at week 8 is the hardest session of your program." },
+            intermediate:{ description:"1 mile warm up. 6 miles at goal half marathon pace. 1 mile cool down.", duration:85, distance:8, zone:"Zone 3", notes:"6-mile tempo at race pace is the peak training stimulus. Respect it." },
+            advanced:{ description:"1 mile warm up. 7 miles at 9:00/mile. 1 mile cool down.", duration:90, distance:9, zone:"Zone 3-4", notes:"7-mile tempo at faster pace — the highest training load of the program." }
+          }
+        },
+        { day:"Thu", type:"Easy Run", distance:5, duration:55, zone:"Zone 2", description:"5 miles easy.",
+          skill_variants:{
+            novice:{ description:"3 miles easy.", duration:38, distance:3, zone:"Zone 1-2", notes:"Recovery from peak tempo. Go slow." },
+            intermediate:{ description:"5 miles easy.", duration:55, distance:5, zone:"Zone 2", notes:"Easy recovery after the hardest session of the program." },
+            advanced:{ description:"6 miles easy.", duration:65, distance:6, zone:"Zone 2", notes:"Flush the long tempo. Zone 2 strictly." }
+          }
+        },
+        { day:"Sat", type:"Long Run", distance:11, duration:125, zone:"Zone 2", description:"11 miles easy. Peak long run. Fuel practice — take a gel at mile 5.",
+          skill_variants:{
+            novice:{ description:"8 miles easy with walk breaks every 12 min. Take water at mile 4.", duration:100, distance:8, zone:"Zone 1-2", notes:"8 miles is your peak long run — practice drinking while moving." },
+            intermediate:{ description:"11 miles easy. Peak long run. Fuel practice — take a gel at mile 5.", duration:125, distance:11, zone:"Zone 2", notes:"Fueling practice is mandatory — your gut needs training too." },
+            advanced:{ description:"14 miles easy. Gel at mile 5 and mile 10. Final 2 miles at race pace.", duration:148, distance:14, zone:"Zone 2 to Zone 3", notes:"14-mile peak with race-pace finish is the most complete training stimulus." }
+          }
+        }
       ]},
       { week:16, theme:"Race week", days:[
-        { day:"Mon", type:"Easy Run", distance:4, duration:45, zone:"Zone 2", description:"4 miles easy taper." },
-        { day:"Wed", type:"Shakeout", distance:3, duration:33, zone:"Zone 2", description:"3 miles with strides." },
-        { day:"Thu", type:"Rest", duration:0, description:"Rest. Carb load. Hydrate." },
-        { day:"Sat", type:"RACE DAY", duration:130, description:"Half Marathon. Miles 1-3: slower than goal pace. Miles 4-10: goal pace. Miles 11-13.1: empty the tank." }
+        { day:"Mon", type:"Easy Run", distance:4, duration:45, zone:"Zone 2", description:"4 miles easy taper.",
+          skill_variants:{
+            novice:{ description:"2.5 miles easy. Race week — you're ready.", duration:30, distance:2.5, zone:"Zone 1-2", notes:"16 weeks of work is done. Just stay loose." },
+            intermediate:{ description:"4 miles easy taper.", duration:45, distance:4, zone:"Zone 2", notes:"Taper restlessness is normal. Trust the training." },
+            advanced:{ description:"5 miles easy with 4 strides.", duration:52, distance:5, zone:"Zone 2 with strides", notes:"Race-week strides maintain sharpness through the taper." }
+          }
+        },
+        { day:"Wed", type:"Shakeout", distance:3, duration:33, zone:"Zone 2", description:"3 miles with strides.",
+          skill_variants:{
+            novice:{ description:"2 miles very easy jog. Done.", duration:26, distance:2, zone:"Zone 1-2", notes:"Short and easy. Race is in 3 days. Sleep and hydrate." },
+            intermediate:{ description:"3 miles with strides.", duration:33, distance:3, zone:"Zone 2 with strides", notes:"Strides on race eve prime the legs without adding fatigue." },
+            advanced:{ description:"3 miles easy with 6 strides.", duration:33, distance:3, zone:"Zone 2 with strides", notes:"Final shakeout. Legs should feel electric." }
+          }
+        },
+        { day:"Thu", type:"Rest", duration:0, description:"Rest. Carb load. Hydrate.",
+          skill_variants:{
+            novice:{ description:"Full rest. Eat carbs. Drink water. Sleep 8 hours.", duration:0, distance:0, zone:"Rest", notes:"You cannot get fitter today. Protect tomorrow." },
+            intermediate:{ description:"Rest. Carb load. Hydrate.", duration:0, distance:0, zone:"Rest", notes:"8g carbs per kg bodyweight today. 500ml water every 2 hours." },
+            advanced:{ description:"Full rest. Aggressive carb load — 8-10g/kg bodyweight. Hydrate all day.", duration:0, distance:0, zone:"Rest", notes:"Carb load is real and matters for a half marathon. Don't skip it." }
+          }
+        },
+        { day:"Sat", type:"RACE DAY", duration:130, description:"Half Marathon. Miles 1-3: slower than goal pace. Miles 4-10: goal pace. Miles 11-13.1: empty the tank.",
+          skill_variants:{
+            novice:{ description:"Half Marathon. First 5 miles: very easy — hold back even if you feel great. Miles 6-10: goal pace. Last 3.1: give what you have.", duration:150, distance:21.1, zone:"Zone 2-4", notes:"The race is won or lost in the first 5 miles. Go out easy." },
+            intermediate:{ description:"Half Marathon. Miles 1-3: slower than goal pace. Miles 4-10: goal pace. Miles 11-13.1: empty the tank.", duration:130, distance:21.1, zone:"Zone 3-5", notes:"Gel at mile 4 and mile 8. Patience in the first 3 miles is everything." },
+            advanced:{ description:"Half Marathon sub-1:55. Miles 1-3: 9:00/mile. Miles 4-10: 8:45/mile. Last 3.1: whatever you have.", duration:115, distance:21.1, zone:"Zone 4-5", notes:"Race the second half. The fitness is there — trust it." }
+          }
+        }
       ]}
     ]
   }
