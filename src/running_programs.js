@@ -933,13 +933,55 @@ export const HYBRID_PROGRAMS = {
     liftDays: ["Mon","Wed","Fri"],
     runDays: ["Tue","Thu","Sat"],
     weekly_structure: [
-      { day:"Mon", type:"Lift", focus:"Push", duration:60, description:"Bench Press 4×4-6, Overhead Press 4×4-6, Incline DB Press 3×8-10, Lateral Raise 4×12-15, Tricep Pushdown 3×10-12. Heavy. Progressive overload." },
-      { day:"Tue", type:"Easy Run", distance:5, duration:30, zone:"Zone 2", description:"5km fully conversational. If you can't hold a conversation you're going too fast. This is recovery, not training." },
-      { day:"Wed", type:"Lift", focus:"Pull", duration:60, description:"Deadlift 4×3-5, Barbell Row 4×4-6, Pull Up 3×6-8, Face Pull 3×20, Barbell Curl 3×8-10. Add weight when all reps are clean." },
-      { day:"Thu", type:"Tempo Run", distance:8, duration:50, zone:"Zone 3-4", description:"1km warm up easy. 6km at comfortably hard pace (7/10 effort). 1km cool down. Sustained threshold work." },
-      { day:"Fri", type:"Lift", focus:"Legs", duration:60, description:"Squat 4×4-6, Romanian Deadlift 3×6-8, Leg Press 3×10-12, Leg Curl 3×12-15, Calf Raise 4×15. Squat is king." },
-      { day:"Sat", type:"Long Run", distance:14, duration:90, zone:"Zone 2", description:"Start at 12km. Add 1km per week up to 20km. Conversational pace the ENTIRE run. This is not a race. Fueling practice." },
-      { day:"Sun", type:"Rest", description:"Complete rest. This is where adaptation happens. Don't skip it." }
+      { day:"Mon", type:"Lift", focus:"Push", duration:60, description:"Bench Press 4×4-6, Overhead Press 4×4-6, Incline DB Press 3×8-10, Lateral Raise 4×12-15, Tricep Pushdown 3×10-12. Heavy. Progressive overload.",
+        skill_variants:{
+          novice:{ description:"DB Bench Press 3×12, DB Overhead Press 3×12, DB Lateral Raise 3×15, Tricep Kickback 3×15. Dumbbells only — 3 sets each.", duration:45, distance:0, zone:"Strength", notes:"Dumbbells before barbells. Build the movement pattern first." },
+          intermediate:{ description:"Bench Press 4×4-6, Overhead Press 4×4-6, Incline DB Press 3×8-10, Lateral Raise 4×12-15, Tricep Pushdown 3×10-12. Heavy. Progressive overload.", duration:60, distance:0, zone:"Strength", notes:"Add weight when all reps are clean on every set." },
+          advanced:{ description:"Bench Press 5×4-6, Overhead Press 5×4-6, Incline DB Press 4×8-10, Lateral Raise 5×12-15, Tricep Pushdown 4×10-12. +20% volume.", duration:75, distance:0, zone:"Strength", notes:"20% more volume — add an extra set to each compound lift." }
+        }
+      },
+      { day:"Tue", type:"Easy Run", distance:5, duration:30, zone:"Zone 2", description:"5km fully conversational. If you can't hold a conversation you're going too fast. This is recovery, not training.",
+        skill_variants:{
+          novice:{ description:"3km easy jog. Walk 60 sec every 8 min if needed. Fully conversational.", duration:22, distance:3, zone:"Zone 1-2", notes:"3km is the right starting point — build up slowly alongside lifting." },
+          intermediate:{ description:"5km fully conversational. If you can't hold a conversation you're going too fast. This is recovery, not training.", duration:30, distance:5, zone:"Zone 2", notes:"Recovery run — slower than you think you need to go." },
+          advanced:{ description:"6km easy with 4×20 sec strides at the end.", duration:38, distance:6, zone:"Zone 2 with strides", notes:"Strides maintain speed despite heavy Monday lift." }
+        }
+      },
+      { day:"Wed", type:"Lift", focus:"Pull", duration:60, description:"Deadlift 4×3-5, Barbell Row 4×4-6, Pull Up 3×6-8, Face Pull 3×20, Barbell Curl 3×8-10. Add weight when all reps are clean.",
+        skill_variants:{
+          novice:{ description:"DB Romanian Deadlift 3×12, DB Row 3×12, Band Pull-Apart 3×20, DB Curl 3×12. Dumbbells only — no barbell yet.", duration:45, distance:0, zone:"Strength", notes:"RDL with dumbbells teaches the hinge pattern safely before loading barbell." },
+          intermediate:{ description:"Deadlift 4×3-5, Barbell Row 4×4-6, Pull Up 3×6-8, Face Pull 3×20, Barbell Curl 3×8-10. Add weight when all reps are clean.", duration:60, distance:0, zone:"Strength", notes:"Deadlift is the most important lift in this program — treat it seriously." },
+          advanced:{ description:"Deadlift 5×3-5, Barbell Row 5×4-6, Pull Up 4×6-8 weighted, Face Pull 4×20, Barbell Curl 4×8-10. +20% volume.", duration:75, distance:0, zone:"Strength", notes:"Weighted pull-ups separate advanced hybrid athletes." }
+        }
+      },
+      { day:"Thu", type:"Tempo Run", distance:8, duration:50, zone:"Zone 3-4", description:"1km warm up easy. 6km at comfortably hard pace (7/10 effort). 1km cool down. Sustained threshold work.",
+        skill_variants:{
+          novice:{ description:"Rest day — novice Strength-Biased Hybrid runs 4 days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"4 days is enough to build both qualities without overreaching." },
+          intermediate:{ description:"1km warm up easy. 6km at comfortably hard pace (7/10 effort). 1km cool down. Sustained threshold work.", duration:50, distance:8, zone:"Zone 3-4", notes:"7/10 effort — you can speak 3-4 words but not a full sentence." },
+          advanced:{ description:"1km warm up. 8km at 7.5/10 effort. 1km cool down. Add 4×20 sec strides before cool down.", duration:60, distance:10, zone:"Zone 3-4 with strides", notes:"Extended tempo with strides builds the top-end speed strength-biased runners often lack." }
+        }
+      },
+      { day:"Fri", type:"Lift", focus:"Legs", duration:60, description:"Squat 4×4-6, Romanian Deadlift 3×6-8, Leg Press 3×10-12, Leg Curl 3×12-15, Calf Raise 4×15. Squat is king.",
+        skill_variants:{
+          novice:{ description:"Rest day — novice Strength-Biased Hybrid runs 4 days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"Two lift days is enough while your body adapts. Legs get hit by Mon and Wed." },
+          intermediate:{ description:"Squat 4×4-6, Romanian Deadlift 3×6-8, Leg Press 3×10-12, Leg Curl 3×12-15, Calf Raise 4×15. Squat is king.", duration:60, distance:0, zone:"Strength", notes:"Squat is the most important movement in the program — add weight every session." },
+          advanced:{ description:"Squat 5×4-6, Romanian Deadlift 4×6-8, Leg Press 4×10-12, Leg Curl 4×12-15, Calf Raise 5×15. +20% volume.", duration:75, distance:0, zone:"Strength", notes:"Heavy legs with Saturday long run teaches your body to run on fatigued legs — race specificity." }
+        }
+      },
+      { day:"Sat", type:"Long Run", distance:14, duration:90, zone:"Zone 2", description:"Start at 12km. Add 1km per week up to 20km. Conversational pace the ENTIRE run. This is not a race. Fueling practice.",
+        skill_variants:{
+          novice:{ description:"4km easy run. No walk breaks — continuous at very easy pace.", duration:28, distance:4, zone:"Zone 1-2", notes:"Long run starts at 4km for novices and builds slowly. Don't rush to 12km." },
+          intermediate:{ description:"Start at 12km. Add 1km per week up to 20km. Conversational pace the ENTIRE run. This is not a race. Fueling practice.", duration:90, distance:14, zone:"Zone 2", notes:"Fuel practice — take water or a gel if over 60 min." },
+          advanced:{ description:"Start at 18km. Build to 25km+. Conversational pace with last 3km at marathon pace.", duration:130, distance:20, zone:"Zone 2 with marathon pace finish", notes:"25km+ long runs make the strength-biased hybrid genuinely complete as an athlete." }
+        }
+      },
+      { day:"Sun", type:"Rest", description:"Complete rest. This is where adaptation happens. Don't skip it.",
+        skill_variants:{
+          novice:{ description:"Complete rest. 4 training days and 3 rest days. This ratio is exactly right for the novice hybrid.", duration:0, distance:0, zone:"Rest", notes:"Rest is where the adaptation happens — it's not wasted time." },
+          intermediate:{ description:"Complete rest. This is where adaptation happens. Don't skip it.", duration:0, distance:0, zone:"Rest", notes:"Full rest. Sleep 8+ hours." },
+          advanced:{ description:"Complete rest or optional 20 min walk. 9 hours sleep target.", duration:0, distance:0, zone:"Rest", notes:"High volume advanced athletes need full Sunday rest to sustain the weekly load." }
+        }
+      }
     ],
     progression: "Long run adds 1km per week. Lifts add 5lbs on primary movements when all reps are clean. Week 4, 8, 12 are deload — reduce run volume 40%, keep lift intensity.",
     nutrition_bridge: "Lift days: carbs up for performance and recovery. Long run day: carb load the night before, take carbs during if over 90 min. Easy run days: standard macros. This is exactly what your Coach Macro budget adjusts for automatically."
@@ -953,13 +995,55 @@ export const HYBRID_PROGRAMS = {
     liftDays: ["Tue","Sun"],
     runDays: ["Mon","Wed","Thu","Fri","Sat"],
     weekly_structure: [
-      { day:"Mon", type:"Easy Run", distance:8, duration:50, zone:"Zone 2", description:"8km easy Zone 2. Sets the week up. Fully conversational." },
-      { day:"Tue", type:"Lift", focus:"Full Body Heavy", duration:45, description:"Squat 3×5, Deadlift 2×5, Bench Press 3×5, Barbell Row 3×5. HEAVY COMPOUNDS ONLY. 45 minutes max. No isolation work — it kills your running legs." },
-      { day:"Wed", type:"Intervals", distance:10, duration:65, zone:"Zone 5", description:"1km warm up. 6×1km at 5K race pace with 90 sec rest. 1km cool down. The quality session. Protect this at all costs." },
-      { day:"Thu", type:"Easy Run", distance:6, duration:40, zone:"Zone 2", description:"6km easy recovery. Very slow. Flush the legs from intervals. This is not optional." },
-      { day:"Fri", type:"Tempo Run", distance:8, duration:55, zone:"Zone 3-4", description:"2km warm up. 5km at half marathon pace. 1km cool down. Sustained effort." },
-      { day:"Sat", type:"Long Run", distance:22, duration:145, zone:"Zone 2", description:"Long run. Start at 18km. Builds to 26km. Conversational pace. Practice fueling — gel every 45 min." },
-      { day:"Sun", type:"Lift", focus:"Full Body Heavy", duration:45, description:"Same as Tuesday. Squat 3×5, Deadlift 2×5, Bench 3×5, Row 3×5. Quick, heavy, done." }
+      { day:"Mon", type:"Easy Run", distance:8, duration:50, zone:"Zone 2", description:"8km easy Zone 2. Sets the week up. Fully conversational.",
+        skill_variants:{
+          novice:{ description:"5km easy. Walk 60 sec every 10 min if needed. Fully conversational.", duration:32, distance:5, zone:"Zone 1-2", notes:"5km Monday gives you a sustainable weekly load while strength adapts." },
+          intermediate:{ description:"8km easy Zone 2. Sets the week up. Fully conversational.", duration:50, distance:8, zone:"Zone 2", notes:"Sets the aerobic tone for the week — never push this run." },
+          advanced:{ description:"10km easy with 6 strides at the end.", duration:62, distance:10, zone:"Zone 2 with strides", notes:"10km Monday supports higher weekly mileage without taxing quality sessions." }
+        }
+      },
+      { day:"Tue", type:"Lift", focus:"Full Body Heavy", duration:45, description:"Squat 3×5, Deadlift 2×5, Bench Press 3×5, Barbell Row 3×5. HEAVY COMPOUNDS ONLY. 45 minutes max. No isolation work — it kills your running legs.",
+        skill_variants:{
+          novice:{ description:"DB Squat 3×10, DB Romanian Deadlift 3×10, DB Bench 3×10, DB Row 3×10. Dumbbells, 3 sets, 45 min max.", duration:40, distance:0, zone:"Strength", notes:"Dumbbells teach movement patterns without loading the spine before the pattern is learned." },
+          intermediate:{ description:"Squat 3×5, Deadlift 2×5, Bench Press 3×5, Barbell Row 3×5. HEAVY COMPOUNDS ONLY. 45 minutes max. No isolation work — it kills your running legs.", duration:45, distance:0, zone:"Strength", notes:"45 minutes max. Every minute past that costs you Wednesday intervals." },
+          advanced:{ description:"Squat 4×5, Deadlift 3×5, Bench 4×5, Row 4×5. 50 min max. Add 5lbs every session.", duration:50, distance:0, zone:"Strength", notes:"Heavier compounds — strength must progress or the program breaks." }
+        }
+      },
+      { day:"Wed", type:"Intervals", distance:10, duration:65, zone:"Zone 5", description:"1km warm up. 6×1km at 5K race pace with 90 sec rest. 1km cool down. The quality session. Protect this at all costs.",
+        skill_variants:{
+          novice:{ description:"1km easy warm up. 4×600m at 'comfortably hard' effort with 2 min walk rest. 1km easy cool down.", duration:45, distance:5, zone:"Zone 3-4", notes:"600m reps before 1km reps — build the quality session tolerance first." },
+          intermediate:{ description:"1km warm up. 6×1km at 5K race pace with 90 sec rest. 1km cool down. The quality session. Protect this at all costs.", duration:65, distance:10, zone:"Zone 5", notes:"The most important session of the week — everything else supports this." },
+          advanced:{ description:"1km warm up. 8×1km at 5K pace with 75 sec rest. 1km cool down.", duration:75, distance:12, zone:"Zone 5", notes:"8 reps at 5K pace is elite-level interval training — builds enormous speed reserve." }
+        }
+      },
+      { day:"Thu", type:"Easy Run", distance:6, duration:40, zone:"Zone 2", description:"6km easy recovery. Very slow. Flush the legs from intervals. This is not optional.",
+        skill_variants:{
+          novice:{ description:"4km very easy. Walk if needed. Flushing Wednesday's intervals.", duration:28, distance:4, zone:"Zone 1-2", notes:"Recovery run after intervals — go slower than feels necessary." },
+          intermediate:{ description:"6km easy recovery. Very slow. Flush the legs from intervals. This is not optional.", duration:40, distance:6, zone:"Zone 2", notes:"This run makes Wednesday's session better, not worse. Never skip it." },
+          advanced:{ description:"7km easy recovery. Zone 2 strictly.", duration:44, distance:7, zone:"Zone 2", notes:"Higher mileage athletes need more recovery volume between quality sessions." }
+        }
+      },
+      { day:"Fri", type:"Tempo Run", distance:8, duration:55, zone:"Zone 3-4", description:"2km warm up. 5km at half marathon pace. 1km cool down. Sustained effort.",
+        skill_variants:{
+          novice:{ description:"Rest day — novice Run-Biased Hybrid runs 4 active days/week. Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"4 active days is enough to build running fitness while adapting to lifting." },
+          intermediate:{ description:"2km warm up. 5km at half marathon pace. 1km cool down. Sustained effort.", duration:55, distance:8, zone:"Zone 3-4", notes:"Half marathon pace — controlled, sustainable, 7/10 effort." },
+          advanced:{ description:"2km warm up. 6km at half marathon pace. 4×20 sec strides. 1km cool down.", duration:65, distance:10, zone:"Zone 3-4 with strides", notes:"Longer tempo with strides adds a speed element to threshold work." }
+        }
+      },
+      { day:"Sat", type:"Long Run", distance:22, duration:145, zone:"Zone 2", description:"Long run. Start at 18km. Builds to 26km. Conversational pace. Practice fueling — gel every 45 min.",
+        skill_variants:{
+          novice:{ description:"10km easy. Walk 90 sec every 12 min if needed. Practice taking water on the run.", duration:72, distance:10, zone:"Zone 1-2", notes:"10km long run builds the base before tackling 18-26km distances." },
+          intermediate:{ description:"Long run. Start at 18km. Builds to 26km. Conversational pace. Practice fueling — gel every 45 min.", duration:145, distance:22, zone:"Zone 2", notes:"Fueling practice — your gut needs training just like your legs." },
+          advanced:{ description:"Long run. Start at 22km. Build to 30km+. Last 5km at marathon pace.", duration:175, distance:26, zone:"Zone 2 with marathon pace finish", notes:"30km long runs make the run-biased hybrid capable of serious race performance." }
+        }
+      },
+      { day:"Sun", type:"Lift", focus:"Full Body Heavy", duration:45, description:"Same as Tuesday. Squat 3×5, Deadlift 2×5, Bench 3×5, Row 3×5. Quick, heavy, done.",
+        skill_variants:{
+          novice:{ description:"Rest day — novice Run-Biased Hybrid runs 4 active days/week. Take this as full rest.", duration:0, distance:0, zone:"Rest", notes:"After Saturday's long run, Sunday must be rest for novices." },
+          intermediate:{ description:"Same as Tuesday. Squat 3×5, Deadlift 2×5, Bench 3×5, Row 3×5. Quick, heavy, done.", duration:45, distance:0, zone:"Strength", notes:"45 minutes. Same weights or heavier than Tuesday. In and out." },
+          advanced:{ description:"Squat 4×5, Deadlift 3×5, Bench 4×5, Row 4×5. 50 min max.", duration:50, distance:0, zone:"Strength", notes:"Sunday lifting after Saturday long run is a deliberate training stress — it builds race-specific fatigue resistance." }
+        }
+      }
     ],
     progression: "Run volume builds maximum 10% per week. Lifts add 5lbs weekly — strength must progress or the program fails. Keep strength sessions exactly 45 min — running legs cannot afford more.",
     nutrition_bridge: "Long run day: 8g carbs per kg bodyweight the night before. Lift days: 2.2g protein per kg. Interval day: 60-80g carbs 2 hours before. Easy days: standard macros. Coach Macro adjusts this automatically based on what's on your schedule."
@@ -973,13 +1057,55 @@ export const HYBRID_PROGRAMS = {
     liftDays: ["Mon","Wed","Fri"],
     runDays: ["Tue","Thu","Sat"],
     weekly_structure: [
-      { day:"Mon", type:"Lift", focus:"Upper Body Strength", duration:65, description:"Bench Press 4×3-5, Barbell Row 4×3-5, Overhead Press 3×5-6, Pull Up 3×5-8. Heavy compounds. This is your strength day — treat it seriously." },
-      { day:"Tue", type:"Speed Work", distance:7, duration:50, zone:"Zone 5", description:"Track session: 1km warm up. 8×400m at mile pace with 60 sec rest. 1km cool down. Pure speed development. This is what makes you fast." },
-      { day:"Wed", type:"Lift", focus:"Lower Body Strength", duration:65, description:"Squat 5×3-5, Romanian Deadlift 4×5, Bulgarian Split Squat 3×8 each, Leg Curl 3×12, Calf Raise 4×15. Squat heavy — this is your engine." },
-      { day:"Thu", type:"Easy Run", distance:8, duration:55, zone:"Zone 2", description:"8km easy Zone 2. Active recovery. Never push this run — it undoes the whole program if you do." },
-      { day:"Fri", type:"Lift", focus:"Power + Athletic", duration:65, description:"Power Clean 4×3, Box Jump 4×5, Farmers Carry 4×50m, Sled Push 3×20m, Sandbag Carry 3×30m. Athletic power work — this is what connects strength to sport." },
-      { day:"Sat", type:"Long Run", distance:18, duration:120, zone:"Zone 2", description:"Long run. Start 14km, build to 22km. Conversational pace. This is where hybrid athletes separate themselves from people who just lift or just run." },
-      { day:"Sun", type:"Rest", description:"Non-negotiable full rest. 9 hours sleep target." }
+      { day:"Mon", type:"Lift", focus:"Upper Body Strength", duration:65, description:"Bench Press 4×3-5, Barbell Row 4×3-5, Overhead Press 3×5-6, Pull Up 3×5-8. Heavy compounds. This is your strength day — treat it seriously.",
+        skill_variants:{
+          novice:{ description:"DB Bench 3×12, DB Row 3×12, DB Overhead Press 3×12, Assisted or Band Pull Up 3×8. Dumbbells, 3 sets.", duration:45, distance:0, zone:"Strength", notes:"Dumbbells build the pattern — barbell comes when the movement is solid." },
+          intermediate:{ description:"Bench Press 4×3-5, Barbell Row 4×3-5, Overhead Press 3×5-6, Pull Up 3×5-8. Heavy compounds. This is your strength day — treat it seriously.", duration:65, distance:0, zone:"Strength", notes:"Heavy upper body is the strength anchor of the week." },
+          advanced:{ description:"Bench Press 5×3-5, Barbell Row 5×3-5, Overhead Press 4×5-6, Pull Up 4×5-8 weighted. +20% volume.", duration:75, distance:0, zone:"Strength", notes:"Weighted pull-ups and extra sets build the strength ceiling advanced athletes need." }
+        }
+      },
+      { day:"Tue", type:"Speed Work", distance:7, duration:50, zone:"Zone 5", description:"Track session: 1km warm up. 8×400m at mile pace with 60 sec rest. 1km cool down. Pure speed development. This is what makes you fast.",
+        skill_variants:{
+          novice:{ description:"1km easy warm up. 5×400m at comfortable effort (not sprinting). 90 sec rest. 1km easy cool down.", duration:38, distance:5, zone:"Zone 3-4", notes:"5 reps at moderate effort — build the speed session tolerance before adding reps." },
+          intermediate:{ description:"Track session: 1km warm up. 8×400m at mile pace with 60 sec rest. 1km cool down. Pure speed development. This is what makes you fast.", duration:50, distance:7, zone:"Zone 5", notes:"Mile pace should feel like 9/10 effort — controlled explosive speed." },
+          advanced:{ description:"1km warm up. 10×400m at faster than mile pace. 50 sec rest. 1km cool down.", duration:58, distance:8, zone:"Zone 5", notes:"10 reps at faster pace with shorter rest builds the speed capacity to run sub-7:00/mile." }
+        }
+      },
+      { day:"Wed", type:"Lift", focus:"Lower Body Strength", duration:65, description:"Squat 5×3-5, Romanian Deadlift 4×5, Bulgarian Split Squat 3×8 each, Leg Curl 3×12, Calf Raise 4×15. Squat heavy — this is your engine.",
+        skill_variants:{
+          novice:{ description:"DB Goblet Squat 3×12, DB Romanian Deadlift 3×12, Reverse Lunge 3×10 each, Leg Curl 3×12, Calf Raise 3×15. Dumbbells only.", duration:50, distance:0, zone:"Strength", notes:"Goblet squat before barbell back squat — the pattern must be sound first." },
+          intermediate:{ description:"Squat 5×3-5, Romanian Deadlift 4×5, Bulgarian Split Squat 3×8 each, Leg Curl 3×12, Calf Raise 4×15. Squat heavy — this is your engine.", duration:65, distance:0, zone:"Strength", notes:"Squat is the single most important lift in this program." },
+          advanced:{ description:"Squat 6×3-5, Romanian Deadlift 5×5, Bulgarian Split Squat 4×8 each, Leg Curl 4×12, Calf Raise 5×15. +20% volume.", duration:80, distance:0, zone:"Strength", notes:"High leg volume after Tuesday speed work is intentional — race specificity." }
+        }
+      },
+      { day:"Thu", type:"Easy Run", distance:8, duration:55, zone:"Zone 2", description:"8km easy Zone 2. Active recovery. Never push this run — it undoes the whole program if you do.",
+        skill_variants:{
+          novice:{ description:"5km easy. Walk 60 sec every 10 min. Fully conversational.", duration:35, distance:5, zone:"Zone 1-2", notes:"Recovery run after Wednesday squats — very easy keeps the legs mobile without adding fatigue." },
+          intermediate:{ description:"8km easy Zone 2. Active recovery. Never push this run — it undoes the whole program if you do.", duration:55, distance:8, zone:"Zone 2", notes:"Zone 2 strictly. Pushing this run breaks the whole program." },
+          advanced:{ description:"9km easy Zone 2 with 4 strides at the end.", duration:60, distance:9, zone:"Zone 2 with strides", notes:"Strides after easy run maintain speed without taxing the recovery session." }
+        }
+      },
+      { day:"Fri", type:"Lift", focus:"Power + Athletic", duration:65, description:"Power Clean 4×3, Box Jump 4×5, Farmers Carry 4×50m, Sled Push 3×20m, Sandbag Carry 3×30m. Athletic power work — this is what connects strength to sport.",
+        skill_variants:{
+          novice:{ description:"Rest day — novice Balanced Hybrid runs 4 active days/week (Mon, Tue, Wed, Thu). Take this as recovery.", duration:0, distance:0, zone:"Rest", notes:"4 days gives novices both strength and running stimulus without overreaching." },
+          intermediate:{ description:"Power Clean 4×3, Box Jump 4×5, Farmers Carry 4×50m, Sled Push 3×20m, Sandbag Carry 3×30m. Athletic power work — this is what connects strength to sport.", duration:65, distance:0, zone:"Power", notes:"Athletic power converts your strength and speed into something that works in sport." },
+          advanced:{ description:"Power Clean 5×3, Box Jump 5×5, Farmers Carry 5×50m, Sled Push 4×20m, Sandbag Carry 4×30m. Optional double session: 20 min Zone 2 run in evening.", duration:75, distance:0, zone:"Power with optional double", notes:"Optional PM run doubles the training stimulus without killing recovery." }
+        }
+      },
+      { day:"Sat", type:"Long Run", distance:18, duration:120, zone:"Zone 2", description:"Long run. Start 14km, build to 22km. Conversational pace. This is where hybrid athletes separate themselves from people who just lift or just run.",
+        skill_variants:{
+          novice:{ description:"8km easy long run. Walk 90 sec every 12 min. No pressure on pace.", duration:65, distance:8, zone:"Zone 1-2", notes:"8km long run builds the aerobic base for the Balanced Hybrid without overreaching." },
+          intermediate:{ description:"Long run. Start 14km, build to 22km. Conversational pace. This is where hybrid athletes separate themselves.", duration:120, distance:18, zone:"Zone 2", notes:"Long run at conversational pace — fueling practice for anything over 90 min." },
+          advanced:{ description:"Long run. Start 18km, build to 26km+. Last 4km at marathon pace.", duration:150, distance:22, zone:"Zone 2 with marathon pace finish", notes:"Marathon-pace long run finish builds race-specific fitness unique to hybrid athletes." }
+        }
+      },
+      { day:"Sun", type:"Rest", description:"Non-negotiable full rest. 9 hours sleep target.",
+        skill_variants:{
+          novice:{ description:"Non-negotiable full rest. Recovery is part of the program.", duration:0, distance:0, zone:"Rest", notes:"Rest is what turns training stress into adaptation." },
+          intermediate:{ description:"Non-negotiable full rest. 9 hours sleep target.", duration:0, distance:0, zone:"Rest", notes:"9 hours sleep. This program cannot be sustained on 6 hours." },
+          advanced:{ description:"Full rest. 9 hours sleep. Nutrition: protein 2.2g/kg, carbs elevated post-Saturday.", duration:0, distance:0, zone:"Rest", notes:"Advanced Balanced Hybrid training load is only sustainable with maximal recovery." }
+        }
+      }
     ],
     progression: "Lifts add weight every session when reps are clean. Running adds 1km to long run every week, 1 interval rep per month. Deload weeks 4 and 8 — reduce everything 40%.",
     nutrition_bridge: "This program has the highest nutrition complexity. Heavy lift days: 4g carbs/kg for performance. Long run day: carb load night before. Rest days: drop carbs 25-30%. Protein stays 2.2g/kg every single day. Coach Macro handles all of this automatically based on your daily schedule."
@@ -995,13 +1121,55 @@ export const HYBRID_PROGRAMS = {
     stationDays: ["Fri"],
     longRunDays: ["Sat"],
     weekly_structure: [
-      { day:"Mon", type:"Lift", focus:"Strength Foundation", duration:65, description:"Squat 4×5, Deadlift 3×4, Overhead Press 4×5, Pull Up 4×6, Farmers Carry 3×40m. The strength base that powers every Hyrox station. Go heavy." },
-      { day:"Tue", type:"Run", distance:8, duration:50, description:"8km with middle 4km at Hyrox race pace. You run 8km total in Hyrox between stations — this is exactly what you're training." },
-      { day:"Wed", type:"Lift", focus:"Upper Strength + Station Carry-Over", duration:65, description:"Bench Press 4×5, Barbell Row 4×5, Sandbag Lunge 4×20m, Sled Push 3×20m, Wall Ball 3×20. Direct Hyrox station carry-over built into the lift day." },
-      { day:"Thu", type:"Run Intervals", distance:9, duration:60, description:"6×1km at 5K pace with 90 sec rest. Hyrox requires repeated 1km efforts between stations — this is exactly that training." },
-      { day:"Fri", type:"Station Circuit", duration:65, description:"SkiErg 1000m, rest 3 min, Row 1000m, rest 3 min, Burpee Broad Jump 50m, rest 3 min, Wall Ball 50 reps, rest 3 min. Station-specific conditioning. This gets harder every week." },
-      { day:"Sat", type:"Long Run", distance:12, duration:75, description:"10-14km easy. Aerobic base. Hyrox is 60-80% aerobic — this matters more than most people think." },
-      { day:"Sun", type:"Rest", description:"Complete rest. This program is high volume. Sleep is training." }
+      { day:"Mon", type:"Lift", focus:"Strength Foundation", duration:65, description:"Squat 4×5, Deadlift 3×4, Overhead Press 4×5, Pull Up 4×6, Farmers Carry 3×40m. The strength base that powers every Hyrox station. Go heavy.",
+        skill_variants:{
+          novice:{ description:"DB Goblet Squat 3×10, DB Deadlift 3×10, DB Press 3×12, Band Pull Up 3×10, Farmers Carry 2×30m (light). Dumbbells, 3 sets.", duration:50, distance:0, zone:"Strength", notes:"Build the strength base before adding station work — form first, load second." },
+          intermediate:{ description:"Squat 4×5, Deadlift 3×4, Overhead Press 4×5, Pull Up 4×6, Farmers Carry 3×40m. The strength base that powers every Hyrox station. Go heavy.", duration:65, distance:0, zone:"Strength", notes:"Every Hyrox station is a strength-endurance test — this is what powers them." },
+          advanced:{ description:"Squat 5×5, Deadlift 4×4, Overhead Press 5×5, Pull Up 5×6 weighted, Farmers Carry 4×50m. +20% volume.", duration:75, distance:0, zone:"Strength", notes:"Heavy strength foundation separates sub-60 Hyrox athletes from the field." }
+        }
+      },
+      { day:"Tue", type:"Run", distance:8, duration:50, description:"8km with middle 4km at Hyrox race pace. You run 8km total in Hyrox between stations — this is exactly what you're training.",
+        skill_variants:{
+          novice:{ description:"5km easy run. Walk 90 sec every 10 min if needed. No pace targets.", duration:38, distance:5, zone:"Zone 1-2", notes:"Build the aerobic base first — race pace running comes after you can run 5km comfortably." },
+          intermediate:{ description:"8km with middle 4km at Hyrox race pace. You run 8km total in Hyrox between stations — this is exactly what you're training.", duration:50, distance:8, zone:"Zone 2-4", notes:"Race pace practice — you'll run 1km between each of 8 stations on race day." },
+          advanced:{ description:"10km: 2km easy, 6km at race pace, 2km easy. Note km splits.", duration:62, distance:10, zone:"Zone 2-4", notes:"6km at race pace is the hardest running session of the week — builds sub-60 run fitness." }
+        }
+      },
+      { day:"Wed", type:"Lift", focus:"Upper Strength + Station Carry-Over", duration:65, description:"Bench Press 4×5, Barbell Row 4×5, Sandbag Lunge 4×20m, Sled Push 3×20m, Wall Ball 3×20. Direct Hyrox station carry-over built into the lift day.",
+        skill_variants:{
+          novice:{ description:"DB Bench 3×12, DB Row 3×12, Sandbag Lunge 2×10m (light), Sled Push 2×10m (empty), Wall Ball 2×10 (light). Lighter loads, 3 sets.", duration:50, distance:0, zone:"Strength", notes:"Learning the station movements with lighter loads is how you avoid race-day injury." },
+          intermediate:{ description:"Bench Press 4×5, Barbell Row 4×5, Sandbag Lunge 4×20m, Sled Push 3×20m, Wall Ball 3×20. Direct Hyrox station carry-over built into the lift day.", duration:65, distance:0, zone:"Strength", notes:"Station carry-over means every set today improves your Hyrox race." },
+          advanced:{ description:"Bench 5×5, Row 5×5, Sandbag Lunge 5×25m, Sled Push 4×25m competition weight, Wall Ball 4×25. +20% volume.", duration:80, distance:0, zone:"Strength", notes:"Competition-weight sled push in training is mandatory for sub-60 athletes." }
+        }
+      },
+      { day:"Thu", type:"Run Intervals", distance:9, duration:60, description:"6×1km at 5K pace with 90 sec rest. Hyrox requires repeated 1km efforts between stations — this is exactly that training.",
+        skill_variants:{
+          novice:{ description:"4×500m at easy jog pace with 2 min walk rest. Learning to run between hard efforts.", duration:35, distance:4, zone:"Zone 2-3", notes:"500m reps teach the movement pattern of running after exertion — core Hyrox skill." },
+          intermediate:{ description:"6×1km at 5K pace with 90 sec rest. Hyrox requires repeated 1km efforts between stations — this is exactly what you're training.", duration:60, distance:9, zone:"Zone 4-5", notes:"6 reps at 5K pace exactly replicates the run demands between Hyrox stations." },
+          advanced:{ description:"8×1km at 5K pace with 60 sec rest. Race-simulation density.", duration:70, distance:11, zone:"Zone 4-5", notes:"8 reps with shorter rest simulates the fatigue accumulation of the full Hyrox race." }
+        }
+      },
+      { day:"Fri", type:"Station Circuit", duration:65, description:"SkiErg 1000m, rest 3 min, Row 1000m, rest 3 min, Burpee Broad Jump 50m, rest 3 min, Wall Ball 50 reps, rest 3 min. Station-specific conditioning. This gets harder every week.",
+        skill_variants:{
+          novice:{ description:"SkiErg 400m, rest 4 min, Row 400m, rest 4 min, Burpee (no jump) 20m, rest 4 min, Wall Ball 15 reps (light). Half distances, extra rest.", duration:45, distance:0, zone:"Station Work", notes:"Half distances and extra rest lets you learn the movements without blowing up." },
+          intermediate:{ description:"SkiErg 1000m, rest 3 min, Row 1000m, rest 3 min, Burpee Broad Jump 50m, rest 3 min, Wall Ball 50 reps, rest 3 min. Station-specific conditioning.", duration:65, distance:0, zone:"Station Work", notes:"Note your station times every week — measurable improvement is the goal." },
+          advanced:{ description:"SkiErg 1000m, rest 90 sec, Row 1000m, rest 90 sec, Burpee Broad Jump 80m, rest 90 sec, Wall Ball 75 reps unbroken goal, rest 90 sec. Race simulation rest.", duration:70, distance:0, zone:"Station Work", notes:"90 sec rest between stations mirrors race conditions — this is the hardest session of the week." }
+        }
+      },
+      { day:"Sat", type:"Long Run", distance:12, duration:75, description:"10-14km easy. Aerobic base. Hyrox is 60-80% aerobic — this matters more than most people think.",
+        skill_variants:{
+          novice:{ description:"6km easy run. Walk 90 sec every 10 min if needed. Conversational pace.", duration:48, distance:6, zone:"Zone 1-2", notes:"Aerobic base is the foundation of Hyrox performance — this run is never optional." },
+          intermediate:{ description:"10-14km easy. Aerobic base. Hyrox is 60-80% aerobic — this matters more than most people think.", duration:75, distance:12, zone:"Zone 2", notes:"60-80% of Hyrox is aerobic — this long run is your biggest race-day investment." },
+          advanced:{ description:"14-18km easy. Last 2km at race pace. Aerobic base plus race specificity.", duration:105, distance:16, zone:"Zone 2 with race pace finish", notes:"18km long run gives the Hyrox Hybrid genuinely elite aerobic capacity." }
+        }
+      },
+      { day:"Sun", type:"Rest", description:"Complete rest. This program is high volume. Sleep is training.",
+        skill_variants:{
+          novice:{ description:"Complete rest. This program is demanding even at 4 active days. Sleep 8+ hours.", duration:0, distance:0, zone:"Rest", notes:"Rest is not optional — it's where the adaptation from this week's training happens." },
+          intermediate:{ description:"Complete rest. This program is high volume. Sleep is training.", duration:0, distance:0, zone:"Rest", notes:"Sleep is training. 8-9 hours." },
+          advanced:{ description:"Complete rest. 9 hours sleep. This is the highest-volume program — rest is proportionally more important.", duration:0, distance:0, zone:"Rest", notes:"Advanced Hyrox Hybrid athletes who underslept race worse than those who under-trained." }
+        }
+      }
     ],
     race_simulations: [
       { week:8, description:"Half Hyrox — Run 4×1km with stations SkiErg, Row, Wall Ball, Farmers Carry at race effort" },
