@@ -665,49 +665,259 @@ export const HYROX_PROGRAM = {
     structure: "3 strength days + 2 run days + 1 station day + 1 rest",
     weeks_detail: [
       { week:1, focus:"Assessment & Foundation", days:[
-        { day:"Mon", type:"Strength", duration:60, description:"Squat 4×8, Deadlift 4×6, Overhead Press 3×10, Pull Up 3×8, Farmers Carry 3×40m. Build the engine." },
-        { day:"Tue", type:"Run", distance:5, duration:30, description:"5km easy run. Establish baseline. Note your pace — you'll race this at week 12." },
-        { day:"Wed", type:"Station Work", duration:60, description:"SkiErg 4×250m with 2 min rest. Row 4×250m with 2 min rest. TECHNIQUE only — go slow and learn the machines." },
-        { day:"Thu", type:"Rest", description:"Complete rest or 20 min walk." },
-        { day:"Fri", type:"Strength", duration:60, description:"Farmers Carry 4×50m heavy, Sled Push 4×20m, Sandbag Lunge 3×20m, Wall Ball 3×20, Burpee Broad Jump 3×10m." },
-        { day:"Sat", type:"Long Run", distance:8, duration:50, description:"8km easy — conversational pace the whole way. This builds to 12km at peak." },
-        { day:"Sun", type:"Rest", description:"Full rest." }
+        { day:"Mon", type:"Strength", duration:60, description:"Squat 4×8, Deadlift 4×6, Overhead Press 3×10, Pull Up 3×8, Farmers Carry 3×40m. Build the engine.",
+          skill_variants:{
+            novice:{ description:"Goblet Squat 3×10, Deadlift 3×8 (light), DB Press 3×12, Band Pull 3×15, Farmers Carry 2×30m. Learn the movements first.", duration:50, sled_weight:"Bodyweight only", wall_balls:"10 reps light ball", rest_between_stations:"4 min", goal:"Learn every movement with perfect form.", modifications:["Use dumbbells not barbells","Reduce range of motion if mobility limited","Skip farmers carry if grip gives out"] },
+            intermediate:{ description:"Squat 4×8, Deadlift 4×6, Overhead Press 3×10, Pull Up 3×8, Farmers Carry 3×40m. Build the engine.", duration:60, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Finish under 90 minutes." },
+            advanced:{ description:"Squat 5×5, Deadlift 5×4, Overhead Press 4×8, Pull Up 4×8, Farmers Carry 4×50m. Heavier from week 1.", duration:70, sled_weight:"Competition weight — technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Sub-60 minutes.", additions:["Add 20 min conditioning finisher","Track baseline metrics this week","Double session days begin week 6"] }
+          }
+        },
+        { day:"Tue", type:"Run", distance:5, duration:30, description:"5km easy run. Establish baseline. Note your pace — you'll race this at week 12.",
+          skill_variants:{
+            novice:{ description:"3km walk/jog. Walk 2 min, jog 1 min — repeat for 20 min. Cool down walk 5 min. Note how it feels.", duration:28, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Learn your aerobic baseline. No pace targets.", modifications:["Walk the 1km runs in race","All running is optional jogging"] },
+            intermediate:{ description:"5km easy run. Establish baseline. Note your pace — you'll race this at week 12.", duration:30, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Note your baseline 5km pace for progress tracking." },
+            advanced:{ description:"6km run with middle 2km at Hyrox race pace. Note splits.", duration:38, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Establish race pace benchmark from day 1.", additions:["Track 1km split times","Compare to week 12 result"] }
+          }
+        },
+        { day:"Wed", type:"Station Work", duration:60, description:"SkiErg 4×250m with 2 min rest. Row 4×250m with 2 min rest. TECHNIQUE only — go slow and learn the machines.",
+          skill_variants:{
+            novice:{ description:"SkiErg 3×150m with 3 min rest. Row 3×150m with 3 min rest. Watch technique videos first. Go at 50% effort.", duration:45, sled_weight:"Bodyweight only", wall_balls:"10 reps", rest_between_stations:"3-4 min", goal:"Learn the machines. Finish is the only goal.", modifications:["Half distances on all stations","Walk the 1km runs","Skip burpee broad jumps — substitute regular burpees"] },
+            intermediate:{ description:"SkiErg 4×250m with 2 min rest. Row 4×250m with 2 min rest. TECHNIQUE only — go slow and learn the machines.", duration:60, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Learn technique on every machine." },
+            advanced:{ description:"SkiErg 5×250m with 90 sec rest. Row 5×250m with 90 sec rest. Note 250m split times.", duration:65, sled_weight:"Competition weight — technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Establish machine split benchmarks.", additions:["Record 250m SkiErg and Row splits","Compare weekly for progress"] }
+          }
+        },
+        { day:"Thu", type:"Rest", description:"Complete rest or 20 min walk.",
+          skill_variants:{
+            novice:{ description:"Complete rest. 10 min gentle walk if legs feel tight. Stretch calves and hip flexors.", duration:10, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Recover fully. Three sessions this week is a real load for a beginner.", modifications:["Prioritize sleep over active recovery"] },
+            intermediate:{ description:"Complete rest or 20 min walk.", duration:20, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery. This week is about learning, not grinding." },
+            advanced:{ description:"20 min easy walk + 15 min mobility and foam rolling. Non-negotiable.", duration:35, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Active recovery maximizes adaptation from high-volume training.", additions:["Hip flexor and thoracic spine mobility focus"] }
+          }
+        },
+        { day:"Fri", type:"Strength", duration:60, description:"Farmers Carry 4×50m heavy, Sled Push 4×20m, Sandbag Lunge 3×20m, Wall Ball 3×20, Burpee Broad Jump 3×10m.",
+          skill_variants:{
+            novice:{ description:"Farmers Carry 2×30m (light), Sled Push 2×10m (empty sled), Sandbag Lunge 2×10m (light bag), Wall Ball 2×10, Burpee (no jump) 2×8.", duration:45, sled_weight:"Empty sled — bodyweight only", wall_balls:"10 reps light ball", rest_between_stations:"3-4 min", goal:"Learn every station movement safely.", modifications:["Half distances on all stations","Regular burpees instead of broad jumps","Lightest sandbag available"] },
+            intermediate:{ description:"Farmers Carry 4×50m heavy, Sled Push 4×20m, Sandbag Lunge 3×20m, Wall Ball 3×20, Burpee Broad Jump 3×10m.", duration:60, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Build station-specific strength and conditioning." },
+            advanced:{ description:"Farmers Carry 5×50m max weight, Sled Push 5×25m competition weight, Sandbag Lunge 4×25m, Wall Ball 4×25, Burpee Broad Jump 4×15m.", duration:70, sled_weight:"Competition weight plus technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Station-specific peak conditioning.", additions:["Station weakness identification this week","Note which stations need most work"] }
+          }
+        },
+        { day:"Sat", type:"Long Run", distance:8, duration:50, description:"8km easy — conversational pace the whole way. This builds to 12km at peak.",
+          skill_variants:{
+            novice:{ description:"4km easy walk/jog. Walk 2 min every 8 min of jogging. Conversational the whole way.", duration:40, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Build aerobic base — Hyrox is 60% running.", modifications:["Walk the 1km runs in race","No pace targets this week"] },
+            intermediate:{ description:"8km easy — conversational pace the whole way. This builds to 12km at peak.", duration:50, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Aerobic base development. Conversational pace only." },
+            advanced:{ description:"10km easy with final 2km at race pace.", duration:62, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Aerobic base plus race-pace conditioning.", additions:["Note race pace km splits","Build to 14km by week 8"] }
+          }
+        },
+        { day:"Sun", type:"Rest", description:"Full rest.",
+          skill_variants:{
+            novice:{ description:"Full rest. 5 sessions this week is enough. Sleep 8+ hours.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery.", modifications:["Prioritize sleep above all else"] },
+            intermediate:{ description:"Full rest.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery. This is where adaptation happens." },
+            advanced:{ description:"Full rest. Sleep is training. 8-9 hours target.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery at high training volume.", additions:["Track sleep quality — it directly affects station performance"] }
+          }
+        }
       ]},
       { week:4, focus:"Increasing Intensity", days:[
-        { day:"Mon", type:"Strength", duration:65, description:"Squat 5×5, Deadlift 3×4, Overhead Press 4×6, Pull Up 4×6, Farmers Carry 4×50m. Getting heavier." },
-        { day:"Tue", type:"Run Intervals", distance:8, duration:55, description:"1km warm up. 6×1km at 5K race pace with 90 sec rest. 1km cool down. Exactly simulates Hyrox run segments." },
-        { day:"Wed", type:"Station Circuit", duration:60, description:"SkiErg 750m, rest 3 min, Row 750m, rest 3 min, Wall Ball 3×25, rest 2 min, Burpee Broad Jump 40m. Building station capacity." },
-        { day:"Thu", type:"Recovery", description:"20 min easy walk, mobility work, foam rolling. Non-negotiable recovery." },
-        { day:"Fri", type:"Strength", duration:60, description:"Sled Push 6×20m, Sled Pull 4×20m, Sandbag Lunge 4×25m, Farmers Carry 4×50m." },
-        { day:"Sat", type:"Long Run", distance:10, duration:65, description:"10km easy. Aerobic base matters more than people think for Hyrox." },
-        { day:"Sun", type:"Rest", description:"Full rest." }
+        { day:"Mon", type:"Strength", duration:65, description:"Squat 5×5, Deadlift 3×4, Overhead Press 4×6, Pull Up 4×6, Farmers Carry 4×50m. Getting heavier.",
+          skill_variants:{
+            novice:{ description:"Goblet Squat 3×10, Deadlift 3×8 (moderate), DB Press 3×10, Band Pull 3×15, Farmers Carry 3×40m. Adding load from week 1.", duration:50, sled_weight:"Light plates — 25% competition weight", wall_balls:"15 reps", rest_between_stations:"3 min", goal:"Build baseline strength safely.", modifications:["Increase weight only when form is perfect","Substitute ring rows for pull ups if needed"] },
+            intermediate:{ description:"Squat 5×5, Deadlift 3×4, Overhead Press 4×6, Pull Up 4×6, Farmers Carry 4×50m. Getting heavier.", duration:65, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Finish under 90 minutes." },
+            advanced:{ description:"Squat 6×4 (85% 1RM), Deadlift 4×3 (heavy), Press 5×5, Pull Up 5×5 weighted, Farmers Carry 5×50m.", duration:75, sled_weight:"Competition weight plus technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Sub-60 minutes.", additions:["Progressive overload every session","Track all working weights"] }
+          }
+        },
+        { day:"Tue", type:"Run Intervals", distance:8, duration:55, description:"1km warm up. 6×1km at 5K race pace with 90 sec rest. 1km cool down. Exactly simulates Hyrox run segments.",
+          skill_variants:{
+            novice:{ description:"1km warm up jog/walk. 4×500m at easy jog pace with 2 min walk rest. 1km cool down walk.", duration:40, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Learn to run between efforts — core Hyrox skill.", modifications:["Walk the 1km runs in race","Jog at conversational pace only"] },
+            intermediate:{ description:"1km warm up. 6×1km at 5K race pace with 90 sec rest. 1km cool down. Exactly simulates Hyrox run segments.", duration:55, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Build the repeated 1km effort capacity Hyrox demands." },
+            advanced:{ description:"1km warm up. 8×1km at 5K pace with 60 sec rest. 1km cool down. Race-specific endurance.", duration:65, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"8 reps at race pace builds sub-60 running capacity.", additions:["Track each 1km split","Last 2 reps should feel like race effort"] }
+          }
+        },
+        { day:"Wed", type:"Station Circuit", duration:60, description:"SkiErg 750m, rest 3 min, Row 750m, rest 3 min, Wall Ball 3×25, rest 2 min, Burpee Broad Jump 40m. Building station capacity.",
+          skill_variants:{
+            novice:{ description:"SkiErg 400m, rest 4 min, Row 400m, rest 4 min, Wall Ball 2×10, rest 3 min, Burpee (no jump) 20m.", duration:45, sled_weight:"Bodyweight only", wall_balls:"10 reps light ball", rest_between_stations:"3-4 min", goal:"Learn the movements. Finish is the only goal.", modifications:["Half distances on all stations","Walk the 1km runs","Regular burpees instead of broad jumps"] },
+            intermediate:{ description:"SkiErg 750m, rest 3 min, Row 750m, rest 3 min, Wall Ball 3×25, rest 2 min, Burpee Broad Jump 40m. Building station capacity.", duration:60, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Finish under 90 minutes." },
+            advanced:{ description:"SkiErg 1000m, rest 2 min, Row 1000m, rest 2 min, Wall Ball 3×30 unbroken goal, rest 90 sec, Burpee Broad Jump 60m.", duration:70, sled_weight:"Competition weight plus technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Sub-60 minutes.", additions:["Note station times — compare weekly","Identify weakest station for extra work"] }
+          }
+        },
+        { day:"Thu", type:"Recovery", description:"20 min easy walk, mobility work, foam rolling. Non-negotiable recovery.",
+          skill_variants:{
+            novice:{ description:"15 min gentle walk. Stretch hips, calves, shoulders. Ice anything that aches.", duration:20, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery — week 4 is harder than week 1.", modifications:["Skip if too sore — extra rest beats active recovery when fatigued"] },
+            intermediate:{ description:"20 min easy walk, mobility work, foam rolling. Non-negotiable recovery.", duration:25, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Recovery is part of training. Don't skip it." },
+            advanced:{ description:"30 min recovery: 15 min walk + foam roll legs and upper back + hip mobility.", duration:35, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Optimize recovery to support double-session weeks ahead.", additions:["Cold exposure if available — speeds station recovery"] }
+          }
+        },
+        { day:"Fri", type:"Strength", duration:60, description:"Sled Push 6×20m, Sled Pull 4×20m, Sandbag Lunge 4×25m, Farmers Carry 4×50m.",
+          skill_variants:{
+            novice:{ description:"Sled Push 3×10m (empty), Sled Pull 3×10m, Sandbag Lunge 3×15m (light), Farmers Carry 3×40m (light).", duration:45, sled_weight:"Empty sled — bodyweight only", wall_balls:"N/A", rest_between_stations:"3-4 min", goal:"Build station-specific movement patterns.", modifications:["Empty sled only until form is solid","Lightest sandbag available"] },
+            intermediate:{ description:"Sled Push 6×20m, Sled Pull 4×20m, Sandbag Lunge 4×25m, Farmers Carry 4×50m.", duration:60, sled_weight:"Competition weight", wall_balls:"N/A", rest_between_stations:"90 sec", goal:"Station-specific conditioning with competition loads." },
+            advanced:{ description:"Sled Push 8×20m competition weight, Sled Pull 5×20m, Sandbag Lunge 5×25m, Farmers Carry 5×50m heavy.", duration:70, sled_weight:"Competition weight plus technique focus", wall_balls:"N/A", rest_between_stations:"Minimal — race simulation", goal:"Peak station conditioning.", additions:["Sled push without rest between sets for race simulation"] }
+          }
+        },
+        { day:"Sat", type:"Long Run", distance:10, duration:65, description:"10km easy. Aerobic base matters more than people think for Hyrox.",
+          skill_variants:{
+            novice:{ description:"6km easy walk/jog. Walk every 10 min for 90 sec.", duration:55, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Aerobic base — 60% of Hyrox is running.", modifications:["Walk the 1km runs in race","No pace target"] },
+            intermediate:{ description:"10km easy. Aerobic base matters more than people think for Hyrox.", duration:65, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Aerobic base development." },
+            advanced:{ description:"12km easy with last 2km at race pace.", duration:75, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Aerobic base plus race-pace conditioning.", additions:["Build to 14km by week 8"] }
+          }
+        },
+        { day:"Sun", type:"Rest", description:"Full rest.",
+          skill_variants:{
+            novice:{ description:"Full rest. Week 4 is meaningfully harder than week 1. Sleep 8+ hours.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery.", modifications:["Extra sleep beats extra training every time"] },
+            intermediate:{ description:"Full rest.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery." },
+            advanced:{ description:"Full rest. 8-9 hours sleep is mandatory at this training volume.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery.", additions:["Sleep quality directly affects station performance"] }
+          }
+        }
       ]},
       { week:8, focus:"Race Simulation", days:[
-        { day:"Mon", type:"Strength", duration:65, description:"Heavy compounds peak week — Squat 5×3, Deadlift 3×3, Press 4×4. Strength should be peaking." },
-        { day:"Tue", type:"Run", distance:8, duration:50, description:"8km with middle 4km at race pace." },
-        { day:"Wed", type:"Half Hyrox Simulation", duration:70, description:"Run 1km, SkiErg 500m, Run 1km, Sled Push 25m, Run 1km, Row 500m, Run 1km, Wall Ball 50 reps. RACE EFFORT. This is your test." },
-        { day:"Thu", type:"Recovery", description:"Full recovery — this is mandatory after the simulation." },
-        { day:"Fri", type:"Station Repeats", duration:55, description:"Farmers Carry 6×50m, Sandbag Lunge 4×25m, Burpee Broad Jump 4×20m. Weakness work." },
-        { day:"Sat", type:"Long Run", distance:12, duration:75, description:"12km easy. Peak long run." },
-        { day:"Sun", type:"Rest", description:"Full rest." }
+        { day:"Mon", type:"Strength", duration:65, description:"Heavy compounds peak week — Squat 5×3, Deadlift 3×3, Press 4×4. Strength should be peaking.",
+          skill_variants:{
+            novice:{ description:"Squat 3×8 (moderate), Deadlift 3×6, Press 3×10, Pull Up 3×6. Strength is building — still learning.", duration:55, sled_weight:"25-50% competition weight", wall_balls:"15 reps", rest_between_stations:"3 min", goal:"Consistent strength progress — same weight as last week plus 5%.", modifications:["Do not max out — leave 2 reps in reserve"] },
+            intermediate:{ description:"Heavy compounds peak week — Squat 5×3, Deadlift 3×3, Press 4×4. Strength should be peaking.", duration:65, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Finish under 90 minutes." },
+            advanced:{ description:"Squat 5×2 (90% 1RM), Deadlift 3×2 (heavy), Press 4×3. Strength peaks this week.", duration:70, sled_weight:"Competition weight plus technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Sub-60 minutes.", additions:["This is peak strength week — heaviest lifts of the program","Deload begins week 11"] }
+          }
+        },
+        { day:"Tue", type:"Run", distance:8, duration:50, description:"8km with middle 4km at race pace.",
+          skill_variants:{
+            novice:{ description:"5km easy run with middle 2km at slightly faster than easy pace.", duration:40, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Build running confidence at controlled effort.", modifications:["Walk the 1km runs in race simulation"] },
+            intermediate:{ description:"8km with middle 4km at race pace.", duration:50, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Race pace rehearsal — confirm your target time is realistic." },
+            advanced:{ description:"8km: 2km easy, 4km at race pace, 2km easy. Note race pace splits.", duration:50, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Confirm sub-60 race pace is sustainable.", additions:["Track each km split at race pace"] }
+          }
+        },
+        { day:"Wed", type:"Half Hyrox Simulation", duration:70, description:"Run 1km, SkiErg 500m, Run 1km, Sled Push 25m, Run 1km, Row 500m, Run 1km, Wall Ball 50 reps. RACE EFFORT. This is your test.",
+          skill_variants:{
+            novice:{ description:"Run 500m, SkiErg 250m, Run 500m, Sled Push 10m (empty), Run 500m, Row 250m, Rest 5 min between stations.", duration:60, sled_weight:"Bodyweight only", wall_balls:"20 reps", rest_between_stations:"3-4 min", goal:"Learn the race format. Finish is the only goal.", modifications:["Half distances on all stations","Walk the runs","Skip burpee broad jumps"] },
+            intermediate:{ description:"Run 1km, SkiErg 500m, Run 1km, Sled Push 25m, Run 1km, Row 500m, Run 1km, Wall Ball 50 reps. RACE EFFORT.", duration:70, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Finish under 90 minutes — this predicts race day." },
+            advanced:{ description:"Full half simulation at race effort. Time each segment. Run 1km, SkiErg 500m, Run 1km, Sled Push 25m, Run 1km, Row 500m, Run 1km, Wall Ball 50 reps.", duration:60, sled_weight:"Competition weight plus technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Sub-30 min half simulation predicts sub-60 full race.", additions:["Record split times for each station and run","Identify pacing errors for race day"] }
+          }
+        },
+        { day:"Thu", type:"Recovery", description:"Full recovery — this is mandatory after the simulation.",
+          skill_variants:{
+            novice:{ description:"Full rest. Walk 10 min if legs are very stiff. The simulation was a big effort.", duration:10, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery after biggest training day so far.", modifications:["Extra sleep beats any form of active recovery today"] },
+            intermediate:{ description:"Full recovery — this is mandatory after the simulation.", duration:20, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Mandatory recovery after race simulation." },
+            advanced:{ description:"Full recovery. 20 min walk, foam roll, cold shower if available.", duration:30, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Optimize recovery to support Friday's station work.", additions:["Cold exposure reduces inflammation after race simulation efforts"] }
+          }
+        },
+        { day:"Fri", type:"Station Repeats", duration:55, description:"Farmers Carry 6×50m, Sandbag Lunge 4×25m, Burpee Broad Jump 4×20m. Weakness work.",
+          skill_variants:{
+            novice:{ description:"Farmers Carry 3×30m, Sandbag Lunge 3×15m (light), Burpee (no jump) 3×10m. Focus on weakest station.", duration:40, sled_weight:"Light", wall_balls:"N/A", rest_between_stations:"3-4 min", goal:"Practice your weakest station movements.", modifications:["Identify weakest station from Wednesday simulation","Focus extra time there"] },
+            intermediate:{ description:"Farmers Carry 6×50m, Sandbag Lunge 4×25m, Burpee Broad Jump 4×20m. Weakness work.", duration:55, sled_weight:"Competition weight", wall_balls:"N/A", rest_between_stations:"90 sec", goal:"Station weakness elimination." },
+            advanced:{ description:"Farmers Carry 8×50m, Sandbag Lunge 5×25m, Burpee Broad Jump 5×20m. Maximum station volume.", duration:65, sled_weight:"Competition weight plus technique focus", wall_balls:"N/A", rest_between_stations:"Minimal — race simulation", goal:"Peak station-specific conditioning.", additions:["Double up on identified weakness station","Pacing strategy by station — map this out"] }
+          }
+        },
+        { day:"Sat", type:"Long Run", distance:12, duration:75, description:"12km easy. Peak long run.",
+          skill_variants:{
+            novice:{ description:"7km easy walk/jog. Walk 90 sec every 10 min of running.", duration:65, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Aerobic base peak — Hyrox is 60% running.", modifications:["Walk the 1km runs in race"] },
+            intermediate:{ description:"12km easy. Peak long run.", duration:75, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Peak aerobic base." },
+            advanced:{ description:"14km easy. Peak long run — builds aerobic engine for sub-60.", duration:88, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Aerobic ceiling supports sub-60 minute race.", additions:["This is the highest long run of the program"] }
+          }
+        },
+        { day:"Sun", type:"Rest", description:"Full rest.",
+          skill_variants:{
+            novice:{ description:"Full rest. Week 8 was the hardest week of the program so far.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery.", modifications:["Sleep 9 hours if possible"] },
+            intermediate:{ description:"Full rest.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery." },
+            advanced:{ description:"Full rest. 9 hours sleep. This is peak week.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery at peak training volume.", additions:["Nutrition: protein 2.2g/kg, carbs elevated post-workout"] }
+          }
+        }
       ]},
       { week:10, focus:"Full Race Simulation", days:[
-        { day:"Mon", type:"Strength", duration:55, description:"Moderate strength — maintain, don't build. Last heavy week." },
-        { day:"Tue", type:"Run Intervals", distance:7, duration:50, description:"4×1km at race pace. Sharpening." },
-        { day:"Wed", type:"FULL HYROX SIMULATION", duration:90, description:"Complete race simulation. All 8 stations with 1km runs between each. Race pace. Note your time — this predicts race day." },
-        { day:"Thu", type:"Rest", description:"2 days full rest after simulation." },
-        { day:"Fri", type:"Rest", description:"Full rest." },
-        { day:"Sat", type:"Easy Run", distance:8, duration:50, description:"8km very easy. Flush the legs." },
-        { day:"Sun", type:"Rest", description:"Full rest." }
+        { day:"Mon", type:"Strength", duration:55, description:"Moderate strength — maintain, don't build. Last heavy week.",
+          skill_variants:{
+            novice:{ description:"Squat 3×8, Deadlift 3×6, Press 3×10. Moderate weight — maintain what you've built.", duration:45, sled_weight:"50% competition weight", wall_balls:"15 reps", rest_between_stations:"3 min", goal:"Maintain strength heading into race simulation week.", modifications:["Keep weights the same as last week — no increases"] },
+            intermediate:{ description:"Moderate strength — maintain, don't build. Last heavy week.", duration:55, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Maintain strength — taper begins next week." },
+            advanced:{ description:"Strength maintenance: Squat 4×3, Deadlift 3×3, Press 4×3. Heavy but not max.", duration:60, sled_weight:"Competition weight plus technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Maintain peak strength into final race simulation.", additions:["This is the last strength session before race week"] }
+          }
+        },
+        { day:"Tue", type:"Run Intervals", distance:7, duration:50, description:"4×1km at race pace. Sharpening.",
+          skill_variants:{
+            novice:{ description:"4×500m at easy jog pace with 2 min walk rest. Race simulation prep.", duration:35, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Run confidence before Wednesday's simulation.", modifications:["Walk the 1km runs in simulation tomorrow"] },
+            intermediate:{ description:"4×1km at race pace. Sharpening.", duration:50, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Race-sharp legs before full simulation." },
+            advanced:{ description:"6×1km at race pace with 60 sec rest. Final speed work before race.", duration:60, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Race-sharp legs confirm sub-60 readiness.", additions:["All 6 reps at race pace — no excuses"] }
+          }
+        },
+        { day:"Wed", type:"FULL HYROX SIMULATION", duration:90, description:"Complete race simulation. All 8 stations with 1km runs between each. Race pace. Note your time — this predicts race day.",
+          skill_variants:{
+            novice:{ description:"Half Hyrox simulation: 4 stations with 1km runs between. SkiErg 500m, Sled Push 25m, Row 500m, Wall Ball 30 reps. Rest 4 min between stations.", duration:75, sled_weight:"Bodyweight only on sled", wall_balls:"20 reps", rest_between_stations:"3-4 min", goal:"Finish the simulation. Time yourself. Learn the race format.", modifications:["Half distances on all stations","Walk the 1km runs","Skip burpee broad jumps"] },
+            intermediate:{ description:"Complete race simulation. All 8 stations with 1km runs between each. Race pace. Note your time — this predicts race day.", duration:90, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Finish under 90 minutes. Your time today predicts race day." },
+            advanced:{ description:"Full Hyrox simulation at race pace. All 8 stations. Time each run and station. Target sub-60.", duration:70, sled_weight:"Competition weight plus technique focus", wall_balls:"Unbroken sets goal", rest_between_stations:"Minimal — race simulation", goal:"Sub-60 minute simulation confirms race readiness.", additions:["Record every split — runs and stations","Pacing: conservative first 3 runs, attack stations 5-8"] }
+          }
+        },
+        { day:"Thu", type:"Rest", description:"2 days full rest after simulation.",
+          skill_variants:{
+            novice:{ description:"Full rest. The simulation was massive. Walk 10 min if desperately stiff.", duration:10, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery from biggest training day of the program.", modifications:["Sleep is the only recovery tool needed today"] },
+            intermediate:{ description:"2 days full rest after simulation.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Mandatory recovery after full race simulation." },
+            advanced:{ description:"Full rest. Cold shower or ice bath if legs are very sore.", duration:15, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Fast recovery to support Saturday's easy run.", additions:["Protein 2.5g/kg today to support muscle recovery"] }
+          }
+        },
+        { day:"Fri", type:"Rest", description:"Full rest.",
+          skill_variants:{
+            novice:{ description:"Full rest. Second rest day after simulation. Your body earned it.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery.", modifications:["Do not add any training today"] },
+            intermediate:{ description:"Full rest.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery. Two rest days after full simulation is correct." },
+            advanced:{ description:"Full rest or 15 min walk. Taper officially begins.", duration:15, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Start the taper. You're already fit.", additions:["Reduce total training stress 30% over the next 10 days"] }
+          }
+        },
+        { day:"Sat", type:"Easy Run", distance:8, duration:50, description:"8km very easy. Flush the legs.",
+          skill_variants:{
+            novice:{ description:"4km very easy walk/jog. Just flushing the legs.", duration:35, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Active recovery — flush simulation fatigue.", modifications:["Walk if legs are still heavy from Wednesday"] },
+            intermediate:{ description:"8km very easy. Flush the legs.", duration:50, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Active recovery — flush simulation fatigue." },
+            advanced:{ description:"8km very easy. No strides, no pickups. Flush only.", duration:50, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Active recovery. Race is 2 weeks away.", additions:["Resist the urge to push — taper paranoia is normal"] }
+          }
+        },
+        { day:"Sun", type:"Rest", description:"Full rest.",
+          skill_variants:{
+            novice:{ description:"Full rest. Reflect on simulation results — what stations need focus?", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery plus mental race preparation.", modifications:["Review simulation video if filmed"] },
+            intermediate:{ description:"Full rest.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full recovery." },
+            advanced:{ description:"Full rest. Review simulation splits. Plan race strategy.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Race strategy locked in for sub-60.", additions:["Pacing plan: assign target time to each station and run segment"] }
+          }
+        }
       ]},
       { week:12, focus:"Race Week — TAPER", days:[
-        { day:"Mon", type:"Easy Run", distance:4, duration:25, description:"4km very easy. Just moving." },
-        { day:"Tue", type:"Shakeout Stations", duration:30, description:"1 round of each station at 50% effort. Just feeling the movements." },
-        { day:"Wed", type:"Rest", description:"Complete rest." },
-        { day:"Thu", type:"Rest", description:"Complete rest. Eat well. 9 hours sleep." },
-        { day:"Fri", type:"Rest", description:"Full rest. Carb load. Hydrate. Lay out your gear." },
-        { day:"Sat", type:"RACE DAY — HYROX", description:"Race day. Pace the first 2 runs conservatively — everyone goes out too fast. Attack the stations with good technique. Leave everything on the floor." },
-        { day:"Sun", type:"Recovery", description:"You earned it. Eat, sleep, reflect." }
+        { day:"Mon", type:"Easy Run", distance:4, duration:25, description:"4km very easy. Just moving.",
+          skill_variants:{
+            novice:{ description:"2km very easy jog/walk. Just staying loose.", duration:18, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Stay loose. Race is 5 days away.", modifications:["Walk is fine — movement matters, not pace"] },
+            intermediate:{ description:"4km very easy. Just moving.", duration:25, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Stay loose. Fitness is locked in." },
+            advanced:{ description:"4km very easy with 4 strides. Light and bouncy.", duration:28, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Race-week sharpness without fatigue.", additions:["Strides on race Monday are the final speed stimulus"] }
+          }
+        },
+        { day:"Tue", type:"Shakeout Stations", duration:30, description:"1 round of each station at 50% effort. Just feeling the movements.",
+          skill_variants:{
+            novice:{ description:"2-3 stations at 30% effort — just feeling the movements. SkiErg 100m, Row 100m, Wall Ball 5 reps.", duration:20, sled_weight:"Empty sled", wall_balls:"5 reps only", rest_between_stations:"3-4 min", goal:"Confidence not fitness. You know these movements.", modifications:["Skip any station that feels bad — rest instead"] },
+            intermediate:{ description:"1 round of each station at 50% effort. Just feeling the movements.", duration:30, sled_weight:"Competition weight", wall_balls:"10 reps", rest_between_stations:"90 sec", goal:"Muscle memory activation. Race day confidence." },
+            advanced:{ description:"1 round of each station at 60% effort. Note which stations feel sharp.", duration:35, sled_weight:"Competition weight plus technique focus", wall_balls:"20 reps unbroken", rest_between_stations:"Minimal", goal:"Confirm race sharpness.", additions:["Any station feeling off — do 1 extra easy set"] }
+          }
+        },
+        { day:"Wed", type:"Rest", description:"Complete rest.",
+          skill_variants:{
+            novice:{ description:"Complete rest. Eat well. Drink water. Sleep 8 hours.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full rest 3 days before race.", modifications:["No extra training — nothing you do today improves your fitness"] },
+            intermediate:{ description:"Complete rest.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full rest. The work is done." },
+            advanced:{ description:"Complete rest. Visualize your race pacing strategy.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Mental race preparation.", additions:["Review split targets for each station and run segment"] }
+          }
+        },
+        { day:"Thu", type:"Rest", description:"Complete rest. Eat well. 9 hours sleep.",
+          skill_variants:{
+            novice:{ description:"Complete rest. Carb load. Drink water all day. Sleep 8+ hours.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Full rest 2 days before race. Fuel tomorrow's performance.", modifications:["Eat more carbs than usual — pasta, rice, bread are correct"] },
+            intermediate:{ description:"Complete rest. Eat well. 9 hours sleep.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Carb load and maximize sleep." },
+            advanced:{ description:"Complete rest. 8-10g carbs per kg bodyweight. Hydrate aggressively. Gear laid out.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Glycogen supercompensation for sub-60 effort.", additions:["Race belt packed","Station strategy reviewed and memorized"] }
+          }
+        },
+        { day:"Fri", type:"Rest", description:"Full rest. Carb load. Hydrate. Lay out your gear.",
+          skill_variants:{
+            novice:{ description:"Full rest. Eat normally plus a bit more carbs. Lay out your gear and check the venue.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Race eve rest. Everything is ready.", modifications:["Know the venue layout — find parking, bag drop, warm-up area"] },
+            intermediate:{ description:"Full rest. Carb load. Hydrate. Lay out your gear.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Race eve. Everything is ready." },
+            advanced:{ description:"Full rest. Final carb load. Gear and race belt ready. 80-100g carbs 2 hours before race tomorrow.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Optimal pre-race preparation.", additions:["Pre-race breakfast planned: 80-100g carbs 2h before start"] }
+          }
+        },
+        { day:"Sat", type:"RACE DAY — HYROX", description:"Race day. Pace the first 2 runs conservatively — everyone goes out too fast. Attack the stations with good technique. Leave everything on the floor.",
+          skill_variants:{
+            novice:{ description:"RACE DAY. Walk/jog the runs. Focus on technique at every station. Rest between stations if needed. Crossing the finish line is everything.", duration:120, sled_weight:"Competition weight (or modified)", wall_balls:"Full reps — take your time", rest_between_stations:"As needed", goal:"Finish the race. That is the only goal.", modifications:["Walk all 1km runs","Take rest breaks at any station","Modified weights are available — use them"] },
+            intermediate:{ description:"Race day. Pace the first 2 runs conservatively — everyone goes out too fast. Attack the stations with good technique. Leave everything on the floor.", duration:90, sled_weight:"Competition weight", wall_balls:"75 women / 100 men", rest_between_stations:"90 sec", goal:"Finish under 90 minutes." },
+            advanced:{ description:"Race day. Sub-60 target. Conservative first 3 runs. Full attack on stations 5-8. Empty the tank on the last run.", duration:60, sled_weight:"Competition weight — full race effort", wall_balls:"Unbroken sets — no drops", rest_between_stations:"Minimal — race simulation", goal:"Sub-60 minutes.", additions:["Pacing strategy: first 3 runs at 4:45/km, stations at race effort, last 3 runs at 4:30/km"] }
+          }
+        },
+        { day:"Sun", type:"Recovery", description:"You earned it. Eat, sleep, reflect.",
+          skill_variants:{
+            novice:{ description:"You finished a Hyrox. Eat whatever you want. Sleep as long as you want. Be genuinely proud.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Recovery and celebration.", modifications:["No training for at least 1 week"] },
+            intermediate:{ description:"You earned it. Eat, sleep, reflect.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Recovery. You earned it." },
+            advanced:{ description:"Recovery. Eat 2.5g protein/kg. Ice if needed. Review splits and plan next race.", duration:0, sled_weight:"N/A", wall_balls:"N/A", rest_between_stations:"N/A", goal:"Recover and set next target.", additions:["Review which stations cost the most time — target for next cycle"] }
+          }
+        }
       ]}
     ]
   }
