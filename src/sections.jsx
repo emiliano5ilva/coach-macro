@@ -1443,7 +1443,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
 }
 
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
-export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user}) {
+export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief}) {
   const [delConfirm,setDelConfirm]=useState(false);
   const [deleting,setDeleting]=useState(false);
   const [checkInWeight,setCheckInWeight]=useState("");
@@ -1614,6 +1614,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         <SectionCard title="Athlete Modes">
           <Toggle on={wPrefs.isHybrid} onChange={v=>{const wp={...wPrefs,isHybrid:v};setWPrefs(wp);saveSettings(wp,null);}} label="🏃 Hybrid Athlete" sub="Adds structured run blocks to training days"/>
           <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
+        </SectionCard>
+
+        <SectionCard title="Morning Brief">
+          <Toggle on={wPrefs.morningBriefEnabled!==false} onChange={v=>{const wp={...wPrefs,morningBriefEnabled:v};setWPrefs(wp);saveSettings(wp,null);}} label="Enable Morning Brief" sub="Personalized daily coaching message before noon"/>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginTop:14}}>
+            <div style={{fontSize:12,color:T.mu,flex:1}}>Brief time</div>
+            <input type="time" value={wPrefs.morningBriefTime||"07:00"} onChange={e=>{const wp={...wPrefs,morningBriefTime:e.target.value};setWPrefs(wp);saveSettings(wp,null);}}
+              style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"8px 12px",color:"#fff",fontSize:13,outline:"none",fontFamily:"inherit",colorScheme:"dark"}}/>
+          </div>
+          <button onClick={onPreviewBrief} style={{marginTop:12,width:"100%",padding:"11px",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:9,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Preview Today's Brief</button>
         </SectionCard>
 
         {(profile?.sex==="female"||wPrefs?.lastPeriodDate)&&(

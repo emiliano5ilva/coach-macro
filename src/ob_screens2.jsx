@@ -369,6 +369,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [trainScreen,setTrainScreen]=useState("today"); // today | workout | active | plan | progress | settings
   const [fuelScreen,setFuelScreen]=useState("home");    // home | log | recs | recipes | fast
   const [workoutSavedMsg,setWorkoutSavedMsg]=useState("");
+  const [morningBrief,setMorningBrief]=useState(null);
+  const [morningBriefLoading,setMorningBriefLoading]=useState(false);
+  const [briefDismissed,setBriefDismissed]=useState(()=>localStorage.getItem("brief_dismissed")===new Date().toISOString().split("T")[0]);
+  const [briefTrigger,setBriefTrigger]=useState(0);
 
   useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(id);},[]);
 
@@ -407,6 +411,47 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       }
     });
   },[user]);
+
+  // ── Morning Brief ───────────────────────────────────────────────────────────
+  useEffect(()=>{
+    if(!user||wPrefs.morningBriefEnabled===false)return;
+    const todayDate=new Date().toISOString().split("T")[0];
+    const hour=new Date().getHours();
+    if(briefTrigger===0&&hour>=12)return;
+    if(briefTrigger===0&&briefDismissed)return;
+    const cachedDate=localStorage.getItem("brief_date");
+    const cachedBrief=localStorage.getItem("brief_content");
+    if(briefTrigger===0&&cachedDate===todayDate&&cachedBrief){setMorningBrief(cachedBrief);return;}
+    setMorningBriefLoading(true);setMorningBrief(null);
+    (async()=>{
+      const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+      const{data:fLogs}=await sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutoff.toISOString().split("T")[0]).order("date",{ascending:false});
+      let streak=0;
+      const chk=new Date();chk.setDate(chk.getDate()-1);
+      const foodDates=new Set((fLogs||[]).filter(f=>f.entries?.length>0).map(f=>f.date));
+      while(foodDates.has(chk.toISOString().split("T")[0])){streak++;chk.setDate(chk.getDate()-1);}
+      if(foodDates.has(todayDate))streak++;
+      const{data:wLog}=await sb.from("workout_logs").select("date,workout").eq("user_id",user.id).order("date",{ascending:false}).limit(1).maybeSingle();
+      const lastSession=wLog?`${wLog.workout?.focus||"Workout"} on ${new Date(wLog.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"long"})}`:"No recent session logged";
+      const sleepMap={u5:4.5,"5-6":5.5,"6-7":6.5,"7-8":7.5,"8+":8.5};
+      const sleepAvg=sleepMap[profile?.sleep]||7;
+      const startD=profile?.startDate?new Date(profile.startDate):new Date();
+      const weekNum=Math.floor(Math.max(0,(new Date()-startD)/86400000)/7)+1;
+      const cMacros=getDayMacros(profile.goalCals,profile.goal,schedule[getTodayKey()]||"training",0);
+      const prompt=`You are a world-class personal trainer and nutritionist texting your athlete their morning briefing.\n\nAthlete data:\n- Name: ${profile.name}\n- Today: ${dayFocus[getTodayKey()]||"Training"} day — Week ${weekNum} of ${wPrefs.splitType||"training"}\n- Last session: ${lastSession}\n- Today's macros: ${cMacros.calories}kcal, ${cMacros.protein}g protein, ${cMacros.carbs}g carbs, ${cMacros.fat}g fat\n- Current streak: ${streak} days\n- Recent sleep: ${sleepAvg} hours average\n\nWrite a brief morning message (4-6 lines max) that:\n1. States today's training focus and one specific target\n2. Gives today's macro targets\n3. Suggests a first meal that fits the macros\n4. One motivational line based on their streak or recent performance\n\nWrite like a coach texting — direct, specific, no fluff. Not a formal notification. A real message from someone who knows them.`;
+      try{const brief=await ai(prompt,400);setMorningBrief(brief);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",brief);}
+      catch(e){console.error("[morningBrief] error:",e);}
+      setMorningBriefLoading(false);
+    })();
+  },[user,wPrefs.morningBriefEnabled,briefTrigger]);
+
+  function previewMorningBrief(){
+    localStorage.removeItem("brief_dismissed");
+    setBriefDismissed(false);
+    setMorningBrief(null);
+    setBriefTrigger(t=>t+1);
+    setSection("fuel");
+  }
 
   const todayKey=getTodayKey();
   const todayType=schedule[todayKey]||"rest";
@@ -677,10 +722,25 @@ Rules:
 
         {/* Content */}
         <div style={{flex:1,padding:isMobile?"0":"20px 32px 24px",overflowY:isMobile?"auto":"visible"}}>
+          {/* Morning Brief */}
+          {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
+            <div style={{padding:isMobile?"12px 18px 0":"0 0 16px"}}>
+              <div style={{background:"#0A1222",border:"1px solid rgba(232,52,28,0.25)",borderLeft:"3px solid rgba(232,52,28,0.8)",borderRadius:14,padding:"16px 18px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>MORNING BRIEF · {new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}</div>
+                  <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"none",border:"none",color:T.mu,fontSize:11,cursor:"pointer",fontFamily:"'Barlow',sans-serif",padding:"2px 8px",borderRadius:6,fontWeight:600,flexShrink:0}}>Got it</button>
+                </div>
+                {morningBriefLoading
+                  ?<div style={{fontSize:13,color:T.mu}}>Generating your morning brief...</div>
+                  :<div style={{fontSize:14,color:"#fff",lineHeight:1.7,whiteSpace:"pre-line"}}>{morningBrief}</div>
+                }
+              </div>
+            </div>
+          )}
           {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey}/>}
           {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user}/>}
           {section==="connect"&&<ConnectSection stravaToken={stravaToken} setStravaToken={setStravaToken} stravaStatus={stravaStatus} stravaAthlete={stravaAthlete} stravaActs={stravaActs} connectStrava={connectStrava} ahActs={ahActs} garminActs={garminActs} fitbitActs={fitbitActs} importStatus={importStatus} handleFile={handleFile} fileRef={fileRef} allActs={allActs} todayActs={todayActs} earnedCals={earnedCals} isMobile={isMobile}/>}
-          {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user}/>}
+          {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}
         </div>
 
         {/* Mobile bottom nav */}
