@@ -1299,6 +1299,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {/* ── PROGRESS ── */}
         {trainScreen==="progress"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:isMobile?"100%":740}}>
+            <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
 
             {/* Program Progress Card */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
@@ -1397,6 +1398,119 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ─── ATHLETE PASSPORT ────────────────────────────────────────────────────────
+function AthletePassport({profile,wPrefs,user,isMobile}){
+  const [stats,setStats]=useState(null);
+  const [sharing,setSharing]=useState(false);
+  const passportRef=useRef(null);
+
+  useEffect(()=>{
+    if(!user)return;
+    sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:true}).then(({data})=>{
+      if(!data||data.length===0){setStats({workouts:0,volume:0,longestStreak:0,prsThisMonth:0,programs:1});return;}
+      const workouts=data.length;
+      // total volume
+      let volume=0;
+      data.forEach(row=>{
+        (row.workout?.exercises||[]).forEach(ex=>{
+          (ex.sets||[]).forEach(s=>{
+            const w=parseFloat(s.weight||0);const r=parseInt(s.reps||0);
+            if(w>0&&r>0)volume+=w*r;
+          });
+        });
+      });
+      // longest streak
+      const dates=[...new Set(data.map(r=>r.date))].sort();
+      let longest=1,cur=1;
+      for(let i=1;i<dates.length;i++){
+        const diff=(new Date(dates[i])-new Date(dates[i-1]))/86400000;
+        if(diff===1){cur++;longest=Math.max(longest,cur);}
+        else cur=1;
+      }
+      // PRs this month
+      const thisMonth=new Date().toISOString().slice(0,7);
+      const prevData=data.filter(r=>r.date<thisMonth+"-01");
+      const currData=data.filter(r=>r.date.startsWith(thisMonth));
+      const prevMaxes={};
+      prevData.forEach(row=>{
+        (row.workout?.exercises||[]).forEach(ex=>{
+          const k=ex.name?.toLowerCase();if(!k)return;
+          (ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0)prevMaxes[k]=Math.max(prevMaxes[k]||0,w);});
+        });
+      });
+      const prsSet=new Set();
+      currData.forEach(row=>{
+        (row.workout?.exercises||[]).forEach(ex=>{
+          const k=ex.name?.toLowerCase();if(!k)return;
+          (ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0&&w>(prevMaxes[k]||0))prsSet.add(k);});
+        });
+      });
+      const startD=profile?.startDate?new Date(profile.startDate):new Date();
+      const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
+      const programs=Math.max(1,Math.floor(daysSince/84)+1);
+      setStats({workouts,volume:Math.round(volume),longestStreak:longest,prsThisMonth:prsSet.size,programs});
+    });
+  },[user]);
+
+  async function sharePassport(){
+    if(!passportRef.current)return;
+    setSharing(true);
+    try{
+      const html2canvas=(await import("html2canvas")).default;
+      const canvas=await html2canvas(passportRef.current,{backgroundColor:"#060D1A",scale:2,useCORS:true,logging:false});
+      canvas.toBlob(async blob=>{
+        if(!blob)return;
+        const file=new File([blob],"athlete-passport.png",{type:"image/png"});
+        if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+          await navigator.share({files:[file],title:"My Athlete Passport",text:"Check out my Coach Macro stats!"});
+        }else{
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement("a");a.href=url;a.download="athlete-passport.png";a.click();
+          URL.revokeObjectURL(url);
+        }
+      });
+    }catch(e){console.error("[sharePassport] error:",e);}
+    setSharing(false);
+  }
+
+  const memberSince=profile?.startDate?new Date(profile.startDate).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"—";
+  const athleteType=wPrefs.isHyrox&&wPrefs.isHybrid?"HYBRID ATHLETE":wPrefs.isHyrox?"HYROX ATHLETE":wPrefs.isHybrid?"HYBRID ATHLETE":(wPrefs.splitType||"").toLowerCase().includes("run")?"ENDURANCE ATHLETE":"STRENGTH ATHLETE";
+  const firstName=(profile?.name||"ATHLETE").split(" ")[0].toUpperCase();
+
+  return(
+    <div>
+      <div ref={passportRef} style={{background:"#060D1A",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:isMobile?"20px 18px":"28px 32px",fontFamily:"'Barlow Condensed',sans-serif",overflow:"hidden",position:"relative"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${T.prot},${T.fat},${T.carb})`}}/>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:isMobile?32:40,fontWeight:900,letterSpacing:1,color:"#fff",lineHeight:1}}>{firstName}</div>
+          <div style={{fontSize:12,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginTop:2}}>{athleteType}</div>
+        </div>
+        <div style={{height:1,background:"rgba(245,245,240,0.1)",marginBottom:16}}/>
+        {stats?[
+          ["Programs completed",stats.programs],
+          ["Workouts logged",stats.workouts.toLocaleString()],
+          ["Volume lifted",stats.volume>0?stats.volume.toLocaleString()+" lbs":"Logging..."],
+          ["Longest streak",stats.longestStreak+" days"],
+          ["PRs this month",stats.prsThisMonth],
+        ].map(([l,v])=>(
+          <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
+            <span style={{fontSize:13,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow',sans-serif"}}>{l}</span>
+            <span style={{fontSize:isMobile?20:24,fontWeight:900,color:"#fff",lineHeight:1}}>{v}</span>
+          </div>
+        )):<div style={{fontSize:12,color:T.mu,padding:"12px 0"}}>Loading stats...</div>}
+        <div style={{height:1,background:"rgba(245,245,240,0.1)",marginTop:16,marginBottom:14}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:2,textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>COACH MACRO ATHLETE</div>
+          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{memberSince.toUpperCase()}</div>
+        </div>
+      </div>
+      <button onClick={sharePassport} disabled={sharing||!stats} style={{marginTop:10,width:"100%",padding:"13px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",opacity:sharing||!stats?0.6:1}}>
+        {sharing?"Generating...":"Share Passport"}
+      </button>
     </div>
   );
 }
