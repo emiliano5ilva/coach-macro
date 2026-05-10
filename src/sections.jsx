@@ -1300,6 +1300,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {trainScreen==="progress"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:isMobile?"100%":740}}>
             <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
+            {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
 
             {/* Program Progress Card */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
@@ -1397,6 +1398,139 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}
+
+// ─── RACE PREDICTOR ──────────────────────────────────────────────────────────
+function RacePredictor({profile,wPrefs,user,isMobile}){
+  const [sessions,setSessions]=useState([]);
+  const [loaded,setLoaded]=useState(false);
+
+  useEffect(()=>{
+    if(!user)return;
+    sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(150).then(({data})=>{
+      setSessions(data||[]);setLoaded(true);
+    });
+  },[user]);
+
+  const startD=profile?.startDate?new Date(profile.startDate):new Date();
+  const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
+  const weekNum=Math.floor(daysSince/7)+1;
+
+  // Extract run sessions and parse duration/distance from program-logged data
+  const runLogs=sessions.filter(w=>w.workout?.focus?.toLowerCase().includes("run")||w.workout?.type==="running"||(w.workout?.exercises||[]).some(e=>e.name?.toLowerCase().includes("run")));
+
+  // Parse pace from logged sets: reps field is "40 min", exercise name gives type
+  function parseMins(str){const m=String(str||"").match(/(\d+)/);return m?parseInt(m[1]):null;}
+
+  // Build pace estimates from logged sessions
+  // We use program-expected distances for known workout types
+  const DIST_BY_TYPE={"easy run":4,"tempo run":5,"long run":8,"intervals":4,"progression run":5,"recovery run":3,"hill run":4,"race pace":5};
+  const paceSamples=[];
+  runLogs.forEach(w=>{
+    (w.workout?.exercises||[]).forEach(ex=>{
+      const nm=ex.name?.toLowerCase()||"";
+      const distGuess=Object.entries(DIST_BY_TYPE).find(([k])=>nm.includes(k))?.[1];
+      if(!distGuess)return;
+      (ex.sets||[]).filter(s=>s.done).forEach(s=>{
+        const mins=parseMins(s.reps);
+        if(mins&&mins>5&&mins<300){
+          paceSamples.push({type:nm,mins,dist:distGuess,pace:mins/distGuess,isEasy:nm.includes("easy"),isTempo:nm.includes("tempo")||nm.includes("interval")});
+        }
+      });
+    });
+  });
+
+  const easyPaces=paceSamples.filter(p=>p.isEasy).map(p=>p.pace);
+  const tempoPaces=paceSamples.filter(p=>p.isTempo).map(p=>p.pace);
+  const longestRun=paceSamples.length>0?Math.max(...paceSamples.map(p=>p.dist)):0;
+  const last4wkSessions=sessions.filter(w=>{const d=new Date(w.date);return(new Date()-d)/86400000<=28;});
+  const weeklyMiles=Math.round((paceSamples.filter(p=>{const s=sessions.find(w=>(w.workout?.exercises||[]).some(e=>e.name?.toLowerCase()===p.type));return s&&(new Date()-new Date(s.date))/86400000<=28;}).reduce((a,p)=>a+p.dist,0))/4);
+
+  // Fallback estimates from program week if not enough logged data
+  const PROG_PACES={
+    "Couch to 5K":{easy:13,tempo:11},"Sub-25 5K":{easy:11,tempo:8.5},"10K Beginner":{easy:12,tempo:10},
+    "10K Sub-50":{easy:11,tempo:8.5},"Half Marathon Beginner":{easy:12,tempo:10},"Half Marathon Sub-1:45":{easy:10,tempo:8},
+  };
+  const progName=wPrefs.runPlan||wPrefs.splitType||"";
+  const fallback=PROG_PACES[progName]||{easy:11.5,tempo:9.5};
+  const avgEasy=easyPaces.length>0?(easyPaces.reduce((a,b)=>a+b,0)/easyPaces.length):fallback.easy;
+  const avgTempo=tempoPaces.length>0?(tempoPaces.reduce((a,b)=>a+b,0)/tempoPaces.length):fallback.tempo;
+
+  function fmtTime(totalMins){
+    const h=Math.floor(totalMins/60);const m=Math.floor(totalMins%60);const s=Math.round((totalMins%1)*60);
+    if(h>0)return`${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return`${m}:${String(s).padStart(2,"0")}`;
+  }
+  function fmtPace(p){const m=Math.floor(p);const s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}/mi`;}
+
+  const pred5k=avgTempo*3.1+0.25;
+  const pred10k=avgTempo*6.2+0.5;
+  const predHalf=avgEasy*0.88*13.1;
+  const predFull=avgEasy*0.85*26.2;
+
+  // Goal detection
+  const isHyrox=wPrefs.isHyrox;
+  const goals={"Sub-25 5K":{dist:"5K",targetMin:25},"10K Sub-50":{dist:"10K",targetMin:50},"Half Marathon Sub-1:45":{dist:"HM",targetMin:105}};
+  const userGoal=goals[progName];
+
+  // Readiness
+  const mileTarget=progName.includes("5K")?16:progName.includes("Half")||progName.includes("10K")?28:20;
+  const readiness=Math.min(100,Math.round((Math.min(weeklyMiles||1,mileTarget)/mileTarget*0.4+(Math.min(longestRun||1,(progName.includes("Half")?13:progName.includes("10K")?7:4))/(progName.includes("Half")?13:progName.includes("10K")?7:4))*0.6)*100));
+
+  // Hyrox estimate
+  const hyroxFTP=avgTempo||9.5;
+  const kmTime=hyroxFTP*(1000/1609.34); // min/km
+  const hyroxPred=8*kmTime+35; // 8 x 1km runs + 35 min for stations
+
+  if(!loaded)return(
+    <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"24px 28px",color:T.mu,fontSize:13}}>Loading race data...</div>
+  );
+
+  return(
+    <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,textTransform:"uppercase"}}>RACE PREDICTOR</div>
+        <div style={{background:`${T.carb}15`,border:`1px solid ${T.carb}30`,borderRadius:20,padding:"4px 12px",fontSize:11,color:T.carb,fontWeight:700}}>{readiness}% READY</div>
+      </div>
+      <div style={{fontSize:11,color:T.mu,marginBottom:18}}>Based on your last {runLogs.length} logged sessions · Week {weekNum} of training</div>
+
+      {isHyrox?(
+        <div style={{background:T.s2,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+          <div style={{fontSize:10,color:T.fat,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>HYROX FINISH TIME</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:40,fontWeight:900,color:"#fff",lineHeight:1}}>{fmtTime(hyroxPred)}</div>
+          <div style={{fontSize:11,color:T.mu,marginTop:4}}>8 × 1km runs + station blocks + 10% fatigue buffer</div>
+        </div>
+      ):(
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10,marginBottom:16}}>
+          {[["5K",fmtTime(pred5k),userGoal?.dist==="5K"?`goal: ${fmtTime(userGoal.targetMin)} ${pred5k<=userGoal.targetMin?"✓ on track":"× not yet"}`:null],
+            ["10K",fmtTime(pred10k),userGoal?.dist==="10K"?`goal: ${fmtTime(userGoal.targetMin)} ${pred10k<=userGoal.targetMin?"✓ on track":"× not yet"}`:null],
+            ["Half",fmtTime(predHalf),null],["Marathon",fmtTime(predFull),null]
+          ].map(([l,v,note])=>(
+            <div key={l} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+              <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>{l}</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#fff",lineHeight:1}}>{v}</div>
+              {note&&<div style={{fontSize:9,color:note.includes("✓")?T.carb:T.fat,marginTop:4,fontWeight:700}}>{note}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{borderTop:`1px solid ${T.bd}`,paddingTop:14}}>
+        <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:10}}>WHAT NEEDS TO IMPROVE</div>
+        {[
+          {label:"Easy pace",val:fmtPace(avgEasy),target:"10:00/mi",ok:avgEasy<=10},
+          {label:"Tempo pace",val:fmtPace(avgTempo),target:"8:30/mi",ok:avgTempo<=8.5},
+          {label:"Long run",val:`${Math.round(longestRun)} mi`,target:progName.includes("Half")?"13 mi":"7 mi",ok:longestRun>=(progName.includes("Half")?13:7)},
+          {label:"Weekly mileage",val:`${weeklyMiles||"<1"} mi`,target:`${mileTarget} mi`,ok:(weeklyMiles||0)>=mileTarget},
+        ].map(({label,val,target,ok})=>(
+          <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid rgba(245,245,240,0.04)`}}>
+            <span style={{fontSize:12,color:T.mu}}>{ok?"→":"→"} {label}</span>
+            <span style={{fontSize:12,fontWeight:700,color:ok?T.carb:"#fff"}}>{val} <span style={{fontSize:10,color:T.mu,fontWeight:400}}>/ {target}</span></span>
+          </div>
+        ))}
       </div>
     </div>
   );
