@@ -1730,6 +1730,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
         </SectionCard>
 
+        <SectionCard title="Nutrition Periodization">
+          <Toggle on={!!wPrefs.nutritionPeriodization} onChange={v=>{const wp={...wPrefs,nutritionPeriodization:v};setWPrefs(wp);saveSettings(wp,null);}} label="Nutrition Periodization" sub="Automatically cycles macros across 8-week phases"/>
+          <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Building (wk 1–3) → Deload (wk 4) → Performance (wk 5–7) → Mini Cut (wk 8)</div>
+        </SectionCard>
+
         <SectionCard title="Morning Brief">
           <Toggle on={wPrefs.morningBriefEnabled!==false} onChange={v=>{const wp={...wPrefs,morningBriefEnabled:v};setWPrefs(wp);saveSettings(wp,null);}} label="Enable Morning Brief" sub="Personalized daily coaching message before noon"/>
           <div style={{display:"flex",alignItems:"center",gap:12,marginTop:14}}>

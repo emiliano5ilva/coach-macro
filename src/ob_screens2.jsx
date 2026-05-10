@@ -464,7 +464,36 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   ].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const todayActs=allActs.filter(a=>isToday(a.date));
   const earnedCals=todayActs.reduce((s,a)=>s+a.calories,0);
-  const macros=getDayMacros(profile.goalCals,profile.goal,todayType,earnedCals,{weekendFlexMode:wPrefs.weekendFlexMode||false,flexDays:wPrefs.flexDays||["Sat","Sun"],flexCalorieIncrease:wPrefs.flexCalorieIncrease||20,todayKey});
+  // ── Nutrition Periodization ─────────────────────────────────────────────────
+  const _startD=profile?.startDate?new Date(profile.startDate):new Date();
+  const _daysSince=Math.max(0,Math.floor((new Date()-_startD)/86400000));
+  const programWeek=Math.floor(_daysSince/7)+1;
+  const cycleWeek=((programWeek-1)%8)+1;
+  const PERIO_PHASES=[null,
+    {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
+    {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
+    {phase:"Building",   wks:"1–3", cal:+200, carbPct:.50, protMult:1.0, note:"Building phase — fuel muscle growth"},
+    {phase:"Deload",     wks:"4",   cal:-150, carbPct:.40, protMult:1.0, note:"Deload week — body resets and recovers"},
+    {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
+    {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
+    {phase:"Performance",wks:"5–7", cal:0,    carbPct:null,protMult:1.1, note:"Performance phase — carbs fuel training"},
+    {phase:"Mini Cut",   wks:"8",   cal:-400, carbPct:.35, protMult:1.2, note:"Mini cut — shed any fat gained this cycle"},
+  ];
+  const _phase=PERIO_PHASES[cycleWeek];
+  const _baseTDEE=profile?.baseTDEE||profile?.goalCals||2000;
+  const _wLbs=profile?.wUnit==="kg"?(parseFloat(profile?.weight||70)*2.205):parseFloat(profile?.weight||160);
+  const periodizationInfo=_phase?{phase:_phase.phase,wks:_phase.wks,cycleWeek,note:_phase.note}:null;
+  let macros;
+  if(wPrefs.nutritionPeriodization&&_phase){
+    const adjCals=Math.max(1200,Math.round(_baseTDEE+_phase.cal)+earnedCals);
+    const protG=Math.round(_wLbs*(_phase.protMult||1.0));
+    const carbPct=_phase.carbPct===null?(todayType==="training"?.48:.32):_phase.carbPct;
+    const carbG=Math.round((adjCals*carbPct)/4);
+    const fatG=Math.max(30,Math.round((adjCals-protG*4-carbG*4)/9));
+    macros={calories:adjCals,protein:protG,carbs:carbG,fat:fatG,isFlexDay:false};
+  }else{
+    macros=getDayMacros(profile.goalCals,profile.goal,todayType,earnedCals,{weekendFlexMode:wPrefs.weekendFlexMode||false,flexDays:wPrefs.flexDays||["Sat","Sun"],flexCalorieIncrease:wPrefs.flexCalorieIncrease||20,todayKey});
+  }
   const consumed=log.reduce((a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fat:a.fat+i.fat}),{calories:0,protein:0,carbs:0,fat:0});
   const remaining={calories:macros.calories-consumed.calories,protein:macros.protein-consumed.protein,carbs:macros.carbs-consumed.carbs,fat:macros.fat-consumed.fat};
 
@@ -737,7 +766,7 @@ Rules:
               </div>
             </div>
           )}
-          {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey}/>}
+          {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null}/>}
           {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user}/>}
           {section==="connect"&&<ConnectSection stravaToken={stravaToken} setStravaToken={setStravaToken} stravaStatus={stravaStatus} stravaAthlete={stravaAthlete} stravaActs={stravaActs} connectStrava={connectStrava} ahActs={ahActs} garminActs={garminActs} fitbitActs={fitbitActs} importStatus={importStatus} handleFile={handleFile} fileRef={fileRef} allActs={allActs} todayActs={todayActs} earnedCals={earnedCals} isMobile={isMobile}/>}
           {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}

@@ -4,7 +4,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   hap, calcTDEE } from "./components.jsx";
 import { sb } from "./client.js";
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -98,6 +98,21 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
                 </div>
               </div>
             </div>
+
+            {/* NUTRITION PERIODIZATION */}
+            {periodizationInfo&&(
+              <div style={{background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.25)",borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:14}}>
+                <div style={{flexShrink:0,fontSize:22,marginTop:2}}>📅</div>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                    <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>WEEK {periodizationInfo.cycleWeek} — {periodizationInfo.phase.toUpperCase()}</div>
+                    <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontFamily:"'DM Mono',monospace"}}>WEEKS {periodizationInfo.wks}</div>
+                  </div>
+                  <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.5}}>{periodizationInfo.note}</div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,.4)",marginTop:4}}>Your nutrition cycles with your training.</div>
+                </div>
+              </div>
+            )}
 
             {/* WEEKEND FLEX MODE */}
             <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.3)":T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
