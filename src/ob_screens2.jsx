@@ -7,7 +7,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   getDayMacros, getTodayKey, isToday, hap, pad2 } from "./components.jsx";
 import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES,
-  PROMOS } from "./sections.jsx";
+  PROMOS, AthletePassport, TrainingDNA, PerformanceCalendar, RacePredictor } from "./sections.jsx";
 import { getWorkoutForDay } from "./programs.js";
 import { FuelSection } from "./fuel.jsx";
 import { sb, ai } from "./client.js";
@@ -323,7 +323,7 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
 }
 
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
-  const [section,setSection]=useState("fuel"); // fuel | train | connect | settings
+  const [section,setSection]=useState("home"); // home | train | fuel | progress | settings
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
 
   useEffect(()=>{
@@ -674,208 +674,229 @@ Rules:
 
   // ── LAYOUT ─────────────────────────────────────────────────────────────────
   const NAV_ITEMS = [
-    {id:"fuel",  label:"Fuel",    icon:"⚡", color:T.prot},
-    {id:"train", label:"Train",   icon:"💪", color:T.carb},
-    {id:"connect",label:"Connect",icon:"🔗", color:T.fat},
-    {id:"settings",label:"Settings",icon:"⚙️",color:T.mu},
+    {id:"home",     label:"Home",     icon:"home"},
+    {id:"train",    label:"Train",    icon:"train"},
+    {id:"fuel",     label:"Fuel",     icon:"fuel"},
+    {id:"progress", label:"Progress", icon:"progress"},
+    {id:"settings", label:"Settings", icon:"settings"},
   ];
 
-  const activeColor = NAV_ITEMS.find(n=>n.id===section)?.color||T.prot;
+  function TabIcon({name, size=22}) {
+    const paths = {
+      home: <path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1v-9z" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/>,
+      train: <g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round"><rect x="2" y="9" width="3" height="6" rx="0.5"/><rect x="5" y="7" width="2" height="10" rx="0.5"/><rect x="17" y="7" width="2" height="10" rx="0.5"/><rect x="19" y="9" width="3" height="6" rx="0.5"/><line x1="7" y1="12" x2="17" y2="12"/></g>,
+      fuel: <path d="M8 3h6l1 4c0 1.5-2 2.5-4 2.5S7 8.5 7 7l1-4zM7 9v11a1 1 0 001 1h6a1 1 0 001-1V9" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/>,
+      progress: <g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h6v6"/></g>,
+      settings: <g stroke="currentColor" strokeWidth="1.6" fill="none"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></g>,
+    };
+    return <svg width={size} height={size} viewBox="0 0 24 24">{paths[name]||null}</svg>;
+  }
 
-  return (
-    <div style={{display:"flex",height:"100vh",overflow:"hidden",background:T.bg}}>
-      <style>{GLOBAL_CSS}</style>
-      {workoutSavedMsg&&<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.prot,color:T.white,padding:"13px 22px",borderRadius:14,fontSize:14,fontWeight:700,zIndex:1000,boxShadow:"0 4px 32px rgba(232,52,28,0.5)",whiteSpace:"nowrap",pointerEvents:"none",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}}>{workoutSavedMsg}</div>}
+  const firstName = (profile.name||"Athlete").split(" ")[0];
+  const weekDays = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const weekDayLetters = ["M","T","W","T","F","S","S"];
 
-      {/* ── DESKTOP SIDEBAR ── */}
-      {!isMobile&&(
-        <aside style={{width:240,flexShrink:0,background:T.s1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-          <div style={{padding:"24px 20px 20px"}}>
-            <Logo size={30}/>
+  function HomeSection() {
+    return (
+      <div className="page-enter">
+        {/* Header */}
+        <div className="screen-header" style={{paddingTop:12}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="header-eyebrow">{new Date().toLocaleDateString("en-US",{weekday:"long"})} · {cfg.label} Day</div>
+            <div className="header-title">Hey, {firstName}</div>
           </div>
-          <div style={{padding:"0 12px",flex:1}}>
-            {NAV_ITEMS.map(item=>(
-              <button key={item.id} onClick={()=>setSection(item.id)}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:4,
-                  background:section===item.id?`${T.prot}12`:"none",
-                  color:section===item.id?T.white:T.mu,
-                  fontSize:15,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",
-                  borderLeft:section===item.id?`3px solid ${T.prot}`:"3px solid transparent",
-                  transition:"all 0.15s"}}>
-                <span style={{fontSize:16}}>{item.icon}</span>
-                {item.label}
-                {item.id==="connect"&&connCount>0&&<span style={{marginLeft:"auto",background:T.prot,color:"#fff",borderRadius:10,fontSize:10,fontWeight:800,padding:"1px 7px"}}>{connCount}</span>}
-              </button>
-            ))}
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button className="icon-btn" aria-label="Notifications"><svg width={16} height={16} viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 7 3 9H3c0-2 3-2 3-9zM10 21a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/></svg></button>
+            <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,var(--red),#8b1a0a)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--condensed)",fontWeight:800,fontStyle:"italic",fontSize:16,color:"white"}}>{firstName[0].toUpperCase()}</div>
           </div>
-          {/* Sidebar bottom: today summary */}
-          <div style={{padding:"16px",borderTop:`1px solid ${T.bd}`}}>
-            <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,fontFamily:"'DM Mono',monospace"}}>Today</div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-              <span style={{fontSize:12,color:T.mu}}>Calories</span>
-              <span style={{fontSize:12,fontWeight:700,color:remaining.calories<0?T.red:"#fff"}}>{remaining.calories} left</span>
-            </div>
-            {[[T.prot,"P",consumed.protein,macros.protein],[T.carb,"C",consumed.carbs,macros.carbs],[T.fat,"F",consumed.fat,macros.fat]].map(([c,l,v,t])=>(
-              <div key={l} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
-                <span style={{fontSize:10,fontWeight:700,color:c,width:10}}>{l}</span>
-                <div style={{flex:1,height:3,background:T.s3,borderRadius:2,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${Math.min(v/t,1)*100}%`,background:c,borderRadius:2}}/>
-                </div>
-                <span style={{fontSize:10,color:T.mu,minWidth:28,textAlign:"right"}}>{t-v}g</span>
-              </div>
-            ))}
-            <div style={{marginTop:10,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"8px 10px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:11,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
-              {earnedCals>0&&<div style={{fontSize:10,color:T.carb,fontWeight:700}}>+{earnedCals} earned</div>}
-            </div>
-          </div>
-        </aside>
-      )}
-
-      {/* ── MAIN CONTENT ── */}
-      <main style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",minWidth:0}}>
-        {/* Top bar — desktop */}
-        {!isMobile&&(
-          <div style={{padding:"20px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-            <div>
-              <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,fontStyle:"italic",textTransform:"uppercase",color:T.white,marginTop:2}}>Hey, {profile.name}</div>
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <div style={{background:`rgba(232,52,28,0.1)`,border:`1px solid rgba(232,52,28,0.25)`,borderRadius:20,padding:"5px 14px",color:T.prot,fontSize:10,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{cfg.emoji} {todayType.toUpperCase()}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile top bar */}
-        {isMobile&&(
-          <div style={{padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${T.bd}`,flexShrink:0,background:T.s1}}>
-            <Logo size={24}/>
-            <div style={{display:"flex",gap:6}}>
-              <div style={{background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:20,padding:"4px 10px",color:T.prot,fontSize:9,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{cfg.emoji} {todayFocus.slice(0,10).toUpperCase()}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Content */}
-        <div style={{flex:1,padding:isMobile?"0":"20px 32px 24px",overflowY:isMobile?"auto":"visible"}}>
-          {/* Morning Brief */}
-          {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
-            <div style={{padding:isMobile?"12px 18px 0":"0 0 16px"}}>
-              <div style={{background:"#0A1222",border:"1px solid rgba(232,52,28,0.25)",borderLeft:"3px solid rgba(232,52,28,0.8)",borderRadius:14,padding:"16px 18px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                  <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>MORNING BRIEF · {new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}</div>
-                  <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"none",border:"none",color:T.mu,fontSize:11,cursor:"pointer",fontFamily:"'Barlow',sans-serif",padding:"2px 8px",borderRadius:6,fontWeight:600,flexShrink:0}}>Got it</button>
-                </div>
-                {morningBriefLoading
-                  ?<div style={{fontSize:13,color:T.mu}}>Generating your morning brief...</div>
-                  :<div style={{fontSize:14,color:"#fff",lineHeight:1.7,whiteSpace:"pre-line"}}>{morningBrief}</div>
-                }
-              </div>
-            </div>
-          )}
-          {/* Comeback Protocol */}
-          {showComebackProtocol&&(
-            <div style={{padding:isMobile?"12px 18px 0":"0 0 16px"}}>
-              <div style={{background:"#0A1222",border:"1px solid rgba(41,121,255,0.3)",borderLeft:"3px solid #2979FF",borderRadius:14,padding:"18px 18px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                  <div>
-                    <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:4}}>COMEBACK PROTOCOL</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#fff"}}>WELCOME BACK, {(profile.name||"ATHLETE").split(" ")[0].toUpperCase()}.</div>
-                  </div>
-                  <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"none",border:"none",color:T.mu,fontSize:11,cursor:"pointer",fontFamily:"'Barlow',sans-serif",padding:"2px 8px",borderRadius:6,fontWeight:600,flexShrink:0}}>Dismiss</button>
-                </div>
-                <div style={{fontSize:13,color:"rgba(245,245,240,.7)",marginBottom:14}}>You've been away {daysSinceWorkout} days. Here's your comeback plan.</div>
-                {[
-                  "Muscles are recovered — full intensity is fine",
-                  "Macros reset to maintenance for this week",
-                  `Program resumes: Week ${programWeek}, ${todayFocus}`,
-                ].map((line,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
-                    <span style={{color:"#2979FF",fontWeight:700,flexShrink:0}}>✓</span>
-                    <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>{line}</span>
-                  </div>
-                ))}
-                <div style={{background:"rgba(41,121,255,.08)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"12px 14px",margin:"12px 0"}}>
-                  <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:4}}>TODAY'S COMEBACK SESSION</div>
-                  <div style={{fontSize:13,color:"rgba(245,245,240,.9)"}}>70% of your normal volume</div>
-                  <div style={{fontSize:11,color:T.mu,marginTop:2}}>Sets reduced by 30% · Weight at 80% of last logged</div>
-                </div>
-                <button onClick={()=>{
-                  const exercises=Object.entries(history).slice(0,6).map(([key,sessions])=>{
-                    const lastSess=sessions[sessions.length-1];
-                    const lastSets=lastSess?.sets||[];
-                    const lastWeight=Math.max(...lastSets.map(s=>parseFloat(s.weight||0)));
-                    const comebackWeight=lastWeight>0?Math.round(lastWeight*0.8):0;
-                    const numSets=Math.max(1,Math.round((lastSets.length||3)*0.7));
-                    return{
-                      name:key.replace(/_/g," "),
-                      notes:"Comeback session — focus on form",
-                      sets:Array.from({length:numSets},()=>({weight:comebackWeight>0?String(comebackWeight):"",reps:String(lastSets[0]?.reps||"10"),done:false})),
-                    };
-                  });
-                  if(exercises.length>0){
-                    setActiveWorkout({title:`${todayFocus} — Comeback`,exercises});
-                    setTrainScreen("active");
-                    setSection("train");
-                  }
-                  setComebackDismissed(true);
-                  localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);
-                }} style={{width:"100%",padding:"13px",background:"#2979FF",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}}>
-                  Start Comeback Session →
-                </button>
-              </div>
-            </div>
-          )}
-          {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry}/>}
-          {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user}/>}
-          {section==="connect"&&<ConnectSection stravaToken={stravaToken} setStravaToken={setStravaToken} stravaStatus={stravaStatus} stravaAthlete={stravaAthlete} stravaActs={stravaActs} connectStrava={connectStrava} ahActs={ahActs} garminActs={garminActs} fitbitActs={fitbitActs} importStatus={importStatus} handleFile={handleFile} fileRef={fileRef} allActs={allActs} todayActs={todayActs} earnedCals={earnedCals} isMobile={isMobile}/>}
-          {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}
         </div>
 
-        {/* Mobile bottom nav */}
-        {isMobile&&(
-          <div style={{
-            position:"sticky", bottom:0,
-            background:"rgba(10,14,26,0.7)",
-            backdropFilter:"blur(28px) saturate(180%)",
-            WebkitBackdropFilter:"blur(28px) saturate(180%)",
-            borderTop:"1px solid rgba(245,245,240,0.06)",
-            display:"flex", zIndex:50, flexShrink:0,
-            padding:"8px 8px 22px",
-            paddingBottom:"max(22px, env(safe-area-inset-bottom))"
-          }}>
-            {NAV_ITEMS.map(item=>(
-              <button key={item.id} onClick={()=>setSection(item.id)} style={{
-                flex:1, background:"none", border:"none", cursor:"pointer",
-                padding:"8px 4px", minHeight:56, display:"flex", flexDirection:"column",
-                alignItems:"center", gap:3, position:"relative",
-                color: section===item.id ? T.white : "rgba(245,245,240,0.4)",
-                transition:"color 0.2s"
-              }}>
-                <div style={{position:"relative"}}>
-                  {section===item.id && <div style={{
-                    position:"absolute", inset:"-8px -14px",
-                    background:"radial-gradient(circle, rgba(232,52,28,0.25), transparent 70%)",
-                    zIndex:-1, pointerEvents:"none"
-                  }}/>}
-                  <div style={{fontSize:22}}>{item.icon}</div>
-                </div>
-                <div style={{
-                  fontFamily:"'DM Mono',monospace", fontSize:9,
-                  letterSpacing:"0.1em", textTransform:"uppercase",
-                  color: section===item.id ? T.prot : "rgba(245,245,240,0.4)"
-                }}>{item.label}</div>
-                {item.id==="connect"&&connCount>0&&<span style={{
-                  position:"absolute",top:6,left:"58%",
-                  background:T.prot,color:T.white,borderRadius:6,
-                  fontSize:8,fontWeight:800,padding:"0 3px",lineHeight:"12px"
-                }}>{connCount}</span>}
-              </button>
-            ))}
+        {/* Morning Brief */}
+        {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
+          <div style={{margin:"0 20px 12px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",animation:"fade-in 0.4s"}}>
+            <div className="header-eyebrow">// Morning Brief</div>
+            {morningBriefLoading
+              ?<div style={{fontSize:13,color:"var(--white-dim)",fontStyle:"italic",marginTop:8}}>Generating your brief...</div>
+              :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>{morningBrief}</div>
+            }
+            {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
+              <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
+            </div>}
           </div>
         )}
-      </main>
+
+        {/* Comeback Protocol */}
+        {showComebackProtocol&&(
+          <div style={{margin:"0 20px 12px",padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--amber)",textTransform:"uppercase",marginBottom:6}}>// {daysSinceWorkout} Days Out</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginTop:0,textTransform:"uppercase",marginBottom:10}}>Welcome Back, {firstName}.</div>
+            {["Muscles recovered — full intensity ready","Macros reset to maintenance this week",`Program resumes: Week ${programWeek}, ${todayFocus}`].map((t,i)=>(
+              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:13,marginBottom:6}}>
+                <div style={{color:"var(--green)",marginTop:2}}>
+                  <svg width={16} height={16} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <div>{t}</div>
+              </div>
+            ))}
+            <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);setSection("train");}} style={{width:"100%",marginTop:12,padding:14,background:"var(--amber)",border:"none",borderRadius:12,color:"#0a0e1a",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Start Comeback Session →</button>
+          </div>
+        )}
+
+        {/* Coach quote */}
+        <div className="coach-card">
+          <div className="coach-label">// Coach</div>
+          <div className="coach-text">"{todayFocus} day. Stay consistent — your progress compounds every session."</div>
+        </div>
+
+        {/* Today's session */}
+        <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+            <div className="header-eyebrow">// Today's Session</div>
+            <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
+          </div>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
+          <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            <svg width={14} height={14} viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>
+            Start Session
+          </button>
+        </div>
+
+        {/* Dual rings */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"0 20px 14px"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"14px 10px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase"}}>// Fuel Today</div>
+            <div style={{position:"relative",width:108,height:108,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width={108} height={108} style={{transform:"rotate(-90deg)"}}>
+                <circle cx={54} cy={54} r={46} stroke="rgba(245,245,240,0.08)" strokeWidth={8} fill="none"/>
+                <circle cx={54} cy={54} r={46} stroke="var(--red)" strokeWidth={8} fill="none" strokeLinecap="round"
+                  strokeDasharray={2*Math.PI*46} strokeDashoffset={2*Math.PI*46*(1-Math.min(consumed.calories/macros.calories,1))} style={{transition:"stroke-dashoffset 0.6s"}}/>
+              </svg>
+              <div style={{position:"absolute",textAlign:"center"}}>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:22,fontStyle:"italic",lineHeight:1}}>{consumed.calories.toLocaleString()}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.1em",textTransform:"uppercase"}}>{Math.max(0,macros.calories-consumed.calories)} left</div>
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"14px 10px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase"}}>// This Week</div>
+            <div style={{position:"relative",width:108,height:108,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width={108} height={108} style={{transform:"rotate(-90deg)"}}>
+                <circle cx={54} cy={54} r={46} stroke="rgba(245,245,240,0.08)" strokeWidth={8} fill="none"/>
+                <circle cx={54} cy={54} r={46} stroke="var(--green)" strokeWidth={8} fill="none" strokeLinecap="round"
+                  strokeDasharray={2*Math.PI*46} strokeDashoffset={2*Math.PI*46*(1-Math.min(workoutLogsRaw.filter(w=>{const d=new Date(w.date||w.logged_at);const now=new Date();return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());}).length/Math.max(1,Object.values(schedule).filter(v=>v==="training").length),1))} style={{transition:"stroke-dashoffset 0.6s"}}/>
+              </svg>
+              <div style={{position:"absolute",textAlign:"center"}}>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:22,fontStyle:"italic",lineHeight:1}}>{workoutLogsRaw.filter(w=>{const d=new Date(w.date||w.logged_at);const now=new Date();return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());}).length}/{Object.values(schedule).filter(v=>v==="training").length}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.1em",textTransform:"uppercase"}}>sessions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Weekly roadmap */}
+        <div className="section-title">This Week</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,margin:"0 20px 14px"}}>
+          {weekDays.map((day,i)=>{
+            const type=schedule[day]||"rest";
+            const isToday2=day===todayKey;
+            const colors={training:"var(--red)",cardio:"var(--blue)",run:"var(--blue)",hyrox:"var(--amber)",rest:"rgba(245,245,240,0.06)"};
+            const c=colors[type]||colors.rest;
+            return (
+              <div key={i} style={{aspectRatio:"1",borderRadius:10,background:isToday2?c:(type==="rest"?colors.rest:`${c}22`),border:"1px solid "+(isToday2?"transparent":(type==="rest"?"var(--white-border)":`${c}55`)),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:10,color:type==="rest"?"var(--white-faint)":"var(--white)",letterSpacing:"0.06em"}}>{weekDayLetters[i]}</div>
+                {isToday2&&<div style={{width:5,height:5,borderRadius:"50%",background:"white"}}/>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Macros */}
+        <div className="section-title">Macros Today</div>
+        <div style={{margin:"0 20px 14px",padding:"16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,display:"flex",flexDirection:"column",gap:12}}>
+          {[["Protein",consumed.protein,macros.protein,"var(--red)"],["Carbs",consumed.carbs,macros.carbs,"var(--blue)"],["Fat",consumed.fat,macros.fat,"var(--amber)"]].map(([label,val,target,color])=>(
+            <div key={label}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                <span style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--white-dim)"}}>{label}</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>{val}<span style={{color:"var(--white-faint)"}}>/{target}g</span></span>
+              </div>
+              <div style={{height:4,background:"rgba(245,245,240,0.08)",borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.min(val/target,1)*100}%`,background:color,transition:"width 0.6s"}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick actions */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 24px"}}>
+          <button onClick={()=>setSection("fuel")} className="quick-btn">
+            <svg width={16} height={16} viewBox="0 0 24 24"><g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2"/><line x1="3" y1="12" x2="21" y2="12"/></g></svg>
+            Log Food
+          </button>
+          <button onClick={()=>setSection("train")} className="quick-btn">
+            <svg width={16} height={16} viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Start Workout
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function ProgressSection() {
+    return (
+      <div className="page-enter">
+        <div className="screen-header" style={{paddingTop:12}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="header-eyebrow">// 12-Week View</div>
+            <div className="header-title">Progress</div>
+          </div>
+        </div>
+        {/* Stats grid */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 14px"}}>
+          {[
+            {k:"Bodyweight",v:`${profile.weight||"—"}`,u:profile.wUnit||"kg"},
+            {k:"Training Streak",v:`${profile.streak||workoutLogsRaw.length}`,u:"sessions"},
+            {k:"Daily Target",v:`${macros.calories.toLocaleString()}`,u:"kcal"},
+            {k:"Adherence",v:`${workoutLogsRaw.length>0?Math.min(94,Math.round(workoutLogsRaw.length/Math.max(1,programWeek)*25)):"—"}`,u:"%"},
+          ].map((s,i)=>(
+            <div key={i} style={{padding:"12px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase",marginBottom:6}}>{s.k}</div>
+              <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:2}}>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:28,lineHeight:1}}>{s.v}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)"}}>{s.u}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
+        <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+        <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+        {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
+        <div style={{height:24}}/>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{position:"relative",minHeight:"100vh",maxWidth:480,margin:"0 auto",background:"var(--navy)"}}>
+      <style>{GLOBAL_CSS}</style>
+      {workoutSavedMsg&&<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"var(--red)",color:"var(--white)",padding:"13px 22px",borderRadius:14,fontSize:14,fontWeight:700,zIndex:1000,boxShadow:"0 4px 32px rgba(232,52,28,0.5)",whiteSpace:"nowrap",pointerEvents:"none",fontFamily:"var(--condensed)",letterSpacing:1,textTransform:"uppercase"}}>{workoutSavedMsg}</div>}
+
+
+      <div className="app-screen grid-bg">
+        {section==="home"&&<HomeSection/>}
+        {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user}/>}
+        {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry}/>}
+        {section==="progress"&&<ProgressSection/>}
+        {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}
+      </div>
+      <div className="app-tab-bar">
+        {NAV_ITEMS.map(item=>(
+          <button key={item.id} className={`app-tab${section===item.id?" active":""}`} onClick={()=>setSection(item.id)}>
+            <div className="tab-icon-wrap"><TabIcon name={item.icon} size={22}/></div>
+            <div className="tab-label-txt">{item.label}</div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

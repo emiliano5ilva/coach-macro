@@ -1406,7 +1406,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 }
 
 // ─── PERFORMANCE CALENDAR ────────────────────────────────────────────────────
-function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
+export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
   const [workoutLogs,setWorkoutLogs]=useState([]);
   const [foodLogs,setFoodLogs]=useState([]);
   const [loaded,setLoaded]=useState(false);
@@ -1586,7 +1586,7 @@ function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
 }
 
 // ─── TRAINING DNA ────────────────────────────────────────────────────────────
-function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
+export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
   const [sessions,setSessions]=useState([]);
   const [foodLogs,setFoodLogs]=useState([]);
   const [loaded,setLoaded]=useState(false);
@@ -1722,7 +1722,7 @@ function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
 }
 
 // ─── RACE PREDICTOR ──────────────────────────────────────────────────────────
-function RacePredictor({profile,wPrefs,user,isMobile}){
+export function RacePredictor({profile,wPrefs,user,isMobile}){
   const [sessions,setSessions]=useState([]);
   const [loaded,setLoaded]=useState(false);
 
@@ -1855,7 +1855,7 @@ function RacePredictor({profile,wPrefs,user,isMobile}){
 }
 
 // ─── ATHLETE PASSPORT ────────────────────────────────────────────────────────
-function AthletePassport({profile,wPrefs,user,isMobile}){
+export function AthletePassport({profile,wPrefs,user,isMobile}){
   const [stats,setStats]=useState(null);
   const [sharing,setSharing]=useState(false);
   const passportRef=useRef(null);

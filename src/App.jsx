@@ -58,9 +58,25 @@ import { TrainSection, ConnectSection, SettingsSection,
   PromoScreen, Paywall } from "./sections.jsx";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 
+// ─── SPLASH SCREEN ────────────────────────────────────────────────────────────
+function SplashScreen({onDone}) {
+  useEffect(()=>{const t=setTimeout(onDone,2400);return()=>clearTimeout(t);},[]);
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+      <style>{GLOBAL_CSS}</style>
+      <style>{`@keyframes splash-logo{0%{opacity:0;transform:scale(0.85) translateY(8px)}60%{opacity:1;transform:scale(1.04) translateY(-2px)}100%{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+      <div style={{animation:"splash-logo 0.9s cubic-bezier(.2,.7,.3,1) forwards",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+        <Logo size={48} text={false}/>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,letterSpacing:"-0.01em",textTransform:"uppercase",color:"var(--white)"}}>Coach Macro</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--red)",marginTop:4}}>AI ATHLETIC COACHING</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
 function AuthScreen({onAuth}) {
-  const [mode,setMode]=useState("signup"); // signup | login
+  const [view,setView]=useState("welcome"); // welcome | signin | signup
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
@@ -68,12 +84,12 @@ function AuthScreen({onAuth}) {
   const [error,setError]=useState("");
 
   async function handle() {
-    if(mode==="signup"&&!name.trim()){setError("Please enter your name.");return;}
+    if(view==="signup"&&!name.trim()){setError("Please enter your name.");return;}
     if(!email.trim()){setError("Please enter your email.");return;}
     if(password.length<6){setError("Password must be at least 6 characters.");return;}
     setLoading(true);setError("");
     try {
-      if(mode==="signup") {
+      if(view==="signup") {
         const {data,error:e}=await sb.auth.signUp({email,password});
         if(e)throw e;
         if(data.user) onAuth(data.user, name.trim());
@@ -86,47 +102,81 @@ function AuthScreen({onAuth}) {
     setLoading(false);
   }
 
+  const inputStyle=(val)=>({
+    width:"100%",background:"rgba(245,245,240,0.04)",
+    border:`1.5px solid ${val?"var(--red)":"var(--white-border)"}`,
+    borderRadius:12,padding:"14px 16px",color:"var(--white)",fontSize:15,
+    outline:"none",fontFamily:"var(--body)",transition:"border-color .2s",
+    boxSizing:"border-box",
+  });
+
+  const labelStyle={display:"block",fontSize:10,color:"var(--white-dim)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"var(--mono)"};
+
   const field=(label,val,setVal,type="text",ph="")=>(
     <div style={{marginBottom:14}}>
-      <label style={{display:"block",fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"'DM Mono',monospace"}}>{label}</label>
+      <label style={labelStyle}>{label}</label>
       <input value={val} onChange={e=>setVal(e.target.value)} type={type} placeholder={ph}
-        onKeyDown={e=>e.key==="Enter"&&handle()}
-        style={{width:"100%",background:T.s2,border:`1.5px solid ${val?T.prot:T.bd}`,borderRadius:12,padding:"13px 16px",color:T.white,fontSize:15,outline:"none",fontFamily:"'Barlow',sans-serif",transition:"border-color .2s",boxSizing:"border-box"}}/>
+        onKeyDown={e=>e.key==="Enter"&&handle()} style={inputStyle(val)}/>
+    </div>
+  );
+
+  const outer={minHeight:"100vh",background:"var(--navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",position:"relative",overflow:"hidden"};
+
+  if(view==="welcome") return(
+    <div style={outer}>
+      <style>{GLOBAL_CSS}</style>
+      <div className="grid-bg" style={{position:"absolute",inset:0,opacity:0.5,pointerEvents:"none"}}/>
+      <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
+        <div style={{marginBottom:32,display:"flex",justifyContent:"center"}}><Logo size={40} text={false}/></div>
+        <div className="header-eyebrow" style={{textAlign:"center",marginBottom:12}}>AI Athletic Coaching</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:52,lineHeight:.88,marginBottom:18,color:"var(--white)",textAlign:"center",textTransform:"uppercase"}}>
+          Stop Guessing.<br/><span style={{color:"var(--red)"}}>Start Knowing.</span>
+        </div>
+        <p style={{fontSize:14,color:"var(--white-dim)",marginBottom:36,lineHeight:1.65,fontFamily:"var(--body)",textAlign:"center"}}>
+          AI-powered macros, workouts, and coaching — built around your body and your goals.
+        </p>
+        <button onClick={()=>setView("signup")} style={{width:"100%",padding:"16px",background:"var(--red)",color:"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:12}}>
+          Join Waitlist →
+        </button>
+        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"16px",background:"rgba(245,245,240,0.06)",color:"var(--white)",fontWeight:700,fontSize:15,letterSpacing:"0.1em",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)"}}>
+          Sign In
+        </button>
+        <div style={{textAlign:"center",marginTop:20,fontSize:11,color:"var(--white-faint)",fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>Secure · Private · No spam</div>
+      </div>
     </div>
   );
 
   return(
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+    <div style={outer}>
       <style>{GLOBAL_CSS}</style>
-      <div style={{width:"100%",maxWidth:420}}>
-        <div style={{marginBottom:40}}>
-          <Logo size={32} text={true}/>
+      <div className="grid-bg" style={{position:"absolute",inset:0,opacity:0.5,pointerEvents:"none"}}/>
+      <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
+        <button onClick={()=>{setView("welcome");setError("");}} style={{background:"none",border:"none",color:"var(--white-dim)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:32,display:"flex",alignItems:"center",gap:6,padding:0}}>
+          <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+          Back
+        </button>
+
+        <div className="header-eyebrow" style={{marginBottom:10}}>{view==="signup"?"Create Account":"Welcome Back"}</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.88,marginBottom:24,color:"var(--white)",textTransform:"uppercase"}}>
+          {view==="signup"?<span>Your Plan<br/><span style={{color:"var(--red)"}}>Awaits.</span></span>:<span>Good to<br/><span style={{color:"var(--red)"}}>See You.</span></span>}
         </div>
 
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,fontStyle:"italic",lineHeight:.88,marginBottom:12,color:T.white}}>
-          {mode==="signup"?<div>CREATE YOUR<br/><span style={{color:T.prot}}>ACCOUNT.</span></div>:<div>WELCOME<br/><span style={{color:T.prot}}>BACK.</span></div>}
-        </div>
-        <p style={{fontSize:14,color:T.mu,marginBottom:28,lineHeight:1.65,fontFamily:"'Barlow',sans-serif"}}>
-          {mode==="signup"?"One account. Your plan, your logs, your progress — all saved.":"Sign in to pick up where you left off."}
-        </p>
-
-        {/* Toggle */}
-        <div style={{display:"flex",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:10,padding:4,marginBottom:24,gap:4}}>
-          {[["signup","Create Account"],["login","Sign In"]].map(([m,l])=>(
-            <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",cursor:"pointer",background:mode===m?T.prot:"none",color:mode===m?T.white:T.mu,fontWeight:700,fontSize:14,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase",transition:"all .2s"}}>{l}</button>
-          ))}
-        </div>
-
-        {mode==="signup"&&field("Your Name",name,setName,"text","e.g. Marcus")}
+        {view==="signup"&&field("Your Name",name,setName,"text","e.g. Marcus")}
         {field("Email",email,setEmail,"email","you@email.com")}
         {field("Password",password,setPassword,"password","Min 6 characters")}
 
-        {error&&<div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:10,padding:"11px 14px",marginBottom:16,fontSize:13,color:T.red,fontFamily:"'Barlow',sans-serif"}}>{error}</div>}
+        {error&&<div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:10,padding:"11px 14px",marginBottom:16,fontSize:13,color:"var(--red)",fontFamily:"var(--body)"}}>{error}</div>}
 
-        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"15px",background:loading?T.s3:T.prot,color:loading?T.mu:T.white,fontWeight:700,fontSize:16,letterSpacing:1,border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:16}}>
-          {loading?"...":(mode==="signup"?"Create Account →":"Sign In →")}
+        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:16}}>
+          {loading?"...":(view==="signup"?"Create Account →":"Sign In →")}
         </button>
-        <div style={{textAlign:"center",fontSize:11,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.08em"}}>Your data is stored securely. We never sell it.</div>
+
+        <div style={{textAlign:"center",fontSize:11,color:"var(--white-faint)",fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>
+          {view==="signup"
+            ?<span>Already have an account? <button onClick={()=>{setView("signin");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Sign In</button></span>
+            :<span>New here? <button onClick={()=>{setView("signup");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Create Account</button></span>
+          }
+        </div>
       </div>
     </div>
   );
@@ -135,7 +185,7 @@ function AuthScreen({onAuth}) {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function CoachMacro() {
-  const [phase,setPhase]=useState("landing"); // landing | loading | auth | onboarding | promo | paywall | app
+  const [phase,setPhase]=useState("splash"); // splash | landing | loading | auth | onboarding | promo | paywall | app
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
@@ -370,6 +420,7 @@ export default function CoachMacro() {
     </div>
   );
 
+  if(phase==="splash")     return <SplashScreen onDone={()=>setPhase("landing")}/>;
   if(phase==="landing")    return <LandingPage onSignUp={()=>setPhase("auth")}/>;
   if(phase==="auth")       return <AuthScreen onAuth={handleAuth}/>;
   if(phase==="onboarding") return <Onboarding onComplete={(d,tdee)=>handleProfileDone(d,tdee)} user={user} signupName={signupName}/>;

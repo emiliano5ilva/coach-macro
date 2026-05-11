@@ -217,9 +217,27 @@ export function useCountUp(target, dur=1400) {
 // ─── GLOBAL STYLES ─────────────────────────────────────────────────────────────
 export const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --navy: #0a0e1a;
+    --navy-mid: #0f1628;
+    --navy-light: #161e35;
+    --navy-card: #111827;
+    --red: #e8341c;
+    --red-dim: #c42d18;
+    --green: #22c55e;
+    --blue: #60a5fa;
+    --amber: #f59e0b;
+    --white: #f5f5f0;
+    --white-dim: rgba(245,245,240,0.65);
+    --white-faint: rgba(245,245,240,0.4);
+    --white-border: rgba(245,245,240,0.08);
+    --mono: 'DM Mono', monospace;
+    --condensed: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+  }
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#root{height:100%}
-  body{font-family:'Barlow',system-ui,-apple-system,sans-serif;color:${T.white};-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(96,165,250,0.06),transparent 50%)}
+  body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(96,165,250,0.06),transparent 50%)}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:rgba(245,245,240,0.12);border-radius:2px}
@@ -231,6 +249,13 @@ export const GLOBAL_CSS = `
   @keyframes floatUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
   @keyframes glowPulse{0%,100%{opacity:.3}50%{opacity:.7}}
   @keyframes fabPulse{0%,100%{box-shadow:0 12px 32px rgba(232,52,28,0.5)}50%{box-shadow:0 12px 48px rgba(232,52,28,0.75)}}
+  @keyframes page-fade{0%{opacity:0.4;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
+  @keyframes modal-in{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+  @keyframes sheet-in{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+  @keyframes pulse-dot{0%,100%{opacity:0.3}50%{opacity:1}}
+  @keyframes scan-line{0%,100%{transform:translateY(0)}50%{transform:translateY(160px)}}
+  @keyframes splash-logo{0%{opacity:0;transform:scale(0.88)}100%{opacity:1;transform:scale(1)}}
   .grad-text{background:linear-gradient(135deg,#e8341c 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   .hero-title{animation:slideUp .9s cubic-bezier(.16,1,.3,1) forwards}
   .hero-sub{animation:slideUp .9s cubic-bezier(.16,1,.3,1) .15s both}
@@ -241,6 +266,37 @@ export const GLOBAL_CSS = `
   .d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}
   @media(max-width:768px){.desk-only{display:none!important}}
   @media(min-width:769px){.mob-only{display:none!important}}
+  .page-enter{animation:page-fade 0.28s cubic-bezier(.2,.7,.3,1) forwards}
+  .screen-header{padding:14px 20px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+  .header-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:0.16em;color:var(--red);text-transform:uppercase;margin-bottom:6px}
+  .header-title{font-family:var(--condensed);font-style:italic;font-weight:900;font-size:34px;letter-spacing:-0.01em;text-transform:uppercase;line-height:0.92;color:var(--white)}
+  .icon-btn{width:36px;height:36px;border-radius:10px;background:rgba(245,245,240,0.06);border:1px solid rgba(245,245,240,0.08);display:flex;align-items:center;justify-content:center;color:var(--white);cursor:pointer}
+  .section-title{font-family:var(--condensed);font-weight:800;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--white-dim);margin:18px 20px 10px}
+  .coach-card{margin:0 20px 14px;padding:14px 16px;background:var(--navy-light);border-left:3px solid var(--red);border-radius:4px 14px 14px 4px}
+  .coach-label{font-family:var(--mono);font-size:9px;letter-spacing:0.16em;color:var(--red);text-transform:uppercase;margin-bottom:6px}
+  .coach-text{font-family:var(--body);font-size:13.5px;line-height:1.5;color:var(--white);font-style:italic}
+  .quick-btn{width:100%;padding:13px 16px;background:var(--navy-light);border:1px solid var(--white-border);border-radius:12px;color:var(--white);font-family:var(--condensed);font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .quick-btn:hover{border-color:rgba(232,52,28,0.3)}
+  .toggle{width:44px;height:26px;background:rgba(245,245,240,0.1);border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
+  .toggle.on{background:var(--red)}
+  .toggle-knob{position:absolute;top:2px;left:2px;width:22px;height:22px;background:var(--white);border-radius:50%;transition:left 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.3)}
+  .toggle.on .toggle-knob{left:20px}
+  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:54px;padding-bottom:100px;background:var(--navy);scrollbar-width:none}
+  .app-screen::-webkit-scrollbar{display:none}
+  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;height:86px;z-index:100;background:rgba(10,14,26,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(245,245,240,0.06);display:flex;padding:8px 8px 22px}
+  @media(min-width:768px){.app-tab-bar{max-width:480px;left:50%;transform:translateX(-50%)}}
+  .app-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--white-faint);cursor:pointer;padding:8px 4px;transition:color 0.2s;position:relative}
+  .app-tab.active{color:var(--white)}
+  .app-tab.active .tab-icon-wrap::before{content:'';position:absolute;inset:-8px -14px;background:radial-gradient(circle,rgba(232,52,28,0.25),transparent 70%);z-index:-1}
+  .tab-icon-wrap{position:relative}
+  .tab-label-txt{font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase}
+  .app-tab.active .tab-label-txt{color:var(--red)}
+  .grid-bg{background-image:linear-gradient(rgba(245,245,240,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,240,0.022) 1px,transparent 1px);background-size:32px 32px}
+  .full-modal{position:fixed;inset:0;z-index:200;background:var(--navy);animation:modal-in 0.32s cubic-bezier(.2,.7,.3,1) both;display:flex;flex-direction:column;overflow-y:auto}
+  @media(min-width:768px){.full-modal{max-width:480px;left:50%;right:auto;transform:translateX(-50%)}}
+  .bottom-sheet-overlay{position:fixed;inset:0;z-index:200}
+  .bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--navy-light);border-radius:24px 24px 0 0;max-height:82%;overflow-y:auto;animation:sheet-in 0.32s cubic-bezier(.2,.7,.3,1);padding-bottom:24px}
+  @media(min-width:768px){.bottom-sheet{max-width:480px;left:50%;right:auto;transform:translateX(-50%)}}
 `;
 
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
