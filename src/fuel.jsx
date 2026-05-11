@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
   hap, calcTDEE } from "./components.jsx";
-import { sb } from "./client.js";
+import { sb, ai } from "./client.js";
 
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo}) {
 
@@ -39,6 +39,18 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(user)sb.from("profiles").upsert({id:user.id,schedule:newSch},{onConflict:"id"}).catch(e=>console.error("[setDayType]",e));
   }
 
+  // ── Body Budget ─────────────────────────────────────────────────────────────
+  const [bodySuggest,setBodySuggest]=useState("");
+  const [bodySuggestLoading,setBodySuggestLoading]=useState(false);
+  async function fetchBodySuggest(){
+    if(bodySuggestLoading)return;
+    setBodySuggestLoading(true);setBodySuggest("");
+    try{const r=await ai(`Suggest one simple meal to close this macro gap. Remaining: ${remaining.calories} kcal, ${remaining.protein}g protein, ${remaining.carbs}g carbs, ${remaining.fat}g fat. Reply in one line: "MealName — ~XXXkcal · Xg protein". Be specific and realistic.`,100);setBodySuggest(r.trim());}
+    catch{setBodySuggest("Unable to fetch suggestion right now.");}
+    setBodySuggestLoading(false);
+  }
+  const useBudgetView=wPrefs?.fuelView==="budget";
+
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
       {/* Sub-nav */}
@@ -58,46 +70,102 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
         {fuelScreen==="home"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* MAIN CARD — ring + macros */}
-            <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.35)":T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${macros.isFlexDay?"#F59E0B":cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-                <div>
-                  <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{macros.isFlexDay?"flex day":todayType+" day"}</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>Fuel {macros.isFlexDay?"🍕":cfg.emoji}</div>
-                </div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                  {earnedCals>0&&<div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>+{earnedCals} earned 🔥</div>}
-                  {macros.isFlexDay&&<div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontSize:11,color:"#F59E0B",fontWeight:700}}>🍕 Flex Day</div>}
-                  <div style={{background:`${cfg.color}12`,border:`1px solid ${cfg.color}30`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
-                </div>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:isMobile?16:32}}>
-                <div style={{position:"relative",flexShrink:0}}>
-                  <MacroRing protein={consumed.protein} carbs={consumed.carbs} fat={consumed.fat} pTarget={macros.protein} cTarget={macros.carbs} fTarget={macros.fat} size={isMobile?150:180} sw={13}/>
-                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center",pointerEvents:"none"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:isMobile?34:40,lineHeight:1,color:remaining.calories<0?"#FF4D6D":"#fff"}}>{remaining.calories}</div>
-                    <div style={{color:T.mu,fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginTop:2}}>kcal left</div>
-                    <div style={{color:T.mu,fontSize:9,marginTop:3}}>{macros.calories} budget</div>
+            {/* BODY BUDGET or MACRO RING */}
+            {useBudgetView?(
+              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <div>
+                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>TODAY'S BODY BUDGET</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,lineHeight:1}}>🏦 {macros.calories.toLocaleString()} kcal</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:10,color:T.mu,letterSpacing:2,textTransform:"uppercase",marginBottom:2}}>Starting</div>
+                    <div style={{fontSize:11,color:"rgba(245,245,240,.6)"}}>balance</div>
                   </div>
                 </div>
-                <div style={{flex:1}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-                    {[["Budget",macros.calories,"#fff"],["Eaten",consumed.calories,cfg.color]].map(([l,v,c])=>(
-                      <div key={l} style={{background:T.s2,borderRadius:12,padding:"10px 14px"}}>
-                        <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{l}</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
-                        <div style={{fontSize:9,color:T.mu,marginTop:2}}>kcal</div>
-                      </div>
+                {/* Ledger */}
+                <div style={{display:"flex",flexDirection:"column",gap:1,marginBottom:14}}>
+                  {todayActs.filter(a=>a.calories>0).map((a,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(0,201,167,0.07)",borderRadius:8,border:"1px solid rgba(0,201,167,0.15)"}}>
+                      <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>{a.icon||"🏃"} {a.title||a.type} earned</span>
+                      <span style={{fontSize:14,fontWeight:700,color:"#00C9A7"}}>+{a.calories} kcal</span>
+                    </div>
+                  ))}
+                  {log.length===0&&<div style={{padding:"12px",border:`1px dashed ${T.bd}`,borderRadius:8,textAlign:"center",color:T.mu,fontSize:12}}>No meals logged yet</div>}
+                  {log.map((e,i)=>(
+                    <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:T.s2,borderRadius:8}}>
+                      <span style={{fontSize:13,color:"rgba(245,245,240,.8)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.food}</span>
+                      <span style={{fontSize:14,fontWeight:700,color:"#fff",flexShrink:0,marginLeft:8}}>−{e.calories} kcal</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Divider + remaining */}
+                <div style={{height:1,background:`linear-gradient(90deg,${T.prot},${T.fat})`,borderRadius:1,marginBottom:14,opacity:.4}}/>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
+                  <div>
+                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>Remaining</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:isMobile?40:48,fontWeight:900,color:remaining.calories<0?"#FF4D6D":T.prot,lineHeight:1}}>{remaining.calories.toLocaleString()}</div>
+                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>kcal · {remaining.protein}g protein still needed</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    {[["P",T.prot,remaining.protein,"g"],[" C",T.carb,remaining.carbs,"g"],["F",T.fat,remaining.fat,"g"]].map(([l,c,v,u])=>(
+                      <div key={l} style={{fontSize:12,color:c,fontWeight:700}}>{l}: {v}{u}</div>
                     ))}
                   </div>
-                  <MacroBar label="Protein" consumed={consumed.protein} target={macros.protein} color={T.prot}/>
-                  <MacroBar label="Carbs"   consumed={consumed.carbs}   target={macros.carbs}   color={T.carb}/>
-                  <MacroBar label="Fat"     consumed={consumed.fat}     target={macros.fat}     color={T.fat}/>
-                  {macros.isFlexDay&&<div style={{marginTop:10,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>🍕 Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
-                  {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:10,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days 🍕</div>}
+                </div>
+                {/* AI Suggestion */}
+                {remaining.calories>200&&(
+                  <div style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Suggested to close the gap</div>
+                    {bodySuggest
+                      ?<div style={{fontSize:13,color:"#fff",lineHeight:1.6}}>{bodySuggest}</div>
+                      :<button onClick={fetchBodySuggest} disabled={bodySuggestLoading} style={{fontSize:12,color:T.prot,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600,padding:0}}>{bodySuggestLoading?"Getting suggestion...":"Get AI meal suggestion →"}</button>
+                    }
+                  </div>
+                )}
+              </div>
+            ):(
+              <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.35)":T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${macros.isFlexDay?"#F59E0B":cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+                  <div>
+                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{macros.isFlexDay?"flex day":todayType+" day"}</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>Fuel {macros.isFlexDay?"🍕":cfg.emoji}</div>
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                    {earnedCals>0&&<div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>+{earnedCals} earned 🔥</div>}
+                    {macros.isFlexDay&&<div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontSize:11,color:"#F59E0B",fontWeight:700}}>🍕 Flex Day</div>}
+                    <div style={{background:`${cfg.color}12`,border:`1px solid ${cfg.color}30`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:isMobile?16:32}}>
+                  <div style={{position:"relative",flexShrink:0}}>
+                    <MacroRing protein={consumed.protein} carbs={consumed.carbs} fat={consumed.fat} pTarget={macros.protein} cTarget={macros.carbs} fTarget={macros.fat} size={isMobile?150:180} sw={13}/>
+                    <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center",pointerEvents:"none"}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:isMobile?34:40,lineHeight:1,color:remaining.calories<0?"#FF4D6D":"#fff"}}>{remaining.calories}</div>
+                      <div style={{color:T.mu,fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginTop:2}}>kcal left</div>
+                      <div style={{color:T.mu,fontSize:9,marginTop:3}}>{macros.calories} budget</div>
+                    </div>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+                      {[["Budget",macros.calories,"#fff"],["Eaten",consumed.calories,cfg.color]].map(([l,v,c])=>(
+                        <div key={l} style={{background:T.s2,borderRadius:12,padding:"10px 14px"}}>
+                          <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{l}</div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
+                          <div style={{fontSize:9,color:T.mu,marginTop:2}}>kcal</div>
+                        </div>
+                      ))}
+                    </div>
+                    <MacroBar label="Protein" consumed={consumed.protein} target={macros.protein} color={T.prot}/>
+                    <MacroBar label="Carbs"   consumed={consumed.carbs}   target={macros.carbs}   color={T.carb}/>
+                    <MacroBar label="Fat"     consumed={consumed.fat}     target={macros.fat}     color={T.fat}/>
+                    {macros.isFlexDay&&<div style={{marginTop:10,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>🍕 Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
+                    {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:10,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days 🍕</div>}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* NUTRITION PERIODIZATION */}
             {periodizationInfo&&(

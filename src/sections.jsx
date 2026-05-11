@@ -1864,6 +1864,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
         </SectionCard>
 
+        <SectionCard title="Fuel View">
+          <div style={{display:"flex",gap:8}}>
+            {[["ring","Macro Ring","📊"],["budget","Body Budget","🏦"]].map(([v,l,e])=>{
+              const active=(wPrefs.fuelView||"ring")===v;
+              return<button key={v} onClick={()=>{const wp={...wPrefs,fuelView:v};setWPrefs(wp);saveSettings(wp,null);}} style={{flex:1,padding:"11px 6px",minHeight:44,borderRadius:9,border:`1.5px solid ${active?T.prot:T.bd}`,background:active?`${T.prot}15`:T.s3,color:active?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{e} {l}</button>;
+            })}
+          </div>
+          <div style={{fontSize:11,color:T.dim,marginTop:8,lineHeight:1.6}}>Body Budget shows macros as a spending ledger with AI meal suggestions</div>
+        </SectionCard>
+
         <SectionCard title="Nutrition Periodization">
           <Toggle on={!!wPrefs.nutritionPeriodization} onChange={v=>{const wp={...wPrefs,nutritionPeriodization:v};setWPrefs(wp);saveSettings(wp,null);}} label="Nutrition Periodization" sub="Automatically cycles macros across 8-week phases"/>
           <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Building (wk 1–3) → Deload (wk 4) → Performance (wk 5–7) → Mini Cut (wk 8)</div>
