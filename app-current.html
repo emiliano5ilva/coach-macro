@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Coach Macro — App Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{height:100%}
+body{font-family:'Barlow',system-ui,-apple-system,sans-serif;color:#f5f5f0;-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(96,165,250,0.06),transparent 50%)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(245,245,240,0.12);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:rgba(245,245,240,0.2)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+.grad-text{background:linear-gradient(135deg,#e8341c 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+const T = {
+  bg:"#050810", s1:"#161e35", s2:"#111827", s3:"#0f1628",
+  bd:"rgba(245,245,240,0.08)", mu:"rgba(245,245,240,0.4)",
+  dim:"rgba(245,245,240,0.65)", prot:"#e8341c", carb:"#60a5fa",
+  fat:"#f59e0b", red:"#e8341c", white:"#f5f5f0", green:"#22c55e"
+};
+
+const WDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+// ─── MOCK DATA ────────────────────────────────────────────────────────────────
+const MOCK_PROFILE = {
+  name:"Alex", sex:"male", weight:"185", wUnit:"lbs",
+  goal:"Cut", goalCals:2400, baseTDEE:2800,
+  programWeek:4, programName:"PPL Strength",
+  city:"Austin", liftExp:"intermediate", startDate:"2025-04-01"
+};
+const MOCK_SCHEDULE = {
+  Mon:"training", Tue:"rest", Wed:"training", Thu:"cardio",
+  Fri:"training", Sat:"training", Sun:"rest"
+};
+const MOCK_WPREFS = {
+  splitType:"Push/Pull/Legs", equipment:"Full Gym",
+  isHybrid:false, isHyrox:false, sessionLength:60,
+  weekendFlexMode:true, flexDays:["Sat","Sun"], flexCalorieIncrease:20,
+  morningBriefEnabled:true, macroMemory:true, nutritionPeriodization:true,
+  fuelView:"ring"
+};
+const MOCK_FOOD_LOG = [
+  {id:1, food:"Chicken Breast", calories:280, protein:52, carbs:0, fat:6},
+  {id:2, food:"Brown Rice", calories:216, protein:4, carbs:44, fat:2},
+  {id:3, food:"Greek Yogurt", calories:130, protein:17, carbs:9, fat:3},
+  {id:4, food:"Banana", calories:105, protein:1, carbs:27, fat:0},
+];
+const MOCK_MORNING_BRIEF = `Push Day — target 185lb bench for 3×8. That's your strength marker this week.
+Macros: 2,100 kcal · 185g protein · 200g carbs · 58g fat
+First meal: 4 eggs + 150g oats + 1 scoop whey → ~650 kcal, 55g protein
+7 days logged in a row. That's the habit forming. Keep the streak alive.`;
+
+const MOCK_MEMORY_SUGGESTIONS = [
+  {count:5, data:{food:"Chicken Breast + Rice", calories:496, protein:56, carbs:44, fat:8}},
+  {count:4, data:{food:"Greek Yogurt Bowl", calories:260, protein:22, carbs:18, fat:6}},
+  {count:3, data:{food:"Protein Shake", calories:160, protein:30, carbs:8, fat:3}},
+];
+
+const MOCK_WORKOUT = {
+  title:"Push Day A",
+  exercises:[
+    {name:"Barbell Bench Press", notes:"Upper/mid chest, anterior delt", restSecs:180,
+     sets:[{weight:"185",reps:"8",done:true},{weight:"185",reps:"7",done:true},{weight:"185",reps:"7",done:false}]},
+    {name:"Overhead Press", notes:"All 3 deltoid heads", restSecs:150,
+     sets:[{weight:"115",reps:"8",done:true},{weight:"115",reps:"8",done:false}]},
+    {name:"Incline Dumbbell Press", notes:"Upper chest emphasis", restSecs:120,
+     sets:[{weight:"65",reps:"10",done:false},{weight:"65",reps:"10",done:false}]},
+    {name:"Cable Lateral Raise", notes:"Lateral delt", restSecs:90,
+     sets:[{weight:"20",reps:"15",done:false},{weight:"20",reps:"15",done:false},{weight:"20",reps:"15",done:false}]},
+    {name:"Tricep Overhead Extension", notes:"Long head tricep", restSecs:90,
+     sets:[{weight:"60",reps:"12",done:false},{weight:"60",reps:"12",done:false}]},
+  ]
+};
+
+function getTodayKey() { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()]; }
+function hap() { try{navigator.vibrate?.(8);}catch{} }
+
+// ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
+function Ring({value, max, color, size=140, sw=11}) {
+  const r=(size-sw)/2, circ=2*Math.PI*r, pct=Math.min(Math.max(value/max,0),1);
+  return (
+    <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(245,245,240,0.08)" strokeWidth={sw}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={sw}
+        strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} strokeLinecap="round"
+        style={{transition:"stroke-dashoffset 0.6s ease"}}/>
+    </svg>
+  );
+}
+
+function MacroRing({protein,carbs,fat,pTarget,cTarget,fTarget,size=200,sw=16}) {
+  const total=pTarget+cTarget+fTarget;
+  if(!total) return null;
+  const circ=2*Math.PI*((size-sw)/2);
+  const pArc=circ*(pTarget/total), cArc=circ*(cTarget/total);
+  const pFill=circ*(Math.min(protein/pTarget,1)*(pTarget/total));
+  const cFill=circ*(Math.min(carbs/cTarget,1)*(cTarget/total));
+  const fFill=circ*(Math.min(fat/fTarget,1)*(fTarget/total));
+  const r=(size-sw)/2;
+  return (
+    <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.s3} strokeWidth={sw}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.prot} strokeWidth={sw}
+        strokeDasharray={`${pFill} ${circ-pFill}`} strokeDashoffset={0} strokeLinecap="round"/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.carb} strokeWidth={sw}
+        strokeDasharray={`${cFill} ${circ-cFill}`} strokeDashoffset={-(pArc)} strokeLinecap="round"/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.fat} strokeWidth={sw}
+        strokeDasharray={`${fFill} ${circ-cFill}`} strokeDashoffset={-(pArc+cArc)} strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function MacroBar({label, consumed, target, color}) {
+  const pct=Math.min(consumed/target,1), rem=target-consumed;
+  return (
+    <div style={{background:T.s2,borderRadius:14,padding:"13px 15px",marginBottom:8,border:`1px solid ${T.bd}`}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
+        <span style={{color,fontSize:10,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{label}</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:T.white}}>{consumed}g <span style={{color:T.mu}}>/ {target}g</span></span>
+      </div>
+      <div style={{height:4,background:"rgba(245,245,240,0.08)",borderRadius:2,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${pct*100}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+      </div>
+      <div style={{fontSize:10,color:T.mu,marginTop:4,fontFamily:"'DM Mono',monospace"}}>{rem>0?`${rem}g remaining`:"✓ Hit"}</div>
+    </div>
+  );
+}
+
+function Logo({size=32}) {
+  const h=size, bw=h*0.28, gap=h*0.09, r=h*0.1, iw=bw*3+gap*2;
+  const h1=h*0.42, h2=h*0.68, h3=h*1.00;
+  const y1=h-h1, y2=h-h2, y3=h-h3;
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:size*0.28,flexShrink:0,userSelect:"none"}}>
+      <svg width={iw} height={h} viewBox={`0 0 ${iw} ${h}`} style={{display:"block"}}>
+        <defs><filter id="lg" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <rect x={0} y={y1} width={bw} height={h1} rx={r} ry={r} fill="#e8341c" filter="url(#lg)"/>
+        <rect x={bw+gap} y={y2} width={bw} height={h2} rx={r} ry={r} fill="#60a5fa" filter="url(#lg)"/>
+        <rect x={(bw+gap)*2} y={y3} width={bw} height={h3} rx={r} ry={r} fill="#f59e0b" filter="url(#lg)"/>
+        <rect x={0} y={h-1.5} width={iw} height={1.5} rx={0.75} fill="rgba(255,255,255,0.12)"/>
+      </svg>
+      <div style={{display:"flex",flexDirection:"column",lineHeight:1,gap:0}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontStyle:"italic",fontSize:size*0.36,letterSpacing:size*0.05,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:1}}>Coach</div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:size*0.52,letterSpacing:size*0.06,textTransform:"uppercase",lineHeight:0.85,background:"linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.85) 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>MACRO</div>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({on, onChange, label, sub}) {
+  return (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${T.bd}`}}>
+      <div><div style={{fontSize:14,color:on?T.white:T.mu}}>{label}</div>{sub&&<div style={{fontSize:11,color:T.mu,marginTop:2,fontFamily:"'DM Mono',monospace"}}>{sub}</div>}</div>
+      <div onClick={()=>onChange(!on)} style={{width:44,height:24,borderRadius:12,background:on?T.prot:"rgba(245,245,240,0.15)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:on?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
+        <div style={{width:18,height:18,borderRadius:9,background:"#fff"}}/>
+      </div>
+    </div>
+  );
+}
+
+function SectionCard({title, children, action}) {
+  return (
+    <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,overflow:"hidden",marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 20px",borderBottom:`1px solid ${T.bd}`}}>
+        <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>{title}</div>
+        {action}
+      </div>
+      <div style={{padding:"16px 20px"}}>{children}</div>
+    </div>
+  );
+}
+
+function Btn({onClick, label, color=T.prot, style:sx={}}) {
+  return (
+    <button onClick={onClick} style={{padding:"13px 20px",background:color,color:"#fff",fontWeight:700,fontSize:14,letterSpacing:1,border:"none",borderRadius:12,cursor:"pointer",textTransform:"uppercase",fontFamily:"'Barlow Condensed',sans-serif",...sx}}>{label}</button>
+  );
+}
+
+// ─── HOME TAB ─────────────────────────────────────────────────────────────────
+function HomeTab({profile, schedule, wPrefs, macros, consumed, remaining, log, todayKey, todayType, todayFocus}) {
+  const [briefDismissed, setBriefDismissed] = useState(false);
+  const [comebackDismissed, setComebackDismissed] = useState(false);
+
+  const todayWorkout = MOCK_WORKOUT;
+  const cfg = {training:{label:"Training",emoji:"💪",color:T.prot},cardio:{label:"Cardio",emoji:"🏃",color:T.carb},rest:{label:"Rest",emoji:"😴",color:T.mu}}[todayType]||{label:"Training",emoji:"💪",color:T.prot};
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14,animation:"fadeIn 0.3s ease"}}>
+      {/* Morning Brief */}
+      {!briefDismissed && (
+        <div style={{background:"#0A1222",border:"1px solid rgba(232,52,28,0.25)",borderLeft:"3px solid rgba(232,52,28,0.8)",borderRadius:14,padding:"16px 18px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+            <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>MORNING BRIEF · {new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}</div>
+            <button onClick={()=>setBriefDismissed(true)} style={{background:"none",border:"none",color:T.mu,fontSize:11,cursor:"pointer",padding:"2px 8px",borderRadius:6,fontWeight:600}}>Got it</button>
+          </div>
+          <div style={{fontSize:14,color:"#fff",lineHeight:1.7,whiteSpace:"pre-line"}}>{MOCK_MORNING_BRIEF}</div>
+        </div>
+      )}
+
+      {/* Comeback Protocol */}
+      {!comebackDismissed && (
+        <div style={{background:"#0A1222",border:"1px solid rgba(41,121,255,0.3)",borderLeft:"3px solid #2979FF",borderRadius:14,padding:"18px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+            <div>
+              <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:4}}>COMEBACK PROTOCOL</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#fff"}}>WELCOME BACK, ALEX.</div>
+            </div>
+            <button onClick={()=>setComebackDismissed(true)} style={{background:"none",border:"none",color:T.mu,fontSize:11,cursor:"pointer",padding:"2px 8px",borderRadius:6,fontWeight:600}}>Dismiss</button>
+          </div>
+          <div style={{fontSize:13,color:"rgba(245,245,240,.7)",marginBottom:14}}>You've been away 9 days. Here's your comeback plan.</div>
+          {["Muscles are recovered — full intensity is fine","Macros reset to maintenance for this week","Program resumes: Week 4, Push Day A"].map((line,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
+              <span style={{color:"#2979FF",fontWeight:700,flexShrink:0}}>✓</span>
+              <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>{line}</span>
+            </div>
+          ))}
+          <div style={{background:"rgba(41,121,255,.08)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"12px 14px",margin:"12px 0"}}>
+            <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:4}}>TODAY'S COMEBACK SESSION</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.9)"}}>70% of your normal volume — sets reduced, weight at 80%</div>
+          </div>
+          <button onClick={()=>setComebackDismissed(true)} style={{width:"100%",padding:"13px",background:"#2979FF",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}}>Start Comeback Session →</button>
+        </div>
+      )}
+
+      {/* Today's Macro Ring */}
+      <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${T.prot}10,transparent 70%)`,pointerEvents:"none"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+          <div>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{todayType} day</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,lineHeight:1}}>TODAY'S MACROS {cfg.emoji}</div>
+            <div style={{fontSize:12,color:T.carb,marginTop:6,fontWeight:600}}>💪 Training day — carbs +5% for fuel</div>
+          </div>
+          {wPrefs.weekendFlexMode && (WDAYS.indexOf(todayKey)>=5) && (
+            <div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontSize:11,color:"#F59E0B",fontWeight:700}}>🍕 Flex Day</div>
+          )}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:16}}>
+          <div style={{position:"relative",flexShrink:0}}>
+            <MacroRing protein={consumed.protein} carbs={consumed.carbs} fat={consumed.fat} pTarget={macros.protein} cTarget={macros.carbs} fTarget={macros.fat} size={150} sw={13}/>
+            <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center",pointerEvents:"none"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,lineHeight:1,color:remaining.calories<0?"#FF4D6D":"#fff"}}>{remaining.calories}</div>
+              <div style={{color:T.mu,fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginTop:2}}>kcal left</div>
+              <div style={{color:T.mu,fontSize:9,marginTop:3}}>{macros.calories} budget</div>
+            </div>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+              {[["Budget",macros.calories,"#fff"],["Eaten",consumed.calories,T.prot]].map(([l,v,c])=>(
+                <div key={l} style={{background:T.s2,borderRadius:12,padding:"10px 14px"}}>
+                  <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{l}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
+                  <div style={{fontSize:9,color:T.mu,marginTop:2}}>kcal</div>
+                </div>
+              ))}
+            </div>
+            <MacroBar label="Protein" consumed={consumed.protein} target={macros.protein} color={T.prot}/>
+            <MacroBar label="Carbs" consumed={consumed.carbs} target={macros.carbs} color={T.carb}/>
+            <MacroBar label="Fat" consumed={consumed.fat} target={macros.fat} color={T.fat}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Weekend Flex Mode indicator */}
+      {wPrefs.weekendFlexMode && (
+        <div style={{background:T.s1,border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{fontSize:20}}>🍕</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#F59E0B",marginBottom:2}}>Weekend Flex Mode Active</div>
+            <div style={{fontSize:11,color:T.mu}}>Sat + Sun: +20% calories. Mon–Fri deficit covers it.</div>
+          </div>
+          <div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.3)",borderRadius:20,padding:"4px 12px",fontSize:10,color:"#F59E0B",fontWeight:700}}>ON</div>
+        </div>
+      )}
+
+      {/* Today's Workout Card */}
+      <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 16px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>TODAY'S WORKOUT</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900}}>{todayWorkout.title}</div>
+            <div style={{fontSize:11,color:T.mu,marginTop:2}}>Week 4 · PPL Strength</div>
+          </div>
+          <div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}30`,borderRadius:20,padding:"6px 14px",fontSize:11,color:T.prot,fontWeight:700}}>💪 Training</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+          {todayWorkout.exercises.slice(0,3).map((ex,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:T.s2,borderRadius:10}}>
+              <span style={{fontSize:13,fontWeight:600,color:T.white}}>{ex.name}</span>
+              <span style={{fontSize:11,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{ex.sets.length}×{ex.sets[0].reps}</span>
+            </div>
+          ))}
+          <div style={{fontSize:11,color:T.mu,textAlign:"center",paddingTop:4}}>+{todayWorkout.exercises.length-3} more exercises</div>
+        </div>
+        <button style={{width:"100%",padding:"13px",background:T.prot,color:"#fff",fontWeight:700,fontSize:15,letterSpacing:1,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase"}}>▶ Start Session</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── FUEL TAB ─────────────────────────────────────────────────────────────────
+function FuelTab({macros, consumed, remaining, log, setLog, wPrefs, setWPrefs, todayKey, todayType, todayFocus}) {
+  const [screen, setScreen] = useState("home");
+  const [logMode, setLogMode] = useState("ai");
+  const [foodInput, setFoodInput] = useState("");
+  const [logMsg, setLogMsg] = useState("");
+  const [skippedMemory, setSkippedMemory] = useState(new Set());
+  const [memLogMsg, setMemLogMsg] = useState("");
+  const [flexOn, setFlexOn] = useState(wPrefs.weekendFlexMode);
+  const FUEL_TABS = [{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"body-budget",label:"Body Budget"}];
+
+  const periodizationInfo = {phase:"Building", wks:"1–3", cycleWeek:3, note:"Building phase — fuel muscle growth. Extra carbs support training intensity."};
+
+  function mockLogFood() {
+    if (!foodInput.trim()) return;
+    const entry = {id:Date.now(), food:foodInput, calories:380, protein:32, carbs:28, fat:12};
+    setLog(l=>[entry,...l]);
+    setLogMsg(`✓ ${foodInput} — 380 kcal logged`);
+    setFoodInput("");
+  }
+
+  function removeLog(id) { setLog(l=>l.filter(i=>i.id!==id)); }
+
+  const cfg = {training:{emoji:"💪",color:T.prot},cardio:{emoji:"🏃",color:T.carb},rest:{emoji:"😴",color:T.mu}}[todayType]||{emoji:"💪",color:T.prot};
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:0,animation:"fadeIn 0.3s ease"}}>
+      {/* Sub-nav */}
+      <div style={{display:"flex",gap:4,padding:"0 0 16px",overflowX:"auto",flexShrink:0}}>
+        {FUEL_TABS.map(tab=>(
+          <button key={tab.id} onClick={()=>setScreen(tab.id)}
+            style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",
+              background:screen===tab.id?T.prot:"none",color:screen===tab.id?"#fff":T.mu,
+              fontSize:13,fontWeight:600,whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0}}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* HOME */}
+      {screen==="home" && (
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          {/* Macro Ring Card */}
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+              <div>
+                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{todayType} day</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,lineHeight:1}}>Fuel {cfg.emoji}</div>
+              </div>
+              <div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}30`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:16}}>
+              <div style={{position:"relative",flexShrink:0}}>
+                <MacroRing protein={consumed.protein} carbs={consumed.carbs} fat={consumed.fat} pTarget={macros.protein} cTarget={macros.carbs} fTarget={macros.fat} size={150} sw={13}/>
+                <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center",pointerEvents:"none"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:30,lineHeight:1}}>{remaining.calories}</div>
+                  <div style={{color:T.mu,fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginTop:2}}>kcal left</div>
+                  <div style={{color:T.mu,fontSize:9,marginTop:3}}>{macros.calories} budget</div>
+                </div>
+              </div>
+              <div style={{flex:1}}>
+                <MacroBar label="Protein" consumed={consumed.protein} target={macros.protein} color={T.prot}/>
+                <MacroBar label="Carbs" consumed={consumed.carbs} target={macros.carbs} color={T.carb}/>
+                <MacroBar label="Fat" consumed={consumed.fat} target={macros.fat} color={T.fat}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Nutrition Periodization */}
+          <div style={{background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.25)",borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:14}}>
+            <div style={{flexShrink:0,fontSize:22,marginTop:2}}>📅</div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>WEEK {periodizationInfo.cycleWeek} — {periodizationInfo.phase.toUpperCase()}</div>
+                <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontFamily:"'DM Mono',monospace"}}>WEEKS {periodizationInfo.wks}</div>
+              </div>
+              <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.5}}>{periodizationInfo.note}</div>
+              <div style={{fontSize:11,color:"rgba(245,245,240,.4)",marginTop:4}}>Your nutrition cycles with your training.</div>
+            </div>
+          </div>
+
+          {/* Macro Memory */}
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
+                <div style={{fontSize:11,color:T.mu,marginTop:2}}>Based on your {new Date().toLocaleDateString("en-US",{weekday:"long"})} patterns</div>
+              </div>
+              {memLogMsg&&<div style={{fontSize:11,color:T.carb,fontWeight:700}}>{memLogMsg}</div>}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {MOCK_MEMORY_SUGGESTIONS.filter(s=>!skippedMemory.has(s.data.food)).map(({count,data})=>(
+                <div key={data.food} style={{background:T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.food}</div>
+                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>{data.calories} kcal · {data.protein}g protein · logged {count}x</div>
+                  </div>
+                  <div style={{display:"flex",gap:6,flexShrink:0}}>
+                    <button onClick={()=>{setLog(l=>[{...data,id:Date.now(),method:"memory"},...l]);setMemLogMsg(`✓ Logged`);setTimeout(()=>setMemLogMsg(""),2000);}} style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Log</button>
+                    <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:12,cursor:"pointer"}}>Skip</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Weekend Flex Mode */}
+          <div style={{background:T.s1,border:`1px solid ${flexOn?"rgba(245,158,11,.3)":T.bd}`,borderRadius:20,padding:"16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:flexOn?12:0}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:800,letterSpacing:"0.08em",color:flexOn?"#F59E0B":"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:flexOn?3:0}}>Weekend Flex 🍕</div>
+                {flexOn&&<div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Weekday deficit covers weekend. Protein stays fixed.</div>}
+              </div>
+              <div onClick={()=>setFlexOn(f=>!f)} style={{width:44,height:24,borderRadius:12,background:flexOn?"#F59E0B":"rgba(245,245,240,0.15)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:flexOn?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
+                <div style={{width:18,height:18,borderRadius:9,background:"#fff"}}/>
+              </div>
+            </div>
+            {flexOn&&(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
+                {WDAYS.map(day=>{
+                  const isToday=day===todayKey;
+                  const isFlex=["Sat","Sun"].includes(day);
+                  const icon=isFlex?"🍕":MOCK_SCHEDULE[day]==="training"?"🏋️":MOCK_SCHEDULE[day]==="cardio"?"🏃":"😴";
+                  return(
+                    <div key={day} style={{background:isToday?"rgba(41,121,255,.12)":isFlex?"rgba(245,158,11,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(41,121,255,.5)":isFlex?"rgba(245,158,11,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center"}}>
+                      <div style={{fontSize:9,fontWeight:700,color:isToday?"#2979FF":isFlex?"#F59E0B":"rgba(245,245,240,.4)",marginBottom:3,letterSpacing:1}}>{day}</div>
+                      <div style={{fontSize:14}}>{icon}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Food Log */}
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Today's Log</div>
+              <button onClick={()=>setScreen("log")} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Add Food</button>
+            </div>
+            {log.map((item,i)=>(
+              <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<log.length-1?`1px solid rgba(245,245,240,0.05)`:""}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+                  <div style={{width:34,height:34,borderRadius:10,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🧠</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
+                    <div style={{fontSize:10,color:T.mu,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
+                      <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500}}>{item.calories}</div>
+                    <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                  </div>
+                  <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* LOG FOOD */}
+      {screen==="log" && (
+        <div style={{maxWidth:600}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:30,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20}}>AI-powered macro estimation</p>
+          <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:18}}>
+            {[["ai","🧠 AI"],["barcode","📷 Barcode"],["quick","✏️ Quick"]].map(([k,l])=>(
+              <button key={k} onClick={()=>setLogMode(k)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700}}>{l}</button>
+            ))}
+          </div>
+          {logMode==="ai" && (
+            <>
+              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:14,marginBottom:10}}>
+                <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
+              </div>
+              {logMsg && <div style={{background:`${T.prot}12`,border:`1px solid ${T.prot}30`,borderRadius:9,padding:"8px 12px",fontSize:12,color:T.prot,marginBottom:10}}>{logMsg}</div>}
+              <button onClick={mockLogFood} disabled={!foodInput.trim()} style={{width:"100%",padding:15,background:foodInput.trim()?T.prot:T.s3,color:foodInput.trim()?"#fff":T.mu,fontWeight:700,fontSize:15,letterSpacing:1,border:"none",borderRadius:14,cursor:foodInput.trim()?"pointer":"default",textTransform:"uppercase",fontFamily:"'Barlow Condensed',sans-serif"}}>Add to Log →</button>
+            </>
+          )}
+          {logMode==="barcode" && (
+            <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:16,textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:12}}>📷</div>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Scan or Enter Barcode</div>
+              <input placeholder="e.g. 0070038642824" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"11px 13px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"'DM Mono',monospace",letterSpacing:1,marginBottom:12}}/>
+              <button style={{width:"100%",padding:13,background:T.prot,color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Look Up Barcode →</button>
+            </div>
+          )}
+          {logMode==="quick" && (
+            <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:16}}>
+              {[["Name","text","e.g. Protein Shake"],["Calories","number","0"],["Protein (g)","number","0"],["Carbs (g)","number","0"],["Fat (g)","number","0"]].map(([l,t,ph])=>(
+                <div key={l} style={{marginBottom:12}}>
+                  <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
+                  <input type={t} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                </div>
+              ))}
+              <button style={{width:"100%",padding:13,background:T.prot,color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Add Entry →</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* BODY BUDGET */}
+      {screen==="body-budget" && (
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div>
+                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>TODAY'S BODY BUDGET</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,lineHeight:1}}>🏦 {macros.calories.toLocaleString()} kcal</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:10,color:T.mu,letterSpacing:2,textTransform:"uppercase",marginBottom:2}}>Starting</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,.6)"}}>balance</div>
+              </div>
+            </div>
+            {/* Earned */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(0,201,167,0.07)",borderRadius:8,border:"1px solid rgba(0,201,167,0.15)",marginBottom:6}}>
+              <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>💪 Push Day earned</span>
+              <span style={{fontSize:14,fontWeight:700,color:"#00C9A7"}}>+320 kcal</span>
+            </div>
+            {/* Ledger entries */}
+            <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>
+              {log.map((e,i)=>(
+                <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:T.s2,borderRadius:8}}>
+                  <span style={{fontSize:13,color:"rgba(245,245,240,.8)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.food}</span>
+                  <span style={{fontSize:14,fontWeight:700,flexShrink:0,marginLeft:8}}>−{e.calories} kcal</span>
+                </div>
+              ))}
+            </div>
+            <div style={{height:1,background:`linear-gradient(90deg,${T.prot},${T.fat})`,borderRadius:1,marginBottom:14,opacity:.4}}/>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
+              <div>
+                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>Remaining</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:T.prot,lineHeight:1}}>{remaining.calories.toLocaleString()}</div>
+                <div style={{fontSize:11,color:T.mu,marginTop:2}}>kcal · {remaining.protein}g protein still needed</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                {[["P",T.prot,remaining.protein],[" C",T.carb,remaining.carbs],["F",T.fat,remaining.fat]].map(([l,c,v])=>(
+                  <div key={l} style={{fontSize:12,color:c,fontWeight:700}}>{l}: {v}g</div>
+                ))}
+              </div>
+            </div>
+            <div style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+              <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Suggested to close the gap</div>
+              <div style={{fontSize:13,color:"#fff",lineHeight:1.6}}>Cottage cheese 200g + almonds 30g → ~360 kcal · 32g protein · 8g fat</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TRAIN TAB ────────────────────────────────────────────────────────────────
+function TrainTab({profile, schedule, wPrefs, defaultScreen="today"}) {
+  const [screen, setScreen] = useState(defaultScreen);
+  const [favorites, setFavorites] = useState(new Set(["Barbell Bench Press"]));
+
+  const exercises = MOCK_WORKOUT.exercises;
+
+  function toggleFav(name) {
+    setFavorites(prev => {
+      const n = new Set(prev);
+      if (n.has(name)) n.delete(name); else n.add(name);
+      return n;
+    });
+  }
+
+  const SCREENS = [{id:"today",label:"Today"},{id:"program",label:"Program"},{id:"progress",label:"Progress"}];
+
+  const CALENDAR_DATA = (() => {
+    const days = [];
+    const now = new Date();
+    for (let i=29; i>=0; i--) {
+      const d = new Date(now); d.setDate(d.getDate()-i);
+      const dow = d.getDay();
+      const type = dow===0||dow===6?"rest":dow===1||dow===3||dow===5?"training":dow===2?"cardio":"rest";
+      const done = i>0 && type!=="rest" && Math.random()>0.25;
+      days.push({date:d, type, done});
+    }
+    return days;
+  })();
+
+  const trainingDNA = [
+    {label:"Strength", value:78, color:T.prot},
+    {label:"Endurance", value:42, color:T.carb},
+    {label:"Volume", value:85, color:T.fat},
+    {label:"Consistency", value:91, color:T.green},
+    {label:"Recovery", value:67, color:"#9B59FF"},
+    {label:"Nutrition Sync", value:73, color:"#2979FF"},
+  ];
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:0,animation:"fadeIn 0.3s ease"}}>
+      {/* Sub-nav */}
+      <div style={{display:"flex",gap:4,padding:"0 0 16px",overflowX:"auto"}}>
+        {SCREENS.map(s=>(
+          <button key={s.id} onClick={()=>setScreen(s.id)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",background:screen===s.id?T.prot:"none",color:screen===s.id?"#fff":T.mu,fontSize:13,fontWeight:600,whiteSpace:"nowrap",transition:"all 0.15s"}}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TODAY */}
+      {screen==="today" && (
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          {/* Program info */}
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"16px 18px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+              <div>
+                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>CURRENT PROGRAM</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900}}>PPL Strength</div>
+                <div style={{fontSize:12,color:T.mu,marginTop:2}}>Week 4 · Push Day A</div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+                <div style={{background:`${T.carb}15`,border:`1px solid ${T.carb}30`,borderRadius:8,padding:"4px 10px",fontSize:10,color:T.carb,fontWeight:700}}>INTERMEDIATE</div>
+                <div style={{background:`${T.prot}10`,border:`1px solid ${T.prot}25`,borderRadius:8,padding:"4px 10px",fontSize:10,color:T.prot,fontWeight:700}}>Day 4/6</div>
+              </div>
+            </div>
+            {/* Week schedule pills */}
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+              {["Push","Pull","Legs","Push","Pull","Legs"].map((d,i)=>(
+                <div key={i} style={{background:i===3?`${T.prot}20`:T.s2,border:`1px solid ${i===3?T.prot:T.bd}`,borderRadius:8,padding:"4px 10px",fontSize:11,color:i===3?T.prot:"#ccc",fontWeight:i===3?700:400}}>{d}</div>
+              ))}
+            </div>
+          </div>
+
+          {/* Exercise list */}
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,overflow:"hidden"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px",borderBottom:`1px solid ${T.bd}`}}>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Push Day A</div>
+              <button onClick={()=>alert("Adapt Now: Choose Injury, Travel, Recovery, or Cycle Sync to auto-modify your program. 2 adaptations/month.")} style={{background:`${T.fat}10`,border:`1px solid ${T.fat}30`,color:"#F59E0B",borderRadius:10,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⚡ Adapt Now</button>
+            </div>
+            <div style={{padding:"12px 18px",display:"flex",flexDirection:"column",gap:8}}>
+              {exercises.map((ex,i)=>(
+                <div key={i} style={{background:T.s2,borderRadius:14,padding:"14px 16px",border:`1px solid ${T.bd}`,position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:T.prot,borderRadius:"3px 0 0 3px"}}/>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:3}}>{ex.name}</div>
+                      <div style={{fontSize:11,color:T.mu}}>{ex.notes}</div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                      <div style={{textAlign:"center",background:T.s3,borderRadius:8,padding:"6px 10px"}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.carb,lineHeight:1}}>{ex.sets.length}</div>
+                        <div style={{fontSize:8,color:T.mu}}>sets</div>
+                      </div>
+                      <div style={{textAlign:"center",background:T.s3,borderRadius:8,padding:"6px 10px"}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,lineHeight:1}}>{ex.sets[0].reps}</div>
+                        <div style={{fontSize:8,color:T.mu}}>reps</div>
+                      </div>
+                      <div style={{textAlign:"center",background:T.s3,borderRadius:8,padding:"6px 10px"}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.prot,lineHeight:1}}>{ex.sets[0].weight}</div>
+                        <div style={{fontSize:8,color:T.mu}}>lbs</div>
+                      </div>
+                      <button onClick={()=>toggleFav(ex.name)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:4,color:favorites.has(ex.name)?"#F59E0B":"rgba(245,245,240,0.2)"}}>{favorites.has(ex.name)?"★":"☆"}</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:"0 18px 16px"}}>
+              <button style={{width:"100%",padding:"14px",background:T.prot,color:"#fff",fontWeight:700,fontSize:15,letterSpacing:1,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase"}}>▶ Start Session</button>
+            </div>
+          </div>
+
+          {/* Skill badges */}
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"16px 18px"}}>
+            <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:12}}>Skill Levels</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {[["Weightlifting","INTERMEDIATE",T.fat],["Running","BEGINNER",T.carb],["Nutrition","ADVANCED",T.green]].map(([sport,level,c])=>(
+                <div key={sport} style={{background:`${c}12`,border:`1px solid ${c}30`,borderRadius:10,padding:"8px 14px"}}>
+                  <div style={{fontSize:9,color:c,fontWeight:700,letterSpacing:".1em",marginBottom:3}}>{level}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{sport}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Adapt Now */}
+          <div style={{background:T.s1,border:"1px solid rgba(245,158,11,0.25)",borderRadius:18,padding:"16px 18px"}}>
+            <div style={{fontSize:10,color:"#F59E0B",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>ADAPT NOW SYSTEM</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,marginBottom:6}}>Life Disruption? Adapt Your Training.</div>
+            <div style={{fontSize:12,color:T.mu,marginBottom:14,lineHeight:1.6}}>Injury, travel, fatigue, or female health cycle — Coach Macro adjusts your program automatically. 2 adaptations per month.</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[["🤕","Injury","Modify around limitation"],["✈️","Travel","Hotel/bodyweight program"],["😴","Recovery","Deload week protocol"],["🌙","Cycle Sync","Adjust by phase"]].map(([e,l,d])=>(
+                <button key={l} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:"12px",textAlign:"left",cursor:"pointer",fontFamily:"inherit"}}>
+                  <div style={{fontSize:20,marginBottom:6}}>{e}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{l}</div>
+                  <div style={{fontSize:10,color:T.mu}}>{d}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROGRAM */}
+      {screen==="program" && (
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"16px 18px"}}>
+            <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:14}}>Program Library</div>
+            {[
+              {name:"PPL Strength",cat:"Hypertrophy",level:"Intermediate",days:"6 days/week",current:true},
+              {name:"Upper/Lower Power",cat:"Strength",level:"Intermediate",days:"4 days/week",current:false},
+              {name:"5K Beginner",cat:"Running",level:"Beginner",days:"3 days/week",current:false},
+              {name:"Hyrox Prep 12W",cat:"Hyrox",level:"Advanced",days:"5 days/week",current:false},
+              {name:"Full Body Recomp",cat:"Fat Loss",level:"Beginner",days:"3 days/week",current:false},
+            ].map((prog)=>(
+              <div key={prog.name} style={{background:prog.current?`${T.prot}08`:T.s2,border:`1.5px solid ${prog.current?T.prot:T.bd}`,borderRadius:12,padding:"14px 16px",marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div>
+                    <div style={{fontSize:15,fontWeight:700,color:prog.current?T.prot:"#fff",marginBottom:3}}>{prog.name}</div>
+                    <div style={{fontSize:11,color:T.mu}}>{prog.cat} · {prog.days}</div>
+                  </div>
+                  {prog.current
+                    ?<div style={{fontSize:11,fontWeight:700,color:T.prot,background:`${T.prot}10`,border:`1px solid ${T.prot}30`,borderRadius:8,padding:"4px 10px"}}>ACTIVE</div>
+                    :<button style={{fontSize:11,fontWeight:700,color:T.carb,background:`${T.carb}10`,border:`1.5px solid ${T.carb}30`,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontFamily:"inherit"}}>Switch →</button>
+                  }
+                </div>
+                <div style={{background:`${({Beginner:T.green,Intermediate:T.fat,Advanced:T.prot}[prog.level]||T.mu)}15`,border:`1px solid ${({Beginner:T.green,Intermediate:T.fat,Advanced:T.prot}[prog.level]||T.mu)}30`,borderRadius:6,padding:"2px 8px",fontSize:9,color:{Beginner:T.green,Intermediate:T.fat,Advanced:T.prot}[prog.level]||T.mu,fontWeight:700,display:"inline-block"}}>{prog.level.toUpperCase()}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Race Predictor — Hybrid/Runner section */}
+          <div style={{background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.25)",borderRadius:18,padding:"16px 18px"}}>
+            <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>RACE PREDICTOR</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,marginBottom:6}}>Estimate Your Finish Time</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              {[["5K","22:30"],["10K","47:20"],["Half Marathon","1:46:00"],["Marathon","3:52:00"]].map(([race,time])=>(
+                <div key={race} style={{background:T.s1,borderRadius:10,padding:"12px 14px"}}>
+                  <div style={{fontSize:11,color:T.mu,marginBottom:3}}>{race}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#2979FF"}}>{time}</div>
+                  <div style={{fontSize:9,color:T.mu,marginTop:2}}>predicted</div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:11,color:T.mu}}>Based on your recent training data and VO2max estimate</div>
+          </div>
+        </div>
+      )}
+
+      {/* PROGRESS */}
+      {screen==="progress" && (
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          {/* Performance Calendar */}
+          <SectionCard title="Performance Calendar">
+            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:8}}>
+              {["S","M","T","W","T","F","S"].map((d,i)=>(
+                <div key={i} style={{fontSize:9,color:T.mu,fontWeight:700,textAlign:"center",paddingBottom:4}}>{d}</div>
+              ))}
+              {CALENDAR_DATA.map((d,i)=>{
+                const c=d.done?(d.type==="training"?T.prot:d.type==="cardio"?T.carb:T.green):d.type==="rest"?"rgba(245,245,240,0.05)":"rgba(245,245,240,0.05)";
+                const isToday=i===CALENDAR_DATA.length-1;
+                return(
+                  <div key={i} style={{aspectRatio:"1",borderRadius:6,background:c,border:isToday?`1.5px solid ${T.prot}`:"none",position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {isToday&&<div style={{width:4,height:4,borderRadius:2,background:T.prot,position:"absolute",bottom:3}}/>}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              {[[T.prot,"Strength"],[T.carb,"Cardio"],[T.green,"Active Rest"],["rgba(245,245,240,0.08)","Rest/Missed"]].map(([c,l])=>(
+                <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
+                  <div style={{width:10,height:10,borderRadius:3,background:c,flexShrink:0}}/>
+                  <span style={{fontSize:10,color:T.mu}}>{l}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          {/* Athlete Passport */}
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,overflow:"hidden"}}>
+            <div style={{padding:"14px 18px",borderBottom:`1px solid ${T.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Athlete Passport</div>
+              <button style={{background:`${T.carb}10`,border:`1px solid ${T.carb}25`,color:T.carb,borderRadius:10,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Share ↗</button>
+            </div>
+            <div style={{padding:"16px 18px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${T.bd}`}}>
+                <div style={{width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg,${T.prot},${T.fat})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>💪</div>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900}}>{MOCK_PROFILE.name.toUpperCase()}</div>
+                  <div style={{fontSize:11,color:T.mu}}>185 lbs · Cut Phase · Week 4</div>
+                  <div style={{display:"flex",gap:6,marginTop:4}}>
+                    <div style={{background:`${T.fat}15`,border:`1px solid ${T.fat}30`,borderRadius:6,padding:"2px 8px",fontSize:9,color:"#F59E0B",fontWeight:700}}>INTERMEDIATE</div>
+                    <div style={{background:`${T.carb}10`,border:`1px solid ${T.carb}25`,borderRadius:6,padding:"2px 8px",fontSize:9,color:T.carb,fontWeight:700}}>PPL</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                {[["🔥","Streak","12 days"],["💪","Sessions","47"],["📈","Volume PR","18,500 lbs"],["🏆","PRs Set","8"],["⏱️","Avg Duration","58 min"],["🎯","Compliance","84%"]].map(([e,l,v])=>(
+                  <div key={l} style={{background:T.s2,borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+                    <div style={{fontSize:18,marginBottom:4}}>{e}</div>
+                    <div style={{fontSize:11,color:T.mu,marginBottom:2}}>{l}</div>
+                    <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Training DNA */}
+          <SectionCard title="Training DNA">
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {trainingDNA.map(({label,value,color})=>(
+                <div key={label}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                    <span style={{fontSize:12,fontWeight:600,color:"#ccc"}}>{label}</span>
+                    <span style={{fontSize:12,fontWeight:700,color,fontFamily:"'DM Mono',monospace"}}>{value}</span>
+                  </div>
+                  <div style={{height:6,background:T.s3,borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${value}%`,background:color,borderRadius:3,transition:"width .5s"}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SETTINGS TAB ─────────────────────────────────────────────────────────────
+function SettingsTab({profile, schedule, wPrefs, setWPrefs}) {
+  const [briefPreviewMsg, setBriefPreviewMsg] = useState("");
+  const [nutritionPeriodization, setNutritionPeriodization] = useState(wPrefs.nutritionPeriodization||true);
+  const [macroMemory, setMacroMemory] = useState(wPrefs.macroMemory||true);
+  const [morningBrief, setMorningBrief] = useState(wPrefs.morningBriefEnabled||true);
+
+  function previewBrief() {
+    setBriefPreviewMsg("✓ Morning brief will appear next time you open the app before noon.");
+    setTimeout(()=>setBriefPreviewMsg(""),3000);
+  }
+
+  const DAY_CFG = {
+    training:{label:"Training",emoji:"💪",color:T.prot,bg:`${T.prot}18`},
+    cardio:{label:"Cardio",emoji:"🏃",color:T.carb,bg:`${T.carb}18`},
+    rest:{label:"Rest",emoji:"😴",color:T.mu,bg:"rgba(245,245,240,0.05)"},
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14,animation:"fadeIn 0.3s ease"}}>
+      {/* Profile Card */}
+      <SectionCard title="Your Profile">
+        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${T.bd}`}}>
+          <div style={{width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg,${T.prot},${T.fat})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>💪</div>
+          <div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900}}>{profile.name}</div>
+            <div style={{fontSize:11,color:T.mu}}>{profile.weight} {profile.wUnit} · {profile.sex} · Intermediate</div>
+            <div style={{fontSize:11,color:T.prot,marginTop:2,fontWeight:600}}>{profile.goal} Phase · {profile.goalCals} kcal/day</div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {[["Goal",profile.goal+" Phase",T.prot],["Daily Cals",`${profile.goalCals} kcal`,T.fat],["TDEE",`${profile.baseTDEE} kcal`,T.carb],["Program","PPL Strength",T.green]].map(([l,v,c])=>(
+            <div key={l} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+              <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{l}</div>
+              <div style={{fontSize:14,fontWeight:700,color:c}}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      {/* Training Schedule */}
+      <SectionCard title="Weekly Schedule">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,marginBottom:14}}>
+          {WDAYS.map(day=>{
+            const type=schedule[day]||"rest";
+            const cfg=DAY_CFG[type]||DAY_CFG.rest;
+            const isToday=day===getTodayKey();
+            return(
+              <div key={day} style={{background:isToday?`${cfg.color}20`:cfg.bg,border:`1.5px solid ${isToday?cfg.color:"rgba(245,245,240,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer"}}>
+                <div style={{fontSize:9,fontWeight:700,color:isToday?cfg.color:T.mu,marginBottom:3,letterSpacing:1}}>{day}</div>
+                <div style={{fontSize:16}}>{cfg.emoji}</div>
+                <div style={{fontSize:8,color:T.mu,marginTop:2}}>{cfg.label}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {Object.entries(DAY_CFG).map(([type,cfg])=>(
+            <div key={type} style={{display:"flex",alignItems:"center",gap:5}}>
+              <div style={{width:8,height:8,borderRadius:2,background:cfg.color,flexShrink:0}}/>
+              <span style={{fontSize:10,color:T.mu}}>{cfg.label}</span>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      {/* App Preferences */}
+      <SectionCard title="App Preferences">
+        <Toggle on={morningBrief} onChange={setMorningBrief} label="Morning Brief" sub="AI coaching message every morning"/>
+        <Toggle on={nutritionPeriodization} onChange={setNutritionPeriodization} label="Nutrition Periodization" sub="Cycle macros with your 8-week program"/>
+        <Toggle on={macroMemory} onChange={setMacroMemory} label="Macro Memory" sub="Suggest foods based on past patterns"/>
+        <div style={{paddingTop:14}}>
+          <button onClick={previewBrief} style={{width:"100%",padding:"12px",background:`${T.prot}10`,border:`1px solid ${T.prot}30`,color:T.prot,fontWeight:700,fontSize:13,borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Preview Morning Brief →</button>
+          {briefPreviewMsg&&<div style={{fontSize:12,color:T.green,marginTop:8,textAlign:"center"}}>{briefPreviewMsg}</div>}
+        </div>
+      </SectionCard>
+
+      {/* Program info */}
+      <SectionCard title="Training Setup">
+        {[["Split","Push/Pull/Legs"],["Equipment","Full Gym"],["Session Length","60 min"],["Experience","Intermediate"]].map(([l,v])=>(
+          <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:`1px solid ${T.bd}`}}>
+            <span style={{fontSize:13,color:T.mu}}>{l}</span>
+            <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{v}</span>
+          </div>
+        ))}
+      </SectionCard>
+
+      {/* Sign out */}
+      <button style={{width:"100%",padding:"14px",background:"rgba(232,52,28,0.08)",border:`1px solid rgba(232,52,28,0.25)`,color:T.prot,fontWeight:700,fontSize:14,borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Sign Out</button>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState("home");
+  const [log, setLog] = useState(MOCK_FOOD_LOG);
+  const [wPrefs, setWPrefs] = useState(MOCK_WPREFS);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 769);
+
+  useEffect(()=>{
+    const handler=()=>setIsMobile(window.innerWidth<769);
+    window.addEventListener("resize",handler);
+    return()=>window.removeEventListener("resize",handler);
+  },[]);
+
+  const todayKey = getTodayKey();
+  const todayType = MOCK_SCHEDULE[todayKey]||"rest";
+  const todayFocus = {Mon:"Push",Tue:"Rest",Wed:"Pull",Thu:"Cardio",Fri:"Legs",Sat:"Push",Sun:"Rest"}[todayKey]||"Training";
+
+  // Macros
+  const goalCals = 2400;
+  const macroMultiplier = todayType==="training"?1.05:todayType==="cardio"?0.90:0.75;
+  const macros = {
+    calories: Math.round(goalCals * macroMultiplier),
+    protein: 185,
+    carbs: todayType==="training"?220:todayType==="cardio"?180:140,
+    fat: 58,
+  };
+  const consumed = log.reduce((a,i)=>({
+    calories:a.calories+(i.calories||0),
+    protein:a.protein+(i.protein||0),
+    carbs:a.carbs+(i.carbs||0),
+    fat:a.fat+(i.fat||0)
+  }),{calories:0,protein:0,carbs:0,fat:0});
+  const remaining = {
+    calories:macros.calories-consumed.calories,
+    protein:macros.protein-consumed.protein,
+    carbs:macros.carbs-consumed.carbs,
+    fat:macros.fat-consumed.fat
+  };
+
+  const NAV = [
+    {id:"home",   label:"Home",     icon:"🏠", color:T.prot},
+    {id:"fuel",   label:"Fuel",     icon:"⚡", color:T.prot},
+    {id:"train",  label:"Train",    icon:"💪", color:T.carb},
+    {id:"progress",label:"Progress",icon:"📈", color:T.green},
+    {id:"settings",label:"Settings",icon:"⚙️", color:T.mu},
+  ];
+
+  return (
+    <div style={{display:"flex",height:"100vh",overflow:"hidden",background:T.bg}}>
+      {/* Desktop sidebar */}
+      {!isMobile && (
+        <aside style={{width:240,flexShrink:0,background:T.s1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{padding:"24px 20px 20px"}}>
+            <Logo size={30}/>
+          </div>
+          <div style={{padding:"0 12px",flex:1}}>
+            {NAV.map(item=>(
+              <button key={item.id} onClick={()=>setTab(item.id)}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:4,
+                  background:tab===item.id?`${T.prot}12`:"none",
+                  color:tab===item.id?T.white:T.mu,
+                  fontSize:15,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",
+                  borderLeft:tab===item.id?`3px solid ${T.prot}`:"3px solid transparent",
+                  transition:"all 0.15s"}}>
+                <span style={{fontSize:16}}>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {/* Sidebar stats */}
+          <div style={{padding:16,borderTop:`1px solid ${T.bd}`}}>
+            <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,fontFamily:"'DM Mono',monospace"}}>Today</div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:12,color:T.mu}}>Calories</span>
+              <span style={{fontSize:12,fontWeight:700,color:remaining.calories<0?T.red:"#fff"}}>{remaining.calories} left</span>
+            </div>
+            {[[T.prot,"P",consumed.protein,macros.protein],[T.carb,"C",consumed.carbs,macros.carbs],[T.fat,"F",consumed.fat,macros.fat]].map(([c,l,v,t])=>(
+              <div key={l} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                <span style={{fontSize:10,fontWeight:700,color:c,width:10}}>{l}</span>
+                <div style={{flex:1,height:3,background:T.s3,borderRadius:2,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${Math.min(v/t,1)*100}%`,background:c,borderRadius:2}}/>
+                </div>
+                <span style={{fontSize:10,color:T.mu,minWidth:28,textAlign:"right"}}>{t-v}g</span>
+              </div>
+            ))}
+          </div>
+        </aside>
+      )}
+
+      {/* Main content */}
+      <main style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",minWidth:0}}>
+        {/* Mobile top bar */}
+        {isMobile && (
+          <div style={{padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${T.bd}`,flexShrink:0,background:T.s1,position:"sticky",top:0,zIndex:40}}>
+            <Logo size={24}/>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <div style={{background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:20,padding:"4px 10px",color:T.prot,fontSize:9,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>💪 {todayFocus.slice(0,8).toUpperCase()}</div>
+              <div style={{background:`${T.prot}15`,borderRadius:20,padding:"4px 10px",fontSize:9,fontWeight:700,color:"#fff",fontFamily:"'DM Mono',monospace"}}>🔥 12d</div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop top bar */}
+        {!isMobile && (
+          <div style={{padding:"20px 32px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+            <div>
+              <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,fontStyle:"italic",textTransform:"uppercase",color:T.white,marginTop:2}}>Hey, {MOCK_PROFILE.name}</div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <div style={{background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:20,padding:"5px 14px",color:T.prot,fontSize:10,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>💪 {todayType.toUpperCase()} DAY</div>
+              <div style={{background:`${T.green}10`,border:`1px solid ${T.green}25`,borderRadius:20,padding:"5px 14px",color:T.green,fontSize:10,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>🔥 12 DAY STREAK</div>
+            </div>
+          </div>
+        )}
+
+        {/* Content area */}
+        <div style={{flex:1,padding:isMobile?"12px 16px 12px":"20px 32px 24px",overflowY:isMobile?"auto":"visible"}}>
+          {tab==="home"    && <HomeTab profile={MOCK_PROFILE} schedule={MOCK_SCHEDULE} wPrefs={wPrefs} macros={macros} consumed={consumed} remaining={remaining} log={log} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus}/>}
+          {tab==="fuel"    && <FuelTab macros={macros} consumed={consumed} remaining={remaining} log={log} setLog={setLog} wPrefs={wPrefs} setWPrefs={setWPrefs} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus}/>}
+          {tab==="train"   && <TrainTab profile={MOCK_PROFILE} schedule={MOCK_SCHEDULE} wPrefs={wPrefs} defaultScreen="today"/>}
+          {tab==="progress"&& <TrainTab profile={MOCK_PROFILE} schedule={MOCK_SCHEDULE} wPrefs={wPrefs} defaultScreen="progress"/>}
+          {tab==="settings"&& <SettingsTab profile={MOCK_PROFILE} schedule={MOCK_SCHEDULE} wPrefs={wPrefs} setWPrefs={setWPrefs}/>}
+        </div>
+
+        {/* Mobile bottom nav */}
+        {isMobile && (
+          <div style={{position:"sticky",bottom:0,background:"rgba(10,14,26,0.92)",backdropFilter:"blur(28px) saturate(180%)",WebkitBackdropFilter:"blur(28px) saturate(180%)",borderTop:"1px solid rgba(245,245,240,0.06)",display:"flex",zIndex:50,flexShrink:0,padding:"8px 8px 20px",paddingBottom:"max(20px,env(safe-area-inset-bottom))"}}>
+            {NAV.map(item=>(
+              <button key={item.id} onClick={()=>setTab(item.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"8px 4px",minHeight:52,display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative",color:tab===item.id?T.white:"rgba(245,245,240,0.4)",transition:"color 0.2s"}}>
+                <div style={{position:"relative"}}>
+                  {tab===item.id&&<div style={{position:"absolute",inset:"-8px -14px",background:"radial-gradient(circle,rgba(232,52,28,0.25),transparent 70%)",zIndex:-1,pointerEvents:"none"}}/>}
+                  <div style={{fontSize:20}}>{item.icon}</div>
+                </div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:"0.1em",textTransform:"uppercase",color:tab===item.id?T.prot:"rgba(245,245,240,0.4)"}}>{item.label}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
