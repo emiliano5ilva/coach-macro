@@ -175,7 +175,7 @@ export default async function handler(req, res) {
         console.log('8 - updating existing unconfirmed row');
         const { error: updateError } = await supabase
           .from('waitlist')
-          .update({ first_name: firstName?.trim() || null, token: newToken })
+          .update({ first_name: firstName?.trim() || null, confirm_token: newToken })
           .eq('email', normalizedEmail);
         console.log('9 - update error:', updateError);
       } else {
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
           .insert({
             email: normalizedEmail,
             first_name: firstName?.trim() || null,
-            token: newToken,
+            confirm_token: newToken,
             confirmed: false,
             created_at: new Date().toISOString(),
           });
@@ -226,7 +226,7 @@ export default async function handler(req, res) {
       const { data, error: lookupError } = await supabase
         .from('waitlist')
         .select('*')
-        .eq('token', token)
+        .eq('confirm_token', token)
         .maybeSingle();
       console.log('6 - lookup result:', data, 'error:', lookupError);
 
@@ -241,7 +241,7 @@ export default async function handler(req, res) {
         await supabase
           .from('waitlist')
           .update({ confirmed: true, confirmed_at: new Date().toISOString() })
-          .eq('token', token);
+          .eq('confirm_token', token);
         console.log('9 - sending thank-you email');
         await sendEmail(
           data.email,
