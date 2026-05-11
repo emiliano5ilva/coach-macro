@@ -1301,6 +1301,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:isMobile?"100%":740}}>
             <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
             {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
+            <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
 
             {/* Program Progress Card */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
@@ -1399,6 +1400,142 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ─── TRAINING DNA ────────────────────────────────────────────────────────────
+function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
+  const [sessions,setSessions]=useState([]);
+  const [foodLogs,setFoodLogs]=useState([]);
+  const [loaded,setLoaded]=useState(false);
+  const dnaRef=useRef(null);
+  const [sharing,setSharing]=useState(false);
+
+  const startD=profile?.startDate?new Date(profile.startDate):new Date();
+  const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
+
+  useEffect(()=>{
+    if(!user)return;
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+    const cutStr=cutoff.toISOString().split("T")[0];
+    Promise.all([
+      sb.from("workout_logs").select("*").eq("user_id",user.id).gte("date",cutStr).order("date",{ascending:false}),
+      sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutStr).order("date",{ascending:false}),
+    ]).then(([{data:wl},{data:fl}])=>{
+      setSessions(wl||[]);setFoodLogs(fl||[]);setLoaded(true);
+    });
+  },[user]);
+
+  if(!loaded)return null;
+  if(daysSince<30){
+    return(
+      <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,marginBottom:8}}>YOUR TRAINING DNA</div>
+        <div style={{textAlign:"center",padding:"24px",color:T.mu}}>
+          <div style={{fontSize:32,marginBottom:12}}>🧬</div>
+          <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>Unlocks after 30 days</div>
+          <div style={{fontSize:12,color:T.dim}}>Keep training — {30-daysSince} days to go</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Score calculations
+  const totalSessions=sessions.length;
+  const strengthSessions=sessions.filter(w=>!w.workout?.focus?.toLowerCase().includes("run")&&w.workout?.type!=="running").length;
+  const cardioSessions=sessions.length-strengthSessions;
+  const strengthBias=Math.min(100,Math.round((strengthSessions/Math.max(1,totalSessions))*100*1.4));
+  const enduranceBase=Math.min(100,Math.round((cardioSessions/Math.max(1,totalSessions))*100*2));
+  const volumePerSession=sessions.reduce((sum,w)=>{
+    let v=0;(w.workout?.exercises||[]).forEach(ex=>(ex.sets||[]).forEach(s=>{const wt=parseFloat(s.weight||0);const r=parseInt(s.reps||0);if(wt>0&&r>0)v+=wt*r;}));
+    return sum+v;
+  },0)/Math.max(1,totalSessions);
+  const powerOutput=Math.min(100,Math.round((volumePerSession/3000)*100));
+  const scheduledDays=Object.values(schedule||{}).filter(v=>v==="training").length;
+  const expectedSessions=scheduledDays*4;
+  const consistency=Math.min(100,Math.round((totalSessions/Math.max(1,expectedSessions))*100));
+  const daysWithFood=foodLogs.filter(f=>f.entries?.length>0).length;
+  const nutritionAdherence=Math.min(100,Math.round((daysWithFood/30)*100));
+  const recoveryEfficiency=Math.min(100,Math.max(0,Math.round(consistency*0.7+powerOutput*0.3)));
+
+  // Athlete type
+  const isIronDiscipline=consistency>85;
+  const isHybrid=strengthBias>60&&enduranceBase>60;
+  const isStrength=strengthBias>70&&enduranceBase<50;
+  const isEndurance=enduranceBase>70&&strengthBias<50;
+  const allLow=strengthBias<50&&enduranceBase<50&&powerOutput<50&&consistency<50;
+  const athleteType=allLow?"ATHLETE IN PROGRESS":isIronDiscipline?"IRON DISCIPLINE ATHLETE":isHybrid?"HYBRID ATHLETE":isStrength?"STRENGTH ATHLETE":isEndurance?"ENDURANCE ATHLETE":"BALANCED ATHLETE";
+
+  const metrics=[
+    {label:"Strength Bias",score:strengthBias},
+    {label:"Endurance Base",score:enduranceBase},
+    {label:"Power Output",score:powerOutput},
+    {label:"Recovery Efficiency",score:recoveryEfficiency},
+    {label:"Consistency",score:consistency},
+    {label:"Nutrition Adherence",score:nutritionAdherence},
+  ];
+  const highest=metrics.reduce((a,b)=>a.score>b.score?a:b);
+  const lowest=metrics.reduce((a,b)=>a.score<b.score?a:b);
+  const RECS={
+    "Strength Bias":"Add one more strength day per week to compound your gains.",
+    "Endurance Base":"Schedule a weekly long run to build your aerobic engine.",
+    "Power Output":"Prioritize heavy compound lifts — squat, deadlift, press.",
+    "Recovery Efficiency":"Build a deload week every 4th week to reset adaptation.",
+    "Consistency":"Focus on showing up — frequency matters more than intensity.",
+    "Nutrition Adherence":"Log food every day this week — even estimates count.",
+  };
+
+  function barColor(score){return score>=75?"#00C9A7":score>=50?"#F59E0B":"#FF4D6D";}
+
+  async function shareDNA(){
+    if(!dnaRef.current)return;
+    setSharing(true);
+    try{
+      const html2canvas=(await import("html2canvas")).default;
+      const canvas=await html2canvas(dnaRef.current,{backgroundColor:"#060D1A",scale:2,useCORS:true,logging:false});
+      canvas.toBlob(async blob=>{
+        if(!blob)return;
+        const file=new File([blob],"training-dna.png",{type:"image/png"});
+        if(navigator.share&&navigator.canShare?.({files:[file]})){
+          await navigator.share({files:[file],title:"My Training DNA",text:"My Coach Macro Training DNA"});
+        }else{const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="training-dna.png";a.click();URL.revokeObjectURL(url);}
+      });
+    }catch(e){console.error("[shareDNA]",e);}
+    setSharing(false);
+  }
+
+  return(
+    <div>
+      <div ref={dnaRef} style={{background:"#060D1A",border:"1px solid rgba(245,245,240,.1)",borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
+        <div style={{position:"absolute",display:"none"}}></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,letterSpacing:.5}}>TRAINING DNA</div>
+            <div style={{fontSize:12,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginTop:2}}>{athleteType}</div>
+          </div>
+          <div style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace",textAlign:"right"}}>LAST 30 DAYS<br/>{totalSessions} sessions</div>
+        </div>
+        {metrics.map(({label,score})=>(
+          <div key={label} style={{marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+              <span style={{fontSize:12,color:"rgba(245,245,240,.7)"}}>{label}</span>
+              <span style={{fontSize:12,fontWeight:700,color:barColor(score)}}>{score}</span>
+            </div>
+            <div style={{height:6,background:"rgba(245,245,240,.08)",borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${score}%`,background:barColor(score),borderRadius:3,transition:"width 1s ease"}}/>
+            </div>
+          </div>
+        ))}
+        <div style={{marginTop:18,borderTop:"1px solid rgba(245,245,240,.08)",paddingTop:14,display:"flex",flexDirection:"column",gap:6}}>
+          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:"#00C9A7",fontWeight:700}}>Your strength:</span> {highest.label} ({highest.score})</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:"#FF4D6D",fontWeight:700}}>Your gap:</span> {lowest.label} ({lowest.score})</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:T.prot,fontWeight:700}}>Recommended:</span> {RECS[lowest.label]}</div>
+        </div>
+      </div>
+      <button onClick={shareDNA} disabled={sharing} style={{marginTop:10,width:"100%",padding:"13px",background:T.s3,border:`1px solid ${T.bd}`,color:"#fff",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",opacity:sharing?.6:1}}>
+        {sharing?"Generating...":"Share DNA"}
+      </button>
     </div>
   );
 }
