@@ -880,6 +880,33 @@ export function MuscleMap({dayFocus, isMobile}) {
   );
 }
 
+export function getTier(count) {
+  if(count>=10)return 4;
+  if(count>=5)return 3;
+  if(count>=3)return 2;
+  if(count>=1)return 1;
+  return 0;
+}
+
+export function getReferralBadge(count) {
+  if(count>=5)return 'VERIFIED';
+  if(count>=1)return 'VIP';
+  return null;
+}
+
+export function Badge({type}) {
+  const styles={
+    PRO:{bg:'#2979FF',text:'PRO'},
+    VIP:{bg:'#FFD740',text:'VIP',textColor:'#000'},
+    VERIFIED:{bg:'#00E676',text:'VERIFIED ✓',textColor:'#000'}
+  };
+  const s=styles[type];
+  if(!s)return null;
+  return(
+    <span style={{background:s.bg,color:s.textColor||'#fff',fontSize:10,fontWeight:900,letterSpacing:1.5,padding:'3px 8px',borderRadius:6,marginLeft:6,fontFamily:"'Barlow Condensed',sans-serif",display:"inline-block"}}>{s.text}</span>
+  );
+}
+
 export function FAQItem({q, a}) {
   const [open, setOpen] = React.useState(false);
   return (

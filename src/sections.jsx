@@ -3,7 +3,8 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
-  calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros } from "./components.jsx";
+  calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
+  Badge, getTier, getReferralBadge } from "./components.jsx";
 import { sb } from "./client.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS } from "./running_programs.js";
@@ -1932,14 +1933,25 @@ export function AthletePassport({profile,wPrefs,user,isMobile}){
   const memberSince=profile?.startDate?new Date(profile.startDate).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"—";
   const athleteType=wPrefs.isHyrox&&wPrefs.isHybrid?"HYBRID ATHLETE":wPrefs.isHyrox?"HYROX ATHLETE":wPrefs.isHybrid?"HYBRID ATHLETE":(wPrefs.splitType||"").toLowerCase().includes("run")?"ENDURANCE ATHLETE":"STRENGTH ATHLETE";
   const firstName=(profile?.name||"ATHLETE").split(" ")[0].toUpperCase();
+  const refCount=profile?.referralCount||0;
+  const isPro=!!profile?.is_pro;
+  const refBadge=getReferralBadge(refCount);
+  const watermarkText=refBadge||(isPro?"PRO":athleteType.split(" ")[0]);
 
   return(
     <div>
       <div ref={passportRef} style={{background:"#060D1A",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:isMobile?"20px 18px":"28px 32px",fontFamily:"'Barlow Condensed',sans-serif",overflow:"hidden",position:"relative"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${T.prot},${T.fat},${T.carb})`}}/>
-        <div style={{marginBottom:20}}>
-          <div style={{fontSize:isMobile?32:40,fontWeight:900,letterSpacing:1,color:"#fff",lineHeight:1}}>{firstName}</div>
-          <div style={{fontSize:12,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginTop:2}}>{athleteType}</div>
+        <div style={{position:"absolute",bottom:44,right:isMobile?-8:-12,fontSize:isMobile?72:90,fontWeight:900,color:"rgba(245,245,240,0.04)",letterSpacing:-2,lineHeight:1,pointerEvents:"none",userSelect:"none",fontFamily:"'Barlow Condensed',sans-serif",zIndex:0}}>{watermarkText}</div>
+        <div style={{marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative",zIndex:1}}>
+          <div>
+            <div style={{fontSize:isMobile?32:40,fontWeight:900,letterSpacing:1,color:"#fff",lineHeight:1}}>{firstName}</div>
+            <div style={{fontSize:12,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginTop:2}}>{athleteType}</div>
+          </div>
+          {(isPro||refBadge)&&<div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",paddingTop:4}}>
+            {isPro&&<Badge type="PRO"/>}
+            {refBadge&&<Badge type={refBadge}/>}
+          </div>}
         </div>
         <div style={{height:1,background:"rgba(245,245,240,0.1)",marginBottom:16}}/>
         {stats?[
@@ -2084,11 +2096,26 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const maxW=Math.max(...allWeights)+3;
   const xScale=(d)=>(d/CDAYS)*100;
   const yScale=(w)=>100-((w-minW)/(maxW-minW))*100;
+  const refCount=profile?.referralCount||0;
+  const isPro=!!profile?.is_pro;
+  const refBadge=getReferralBadge(refCount);
+  const tier=getTier(refCount);
 
   return (
     <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?80:0}}>
       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>SETTINGS</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Your profile, program, and account</p>
+      <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:14}}>
+        <div style={{width:46,height:46,borderRadius:23,background:`${T.prot}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:T.prot,fontFamily:"'Barlow Condensed',sans-serif",flexShrink:0}}>{(profile?.name||"A")[0].toUpperCase()}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:0}}>
+            <span style={{fontSize:18,fontWeight:900,fontFamily:"'Barlow Condensed',sans-serif",color:"#fff"}}>{profile?.name||"Athlete"}</span>
+            {isPro&&<Badge type="PRO"/>}
+            {refBadge&&<Badge type={refBadge}/>}
+          </div>
+          <div style={{fontSize:12,color:T.mu,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user?.email||""}</div>
+        </div>
+      </div>
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
 
         {/* Weight Trend Chart */}
@@ -2242,14 +2269,54 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </div>
         </SectionCard>
 
-        {/* Referral Code */}
+        {/* Refer a Friend */}
         {profile.referralCode&&<SectionCard title="Refer a Friend">
-          <div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:12}}>Share your code. Your friend gets 30 days free on signup — and so do you.</div>
-          <div style={{background:T.s2,border:`2px dashed ${T.prot}`,borderRadius:12,padding:"16px",textAlign:"center",marginBottom:12}}>
+          {(isPro||refBadge)&&<div style={{display:"flex",alignItems:"center",gap:4,marginBottom:12,flexWrap:"wrap"}}>
+            <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.12em"}}>EARNED:</span>
+            {isPro&&<Badge type="PRO"/>}
+            {refBadge&&<Badge type={refBadge}/>}
+          </div>}
+          <div style={{background:T.s2,border:`2px dashed ${T.prot}`,borderRadius:12,padding:"16px",textAlign:"center",marginBottom:10}}>
             <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Your Referral Code</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,color:T.prot,letterSpacing:4}}>{profile.referralCode}</div>
+            <div style={{fontSize:12,color:T.mu,marginTop:6}}>{refCount} referral{refCount!==1?"s":""} so far</div>
           </div>
-          <button onClick={()=>navigator.clipboard?.writeText(profile.referralCode).then(()=>{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);})} style={{width:"100%",padding:"13px",minHeight:44,background:T.s3,border:`1px solid ${T.bd}`,borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>{settingsSaved?"✓ Copied!":"Copy Code"}</button>
+          <button onClick={()=>navigator.clipboard?.writeText(profile.referralCode).then(()=>{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);})} style={{width:"100%",padding:"13px",minHeight:44,background:T.s3,border:`1px solid ${T.bd}`,borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{settingsSaved?"✓ Copied!":"Copy Code"}</button>
+          <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Progress to next milestone</div>
+          {tier<4
+            ?<div style={{fontSize:12,color:T.mu,marginBottom:12,lineHeight:1.5}}>
+              {tier===0&&"Refer 1 friend to unlock VIP status + custom icons"}
+              {tier===1&&"2 more referrals to unlock accent colors"}
+              {tier===2&&"2 more referrals to unlock VERIFIED status + themes"}
+              {tier===3&&"5 more referrals to unlock dashboard customization"}
+            </div>
+            :<div style={{fontSize:13,color:"#00E676",fontWeight:700,marginBottom:12}}>You are VERIFIED and fully unlocked. 💎</div>
+          }
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {[
+              {badge:"VIP",minRef:1,rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},
+              {badge:"VERIFIED",minRef:5,rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:10}]},
+            ].map(t=>{
+              const tUnlocked=refCount>=t.minRef;
+              return(
+                <div key={t.badge} style={{background:T.s3,borderRadius:10,padding:"10px 12px",border:`1px solid ${tUnlocked?"rgba(245,245,240,0.10)":"rgba(245,245,240,0.04)"}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                    <Badge type={t.badge}/>
+                    <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{t.minRef} referral{t.minRef>1?"s":""} required</span>
+                  </div>
+                  {t.rewards.map(r=>{
+                    const unlocked=refCount>=r.minRef;
+                    return(
+                      <div key={r.l} style={{display:"flex",alignItems:"center",gap:6,marginTop:5}}>
+                        <span style={{fontSize:13}}>{unlocked?"🔓":"🔒"}</span>
+                        <span style={{fontSize:12,color:unlocked?T.white:T.mu}}>{r.l}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </SectionCard>}
 
         {/* Account Actions */}
