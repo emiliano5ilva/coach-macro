@@ -3,7 +3,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
-  calcTDEE, lookupBarcode, useCountUp, autoFocus } from "./components.jsx";
+  calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros } from "./components.jsx";
 import { sb } from "./client.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS } from "./running_programs.js";
@@ -1299,6 +1299,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {/* ── PROGRESS ── */}
         {trainScreen==="progress"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:isMobile?"100%":740}}>
+            <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
             <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
             {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
             <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
@@ -1400,6 +1401,186 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ─── PERFORMANCE CALENDAR ────────────────────────────────────────────────────
+function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
+  const [workoutLogs,setWorkoutLogs]=useState([]);
+  const [foodLogs,setFoodLogs]=useState([]);
+  const [loaded,setLoaded]=useState(false);
+  const [selectedDay,setSelectedDay]=useState(null);
+
+  const today=new Date();
+  const year=today.getFullYear();
+  const month=today.getMonth();
+  const firstDay=new Date(year,month,1);
+  const lastDay=new Date(year,month+1,0);
+  const daysInMonth=lastDay.getDate();
+  const startDOW=firstDay.getDay(); // 0=Sun
+
+  const monthStr=today.toISOString().slice(0,7);
+
+  useEffect(()=>{
+    if(!user)return;
+    const monthStart=`${year}-${String(month+1).padStart(2,"0")}-01`;
+    const monthEnd=`${year}-${String(month+1).padStart(2,"0")}-${String(daysInMonth).padStart(2,"0")}`;
+    Promise.all([
+      sb.from("workout_logs").select("date,workout").eq("user_id",user.id).gte("date",monthStart).lte("date",monthEnd),
+      sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",monthStart).lte("date",monthEnd),
+    ]).then(([{data:wl},{data:fl}])=>{
+      setWorkoutLogs(wl||[]);setFoodLogs(fl||[]);setLoaded(true);
+    });
+  },[user]);
+
+  const WDAYS_ABBR=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  function getDOW(dateStr){return WDAYS_ABBR[new Date(dateStr+"T12:00:00").getDay()];}
+
+  function getDayStatus(dayNum){
+    const dateStr=`${year}-${String(month+1).padStart(2,"0")}-${String(dayNum).padStart(2,"0")}`;
+    const isFuture=new Date(dateStr+"T23:59:59")>today;
+    if(isFuture)return"future";
+    const dow=getDOW(dateStr);
+    const scheduleType=schedule?.[dow]||"rest";
+    const isRestDay=scheduleType==="rest";
+    const wLog=workoutLogs.find(w=>w.date===dateStr);
+    const fLog=foodLogs.find(f=>f.date===dateStr);
+    const didWorkout=!!wLog;
+    const fEntries=fLog?.entries||[];
+    const totalCals=fEntries.reduce((s,e)=>s+(e.calories||0),0);
+    const macros=getDayMacros(profile?.goalCals||2000,profile?.goal||"Maintain",scheduleType,0);
+    const calTarget=macros.calories;
+    const protTarget=macros.protein;
+    const totalProt=fEntries.reduce((s,e)=>s+(e.protein||0),0);
+    const calPct=calTarget>0?totalCals/calTarget:0;
+    const protPct=protTarget>0?totalProt/protTarget:0;
+    const hitNutrition=fEntries.length>0&&calPct>=0.8&&calPct<=1.2&&protPct>=0.8;
+    const hitTraining=isRestDay?true:didWorkout;
+    if(isRestDay)return"rest";
+    if(hitNutrition&&hitTraining)return"green";
+    if(hitNutrition||hitTraining)return"yellow";
+    return"red";
+  }
+
+  function getDayData(dayNum){
+    const dateStr=`${year}-${String(month+1).padStart(2,"0")}-${String(dayNum).padStart(2,"0")}`;
+    const dow=getDOW(dateStr);
+    const scheduleType=schedule?.[dow]||"rest";
+    const wLog=workoutLogs.find(w=>w.date===dateStr);
+    const fLog=foodLogs.find(f=>f.date===dateStr);
+    const fEntries=fLog?.entries||[];
+    const totalCals=Math.round(fEntries.reduce((s,e)=>s+(e.calories||0),0));
+    const totalProt=Math.round(fEntries.reduce((s,e)=>s+(e.protein||0),0));
+    const macros=getDayMacros(profile?.goalCals||2000,profile?.goal||"Maintain",scheduleType,0);
+    const calPct=macros.calories>0?Math.round((totalCals/macros.calories)*100):0;
+    const protPct=macros.protein>0?Math.round((totalProt/macros.protein)*100):0;
+    return{dateStr,scheduleType,wLog,totalCals,totalProt,macros,calPct,protPct,isRestDay:scheduleType==="rest"};
+  }
+
+  const COLOR={green:"#00C9A7",yellow:"#F59E0B",red:"#FF4D6D",rest:"rgba(245,245,240,.12)",future:"rgba(245,245,240,.04)"};
+  const LABEL={green:"Hit both",yellow:"Partial",red:"Missed",rest:"Rest",future:""};
+
+  // Monthly stats
+  const trainingDays=[];
+  for(let d=1;d<=today.getDate();d++){
+    const dow=getDOW(`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+    if((schedule?.[dow]||"rest")!=="rest")trainingDays.push(d);
+  }
+  const greenDays=trainingDays.filter(d=>getDayStatus(d)==="green").length;
+  const adherence=trainingDays.length>0?Math.round((greenDays/trainingDays.length)*100):0;
+
+  // Last month comparison (rough)
+  const lastMonthStr=new Date(year,month-1,1).toLocaleDateString("en-US",{month:"long"});
+
+  return(
+    <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
+        <div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,lineHeight:1}}>
+            {today.toLocaleDateString("en-US",{month:"long",year:"numeric"}).toUpperCase()}
+          </div>
+          <div style={{fontSize:11,color:T.mu,marginTop:4}}>
+            {loaded?`${greenDays} green days · ${adherence}% adherence`:"Loading..."}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
+          {[["green","🟢"],["yellow","🟡"],["red","🔴"],["rest","⚫"]].map(([s,e])=>(
+            <div key={s} style={{fontSize:10,color:T.mu,display:"flex",alignItems:"center",gap:3}}>{e}<span>{LABEL[s]}</span></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Day-of-week header */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:3}}>
+        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=>(
+          <div key={d} style={{textAlign:"center",fontSize:9,color:T.mu,fontWeight:700,letterSpacing:1,padding:"4px 0"}}>{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
+        {Array.from({length:startDOW},(_,i)=><div key={`e${i}`}/>)}
+        {Array.from({length:daysInMonth},(_,i)=>{
+          const dayNum=i+1;
+          const status=loaded?getDayStatus(dayNum):"future";
+          const isToday_=dayNum===today.getDate();
+          return(
+            <button key={dayNum} onClick={()=>setSelectedDay(selectedDay===dayNum?null:dayNum)}
+              style={{aspectRatio:"1",background:COLOR[status],borderRadius:isMobile?6:8,border:isToday_?`2px solid #fff`:`2px solid transparent`,cursor:status==="future"?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",transition:"opacity .15s",fontFamily:"inherit"}}>
+              <span style={{fontSize:isMobile?10:11,fontWeight:isToday_?900:600,color:status==="future"||status==="rest"?"rgba(245,245,240,.3)":"#fff"}}>{dayNum}</span>
+              {isToday_&&<div style={{position:"absolute",bottom:2,width:4,height:4,borderRadius:"50%",background:"#fff"}}/>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected day popup */}
+      {selectedDay&&loaded&&(()=>{
+        const d=getDayData(selectedDay);
+        const status=getDayStatus(selectedDay);
+        const dateLabel=new Date(`${d.dateStr}T12:00:00`).toLocaleDateString("en-US",{month:"long",day:"numeric",weekday:"long"});
+        const COLOR_STATUS={green:T.carb,yellow:"#F59E0B",red:"#FF4D6D",rest:T.mu,future:T.mu};
+        return(
+          <div style={{marginTop:14,background:T.s2,borderRadius:12,padding:"14px 16px",border:`1px solid rgba(245,245,240,.08)`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+              <div style={{fontWeight:700,fontSize:13}}>{dateLabel}</div>
+              <button onClick={()=>setSelectedDay(null)} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:14,padding:"0 2px",fontFamily:"inherit"}}>×</button>
+            </div>
+            {d.isRestDay?(
+              <div style={{fontSize:12,color:T.mu}}>Rest day — no training expected.</div>
+            ):(
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                  <span style={{color:d.wLog?T.carb:"#FF4D6D",fontSize:13}}>{d.wLog?"✓":"✗"}</span>
+                  <span style={{fontSize:12,color:"rgba(245,245,240,.8)"}}>Workout: {d.wLog?`${d.wLog.workout?.focus||"Completed"}`:status==="future"?"Upcoming":"Not logged"}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                  <span style={{color:d.calPct>=80&&d.calPct<=120?T.carb:"#FF4D6D",fontSize:13}}>{d.calPct>=80&&d.calPct<=120?"✓":"✗"}</span>
+                  <span style={{fontSize:12,color:"rgba(245,245,240,.8)"}}>Nutrition: {d.totalCals} / {d.macros.calories} kcal ({d.calPct}%)</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{color:d.protPct>=80?T.carb:"#FF4D6D",fontSize:13}}>{d.protPct>=80?"✓":"✗"}</span>
+                  <span style={{fontSize:12,color:"rgba(245,245,240,.8)"}}>Protein: {d.totalProt} / {d.macros.protein}g ({d.protPct}%)</span>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Month summary */}
+      {loaded&&trainingDays.length>0&&(
+        <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${T.bd}`}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>
+            This month: {greenDays} green days / {trainingDays.length} training days
+          </div>
+          <div style={{fontSize:12,color:T.mu}}>
+            Adherence: {adherence}%{adherence>=80?" — great month":""}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
