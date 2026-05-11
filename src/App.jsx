@@ -31,6 +31,25 @@ import { useState, useEffect, useRef } from "react";
   -- profiles RLS: run these if INSERT/UPDATE are being blocked
   create policy "Users can insert own profile" on profiles for insert with check (auth.uid() = id);
   create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
+
+  -- referral_count and referral_tier on profiles (updated server-side via api/r.js)
+  alter table profiles add column if not exists referral_count int default 0;
+  alter table profiles add column if not exists referral_tier int default 0;
+  alter table profiles add column if not exists referral_code text;
+
+  -- referrals: one row per share link, click-counted
+  create table if not exists referrals (
+    id uuid primary key default gen_random_uuid(),
+    referrer_id uuid references auth.users(id) on delete cascade,
+    token text unique not null,
+    clicked boolean default false,
+    clicked_at timestamptz,
+    clicked_ip text,
+    recipient_user_id uuid,
+    created_at timestamptz default now()
+  );
+  alter table referrals enable row level security;
+  create policy "Users manage own referrals" on referrals for all using (auth.uid() = referrer_id);
 */
 import { sb } from "./supabase.js";
 
@@ -111,6 +130,7 @@ function AuthScreen({onAuth}) {
   });
 
   const labelStyle={display:"block",fontSize:10,color:"var(--white-dim)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"var(--mono)"};
+  const invitePending=(()=>{try{return JSON.parse(localStorage.getItem('coachMacroInvite')||'null');}catch{return null;}})();
 
   const field=(label,val,setVal,type="text",ph="")=>(
     <div style={{marginBottom:14}}>
@@ -128,6 +148,13 @@ function AuthScreen({onAuth}) {
       <div className="grid-bg" style={{position:"absolute",inset:0,opacity:0.5,pointerEvents:"none"}}/>
       <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
         <div style={{marginBottom:32,display:"flex",justifyContent:"center"}}><Logo size={40} text={false}/></div>
+        {invitePending&&<div style={{background:"rgba(0,230,118,0.08)",border:"1px solid rgba(0,230,118,0.3)",borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:22}}>🎉</span>
+          <div>
+            <div style={{fontSize:13,fontWeight:700,color:"#00E676",fontFamily:"var(--condensed)",letterSpacing:1}}>You've been invited!</div>
+            <div style={{fontSize:12,color:"var(--white-dim)",fontFamily:"var(--body)",marginTop:2}}>Sign up for 2 weeks free — no credit card needed.</div>
+          </div>
+        </div>}
         <div className="header-eyebrow" style={{textAlign:"center",marginBottom:12}}>AI Athletic Coaching</div>
         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:52,lineHeight:.88,marginBottom:18,color:"var(--white)",textAlign:"center",textTransform:"uppercase"}}>
           Stop Guessing.<br/><span style={{color:"var(--red)"}}>Start Knowing.</span>
@@ -215,7 +242,7 @@ export default function CoachMacro() {
         return;
       }
       console.log("[loadProfile] profile_data keys:", Object.keys(data.profile_data||{}));
-      if(data.profile_data) setProfile(data.profile_data);
+      if(data.profile_data) setProfile({...data.profile_data,referralCount:data.referral_count||data.profile_data?.referralCount||0});
       if(data.schedule) setSchedule(data.schedule);
       if(data.wprefs) setWPrefs(data.wprefs);
       console.log("[loadProfile] done — routing to app");
@@ -241,6 +268,7 @@ export default function CoachMacro() {
           profile_data: prof,
           schedule: sch,
           wprefs: wp,
+          referral_code: prof.referralCode||null,
           updated_at: new Date().toISOString()
         }, { onConflict: "id" })
         .select();
@@ -315,6 +343,18 @@ export default function CoachMacro() {
       finalProf.referralCode=first+Math.floor(1000+Math.random()*9000);
       console.log("[handleTrainDone] generated referral code:", finalProf.referralCode);
     }
+    // Apply invite free trial if present in localStorage
+    let _inviteToken=null;
+    try{
+      const _inv=JSON.parse(localStorage.getItem('coachMacroInvite')||'null');
+      if(_inv&&(Date.now()-(_inv.savedAt||0))<7*86400000){
+        finalProf.freeWeeksApplied=true;
+        finalProf.trialEndsAt=new Date(Date.now()+14*86400000).toISOString();
+        finalProf.inviteCode=_inv.code||'';
+        _inviteToken=_inv.token||null;
+        localStorage.removeItem('coachMacroInvite');
+      }
+    }catch{}
 
     // Use user-selected days from day picker, or fall back to auto-assign from freq
     let sch;
@@ -384,6 +424,9 @@ export default function CoachMacro() {
     }
 
     console.log("[handleTrainDone] profile saved — routing to celebrate");
+    if(_inviteToken){
+      sb.from('referrals').update({recipient_user_id:user.id}).eq('token',_inviteToken).eq('clicked',true).then(()=>{});
+    }
     setPhase("celebrate");
   }
 
@@ -391,6 +434,18 @@ export default function CoachMacro() {
     await sb.auth.signOut();
     setUser(null);setProfile(null);setPhase("landing");
   }
+
+  // Check URL for referral invite params on first load
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    if(params.get('invited')==='true'){
+      try{
+        const inv={code:params.get('code')||'',token:params.get('token')||'',freeWeeks:2,savedAt:Date.now()};
+        localStorage.setItem('coachMacroInvite',JSON.stringify(inv));
+      }catch{}
+      window.history.replaceState({},'','/');
+    }
+  },[]);
 
   useEffect(()=>{
     if(!profile)return;
@@ -457,10 +512,10 @@ export default function CoachMacro() {
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,fontStyle:"italic",color:T.carb,textTransform:"uppercase"}}>{cFocus}</div>
             <div style={{fontSize:12,color:T.mu,marginTop:4,lineHeight:1.5,fontFamily:"'Barlow',sans-serif"}}>{FOCUS_MUSCLES[cFocus]||"Full body movement — every major muscle pattern covered."}</div>
           </div>
-          {profile?.referralCode&&<div style={{background:`${T.prot}08`,border:`1.5px solid ${T.prot}30`,borderRadius:18,padding:"16px 24px",marginBottom:20,textAlign:"center"}}>
-            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Your Referral Code</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,color:T.prot,letterSpacing:6,marginBottom:6}}>{profile.referralCode}</div>
-            <div style={{fontSize:12,color:T.mu,lineHeight:1.6}}>Share your code — every friend who joins earns you a free month.</div>
+          {profile?.freeWeeksApplied&&<div style={{background:"rgba(0,230,118,0.06)",border:"1.5px solid rgba(0,230,118,0.25)",borderRadius:18,padding:"16px 24px",marginBottom:16,textAlign:"center"}}>
+            <div style={{fontSize:28,marginBottom:6}}>🎁</div>
+            <div style={{fontSize:10,color:"#00E676",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontFamily:"'DM Mono',monospace"}}>2 Weeks Free Applied</div>
+            <div style={{fontSize:13,color:T.mu,lineHeight:1.6}}>Enjoy Coach Macro on us — your trial ends {new Date(profile.trialEndsAt).toLocaleDateString("en-US",{month:"long",day:"numeric"})}.</div>
           </div>}
           <button onClick={()=>setPhase("promo")} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,border:"none",borderRadius:14,fontWeight:700,fontSize:16,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,minHeight:52}}>
             Let's Go →

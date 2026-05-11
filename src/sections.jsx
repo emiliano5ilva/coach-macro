@@ -2029,6 +2029,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
   const [settingsSaved,setSettingsSaved]=useState(false);
+  const [referralStats,setReferralStats]=useState({sent:0,clicked:0});
+  const [refGenerating,setRefGenerating]=useState(false);
+  const [refCopied,setRefCopied]=useState(false);
 
   async function saveSettings(newWPrefs,newSchedule){
     if(!user)return;
@@ -2047,6 +2050,13 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     if(!user)return;
     sb.from("weight_checkins").select("*").eq("user_id",user.id).order("checked_at",{ascending:true}).then(({data})=>{
       if(data)setCheckIns(data);
+    });
+  },[user]);
+
+  useEffect(()=>{
+    if(!user)return;
+    sb.from("referrals").select("clicked").eq("referrer_id",user.id).then(({data})=>{
+      if(data)setReferralStats({sent:data.length,clicked:data.filter(r=>r.clicked).length});
     });
   },[user]);
 
@@ -2069,6 +2079,37 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     await sb.from("food_logs").delete().eq("user_id",user.id);
     await sb.from("workout_logs").delete().eq("user_id",user.id);
     await sb.auth.signOut();
+  }
+
+  async function doShare(method) {
+    if(!profile?.referralCode||!user)return;
+    setRefGenerating(true);
+    try{
+      const token=crypto.randomUUID();
+      const {error}=await sb.from('referrals').insert({referrer_id:user.id,token});
+      if(error)throw error;
+      const link=`https://coach-macro.com/r/${profile.referralCode}/${token}`;
+      const msg=`Hey! I use Coach Macro for my nutrition and training — it's the only app that connects both.\nHere's 2 weeks free on me:\n${link}`;
+      if(method==='sms'){
+        window.location.href=`sms:?body=${encodeURIComponent(msg)}`;
+      }else if(method==='copy'){
+        await navigator.clipboard.writeText(link);
+        setRefCopied(true);
+        setTimeout(()=>setRefCopied(false),2000);
+      }else if(method==='share'){
+        if(navigator.share){
+          await navigator.share({title:'Coach Macro — 2 Weeks Free',text:msg});
+        }else{
+          await navigator.clipboard.writeText(link);
+          setRefCopied(true);
+          setTimeout(()=>setRefCopied(false),2000);
+        }
+      }
+      // Refresh stats
+      const {data}=await sb.from('referrals').select('clicked').eq('referrer_id',user.id);
+      if(data)setReferralStats({sent:data.length,clicked:data.filter(r=>r.clicked).length});
+    }catch(e){console.error('[doShare]',e);}
+    setRefGenerating(false);
   }
 
   // Build weight trend chart data
@@ -2271,52 +2312,88 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
         {/* Refer a Friend */}
         {profile.referralCode&&<SectionCard title="Refer a Friend">
-          {(isPro||refBadge)&&<div style={{display:"flex",alignItems:"center",gap:4,marginBottom:12,flexWrap:"wrap"}}>
+          {(isPro||getReferralBadge(referralStats.clicked))&&<div style={{display:"flex",alignItems:"center",gap:4,marginBottom:12,flexWrap:"wrap"}}>
             <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.12em"}}>EARNED:</span>
             {isPro&&<Badge type="PRO"/>}
-            {refBadge&&<Badge type={refBadge}/>}
+            {getReferralBadge(referralStats.clicked)&&<Badge type={getReferralBadge(referralStats.clicked)}/>}
           </div>}
-          <div style={{background:T.s2,border:`2px dashed ${T.prot}`,borderRadius:12,padding:"16px",textAlign:"center",marginBottom:10}}>
-            <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Your Referral Code</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,color:T.prot,letterSpacing:4}}>{profile.referralCode}</div>
-            <div style={{fontSize:12,color:T.mu,marginTop:6}}>{refCount} referral{refCount!==1?"s":""} so far</div>
+
+          {/* Stats row */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+            {[["Links Sent",referralStats.sent],["Clicked",referralStats.clicked],["Rate",referralStats.sent>0?Math.round(referralStats.clicked/referralStats.sent*100)+"%":"—"]].map(([l,v])=>(
+              <div key={l} style={{background:T.s3,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.white,lineHeight:1}}>{v}</div>
+                <div style={{fontSize:9,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em",marginTop:3,textTransform:"uppercase"}}>{l}</div>
+              </div>
+            ))}
           </div>
-          <button onClick={()=>navigator.clipboard?.writeText(profile.referralCode).then(()=>{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);})} style={{width:"100%",padding:"13px",minHeight:44,background:T.s3,border:`1px solid ${T.bd}`,borderRadius:10,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{settingsSaved?"✓ Copied!":"Copy Code"}</button>
-          <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Progress to next milestone</div>
-          {tier<4
-            ?<div style={{fontSize:12,color:T.mu,marginBottom:12,lineHeight:1.5}}>
-              {tier===0&&"Refer 1 friend to unlock VIP status + custom icons"}
-              {tier===1&&"2 more referrals to unlock accent colors"}
-              {tier===2&&"2 more referrals to unlock VERIFIED status + themes"}
-              {tier===3&&"5 more referrals to unlock dashboard customization"}
-            </div>
-            :<div style={{fontSize:13,color:"#00E676",fontWeight:700,marginBottom:12}}>You are VERIFIED and fully unlocked. 💎</div>
-          }
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {[
-              {badge:"VIP",minRef:1,rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},
-              {badge:"VERIFIED",minRef:5,rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:10}]},
-            ].map(t=>{
-              const tUnlocked=refCount>=t.minRef;
-              return(
-                <div key={t.badge} style={{background:T.s3,borderRadius:10,padding:"10px 12px",border:`1px solid ${tUnlocked?"rgba(245,245,240,0.10)":"rgba(245,245,240,0.04)"}`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                    <Badge type={t.badge}/>
-                    <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{t.minRef} referral{t.minRef>1?"s":""} required</span>
-                  </div>
-                  {t.rewards.map(r=>{
-                    const unlocked=refCount>=r.minRef;
-                    return(
-                      <div key={r.l} style={{display:"flex",alignItems:"center",gap:6,marginTop:5}}>
-                        <span style={{fontSize:13}}>{unlocked?"🔓":"🔒"}</span>
-                        <span style={{fontSize:12,color:unlocked?T.white:T.mu}}>{r.l}</span>
-                      </div>
-                    );
-                  })}
+
+          {/* Share buttons */}
+          <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Share &amp; earn 2 weeks free</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {[{icon:"📱",label:"Text Message",method:"sms"},{icon:"📋",label:refCopied?"✓ Copied!":"Copy Link",method:"copy"},{icon:"↗",label:"Share",method:"share"}].map(btn=>(
+              <button key={btn.method} disabled={refGenerating} onClick={()=>doShare(btn.method)}
+                style={{width:"100%",padding:"12px 16px",minHeight:44,background:T.s3,border:`1px solid ${btn.method==="copy"&&refCopied?T.green:T.bd}`,borderRadius:10,color:btn.method==="copy"&&refCopied?T.green:T.white,fontWeight:700,fontSize:14,cursor:refGenerating?"default":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10,transition:"border-color 0.2s,color 0.2s",opacity:refGenerating?0.6:1}}>
+                <span style={{fontSize:18}}>{btn.icon}</span>
+                <span style={{flex:1,textAlign:"left"}}>{btn.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Progress */}
+          {(()=>{
+            const cnt=referralStats.clicked;
+            const t=getTier(cnt);
+            const milestones=[1,3,5,10];
+            const nextM=milestones.find(m=>m>cnt);
+            return(
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Progress</div>
+                  <div style={{fontSize:11,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{cnt} click{cnt!==1?"s":""}</div>
                 </div>
-              );
-            })}
-          </div>
+                {nextM?(
+                  <>
+                    <div style={{height:4,background:T.s3,borderRadius:2,marginBottom:8,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${Math.min((cnt/nextM)*100,100)}%`,background:cnt>=5?"#00E676":cnt>=1?"#FFD740":T.prot,borderRadius:2,transition:"width 0.5s"}}/>
+                    </div>
+                    <div style={{fontSize:12,color:T.mu,marginBottom:12,lineHeight:1.5}}>
+                      {t===0&&"1 person needs to click to unlock VIP status + custom icons"}
+                      {t===1&&`${3-cnt} more click${3-cnt!==1?"s":""} to unlock accent colors`}
+                      {t===2&&`${5-cnt} more click${5-cnt!==1?"s":""} to unlock VERIFIED status + themes`}
+                      {t===3&&`${10-cnt} more click${10-cnt!==1?"s":""} to unlock dashboard customization`}
+                    </div>
+                  </>
+                ):<div style={{fontSize:13,color:"#00E676",fontWeight:700,marginBottom:12}}>You are VERIFIED and fully unlocked. 💎</div>}
+                <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                  {[
+                    {badge:"VIP",minRef:1,rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},
+                    {badge:"VERIFIED",minRef:5,rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:10}]},
+                  ].map(tb=>(
+                    <div key={tb.badge} style={{background:T.s3,borderRadius:10,padding:"10px 12px",border:`1px solid ${cnt>=tb.minRef?"rgba(245,245,240,0.10)":"rgba(245,245,240,0.04)"}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                        <Badge type={tb.badge}/>
+                        <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{tb.minRef} click{tb.minRef>1?"s":""} required</span>
+                      </div>
+                      {tb.rewards.map(r=>{
+                        const unlocked=cnt>=r.minRef;
+                        const diff=r.minRef-cnt;
+                        return(
+                          <div key={r.l} style={{display:"flex",alignItems:"center",gap:6,marginTop:5}}>
+                            <span style={{fontSize:13}}>{unlocked?"🔓":"🔒"}</span>
+                            <span style={{fontSize:12,color:unlocked?T.white:T.mu}}>
+                              {r.l}
+                              {unlocked?<span style={{color:"#00E676",marginLeft:4,fontSize:10,fontWeight:700}}> UNLOCKED</span>:diff>0?<span style={{color:T.mu}}> — {diff} click{diff!==1?"s":""} away</span>:null}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </SectionCard>}
 
         {/* Account Actions */}
