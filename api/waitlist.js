@@ -125,6 +125,11 @@ function thankYouEmailHtml(firstName) {
 }
 
 export default async function handler(req, res) {
+  console.log('Waitlist API called — method:', req.method);
+  console.log('Body:', JSON.stringify(req.body));
+  console.log('SUPABASE_SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
+  console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -133,6 +138,8 @@ export default async function handler(req, res) {
     res.status(200).end();
     return;
   }
+
+  try {
 
   // GET /api/waitlist?token=XXX — confirm email click
   if (req.method === 'GET') {
@@ -233,4 +240,9 @@ export default async function handler(req, res) {
   }
 
   res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('WAITLIST ERROR:', err.message, err.stack);
+    return res.status(500).json({ error: err.message });
+  }
 }
