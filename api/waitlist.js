@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
 async function sendEmail(to, subject, html) {
@@ -119,28 +120,22 @@ function thankYouEmailHtml(firstName) {
 }
 
 export default async function handler(req, res) {
-  const { createClient } = await import('@supabase/supabase-js');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  console.log('METHOD:', req.method);
+  console.log('SUPABASE KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
+  console.log('SUPABASE KEY length:', process.env.SUPABASE_SERVICE_KEY?.length);
+  console.log('SUPABASE KEY prefix:', process.env.SUPABASE_SERVICE_KEY?.slice(0, 20));
+  console.log('RESEND KEY exists:', !!process.env.RESEND_API_KEY);
+
   const supabase = createClient(
     'https://oxxihlwqukbakmnnavuy.supabase.co',
     process.env.SUPABASE_SERVICE_KEY
   );
-
-  console.log('Waitlist API called — method:', req.method);
-  console.log('Body:', JSON.stringify(req.body).slice(0, 100));
-  console.log('SUPABASE_SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
-  console.log('SERVICE KEY length:', process.env.SUPABASE_SERVICE_KEY?.length);
-  console.log('SERVICE KEY prefix:', process.env.SUPABASE_SERVICE_KEY?.slice(0, 20));
-  console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
   console.log('Supabase client created');
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
 
   try {
 
@@ -245,7 +240,8 @@ export default async function handler(req, res) {
   res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('WAITLIST ERROR:', err.message, err.stack);
+    console.error('FULL ERROR:', err.message);
+    console.error('STACK:', err.stack);
     return res.status(500).json({ error: err.message });
   }
 }
