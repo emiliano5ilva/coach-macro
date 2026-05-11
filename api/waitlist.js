@@ -1,10 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
-
-const supabase = createClient(
-  'https://oxxihlwqukbakmnnavuy.supabase.co',
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 async function sendEmail(to, subject, html) {
   const r = await fetch('https://api.resend.com/emails', {
@@ -125,10 +119,19 @@ function thankYouEmailHtml(firstName) {
 }
 
 export default async function handler(req, res) {
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(
+    'https://oxxihlwqukbakmnnavuy.supabase.co',
+    process.env.SUPABASE_SERVICE_KEY
+  );
+
   console.log('Waitlist API called — method:', req.method);
-  console.log('Body:', JSON.stringify(req.body));
+  console.log('Body:', JSON.stringify(req.body).slice(0, 100));
   console.log('SUPABASE_SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
+  console.log('SERVICE KEY length:', process.env.SUPABASE_SERVICE_KEY?.length);
+  console.log('SERVICE KEY prefix:', process.env.SUPABASE_SERVICE_KEY?.slice(0, 20));
   console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+  console.log('Supabase client created');
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
