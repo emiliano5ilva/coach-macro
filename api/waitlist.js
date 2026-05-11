@@ -139,105 +139,126 @@ export default async function handler(req, res) {
 
   try {
 
-  // GET /api/waitlist?token=XXX — confirm email click
-  if (req.method === 'GET') {
-    const { token } = req.query;
-    if (!token) {
-      res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
-      res.status(302).end();
-      return;
-    }
+    console.log('1 - parsing body');
+    const { action, email, firstName, token } = req.method === 'GET'
+      ? req.query
+      : req.body;
+    console.log('2 - action:', action, 'email:', email, 'token:', token);
 
-    const { data, error } = await supabase
-      .from('waitlist')
-      .select('*')
-      .eq('token', token)
-      .maybeSingle();
+    // ── JOIN WAITLIST ──────────────────────────────────────────────────────────
+    if (req.method === 'POST' || action === 'join') {
+      console.log('3 - join action started');
 
-    if (error || !data) {
-      res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
-      res.status(302).end();
-      return;
-    }
-
-    if (!data.confirmed) {
-      await supabase
-        .from('waitlist')
-        .update({ confirmed: true, confirmed_at: new Date().toISOString() })
-        .eq('token', token);
-
-      await sendEmail(
-        data.email,
-        "You're in. Your spot is secured.",
-        thankYouEmailHtml(data.first_name)
-      );
-    }
-
-    res.setHeader('Location', 'https://coach-macro.com?waitlist=confirmed');
-    res.status(302).end();
-    return;
-  }
-
-  // POST /api/waitlist — join waitlist
-  if (req.method === 'POST') {
-    const { email, firstName } = req.body || {};
-
-    if (!email || typeof email !== 'string') {
-      res.status(400).json({ error: 'Email is required' });
-      return;
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-    const token = randomUUID();
-
-    const { data: existing } = await supabase
-      .from('waitlist')
-      .select('confirmed')
-      .eq('email', normalizedEmail)
-      .maybeSingle();
-
-    if (existing?.confirmed) {
-      res.status(200).json({ success: true });
-      return;
-    }
-
-    if (existing) {
-      await supabase
-        .from('waitlist')
-        .update({ first_name: firstName?.trim() || null, token })
-        .eq('email', normalizedEmail);
-    } else {
-      const { error: insertError } = await supabase
-        .from('waitlist')
-        .insert({
-          email: normalizedEmail,
-          first_name: firstName?.trim() || null,
-          token,
-          confirmed: false,
-          created_at: new Date().toISOString(),
-        });
-
-      if (insertError) {
-        res.status(500).json({ error: 'Could not save your email. Try again.' });
-        return;
+      if (!email || !email.includes('@')) {
+        console.log('4 - invalid email');
+        return res.status(400).json({ error: 'Valid email required' });
       }
+      console.log('4 - email valid');
+
+      const normalizedEmail = email.toLowerCase().trim();
+      const newToken = randomUUID();
+      console.log('5 - checking existing');
+
+      const { data: existing, error: existingError } = await supabase
+        .from('waitlist')
+        .select('id, confirmed')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+      console.log('6 - existing result:', existing, 'existingError:', existingError);
+
+      if (existing?.confirmed) {
+        console.log('7 - already confirmed, returning success');
+        return res.status(200).json({ success: true });
+      }
+
+      if (existing) {
+        console.log('8 - updating existing unconfirmed row');
+        const { error: updateError } = await supabase
+          .from('waitlist')
+          .update({ first_name: firstName?.trim() || null, token: newToken })
+          .eq('email', normalizedEmail);
+        console.log('9 - update error:', updateError);
+      } else {
+        console.log('10 - inserting new row');
+        const { error: insertError } = await supabase
+          .from('waitlist')
+          .insert({
+            email: normalizedEmail,
+            first_name: firstName?.trim() || null,
+            token: newToken,
+            confirmed: false,
+            created_at: new Date().toISOString(),
+          });
+        console.log('11 - insert error:', insertError);
+        if (insertError) {
+          return res.status(500).json({ error: 'Could not save your email. Try again.' });
+        }
+      }
+
+      console.log('12 - building confirm URL');
+      const proto = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      const confirmUrl = `${proto}://${host}/api/waitlist?token=${newToken}`;
+      console.log('13 - confirmUrl:', confirmUrl);
+
+      console.log('14 - sending confirmation email');
+      const emailOk = await sendEmail(
+        normalizedEmail,
+        'Confirm your spot on the Coach Macro waitlist',
+        confirmationEmailHtml(firstName?.trim(), confirmUrl)
+      );
+      console.log('15 - email sent ok:', emailOk);
+
+      return res.status(200).json({ success: true });
     }
 
-    const proto = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers['x-forwarded-host'] || req.headers.host;
-    const confirmUrl = `${proto}://${host}/api/waitlist?token=${token}`;
+    // ── CONFIRM EMAIL (GET ?token=XXX) ─────────────────────────────────────────
+    if (req.method === 'GET') {
+      console.log('3 - confirm action started, token:', token);
 
-    await sendEmail(
-      normalizedEmail,
-      'Confirm your spot on the Coach Macro waitlist',
-      confirmationEmailHtml(firstName?.trim(), confirmUrl)
-    );
+      if (!token) {
+        console.log('4 - no token, redirecting invalid');
+        res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
+        return res.status(302).end();
+      }
 
-    res.status(200).json({ success: true });
-    return;
-  }
+      console.log('5 - looking up token');
+      const { data, error: lookupError } = await supabase
+        .from('waitlist')
+        .select('*')
+        .eq('token', token)
+        .maybeSingle();
+      console.log('6 - lookup result:', data, 'error:', lookupError);
 
-  res.status(405).json({ error: 'Method not allowed' });
+      if (lookupError || !data) {
+        console.log('7 - not found, redirecting invalid');
+        res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
+        return res.status(302).end();
+      }
+
+      if (!data.confirmed) {
+        console.log('8 - marking confirmed');
+        await supabase
+          .from('waitlist')
+          .update({ confirmed: true, confirmed_at: new Date().toISOString() })
+          .eq('token', token);
+        console.log('9 - sending thank-you email');
+        await sendEmail(
+          data.email,
+          "You're in. Your spot is secured.",
+          thankYouEmailHtml(data.first_name)
+        );
+        console.log('10 - thank-you email sent');
+      } else {
+        console.log('8 - already confirmed');
+      }
+
+      res.setHeader('Location', 'https://coach-macro.com?waitlist=confirmed');
+      return res.status(302).end();
+    }
+
+    console.log('METHOD NOT HANDLED:', req.method);
+    return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
     console.error('FULL ERROR:', err.message);
