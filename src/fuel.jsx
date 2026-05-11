@@ -4,7 +4,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   hap, calcTDEE } from "./components.jsx";
 import { sb, ai } from "./client.js";
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -50,6 +50,38 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     setBodySuggestLoading(false);
   }
   const useBudgetView=wPrefs?.fuelView==="budget";
+
+  // ── Macro Memory ─────────────────────────────────────────────────────────────
+  const [memorySuggestions,setMemorySuggestions]=useState([]);
+  const [skippedMemory,setSkippedMemory]=useState(new Set());
+  const [memoryLoggedMsg,setMemoryLoggedMsg]=useState("");
+  useEffect(()=>{
+    if(!user||wPrefs?.macroMemory===false)return;
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-56);
+    sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutoff.toISOString().split("T")[0]).order("date",{ascending:false})
+      .then(({data})=>{
+        if(!data||data.length<4)return;
+        const todayDOW=new Date().toLocaleDateString("en-US",{weekday:"short"});
+        const todayAlreadyLogged=new Set((log||[]).map(e=>(e.food||"").toLowerCase().trim()));
+        const foodCounts={};
+        data.forEach(row=>{
+          const dow=new Date(row.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});
+          if(dow!==todayDOW)return;
+          (row.entries||[]).forEach(entry=>{
+            const key=(entry.food||"").toLowerCase().trim();
+            if(!key)return;
+            if(!foodCounts[key]){foodCounts[key]={count:0,data:entry};}
+            foodCounts[key].count++;
+            foodCounts[key].data=entry;
+          });
+        });
+        const suggestions=Object.values(foodCounts)
+          .filter(({count,data})=>count>=3&&!todayAlreadyLogged.has((data.food||"").toLowerCase().trim()))
+          .sort((a,b)=>b.count-a.count)
+          .slice(0,3);
+        setMemorySuggestions(suggestions);
+      });
+  },[user,wPrefs?.macroMemory,log?.length]);
 
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
@@ -178,6 +210,33 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
                   </div>
                   <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.5}}>{periodizationInfo.note}</div>
                   <div style={{fontSize:11,color:"rgba(245,245,240,.4)",marginTop:4}}>Your nutrition cycles with your training.</div>
+                </div>
+              </div>
+            )}
+
+            {/* MACRO MEMORY */}
+            {wPrefs?.macroMemory!==false&&memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).length>0&&(
+              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
+                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>Based on your {new Date().toLocaleDateString("en-US",{weekday:"long"})} patterns</div>
+                  </div>
+                  {memoryLoggedMsg&&<div style={{fontSize:11,color:T.carb,fontWeight:700}}>{memoryLoggedMsg}</div>}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).map(({count,data})=>(
+                    <div key={data.food} style={{background:T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.food}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{data.calories} kcal · {data.protein}g protein</div>
+                      </div>
+                      <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        <button onClick={()=>{if(logEntry)logEntry(data);setMemoryLoggedMsg(`✓ Logged. ${remaining.calories-data.calories} kcal remaining.`);setTimeout(()=>setMemoryLoggedMsg(""),3000);}} style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Log</button>
+                        <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

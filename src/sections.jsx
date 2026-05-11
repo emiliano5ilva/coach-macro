@@ -2001,6 +2001,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
         </SectionCard>
 
+        <SectionCard title="Macro Memory">
+          <Toggle on={wPrefs.macroMemory!==false} onChange={v=>{const wp={...wPrefs,macroMemory:v};setWPrefs(wp);saveSettings(wp,null);}} label="Macro Memory" sub="Pre-populates meals based on your weekly patterns"/>
+          <button onClick={()=>{const wp={...wPrefs,macroMemory:true,_macroMemoryReset:Date.now()};setWPrefs(wp);saveSettings(wp,null);}} style={{marginTop:10,width:"100%",padding:"10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Clear my patterns</button>
+        </SectionCard>
+
         <SectionCard title="Fuel View">
           <div style={{display:"flex",gap:8}}>
             {[["ring","Macro Ring","📊"],["budget","Body Budget","🏦"]].map(([v,l,e])=>{
