@@ -312,6 +312,18 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
               ))}
             </div>
 
+            {/* RESTAURANT AI CARD */}
+            <button onClick={()=>setFuelScreen("recs")} style={{width:"100%",background:"linear-gradient(135deg,rgba(96,165,250,0.12),rgba(96,165,250,0.04))",border:"1px solid rgba(96,165,250,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
+              <div style={{fontSize:36,flexShrink:0}}>🍗</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Restaurant AI</div>
+                <div style={{fontSize:12,color:T.mu,lineHeight:1.5}}>Find exact orders at nearby restaurants to hit your remaining macros</div>
+              </div>
+              <div style={{color:T.carb,flexShrink:0}}>
+                <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+              </div>
+            </button>
+
             {/* FOOD LOG */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>

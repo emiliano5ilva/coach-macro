@@ -20,7 +20,7 @@ export const T = {
 export const WDAYS    = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 export const MONTHS_A = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 export const DAYS_A   = Array.from({length:31},(_,i)=>String(i+1));
-export const YEARS_A  = Array.from({length:85},(_,i)=>String(new Date().getFullYear()-13-i));
+export const YEARS_A  = Array.from({length:59},(_,i)=>String(2008-i)); // 2008 → 1950
 export const FT_A     = ["4","5","6","7"];
 export const IN_A     = Array.from({length:12},(_,i)=>String(i));
 export const CM_A     = Array.from({length:121},(_,i)=>String(120+i));
@@ -281,9 +281,12 @@ export const GLOBAL_CSS = `
   .toggle.on{background:var(--red)}
   .toggle-knob{position:absolute;top:2px;left:2px;width:22px;height:22px;background:var(--white);border-radius:50%;transition:left 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.3)}
   .toggle.on .toggle-knob{left:20px}
-  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:54px;padding-bottom:100px;background:var(--navy);scrollbar-width:none}
+  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:var(--navy);scrollbar-width:none}
   .app-screen::-webkit-scrollbar{display:none}
-  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;height:86px;z-index:100;background:rgba(10,14,26,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(245,245,240,0.06);display:flex;padding:8px 8px 22px}
+  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(10,14,26,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(245,245,240,0.06);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
+  .ob-page{min-height:100vh;background:#060D1A;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .ob-inner{width:100%;max-width:480px;margin:0 auto;padding:max(env(safe-area-inset-top,0px),20px) 20px 60px}
+  .rolodex-scroll::-webkit-scrollbar{display:none}
   @media(min-width:768px){.app-tab-bar{max-width:480px;left:50%;transform:translateX(-50%)}}
   .app-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--white-faint);cursor:pointer;padding:8px 4px;transition:color 0.2s;position:relative}
   .app-tab.active{color:var(--white)}
@@ -407,7 +410,7 @@ export function Rolodex({items,sel,onChange,itemH=56}) {
   };
   return (
     <div style={{position:"relative",height:itemH*3,overflow:"hidden",flex:1,minWidth:52}}>
-      <div ref={ref} onScroll={onScr} style={{height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none"}}>
+      <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none"}}>
         <div style={{height:itemH}}/>
         {items.map((item,i)=>{ const d=Math.abs(i-li); return(
           <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});hap();}}

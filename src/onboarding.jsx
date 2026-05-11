@@ -6,13 +6,13 @@ export function FuelOnboarding({d, onComplete, onBack}) {
   const [sc,setSc]=useState(0);
   const [data,setData]=useState({
     goal:"", goalWeight:"", goalTimeline:"", why:"", whyOther:"",
-    dietary:[], mealFreq:"", fasting:"", alcohol:"", goalRate:"",
+    dietary:[], mealFreq:"", fasting:"", alcohol:"", goalRate:"", macroExp:"",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
   const next=()=>setSc(s=>s+1);
   const back=()=>sc===0?onBack():setSc(s=>s-1);
-  const SCREENS=7;
+  const SCREENS=8;
   const pct=Math.round((sc/SCREENS)*100);
   const rateMap={"−750":-750,"−500":-500,"−250":-250,"−125":-125,"0":0,"+125":125,"+250":250,"+500":500};
   const goalCals=(d.baseTDEE||2000)+(rateMap[data.goalRate]||0);
@@ -55,9 +55,9 @@ export function FuelOnboarding({d, onComplete, onBack}) {
   const rec=getRec();
 
   return(
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+    <div className="ob-page">
       <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
-      <div style={{width:"100%",maxWidth:480}}>
+      <div className="ob-inner">
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:32}}>
           <Logo size={28}/>
@@ -78,18 +78,23 @@ export function FuelOnboarding({d, onComplete, onBack}) {
             YOUR FUEL<br/><span style={{color:T.carb}}>GOAL.</span>
           </div>
           <p style={{fontSize:13,color:T.mu,marginBottom:24,lineHeight:1.65}}>Your base metabolic rate is <b style={{color:"#fff"}}>{(d.baseTDEE||2000).toLocaleString()} kcal/day</b>. Now let's set your target.</p>
-          <div style={{display:"flex",gap:10,marginBottom:8}}>
-            {[{v:"cut",l:"Cut",e:"🔥",sub:"Lose fat, preserve muscle"},{v:"maintain",l:"Maintain",e:"⚖️",sub:"Body recomp, stay lean"},{v:"bulk",l:"Bulk",e:"💪",sub:"Build muscle, gain size"}].map(o=>(
-              <div key={o.v} onClick={()=>auto("goal",o.v)} style={{flex:1,background:data.goal===o.v?`${T.carb}12`:T.s2,border:`2px solid ${data.goal===o.v?T.carb:T.bd}`,borderRadius:12,padding:"20px 8px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
-                <div style={{fontSize:28,marginBottom:8}}>{o.e}</div>
-                <div style={{fontSize:15,fontWeight:700,color:data.goal===o.v?T.carb:"#fff"}}>{o.l}</div>
-                <div style={{fontSize:10,color:T.mu,marginTop:4,lineHeight:1.4}}>{o.sub}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:8}}>
+            {[
+              {v:"cut",l:"Lose Fat",e:"🔥",sub:"Create a calorie deficit and reveal muscle"},
+              {v:"bulk",l:"Build Muscle",e:"💪",sub:"Lean bulk phase for maximum muscle growth"},
+              {v:"maintain",l:"Maintain",e:"⚖️",sub:"Keep your current weight and body composition"},
+              {v:"recomp",l:"Recomposition",e:"🔄",sub:"Lose fat and build muscle simultaneously"},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>auto("goal",o.v)} style={{background:data.goal===o.v?`${T.carb}12`:T.s2,border:`2px solid ${data.goal===o.v?T.carb:T.bd}`,borderRadius:14,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:16,fontWeight:700,color:data.goal===o.v?T.carb:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:12,color:T.mu,marginTop:3,lineHeight:1.4}}>{o.sub}</div>
+                </div>
+                {data.goal===o.v&&<div style={{color:T.carb,fontSize:16,flexShrink:0}}>✓</div>}
               </div>
             ))}
           </div>
-          {data.goal==="maintain"&&<div style={{background:`${T.carb}08`,border:`1px solid ${T.carb}25`,borderRadius:10,padding:"12px 14px",marginTop:8,fontSize:12,color:T.mu,lineHeight:1.65}}>
-            💡 <b style={{color:"#fff"}}>Body recomp</b> — lose fat and build muscle simultaneously. Works best for beginners and those returning after a break. Requires consistent protein and progressive training.
-          </div>}
         </div>}
 
         {/* SCREEN 1 — Goal Weight */}
@@ -192,9 +197,35 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 4 — Calorie target / Rate */}
-        {sc===4&&data.goal!=="maintain"&&<div style={{animation:"fadeIn .25s ease"}}>
+        {/* SCREEN 4 — Macro tracking experience */}
+        {sc===4&&<div style={{animation:"fadeIn .25s ease"}}>
           <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 5</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+            HAVE YOU TRACKED<br/><span style={{color:T.carb}}>MACROS BEFORE?</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Your experience level changes how we coach you — beginner-friendly or detail-heavy.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {[
+              {v:"never",e:"🌱",l:"Never tracked — I'm new to this",sub:"We'll keep it simple and build your understanding gradually"},
+              {v:"tried",e:"🔄",l:"Tried it but found it hard",sub:"We'll make it easier with smart defaults and flexible logging"},
+              {v:"occasional",e:"📊",l:"I track occasionally",sub:"You know the basics — we'll help you be more consistent"},
+              {v:"consistent",e:"⚡",l:"I track consistently",sub:"Show me all the detail — I want full control over my numbers"},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>auto("macroExp",o.v)} style={{background:data.macroExp===o.v?`${T.carb}12`:T.s2,border:`1.5px solid ${data.macroExp===o.v?T.carb:T.bd}`,borderRadius:14,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{fontSize:24,flexShrink:0,width:32,textAlign:"center"}}>{o.e}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:700,color:data.macroExp===o.v?T.carb:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:12,color:T.mu,marginTop:3,lineHeight:1.4}}>{o.sub}</div>
+                </div>
+                {data.macroExp===o.v&&<div style={{color:T.carb,fontSize:16,flexShrink:0}}>✓</div>}
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* SCREEN 5 — Calorie target / Rate */}
+        {sc===5&&data.goal!=="maintain"&&data.goal!=="recomp"&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 6</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
             YOUR CALORIE<br/><span style={{color:T.carb}}>RATE.</span>
           </div>
@@ -227,17 +258,17 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           </div>}
           <PrimaryBtn onClick={next} label="Continue →" disabled={!data.goalRate} style={{background:T.carb}}/>
         </div>}
-        {sc===4&&data.goal==="maintain"&&(()=>{setTimeout(next,100);return null;})()}
+        {sc===5&&(data.goal==="maintain"||data.goal==="recomp")&&(()=>{setTimeout(next,100);return null;})()}
 
-        {/* SCREEN 5 — Dietary preferences */}
-        {sc===5&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 6</div>
+        {/* SCREEN 6 — Dietary preferences */}
+        {sc===6&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 7</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
-            DIETARY<br/><span style={{color:T.carb}}>PREFERENCES.</span>
+            ANY DIETARY<br/><span style={{color:T.carb}}>NEEDS?</span>
           </div>
           <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Select all that apply. This shapes your meal and recipe suggestions.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
-            {[{v:"none",l:"No restrictions",e:"🍗"},{v:"vegetarian",l:"Vegetarian",e:"🥗"},{v:"vegan",l:"Vegan",e:"🌱"},{v:"gluten",l:"Gluten-free",e:"🌾"},{v:"dairy",l:"Dairy-free",e:"🥛"},{v:"keto",l:"Keto / Low-carb",e:"🥑"},{v:"halal",l:"Halal",e:"☪️"},{v:"kosher",l:"Kosher",e:"✡️"}].map(o=>{
+            {[{v:"none",l:"No restrictions",e:"🍗"},{v:"vegetarian",l:"Vegetarian",e:"🥗"},{v:"vegan",l:"Vegan",e:"🌱"},{v:"gluten",l:"Gluten free",e:"🌾"},{v:"dairy",l:"Dairy free",e:"🥛"},{v:"halal",l:"Halal",e:"☪️"},{v:"kosher",l:"Kosher",e:"✡️"},{v:"nuts",l:"Nut allergy",e:"⚠️"}].map(o=>{
               const sel=(data.dietary||[]).includes(o.v);
               return(<div key={o.v} onClick={()=>upd("dietary",sel?(data.dietary||[]).filter(x=>x!==o.v):[...(data.dietary||[]),o.v])} style={{background:sel?`${T.carb}12`:T.s2,border:`1.5px solid ${sel?T.carb:T.bd}`,borderRadius:10,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,transition:"all .2s"}}>
                 <div style={{fontSize:18}}>{o.e}</div>
@@ -249,35 +280,44 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →" style={{background:T.carb}}/>
         </div>}
 
-        {/* SCREEN 6 — Meal frequency + fasting */}
-        {sc===6&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 7</div>
+        {/* SCREEN 7 — Meal frequency */}
+        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 8</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
-            HOW DO YOU<br/><span style={{color:T.carb}}>LIKE TO EAT?</span>
+            HOW OFTEN<br/><span style={{color:T.carb}}>DO YOU EAT?</span>
           </div>
-          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Meals per day</div>
-          <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
-            {["2","3","4","5","6+"].map(n=>(
-              <div key={n} onClick={()=>upd("mealFreq",n)} style={{flex:1,minWidth:52,background:data.mealFreq===n?`${T.carb}12`:T.s2,border:`1.5px solid ${data.mealFreq===n?T.carb:T.bd}`,borderRadius:10,padding:"14px 8px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:data.mealFreq===n?T.carb:"#fff"}}>{n}</div>
-                <div style={{fontSize:9,color:T.mu,marginTop:2}}>meals</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+            {[
+              {v:"2",l:"2–3 meals per day",e:"🍽️",sub:"Simple and structured. Larger meals, easier to plan."},
+              {v:"4",l:"3–4 meals per day",e:"🥗",sub:"Standard approach. Balances satiety and energy."},
+              {v:"5",l:"4–5 meals per day",e:"⚡",sub:"Better blood sugar control. More prep required."},
+              {v:"6+",l:"6+ meals / grazing",e:"🔄",sub:"Keeps metabolism active. Works well for high volume athletes."},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>upd("mealFreq",o.v)} style={{background:data.mealFreq===o.v?`${T.carb}12`:T.s2,border:`1.5px solid ${data.mealFreq===o.v?T.carb:T.bd}`,borderRadius:14,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{fontSize:24,flexShrink:0}}>{o.e}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:700,color:data.mealFreq===o.v?T.carb:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:12,color:T.mu,marginTop:3,lineHeight:1.4}}>{o.sub}</div>
+                </div>
+                {data.mealFreq===o.v&&<div style={{color:T.carb,fontSize:16,flexShrink:0}}>✓</div>}
               </div>
             ))}
           </div>
-          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Interested in intermittent fasting?</div>
+          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Intermittent fasting?</div>
           <div style={{display:"flex",gap:8,marginBottom:24}}>
-            {[{v:"no",l:"No"},  {v:"16:8",l:"16:8"},{v:"omad",l:"OMAD"},{v:"custom",l:"Custom"}].map(o=>(
+            {[{v:"no",l:"No"},{v:"16:8",l:"16:8"},{v:"omad",l:"OMAD"},{v:"custom",l:"Custom"}].map(o=>(
               <div key={o.v} onClick={()=>upd("fasting",o.v)} style={{flex:1,background:data.fasting===o.v?`${T.carb}12`:T.s2,border:`1.5px solid ${data.fasting===o.v?T.carb:T.bd}`,borderRadius:10,padding:"12px 6px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
                 <div style={{fontSize:13,fontWeight:700,color:data.fasting===o.v?T.carb:"#ccc"}}>{o.l}</div>
               </div>
             ))}
           </div>
-          <PrimaryBtn onClick={()=>onComplete({...data,goalCals:data.goal==="maintain"?d.baseTDEE:goalCals})} label="Fuel Setup Done →" disabled={!data.goal||!data.mealFreq} style={{background:T.carb}}/>
+          <PrimaryBtn onClick={()=>onComplete({...data,goalCals:data.goal==="maintain"||data.goal==="recomp"?d.baseTDEE:goalCals})} label="Fuel Setup Done →" disabled={!data.goal||!data.mealFreq} style={{background:T.carb}}/>
         </div>}
       </div>
     </div>
   );
 }
+
 
 // ─── TRAIN ONBOARDING ─────────────────────────────────────────────────────────
 export const SPLITS_WITH_DAYS = {
@@ -351,9 +391,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
   const INJURY_OPTS=["Lower back","Knees","Shoulders","Wrists","Elbows","Hips","Neck","None"];
 
   return(
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+    <div className="ob-page">
       <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
-      <div style={{width:"100%",maxWidth:480}}>
+      <div className="ob-inner">
         <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:32}}>
           <Logo size={28}/>
           <div style={{flex:1}}>

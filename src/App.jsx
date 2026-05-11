@@ -452,11 +452,16 @@ export default function CoachMacro() {
               ))}
             </div>
           </div>
-          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"16px 24px",marginBottom:24,textAlign:"left"}}>
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:18,padding:"16px 24px",marginBottom:16,textAlign:"left"}}>
             <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Today's Focus</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,fontStyle:"italic",color:T.carb,textTransform:"uppercase"}}>{cFocus}</div>
             <div style={{fontSize:12,color:T.mu,marginTop:4,lineHeight:1.5,fontFamily:"'Barlow',sans-serif"}}>{FOCUS_MUSCLES[cFocus]||"Full body movement — every major muscle pattern covered."}</div>
           </div>
+          {profile?.referralCode&&<div style={{background:`${T.prot}08`,border:`1.5px solid ${T.prot}30`,borderRadius:18,padding:"16px 24px",marginBottom:20,textAlign:"center"}}>
+            <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Your Referral Code</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,color:T.prot,letterSpacing:6,marginBottom:6}}>{profile.referralCode}</div>
+            <div style={{fontSize:12,color:T.mu,lineHeight:1.6}}>Share your code — every friend who joins earns you a free month.</div>
+          </div>}
           <button onClick={()=>setPhase("promo")} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,border:"none",borderRadius:14,fontWeight:700,fontSize:16,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,minHeight:52}}>
             Let's Go →
           </button>

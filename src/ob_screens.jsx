@@ -44,9 +44,9 @@ export function Onboarding({onComplete, user, signupName}) {
   );
 
   return (
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+    <div className="ob-page">
       <style>{GLOBAL_CSS}{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
-      <div style={{width:"100%",maxWidth:480,animation:"fadeIn 0.3s ease"}}>
+      <div className="ob-inner" style={{animation:"fadeIn 0.3s ease"}}>
         {/* Progress bar */}
         <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:32}}>
           <Logo size={28}/>
