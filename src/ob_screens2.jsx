@@ -354,6 +354,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [restTimer,setRestTimer]=useState(0); const [restActive,setRestActive]=useState(false);
   const restInterval=useRef(null);
   const [history,setHistory]=useState({});
+  const [workoutLogsRaw,setWorkoutLogsRaw]=useState([]);
+  const [comebackDismissed,setComebackDismissed]=useState(()=>localStorage.getItem("comeback_dismissed")===new Date().toISOString().split("T")[0]);
   const [planMode,setPlanMode]=useState("strength");
   const [runPlan,setRunPlan]=useState("5K Beginner");
   const [hybridMix,setHybridMix]=useState({strength:true,run:false,hyrox:false});
@@ -398,6 +400,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50).then(({data,error})=>{
       console.log("[loadWorkoutHistory] rows:",data?.length||0,"error:",error?.message);
       if(data&&data.length>0){
+        setWorkoutLogsRaw(data);
         const hist={};
         data.forEach(w=>{
           const exercises=w.workout?.exercises||w.entry?.exercises||[];
@@ -496,6 +499,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   }
   const consumed=log.reduce((a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fat:a.fat+i.fat}),{calories:0,protein:0,carbs:0,fat:0});
   const remaining={calories:macros.calories-consumed.calories,protein:macros.protein-consumed.protein,carbs:macros.carbs-consumed.carbs,fat:macros.fat-consumed.fat};
+  // ── Comeback Protocol ────────────────────────────────────────────────────────
+  const lastWorkoutDate=workoutLogsRaw.length>0?workoutLogsRaw[0].date:null;
+  const daysSinceWorkout=lastWorkoutDate?Math.floor((new Date()-new Date(lastWorkoutDate+"T12:00:00"))/86400000):null;
+  const showComebackProtocol=daysSinceWorkout>=7&&!comebackDismissed&&workoutLogsRaw.length>0;
 
   const fasting=FASTING_PROTOCOLS.find(p=>p.id===fastProto)||FASTING_PROTOCOLS[0];
   const fastHours=fastProto==="custom"?fastCustomH:fasting.fast;
@@ -763,6 +770,59 @@ Rules:
                   ?<div style={{fontSize:13,color:T.mu}}>Generating your morning brief...</div>
                   :<div style={{fontSize:14,color:"#fff",lineHeight:1.7,whiteSpace:"pre-line"}}>{morningBrief}</div>
                 }
+              </div>
+            </div>
+          )}
+          {/* Comeback Protocol */}
+          {showComebackProtocol&&(
+            <div style={{padding:isMobile?"12px 18px 0":"0 0 16px"}}>
+              <div style={{background:"#0A1222",border:"1px solid rgba(41,121,255,0.3)",borderLeft:"3px solid #2979FF",borderRadius:14,padding:"18px 18px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                  <div>
+                    <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:4}}>COMEBACK PROTOCOL</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#fff"}}>WELCOME BACK, {(profile.name||"ATHLETE").split(" ")[0].toUpperCase()}.</div>
+                  </div>
+                  <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"none",border:"none",color:T.mu,fontSize:11,cursor:"pointer",fontFamily:"'Barlow',sans-serif",padding:"2px 8px",borderRadius:6,fontWeight:600,flexShrink:0}}>Dismiss</button>
+                </div>
+                <div style={{fontSize:13,color:"rgba(245,245,240,.7)",marginBottom:14}}>You've been away {daysSinceWorkout} days. Here's your comeback plan.</div>
+                {[
+                  "Muscles are recovered — full intensity is fine",
+                  "Macros reset to maintenance for this week",
+                  `Program resumes: Week ${programWeek}, ${todayFocus}`,
+                ].map((line,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
+                    <span style={{color:"#2979FF",fontWeight:700,flexShrink:0}}>✓</span>
+                    <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>{line}</span>
+                  </div>
+                ))}
+                <div style={{background:"rgba(41,121,255,.08)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"12px 14px",margin:"12px 0"}}>
+                  <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:4}}>TODAY'S COMEBACK SESSION</div>
+                  <div style={{fontSize:13,color:"rgba(245,245,240,.9)"}}>70% of your normal volume</div>
+                  <div style={{fontSize:11,color:T.mu,marginTop:2}}>Sets reduced by 30% · Weight at 80% of last logged</div>
+                </div>
+                <button onClick={()=>{
+                  const exercises=Object.entries(history).slice(0,6).map(([key,sessions])=>{
+                    const lastSess=sessions[sessions.length-1];
+                    const lastSets=lastSess?.sets||[];
+                    const lastWeight=Math.max(...lastSets.map(s=>parseFloat(s.weight||0)));
+                    const comebackWeight=lastWeight>0?Math.round(lastWeight*0.8):0;
+                    const numSets=Math.max(1,Math.round((lastSets.length||3)*0.7));
+                    return{
+                      name:key.replace(/_/g," "),
+                      notes:"Comeback session — focus on form",
+                      sets:Array.from({length:numSets},()=>({weight:comebackWeight>0?String(comebackWeight):"",reps:String(lastSets[0]?.reps||"10"),done:false})),
+                    };
+                  });
+                  if(exercises.length>0){
+                    setActiveWorkout({title:`${todayFocus} — Comeback`,exercises});
+                    setTrainScreen("active");
+                    setSection("train");
+                  }
+                  setComebackDismissed(true);
+                  localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);
+                }} style={{width:"100%",padding:"13px",background:"#2979FF",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}}>
+                  Start Comeback Session →
+                </button>
               </div>
             </div>
           )}
