@@ -37,11 +37,7 @@ const CSS = `
   .lp-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; background: rgba(0,0,0,0.7); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border-bottom: 1px solid var(--white-border); }
   .lp.has-banner .lp-nav { top: 48px; }
   .lp-logo { display: flex; align-items: center; gap: 12px; font-family: var(--condensed); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--white); text-decoration: none; cursor: pointer; background: none; border: none; }
-  .lp-logo-bars { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
-  .lp-logo-bars span { width: 3px; border-radius: 1px; }
-  .lp-logo-bars span:nth-child(1) { height: 40%; background: var(--c-protein); }
-  .lp-logo-bars span:nth-child(2) { height: 70%; background: var(--c-carbs); }
-  .lp-logo-bars span:nth-child(3) { height: 100%; background: var(--c-fat); }
+  .lp-logo-mark { width: 32px; height: 32px; border-radius: 7px; object-fit: cover; display: block; box-shadow: 0 0 18px rgba(232,52,28,0.45), 0 0 2px rgba(232,52,28,0.6); }
   .lp-logo-text { display: flex; gap: 4px; align-items: baseline; }
   .lp-logo-coach { color: var(--white-dim); font-style: italic; font-weight: 400; }
   .lp-logo-macro { color: var(--white); font-weight: 800; }
@@ -1030,7 +1026,7 @@ export function LandingPage({ onSignUp }) {
 
       <nav className="lp-nav">
         <button className="lp-logo" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
-          <div className="lp-logo-bars"><span/><span/><span/></div>
+          <img src="/coach-macro-logo.png" alt="Coach Macro" className="lp-logo-mark" />
           <div className="lp-logo-text"><span className="lp-logo-coach">Coach</span><span className="lp-logo-macro">Macro</span></div>
         </button>
         <div className="lp-nav-links">
@@ -1110,7 +1106,7 @@ export function LandingPage({ onSignUp }) {
 
       <footer className="lp-footer">
         <button className="lp-logo" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
-          <div className="lp-logo-bars"><span/><span/><span/></div>
+          <img src="/coach-macro-logo.png" alt="Coach Macro" className="lp-logo-mark" />
           <div className="lp-logo-text"><span className="lp-logo-coach">Coach</span><span className="lp-logo-macro">Macro</span></div>
         </button>
         <div className="lp-footer-links">
