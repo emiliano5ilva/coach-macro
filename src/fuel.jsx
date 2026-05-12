@@ -6,6 +6,11 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
 import { sb, ai } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
+import {
+  searchFoods, searchByBarcode, searchCustomFoods,
+  saveFoodToHistory, getFrequentFoods, getRecentFoods,
+  saveCustomFood, getSmartServings, QUICK_FOODS,
+} from "./services/foodDatabase.js";
 
 const MEAL_SLOT_DEFS = {
   "2":  ["Breakfast","Dinner"],
@@ -13,6 +18,243 @@ const MEAL_SLOT_DEFS = {
   "5":  ["Breakfast","Lunch","Snack","Dinner","Evening Snack"],
   "6+": ["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening"],
 };
+
+function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotIdx,addMealSlot,setFuelScreen,isMobile}){
+  const [query,setQuery]=useState("");
+  const [results,setResults]=useState([]);
+  const [searching,setSearching]=useState(false);
+  const [selectedFood,setSelectedFood]=useState(null);
+  const [portionGrams,setPortionGrams]=useState(100);
+  const [portionMode,setPortionMode]=useState("smart");
+  const [customPortionInput,setCustomPortionInput]=useState("");
+  const [toast,setToast]=useState("");
+  const [frequentFoods,setFrequentFoods]=useState([]);
+  const [recentFoods,setRecentFoods]=useState([]);
+  const [quickCategory,setQuickCategory]=useState(null);
+  const [showCustomForm,setShowCustomForm]=useState(false);
+  const [customFood,setCustomFood]=useState({name:"",brand:"",calories:"",protein:"",carbs:"",fat:"",serving_size:"100",serving_unit:"g"});
+
+  useEffect(()=>{
+    if(!user)return;
+    getFrequentFoods(user.id).then(d=>setFrequentFoods(d||[]));
+    getRecentFoods(user.id).then(d=>setRecentFoods(d||[]));
+  },[user]);
+
+  useEffect(()=>{
+    if(!query.trim()){setResults([]);return;}
+    const t=setTimeout(async()=>{
+      setSearching(true);
+      try{
+        if(/^\d{8,14}$/.test(query.trim())){
+          const r=await searchByBarcode(query.trim());
+          setResults(r?[r]:[]);
+        }else{
+          const r=await searchFoods(query.trim());
+          setResults(r||[]);
+        }
+      }catch{setResults([]);}
+      setSearching(false);
+    },300);
+    return()=>clearTimeout(t);
+  },[query]);
+
+  function calcMacros(food,grams){
+    const f=grams/100;
+    return{
+      calories:Math.round((food.calories||0)*f),
+      protein:Math.round((food.protein||0)*f*10)/10,
+      carbs:Math.round((food.carbs||0)*f*10)/10,
+      fat:Math.round((food.fat||0)*f*10)/10,
+    };
+  }
+
+  function selectFood(food){
+    const smart=getSmartServings(food.name||"");
+    setSelectedFood({...food,smartServings:smart});
+    setPortionGrams(smart.length>0?smart[0].grams:100);
+    setPortionMode("smart");
+    setCustomPortionInput("");
+  }
+
+  async function addFood(){
+    if(!selectedFood)return;
+    const grams=portionMode==="custom"?(parseFloat(customPortionInput)||portionGrams):portionGrams;
+    const m=calcMacros(selectedFood,grams);
+    const entry={
+      id:Date.now(),
+      food:selectedFood.name+(selectedFood.brand?` (${selectedFood.brand})`:""),
+      ...m,grams,
+      slot:mealSlots[activeSlotIdx]||"Lunch",
+      source:selectedFood.source||"usda",
+    };
+    logEntry(entry);
+    if(user)saveFoodToHistory(user.id,selectedFood).catch(()=>{});
+    setToast(`${selectedFood.name} added!`);
+    setTimeout(()=>setToast(""),2500);
+    setSelectedFood(null);setQuery("");setResults([]);
+    if(user){
+      getFrequentFoods(user.id).then(d=>setFrequentFoods(d||[]));
+      getRecentFoods(user.id).then(d=>setRecentFoods(d||[]));
+    }
+  }
+
+  function addQuickFood(food){
+    const entry={id:Date.now(),food:food.name,calories:food.calories,protein:food.protein,carbs:food.carbs,fat:food.fat,slot:mealSlots[activeSlotIdx]||"Lunch",source:"quick"};
+    logEntry(entry);
+    setToast(`${food.name} added!`);
+    setTimeout(()=>setToast(""),2500);
+  }
+
+  async function saveCustomFoodEntry(){
+    if(!customFood.name||!customFood.calories)return;
+    const food={id:`custom_${Date.now()}`,name:customFood.name,brand:customFood.brand,calories:parseFloat(customFood.calories)||0,protein:parseFloat(customFood.protein)||0,carbs:parseFloat(customFood.carbs)||0,fat:parseFloat(customFood.fat)||0,servingSize:parseFloat(customFood.serving_size)||100,servingUnit:customFood.serving_unit||"g",source:"custom"};
+    if(user)await saveCustomFood(user.id,food).catch(()=>{});
+    selectFood(food);
+    setShowCustomForm(false);
+  }
+
+  if(selectedFood){
+    const smart=selectedFood.smartServings||[];
+    const grams=portionMode==="custom"?(parseFloat(customPortionInput)||portionGrams):portionGrams;
+    const m=calcMacros(selectedFood,grams);
+    return(
+      <div style={{maxWidth:isMobile?"100%":560}}>
+        <button onClick={()=>setSelectedFood(null)} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,padding:"0 0 16px",fontFamily:"inherit"}}>← Back to search</button>
+        <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:16,padding:"20px",marginBottom:16}}>
+          <div style={{fontSize:18,fontWeight:800,marginBottom:2}}>{selectedFood.name}</div>
+          {selectedFood.brand&&<div style={{fontSize:11,color:T.mu,marginBottom:14}}>{selectedFood.brand}</div>}
+          <div style={{display:"flex",gap:16,marginBottom:18}}>
+            {[["Cal",m.calories,"","#fff"],["P",m.protein,"g",T.prot],["C",m.carbs,"g",T.carb],["F",m.fat,"g",T.fat]].map(([l,v,u,c])=>(
+              <div key={l}><div style={{fontSize:9,color:T.mu,textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{l}</div><div style={{fontSize:20,fontWeight:900,color:c,lineHeight:1}}>{v}{u}</div></div>
+            ))}
+          </div>
+          {smart.length>0&&<>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Serving size</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:portionMode==="custom"?10:0}}>
+              {smart.map((s,i)=>(
+                <button key={i} onClick={()=>{setPortionMode("smart");setPortionGrams(s.grams);}} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${portionMode==="smart"&&portionGrams===s.grams?T.carb:T.bd}`,background:portionMode==="smart"&&portionGrams===s.grams?`${T.carb}15`:"none",color:portionMode==="smart"&&portionGrams===s.grams?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s.label}</button>
+              ))}
+              <button onClick={()=>setPortionMode("custom")} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${portionMode==="custom"?T.carb:T.bd}`,background:portionMode==="custom"?`${T.carb}15`:"none",color:portionMode==="custom"?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Custom (g)</button>
+            </div>
+            {portionMode==="custom"&&<input type="number" value={customPortionInput} onChange={e=>setCustomPortionInput(e.target.value)} placeholder="Enter grams" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginTop:6,marginBottom:0}}/>}
+          </>}
+          {smart.length===0&&<>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Grams</div>
+            <input type="number" value={customPortionInput||portionGrams} onChange={e=>setCustomPortionInput(e.target.value)} placeholder="100" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+          </>}
+        </div>
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Log to meal</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {mealSlots.map((slot,i)=>(
+              <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.carb:T.bd}`,background:activeSlotIdx===i?`${T.carb}15`:"none",color:activeSlotIdx===i?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
+            ))}
+          </div>
+        </div>
+        <PrimaryBtn onClick={addFood} label="Add to Log →"/>
+      </div>
+    );
+  }
+
+  if(showCustomForm){
+    return(
+      <div style={{maxWidth:isMobile?"100%":500}}>
+        <button onClick={()=>setShowCustomForm(false)} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,padding:"0 0 16px",fontFamily:"inherit"}}>← Back to search</button>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,marginBottom:16}}>CUSTOM FOOD</div>
+        <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:16,padding:"20px",marginBottom:16}}>
+          {[["Food name","text","name","e.g. Homemade oats",true],["Brand (optional)","text","brand","e.g. My Kitchen",false],["Calories (kcal)","number","calories","0",true],["Protein (g)","number","protein","0",false],["Carbs (g)","number","carbs","0",false],["Fat (g)","number","fat","0",false],["Serving size","number","serving_size","100",false],["Serving unit","text","serving_unit","g",false]].map(([label,type,key,ph,req])=>(
+            <div key={key} style={{marginBottom:12}}>
+              <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{label}{req&&<span style={{color:T.prot}}> *</span>}</div>
+              <input type={type} value={customFood[key]} onChange={e=>setCustomFood(f=>({...f,[key]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            </div>
+          ))}
+        </div>
+        <PrimaryBtn onClick={saveCustomFoodEntry} label="Save & Add →" disabled={!customFood.name||!customFood.calories}/>
+      </div>
+    );
+  }
+
+  return(
+    <div style={{maxWidth:isMobile?"100%":560}}>
+      {toast&&<div style={{position:"fixed",top:24,left:"50%",transform:"translateX(-50%)",background:T.prot,color:"#fff",padding:"10px 20px",borderRadius:20,fontSize:13,fontWeight:700,zIndex:999,boxShadow:"0 4px 16px rgba(0,0,0,0.4)"}}>{toast}</div>}
+      <div style={{position:"relative",marginBottom:16}}>
+        <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search food or enter barcode number…" style={{width:"100%",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 48px 14px 16px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        {searching&&<div style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)"}}><Spinner/></div>}
+        {!searching&&query&&<button onClick={()=>{setQuery("");setResults([]);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:T.mu,fontSize:18,cursor:"pointer",lineHeight:1,padding:"0 2px"}}>×</button>}
+      </div>
+      {results.length>0&&(
+        <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,marginBottom:16,overflow:"hidden"}}>
+          {results.slice(0,12).map((food,i)=>(
+            <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit"}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>{food.name}</div>
+              <div style={{fontSize:11,color:T.mu,display:"flex",gap:10,flexWrap:"wrap"}}>
+                {food.brand&&<span>{food.brand} ·</span>}
+                <span>{food.calories} kcal</span>
+                <span style={{color:T.prot}}>P {food.protein}g</span>
+                <span style={{color:T.carb}}>C {food.carbs}g</span>
+                <span style={{color:T.fat}}>F {food.fat}g</span>
+                <span style={{color:"rgba(245,245,240,0.2)",marginLeft:"auto",fontSize:9,textTransform:"uppercase",letterSpacing:1}}>{food.source==="off"?"Open FF":"USDA"}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+      {query&&!searching&&results.length===0&&(
+        <div style={{textAlign:"center",padding:"24px",background:T.s2,border:`1px dashed ${T.bd}`,borderRadius:12,marginBottom:16}}>
+          <div style={{fontSize:13,color:T.mu,marginBottom:10}}>No results for "{query}"</div>
+          <button onClick={()=>setShowCustomForm(true)} style={{background:"none",border:`1px solid ${T.prot}`,borderRadius:8,padding:"8px 16px",color:T.prot,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Create Custom Food</button>
+        </div>
+      )}
+      {!query&&recentFoods.length>0&&(
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Recent</div>
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {recentFoods.slice(0,5).map((f,i)=>(
+              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit"}}>
+                <div style={{fontWeight:700,fontSize:13}}>{f.food_name}</div>
+                <div style={{fontSize:11,color:T.mu}}>{f.food_data?.calories} kcal · P {f.food_data?.protein}g · C {f.food_data?.carbs}g · F {f.food_data?.fat}g</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {!query&&frequentFoods.length>0&&(
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Most Used</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {frequentFoods.slice(0,8).map((f,i)=>(
+              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"7px 13px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:20,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>{f.food_name}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {!query&&(
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Quick Add</div>
+          <div style={{display:"flex",gap:6,marginBottom:quickCategory?10:0}}>
+            {[["protein","🥩 Protein",T.prot],["carbs","🍚 Carbs",T.carb],["fat","🥑 Fat",T.fat]].map(([k,l,c])=>(
+              <button key={k} onClick={()=>setQuickCategory(quickCategory===k?null:k)} style={{flex:1,padding:"10px 4px",background:quickCategory===k?`${c}18`:"none",border:`1.5px solid ${quickCategory===k?c:T.bd}`,borderRadius:10,cursor:"pointer",color:quickCategory===k?c:T.mu,fontSize:12,fontWeight:700,fontFamily:"inherit"}}>{l}</button>
+            ))}
+          </div>
+          {quickCategory&&(
+            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+              {(QUICK_FOODS[quickCategory]||[]).map((food,i)=>(
+                <button key={i} onClick={()=>addQuickFood(food)} style={{padding:"11px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13}}>{food.name}</div>
+                    <div style={{fontSize:11,color:T.mu}}>{food.calories} kcal · P {food.protein}g · C {food.carbs}g · F {food.fat}g</div>
+                  </div>
+                  <div style={{color:T.prot,fontWeight:700,fontSize:20,lineHeight:1}}>+</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <button onClick={()=>setShowCustomForm(true)} style={{width:"100%",padding:"11px",background:"none",border:`1px dashed ${T.bd}`,borderRadius:10,color:T.mu,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>+ Create Custom Food</button>
+    </div>
+  );
+}
 
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile}) {
 
@@ -552,56 +794,59 @@ Reply with ONLY a valid JSON object, no markdown:
         {fuelScreen==="log"&&(
           <div style={{maxWidth:isMobile?"100%":600}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
-            <p style={{fontSize:13,color:T.mu,marginBottom:20}}>3 ways to track what you eat</p>
-            <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:18}}>
-              {[["ai","🧠 AI"],["barcode","📷 Barcode"],["quick","✏️ Quick"]].map(([k,l])=>(
-                <button key={k} onClick={()=>setLogMode(k)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700}}>{l}</button>
+            <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Search 1M+ foods or describe your meal with AI</p>
+            <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:18,overflowX:"auto"}}>
+              {[["search","🔍 Search"],["ai","🧠 AI"],["barcode","📷 Barcode"],["quick","✏️ Quick"]].map(([k,l])=>(
+                <button key={k} onClick={()=>setLogMode(k)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
               ))}
             </div>
-            {/* Meal slot selector */}
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Log to meal</div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {mealSlots.map((slot,i)=>(
-                  <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.carb:T.bd}`,background:activeSlotIdx===i?`${T.carb}15`:"none",color:activeSlotIdx===i?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
-                ))}
-                <button onClick={addMealSlot} style={{padding:"7px 14px",borderRadius:20,border:`1.5px dashed ${T.bd}`,background:"none",color:"rgba(245,245,240,0.3)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Meal</button>
-              </div>
-            </div>
-            {logMode==="ai"&&<>
-              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
-                <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
-              </div>
-              {logMsg&&<div style={{background:`${T.prot}12`,border:`1px solid ${T.prot}30`,borderRadius:9,padding:"8px 12px",fontSize:12,color:T.prot,marginBottom:10}}>{logMsg}</div>}
-              <PrimaryBtn onClick={aiLog} label={logging?"Analyzing…":"Add to Log →"} disabled={logging||!foodInput.trim()}/>
-            </>}
-            {logMode==="barcode"&&<>
-              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
-                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Barcode number</div>
-                <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value)} placeholder="e.g. 0070038642824" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"11px 13px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit",letterSpacing:1}}/>
-                <div style={{fontSize:10,color:T.mu,marginTop:7}}>Tip: Use your phone camera app to scan — it shows the barcode number. Paste it here.</div>
-              </div>
-              {barcodeResult&&<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:12}}>
-                <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{barcodeResult.name}</div>
-                {barcodeResult.brand&&<div style={{fontSize:11,color:T.mu,marginBottom:8}}>{barcodeResult.brand} · {barcodeResult.serving}</div>}
-                <div style={{display:"flex",gap:14,marginBottom:12}}>
-                  {[["Cal",barcodeResult.calories,""],["P",barcodeResult.protein,"g"],["C",barcodeResult.carbs,"g"],["F",barcodeResult.fat,"g"]].map(([l,v,u])=>(<div key={l}><div style={{fontSize:9,color:T.mu,textTransform:"uppercase",letterSpacing:1}}>{l}</div><div style={{fontSize:16,fontWeight:800,color:T.prot}}>{v}{u}</div></div>))}
+            {logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
+            {logMode!=="search"&&<>
+              {/* Meal slot selector */}
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Log to meal</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {mealSlots.map((slot,i)=>(
+                    <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.carb:T.bd}`,background:activeSlotIdx===i?`${T.carb}15`:"none",color:activeSlotIdx===i?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
+                  ))}
+                  <button onClick={addMealSlot} style={{padding:"7px 14px",borderRadius:20,border:`1.5px dashed ${T.bd}`,background:"none",color:"rgba(245,245,240,0.3)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Meal</button>
                 </div>
-                <PrimaryBtn onClick={addBarcode} label="Add to Log →"/>
-              </div>}
-              {barcodeLoading&&<div style={{textAlign:"center",padding:"16px",color:T.mu,fontSize:13}}>Looking up product…</div>}
-              <PrimaryBtn onClick={scanBarcode} label="Look Up Barcode →" disabled={barcodeLoading||!barcodeInput.trim()}/>
-            </>}
-            {logMode==="quick"&&<>
-              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
-                {[["Name (optional)","text","name","e.g. Protein shake"],["Calories","number","calories","0"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
-                  <div key={k} style={{marginBottom:12}}>
-                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
-                    <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-                  </div>
-                ))}
               </div>
-              <PrimaryBtn onClick={addQuick} label="Add Entry →" disabled={!quickFields.calories}/>
+              {logMode==="ai"&&<>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
+                  <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
+                </div>
+                {logMsg&&<div style={{background:`${T.prot}12`,border:`1px solid ${T.prot}30`,borderRadius:9,padding:"8px 12px",fontSize:12,color:T.prot,marginBottom:10}}>{logMsg}</div>}
+                <PrimaryBtn onClick={aiLog} label={logging?"Analyzing…":"Add to Log →"} disabled={logging||!foodInput.trim()}/>
+              </>}
+              {logMode==="barcode"&&<>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
+                  <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Barcode number</div>
+                  <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value)} placeholder="e.g. 0070038642824" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"11px 13px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit",letterSpacing:1}}/>
+                  <div style={{fontSize:10,color:T.mu,marginTop:7}}>Tip: Use your phone camera app to scan — it shows the barcode number. Paste it here.</div>
+                </div>
+                {barcodeResult&&<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:12}}>
+                  <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{barcodeResult.name}</div>
+                  {barcodeResult.brand&&<div style={{fontSize:11,color:T.mu,marginBottom:8}}>{barcodeResult.brand} · {barcodeResult.serving}</div>}
+                  <div style={{display:"flex",gap:14,marginBottom:12}}>
+                    {[["Cal",barcodeResult.calories,""],["P",barcodeResult.protein,"g"],["C",barcodeResult.carbs,"g"],["F",barcodeResult.fat,"g"]].map(([l,v,u])=>(<div key={l}><div style={{fontSize:9,color:T.mu,textTransform:"uppercase",letterSpacing:1}}>{l}</div><div style={{fontSize:16,fontWeight:800,color:T.prot}}>{v}{u}</div></div>))}
+                  </div>
+                  <PrimaryBtn onClick={addBarcode} label="Add to Log →"/>
+                </div>}
+                {barcodeLoading&&<div style={{textAlign:"center",padding:"16px",color:T.mu,fontSize:13}}>Looking up product…</div>}
+                <PrimaryBtn onClick={scanBarcode} label="Look Up Barcode →" disabled={barcodeLoading||!barcodeInput.trim()}/>
+              </>}
+              {logMode==="quick"&&<>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
+                  {[["Name (optional)","text","name","e.g. Protein shake"],["Calories","number","calories","0"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
+                    <div key={k} style={{marginBottom:12}}>
+                      <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
+                      <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                    </div>
+                  ))}
+                </div>
+                <PrimaryBtn onClick={addQuick} label="Add Entry →" disabled={!quickFields.calories}/>
+              </>}
             </>}
           </div>
         )}

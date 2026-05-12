@@ -1064,7 +1064,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [foodInput,setFoodInput]=useState("");
   const [logging,setLogging]=useState(false);
   const [logMsg,setLogMsg]=useState("");
-  const [logMode,setLogMode]=useState("ai");
+  const [logMode,setLogMode]=useState("search");
   const [barcodeInput,setBarcodeInput]=useState("");
   const [barcodeResult,setBarcodeResult]=useState(null);
   const [barcodeLoading,setBarcodeLoading]=useState(false);

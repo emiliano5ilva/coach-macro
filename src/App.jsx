@@ -68,6 +68,40 @@ import { useState, useEffect, useRef } from "react";
   alter table profiles add column if not exists is_youth boolean default false;
   alter table profiles add column if not exists is_older_adult boolean default false;
   alter table profiles add column if not exists health_conditions jsonb default '[]';
+
+  -- food_history: recent + frequent foods per user (for food search UX)
+  create table if not exists food_history (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade,
+    food_id text not null,
+    food_name text not null,
+    food_data jsonb not null,
+    last_used timestamptz default now(),
+    use_count int default 1,
+    unique(user_id, food_id)
+  );
+  alter table food_history enable row level security;
+  create policy "Users manage own food history" on food_history for all using (auth.uid() = user_id);
+
+  -- custom_foods: user-created foods for food search
+  create table if not exists custom_foods (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade,
+    name text not null,
+    brand text,
+    serving_size numeric default 100,
+    serving_unit text default 'g',
+    calories numeric not null,
+    protein numeric default 0,
+    carbs numeric default 0,
+    fat numeric default 0,
+    fiber numeric default 0,
+    sugar numeric default 0,
+    sodium numeric default 0,
+    created_at timestamptz default now()
+  );
+  alter table custom_foods enable row level security;
+  create policy "Users manage own custom foods" on custom_foods for all using (auth.uid() = user_id);
 */
 import { sb } from "./supabase.js";
 
