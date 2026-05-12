@@ -317,6 +317,16 @@ export default function CoachMacro() {
       baseTDEE:tdee.total,
       bmr:tdee.bmr,
       city:"",
+      // female-specific
+      lifeStage:od.lifeStage||"",
+      trimester:od.trimester||"",
+      postpartumWeeks:od.postpartumWeeks||0,
+      csection:od.csection||false,
+      menopauseSymptoms:od.menopauseSymptoms||[],
+      cycleCondition:od.cycleCondition||[],
+      fitnessMotivation:od.fitnessMotivation||"",
+      eatingHistory:od.eatingHistory||"",
+      boneHistory:od.boneHistory||"",
     };
     setProfile(baseProf);
     setPhase("onboarding-fuel");

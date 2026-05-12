@@ -11,6 +11,8 @@ import { TrainSection, ConnectSection, SettingsSection,
 import { getWorkoutForDay } from "./programs.js";
 import { FuelSection } from "./fuel.jsx";
 import { sb, ai } from "./client.js";
+import { getCyclePhase } from "./utils/ait.js";
+import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1525,6 +1527,56 @@ Rules:
             <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);setSection("train");}} style={{width:"100%",marginTop:12,padding:14,background:"var(--amber)",border:"none",borderRadius:12,color:"#0a0e1a",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Start Comeback Session →</button>
           </div>
         )}
+
+        {/* Cycle Insight Card (Part 10) */}
+        {profile?.sex==="female"&&profile?.cycleTracking&&(()=>{
+          const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+          const cn=getCycleNutrition(cp);
+          if(!cp)return null;
+          return(
+            <div style={{margin:"0 20px 12px",borderRadius:14,overflow:"hidden",border:`1.5px solid ${cn?.color||"#F472B6"}30`}}>
+              <div style={{background:`${cn?.color||"#F472B6"}12`,padding:"12px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:cn?.color||"#F472B6",marginBottom:4}}>// Cycle · Day {cp.day}</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase"}}>{cp.label}</div>
+                  </div>
+                  <div style={{fontSize:28}}>{cp.label.split(" ")[0]}</div>
+                </div>
+              </div>
+              <div style={{background:"var(--navy-card)",padding:"10px 16px 14px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,.4)",letterSpacing:".14em",textTransform:"uppercase",marginBottom:4}}>Training</div>
+                    <div style={{fontSize:11,lineHeight:1.55,color:"rgba(245,245,240,.8)"}}>{cp.cue}</div>
+                  </div>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,.4)",letterSpacing:".14em",textTransform:"uppercase",marginBottom:4}}>Nutrition</div>
+                    <div style={{fontSize:11,lineHeight:1.55,color:"rgba(245,245,240,.8)"}}>{cn?.focus||"Balanced fueling"}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Consistency Score for peri/menopause (replaces streak) */}
+        {showConsistencyScore(profile)&&(()=>{
+          const {sessions,pct}=getConsistencyScore(workoutLogsRaw||[]);
+          return(
+            <div style={{margin:"0 20px 12px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase",marginBottom:6}}>// Consistency Score</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:6}}>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"var(--green)"}}>{pct}%</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,.5)"}}>{sessions} sessions last 30 days</div>
+              </div>
+              <div style={{height:4,background:"rgba(255,255,255,.08)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
+                <div style={{height:"100%",width:`${pct}%`,background:"var(--green)",borderRadius:2,transition:"width .6s"}}/>
+              </div>
+              <div style={{fontSize:12,color:"rgba(245,245,240,.6)",lineHeight:1.55,fontStyle:"italic"}}>Every session counts. Every time you show up is a win.</div>
+            </div>
+          );
+        })()}
 
         {/* Coach quote */}
         <div className="coach-card">

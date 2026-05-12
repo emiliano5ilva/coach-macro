@@ -11,6 +11,7 @@ import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHy
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle } from "./utils/ait.js";
+import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -996,6 +997,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         })),
       }));
       exercises=applyMobilitySubstitutions(exercises,wPrefs?.mobilityLimitations||[]);
+      exercises=lifeStageModifier(exercises,profile);
       const priorities=wPrefs?.musclePriorities||[];
       if(priorities.length>0){
         exercises=[...exercises].sort((a,b)=>(a.priority?0:1)-(b.priority?0:1));
@@ -1142,6 +1144,45 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 16px",fontSize:12,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
               </div>
               <div style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.6}}>💡 {FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
+              {/* Pregnancy permanent safety banner */}
+              {profile?.lifeStage==="pregnant"&&(
+                <div style={{background:"rgba(249,115,22,.08)",border:"1.5px solid rgba(249,115,22,.3)",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",gap:12,alignItems:"flex-start"}}>
+                  <div style={{fontSize:18,flexShrink:0}}>🤰</div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#F97316",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
+                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
+                  </div>
+                </div>
+              )}
+              {/* Postpartum phase banner */}
+              {profile?.lifeStage==="postpartum"&&(()=>{const pp=getPostpartumPhase(profile.postpartumWeeks,profile.csection);return(
+                <div style={{background:"rgba(168,85,247,.08)",border:"1.5px solid rgba(168,85,247,.3)",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",gap:12,alignItems:"flex-start"}}>
+                  <div style={{fontSize:18,flexShrink:0}}>👶</div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#A855F7",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
+                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{pp.desc}</div>
+                  </div>
+                </div>
+              );})()}
+              {/* ACL Prevention prehab for female users on leg days */}
+              {profile?.sex==="female"&&isLegDay(todayFocus)&&(()=>{
+                const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+                const highLaxity=cp&&(cp.phase==="follicular"||cp.phase==="ovulation");
+                return(
+                  <div style={{background:"rgba(236,72,153,.06)",border:"1px solid rgba(236,72,153,.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
+                    <div style={{fontSize:10,color:"#EC4899",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>🦵 ACL PREHAB · 5 MIN</div>
+                    {highLaxity&&<div style={{background:"rgba(234,179,8,.08)",border:"1px solid rgba(234,179,8,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:"#EAB308"}}>⚠️ Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
+                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {ACL_PREHAB.map((ex,i)=>(
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:T.s2,borderRadius:7}}>
+                          <span style={{fontWeight:600}}>{ex.name}</span>
+                          <span style={{color:T.mu}}>{ex.reps}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(()=>{
                 const coachStyle=getCoachingStyle(wPrefs?.trainingAge);
                 return(

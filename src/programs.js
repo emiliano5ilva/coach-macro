@@ -1391,3 +1391,120 @@ export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, hi
     })
   };
 }
+
+// ─── PREGNANCY PROGRAM ────────────────────────────────────────────────────────
+export const PREGNANCY_PROGRAM = {
+  trimester1: {
+    label: "First Trimester (Weeks 1–12)",
+    sessionsPerWeek: 3,
+    intensity: "moderate",
+    note: "Energy may dip in first trimester. Listen to your body. Nausea, fatigue, and dizziness are common — reduce intensity accordingly.",
+    exercises: [
+      { name:"Goblet Squat",         sets:3, reps:"12–15", notes:"Safe T1 squat. Focus on depth you're comfortable with.", safe:[1,2] },
+      { name:"Seated Dumbbell Press",sets:3, reps:"10–12", notes:"Seated version removes lumbar strain.", safe:[1,2,3] },
+      { name:"Cable Row",            sets:3, reps:"12–15", notes:"Seated, neutral spine.", safe:[1,2,3] },
+      { name:"Lat Pulldown",         sets:3, reps:"12–15", notes:"Excellent upper back compound.", safe:[1,2,3] },
+      { name:"Romanian Deadlift",    sets:3, reps:"10–12", notes:"Light weight. Hinge pattern. Stop at shin height T3.", safe:[1,2] },
+      { name:"Dead Bug",             sets:3, reps:"8–10 each", notes:"Core stability without spinal flexion.", safe:[1,2,3] },
+      { name:"Pelvic Floor Breathing",sets:3,reps:"10 breaths", notes:"Inhale to expand, exhale to activate pelvic floor.", safe:[1,2,3] },
+      { name:"Side-Lying Hip Abduction",sets:3,reps:"15 each side",notes:"Glute medius activation. Safe all trimesters.",safe:[1,2,3]},
+      { name:"Calf Raise",           sets:3, reps:"15–20", notes:"Helps circulation. Hold wall for balance.", safe:[1,2,3] },
+    ],
+  },
+  trimester2: {
+    label: "Second Trimester (Weeks 13–27)",
+    sessionsPerWeek: 3,
+    intensity: "light-moderate",
+    note: "Most women feel best in T2. Avoid lying flat on back after week 16. Modify all pressing and core work accordingly.",
+    exercises: [
+      { name:"Goblet Squat",          sets:3, reps:"12–15", notes:"Feet wider as belly grows.", safe:[2] },
+      { name:"Seated Dumbbell Press", sets:3, reps:"10–12", notes:"Must be seated — no supine pressing.", safe:[2] },
+      { name:"Incline Dumbbell Press",sets:3, reps:"10–12", notes:"45° incline bench only. Not flat.", safe:[2] },
+      { name:"Cable Row",             sets:3, reps:"12–15", notes:"Seated, upright posture.", safe:[2] },
+      { name:"Lat Pulldown",          sets:3, reps:"12–15", notes:"", safe:[2] },
+      { name:"Hip Thrust (bodyweight)",sets:3,reps:"15",    notes:"Bodyweight only. Elevated shoulders on bench.", safe:[2] },
+      { name:"Dead Bug",              sets:3, reps:"8 each",notes:"Core stability — no crunch or sit-up.", safe:[2] },
+      { name:"Pelvic Floor Breathing",sets:3, reps:"10",    notes:"Foundation of all postpartum recovery.", safe:[2] },
+      { name:"Side-Lying Hip Abduction",sets:3,reps:"15 each",notes:"", safe:[2] },
+      { name:"Standing Calf Raise",   sets:3, reps:"20",    notes:"Hold wall. Helps with swelling.", safe:[2] },
+    ],
+  },
+  trimester3: {
+    label: "Third Trimester (Weeks 28–40)",
+    sessionsPerWeek: 2,
+    intensity: "light",
+    note: "Comfort over performance. Relaxin hormone increases injury risk — avoid ballistic movement. Stay cool, stay hydrated.",
+    exercises: [
+      { name:"Goblet Squat",            sets:2, reps:"10–12", notes:"Use support if needed for balance.", safe:[3] },
+      { name:"Seated Dumbbell Press",   sets:2, reps:"10",    notes:"Light weight only.", safe:[3] },
+      { name:"Cable Row",               sets:2, reps:"12",    notes:"Focus on posture.", safe:[3] },
+      { name:"Lat Pulldown",            sets:2, reps:"12",    notes:"Light weight.", safe:[3] },
+      { name:"Standing Hip Abduction",  sets:2, reps:"15 each",notes:"Standing with band. Hold support.", safe:[3] },
+      { name:"Pelvic Floor Breathing",  sets:4, reps:"10",    notes:"Most important exercise of pregnancy.", safe:[3] },
+      { name:"Seated Dead Bug",         sets:2, reps:"8 each",notes:"Seated chair version.", safe:[3] },
+      { name:"Gentle Walking",          sets:1, reps:"20–30 min",notes:"Best cardio T3. Pace: conversational.", safe:[3] },
+    ],
+  },
+};
+
+// ─── POSTPARTUM PROGRAM ───────────────────────────────────────────────────────
+export const POSTPARTUM_PROGRAM = {
+  phase1: {
+    label: "Phase 1 — Recovery (Weeks 0–6)",
+    weeks: "0–6",
+    sessionsPerWeek: 1,
+    csectionDelay: 2,
+    exercises: [
+      { name:"Diaphragmatic Breathing",    sets:3, reps:"10 breaths", notes:"Inhale 4s — ribcage 360° expansion. Exhale 6s — gentle pelvic floor lift." },
+      { name:"Pelvic Floor Contractions",  sets:3, reps:"10 × 5s holds", notes:"Slow hold and full release. Quality over quantity." },
+      { name:"Heel Slides",                sets:2, reps:"10 each side", notes:"Brace core gently. No breath-holding." },
+      { name:"Gentle Walking",             sets:1, reps:"5–15 min", notes:"Start at 5 min. Add 5 min each day if comfortable." },
+    ],
+  },
+  phase2: {
+    label: "Phase 2 — Rebuild (Weeks 6–12)",
+    weeks: "6–12",
+    sessionsPerWeek: 2,
+    csectionDelay: 2,
+    exercises: [
+      { name:"Pelvic Floor Breathing",     sets:3, reps:"10",         notes:"Continue daily." },
+      { name:"Glute Bridge",               sets:3, reps:"15",         notes:"Feel glutes fire, not back. Feet flat." },
+      { name:"Bird Dog",                   sets:3, reps:"10 each",    notes:"Opposite arm and leg. Stable pelvis." },
+      { name:"Bodyweight Squat",           sets:3, reps:"12–15",      notes:"Full ROM. Stop if pressure or leaking." },
+      { name:"Modified Push-Up (knees)",   sets:2, reps:"10–12",      notes:"Core engaged. Hips in line." },
+      { name:"Side-Lying Hip Abduction",   sets:3, reps:"15 each",    notes:"Band optional. Glute medius." },
+      { name:"Dead Bug",                   sets:3, reps:"8 each",     notes:"Core reconnection without spinal flexion." },
+    ],
+  },
+  phase3: {
+    label: "Phase 3 — Restore (Weeks 12–26)",
+    weeks: "3–6 months",
+    sessionsPerWeek: 3,
+    csectionDelay: 2,
+    exercises: [
+      { name:"Goblet Squat",               sets:3, reps:"12",         notes:"Light dumbbell. Monitor for symptoms." },
+      { name:"Romanian Deadlift",          sets:3, reps:"12",         notes:"50–60% working weight." },
+      { name:"Dumbbell Row",               sets:3, reps:"12 each",    notes:"Supported on bench." },
+      { name:"Dumbbell Overhead Press",    sets:3, reps:"12",         notes:"Seated. Light load." },
+      { name:"Hip Thrust",                 sets:3, reps:"15",         notes:"Barbell or bodyweight depending on comfort." },
+      { name:"Glute Bridge",               sets:3, reps:"15",         notes:"Loaded if Phase 2 felt strong." },
+      { name:"Plank",                      sets:3, reps:"20–30s",     notes:"Stop if doming or leaking occurs." },
+    ],
+  },
+  phase4: {
+    label: "Phase 4 — Return (Months 6–12)",
+    weeks: "6–12 months",
+    sessionsPerWeek: 3,
+    csectionDelay: 2,
+    note: "Gradual return to full program. Individual response varies widely — listen to your body every session.",
+    exercises: [
+      { name:"Barbell Squat",              sets:4, reps:"8–10",       notes:"Start at 50% pre-pregnancy weight." },
+      { name:"Romanian Deadlift",          sets:4, reps:"10",         notes:"Progressive loading from Phase 3." },
+      { name:"Barbell Bench Press",        sets:3, reps:"10",         notes:"Return to flat bench if no symptoms." },
+      { name:"Barbell Row",                sets:3, reps:"10",         notes:"Full compound pull back." },
+      { name:"Hip Thrust",                 sets:4, reps:"12",         notes:"Loaded. Build back to working weight." },
+      { name:"Pull Up / Lat Pulldown",     sets:3, reps:"8–10",       notes:"Upper body strength foundation." },
+      { name:"Ab Wheel Rollout",           sets:3, reps:"8–10",       notes:"Only if no diastasis recti symptoms." },
+    ],
+  },
+};

@@ -10,14 +10,44 @@ export function Onboarding({onComplete, user, signupName}) {
   const [sc,setSc]=useState(0);
   const [chatReply,setCR]=useState("");
   const [goalRate,setGR]=useState("");
-  const [d,setD]=useState({name:signupName||"",email:user?.email||"",healthConn:false,sex:"",dobMonth:"Jan",dobDay:"15",dobYear:"1995",hUnit:"ft",hFt:"5",hIn:"10",hCm:"178",wUnit:"lbs",weight:"185",wHistory:"",wTrend:"",bodyFat:"",job:"",steps:"",freq:"",trainType:"",intensity:"",activity:"",sleep:"",sleepQ:"",metHistory:"",protein:"",conditions:[],cycle:"",liftExp:"",cardioExp:"",goal:"",goalTimeline:"",targetWeight:""});
+  const [femSc,setFemSc]=useState(null); // null=not in sub-flow; 0–4=female screens
+  const [d,setD]=useState({name:signupName||"",email:user?.email||"",healthConn:false,sex:"",dobMonth:"Jan",dobDay:"15",dobYear:"1995",hUnit:"ft",hFt:"5",hIn:"10",hCm:"178",wUnit:"lbs",weight:"185",wHistory:"",wTrend:"",bodyFat:"",job:"",steps:"",freq:"",trainType:"",intensity:"",activity:"",sleep:"",sleepQ:"",metHistory:"",protein:"",conditions:[],cycle:"",liftExp:"",cardioExp:"",goal:"",goalTimeline:"",targetWeight:"",
+    // female-specific
+    lifeStage:"",trimester:"",postpartumWeeks:"",csection:false,menopauseSymptoms:[],cycleCondition:[],fitnessMotivation:"",eatingHistory:"",boneHistory:"",
+  });
   const upd=(k,v)=>setD(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(next,260);};
   const tdee=calcTDEE(d);
   const animTDEE=useCountUp(sc===23?tdee.total:0);
   const SKIP20=d.sex!=="female";
   const next=()=>setSc(s=>{const n=s+1;if(n===20&&SKIP20)return 21;return n;});
-  const back=()=>setSc(s=>{const p=s-1;if(p===20&&SKIP20)return 19;return Math.max(0,p);});
+  const back=()=>{
+    if(femSc!==null){
+      if(femSc===0){setFemSc(null);}
+      else if(femSc===2&&["regular",""].includes(d.lifeStage)){setFemSc(0);}
+      else{setFemSc(f=>f-1);}
+      return;
+    }
+    setSc(s=>{const p=s-1;if(p===20&&SKIP20)return 19;return Math.max(0,p);});
+  };
+
+  function selectSex(v){
+    upd("sex",v);
+    if(v==="female"){setTimeout(()=>setFemSc(0),260);}
+    else{setTimeout(next,260);}
+  }
+
+  function femAdvance(lifeStageVal){
+    const ls=lifeStageVal??d.lifeStage;
+    if(femSc===0){
+      const needsConditional=["pregnant","postpartum","perimenopause","menopause","irregular"].includes(ls);
+      setFemSc(needsConditional?1:2);
+    }else if(femSc===4){
+      setFemSc(null);next();
+    }else{
+      setFemSc(f=>f+1);
+    }
+  }
   const rateMap={"−750":-750,"−500":-500,"−250":-250,"−125":-125,"0":0,"+125":125,"+250":250,"+500":500};
   const goalCals=tdee.total+(rateMap[goalRate]||0);
   const pct=Math.round((sc/25)*100);
@@ -97,7 +127,7 @@ export function Onboarding({onComplete, user, signupName}) {
           <p style={{fontSize:13,color:T.mu,marginBottom:24}}>This is one of the biggest drivers of your metabolic rate — not a detail we can skip.</p>
           <div style={{display:"flex",gap:12}}>
             {[{v:"male",l:"Male",e:"♂"},{v:"female",l:"Female",e:"♀"}].map(o=>(
-              <div key={o.v} onClick={()=>auto("sex",o.v)} style={{flex:1,background:d.sex===o.v?`${T.prot}12`:T.s2,border:`2px solid ${d.sex===o.v?T.prot:T.bd}`,borderRadius:14,padding:"28px 12px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
+              <div key={o.v} onClick={()=>selectSex(o.v)} style={{flex:1,background:d.sex===o.v?`${T.prot}12`:T.s2,border:`2px solid ${d.sex===o.v?T.prot:T.bd}`,borderRadius:14,padding:"28px 12px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
                 <div style={{fontSize:30,marginBottom:10,color:d.sex===o.v?T.prot:T.mu}}>{o.e}</div>
                 <div style={{fontSize:17,fontWeight:700,color:d.sex===o.v?T.prot:"#fff"}}>{o.l}</div>
               </div>
@@ -106,8 +136,183 @@ export function Onboarding({onComplete, user, signupName}) {
           <FactCard emoji="🧬" stat="Sex affects BMR by up to 5–10%" text="Males and females have different baseline metabolic rates due to differences in lean mass distribution. We use sex-specific Mifflin-St Jeor or Katch-McArdle equations." color={T.carb}/>
         </div>}
 
+        {/* ── FEMALE SUB-FLOW ── */}
+        {femSc!==null&&(()=>{
+          const FBtn=({label,sub,emoji,onClick,sel})=>(
+            <div onClick={onClick} style={{background:sel?`${T.prot}10`:T.s2,border:`1.5px solid ${sel?T.prot:T.bd}`,borderRadius:13,padding:"14px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,marginBottom:8,transition:"all .2s"}}>
+              <div style={{fontSize:22,flexShrink:0}}>{emoji}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,color:sel?T.prot:"#fff"}}>{label}</div>
+                {sub&&<div style={{fontSize:12,color:T.mu,marginTop:2}}>{sub}</div>}
+              </div>
+              {sel&&<div style={{color:T.prot}}>✓</div>}
+            </div>
+          );
+          const PB=({label,disabled,onClick})=>(<button onClick={onClick} disabled={disabled} style={{width:"100%",padding:"14px",background:disabled?"rgba(245,245,240,.06)":T.prot,color:disabled?"rgba(245,245,240,.3)":"#fff",fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:disabled?"not-allowed":"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,marginTop:8}}>{label}</button>);
+          const eyebrow=(t)=><div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>{t}</div>;
+          const h1=(t)=><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:38,fontWeight:900,lineHeight:.92,marginBottom:12,textTransform:"uppercase"}}>{t}</div>;
+          const sub=(t)=><p style={{fontSize:13,color:T.mu,marginBottom:22,lineHeight:1.65}}>{t}</p>;
+
+          // Screen 0 — Life Stage
+          if(femSc===0) return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              {eyebrow("Female Health · 1 of 5")}
+              {h1(<>Your life<br/><span style={{color:T.prot}}>stage.</span></>)}
+              {sub("This personalizes your program, nutrition, and coaching to where you actually are right now.")}
+              {[
+                {v:"regular",e:"🌸",l:"Regular cycle",s:"Periods are predictable"},
+                {v:"irregular",e:"🌙",l:"Irregular cycle",s:"PCOS, endometriosis, or unpredictable periods"},
+                {v:"pregnant",e:"🤰",l:"Pregnant",s:"Currently expecting"},
+                {v:"postpartum",e:"👶",l:"Postpartum",s:"Recovering after birth (within 12 months)"},
+                {v:"perimenopause",e:"🌊",l:"Perimenopause",s:"Irregular cycles, transition symptoms"},
+                {v:"menopause",e:"🦋",l:"Menopause / Post-menopause",s:"Cycles have stopped"},
+              ].map(o=><FBtn key={o.v} label={o.l} sub={o.s} emoji={o.e} sel={d.lifeStage===o.v} onClick={()=>{upd("lifeStage",o.v);setTimeout(()=>femAdvance(o.v),260);}}/>)}
+              <button onClick={()=>{upd("lifeStage","regular");femAdvance("regular");}} style={{width:"100%",padding:"10px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,marginTop:4}}>Prefer not to say</button>
+            </div>
+          );
+
+          // Screen 1 — Conditional (trimester / postpartum / symptoms / condition)
+          if(femSc===1){
+            if(d.lifeStage==="pregnant") return(
+              <div style={{animation:"fadeIn .25s ease"}}>
+                {eyebrow("Female Health · 2 of 5")}
+                {h1(<>Which<br/><span style={{color:T.prot}}>trimester?</span></>)}
+                {sub("Your program changes meaningfully each trimester.")}
+                {[{v:"1",l:"First Trimester",s:"Weeks 1–12"},{v:"2",l:"Second Trimester",s:"Weeks 13–27"},{v:"3",l:"Third Trimester",s:"Weeks 28–40"}].map(o=>(
+                  <FBtn key={o.v} label={o.l} sub={o.s} emoji={o.v==="1"?"🌱":o.v==="2"?"🤰":"👼"} sel={d.trimester===o.v} onClick={()=>{upd("trimester",o.v);setTimeout(()=>setFemSc(2),260);}}/>
+                ))}
+              </div>
+            );
+            if(d.lifeStage==="postpartum") return(
+              <div style={{animation:"fadeIn .25s ease"}}>
+                {eyebrow("Female Health · 2 of 5")}
+                {h1(<>Postpartum<br/><span style={{color:T.prot}}>details.</span></>)}
+                {sub("Recovery timelines vary. Honest answers give you the safest possible return to training.")}
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Weeks since birth</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {["0–2","3–6","7–12","13–26","27+"].map(v=>(
+                      <button key={v} onClick={()=>upd("postpartumWeeks",v.includes("+")?28:parseInt(v))} style={{padding:"10px 16px",borderRadius:9,border:`1.5px solid ${String(d.postpartumWeeks)===v||d.postpartumWeeks===28&&v==="27+"?T.prot:T.bd}`,background:String(d.postpartumWeeks)===v||d.postpartumWeeks===28&&v==="27+"?`${T.prot}12`:T.s2,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{v} wks</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:T.s2,borderRadius:12,border:`1px solid ${T.bd}`,marginBottom:16}}>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:700}}>C-section delivery?</div>
+                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>We'll add 2 extra weeks to each phase</div>
+                  </div>
+                  <button onClick={()=>upd("csection",!d.csection)} style={{width:44,height:26,borderRadius:13,border:"none",background:d.csection?T.prot:"rgba(255,255,255,.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:d.csection?21:3}}/>
+                  </button>
+                </div>
+                <PB label="Continue →" disabled={!d.postpartumWeeks} onClick={()=>setFemSc(2)}/>
+              </div>
+            );
+            if(d.lifeStage==="perimenopause"||d.lifeStage==="menopause") return(
+              <div style={{animation:"fadeIn .25s ease"}}>
+                {eyebrow("Female Health · 2 of 5")}
+                {h1(<>Any current<br/><span style={{color:T.prot}}>symptoms?</span></>)}
+                {sub("We'll adjust your training and nutrition to reduce these — not just work around them.")}
+                {[
+                  {v:"hot_flashes",l:"Hot flashes or night sweats"},
+                  {v:"sleep_disruption",l:"Sleep disruption"},
+                  {v:"mood_changes",l:"Mood changes or brain fog"},
+                  {v:"joint_pain",l:"Joint pain or stiffness"},
+                  {v:"weight_gain",l:"Weight changes (midsection)"},
+                  {v:"fatigue",l:"Fatigue or low energy"},
+                ].map(o=>{
+                  const sel=(d.menopauseSymptoms||[]).includes(o.v);
+                  return <FBtn key={o.v} label={o.l} sub="" emoji={sel?"✓":"○"} sel={sel} onClick={()=>upd("menopauseSymptoms",sel?(d.menopauseSymptoms||[]).filter(x=>x!==o.v):[...(d.menopauseSymptoms||[]),o.v])}/>;
+                })}
+                <PB label="Continue →" onClick={()=>setFemSc(2)}/>
+              </div>
+            );
+            if(d.lifeStage==="irregular") return(
+              <div style={{animation:"fadeIn .25s ease"}}>
+                {eyebrow("Female Health · 2 of 5")}
+                {h1(<>Any diagnosed<br/><span style={{color:T.prot}}>conditions?</span></>)}
+                {sub("This helps us adjust your nutrition and program. Select all that apply.")}
+                {[
+                  {v:"pcos",l:"PCOS",s:"Polycystic ovary syndrome"},
+                  {v:"endometriosis",l:"Endometriosis",s:"Pelvic pain, heavy periods"},
+                  {v:"fibroids",l:"Uterine fibroids",s:"Noncancerous growths"},
+                  {v:"thyroid",l:"Thyroid condition",s:"Hypo or hyperthyroidism"},
+                  {v:"none",l:"None / prefer not to say",s:""},
+                ].map(o=>{
+                  const sel=(d.cycleCondition||[]).includes(o.v);
+                  const isNone=o.v==="none";
+                  return <FBtn key={o.v} label={o.l} sub={o.s} emoji={isNone?"—":sel?"✓":"○"} sel={sel} onClick={()=>{
+                    if(isNone){upd("cycleCondition",sel?[]:["none"]);}
+                    else{upd("cycleCondition",sel?(d.cycleCondition||[]).filter(x=>x!==o.v):[...(d.cycleCondition||[]).filter(x=>x!=="none"),o.v]);}
+                  }}/>;
+                })}
+                <PB label="Continue →" disabled={!(d.cycleCondition||[]).length} onClick={()=>setFemSc(2)}/>
+              </div>
+            );
+            // fallback
+            setFemSc(2); return null;
+          }
+
+          // Screen 2 — Fitness Motivation
+          if(femSc===2) return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              {eyebrow("Female Health · 3 of 5")}
+              {h1(<>What drives<br/><span style={{color:T.prot}}>you?</span></>)}
+              {sub("Your coaching language adapts to match what actually motivates you.")}
+              {[
+                {v:"health",e:"❤️",l:"Health & Longevity",s:"Feel better, live longer"},
+                {v:"energy",e:"⚡",l:"Energy & Vitality",s:"Boost daily energy levels"},
+                {v:"confidence",e:"💪",l:"Confidence",s:"Feel strong in my body"},
+                {v:"performance",e:"🏆",l:"Athletic Performance",s:"Get stronger, faster, better"},
+                {v:"aesthetics",e:"✨",l:"Look & Feel My Best",s:"Body composition goals"},
+                {v:"stress",e:"🧘",l:"Stress Management",s:"Exercise as mental health tool"},
+              ].map(o=><FBtn key={o.v} label={o.l} sub={o.s} emoji={o.e} sel={d.fitnessMotivation===o.v} onClick={()=>{upd("fitnessMotivation",o.v);setTimeout(()=>setFemSc(3),260);}}/>)}
+            </div>
+          );
+
+          // Screen 3 — Eating History (sensitive)
+          if(femSc===3) return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              {eyebrow("One Sensitive Question")}
+              {h1(<>Your relationship<br/><span style={{color:T.prot}}>with food.</span></>)}
+              <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:12,padding:"12px 16px",marginBottom:20}}>
+                <div style={{fontSize:12,color:"rgba(41,121,255,.9)",lineHeight:1.65}}>This helps us create a positive experience. Your answer affects how calorie and macro data is displayed — never judged. You can change this in Settings anytime.</div>
+              </div>
+              {[
+                {v:"track",l:"I'm comfortable tracking numbers",s:"Show full macro and calorie data"},
+                {v:"prefer_not",l:"I prefer not to see specific calorie numbers",s:"Show macro guidance without precise numbers"},
+                {v:"skip",l:"Prefer not to say",s:"We'll use standard full-data display"},
+              ].map(o=>(
+                <div key={o.v} onClick={()=>{upd("eatingHistory",o.v);setTimeout(()=>setFemSc(4),260);}} style={{background:d.eatingHistory===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${d.eatingHistory===o.v?T.prot:T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",marginBottom:8,transition:"all .2s"}}>
+                  <div style={{fontSize:14,fontWeight:700,color:d.eatingHistory===o.v?T.prot:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:12,color:T.mu,marginTop:3}}>{o.s}</div>
+                </div>
+              ))}
+            </div>
+          );
+
+          // Screen 4 — Bone History
+          if(femSc===4) return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              {eyebrow("Female Health · 5 of 5")}
+              {h1(<>Bone health<br/><span style={{color:T.prot}}>history.</span></>)}
+              {sub("We'll prioritize bone-loading exercises and calcium-rich nutrition if relevant.")}
+              {[
+                {v:"none",l:"No bone health concerns",s:""},
+                {v:"low_density",l:"Low bone density (osteopenia)",s:"Doctor has flagged this"},
+                {v:"osteoporosis",l:"Osteoporosis",s:"Diagnosed and managing"},
+                {v:"fracture_risk",l:"High fracture risk",s:"History of stress fractures"},
+                {v:"prefer_not",l:"Prefer not to say",s:""},
+              ].map(o=>(
+                <FBtn key={o.v} label={o.l} sub={o.s} emoji={o.v==="none"?"✅":o.v==="prefer_not"?"—":"🦴"} sel={d.boneHistory===o.v} onClick={()=>{upd("boneHistory",o.v);setTimeout(()=>femAdvance(),260);}}/>
+              ))}
+            </div>
+          );
+          return null;
+        })()}
+
         {/* ── SCREEN 3 — DOB ── */}
-        {sc===3&&<div style={{animation:"fadeIn 0.25s ease"}}>
+        {femSc===null&&sc===3&&<div style={{animation:"fadeIn 0.25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 3</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Date of birth.</div>
           <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Metabolism slows roughly 1–2% per decade after 20. Age is non-negotiable in the equation.</p>
@@ -121,7 +326,7 @@ export function Onboarding({onComplete, user, signupName}) {
         </div>}
 
         {/* ── SCREEN 4 — Height ── */}
-        {sc===4&&<div style={{animation:"fadeIn 0.25s ease"}}>
+        {femSc===null&&sc===4&&<div style={{animation:"fadeIn 0.25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 4</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:12}}>Your height.</div>
           <UnitToggle opts={[{val:"ft",label:"ft & in"},{val:"cm",label:"cm"}]} val={d.hUnit} onChange={v=>upd("hUnit",v)}/>
@@ -134,7 +339,7 @@ export function Onboarding({onComplete, user, signupName}) {
         </div>}
 
         {/* ── SCREEN 5 — Weight ── */}
-        {sc===5&&<div style={{animation:"fadeIn 0.25s ease"}}>
+        {femSc===null&&sc===5&&<div style={{animation:"fadeIn 0.25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 5</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Current weight.</div>
           <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Your weight right now — not a goal weight. Be honest. The equation only works with real numbers.</p>
@@ -154,7 +359,7 @@ export function Onboarding({onComplete, user, signupName}) {
         </div>}
 
         {/* Screens 6-22 */}
-        {sc>=6&&sc<=22&&<ChoiceScreens sc={sc} d={d} upd={upd} auto={auto} next={next} tdee={tdee} FactCard={FactCard} MiniBar={MiniBar}/>}
+        {femSc===null&&sc>=6&&sc<=22&&<ChoiceScreens sc={sc} d={d} upd={upd} auto={auto} next={next} tdee={tdee} FactCard={FactCard} MiniBar={MiniBar}/>}
 
         {/* Screen 23: TDEE reveal */}
         {sc===23&&<TDEEReveal tdee={tdee} animTDEE={animTDEE} d={d} chatReply={chatReply} setCR={setCR} next={()=>onComplete(d,tdee)}/>}

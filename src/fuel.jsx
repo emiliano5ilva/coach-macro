@@ -3,6 +3,8 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
   hap, calcTDEE } from "./components.jsx";
 import { sb, ai } from "./client.js";
+import { getCyclePhase } from "./utils/ait.js";
+import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
 
 const MEAL_SLOT_DEFS = {
   "2":  ["Breakfast","Dinner"],
@@ -285,6 +287,66 @@ Reply with ONLY a valid JSON object, no markdown:
                 </div>
               </div>
             )}
+
+            {/* CYCLE NUTRITION INSIGHT (Part 6) */}
+            {profile?.cycleTracking&&(()=>{
+              const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+              const cn=getCycleNutrition(cp);
+              if(!cp||!cn)return null;
+              return(
+                <div style={{background:`${cn.color}10`,border:`1.5px solid ${cn.color}30`,borderRadius:16,padding:"14px 18px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                    <div style={{fontSize:20}}>{cp.label.split(" ")[0]}</div>
+                    <div>
+                      <div style={{fontSize:10,color:cn.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase"}}>{cp.label} · Day {cp.day}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{cn.focus}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:10}}>{cn.note}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {cn.foods.map(f=><span key={f} style={{fontSize:10,fontWeight:700,background:`${cn.color}15`,color:cn.color,borderRadius:6,padding:"3px 8px"}}>{f}</span>)}
+                  </div>
+                  {cp.cue&&<div style={{marginTop:10,fontSize:11,color:T.mu,fontStyle:"italic"}}>{cp.cue}</div>}
+                </div>
+              );
+            })()}
+
+            {/* PCOS NUTRITION NOTE (Part 7) */}
+            {(profile?.cycleCondition||[]).includes("pcos")&&(
+              <div style={{background:"rgba(139,92,246,.08)",border:"1.5px solid rgba(139,92,246,.25)",borderRadius:14,padding:"12px 16px",display:"flex",gap:12,alignItems:"flex-start"}}>
+                <div style={{fontSize:18,flexShrink:0}}>💜</div>
+                <div>
+                  <div style={{fontSize:10,color:"#8B5CF6",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>PCOS NUTRITION</div>
+                  <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:8}}>{PCOS_NOTE}</div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    {PCOS_FOODS.map(f=><span key={f} style={{fontSize:10,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:5,padding:"2px 7px"}}>{f}</span>)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PERIMENOPAUSE / MENOPAUSE NUTRITION (Part 8) */}
+            {(profile?.lifeStage==="perimenopause"||profile?.lifeStage==="menopause")&&(()=>{
+              const mn=profile.lifeStage==="menopause"?MENO_NUTRITION:PERI_NUTRITION;
+              return(
+                <div style={{background:"rgba(34,197,94,.07)",border:"1.5px solid rgba(34,197,94,.25)",borderRadius:14,padding:"14px 18px"}}>
+                  <div style={{fontSize:10,color:"#22C55E",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>
+                    {profile.lifeStage==="menopause"?"🦋 MENOPAUSE NUTRITION":"🌊 PERIMENOPAUSE NUTRITION"}
+                  </div>
+                  <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:10}}>{mn.note}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    <div>
+                      <div style={{fontSize:9,color:"#22C55E",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Calcium sources</div>
+                      {mn.calcium.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,color:"#22C55E",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Omega-3 sources</div>
+                      {mn.omega3.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* MACRO MEMORY */}
             {wPrefs?.macroMemory!==false&&memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).length>0&&(
