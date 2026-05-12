@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
@@ -443,6 +443,103 @@ function DeloadActiveBadge({daysLeft, onComplete}) {
   );
 }
 
+// ─── COACH MACRO SCORE ────────────────────────────────────────────────────────
+
+const SCORE_SLEEP = {u5:20,"5-6":40,"6-7":65,"7-8":85,"8+":100};
+const _WDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType}) {
+  const today = new Date().toISOString().split("T")[0];
+
+  // ── Recovery (40%) ─────────────────────────────────────────────────────────
+  const sleepPts = SCORE_SLEEP[profile?.sleep] ?? 65;
+  const todayIdx = _WDAYS.indexOf(todayKey);
+  let consecutive = 0;
+  for(let i=0; i<=6; i++){
+    const k = _WDAYS[(todayIdx - i + 7) % 7];
+    const t = schedule[k]||"rest";
+    if(t==="rest"||t==="flex") break;
+    consecutive++;
+  }
+  const restPts = consecutive<=2?100:consecutive===3?80:consecutive===4?60:40;
+  const recovery = Math.min(100, Math.round((sleepPts + restPts) / 2));
+
+  // ── Nutrition (30%) ────────────────────────────────────────────────────────
+  let nutrition;
+  if(!log.length) {
+    nutrition = 20;
+  } else {
+    const calOff = macros.calories>0 ? Math.abs(consumed.calories-macros.calories)/macros.calories : 1;
+    let base = calOff<=0.1?100:calOff<=0.2?80:calOff<=0.3?60:40;
+    let bonus = 0;
+    if(macros.protein>0 && Math.abs(consumed.protein-macros.protein)/macros.protein<=0.1) bonus+=10;
+    const cOk=macros.carbs>0&&Math.abs(consumed.carbs-macros.carbs)/macros.carbs<=0.1;
+    const fOk=macros.fat>0&&Math.abs(consumed.fat-macros.fat)/macros.fat<=0.1;
+    const pOk=macros.protein>0&&Math.abs(consumed.protein-macros.protein)/macros.protein<=0.1;
+    if(cOk&&fOk&&pOk) bonus+=5;
+    nutrition = Math.min(100, base + bonus);
+  }
+
+  // ── Training (20%) ─────────────────────────────────────────────────────────
+  const todayLogs = workoutLogsRaw.filter(w=>w.date===today);
+  let training;
+  if(todayType==="rest") {
+    training = 90;
+  } else if(!todayLogs.length) {
+    training = 20;
+  } else {
+    const allDone = (todayLogs[0].workout?.exercises||[]).every(ex=>(ex.sets||[]).every(s=>s.done!==false));
+    training = allDone ? 100 : 75;
+  }
+
+  // ── Consistency (10%) ──────────────────────────────────────────────────────
+  const thirtyAgo = new Date(Date.now()-30*864e5);
+  const recentN = workoutLogsRaw.filter(w=>new Date(w.date+"T12:00:00")>=thirtyAgo).length;
+  const consistency = recentN>=25?100:recentN>=20?85:recentN>=15?70:recentN>=10?55:40;
+
+  // ── Final ──────────────────────────────────────────────────────────────────
+  const total = Math.round(recovery*0.40 + nutrition*0.30 + training*0.20 + consistency*0.10);
+
+  // ── Suggestions ────────────────────────────────────────────────────────────
+  const tips = [];
+  if(recovery<70){
+    const sh=SCORE_SLEEP[profile?.sleep]??65;
+    if(sh<70) tips.push("Sleep by 10pm tonight to improve your recovery score");
+    else tips.push("Schedule a rest day — you've trained multiple days straight");
+  }
+  if(nutrition<70){
+    if(!log.length) tips.push("Log your meals today to complete your nutrition score");
+    else if(macros.protein>0&&consumed.protein<macros.protein*0.9) tips.push(`Hit your protein — ${Math.round(macros.protein-consumed.protein)}g remaining`);
+    else if(macros.calories>0&&consumed.calories<macros.calories*0.9) tips.push(`Log dinner — ${Math.round(macros.calories-consumed.calories)} kcal remaining`);
+  }
+  if(training<70&&todayType!=="rest") tips.push("Complete today's training session to earn full points");
+  if(consistency<70) tips.push("Log tomorrow's session to strengthen your consistency score");
+
+  return {total, r:recovery, n:nutrition, t:training, c:consistency, tips};
+}
+
+function ScoreRing({score}) {
+  const R=72; const C=2*Math.PI*R;
+  const color=score>=85?"#22c55e":score>=70?"#2979FF":score>=50?"#EAB308":"#EF4444";
+  return (
+    <div style={{position:"relative",width:180,height:180,margin:"0 auto"}}>
+      <svg width={180} height={180} style={{transform:"rotate(-90deg)",display:"block"}}>
+        <circle cx={90} cy={90} r={R} stroke="rgba(255,255,255,0.06)" strokeWidth={14} fill="none"/>
+        <circle cx={90} cy={90} r={R} stroke={color} strokeWidth={14} fill="none"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={C*(1-score/100)}
+          style={{transition:"stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1)"}}
+        />
+      </svg>
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:"#fff"}}>{score}</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:2}}>Coach Macro Score</div>
+      </div>
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("home"); // home | train | fuel | progress | settings
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -479,6 +576,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [deloadActive,setDeloadActive]=useState(profile?.deload_active||false);
   const [deloadStartedAt,setDeloadStartedAt]=useState(profile?.deload_started_at||null);
   const [deloadSnooze,setDeloadSnooze]=useState(()=>localStorage.getItem("deload_snooze")||null);
+  const [dailyScores,setDailyScores]=useState(()=>(profile?.daily_scores||[]).slice(-90));
   const [comebackDismissed,setComebackDismissed]=useState(()=>localStorage.getItem("comeback_dismissed")===new Date().toISOString().split("T")[0]);
   const [planMode,setPlanMode]=useState("strength");
   const [runPlan,setRunPlan]=useState("5K Beginner");
@@ -821,6 +919,24 @@ Rules:
     }
   },[deloadActive,deloadStartedAt]);
 
+  // ── Coach Macro Score ──────────────────────────────────────────────────────
+  const coachScore = useMemo(()=>calcCoachScore({
+    profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }),[log.length,workoutLogsRaw.length,todayKey,todayType,profile?.sleep,schedule]);
+
+  useEffect(()=>{
+    if(!user||!coachScore) return;
+    const today=new Date().toISOString().split("T")[0];
+    const existing=dailyScores.find(s=>s.date===today);
+    if(existing&&Math.abs(existing.score-coachScore.total)<3) return;
+    const entry={date:today,score:coachScore.total,r:coachScore.r,n:coachScore.n,t:coachScore.t,c:coachScore.c};
+    const updated=[...dailyScores.filter(s=>s.date!==today),entry].slice(-90);
+    setDailyScores(updated);
+    sb.from("profiles").upsert({id:user.id,daily_scores:updated,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(e=>console.error("[saveScore]",e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[coachScore?.total]);
+
   function getSuggestion(name){
     const k=name.toLowerCase().replace(/\s+/g,"_");const prev=history[k];if(!prev||!prev.length)return null;
     const last=prev[prev.length-1];const lastSet=last.sets[last.sets.length-1];if(!lastSet)return null;
@@ -1043,15 +1159,91 @@ Rules:
   }
 
   function ProgressSection() {
+    const sc = coachScore;
+    const ringColor = sc.total>=85?"#22c55e":sc.total>=70?"#2979FF":sc.total>=50?"#EAB308":"#EF4444";
+    const dateStr = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"});
+    const last7 = (()=>{
+      const today = new Date().toISOString().split("T")[0];
+      const out = [];
+      for(let i=6;i>=0;i--){
+        const d = new Date(Date.now()-i*864e5).toISOString().split("T")[0];
+        const entry = dailyScores.find(s=>s.date===d);
+        out.push(entry ? {...entry} : {date:d,score:d===today?sc.total:null});
+      }
+      return out;
+    })();
+    const components=[
+      {label:"Recovery",   val:sc.r, color:"#2979FF"},
+      {label:"Nutrition",  val:sc.n, color:"#22c55e"},
+      {label:"Training",   val:sc.t, color:"var(--red)"},
+      {label:"Consistency",val:sc.c, color:"#EAB308"},
+    ];
     return (
       <div className="page-enter">
         <div className="screen-header" style={{paddingTop:12}}>
           <div style={{flex:1,minWidth:0}}>
-            <div className="header-eyebrow">// 12-Week View</div>
+            <div className="header-eyebrow">// Daily Performance</div>
             <div className="header-title">Progress</div>
           </div>
         </div>
-        {/* Stats grid */}
+
+        {/* ── SCORE RING CARD ── */}
+        <div style={{margin:"0 20px 14px",padding:"28px 20px 20px",background:"var(--navy-card)",border:`1px solid ${ringColor}30`,borderRadius:20,textAlign:"center"}}>
+          <ScoreRing score={sc.total}/>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:10}}>Today · {dateStr}</div>
+
+          {/* Component bars */}
+          <div style={{marginTop:20,textAlign:"left"}}>
+            {components.map(({label,val,color})=>(
+              <div key={label} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                  <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{label}</span>
+                  <span style={{fontFamily:"var(--mono)",fontSize:11,color:"#fff",fontWeight:600}}>{val}</span>
+                </div>
+                <div style={{height:5,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${val}%`,background:color,borderRadius:3,transition:"width 0.7s ease"}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── SUGGESTIONS ── */}
+        {sc.tips.length>0&&(
+          <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>
+              What would push you to {Math.min(99,sc.total+8)}+ tomorrow
+            </div>
+            {sc.tips.map((tip,i)=>(
+              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:i<sc.tips.length-1?9:0}}>
+                <span style={{color:"var(--red)",fontSize:12,marginTop:1,flexShrink:0}}>→</span>
+                <span style={{fontSize:13,color:"rgba(245,245,240,0.75)",lineHeight:1.5}}>{tip}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── 7-DAY HISTORY CHART ── */}
+        <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>7-Day Score</div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:6,height:72}}>
+            {last7.map((entry,i)=>{
+              const h=entry.score!=null?Math.max(4,Math.round((entry.score/100)*72)):4;
+              const c=entry.score==null?"rgba(255,255,255,0.06)":entry.score>=85?"#22c55e":entry.score>=70?"#2979FF":entry.score>=50?"#EAB308":"#EF4444";
+              const dow=new Date(entry.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"}).slice(0,2);
+              const isToday2=entry.date===new Date().toISOString().split("T")[0];
+              return(
+                <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <div style={{width:"100%",height:h,background:c,borderRadius:3,transition:"height 0.5s ease",border:isToday2?`1px solid ${c}`:"none",boxShadow:isToday2?`0 0 6px ${c}80`:"none"}}/>
+                  {entry.score!=null&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",lineHeight:1}}>{entry.score}</div>}
+                  <div style={{fontFamily:"var(--mono)",fontSize:8,color:isToday2?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.2)",lineHeight:1}}>{dow}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── STATS GRID ── */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 14px"}}>
           {[
             {k:"Bodyweight",v:`${profile.weight||"—"}`,u:profile.wUnit||"kg"},
@@ -1068,6 +1260,7 @@ Rules:
             </div>
           ))}
         </div>
+
         <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
         <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
         <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
