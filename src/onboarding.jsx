@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { T, GLOBAL_CSS, WDAYS, PrimaryBtn, Spinner, Logo } from "./components.jsx";
 import { estimateFrom, formatRaceTime, parseTimeInput } from "./utils/runningPaces.js";
+import { RECOVERY_MESO_MAP, getMesoLength } from "./utils/ait.js";
 
 // ─── FUEL ONBOARDING ──────────────────────────────────────────────────────────
 export function FuelOnboarding({d, onComplete, onBack}) {
@@ -362,12 +363,17 @@ export function TrainOnboarding({d, onComplete, onBack}) {
     current5KTime:null, unknownFitness:"", runningGoal:"", raceDate:"",
     goalRaceTime:"", terrain:"road", trackAccess:false,
     timeInputMin:"", timeInputSec:"",
+    // AIT fields
+    recoveryCapacity:"", musclePriorities:[], trainingAge:"",
+    blackoutDays:[], mobilityLimitations:[],
+    stressLevel:"", sleepQuality:"", jobPhysicality:"",
+    cycleTracking:null, hybridBias:"",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
   const next=()=>setSc(s=>s+1);
   const back=()=>sc===0?onBack():setSc(s=>s-1);
-  const SCREENS=11;
+  const SCREENS=19;
   const pct=Math.round((sc/SCREENS)*100);
 
   const isRunType = data.trainType==="running"||data.trainType==="hybrid";
@@ -1056,8 +1062,248 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →"/>
         </div>}
 
-        {/* SCREEN 10 — Injuries + GVT + Done */}
+        {/* SCREEN 10 — Recovery Capacity */}
         {sc===10&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 1/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            HOW QUICKLY<br/><span style={{color:T.prot}}>DO YOU RECOVER?</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This sets your training block length. Longer recovery means more time to peak before the next deload.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+            {[
+              {v:"fast",     e:"⚡",l:"Very Fast",     sub:"Rarely sore. Could train same muscle 2 days later easily.",        weeks:5},
+              {v:"normal",   e:"💪",l:"Normal",        sub:"Sore 1-2 days then feel recovered and ready.",                   weeks:6},
+              {v:"slow",     e:"🔄",l:"Slower",        sub:"Need 3-4 days to feel truly recovered from hard sessions.",      weeks:7},
+              {v:"very_slow",e:"🛌",l:"Very Slow",     sub:"Heavy sessions take 5+ days to fully recover from.",             weeks:8},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>auto("recoveryCapacity",o.v)} style={{background:data.recoveryCapacity===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.recoveryCapacity===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{fontSize:26,flexShrink:0}}>{o.e}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:700,color:data.recoveryCapacity===o.v?T.prot:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:11,color:T.mu,marginTop:2,lineHeight:1.5}}>{o.sub}</div>
+                </div>
+                <div style={{fontSize:10,color:T.mu,background:T.s3,padding:"3px 8px",borderRadius:8,flexShrink:0,fontWeight:700}}>{o.weeks}wk block</div>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* SCREEN 11 — Muscle Priorities */}
+        {sc===11&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 2/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            WHAT DO YOU WANT<br/><span style={{color:T.prot}}>TO PRIORITIZE?</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>These muscle groups get extra volume, better exercise slots, and the most coaching attention. Max 2 selections.</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
+            {["Chest","Back","Shoulders","Arms","Quads","Hamstrings","Glutes","Calves","Core"].map(m=>{
+              const sel=(data.musclePriorities||[]).includes(m);
+              const maxed=(data.musclePriorities||[]).length>=2&&!sel;
+              return(
+                <div key={m} onClick={()=>{
+                  if(maxed)return;
+                  upd("musclePriorities",sel?(data.musclePriorities||[]).filter(x=>x!==m):[...(data.musclePriorities||[]),m]);
+                }} style={{background:sel?`${T.prot}12`:maxed?T.s1:T.s2,border:`1.5px solid ${sel?T.prot:T.bd}`,borderRadius:10,padding:"14px 8px",textAlign:"center",cursor:maxed?"not-allowed":"pointer",transition:"all .2s",opacity:maxed?0.4:1}}>
+                  <div style={{fontSize:13,fontWeight:700,color:sel?T.prot:"#ccc"}}>{m}</div>
+                  {sel&&<div style={{fontSize:9,color:T.prot,marginTop:3,fontWeight:700}}>⭐ PRIORITY</div>}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{background:`${T.prot}06`,border:`1px solid ${T.prot}20`,borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:12,color:T.mu,lineHeight:1.65}}>
+            {(data.musclePriorities||[]).length===0?"Select up to 2 muscle groups to prioritize.":`Prioritizing: ${(data.musclePriorities||[]).join(" + ")}. These get first slot, +2 sets/week, and lower RIR.`}
+          </div>
+          <PrimaryBtn onClick={next} label="Continue →"/>
+          <button onClick={()=>{upd("musclePriorities",[]);next();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,marginTop:6}}>Skip — balanced development</button>
+        </div>}
+
+        {/* SCREEN 12 — Training Age */}
+        {sc===12&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 3/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            HOW LONG HAVE<br/><span style={{color:T.prot}}>YOU BEEN TRAINING?</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Consistently means 3+ days/week with progressive overload. This changes how your program is structured — be honest.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+            {[
+              {v:"new",        e:"🌱",l:"Under 6 months",     sub:"Still building my foundation",               skill:"Novice",   prog:"Linear progression every session"},
+              {v:"developing", e:"📈",l:"6 months – 2 years", sub:"Getting consistent results",                 skill:"Intermediate",prog:"Undulating periodization"},
+              {v:"established",e:"💪",l:"2–5 years",          sub:"Solid base, chasing new PRs",               skill:"Advanced",  prog:"Block periodization"},
+              {v:"veteran",    e:"🏆",l:"5+ years",           sub:"Advanced — need specific programming",      skill:"Elite",    prog:"Auto-regulated"},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>auto("trainingAge",o.v)} style={{background:data.trainingAge===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.trainingAge===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:data.trainingAge===o.v?8:0}}>
+                  <div style={{fontSize:24,flexShrink:0}}>{o.e}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:700,color:data.trainingAge===o.v?T.prot:"#fff"}}>{o.l}</div>
+                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
+                  </div>
+                  <div style={{fontSize:9,color:T.prot,background:`${T.prot}12`,padding:"3px 8px",borderRadius:6,fontWeight:700,flexShrink:0}}>{o.skill}</div>
+                </div>
+                {data.trainingAge===o.v&&<div style={{fontSize:11,color:T.mu,borderTop:`1px solid ${T.bd}`,paddingTop:8,marginLeft:36}}>{o.prog}</div>}
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* SCREEN 13 — Blackout Days */}
+        {sc===13&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 4/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            ANY DAYS YOU<br/><span style={{color:T.prot}}>CANNOT TRAIN?</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We'll never schedule workouts on these days. Different from your rest days — these are fixed life commitments.</p>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
+            {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{
+              const sel=(data.blackoutDays||[]).includes(day);
+              return(
+                <div key={day} onClick={()=>upd("blackoutDays",sel?(data.blackoutDays||[]).filter(x=>x!==day):[...(data.blackoutDays||[]),day])} style={{background:sel?"rgba(239,68,68,.12)":T.s2,border:`2px solid ${sel?"rgba(239,68,68,.5)":T.bd}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",fontSize:14,fontWeight:700,color:sel?"#EF4444":"#ccc",transition:"all .2s",textAlign:"center",minWidth:52}}>
+                  {day}
+                  {sel&&<div style={{fontSize:10,marginTop:4}}>🚫</div>}
+                </div>
+              );
+            })}
+          </div>
+          {(data.blackoutDays||[]).length>0&&<div style={{background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#EF4444"}}>
+            Blocked: {(data.blackoutDays||[]).join(", ")} — workouts will never appear on these days.
+          </div>}
+          <PrimaryBtn onClick={next} label="Continue →"/>
+          <button onClick={()=>{upd("blackoutDays",[]);next();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,marginTop:6}}>No blocked days — fully flexible</button>
+        </div>}
+
+        {/* SCREEN 14 — Mobility Check (skip for running-only users) */}
+        {sc===14&&data.trainType==="running"&&(()=>{setTimeout(next,50);return null;})()}
+        {sc===14&&data.trainType!=="running"&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 5/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            ANY MOVEMENT<br/><span style={{color:T.prot}}>LIMITATIONS?</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Be honest — we program around these, not through them. Your program will automatically substitute safer alternatives.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {[
+              {v:"cant_squat_below_parallel",l:"Can't squat below parallel",sub:"→ Box squats, leg press, hack squat as primary quad movement"},
+              {v:"shoulder_pain_pressing",   l:"Shoulder pain on pressing",  sub:"→ No overhead press, landmine press or dumbbell only"},
+              {v:"lower_back",               l:"Lower back sensitivity",     sub:"→ No conventional deadlift, trap bar or Romanian only"},
+              {v:"hip_flexor_tight",         l:"Hip flexor tightness",       sub:"→ Limited split squats, extra mobility prep"},
+              {v:"ankle_mobility",           l:"Ankle mobility issues",      sub:"→ Heel-elevated squats, wider stance"},
+              {v:"none",                     l:"None — full range of motion",sub:"Cleared for all movements"},
+            ].map(o=>{
+              const sel=(data.mobilityLimitations||[]).includes(o.v);
+              const isNone=o.v==="none";
+              return(
+                <div key={o.v} onClick={()=>{
+                  if(isNone){upd("mobilityLimitations",sel?[]:["none"]);}
+                  else{upd("mobilityLimitations",(sel?(data.mobilityLimitations||[]).filter(x=>x!==o.v):[...(data.mobilityLimitations||[]).filter(x=>x!=="none"),o.v]));}
+                }} style={{background:sel?(isNone?`${T.prot}10`:`rgba(239,68,68,.08)`):T.s2,border:`1.5px solid ${sel?(isNone?T.prot:"rgba(239,68,68,.4)"):T.bd}`,borderRadius:11,padding:"13px 16px",cursor:"pointer",transition:"all .2s"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:sel?(isNone?T.prot:"#EF4444"):"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:11,color:T.mu,marginTop:3}}>{o.sub}</div>
+                </div>
+              );
+            })}
+          </div>
+          <PrimaryBtn onClick={next} label="Continue →" disabled={!(data.mobilityLimitations||[]).length}/>
+          <button onClick={()=>{upd("mobilityLimitations",["none"]);next();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,marginTop:6}}>Skip</button>
+        </div>}
+
+        {/* SCREEN 15 — Life Factors */}
+        {sc===15&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 6/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            A COUPLE<br/><span style={{color:T.prot}}>MORE THINGS.</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>These affect your recovery more than most people realize. High stress + poor sleep = lower starting volume, more deload weeks.</p>
+
+          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>General stress level?</div>
+          <div style={{display:"flex",gap:8,marginBottom:20}}>
+            {[{v:"low",e:"😊",l:"Low"},{v:"medium",e:"😐",l:"Medium"},{v:"high",e:"😫",l:"High"},{v:"very_high",e:"🔥",l:"Very High"}].map(o=>(
+              <div key={o.v} onClick={()=>upd("stressLevel",o.v)} style={{flex:1,background:data.stressLevel===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.stressLevel===o.v?T.prot:T.bd}`,borderRadius:10,padding:"12px 6px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
+                <div style={{fontSize:22,marginBottom:4}}>{o.e}</div>
+                <div style={{fontSize:11,fontWeight:700,color:data.stressLevel===o.v?T.prot:"#ccc"}}>{o.l}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Sleep quality?</div>
+          <div style={{display:"flex",gap:8,marginBottom:20}}>
+            {[{v:"poor",e:"😴",l:"Poor"},{v:"average",e:"🙂",l:"Average"},{v:"good",e:"😊",l:"Good"},{v:"excellent",e:"🌟",l:"Excellent"}].map(o=>(
+              <div key={o.v} onClick={()=>upd("sleepQuality",o.v)} style={{flex:1,background:data.sleepQuality===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.sleepQuality===o.v?T.prot:T.bd}`,borderRadius:10,padding:"12px 6px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
+                <div style={{fontSize:22,marginBottom:4}}>{o.e}</div>
+                <div style={{fontSize:11,fontWeight:700,color:data.sleepQuality===o.v?T.prot:"#ccc"}}>{o.l}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>How physical is your job?</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+            {[
+              {v:"desk",     l:"Mostly sitting — desk job"},
+              {v:"light",    l:"On my feet but not physical"},
+              {v:"moderate", l:"Moderately physical"},
+              {v:"heavy",    l:"Very physical — manual labor"},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>upd("jobPhysicality",o.v)} style={{background:data.jobPhysicality===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.jobPhysicality===o.v?T.prot:T.bd}`,borderRadius:10,padding:"12px 16px",cursor:"pointer",transition:"all .2s",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:13,fontWeight:600,color:data.jobPhysicality===o.v?T.prot:"#ccc"}}>{o.l}</div>
+                {data.jobPhysicality===o.v&&<div style={{color:T.prot}}>✓</div>}
+              </div>
+            ))}
+          </div>
+          <PrimaryBtn onClick={next} label="Continue →" disabled={!data.stressLevel||!data.sleepQuality||!data.jobPhysicality}/>
+        </div>}
+
+        {/* SCREEN 16 — Female Health (skip if not female) */}
+        {sc===16&&d?.sex!=="female"&&(()=>{setTimeout(next,50);return null;})()}
+        {sc===16&&d?.sex==="female"&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 7/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            ONE MORE<br/><span style={{color:T.prot}}>OPTIONAL QUESTION.</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This helps us optimize your training around your body's natural rhythms. Completely optional — skip anytime.</p>
+          <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
+            <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:16}}>Would you like to optimize your training around your menstrual cycle?</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[
+                {v:true,  l:"Yes — I'd like cycle-aware training",   sub:"Volume, intensity, and coaching adjusts quietly each phase"},
+                {v:false, l:"No thanks",                             sub:"Standard programming, no cycle adjustments"},
+                {v:"menopause",l:"In menopause / not applicable",    sub:"Adjusted for hormonal changes without cycle tracking"},
+                {v:"prefer_not",l:"Prefer not to say",              sub:"Standard programming"},
+              ].map(o=>(
+                <div key={String(o.v)} onClick={()=>{upd("cycleTracking",o.v);setTimeout(next,260);}} style={{background:data.cycleTracking===o.v?`${T.prot}10`:T.s1,border:`1.5px solid ${data.cycleTracking===o.v?T.prot:T.bd}`,borderRadius:11,padding:"13px 16px",cursor:"pointer",transition:"all .2s"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:data.cycleTracking===o.v?T.prot:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:11,color:T.mu,marginTop:3}}>{o.sub}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>}
+
+        {/* SCREEN 17 — Hybrid Bias (skip if not hybrid) */}
+        {sc===17&&data.trainType!=="hybrid"&&(()=>{setTimeout(next,50);return null;})()}
+        {sc===17&&data.trainType==="hybrid"&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 8/8</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+            WHICH MATTERS<br/><span style={{color:T.prot}}>MORE TO YOU?</span>
+          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This sets the volume ratio between lifting and running in your hybrid program.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+            {[
+              {v:"lifting_primary", l:"Lifting is my priority",  sub:"Running supports my lifting — cardio, conditioning, and injury prevention",e:"🏋️",ratio:"70/30"},
+              {v:"balanced",        l:"Equally important",       sub:"I want to be strong AND fast — true hybrid athlete",                          e:"⚡",ratio:"50/50"},
+              {v:"running_primary", l:"Running is my priority",  sub:"Lifting supports my running — strength base and durability",                 e:"🏃",ratio:"30/70"},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>auto("hybridBias",o.v)} style={{background:data.hybridBias===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.hybridBias===o.v?T.prot:T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:700,color:data.hybridBias===o.v?T.prot:"#fff"}}>{o.l}</div>
+                  <div style={{fontSize:11,color:T.mu,marginTop:2,lineHeight:1.5}}>{o.sub}</div>
+                </div>
+                <div style={{fontSize:10,color:T.prot,background:`${T.prot}12`,padding:"3px 8px",borderRadius:6,flexShrink:0,fontWeight:700}}>{o.ratio}</div>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* SCREEN 18 — Injuries + GVT + Done (was screen 10) */}
+        {sc===18&&<div style={{animation:"fadeIn .25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Final Step</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             LAST FEW<br/><span style={{color:T.prot}}>THINGS.</span>

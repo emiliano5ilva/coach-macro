@@ -400,6 +400,17 @@ export default function CoachMacro() {
       longRunDay:trainData.longRunDay||"Sunday",
       cardioExp:trainData.cardioExp||"",
       runPlan:({"first_5k":"Couch to 5K","fitness":"Couch to 5K","sub25_5k":"Sub-25 5K","first_10k":"10K Training","sub50_10k":"10K Training","half":"Half Marathon","marathon":"Half Marathon"})[trainData.runningGoal||""]||"Couch to 5K",
+      // AIT fields
+      recoveryCapacity:trainData.recoveryCapacity||"normal",
+      musclePriorities:trainData.musclePriorities||[],
+      trainingAge:trainData.trainingAge||"developing",
+      blackoutDays:trainData.blackoutDays||[],
+      mobilityLimitations:trainData.mobilityLimitations||[],
+      stressLevel:trainData.stressLevel||"low",
+      sleepQuality:trainData.sleepQuality||"average",
+      jobPhysicality:trainData.jobPhysicality||"desk",
+      cycleTracking:trainData.cycleTracking??null,
+      hybridBias:trainData.hybridBias||"",
     };
 
     console.log("[handleTrainDone] schedule:", sch, "wprefs splitType:", wp.splitType);

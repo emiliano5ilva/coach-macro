@@ -1336,10 +1336,11 @@ Rules:
       if(onEarnedCals)onEarnedCals(burn);
       if(user){
         try{
+          const feedbackData=activeWorkout.exercises.filter(ex=>ex.feedback).map(ex=>({name:ex.name,feedback:ex.feedback}));
           await sb.from("workout_logs").insert({
             user_id:user.id,
             date:new Date().toISOString().split("T")[0],
-            workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType}
+            workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData}
           });
           console.log("[finishWorkout] saved",setsLogged.length,"exercises to Supabase");
           setWorkoutSavedMsg(`✓ Workout saved. Great session! ${setsLogged.length} exercise${setsLogged.length===1?"":"s"} logged.`);
