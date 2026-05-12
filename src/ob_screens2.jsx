@@ -322,6 +322,127 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
   );
 }
 
+// ─── SMART DELOAD DETECTOR ────────────────────────────────────────────────────
+
+const SLEEP_MAP = {u5:4.5,"5-6":5.5,"6-7":6.5,"7-8":7.5,"8+":8.5};
+const PRIMARY_LIFTS = [
+  {key:"bench",   label:"Bench Press",    terms:["bench"]},
+  {key:"squat",   label:"Squat",          terms:["squat"]},
+  {key:"deadlift",label:"Deadlift",       terms:["deadlift"]},
+  {key:"ohp",     label:"OHP",            terms:["overhead press","ohp","shoulder press","military press"]},
+];
+
+function analyzeDeload(logs, profile, schedule) {
+  const now = new Date();
+  const recent = logs.filter(w=>(now-new Date((w.date||"")+"T12:00:00"))<=21*864e5);
+  const thisWeek = logs.filter(w=>(now-new Date((w.date||"")+"T12:00:00"))<=7*864e5);
+  const signals = [];
+
+  // Build per-lift session history (chronological)
+  const liftHist = {};
+  PRIMARY_LIFTS.forEach(l=>{liftHist[l.key]=[];});
+  [...recent].sort((a,b)=>new Date(a.date+"T12:00:00")-new Date(b.date+"T12:00:00")).forEach(log=>{
+    (log.workout?.exercises||[]).forEach(ex=>{
+      const n=(ex.name||"").toLowerCase();
+      PRIMARY_LIFTS.forEach(lift=>{
+        if(lift.terms.some(t=>n.includes(t))){
+          const ws=(ex.sets||[]).map(s=>parseFloat(s.weight)||0).filter(w=>w>0);
+          if(ws.length)liftHist[lift.key].push({date:log.date,maxW:Math.max(...ws),label:lift.label});
+        }
+      });
+    });
+  });
+
+  // Signal 1 — Strength stall: no increase across last 3 sessions
+  Object.values(liftHist).forEach(sess=>{
+    if(sess.length>=3){
+      const last3=sess.slice(-3);
+      if(last3.every(s=>s.maxW<=last3[0].maxW)&&last3[0].maxW>0)
+        signals.push({icon:"💪",label:`${last3[0].label} stalled — no progress in last 3 sessions`,type:"stall"});
+    }
+  });
+
+  // Signal 2 — Performance decline: current >5% below 3-week peak
+  Object.values(liftHist).forEach(sess=>{
+    if(sess.length>=2){
+      const peak=Math.max(...sess.map(s=>s.maxW));
+      const last=sess[sess.length-1];
+      const drop=(peak-last.maxW)/peak*100;
+      if(peak>0&&last.maxW>0&&drop>=5)
+        signals.push({icon:"📉",label:`${last.label} down ${Math.round(drop)}% from your 3-week peak`,type:"decline"});
+    }
+  });
+
+  // Signal 3 — Missed reps: 2+ sessions this week with <75% sets completed
+  let missedSess=0;
+  thisWeek.forEach(log=>{
+    const hasMissed=(log.workout?.exercises||[]).some(ex=>{
+      const total=(ex.sets||[]).length;
+      const done=(ex.sets||[]).filter(s=>s.done===true).length;
+      return total>0&&done<total*0.75;
+    });
+    if(hasMissed)missedSess++;
+  });
+  if(missedSess>=2)signals.push({icon:"⚠️",label:`Missed reps — ${missedSess} sessions fell short this week`,type:"missed_reps"});
+
+  // Signal 4 — Low adherence this week
+  const scheduled=Object.values(schedule||{}).filter(v=>["training","cardio","run","hyrox"].includes(v)).length;
+  if(scheduled>=3&&thisWeek.length/scheduled<0.8)
+    signals.push({icon:"📆",label:`${Math.round(thisWeek.length/scheduled*100)}% adherence this week (${thisWeek.length}/${scheduled} sessions)`,type:"adherence"});
+
+  // Signal 5 — Poor sleep
+  const sleepH=SLEEP_MAP[profile?.sleep];
+  if(sleepH&&sleepH<6.5)
+    signals.push({icon:"😴",label:`Sleep averaging ${sleepH}hrs this week — recovery compromised`,type:"sleep"});
+
+  // Signal 6 — High volume
+  let sets=0;
+  thisWeek.forEach(log=>(log.workout?.exercises||[]).forEach(ex=>{sets+=(ex.sets||[]).length;}));
+  if(sets>120)signals.push({icon:"🔥",label:`${sets} sets this week — overreaching risk`,type:"high_volume"});
+
+  return signals;
+}
+
+function DeloadCard({signals, onStart, onDismiss}) {
+  return (
+    <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"#0d1508",border:"1px solid rgba(234,179,8,0.3)",borderLeft:"3px solid #EAB308",borderRadius:"4px 14px 14px 4px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+        <span style={{fontSize:14}}>⚠️</span>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:"#EAB308",textTransform:"uppercase",fontWeight:700}}>Deload Recommended</div>
+      </div>
+      <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:14}}>Your body is signaling recovery is needed.</div>
+      <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
+        {signals.slice(0,4).map((s,i)=>(
+          <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>{s.icon}</span>
+            <span style={{fontSize:12,color:"rgba(245,245,240,0.75)",lineHeight:1.5}}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:11,color:"rgba(234,179,8,0.6)",lineHeight:1.7,marginBottom:14,fontStyle:"italic"}}>
+        "This is not failure. This is strategy.<br/>Elite athletes deload every 4–8 weeks."
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={onStart} style={{flex:2,padding:"12px",background:"var(--red)",border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Start Deload Week →</button>
+        <button onClick={onDismiss} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Tomorrow</button>
+      </div>
+    </div>
+  );
+}
+
+function DeloadActiveBadge({daysLeft, onComplete}) {
+  return (
+    <div style={{margin:"0 20px 14px",padding:"14px 18px",background:"rgba(234,179,8,0.06)",border:"1px solid rgba(234,179,8,0.25)",borderLeft:"3px solid #EAB308",borderRadius:"4px 14px 14px 4px",display:"flex",alignItems:"center",gap:12}}>
+      <span style={{fontSize:20}}>🔄</span>
+      <div style={{flex:1}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#EAB308",letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Deload Week Active</div>
+        <div style={{fontSize:12,color:"rgba(245,245,240,0.55)"}}>{daysLeft>0?`${daysLeft} day${daysLeft===1?"":"s"} remaining — 60% weights, 12–15 reps`:"Deload complete — returning to full program"}</div>
+      </div>
+      {daysLeft<=0&&<button onClick={onComplete} style={{padding:"8px 14px",background:"var(--green,#22c55e)",border:"none",borderRadius:8,color:"#000",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Resume →</button>}
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("home"); // home | train | fuel | progress | settings
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -355,6 +476,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const restInterval=useRef(null);
   const [history,setHistory]=useState({});
   const [workoutLogsRaw,setWorkoutLogsRaw]=useState([]);
+  const [deloadActive,setDeloadActive]=useState(profile?.deload_active||false);
+  const [deloadStartedAt,setDeloadStartedAt]=useState(profile?.deload_started_at||null);
+  const [deloadSnooze,setDeloadSnooze]=useState(()=>localStorage.getItem("deload_snooze")||null);
   const [comebackDismissed,setComebackDismissed]=useState(()=>localStorage.getItem("comeback_dismissed")===new Date().toISOString().split("T")[0]);
   const [planMode,setPlanMode]=useState("strength");
   const [runPlan,setRunPlan]=useState("5K Beginner");
@@ -564,9 +688,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const healthItems=[...(profile.conditions||[]).filter(c=>c!=="none"),...(wPrefs.injuries||[]).filter(Boolean)];
     const healthCtx=healthItems.length>0?` | HEALTH: ${healthItems.join(", ")} — modify exercises accordingly`:"";
     const sessionLen=wPrefs.sessionLength||45;
+    const deloadCtx=deloadActive?"\n⚠️ DELOAD WEEK: 60% of normal weight, 12–15 reps, remove maximal effort sets. Recovery focus only.":"";
     const prompt=todayType==="rest"
       ?`REST DAY recovery for ${profile.goal} athlete. Mobility, stretching, foam rolling, recovery nutrition. Equipment: ${wPrefs.equipment}. Clear sections.`
-      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${actCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
+      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${actCtx}${deloadCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
     try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);setWorkout("⚠️ AI temporarily unavailable. Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
   }
 
@@ -581,8 +706,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       const structHealthCtx=structHealthItems.length>0?` | HEALTH: ${structHealthItems.join(", ")} — avoid contraindicated movements`:"";
       const structSessionLen=wPrefs.sessionLength||45;
       const exCount=structSessionLen<=30?"3-4":structSessionLen<=45?"4-5":structSessionLen<=60?"5-6":"6-8";
+      const structDeloadCtx=deloadActive?"\n⚠️ DELOAD WEEK — use 12-15 reps on all exercises, 3 sets max per exercise, no PRs, technique focus.":"";
       const raw=await ai(`Build a structured ${todayFocus} workout session.
-ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"} | Session: ${structSessionLen}min${structHealthCtx}
+ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"} | Session: ${structSessionLen}min${structHealthCtx}${structDeloadCtx}
 ${splitInfo}${runInfo}${hybridInfo}
 MUSCLES TO COVER: ${focus}
 
@@ -594,9 +720,17 @@ Rules:
 - Warm-up set first for compounds (lighter weight, higher reps)
 - Cover EVERY muscle head listed above
 - restSecs: 180 for heavy compounds, 120 for secondary, 60 for isolation
-- Start weight at 0 (user will fill in their weight)`,800);
+- Start weight at 0 (user will fill in their weight)${deloadActive?"\n- DELOAD: reps 12-15, sets 2-3, notes must include 'Deload — form + blood flow'":""}`,800);
       const cleaned=raw.trim().replace(/^[^{]*/,"").replace(/[^}]*$/,"");
       const parsed=JSON.parse(cleaned);
+      // Apply deload modifications: cap sets, set higher reps, add note
+      if(deloadActive){
+        parsed.exercises=parsed.exercises.map(ex=>({
+          ...ex,
+          notes:"Deload — focus on form and blood flow. "+(ex.notes||""),
+          sets:ex.sets.slice(0,Math.max(2,Math.ceil(ex.sets.length*0.6))).map(s=>({...s,reps:typeof s.reps==="number"?13:"12-15"})),
+        }));
+      }
       setActiveWorkout(parsed);setTrainScreen("active");
     }catch(e){
       console.error("[startStructured] AI error — falling back to hardcoded program:",e);
@@ -653,6 +787,39 @@ Rules:
     setActiveWorkout(null);
     setTrainScreen("progress");
   }
+
+  async function startDeload(){
+    const now=new Date().toISOString();
+    setDeloadActive(true);setDeloadStartedAt(now);
+    if(user){
+      try{await sb.from("profiles").upsert({
+        id:user.id,
+        profile_data:{...profile,deload_active:true,deload_started_at:now,last_deload_at:now},
+        deload_active:true,deload_started_at:now,last_deload_at:now,
+        updated_at:now
+      },{onConflict:"id"});}catch(e){console.error("[startDeload]",e);}
+    }
+  }
+
+  async function handleDeloadComplete(){
+    const now=new Date().toISOString();
+    setDeloadActive(false);setDeloadStartedAt(null);
+    if(user){
+      try{await sb.from("profiles").upsert({
+        id:user.id,
+        profile_data:{...profile,deload_active:false,deload_started_at:null},
+        deload_active:false,
+        updated_at:now
+      },{onConflict:"id"});}catch(e){console.error("[handleDeloadComplete]",e);}
+    }
+  }
+
+  useEffect(()=>{
+    if(deloadActive&&deloadStartedAt){
+      const days=(new Date()-new Date(deloadStartedAt))/864e5;
+      if(days>=7)handleDeloadComplete();
+    }
+  },[deloadActive,deloadStartedAt]);
 
   function getSuggestion(name){
     const k=name.toLowerCase().replace(/\s+/g,"_");const prev=history[k];if(!prev||!prev.length)return null;
@@ -758,14 +925,38 @@ Rules:
           <div className="coach-text">"{todayFocus} day. Stay consistent — your progress compounds every session."</div>
         </div>
 
+        {/* ── SMART DELOAD DETECTOR ── */}
+        {(()=>{
+          const todayStr=new Date().toISOString().split("T")[0];
+          if(deloadActive){
+            const daysLeft=deloadStartedAt?Math.max(0,7-Math.floor((new Date()-new Date(deloadStartedAt))/864e5)):7;
+            return <DeloadActiveBadge daysLeft={daysLeft} onComplete={handleDeloadComplete}/>;
+          }
+          const snoozedToday=deloadSnooze===todayStr;
+          if(!snoozedToday&&workoutLogsRaw.length>=5){
+            const signals=analyzeDeload(workoutLogsRaw,profile,schedule);
+            if(signals.length>=3){
+              return <DeloadCard
+                signals={signals}
+                onStart={startDeload}
+                onDismiss={()=>{setDeloadSnooze(todayStr);localStorage.setItem("deload_snooze",todayStr);}}
+              />;
+            }
+          }
+          return null;
+        })()}
+
         {/* Today's session */}
-        <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14}}>
+        <div style={{margin:"0 20px 14px",padding:"16px",background:deloadActive?"linear-gradient(135deg,#1a1508,var(--navy-card) 70%)":"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:`1px solid ${deloadActive?"rgba(234,179,8,0.2)":"rgba(232,52,28,0.2)"}`,borderRadius:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div className="header-eyebrow">// Today's Session</div>
-            <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
+            {deloadActive
+              ?<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(234,179,8,0.15)",color:"#EAB308",border:"1px solid rgba(234,179,8,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>DELOAD</span>
+              :<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
+            }
           </div>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
-          <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:deloadActive?"#EAB308":"var(--red)",border:"none",borderRadius:12,color:deloadActive?"#0a0e1a":"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
             <svg width={14} height={14} viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>
             Start Session
           </button>
@@ -902,7 +1093,10 @@ Rules:
       <div className="app-tab-bar">
         {NAV_ITEMS.map(item=>(
           <button key={item.id} className={`app-tab${section===item.id?" active":""}`} onClick={()=>setSection(item.id)}>
-            <div className="tab-icon-wrap"><TabIcon name={item.icon} size={22}/></div>
+            <div className="tab-icon-wrap" style={{position:"relative"}}>
+              <TabIcon name={item.icon} size={22}/>
+              {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:"#EAB308",border:"2px solid var(--navy)"}}/>}
+            </div>
             <div className="tab-label-txt">{item.label}</div>
           </button>
         ))}
