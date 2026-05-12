@@ -391,6 +391,15 @@ export default function CoachMacro() {
       sessionLength:trainData.sessionLength||60,
       weakPoints:trainData.weakPoints||[],
       injuries:trainData.injuries||[],
+      // running-specific
+      current5KTime:trainData.current5KTime||null,
+      runningGoal:trainData.runningGoal||"",
+      raceDate:trainData.raceDate||"",
+      terrain:trainData.terrain||"road",
+      trackAccess:trainData.trackAccess||false,
+      longRunDay:trainData.longRunDay||"Sunday",
+      cardioExp:trainData.cardioExp||"",
+      runPlan:({"first_5k":"Couch to 5K","fitness":"Couch to 5K","sub25_5k":"Sub-25 5K","first_10k":"10K Training","sub50_10k":"10K Training","half":"Half Marathon","marathon":"Half Marathon"})[trainData.runningGoal||""]||"Couch to 5K",
     };
 
     console.log("[handleTrainDone] schedule:", sch, "wprefs splitType:", wp.splitType);

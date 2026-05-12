@@ -7,8 +7,9 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   Badge, getTier, getReferralBadge } from "./components.jsx";
 import { sb } from "./client.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
-import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS } from "./running_programs.js";
+import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
+import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -930,7 +931,18 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     todayPrescription=exs;
   }else if(prescType==="running"){
     todayProgObj=RUNNING_PROGRAMS[wPrefs.runPlan||"Couch to 5K"];
-    todayPrescription=getTodayRunWorkout(todayProgObj,weekNum,todayKey);
+    const rawDay=todayProgObj?.schedule?.find(w=>w.week===weekNum)?.days?.find(d=>d.day===todayKey)||null;
+    if(rawDay?.skill_variants){
+      const lvl=(wPrefs.cardioExp||wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+      todayPrescription=getSkillVariant(rawDay.skill_variants,lvl)||rawDay;
+    }else{
+      todayPrescription=rawDay;
+    }
+    const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
+    if(todayPrescription){
+      todayPrescription=enrichRunSession(todayPrescription);
+      if(runPaces) todayPrescription={...todayPrescription,description:resolvePaceTokens(todayPrescription.description||"",runPaces)};
+    }
   }else if(prescType==="hyrox"){
     todayProgObj=HYROX_PROGRAM;
     todayPrescription=getTodayHyroxWorkout(todayProgObj,weekNum,todayKey);
@@ -1054,24 +1066,47 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                 </div>
               )}
-              {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(
+              {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
+                const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
+                const preFuel=todayPrescription.preFuel;
+                const postFuel=todayPrescription.postFuel;
+                const macroAdj=todayPrescription.macroAdjustment;
+                return(
                 <div style={{background:T.s2,borderRadius:12,padding:"14px 16px",border:`1px solid ${T.bd}`,marginBottom:14}}>
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:8}}>{todayPrescription.label}</div>
+                  <div style={{fontWeight:700,fontSize:14,marginBottom:8}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                     {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:`${T.prot}18`,color:T.prot,padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
                     {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
                     {todayPrescription.distance&&<span style={{fontSize:10,fontWeight:700,background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
                     {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
+                    {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                   </div>
-                  {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:todayProgObj?.nutritionNote?10:0}}>{todayPrescription.description}</div>}
-                  {todayProgObj?.nutritionNote&&(
+                  {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
+                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(41,121,255,.06)",border:"1px solid rgba(41,121,255,.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                    <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
+                      {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
+                        <div key={l} style={{fontSize:11}}><span style={{color:T.mu}}>{l}: </span><span style={{color:"#fff",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
+                      ))}
+                    </div>
+                  </div>}
+                  {preFuel&&<div style={{background:"rgba(255,215,64,.06)",border:"1px solid rgba(255,215,64,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                    <div style={{fontSize:9,color:T.fat,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>⚡ PRE-RUN FUEL</div>
+                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{preFuel}</div>
+                  </div>}
+                  {postFuel&&<div style={{background:"rgba(0,201,167,.06)",border:"1px solid rgba(0,201,167,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                    <div style={{fontSize:9,color:"#00C9A7",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>🔁 RECOVERY FUEL</div>
+                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{postFuel}</div>
+                  </div>}
+                  {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
                     <div style={{background:`${T.carb}08`,borderRadius:9,padding:"10px 12px",border:`1px solid ${T.carb}20`}}>
                       <div style={{fontSize:9,color:T.carb,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>🍽 NUTRITION BRIDGE</div>
                       <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
                     </div>
                   )}
                 </div>
-              )}
+                );
+              })()}
               {(()=>{
                 const lvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
                 const isNov=lvl==="beginner"||lvl==="novice";

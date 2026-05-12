@@ -203,18 +203,18 @@ export const RUNNING_PROGRAMS = {
     runDays: ["Mon","Wed","Fri","Sat"],
     schedule: [
       { week:1, theme:"Base building", days:[
-        { day:"Mon", type:"Easy Run", distance:4, duration:40, zone:"Zone 2", description:"4 miles easy at fully conversational pace (9:30-10:00/mile). This should feel embarrassingly slow.",
+        { day:"Mon", type:"Easy Run", distance:4, duration:40, zone:"Zone 2", description:"4 miles at {easy}. Fully conversational — this should feel embarrassingly slow.",
           skill_variants:{
-            novice:{ description:"3 miles very easy at 10:30-11:00/mile. Walk breaks every 5 min for 60 sec if needed.", duration:35, distance:3, zone:"Zone 1-2", notes:"Your easy pace is slower than you think — breathing hard means slow down." },
-            intermediate:{ description:"4 miles easy at fully conversational pace (9:30-10:00/mile). This should feel embarrassingly slow.", duration:40, distance:4, zone:"Zone 2", notes:"Most people run their easy days too fast. Embarrassingly slow is correct." },
-            advanced:{ description:"5 miles easy at 8:30-9:00/mile with 4×20 sec strides at the end.", duration:50, distance:5, zone:"Zone 2 with strides", notes:"Strides sharpen turnover without adding fatigue." }
+            novice:{ description:"3 miles at {easy}. Walk 60 sec every 5 min if needed.", duration:35, distance:3, zone:"Zone 1-2", notes:"Your easy pace is slower than you think — breathing hard means slow down." },
+            intermediate:{ description:"4 miles at {easy}. Fully conversational — this should feel embarrassingly slow.", duration:40, distance:4, zone:"Zone 2", notes:"Most people run their easy days too fast. Embarrassingly slow is correct." },
+            advanced:{ description:"5 miles at {easy} with 4×20 sec strides at the end.", duration:50, distance:5, zone:"Zone 2 with strides", notes:"Strides sharpen turnover without adding fatigue." }
           }
         },
-        { day:"Wed", type:"Intervals", distance:6, duration:45, zone:"Zone 4-5", description:"1 mile easy warm up. 6x400m at 7:30/mile pace with 90 sec rest. 1 mile easy cool down.",
+        { day:"Wed", type:"Intervals", distance:6, duration:45, zone:"Zone 4-5", description:"1 mile warm up at {easy}. 6×400m at {interval5K} with 90 sec rest. 1 mile cool down at {easy}.",
           skill_variants:{
-            novice:{ description:"1 mile walk/jog warm up. 4×400m at conversational effort (9:00/mile). 90 sec walk rest. 1 mile walk/jog cool down.", duration:40, distance:4, zone:"Zone 2-3", notes:"First interval session — pace is about effort, not hitting splits." },
-            intermediate:{ description:"1 mile easy warm up. 6×400m at 7:30/mile pace with 90 sec rest. 1 mile easy cool down.", duration:45, distance:6, zone:"Zone 4-5", notes:"First interval of each set always feels easy — resist going faster." },
-            advanced:{ description:"1 mile warm up. 8×400m at 7:15/mile with 75 sec rest. 1 mile cool down.", duration:50, distance:7, zone:"Zone 4-5", notes:"8 reps is a real stimulus — nail the pace, don't exceed it." }
+            novice:{ description:"1 mile warm up at {easy}. 4×400m at {interval5K} with 2 min walk rest. 1 mile cool down.", duration:40, distance:4, zone:"Zone 2-3", notes:"First interval session — focus on effort, not pace numbers." },
+            intermediate:{ description:"1 mile warm up at {easy}. 6×400m at {interval5K} with 90 sec rest. 1 mile cool down at {easy}.", duration:45, distance:6, zone:"Zone 4-5", notes:"First interval of each set always feels easy — resist going faster." },
+            advanced:{ description:"1 mile warm up. 8×400m at {interval1mi} with 75 sec rest. 1 mile cool down.", duration:50, distance:7, zone:"Zone 4-5", notes:"8 reps is a real stimulus — nail the pace, don't exceed it." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:3, duration:30, zone:"Zone 2", description:"3 miles easy recovery. Very slow. Flush the legs from intervals.",
@@ -240,11 +240,11 @@ export const RUNNING_PROGRAMS = {
             advanced:{ description:"5 miles easy with 4 strides at end.", duration:50, distance:5, zone:"Zone 2 with strides", notes:"Strides maintain leg speed between quality sessions." }
           }
         },
-        { day:"Wed", type:"Tempo", distance:4, duration:45, zone:"Zone 3-4", description:"1 mile warm up. 2 miles at 8:00/mile — comfortably hard, not racing. 1 mile cool down.",
+        { day:"Wed", type:"Tempo", distance:4, duration:45, zone:"Zone 3-4", description:"1 mile warm up at {easy}. 2 miles at {tempo} — comfortably hard, not racing. 1 mile cool down.",
           skill_variants:{
-            novice:{ description:"1 mile easy warm up. 1 mile at 9:30/mile (slightly uncomfortable). 1 mile easy cool down.", duration:35, distance:3, zone:"Zone 3", notes:"'Comfortably hard' means 3-4 words between breaths, not full sentences." },
-            intermediate:{ description:"1 mile warm up. 2 miles at 8:00/mile — comfortably hard, not racing. 1 mile cool down.", duration:45, distance:4, zone:"Zone 3-4", notes:"Tempo pace should feel like 7/10 effort — controlled, not desperate." },
-            advanced:{ description:"1 mile warm up. 3 miles at 7:45/mile. 1 mile cool down.", duration:48, distance:5, zone:"Zone 3-4", notes:"3-mile tempo at faster pace builds the lactate threshold your 5K depends on." }
+            novice:{ description:"1 mile warm up at {easy}. 1 mile at {tempo} (slightly uncomfortable). 1 mile cool down.", duration:35, distance:3, zone:"Zone 3", notes:"'Comfortably hard' means 3-4 words between breaths, not full sentences." },
+            intermediate:{ description:"1 mile warm up at {easy}. 2 miles at {tempo} — comfortably hard, not racing. 1 mile cool down.", duration:45, distance:4, zone:"Zone 3-4", notes:"Tempo pace should feel like 7/10 effort — controlled, not desperate." },
+            advanced:{ description:"1 mile warm up. 3 miles at {tempo}. 1 mile cool down.", duration:48, distance:5, zone:"Zone 3-4", notes:"3-mile tempo builds the lactate threshold your 5K depends on." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:3, duration:30, zone:"Zone 2", description:"3 miles easy recovery.",
@@ -270,11 +270,11 @@ export const RUNNING_PROGRAMS = {
             advanced:{ description:"6 miles easy with 4 strides.", duration:60, distance:6, zone:"Zone 2 with strides", notes:"Volume accumulation supports faster Wednesday intervals." }
           }
         },
-        { day:"Wed", type:"Intervals", distance:7, duration:50, zone:"Zone 4-5", description:"1 mile warm up. 8x400m at 7:15/mile pace. 90 sec rest between. 1 mile cool down.",
+        { day:"Wed", type:"Intervals", distance:7, duration:50, zone:"Zone 4-5", description:"1 mile warm up at {easy}. 8×400m at {interval5K}. 90 sec rest between. 1 mile cool down.",
           skill_variants:{
-            novice:{ description:"1 mile warm up. 5×400m at comfortable effort (9:00/mile). 2 min walk rest. 1 mile cool down.", duration:42, distance:4.5, zone:"Zone 3-4", notes:"5 reps is enough — quality over quantity at this stage." },
-            intermediate:{ description:"1 mile warm up. 8×400m at 7:15/mile pace. 90 sec rest between. 1 mile cool down.", duration:50, distance:7, zone:"Zone 4-5", notes:"8 reps at faster pace — race effort on the last 2 reps only." },
-            advanced:{ description:"1 mile warm up. 10×400m at 7:00/mile. 75 sec rest. 1 mile cool down.", duration:55, distance:8, zone:"Zone 4-5", notes:"10 reps at 7:00 builds sub-25 speed reserves." }
+            novice:{ description:"1 mile warm up. 5×400m at {interval5K} with 2 min walk rest. 1 mile cool down.", duration:42, distance:4.5, zone:"Zone 3-4", notes:"5 reps is enough — quality over quantity at this stage." },
+            intermediate:{ description:"1 mile warm up at {easy}. 8×400m at {interval5K}. 90 sec rest between. 1 mile cool down.", duration:50, distance:7, zone:"Zone 4-5", notes:"8 reps — race effort only on the last 2 reps." },
+            advanced:{ description:"1 mile warm up. 10×400m at {interval1mi}. 75 sec rest. 1 mile cool down.", duration:55, distance:8, zone:"Zone 4-5", notes:"10 reps at mile pace builds sub-25 speed reserves." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:3, duration:30, zone:"Zone 2", description:"3 miles easy.",
@@ -330,11 +330,11 @@ export const RUNNING_PROGRAMS = {
             advanced:{ description:"6 miles easy with strides.", duration:60, distance:6, zone:"Zone 2 with strides", notes:"Deload paid off — legs should feel springy." }
           }
         },
-        { day:"Wed", type:"Tempo", distance:5, duration:55, zone:"Zone 3-4", description:"1 mile warm up. 3 miles at 8:00/mile. 1 mile cool down. Sustained effort — you should be working.",
+        { day:"Wed", type:"Tempo", distance:5, duration:55, zone:"Zone 3-4", description:"1 mile warm up at {easy}. 3 miles at {tempo}. 1 mile cool down. Sustained effort.",
           skill_variants:{
-            novice:{ description:"1 mile warm up. 1.5 miles at 9:30/mile. 1 mile cool down.", duration:40, distance:3.5, zone:"Zone 3", notes:"Longer tempo than week 2 — same effort, slightly more distance." },
-            intermediate:{ description:"1 mile warm up. 3 miles at 8:00/mile. 1 mile cool down. Sustained effort — you should be working.", duration:55, distance:5, zone:"Zone 3-4", notes:"3-mile tempo is the bread and butter of sub-25 training." },
-            advanced:{ description:"1 mile warm up. 4 miles at 7:45/mile. 1 mile cool down.", duration:58, distance:6, zone:"Zone 3-4", notes:"4-mile tempo at faster pace — most demanding tempo of the program." }
+            novice:{ description:"1 mile warm up at {easy}. 1.5 miles at {tempo}. 1 mile cool down.", duration:40, distance:3.5, zone:"Zone 3", notes:"Longer tempo than week 2 — same effort, slightly more distance." },
+            intermediate:{ description:"1 mile warm up at {easy}. 3 miles at {tempo}. 1 mile cool down. Sustained effort — you should be working.", duration:55, distance:5, zone:"Zone 3-4", notes:"3-mile tempo is the bread and butter of sub-25 training." },
+            advanced:{ description:"1 mile warm up. 4 miles at {tempo}. 1 mile cool down.", duration:58, distance:6, zone:"Zone 3-4", notes:"4-mile tempo — most demanding session of the program." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:4, duration:40, zone:"Zone 2", description:"4 miles easy.",
@@ -360,11 +360,11 @@ export const RUNNING_PROGRAMS = {
             advanced:{ description:"6 miles easy with strides.", duration:60, distance:6, zone:"Zone 2 with strides", notes:"Priming legs before the hardest session of the program." }
           }
         },
-        { day:"Wed", type:"Intervals", distance:9, duration:60, zone:"Zone 4", description:"1 mile warm up. 6x800m at 7:45/mile with 2 min rest. 1 mile cool down. Toughest session of the program.",
+        { day:"Wed", type:"Intervals", distance:9, duration:60, zone:"Zone 4", description:"1 mile warm up at {easy}. 6×800m at {interval5K} with 2 min rest. 1 mile cool down. Toughest session of the program.",
           skill_variants:{
-            novice:{ description:"1 mile warm up. 4×600m at 9:00/mile with 2 min rest. 1 mile cool down.", duration:48, distance:5.5, zone:"Zone 3-4", notes:"600m reps at controlled effort — more than you've done before." },
-            intermediate:{ description:"1 mile warm up. 6×800m at 7:45/mile with 2 min rest. 1 mile cool down. Toughest session of the program.", duration:60, distance:9, zone:"Zone 4", notes:"First rep should feel almost too easy. Last rep should be genuinely hard." },
-            advanced:{ description:"1 mile warm up. 6×1000m at 7:30/mile with 90 sec rest. 1 mile cool down.", duration:65, distance:10, zone:"Zone 4", notes:"1000m reps simulate race-length efforts — this is where sub-25 is built." }
+            novice:{ description:"1 mile warm up at {easy}. 4×600m at {interval5K} with 2 min rest. 1 mile cool down.", duration:48, distance:5.5, zone:"Zone 3-4", notes:"600m reps at controlled effort — more than you've done before." },
+            intermediate:{ description:"1 mile warm up at {easy}. 6×800m at {interval5K} with 2 min rest. 1 mile cool down. Toughest session of the program.", duration:60, distance:9, zone:"Zone 4", notes:"First rep should feel almost too easy. Last rep should be genuinely hard." },
+            advanced:{ description:"1 mile warm up. 6×1000m at {interval1mi} with 90 sec rest. 1 mile cool down.", duration:65, distance:10, zone:"Zone 4", notes:"1000m reps simulate race-length efforts — this is where sub-25 is built." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:4, duration:40, zone:"Zone 2", description:"4 miles easy.",
@@ -390,11 +390,11 @@ export const RUNNING_PROGRAMS = {
             advanced:{ description:"5 miles easy with 4 strides.", duration:50, distance:5, zone:"Zone 2 with strides", notes:"Strides maintain sharpness during the taper." }
           }
         },
-        { day:"Wed", type:"Tempo", distance:4, duration:45, zone:"Zone 3-4", description:"1 mile warm up. 2 miles at race pace 8:00/mile. 1 mile cool down. Sharp but short.",
+        { day:"Wed", type:"Tempo", distance:4, duration:45, zone:"Zone 3-4", description:"1 mile warm up. 2 miles at {tempo}. 1 mile cool down. Race-preview effort — sharp but controlled.",
           skill_variants:{
-            novice:{ description:"1 mile warm up. 1 mile at 9:30/mile. 1 mile cool down.", duration:35, distance:3, zone:"Zone 3", notes:"Short tempo — remind your legs what effort feels like before race day." },
-            intermediate:{ description:"1 mile warm up. 2 miles at race pace 8:00/mile. 1 mile cool down. Sharp but short.", duration:45, distance:4, zone:"Zone 3-4", notes:"Race pace preview — should feel controlled, not desperate." },
-            advanced:{ description:"1 mile warm up. 2 miles at 7:45/mile + 4×400m at 7:15/mile. 1 mile cool down.", duration:50, distance:5.5, zone:"Zone 3-5", notes:"Tempo plus speed work confirms race readiness." }
+            novice:{ description:"1 mile warm up. 1 mile at {tempo}. 1 mile cool down.", duration:35, distance:3, zone:"Zone 3", notes:"Short tempo — remind your legs what effort feels like before race day." },
+            intermediate:{ description:"1 mile warm up. 2 miles at {tempo}. 1 mile cool down. Race-preview effort.", duration:45, distance:4, zone:"Zone 3-4", notes:"Should feel controlled, not desperate. You're peaked — trust it." },
+            advanced:{ description:"1 mile warm up. 2 miles at {tempo} + 4×400m at {interval5K}. 1 mile cool down.", duration:50, distance:5.5, zone:"Zone 3-5", notes:"Tempo plus speed work confirms race readiness." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:3, duration:30, zone:"Zone 2", description:"3 miles easy.",
@@ -460,11 +460,11 @@ export const RUNNING_PROGRAMS = {
             advanced:{ description:"5 miles easy at 8:30-9:00/mile with 4×20 sec strides at end.", duration:52, distance:5, zone:"Zone 2 with strides", notes:"Strides prime leg turnover without adding meaningful fatigue." }
           }
         },
-        { day:"Wed", type:"Intervals", distance:5, duration:45, zone:"Zone 4", description:"1 mile warm up. 5x400m at goal pace with 90 sec rest. 1 mile cool down.",
+        { day:"Wed", type:"Intervals", distance:5, duration:45, zone:"Zone 4", description:"1 mile warm up at {easy}. 5×400m at {interval5K} with 90 sec rest. 1 mile cool down.",
           skill_variants:{
-            novice:{ description:"1 mile easy warm up. 4×400m at very comfortable effort (10:30/mile). 2 min walk rest. 1 mile cool down.", duration:40, distance:3.5, zone:"Zone 2-3", notes:"First interval session — effort is more important than pace right now." },
-            intermediate:{ description:"1 mile warm up. 5×400m at goal pace (9:10/mile) with 90 sec rest. 1 mile cool down.", duration:45, distance:5, zone:"Zone 4", notes:"Goal pace feels uncomfortable but controlled — 6-7/10 effort." },
-            advanced:{ description:"1 mile warm up. 8×400m at 8:30/mile with 75 sec rest. 1 mile cool down.", duration:52, distance:6, zone:"Zone 4-5", notes:"8 reps builds a larger speed reserve for race day." }
+            novice:{ description:"1 mile warm up. 4×400m at {interval5K} with 2 min walk rest. 1 mile cool down.", duration:40, distance:3.5, zone:"Zone 2-3", notes:"First interval session — effort is more important than pace right now." },
+            intermediate:{ description:"1 mile warm up at {easy}. 5×400m at {interval5K} with 90 sec rest. 1 mile cool down.", duration:45, distance:5, zone:"Zone 4", notes:"Goal pace feels uncomfortable but controlled — 6-7/10 effort." },
+            advanced:{ description:"1 mile warm up. 8×400m at {interval1mi} with 75 sec rest. 1 mile cool down.", duration:52, distance:6, zone:"Zone 4-5", notes:"8 reps builds a larger speed reserve for race day." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:3, duration:33, zone:"Zone 2", description:"3 miles easy recovery.",
@@ -490,11 +490,11 @@ export const RUNNING_PROGRAMS = {
             advanced:{ description:"7 miles easy with 6 strides.", duration:72, distance:7, zone:"Zone 2 with strides", notes:"Volume is peaking — strides maintain speed without adding fatigue." }
           }
         },
-        { day:"Wed", type:"Tempo", distance:6, duration:65, zone:"Zone 3-4", description:"1 mile warm up. 4 miles at 9:30/mile. 1 mile cool down.",
+        { day:"Wed", type:"Tempo", distance:6, duration:65, zone:"Zone 3-4", description:"1 mile warm up at {easy}. 4 miles at {tempo}. 1 mile cool down.",
           skill_variants:{
-            novice:{ description:"1 mile warm up. 2 miles at 10:30/mile (comfortably hard). 1 mile cool down.", duration:48, distance:4, zone:"Zone 3", notes:"'Comfortably hard' — you can speak 3-4 words but not a full sentence." },
-            intermediate:{ description:"1 mile warm up. 4 miles at 9:30/mile. 1 mile cool down.", duration:65, distance:6, zone:"Zone 3-4", notes:"4-mile tempo is the hardest sustained session of the program." },
-            advanced:{ description:"1 mile warm up. 5 miles at 8:45/mile. 1 mile cool down.", duration:70, distance:7, zone:"Zone 3-4", notes:"5-mile tempo at faster pace — this is where sub-50 10K fitness is built." }
+            novice:{ description:"1 mile warm up. 2 miles at {tempo}. 1 mile cool down.", duration:48, distance:4, zone:"Zone 3", notes:"'Comfortably hard' — you can speak 3-4 words but not a full sentence." },
+            intermediate:{ description:"1 mile warm up at {easy}. 4 miles at {tempo}. 1 mile cool down.", duration:65, distance:6, zone:"Zone 3-4", notes:"4-mile tempo is the hardest sustained session of the program." },
+            advanced:{ description:"1 mile warm up. 5 miles at {tempo}. 1 mile cool down.", duration:70, distance:7, zone:"Zone 3-4", notes:"5-mile tempo — this is where sub-50 10K fitness is built." }
           }
         },
         { day:"Fri", type:"Easy Run", distance:4, duration:44, zone:"Zone 2", description:"4 miles easy.",

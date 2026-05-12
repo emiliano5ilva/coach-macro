@@ -1044,7 +1044,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [dailyScores,setDailyScores]=useState(()=>(profile?.daily_scores||[]).slice(-90));
   const [comebackDismissed,setComebackDismissed]=useState(()=>localStorage.getItem("comeback_dismissed")===new Date().toISOString().split("T")[0]);
   const [planMode,setPlanMode]=useState("strength");
-  const [runPlan,setRunPlan]=useState("5K Beginner");
+  const [runPlan,setRunPlan]=useState(()=>wPrefs?.runPlan||"Couch to 5K");
   const [hybridMix,setHybridMix]=useState({strength:true,run:false,hyrox:false});
   const [stravaToken,setStravaToken]=useState("");
   const [stravaStatus,setStravaStatus]=useState("idle");

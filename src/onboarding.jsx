@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { T, GLOBAL_CSS, WDAYS, PrimaryBtn, Spinner, Logo } from "./components.jsx";
+import { estimateFrom, formatRaceTime, parseTimeInput } from "./utils/runningPaces.js";
 
 // ─── FUEL ONBOARDING ──────────────────────────────────────────────────────────
 export function FuelOnboarding({d, onComplete, onBack}) {
@@ -351,11 +352,16 @@ export const GVT_INFO = "German Volume Training — 10 sets × 10 reps of one co
 
 export function TrainOnboarding({d, onComplete, onBack}) {
   const [sc,setSc]=useState(0);
+  const [runSc,setRunSc]=useState(null); // null = not in run sub-flow; 0-7 = screens A-H
   const [data,setData]=useState({
     freq:"", trainType:"lifting", split:"", equipment:"Full Gym",
     sessionLength:60, weakPoints:[], injuries:[], longRunDay:"Sunday",
     liftExp:"", cardioExp:"", gvt:false, hybridStyle:"", primaryGoal:"",
     selectedDays:{Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"},
+    // running-specific fields
+    current5KTime:null, unknownFitness:"", runningGoal:"", raceDate:"",
+    goalRaceTime:"", terrain:"road", trackAccess:false,
+    timeInputMin:"", timeInputSec:"",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
@@ -363,6 +369,10 @@ export function TrainOnboarding({d, onComplete, onBack}) {
   const back=()=>sc===0?onBack():setSc(s=>s-1);
   const SCREENS=11;
   const pct=Math.round((sc/SCREENS)*100);
+
+  const isRunType = data.trainType==="running"||data.trainType==="hybrid";
+  const runSubTotal = 8;
+  const runPct = runSc!==null ? Math.round((runSc/runSubTotal)*100) : 0;
 
   function getRecDays(freq,trainType){
     const sch={Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"};
@@ -407,7 +417,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
         {sc>0&&<button onClick={back} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:18,padding:"0 0 16px",fontFamily:"inherit"}}>← Back</button>}
 
         {/* SCREEN 0 — Training Type */}
-        {sc===0&&<div style={{animation:"fadeIn .3s ease"}}>
+        {sc===0&&runSc===null&&<div style={{animation:"fadeIn .3s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 1</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             WHAT'S YOUR<br/><span style={{color:T.prot}}>TRAINING FOCUS?</span>
@@ -419,7 +429,13 @@ export function TrainOnboarding({d, onComplete, onBack}) {
               {v:"hybrid",e:"⚡",l:"Hybrid Athlete",sub:"Lift AND run — structured mix of strength and endurance"},
               {v:"hyrox",e:"🔥",l:"Hyrox",sub:"8 functional stations + 1km run between each — race-specific prep"},
             ].map(o=>(
-              <div key={o.v} onClick={()=>auto("trainType",o.v)} style={{background:data.trainType===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.trainType===o.v?T.prot:T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:16}}>
+              <div key={o.v} onClick={()=>{
+                upd("trainType",o.v);
+                setTimeout(()=>{
+                  if(o.v==="running"||o.v==="hybrid") setRunSc(0);
+                  else setSc(s=>s+1);
+                },260);
+              }} style={{background:data.trainType===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.trainType===o.v?T.prot:T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:16}}>
                 <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
                 <div><div style={{fontSize:15,fontWeight:700,color:data.trainType===o.v?T.prot:"#fff"}}>{o.l}</div><div style={{fontSize:12,color:T.mu,marginTop:3,lineHeight:1.5}}>{o.sub}</div></div>
                 {data.trainType===o.v&&<div style={{marginLeft:"auto",color:T.prot}}>✓</div>}
@@ -427,6 +443,252 @@ export function TrainOnboarding({d, onComplete, onBack}) {
             ))}
           </div>
         </div>}
+
+        {/* ─── RUNNING SUB-FLOW (Screens A–H) ─────────────────────────────── */}
+        {runSc!==null&&(()=>{
+          const rBack=()=>runSc===0?(setRunSc(null)):(setRunSc(s=>s-1));
+          const rNext=()=>setRunSc(s=>s+1);
+          const rDone=()=>{setRunSc(null);setSc(1);};
+          return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              {/* Run sub-flow progress header */}
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Running Setup · {runSc+1}/{runSubTotal}</div>
+                  <div style={{height:3,background:T.s3,borderRadius:2,overflow:"hidden"}}>
+                    <div style={{height:"100%",background:T.prot,width:`${runPct}%`,transition:"width .5s ease"}}/>
+                  </div>
+                </div>
+              </div>
+              <button onClick={rBack} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:18,padding:"0 0 16px",fontFamily:"inherit"}}>← Back</button>
+
+              {/* Screen A — Current 5K Time */}
+              {runSc===0&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · A</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR CURRENT<br/><span style={{color:T.prot}}>5K TIME.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This single number calibrates every pace, every workout, every plan. All training zones flow from here. If you don't know it exactly, we'll estimate.</p>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:12}}>
+                  <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>Enter your 5K time</div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center",marginBottom:8}}>
+                    <div style={{textAlign:"center"}}>
+                      <input value={data.timeInputMin} onChange={e=>{
+                        const v=e.target.value.replace(/\D/g,"").slice(0,2);
+                        upd("timeInputMin",v);
+                        if(v&&data.timeInputSec!==undefined){
+                          const secs=parseInt(v||0)*60+parseInt(data.timeInputSec||0);
+                          if(secs>0)upd("current5KTime",secs);
+                        }
+                      }} placeholder="28" maxLength={2} style={{width:72,background:T.s1,border:`2px solid ${T.prot}40`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                      <div style={{fontSize:10,color:T.mu,marginTop:4}}>min</div>
+                    </div>
+                    <div style={{fontSize:36,fontWeight:700,color:T.mu,paddingBottom:20}}>:</div>
+                    <div style={{textAlign:"center"}}>
+                      <input value={data.timeInputSec} onChange={e=>{
+                        const v=e.target.value.replace(/\D/g,"").slice(0,2);
+                        upd("timeInputSec",v);
+                        if(data.timeInputMin!==undefined&&v!==""){
+                          const secs=parseInt(data.timeInputMin||0)*60+parseInt(v||0);
+                          if(secs>0)upd("current5KTime",secs);
+                        }
+                      }} placeholder="30" maxLength={2} style={{width:72,background:T.s1,border:`2px solid ${T.prot}40`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                      <div style={{fontSize:10,color:T.mu,marginTop:4}}>sec</div>
+                    </div>
+                  </div>
+                  {data.current5KTime>0&&<div style={{textAlign:"center",fontSize:13,color:T.prot,fontWeight:600,marginTop:4}}>= {formatRaceTime(data.current5KTime)} 5K</div>}
+                </div>
+                <PrimaryBtn onClick={rNext} label="Continue →" disabled={!data.current5KTime} style={{marginBottom:8}}/>
+                <button onClick={()=>{setRunSc(1);}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>I don't know my 5K time →</button>
+              </div>}
+
+              {/* Screen B — Unknown 5K: estimate from fitness level */}
+              {runSc===1&&!data.current5KTime&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · B</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  HOW'S YOUR<br/><span style={{color:T.prot}}>RUNNING BASE?</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We'll estimate your 5K time and adjust it automatically as you train. Be honest — starting too fast causes injury.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                  {[
+                    {v:"never",      l:"I've never run",           sub:"Starting from zero",                est:"~40:00"},
+                    {v:"occasional", l:"I run occasionally",       sub:"A few times a month at most",       est:"~35:00"},
+                    {v:"recreational",l:"I run regularly",         sub:"A few times per week, no race goals",est:"~30:00"},
+                    {v:"fit",        l:"I'm athletic",             sub:"Sports background, decent cardio",   est:"~25:00"},
+                    {v:"competitive",l:"I've raced before",        sub:"I've run races, I just don't know my 5K",est:"~20:00"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>{upd("unknownFitness",o.v);upd("current5KTime",estimateFrom(o.v));setTimeout(rNext,260);}} style={{background:data.unknownFitness===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.unknownFitness===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:14,fontWeight:700,color:data.unknownFitness===o.v?T.prot:"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
+                      </div>
+                      <div style={{fontSize:12,color:T.prot,fontWeight:700,background:`${T.prot}12`,padding:"4px 10px",borderRadius:8,flexShrink:0}}>{o.est}</div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Your paces will auto-adjust after tempo and interval sessions. This estimate is just a starting point.</p>
+              </div>}
+
+              {/* Screen B (if they entered time) or Screen C — Running Goal */}
+              {(runSc===1&&!!data.current5KTime)||runSc===2?((()=>{
+                const scTarget=runSc===1?null:null; // handled below
+                return null;
+              })())||null:null}
+              {((runSc===1&&!!data.current5KTime)||runSc===2)&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · {runSc===1?"B":"C"}</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  WHAT'S YOUR<br/><span style={{color:T.prot}}>RUNNING GOAL?</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This determines your training plan structure and weekly mileage progression.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                  {[
+                    {v:"first_5k",  e:"🏃",l:"Run my first 5K",          sub:"Complete 5K without stopping",           plan:"Couch to 5K"},
+                    {v:"sub25_5k",  e:"⚡",l:"Break 25 minutes for 5K",  sub:"Speed work and tempo progression",       plan:"5K Sub-25"},
+                    {v:"first_10k", e:"🏅",l:"Run my first 10K",         sub:"Build from 5K to 10K",                   plan:"10K Plan"},
+                    {v:"sub50_10k", e:"🎯",l:"Break 50 minutes for 10K", sub:"Race-pace training and intervals",       plan:"10K Sub-50"},
+                    {v:"half",      e:"🎽",l:"Half Marathon",             sub:"13.1 miles — 12–16 week program",       plan:"Half Marathon"},
+                    {v:"marathon",  e:"🏆",l:"Full Marathon",             sub:"26.2 miles — 18–20 week program",       plan:"Marathon"},
+                    {v:"fitness",   e:"💪",l:"Running for fitness",       sub:"No race goal — just build the habit",   plan:"Couch to 5K"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>{upd("runningGoal",o.v);setTimeout(()=>setRunSc(runSc===1?2:3),260);}} style={{background:data.runningGoal===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.runningGoal===o.v?T.prot:T.bd}`,borderRadius:12,padding:"13px 16px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{fontSize:20,flexShrink:0}}>{o.e}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:14,fontWeight:700,color:data.runningGoal===o.v?T.prot:"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
+                      </div>
+                      <div style={{fontSize:9,color:T.mu,background:T.s3,padding:"3px 8px",borderRadius:6,flexShrink:0,fontWeight:700}}>{o.plan}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>}
+
+              {/* Screen D — Race Date (optional) */}
+              {runSc===3&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · D</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  DO YOU HAVE<br/><span style={{color:T.prot}}>A RACE DATE?</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We'll build your plan backward from race day — taper, long run peaks, and everything.</p>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
+                  <input type="date" value={data.raceDate} onChange={e=>upd("raceDate",e.target.value)} style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:20,fontWeight:600,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                <PrimaryBtn onClick={rNext} label="Continue →" disabled={!data.raceDate} style={{marginBottom:8}}/>
+                <button onClick={()=>{upd("raceDate","");rNext();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>No race date yet — skip</button>
+              </div>}
+
+              {/* Screen E — Terrain */}
+              {runSc===4&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · E</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  WHERE DO YOU<br/><span style={{color:T.prot}}>USUALLY RUN?</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We'll adapt workouts to your surface — trail runs get slower paces, treadmill gets incline guidance.</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+                  {[
+                    {v:"road",      e:"🛣️", l:"Road / Pavement",  sub:"Standard surfaces, pace-accurate"},
+                    {v:"trail",     e:"🌲", l:"Trail",             sub:"Paces are 10–20% slower — we account for this"},
+                    {v:"track",     e:"🏟️", l:"Track",             sub:"400m laps, pace-perfect sessions"},
+                    {v:"treadmill", e:"🏃", l:"Treadmill",         sub:"Incline at 1% to simulate outdoor effort"},
+                    {v:"mixed",     e:"🔀", l:"Mixed",             sub:"Road + some trail or treadmill"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>{upd("terrain",o.v);}} style={{background:data.terrain===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.terrain===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px",cursor:"pointer",transition:"all .2s"}}>
+                      <div style={{fontSize:22,marginBottom:6}}>{o.e}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:data.terrain===o.v?T.prot:"#fff",marginBottom:3}}>{o.l}</div>
+                      <div style={{fontSize:10,color:T.mu,lineHeight:1.5}}>{o.sub}</div>
+                    </div>
+                  ))}
+                </div>
+                <PrimaryBtn onClick={rNext} label="Continue →" disabled={!data.terrain}/>
+              </div>}
+
+              {/* Screen F — Track Access */}
+              {runSc===5&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · F</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  TRACK<br/><span style={{color:T.prot}}>ACCESS?</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>A 400m track lets us give you exact interval distances. Without one, we convert to time-based intervals — equally effective.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+                  {[
+                    {v:true,  e:"✅",l:"Yes — I have access to a track",sub:"Get lap-based intervals (400m, 800m, 1mi, 1200m)"},
+                    {v:false, e:"⏱️",l:"No — road or trail only",       sub:"All intervals converted to time (e.g. 3 min fast, 90 sec easy)"},
+                  ].map(o=>(
+                    <div key={String(o.v)} onClick={()=>{upd("trackAccess",o.v);setTimeout(rNext,260);}} style={{background:data.trackAccess===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.trackAccess===o.v?T.prot:T.bd}`,borderRadius:12,padding:"18px 20px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                      <div style={{fontSize:24,flexShrink:0}}>{o.e}</div>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:data.trackAccess===o.v?T.prot:"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:3,lineHeight:1.5}}>{o.sub}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>}
+
+              {/* Screen G — Long Run Day */}
+              {runSc===6&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · G</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  LONG RUN<br/><span style={{color:T.prot}}>DAY.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Your long run needs a full rest day after it. We'll build your whole schedule around this anchor day.</p>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
+                  {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>(
+                    <div key={day} onClick={()=>upd("longRunDay",day)} style={{background:data.longRunDay===day?`${T.prot}12`:T.s2,border:`1.5px solid ${data.longRunDay===day?T.prot:T.bd}`,borderRadius:11,padding:"16px 8px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
+                      <div style={{fontSize:14,fontWeight:700,color:data.longRunDay===day?T.prot:"#fff"}}>{day}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:`${T.prot}08`,border:`1px solid ${T.prot}25`,borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:12,color:T.mu,lineHeight:1.65}}>
+                  Long run day: <b style={{color:"#fff"}}>{data.longRunDay}</b>. Rest day after: <b style={{color:"#fff"}}>{data.longRunDay==="Sat"?"Sun":data.longRunDay==="Sun"?"Mon":data.longRunDay==="Mon"?"Tue":data.longRunDay==="Tue"?"Wed":data.longRunDay==="Wed"?"Thu":data.longRunDay==="Thu"?"Fri":"Sun"}</b>.
+                </div>
+                <PrimaryBtn onClick={rNext} label="Continue →" disabled={!data.longRunDay}/>
+              </div>}
+
+              {/* Screen H — Summary + Launch */}
+              {runSc===7&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · Done</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:16}}>
+                  YOUR RUNNING<br/><span style={{color:T.prot}}>PROFILE.</span>
+                </div>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16,display:"flex",flexDirection:"column",gap:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span style={{fontSize:13,color:T.mu}}>Current 5K time</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{formatRaceTime(data.current5KTime||0)}{data.unknownFitness?" (estimated)":""}</span>
+                  </div>
+                  <div style={{height:1,background:T.bd}}/>
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span style={{fontSize:13,color:T.mu}}>Goal</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{data.runningGoal?.replace(/_/g," ")}</span>
+                  </div>
+                  {data.raceDate&&<>
+                    <div style={{height:1,background:T.bd}}/>
+                    <div style={{display:"flex",justifyContent:"space-between"}}>
+                      <span style={{fontSize:13,color:T.mu}}>Race date</span>
+                      <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{data.raceDate}</span>
+                    </div>
+                  </>}
+                  <div style={{height:1,background:T.bd}}/>
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span style={{fontSize:13,color:T.mu}}>Terrain</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{data.terrain}</span>
+                  </div>
+                  <div style={{height:1,background:T.bd}}/>
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span style={{fontSize:13,color:T.mu}}>Track access</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{data.trackAccess?"Yes":"No — time-based intervals"}</span>
+                  </div>
+                  <div style={{height:1,background:T.bd}}/>
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span style={{fontSize:13,color:T.mu}}>Long run day</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{data.longRunDay}</span>
+                  </div>
+                </div>
+                <PrimaryBtn onClick={rDone} label="Build My Run Program →"/>
+                <p style={{fontSize:11,color:T.mu,textAlign:"center",marginTop:12,lineHeight:1.6}}>Your paces will auto-calibrate after every tempo and interval session.</p>
+              </div>}
+            </div>
+          );
+        })()}
 
         {/* SCREEN 1 — Primary Training Goal */}
         {sc===1&&<div style={{animation:"fadeIn .3s ease"}}>
