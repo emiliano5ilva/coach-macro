@@ -343,7 +343,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [quickFields,setQF]=useState({name:"",calories:"",protein:"",carbs:"",fat:""});
   const [recs,setRecs]=useState(""); const [recsLoading,setRecsLoading]=useState(false);
   const [recipes,setRecipes]=useState(""); const [recipesLoading,setRecipesLoading]=useState(false);
-  const [fastProto,setFastProto]=useState("16:8");
+  const [fastProto,setFastProto]=useState(profile?.fasting && profile.fasting!=="no" ? profile.fasting : "16:8");
   const [fastActive,setFastActive]=useState(false);
   const [fastStart,setFastStart]=useState(null);
   const [fastCustomH,setFastCustomH]=useState(16);
@@ -544,13 +544,16 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   async function fetchRecs(){
     setRecsLoading(true);setRecs("");
     const actCtx=todayActs.length>0?`\nToday's activity: ${todayActs.map(a=>`${a.type} (${a.calories} kcal via ${a.source})`).join(", ")}\n`:"";
-    try{const txt=await ai(`You are a precision nutrition coach. The user is in ${city||"their city"} and needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations ("no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers.`,900);setRecs(txt);}
+    const dietaryCtx=(profile.dietary||[]).filter(d=>d!=="none");
+    try{const txt=await ai(`You are a precision nutrition coach. The user is in ${city||"their city"} and needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations ("no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers.`,900);setRecs(txt);}
     catch(e){console.error("[fetchRecs] error:",e);setRecs("⚠️ AI temporarily unavailable. Tap 'Get Recommendations' to retry.");}setRecsLoading(false);
   }
 
   async function fetchRecipes(){
     setRecipesLoading(true);setRecipes("");
-    try{const txt=await ai(`Remaining macros I need to hit:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal} · Day: ${todayType}\n\nGive 3 simple home recipes. Each: name, ingredients (max 6 with amounts), steps (max 5), macro breakdown, prep time. Easy to cook. Hit the protein and calorie targets.`,900);setRecipes(txt);}
+    const recipeDietCtx=(profile.dietary||[]).filter(d=>d!=="none");
+    const recipeCondCtx=(profile.conditions||[]).filter(c=>c!=="none");
+    try{const txt=await ai(`Remaining macros I need to hit:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal} · Day: ${todayType}${recipeDietCtx.length>0?". Dietary restrictions: "+recipeDietCtx.join(", "):""}${recipeCondCtx.length>0?". Health conditions: "+recipeCondCtx.join(", "):""}\n\nGive 3 simple home recipes. Each: name, ingredients (max 6 with amounts), steps (max 5), macro breakdown, prep time. Easy to cook. Hit the protein and calorie targets.`,900);setRecipes(txt);}
     catch(e){console.error("[fetchRecipes] error:",e);setRecipes("⚠️ AI temporarily unavailable. Tap 'Get Recipes' to retry.");}setRecipesLoading(false);
   }
 
@@ -558,9 +561,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     setWorkoutLoading(true);setWorkout("");
     const coverage=MUSCLE_COVERAGE[todayFocus]||"Full coverage of all muscles";
     const actCtx=todayActs.length>0?`\nNOTE: Already completed: ${todayActs.map(a=>`${a.type} (${a.calories} kcal)`).join(", ")}. Adjust accordingly.`:"";
+    const healthItems=[...(profile.conditions||[]).filter(c=>c!=="none"),...(wPrefs.injuries||[]).filter(Boolean)];
+    const healthCtx=healthItems.length>0?` | HEALTH: ${healthItems.join(", ")} — modify exercises accordingly`:"";
+    const sessionLen=wPrefs.sessionLength||45;
     const prompt=todayType==="rest"
       ?`REST DAY recovery for ${profile.goal} athlete. Mobility, stretching, foam rolling, recovery nutrition. Equipment: ${wPrefs.equipment}. Clear sections.`
-      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"}${actCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
+      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${actCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
     try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);setWorkout("⚠️ AI temporarily unavailable. Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
   }
 
@@ -571,8 +577,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       const runInfo=runPlanName?`Run plan: ${runPlanName}.`:"";
       const hybridInfo=hybridName?`Hybrid template: ${hybridName}.`:"";
       const focus=FOCUS_MUSCLES[todayFocus]||"full body movements";
+      const structHealthItems=[...(profile.conditions||[]).filter(c=>c!=="none"),...(wPrefs.injuries||[]).filter(Boolean)];
+      const structHealthCtx=structHealthItems.length>0?` | HEALTH: ${structHealthItems.join(", ")} — avoid contraindicated movements`:"";
+      const structSessionLen=wPrefs.sessionLength||45;
+      const exCount=structSessionLen<=30?"3-4":structSessionLen<=45?"4-5":structSessionLen<=60?"5-6":"6-8";
       const raw=await ai(`Build a structured ${todayFocus} workout session.
-ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"}
+ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"} | Session: ${structSessionLen}min${structHealthCtx}
 ${splitInfo}${runInfo}${hybridInfo}
 MUSCLES TO COVER: ${focus}
 
@@ -580,7 +590,7 @@ Return ONLY valid JSON, no markdown, no explanation:
 {"title":"${todayFocus}","exercises":[{"name":"Exercise Name","sets":[{"reps":10,"weight":0,"done":false},{"reps":10,"weight":0,"done":false},{"reps":10,"weight":0,"done":false}],"restSecs":120,"notes":"Which muscle head this targets + key form cue"}]}
 
 Rules:
-- 5-7 exercises total
+- ${exCount} exercises total
 - Warm-up set first for compounds (lighter weight, higher reps)
 - Cover EVERY muscle head listed above
 - restSecs: 180 for heavy compounds, 120 for secondary, 60 for isolation
@@ -885,7 +895,7 @@ Rules:
       <div className="app-screen grid-bg">
         {section==="home"&&<HomeSection/>}
         {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user}/>}
-        {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry}/>}
+        {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile}/>}
         {section==="progress"&&<ProgressSection/>}
         {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}
       </div>

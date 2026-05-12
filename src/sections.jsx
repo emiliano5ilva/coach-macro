@@ -669,11 +669,13 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
     if (!canAdapt) return;
     setScreen("loading"); setErr(null);
     try {
+      const adaptHealthItems=[...(profile?.conditions||[]).filter(c=>c!=="none"),...(wPrefs?.injuries||[]).filter(Boolean)];
+      const adaptHealthCtx=adaptHealthItems.length>0?`\nKnown conditions/injuries: ${adaptHealthItems.join(", ")} — factor into all exercise selections.`:"";
       const prompt = `You are an expert personal trainer and coach.
 
 Current program: ${wPrefs.splitType||"General"} — ${wPrefs.liftExp||"intermediate"} level
 Today's session: ${todayFocus}
-User situation: ${selectedReason}
+User situation: ${selectedReason}${adaptHealthCtx}
 
 Current planned exercises:
 ${JSON.stringify((todayExercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps,notes:e.notes})), null, 2)}

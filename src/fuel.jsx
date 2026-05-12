@@ -4,7 +4,14 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   hap, calcTDEE } from "./components.jsx";
 import { sb, ai } from "./client.js";
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry}) {
+const MEAL_SLOT_DEFS = {
+  "2":  ["Breakfast","Dinner"],
+  "4":  ["Breakfast","Lunch","Dinner","Snack"],
+  "5":  ["Breakfast","Lunch","Snack","Dinner","Evening Snack"],
+  "6+": ["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening"],
+};
+
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -50,6 +57,25 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     setBodySuggestLoading(false);
   }
   const useBudgetView=wPrefs?.fuelView==="budget";
+
+  // ── Meal Slots ─────────────────────────────────────────────────────────────
+  const [mealSlots,setMealSlots]=useState(()=>MEAL_SLOT_DEFS[profile?.mealFreq]||["Breakfast","Lunch","Dinner","Snack"]);
+  const [slotAssignments,setSlotAssignments]=useState({});
+  const [editingSlot,setEditingSlot]=useState(null);
+  const [activeSlotIdx,setActiveSlotIdx]=useState(0);
+
+  function getEntrySlot(entry){
+    if(slotAssignments[entry.id])return slotAssignments[entry.id];
+    const h=new Date(entry.id).getHours();
+    const n=mealSlots.length;
+    const bounds=n===2?[13]:n===4?[10,13,18]:n===5?[9,12,15,19]:[8,10,13,16,19];
+    const idx=bounds.findIndex(b=>h<b);
+    return mealSlots[idx===-1?n-1:Math.min(idx,n-1)];
+  }
+
+  function renameSlot(idx,name){setMealSlots(s=>s.map((v,i)=>i===idx?name:v));setEditingSlot(null);}
+  function addMealSlot(){const newName=`Meal ${mealSlots.length+1}`;setMealSlots(s=>[...s,newName]);setActiveSlotIdx(mealSlots.length);}
+  function removeSlot(idx){if(mealSlots.length<=1)return;setMealSlots(s=>s.filter((_,i)=>i!==idx));setActiveSlotIdx(0);}
 
   // ── Macro Memory ─────────────────────────────────────────────────────────────
   const [memorySuggestions,setMemorySuggestions]=useState([]);
@@ -324,11 +350,14 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
               </div>
             </button>
 
-            {/* FOOD LOG */}
+            {/* FOOD LOG — grouped by meal slots */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Today&apos;s Log</div>
-                <button onClick={()=>setFuelScreen("log")} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Add Food</button>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={addMealSlot} style={{background:"rgba(41,121,255,0.1)",border:"1px dashed rgba(41,121,255,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
+                  <button onClick={()=>setFuelScreen("log")} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
+                </div>
               </div>
               {log.length===0
                 ?<div style={{textAlign:"center",padding:"28px 0",color:T.mu,border:`1px dashed ${T.bd}`,borderRadius:12}}>
@@ -337,27 +366,57 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
                   <div style={{fontSize:11,color:T.dim}}>Describe a meal, scan a barcode, or use the restaurant finder</div>
                 </div>
                 :<div>
-                  {log.slice(0,8).map((item,i)=>(
-                    <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<Math.min(log.length,8)-1?`1px solid rgba(245,245,240,0.05)`:""}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                        <div style={{width:34,height:34,borderRadius:10,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{item.method==="barcode"?"📷":item.method==="quick"?"✏️":"🧠"}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
-                          <div style={{fontSize:10,color:T.mu,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
-                            <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                  {mealSlots.map((slot,si)=>{
+                    const slotItems=log.filter(e=>getEntrySlot(e)===slot);
+                    if(slotItems.length===0)return null;
+                    const slotCals=slotItems.reduce((s,e)=>s+(e.calories||0),0);
+                    return(
+                      <div key={slot} style={{marginBottom:12}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                          {editingSlot===si
+                            ?<input autoFocus defaultValue={slot} onBlur={e=>renameSlot(si,e.target.value||slot)} onKeyDown={e=>{if(e.key==="Enter")renameSlot(si,e.target.value||slot);if(e.key==="Escape")setEditingSlot(null);}} style={{background:"none",border:`1px solid ${T.prot}`,borderRadius:6,padding:"2px 8px",color:"#fff",fontSize:11,fontWeight:700,fontFamily:"inherit",outline:"none",width:120}}/>
+                            :<button onClick={()=>setEditingSlot(si)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:10,fontWeight:700,color:T.mu,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{slot} ✎</button>
+                          }
+                          <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
+                          <div style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{slotCals} kcal</div>
+                          {mealSlots.length>1&&<button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>}
+                        </div>
+                        {slotItems.map((item,i)=>(
+                          <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
+                            <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+                              <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0}}>{item.method==="barcode"?"📷":item.method==="quick"?"✏️":"🧠"}</div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
+                                <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"'DM Mono',monospace"}}>
+                                  <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                              <div style={{textAlign:"right"}}>
+                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
+                                <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                              </div>
+                              <select value={slotAssignments[item.id]||slot} onChange={e=>setSlotAssignments(s=>({...s,[item.id]:e.target.value}))} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,borderRadius:6,padding:"3px 4px",fontSize:10,cursor:"pointer",fontFamily:"inherit",maxWidth:80}}>
+                                {mealSlots.map(s=><option key={s} value={s}>{s}</option>)}
+                              </select>
+                              <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                            </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                      <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-                        <div style={{textAlign:"right"}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
-                          <div style={{fontSize:9,color:T.mu,fontFamily:"'DM Mono',monospace"}}>kcal</div>
-                        </div>
+                    );
+                  })}
+                  {/* entries not yet assigned to a slot */}
+                  {log.filter(e=>!mealSlots.includes(getEntrySlot(e))).map((item,i,arr)=>(
+                    <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
+                      <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13}}>{item.calories} kcal</div>
                         <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                       </div>
                     </div>
                   ))}
-                  {log.length>8&&<div style={{fontSize:12,color:T.mu,textAlign:"center",marginTop:10,paddingTop:10,borderTop:`1px solid rgba(245,245,240,0.05)`}}>+{log.length-8} more entries</div>}
                 </div>
               }
             </div>
@@ -373,6 +432,16 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
               {[["ai","🧠 AI"],["barcode","📷 Barcode"],["quick","✏️ Quick"]].map(([k,l])=>(
                 <button key={k} onClick={()=>setLogMode(k)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700}}>{l}</button>
               ))}
+            </div>
+            {/* Meal slot selector */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Log to meal</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {mealSlots.map((slot,i)=>(
+                  <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.carb:T.bd}`,background:activeSlotIdx===i?`${T.carb}15`:"none",color:activeSlotIdx===i?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
+                ))}
+                <button onClick={addMealSlot} style={{padding:"7px 14px",borderRadius:20,border:`1.5px dashed ${T.bd}`,background:"none",color:"rgba(245,245,240,0.3)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Meal</button>
+              </div>
             </div>
             {logMode==="ai"&&<>
               <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
