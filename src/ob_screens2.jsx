@@ -540,6 +540,240 @@ function ScoreRing({score}) {
   );
 }
 
+// ─── PR PREDICTION ENGINE ─────────────────────────────────────────────────────
+
+const PR_TRACKED_LIFTS = [
+  {key:"bench",    label:"Bench Press",    terms:["bench press","barbell bench","flat bench","db bench","dumbbell bench","incline bench"]},
+  {key:"squat",    label:"Squat",          terms:["squat"]},
+  {key:"deadlift", label:"Deadlift",       terms:["deadlift","rdl","romanian deadlift"]},
+  {key:"ohp",      label:"Overhead Press", terms:["overhead press","ohp","shoulder press","military press","standing press"]},
+  {key:"pullup",   label:"Pull-Up",        terms:["pull-up","pull up","pullup","chin-up","chin up","chinup","weighted pull"]},
+  {key:"row",      label:"Barbell Row",    terms:["barbell row","bent-over row","bent over row","bb row","pendlay row"]},
+];
+
+function epley1RM(weight, reps) {
+  if (!weight || !reps || weight <= 0 || reps <= 0) return 0;
+  if (reps === 1) return weight;
+  return weight * (1 + reps / 30);
+}
+
+function calcPRPredictions(workoutLogsRaw, wUnit) {
+  if (!workoutLogsRaw || workoutLogsRaw.length < 2) return [];
+
+  const exCounts = {};
+  workoutLogsRaw.forEach(log => {
+    (log.workout?.exercises || []).forEach(ex => {
+      const n = (ex.name || "").trim();
+      if (!n) return;
+      const lower = n.toLowerCase();
+      const tracked = PR_TRACKED_LIFTS.some(l => l.terms.some(t => lower.includes(t)));
+      if (!tracked) exCounts[n] = (exCounts[n] || 0) + 1;
+    });
+  });
+
+  const allLifts = [...PR_TRACKED_LIFTS];
+  Object.entries(exCounts).forEach(([name, cnt]) => {
+    if (cnt >= 5) allLifts.push({ key: name.toLowerCase().replace(/\s+/g,"_"), label: name, terms: [name.toLowerCase()], custom: true });
+  });
+
+  const sortedLogs = [...workoutLogsRaw].sort((a,b) => new Date(a.date+"T12:00:00") - new Date(b.date+"T12:00:00"));
+  const liftSessions = {};
+  allLifts.forEach(l => { liftSessions[l.key] = []; });
+
+  sortedLogs.forEach(log => {
+    (log.workout?.exercises || []).forEach(ex => {
+      const n = (ex.name || "").toLowerCase();
+      allLifts.forEach(lift => {
+        if (!lift.terms.some(t => n.includes(t))) return;
+        const sets = (ex.sets || []).filter(s => {
+          const w = parseFloat(s.weight) || 0;
+          const r = parseInt(s.reps) || 0;
+          return w > 0 && r >= 1 && r <= 15;
+        });
+        if (!sets.length) return;
+        const best = Math.max(...sets.map(s => epley1RM(parseFloat(s.weight), parseInt(s.reps))));
+        if (best > 0) liftSessions[lift.key].push({ date: log.date, est1RM: Math.round(best) });
+      });
+    });
+  });
+
+  const results = [];
+  allLifts.forEach(lift => {
+    const sessions = liftSessions[lift.key];
+    if (sessions.length < 3) return;
+
+    const current1RM = sessions[sessions.length - 1].est1RM;
+    if (current1RM <= 0) return;
+
+    const last3 = sessions.slice(-3);
+    const plateau = last3.every(s => s.est1RM <= last3[0].est1RM) && last3[0].est1RM > 0;
+    const last3Max = Math.max(...last3.map(s => s.est1RM));
+    const declining = current1RM < last3Max * 0.95 && last3Max > 0;
+
+    const fourWeeksAgoStr = new Date(Date.now()-28*864e5).toISOString().split("T")[0];
+    const olderSessions = sessions.filter(s => s.date <= fourWeeksAgoStr);
+    let weeklyGain = 0;
+    if (olderSessions.length > 0) {
+      weeklyGain = (current1RM - olderSessions[olderSessions.length-1].est1RM) / 4;
+    } else if (sessions.length >= 2) {
+      const weeks = Math.max(0.5, (new Date(sessions[sessions.length-1].date+"T12:00:00") - new Date(sessions[0].date+"T12:00:00")) / (7*864e5));
+      weeklyGain = (current1RM - sessions[0].est1RM) / weeks;
+    }
+
+    const milestones = [];
+    if (weeklyGain > 0.5 && !declining) {
+      const inc = current1RM >= 250 ? 25 : current1RM >= 150 ? 10 : 5;
+      const base = Math.ceil(current1RM / inc) * inc;
+      [base, base+inc, base+2*inc, base+3*inc].forEach(m => {
+        if (m <= current1RM) return;
+        const weeks = Math.round((m - current1RM) / weeklyGain);
+        if (weeks >= 1 && weeks <= 52) milestones.push({ weight: m, weeks });
+      });
+    }
+
+    results.push({ key: lift.key, label: lift.label, current1RM, weeklyGain, sessions, plateau, declining, milestones, custom: lift.custom || false });
+  });
+
+  return results
+    .filter(r => r.milestones.length > 0 || r.plateau || r.declining)
+    .sort((a,b) => {
+      if (a.milestones.length && !b.milestones.length) return -1;
+      if (!a.milestones.length && b.milestones.length) return 1;
+      return b.sessions.length - a.sessions.length;
+    });
+}
+
+function _fmtPace(minKm) {
+  const m = Math.floor(minKm);
+  const s = Math.round((minKm-m)*60);
+  return `${m}:${String(s).padStart(2,"0")}/km`;
+}
+function _fmtFinish(totalMins) {
+  const h = Math.floor(totalMins/60);
+  const m = Math.floor(totalMins%60);
+  return h > 0 ? `${h}h ${String(m).padStart(2,"0")}m` : `${m}m`;
+}
+
+function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
+  const isRunner = wPrefs?.isHyrox || (wPrefs?.splitType||"").toLowerCase().includes("run") || (runActs?.length||0) >= 3;
+
+  let runData = null;
+  if (isRunner && runActs && runActs.length >= 2) {
+    const runs = runActs.filter(a => parseFloat(a.distanceKm)>1 && parseInt(a.durationMin)>1).slice(0,10);
+    if (runs.length >= 2) {
+      const recent = runs.slice(0, Math.min(5,runs.length));
+      const avgPace = recent.reduce((s,r) => s+(parseInt(r.durationMin)/parseFloat(r.distanceKm)),0)/recent.length;
+      const older = runs.slice(-3);
+      const olderPace = older.reduce((s,r) => s+(parseInt(r.durationMin)/parseFloat(r.distanceKm)),0)/older.length;
+      runData = {
+        avgPace,
+        improving: olderPace - avgPace > 0.1,
+        declining: avgPace - olderPace > 0.1,
+        races: [{name:"5K",km:5},{name:"10K",km:10},{name:"Half",km:21.1},{name:"Marathon",km:42.2}].map(r=>({name:r.name,mins:avgPace*Math.pow(r.km,1.06)}))
+      };
+    }
+  }
+
+  const hasContent = (predictions&&predictions.length>0) || runData;
+  if (!hasContent) return null;
+
+  const unit = wUnit==="kg" ? "kg" : "lbs";
+  const totalItems = (predictions?.length||0) + (runData?1:0);
+
+  return (
+    <div style={{margin:"0 20px 14px",padding:"18px 20px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:20}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>PR PREDICTIONS</div>
+
+      {/* Strength lifts */}
+      {predictions && predictions.map((pred,i)=>{
+        const nextM = pred.milestones[0];
+        const inc = pred.current1RM>=250?25:pred.current1RM>=150?10:5;
+        const lowerBound = nextM ? nextM.weight-inc : pred.current1RM;
+        const barPct = nextM ? Math.max(3,Math.min(97,Math.round(((pred.current1RM-lowerBound)/(nextM.weight-lowerBound))*100))) : 5;
+        const showDivider = i < totalItems-1;
+        return (
+          <div key={pred.key} style={{marginBottom:showDivider?20:0,paddingBottom:showDivider?20:0,borderBottom:showDivider?"1px solid rgba(255,255,255,0.05)":"none"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+              <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:17,letterSpacing:.5}}>{pred.label.toUpperCase()}</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:12,color:"#2979FF",fontWeight:600}}>~{pred.current1RM} {unit} est. 1RM</div>
+            </div>
+            {pred.declining&&(
+              <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8}}>
+                <div style={{fontSize:11,color:"#EF4444",fontWeight:700,marginBottom:3}}>📉 Performance trending down</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",lineHeight:1.6}}>Recovery may be needed — check your sleep and nutrition</div>
+              </div>
+            )}
+            {pred.plateau&&!pred.declining&&(
+              <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(234,179,8,0.07)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:8}}>
+                <div style={{fontSize:11,color:"#EAB308",fontWeight:700,marginBottom:3}}>⚠️ Plateau detected — 3 sessions no progress</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",lineHeight:1.6}}>Consider a deload or technique focus</div>
+              </div>
+            )}
+            {pred.milestones.length>0&&(
+              <>
+                <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:3,marginBottom:10,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${barPct}%`,background:"linear-gradient(90deg,#2979FF,#22c55e)",borderRadius:3,transition:"width 0.7s ease"}}/>
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:7}}>
+                  {pred.milestones.slice(0,4).map((m,mi)=>{
+                    const col = m.weeks<=4?"#22c55e":m.weeks<=8?"#2979FF":"#EAB308";
+                    const bg  = m.weeks<=4?"rgba(34,197,94,0.09)":m.weeks<=8?"rgba(41,121,255,0.09)":"rgba(234,179,8,0.09)";
+                    const bd  = m.weeks<=4?"rgba(34,197,94,0.28)":m.weeks<=8?"rgba(41,121,255,0.28)":"rgba(234,179,8,0.28)";
+                    return (
+                      <div key={mi} style={{padding:"5px 10px",background:bg,border:`1px solid ${bd}`,borderRadius:20,display:"flex",alignItems:"center",gap:5}}>
+                        <span style={{fontFamily:"var(--mono)",fontSize:11,color:col,fontWeight:700}}>{m.weight} {unit}</span>
+                        <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>— {m.weeks===1?"1 week":`${m.weeks} weeks`}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{fontSize:10,color:"rgba(245,245,240,0.28)",fontFamily:"var(--mono)"}}>Trending toward these weights based on your current progression rate</div>
+              </>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Running predictions */}
+      {runData&&(
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+            <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:17,letterSpacing:.5}}>RUNNING PACE</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:12,color:"#2979FF",fontWeight:600}}>{_fmtPace(runData.avgPace)} avg</div>
+          </div>
+          {runData.declining&&(
+            <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8}}>
+              <div style={{fontSize:11,color:"#EF4444",fontWeight:700,marginBottom:3}}>📉 Performance trending down</div>
+              <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",lineHeight:1.6}}>Recovery may be needed — check your sleep and nutrition</div>
+            </div>
+          )}
+          {runData.improving&&!runData.declining&&(
+            <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8}}>
+              <div style={{fontSize:11,color:"#22c55e",fontWeight:700}}>📈 Pace improving — trending faster</div>
+            </div>
+          )}
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:7}}>
+            {runData.races.map((r,ri)=>(
+              <div key={ri} style={{padding:"5px 10px",background:"rgba(41,121,255,0.09)",border:"1px solid rgba(41,121,255,0.28)",borderRadius:20,display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.45)"}}>{r.name}</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"#2979FF",fontWeight:700}}>{_fmtFinish(r.mins)}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:10,color:"rgba(245,245,240,0.28)",fontFamily:"var(--mono)"}}>Projected finish times based on your current average pace</div>
+        </div>
+      )}
+
+      {/* Disclaimer */}
+      <div style={{marginTop:16,padding:"10px 12px",background:"rgba(245,245,240,0.02)",borderRadius:8,border:"1px solid rgba(245,245,240,0.04)"}}>
+        <div style={{fontSize:10,color:"rgba(245,245,240,0.2)",lineHeight:1.7,fontStyle:"italic"}}>
+          Projections are based on your logged training data and are estimates only. Always train within your current ability. Coach Macro projections are not training instructions.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("home"); // home | train | fuel | progress | settings
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -937,6 +1171,10 @@ Rules:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[coachScore?.total]);
 
+  // ── PR Predictions ─────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const prPredictions = useMemo(()=>calcPRPredictions(workoutLogsRaw,profile?.wUnit),[workoutLogsRaw]);
+
   function getSuggestion(name){
     const k=name.toLowerCase().replace(/\s+/g,"_");const prev=history[k];if(!prev||!prev.length)return null;
     const last=prev[prev.length-1];const lastSet=last.sets[last.sets.length-1];if(!lastSet)return null;
@@ -1242,6 +1480,12 @@ Rules:
             })}
           </div>
         </div>
+
+        {/* ── PR PREDICTIONS ── */}
+        {(()=>{
+          const runActs = allActs.filter(a=>(a.type||"").toLowerCase().includes("run")&&parseFloat(a.distanceKm)>1);
+          return <PRPredictionCard predictions={prPredictions} runActs={runActs} wPrefs={wPrefs} wUnit={profile?.wUnit||"lbs"}/>;
+        })()}
 
         {/* ── STATS GRID ── */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 14px"}}>
