@@ -13,7 +13,7 @@ const MEAL_SLOT_DEFS = {
 
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile}) {
 
-  const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"}];
+  const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
 
   // ── Weekend Flex Mode ─────────────────────────────────────────────────────
@@ -108,6 +108,52 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
         setMemorySuggestions(suggestions);
       });
   },[user,wPrefs?.macroMemory,log?.length]);
+
+  // ── Meal Prep Planner ───────────────────────────────────────────────────────
+  const [prepPlan,setPrepPlan]=useState(()=>profile?.meal_prep_plan||null);
+  const [prepLoading,setPrepLoading]=useState(false);
+  const [groceryChecked,setGroceryChecked]=useState(new Set());
+  const [groceryOpen,setGroceryOpen]=useState(false);
+
+  async function generatePrepPlan(){
+    if(prepLoading)return;
+    setPrepLoading(true);
+    try{
+      const trainingDays=Object.entries(schedule||{}).filter(([,v])=>v==="training").map(([d])=>d);
+      const restDays=WDAYS.filter(d=>!trainingDays.includes(d));
+      const trainingCals=macros?.calories||2000;
+      const restCals=Math.round(trainingCals*0.85);
+      const goal=profile?.goal||"maintain";
+      const dietary=(profile?.dietary||[]).filter(d=>d!=="none");
+      const dietaryStr=dietary.length>0?`Dietary restrictions (STRICTLY follow): ${dietary.join(", ")}.`:"No dietary restrictions.";
+      const slotsForFreq=MEAL_SLOT_DEFS[profile?.mealFreq||"4"]||["Breakfast","Lunch","Dinner","Snack"];
+      const r=await ai(`You are a nutrition coach. Create a practical weekly meal prep plan for Sunday prep day.
+Goal: ${goal}. Training days: ${trainingDays.join(",")||"Mon,Wed,Fri"} (${trainingCals} kcal, ${macros?.protein||150}g protein). Rest days: ${restDays.join(",")} (${restCals} kcal, ${Math.round((macros?.protein||150)*0.85)}g protein).
+Meals per day: ${slotsForFreq.join(", ")}.
+${dietaryStr}
+Reply with ONLY a valid JSON object, no markdown:
+{"proteins":[{"name":"...","amount":"...","prep":"..."}],"carbs":[{"name":"...","amount":"...","prep":"..."}],"vegetables":[{"name":"...","amount":"...","prep":"..."}],"snacks":[{"name":"...","amount":"...","prep":"..."}],"mealAssignments":{"training":{"${slotsForFreq[0]}":"meal + macros (≈Xkcal Xg protein)"},"rest":{"${slotsForFreq[0]}":"meal + macros (≈Xkcal Xg protein)"}},"grocery":{"Proteins & Dairy":["item"],"Grains & Carbs":["item"],"Produce":["item"],"Pantry":["item"]}}`,1400);
+      let plan=null;
+      try{const j=r.replace(/```json|```/g,"").trim();plan=JSON.parse(j);}
+      catch{const m=r.match(/\{[\s\S]*\}/);if(m)try{plan=JSON.parse(m[0]);}catch{}}
+      if(plan){
+        const now=new Date().toISOString();
+        setPrepPlan(plan);
+        setGroceryChecked(new Set());
+        if(user){
+          await sb.from("profiles").upsert({id:user.id,meal_prep_plan:plan,meal_prep_generated_at:now,updated_at:now},{onConflict:"id"}).catch(e=>console.error("[savePrepPlan]",e));
+        }
+      }
+    }catch(e){console.error("[generatePrepPlan]",e);}
+    setPrepLoading(false);
+  }
+
+  useEffect(()=>{
+    if(!profile?.meal_prep_generated_at)return;
+    const daysSince=(new Date()-new Date(profile.meal_prep_generated_at))/864e5;
+    const isMonday=new Date().getDay()===1;
+    if(daysSince>=7||isMonday)generatePrepPlan();
+  },[]);
 
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
@@ -350,6 +396,18 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
               </div>
             </button>
 
+            {/* MEAL PREP CARD */}
+            <button onClick={()=>setFuelScreen("prep")} style={{width:"100%",background:"linear-gradient(135deg,rgba(155,89,255,0.12),rgba(155,89,255,0.04))",border:"1px solid rgba(155,89,255,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
+              <div style={{fontSize:36,flexShrink:0}}>🥡</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Meal Prep Planner</div>
+                <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{prepPlan?"View your weekly prep plan · proteins, carbs, veggies + grocery list":"Generate your weekly meal prep plan based on your training schedule"}</div>
+              </div>
+              <div style={{color:"#9B59FF",flexShrink:0}}>
+                <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+              </div>
+            </button>
+
             {/* FOOD LOG — grouped by meal slots */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -555,6 +613,186 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
             {recipesLoading?<div style={{textAlign:"center",padding:"48px 0",color:T.mu}}><div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Spinner/></div><div style={{fontSize:13}}>Building your recipes…</div></div>
               :<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",lineHeight:1.85,fontSize:14,color:"#ccc",whiteSpace:"pre-wrap",minHeight:recipes?0:80}}>{recipes||<span style={{color:T.mu}}>Tap below to generate recipes</span>}</div>}
             <button onClick={fetchRecipes} style={{width:"100%",padding:"13px",background:T.s2,color:T.carb,fontSize:13,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:`1px solid ${T.carb}25`,borderRadius:11,cursor:"pointer",marginTop:10,fontFamily:"inherit"}}>{recipes?"↺ New Recipes":"Generate Recipes →"}</button>
+          </div>
+        )}
+
+        {/* ── MEAL PREP ── */}
+        {fuelScreen==="prep"&&(
+          <div style={{maxWidth:isMobile?"100%":700}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900}}>MEAL PREP 🥡</div>
+              {prepPlan&&!prepLoading&&(
+                <button onClick={generatePrepPlan} style={{fontSize:11,color:"#9B59FF",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
+              )}
+            </div>
+            <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Cook once, eat all week · based on your training schedule</p>
+
+            {prepLoading&&(
+              <div style={{textAlign:"center",padding:"60px 0",color:T.mu}}>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Spinner/></div>
+                <div style={{fontSize:14,marginBottom:4}}>Building your meal prep plan…</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,0.35)"}}>Analyzing training schedule and macro targets</div>
+              </div>
+            )}
+
+            {!prepPlan&&!prepLoading&&(
+              <div style={{textAlign:"center",padding:"56px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
+                <div style={{fontSize:48,marginBottom:14}}>🥡</div>
+                <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Generate Your Prep Plan</div>
+                <div style={{fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.65,maxWidth:300,margin:"0 auto 28px"}}>AI builds a complete Sunday prep guide — proteins, carbs, vegetables, and a ready-to-shop grocery list</div>
+                <button onClick={generatePrepPlan} style={{padding:"14px 32px",background:"#9B59FF",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Generate Plan →</button>
+              </div>
+            )}
+
+            {prepPlan&&!prepLoading&&(
+              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+                {/* MEAL ASSIGNMENTS */}
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:14}}>MEAL ASSIGNMENTS</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {["training","rest"].map(type=>(
+                      <div key={type} style={{background:T.s2,borderRadius:14,padding:"14px"}}>
+                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10,color:type==="training"?"#2979FF":"rgba(245,245,240,0.4)",fontFamily:"'DM Mono',monospace"}}>{type==="training"?"🏋️ TRAINING DAY":"😴 REST DAY"}</div>
+                        {Object.entries(prepPlan.mealAssignments?.[type]||{}).map(([meal,desc])=>(
+                          <div key={meal} style={{marginBottom:8,paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                            <div style={{fontSize:9,color:type==="training"?"rgba(41,121,255,0.7)":"rgba(245,245,240,0.35)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:3}}>{meal}</div>
+                            <div style={{fontSize:11,color:"rgba(245,245,240,0.75)",lineHeight:1.55}}>{desc}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* PROTEINS */}
+                {prepPlan.proteins?.length>0&&(
+                  <div style={{background:T.s1,border:`1px solid rgba(232,52,28,0.2)`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                      <span style={{fontSize:20}}>🥩</span>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.prot,letterSpacing:.5}}>PROTEINS</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {prepPlan.proteins.map((item,i)=>(
+                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
+                            <div style={{fontSize:11,color:T.prot,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                          </div>
+                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* CARBS */}
+                {prepPlan.carbs?.length>0&&(
+                  <div style={{background:T.s1,border:`1px solid rgba(96,165,250,0.2)`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                      <span style={{fontSize:20}}>🍚</span>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.carb,letterSpacing:.5}}>CARBS</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {prepPlan.carbs.map((item,i)=>(
+                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
+                            <div style={{fontSize:11,color:T.carb,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                          </div>
+                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* VEGETABLES */}
+                {prepPlan.vegetables?.length>0&&(
+                  <div style={{background:T.s1,border:"1px solid rgba(34,197,94,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                      <span style={{fontSize:20}}>🥦</span>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#22c55e",letterSpacing:.5}}>VEGETABLES</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {prepPlan.vegetables.map((item,i)=>(
+                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
+                            <div style={{fontSize:11,color:"#22c55e",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                          </div>
+                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SNACKS */}
+                {prepPlan.snacks?.length>0&&(
+                  <div style={{background:T.s1,border:"1px solid rgba(155,89,255,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                      <span style={{fontSize:20}}>🍎</span>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#9B59FF",letterSpacing:.5}}>SNACKS</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {prepPlan.snacks.map((item,i)=>(
+                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
+                            <div style={{fontSize:11,color:"#9B59FF",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                          </div>
+                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* GROCERY LIST */}
+                {prepPlan.grocery&&(
+                  <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:groceryOpen?14:0}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:.5}}>🛒 GROCERY LIST</div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>{
+                          const text=Object.entries(prepPlan.grocery).map(([cat,items])=>`${cat}:\n${items.map(i=>`  • ${i}`).join("\n")}`).join("\n\n");
+                          navigator.clipboard?.writeText(text);
+                        }} style={{padding:"6px 12px",background:"rgba(41,121,255,0.1)",border:"1px solid rgba(41,121,255,0.3)",color:T.prot,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Copy</button>
+                        <button onClick={()=>setGroceryOpen(o=>!o)} style={{padding:"6px 12px",background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{groceryOpen?"Hide ▲":"Show ▼"}</button>
+                      </div>
+                    </div>
+                    {groceryOpen&&(
+                      <div>
+                        {Object.entries(prepPlan.grocery).map(([category,items])=>(
+                          <div key={category} style={{marginBottom:16}}>
+                            <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>{category}</div>
+                            {(items||[]).map((item,i)=>{
+                              const key=`${category}:${item}`;
+                              const checked=groceryChecked.has(key);
+                              return(
+                                <div key={i} onClick={()=>setGroceryChecked(s=>{const n=new Set(s);if(checked)n.delete(key);else n.add(key);return n;})}
+                                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
+                                  <div style={{width:18,height:18,borderRadius:4,border:`1.5px solid ${checked?"#22c55e":T.bd}`,background:checked?"rgba(34,197,94,0.15)":"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+                                    {checked&&<span style={{color:"#22c55e",fontSize:10,fontWeight:900,lineHeight:1}}>✓</span>}
+                                  </div>
+                                  <span style={{fontSize:13,color:checked?"rgba(245,245,240,0.35)":"rgba(245,245,240,0.85)",textDecoration:checked?"line-through":"none",transition:"all 0.15s"}}>{item}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ))}
+                        <div style={{marginTop:4,padding:"10px 14px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.12)",borderRadius:10,fontSize:12,color:"rgba(245,245,240,0.45)",textAlign:"center"}}>
+                          {groceryChecked.size} / {Object.values(prepPlan.grocery).reduce((s,a)=>s+(a?.length||0),0)} items checked
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button onClick={generatePrepPlan} style={{width:"100%",padding:"13px",background:T.s2,color:"#9B59FF",fontSize:13,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:"1px solid rgba(155,89,255,0.25)",borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Regenerate Plan</button>
+              </div>
+            )}
           </div>
         )}
 
