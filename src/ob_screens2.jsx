@@ -774,6 +774,237 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
   );
 }
 
+// ─── INJURY PREVENTION ENGINE ─────────────────────────────────────────────────
+
+const MUSCLE_MAP = {
+  shoulders:      ["lateral raise","shoulder press","overhead press","ohp","front raise","rear delt","face pull","upright row","arnold press","military press","cable lateral"],
+  elbows_triceps: ["tricep","skull crusher","close grip bench","pushdown","overhead tricep","french press","dips","cable push"],
+  lower_back:     ["deadlift","good morning","hyperextension","back extension","rdl","romanian"],
+  knees_quads:    ["squat","leg press","lunge","leg extension","step up","hack squat","goblet squat","split squat","bulgarian"],
+  chest:          ["bench press","chest fly","pec deck","cable fly","dumbbell fly","push up","pushup","incline press","decline press","chest press"],
+};
+const MUSCLE_THRESHOLDS = { shoulders:20, elbows_triceps:22, lower_back:16, knees_quads:24, chest:22 };
+const MUSCLE_LABELS     = { shoulders:"Shoulders", elbows_triceps:"Elbows/Triceps", lower_back:"Lower Back", knees_quads:"Knees/Quads", chest:"Chest" };
+
+function calcInjuryRisks(workoutLogsRaw, profile, wPrefs, allActs, coachScore) {
+  const risks = [];
+  const now = new Date();
+  const sevenAgo  = new Date(now - 7*864e5);
+  const fourteenAgo = new Date(now - 14*864e5);
+
+  const thisWeekLogs = (workoutLogsRaw||[]).filter(w=>new Date(w.date+"T12:00:00")>=sevenAgo);
+  const lastWeekLogs = (workoutLogsRaw||[]).filter(w=>{const d=new Date(w.date+"T12:00:00");return d>=fourteenAgo&&d<sevenAgo;});
+
+  // ── Rule 1: Muscle volume ───────────────────────────────────────────────────
+  const muscleSetCounts = {};
+  Object.keys(MUSCLE_MAP).forEach(m=>{muscleSetCounts[m]=0;});
+  thisWeekLogs.forEach(log=>{
+    (log.workout?.exercises||[]).forEach(ex=>{
+      const n=(ex.name||"").toLowerCase();
+      const nSets=(ex.sets||[]).length;
+      if(!nSets)return;
+      Object.entries(MUSCLE_MAP).forEach(([muscle,kws])=>{
+        if(kws.some(kw=>n.includes(kw))) muscleSetCounts[muscle]+=nSets;
+      });
+    });
+  });
+  Object.entries(MUSCLE_THRESHOLDS).forEach(([muscle,threshold])=>{
+    const count=muscleSetCounts[muscle]||0;
+    if(count===0)return;
+    if(count>threshold){
+      const over=count-threshold;
+      risks.push({
+        id:`muscle_${muscle}`,
+        level:count>threshold*1.3?"high":"moderate",
+        area:MUSCLE_LABELS[muscle],
+        message:`You've trained ${MUSCLE_LABELS[muscle].toLowerCase()} ${count} sets this week. Research shows injury risk increases above ${threshold} sets for most athletes.`,
+        recommendation:`Recommended: Skip ${MUSCLE_LABELS[muscle].toLowerCase()} isolation work tomorrow. You can still train other muscle groups.`,
+        sets:count, threshold, pct:count/threshold,
+      });
+    } else if(count>threshold*0.8){
+      risks.push({
+        id:`muscle_${muscle}_monitor`,
+        level:"low",
+        area:MUSCLE_LABELS[muscle],
+        message:`${MUSCLE_LABELS[muscle]} at ${count}/${threshold} sets this week — approaching the safe limit.`,
+        recommendation:"Monitor volume in the next session.",
+        sets:count, threshold, pct:count/threshold,
+      });
+    }
+  });
+
+  // ── Rule 2: Consecutive training days ──────────────────────────────────────
+  const loggedDates=new Set((workoutLogsRaw||[]).map(w=>w.date));
+  let consecutive=0;
+  for(let i=0;i<14;i++){
+    const ds=new Date(now-i*864e5).toISOString().split("T")[0];
+    if(loggedDates.has(ds))consecutive++;else break;
+  }
+  if(consecutive>=6){
+    risks.push({id:"consecutive_6",level:"high",area:"Recovery",
+      message:`You've trained ${consecutive} consecutive days without rest. Overuse injury risk is significantly elevated.`,
+      recommendation:"Strong recommendation: Take a rest day today. Elite athletes require at least 1–2 rest days per week.",
+      sets:consecutive,threshold:6,pct:1.0});
+  } else if(consecutive>=4){
+    risks.push({id:"consecutive_4",level:"moderate",area:"Recovery",
+      message:`${consecutive} consecutive training days. Recovery becomes limited after 3–4 days straight.`,
+      recommendation:"Recommended: Schedule a rest or active recovery day within the next 24 hours.",
+      sets:consecutive,threshold:4,pct:consecutive/6});
+  }
+
+  // ── Rule 3: Volume spike ───────────────────────────────────────────────────
+  function countSets(logs){return logs.reduce((s,l)=>s+(l.workout?.exercises||[]).reduce((ss,ex)=>ss+(ex.sets||[]).length,0),0);}
+  const thisSets=countSets(thisWeekLogs);
+  const lastSets=countSets(lastWeekLogs);
+  if(lastSets>5&&thisSets>0){
+    const spike=(thisSets-lastSets)/lastSets;
+    if(spike>=0.25){
+      risks.push({id:"volume_spike",level:spike>=0.5?"high":"moderate",area:"Total Volume",
+        message:`Training volume up ${Math.round(spike*100)}% this week (${thisSets} vs ${lastSets} sets). Too much too soon is the #1 cause of overuse injuries.`,
+        recommendation:"Recommended: Reduce the number of sets in your next 1–2 sessions to let adaptation catch up.",
+        sets:thisSets,threshold:Math.round(lastSets*1.25),pct:Math.min(1.5,thisSets/(lastSets*1.25))});
+    }
+  }
+
+  // ── Rule 4: Running mileage spike ─────────────────────────────────────────
+  if(allActs&&allActs.length>0){
+    const runs=(a)=>(a.type||"").toLowerCase().includes("run")&&parseFloat(a.distanceKm)>0.5;
+    const thisKm=(allActs.filter(a=>runs(a)&&new Date(a.date)>=sevenAgo)).reduce((s,r)=>s+parseFloat(r.distanceKm||0),0);
+    const lastKm=(allActs.filter(a=>{const d=new Date(a.date);return runs(a)&&d>=fourteenAgo&&d<sevenAgo;})).reduce((s,r)=>s+parseFloat(r.distanceKm||0),0);
+    if(lastKm>3&&thisKm>0&&(thisKm-lastKm)/lastKm>0.1){
+      const pct=Math.round(((thisKm-lastKm)/lastKm)*100);
+      risks.push({id:"run_spike",level:pct>=25?"high":"moderate",area:"Running Volume",
+        message:`Running mileage up ${pct}% this week (${thisKm.toFixed(1)} km vs ${lastKm.toFixed(1)} km last week). The 10% rule exists to prevent stress fractures.`,
+        recommendation:"Recommended: Keep weekly mileage increases to 10% or less. Reduce tomorrow's run distance.",
+        sets:Math.round(thisKm*10)/10,threshold:Math.round(lastKm*1.1*10)/10,pct:Math.min(1.5,thisKm/(lastKm*1.1))});
+    }
+  }
+
+  // ── Rule 5: Training through fatigue ──────────────────────────────────────
+  const sleepHrs=SLEEP_MAP[profile?.sleep]??7;
+  if((sleepHrs<5||(coachScore?.total!=null&&coachScore.total<40))&&thisWeekLogs.length>0){
+    const why=[];
+    if(sleepHrs<5)why.push(`sleep under 5 hours (${sleepHrs}h logged)`);
+    if(coachScore?.total!=null&&coachScore.total<40)why.push(`Coach Macro Score at ${coachScore.total}`);
+    risks.push({id:"fatigue_flag",level:"moderate",area:"Fatigue",
+      message:`Training under elevated fatigue: ${why.join(" and ")}. Injury risk increases when training fatigued.`,
+      recommendation:"Recommended: Reduce intensity today. Consider a lighter session or active recovery.",
+      sets:0,threshold:0,pct:0.7});
+  }
+
+  // ── Rule 6: Known injury history ──────────────────────────────────────────
+  const injuries=(wPrefs?.injuries||[]).filter(Boolean).map(i=>(i||"").toLowerCase());
+  if(injuries.some(i=>i.includes("knee")||i.includes("quad")||i.includes("patella"))){
+    const k=muscleSetCounts.knees_quads||0;
+    const t=MUSCLE_THRESHOLDS.knees_quads;
+    if(k>t*0.65&&!risks.find(r=>r.id==="muscle_knees_quads"))
+      risks.push({id:"injury_knee",level:k>t?"high":"moderate",area:"Knee (History)",
+        message:`Knee issues in your history. You've done ${k} leg/quad sets this week${k>t?" — above the safe limit":" — approaching the limit"}.`,
+        recommendation:"Recommended: Substitute high-impact leg work for leg press or hamstring-focused exercises.",
+        sets:k,threshold:t,pct:k/t});
+  }
+  if(injuries.some(i=>i.includes("shoulder")||i.includes("rotator")||i.includes("cuff"))){
+    const pv=(muscleSetCounts.shoulders||0)+(muscleSetCounts.chest||0);
+    if(pv>20&&!risks.find(r=>r.id==="muscle_shoulders"))
+      risks.push({id:"injury_shoulder",level:pv>32?"high":"moderate",area:"Shoulder (History)",
+        message:`Shoulder history detected. Combined pressing volume: ${pv} sets this week. Pressing above 20+ sets can aggravate shoulder issues.`,
+        recommendation:"Recommended: Focus on pulling movements. Avoid overhead pressing until pressing volume decreases.",
+        sets:pv,threshold:20,pct:Math.min(1.5,pv/20)});
+  }
+  if(injuries.some(i=>i.includes("back")||i.includes("spine")||i.includes("disc")||i.includes("lumbar"))){
+    const b=muscleSetCounts.lower_back||0;
+    const t=MUSCLE_THRESHOLDS.lower_back;
+    if(b>t*0.6&&!risks.find(r=>r.id==="muscle_lower_back"))
+      risks.push({id:"injury_back",level:b>t?"high":"moderate",area:"Lower Back (History)",
+        message:`Back issues in your history. You've done ${b} lower back sets this week${b>t?" — exceeding the safe limit":" — approaching the limit"}.`,
+        recommendation:"Recommended: Avoid heavy deadlifts and bent-over rows. Try Romanian deadlifts at reduced weight.",
+        sets:b,threshold:t,pct:b/t});
+  }
+
+  const priorityOrder={high:0,moderate:1,low:2};
+  risks.sort((a,b)=>priorityOrder[a.level]-priorityOrder[b.level]);
+  return {risks, muscleSetCounts};
+}
+
+function InjuryAlertCard({risks, onAdapt, onDismiss}) {
+  if(!risks||risks.length===0)return null;
+  const top=risks[0];
+  const LC={
+    high:    {label:"🔴 HIGH RISK",    color:"#EF4444",bg:"rgba(239,68,68,0.06)",  border:"rgba(239,68,68,0.28)",  left:"#EF4444"},
+    moderate:{label:"🟠 MODERATE RISK",color:"#F97316",bg:"rgba(249,115,22,0.06)", border:"rgba(249,115,22,0.28)", left:"#F97316"},
+    low:     {label:"🟡 LOW RISK",     color:"#EAB308",bg:"rgba(234,179,8,0.06)",  border:"rgba(234,179,8,0.28)",  left:"#EAB308"},
+  };
+  const lc=LC[top.level]||LC.low;
+  return (
+    <div style={{margin:"0 20px 14px",padding:"16px 18px",background:lc.bg,border:`1px solid ${lc.border}`,borderLeft:`3px solid ${lc.left}`,borderRadius:"4px 14px 14px 4px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:14}}>⚠️</span>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:lc.color,textTransform:"uppercase",fontWeight:700}}>INJURY PREVENTION ALERT</div>
+        <div style={{marginLeft:"auto",padding:"2px 8px",background:`${lc.color}15`,border:`1px solid ${lc.color}40`,borderRadius:4,fontFamily:"var(--mono)",fontSize:9,color:lc.color,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,whiteSpace:"nowrap"}}>{lc.label}</div>
+      </div>
+      <div style={{fontSize:13,color:"rgba(245,245,240,0.8)",lineHeight:1.65,marginBottom:10}}>{top.message}</div>
+      {top.recommendation&&(
+        <div style={{padding:"8px 12px",background:"rgba(245,245,240,0.04)",borderRadius:8,border:"1px solid rgba(245,245,240,0.06)",marginBottom:12}}>
+          <div style={{fontSize:9,color:lc.color,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>Recommended Action</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.65}}>{top.recommendation}</div>
+        </div>
+      )}
+      {risks.length>1&&(
+        <div style={{marginBottom:12,padding:"5px 10px",background:"rgba(245,245,240,0.02)",borderRadius:6,border:"1px solid rgba(245,245,240,0.04)"}}>
+          <span style={{fontSize:10,color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)"}}>
+            +{risks.length-1} more risk{risks.length>2?"s":""} detected: {risks.slice(1).map(r=>r.area).join(", ")}
+          </span>
+        </div>
+      )}
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <button onClick={onAdapt} style={{flex:2,padding:"11px 8px",background:lc.left,border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Adjust Tomorrow's Session</button>
+        <button onClick={onDismiss} style={{flex:1,padding:"11px",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Got It</button>
+      </div>
+      <div style={{fontSize:10,color:"rgba(245,245,240,0.2)",lineHeight:1.7,fontStyle:"italic"}}>
+        Injury alerts are informational only and based on general training principles. They are not medical advice. Consult a healthcare professional for any pain or injury concerns.
+      </div>
+    </div>
+  );
+}
+
+function InjuryRiskReport({risks, muscleSetCounts}) {
+  const hasSets=Object.values(muscleSetCounts||{}).some(v=>v>0);
+  if(!hasSets&&(!risks||risks.length===0))return null;
+  const overallLevel=risks?.some(r=>r.level==="high")?"HIGH":risks?.some(r=>r.level==="moderate")?"MODERATE":"LOW";
+  const LC={HIGH:"#EF4444",MODERATE:"#F97316",LOW:"#22c55e"};
+  const mostAtRisk=risks&&risks.length>0?risks[0]:null;
+  return (
+    <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase"}}>Injury Risk This Week</div>
+        <div style={{padding:"3px 10px",background:`${LC[overallLevel]}12`,border:`1px solid ${LC[overallLevel]}35`,borderRadius:6,fontFamily:"var(--mono)",fontSize:9,color:LC[overallLevel],fontWeight:700,letterSpacing:"0.1em"}}>{overallLevel}</div>
+      </div>
+      {mostAtRisk&&mostAtRisk.threshold>0&&(
+        <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",marginBottom:10}}>
+          Most at-risk: <span style={{color:"#fff",fontWeight:600}}>{mostAtRisk.area}</span>
+          <span style={{color:"rgba(245,245,240,0.3)"}}> · {mostAtRisk.sets}/{mostAtRisk.threshold} sets</span>
+        </div>
+      )}
+      {Object.entries(MUSCLE_THRESHOLDS).map(([muscle,threshold])=>{
+        const sets=(muscleSetCounts||{})[muscle]||0;
+        const pct=Math.min(1,sets/threshold);
+        const barColor=pct>=1?"#EF4444":pct>=0.8?"#F97316":pct>=0.6?"#EAB308":"#22c55e";
+        return (
+          <div key={muscle} style={{marginBottom:7}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+              <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.45)",letterSpacing:"0.06em"}}>{MUSCLE_LABELS[muscle]}</span>
+              <span style={{fontFamily:"var(--mono)",fontSize:10,color:pct>=0.8?barColor:"rgba(245,245,240,0.3)"}}>{sets}/{threshold}</span>
+            </div>
+            <div style={{height:3,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${pct*100}%`,background:barColor,borderRadius:2,transition:"width 0.6s"}}/>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("home"); // home | train | fuel | progress | settings
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -1175,6 +1406,27 @@ Rules:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const prPredictions = useMemo(()=>calcPRPredictions(workoutLogsRaw,profile?.wUnit),[workoutLogsRaw]);
 
+  // ── Injury Prevention ──────────────────────────────────────────────────────
+  const [dismissedInjuryAlerts,setDismissedInjuryAlerts]=useState(()=>{
+    const s=new Set();
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k?.startsWith("injury_alert_")){
+        const ts=parseInt(localStorage.getItem(k)||"0");
+        if(Date.now()-ts<86400000)s.add(k.replace("injury_alert_",""));
+      }
+    }
+    return s;
+  });
+  function dismissInjuryAlert(id){
+    localStorage.setItem(`injury_alert_${id}`,String(Date.now()));
+    setDismissedInjuryAlerts(s=>new Set([...s,id]));
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const injuryData=useMemo(()=>calcInjuryRisks(workoutLogsRaw,profile,wPrefs,allActs,coachScore),[workoutLogsRaw.length,profile?.sleep,wPrefs?.injuries,coachScore?.total,stravaActs.length,ahActs.length]);
+  const activeInjuryRisks=(injuryData?.risks||[]).filter(r=>!dismissedInjuryAlerts.has(r.id));
+  const topRiskLevel=activeInjuryRisks[0]?.level||null;
+
   function getSuggestion(name){
     const k=name.toLowerCase().replace(/\s+/g,"_");const prev=history[k];if(!prev||!prev.length)return null;
     const last=prev[prev.length-1];const lastSet=last.sets[last.sets.length-1];if(!lastSet)return null;
@@ -1300,14 +1552,34 @@ Rules:
           return null;
         })()}
 
+        {/* ── INJURY PREVENTION ALERT ── */}
+        {activeInjuryRisks.length>0&&(
+          <InjuryAlertCard
+            risks={activeInjuryRisks}
+            onAdapt={()=>{setSection("train");}}
+            onDismiss={()=>dismissInjuryAlert(activeInjuryRisks[0].id)}
+          />
+        )}
+
         {/* Today's session */}
         <div style={{margin:"0 20px 14px",padding:"16px",background:deloadActive?"linear-gradient(135deg,#1a1508,var(--navy-card) 70%)":"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:`1px solid ${deloadActive?"rgba(234,179,8,0.2)":"rgba(232,52,28,0.2)"}`,borderRadius:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div className="header-eyebrow">// Today's Session</div>
-            {deloadActive
-              ?<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(234,179,8,0.15)",color:"#EAB308",border:"1px solid rgba(234,179,8,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>DELOAD</span>
-              :<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
-            }
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {topRiskLevel&&!deloadActive&&(
+                <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:6,
+                  background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(234,179,8,0.12)",
+                  color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":"#EAB308",
+                  border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(234,179,8,0.3)"}`,
+                  fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                  ⚠️ {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
+                </span>
+              )}
+              {deloadActive
+                ?<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(234,179,8,0.15)",color:"#EAB308",border:"1px solid rgba(234,179,8,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>DELOAD</span>
+                :<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
+              }
+            </div>
           </div>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
           <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:deloadActive?"#EAB308":"var(--red)",border:"none",borderRadius:12,color:deloadActive?"#0a0e1a":"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -1481,6 +1753,9 @@ Rules:
           </div>
         </div>
 
+        {/* ── INJURY RISK REPORT ── */}
+        <InjuryRiskReport risks={injuryData?.risks} muscleSetCounts={injuryData?.muscleSetCounts}/>
+
         {/* ── PR PREDICTIONS ── */}
         {(()=>{
           const runActs = allActs.filter(a=>(a.type||"").toLowerCase().includes("run")&&parseFloat(a.distanceKm)>1);
@@ -1533,6 +1808,7 @@ Rules:
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <TabIcon name={item.icon} size={22}/>
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:"#EAB308",border:"2px solid var(--navy)"}}/>}
+              {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":"#EAB308",border:"2px solid var(--navy)"}}/>}
             </div>
             <div className="tab-label-txt">{item.label}</div>
           </button>
