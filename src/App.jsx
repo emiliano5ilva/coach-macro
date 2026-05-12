@@ -50,6 +50,24 @@ import { useState, useEffect, useRef } from "react";
   );
   alter table referrals enable row level security;
   create policy "Users manage own referrals" on referrals for all using (auth.uid() = referrer_id);
+
+  -- flagged_responses: AI safety flagging system
+  create table if not exists flagged_responses (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete set null,
+    response_text text,
+    flag_reason text not null,
+    feature text,
+    created_at timestamptz default now()
+  );
+  alter table flagged_responses enable row level security;
+  create policy "Users can insert flags" on flagged_responses for insert with check (auth.uid() = user_id or user_id is null);
+  create policy "Admins can read flags" on flagged_responses for select using (auth.uid() = user_id);
+
+  -- profiles: safety columns
+  alter table profiles add column if not exists is_youth boolean default false;
+  alter table profiles add column if not exists is_older_adult boolean default false;
+  alter table profiles add column if not exists health_conditions jsonb default '[]';
 */
 import { sb } from "./supabase.js";
 
@@ -69,6 +87,7 @@ import { T, GLOBAL_CSS, WDAYS, MONTHS_A, DAYS_A, YEARS_A, FT_A, IN_A, CM_A, LBS_
   autoFocus, getDayMacros, getTodayKey, isToday, hap, pad2,
   calcTDEE, useCountUp, lookupBarcode } from "./components.jsx";
 import { Onboarding } from "./ob_screens.jsx";
+import { getAge } from "./utils/safety.js";
 import { App } from "./ob_screens2.jsx";
 import { LandingPage } from "./landing.jsx";
 import { FuelSection } from "./fuel.jsx";
@@ -327,6 +346,10 @@ export default function CoachMacro() {
       fitnessMotivation:od.fitnessMotivation||"",
       eatingHistory:od.eatingHistory||"",
       boneHistory:od.boneHistory||"",
+      // safety
+      healthConditions:od.healthConditions||[],
+      is_youth:(()=>{const a=getAge(od.dobYear,od.dobMonth,od.dobDay);return a!==null&&a>=13&&a<18;})(),
+      is_older_adult:(()=>{const a=getAge(od.dobYear,od.dobMonth,od.dobDay);return a!==null&&a>=65;})(),
     };
     setProfile(baseProf);
     setPhase("onboarding-fuel");

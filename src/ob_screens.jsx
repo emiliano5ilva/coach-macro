@@ -4,6 +4,7 @@ import { T, GLOBAL_CSS, WDAYS, MONTHS_A, DAYS_A, YEARS_A, FT_A, IN_A, CM_A, LBS_
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, calcTDEE, autoFocus, useCountUp } from "./components.jsx";
 import { ChoiceScreens, TDEEReveal, GoalScreen } from "./ob_screens2.jsx";
+import { getAge } from "./utils/safety.js";
 
 
 export function Onboarding({onComplete, user, signupName}) {
@@ -14,11 +15,15 @@ export function Onboarding({onComplete, user, signupName}) {
   const [d,setD]=useState({name:signupName||"",email:user?.email||"",healthConn:false,sex:"",dobMonth:"Jan",dobDay:"15",dobYear:"1995",hUnit:"ft",hFt:"5",hIn:"10",hCm:"178",wUnit:"lbs",weight:"185",wHistory:"",wTrend:"",bodyFat:"",job:"",steps:"",freq:"",trainType:"",intensity:"",activity:"",sleep:"",sleepQ:"",metHistory:"",protein:"",conditions:[],cycle:"",liftExp:"",cardioExp:"",goal:"",goalTimeline:"",targetWeight:"",
     // female-specific
     lifeStage:"",trimester:"",postpartumWeeks:"",csection:false,menopauseSymptoms:[],cycleCondition:[],fitnessMotivation:"",eatingHistory:"",boneHistory:"",
+    // safety
+    healthConditions:[],
   });
+  const [ageWarning,setAgeWarning]=useState(null); // null | "blocked" | "parental"
+  const [parentalConfirmed,setParentalConfirmed]=useState(false);
   const upd=(k,v)=>setD(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(next,260);};
   const tdee=calcTDEE(d);
-  const animTDEE=useCountUp(sc===23?tdee.total:0);
+  const animTDEE=useCountUp(sc===24?tdee.total:0);
   const SKIP20=d.sex!=="female";
   const next=()=>setSc(s=>{const n=s+1;if(n===20&&SKIP20)return 21;return n;});
   const back=()=>{
@@ -50,7 +55,7 @@ export function Onboarding({onComplete, user, signupName}) {
   }
   const rateMap={"−750":-750,"−500":-500,"−250":-250,"−125":-125,"0":0,"+125":125,"+250":250,"+500":500};
   const goalCals=tdee.total+(rateMap[goalRate]||0);
-  const pct=Math.round((sc/25)*100);
+  const pct=Math.round((sc/26)*100);
 
   // Live BMR preview as data comes in
   const bmrPreview=d.weight&&d.sex?Math.round(calcTDEE(d).bmr):null;
@@ -317,11 +322,31 @@ export function Onboarding({onComplete, user, signupName}) {
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Date of birth.</div>
           <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Metabolism slows roughly 1–2% per decade after 20. Age is non-negotiable in the equation.</p>
           <div style={{display:"flex",gap:8}}>
-            <div style={{flex:1.4,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Month</div><Rolodex items={MONTHS_A} sel={d.dobMonth} onChange={v=>upd("dobMonth",v)}/></div>
-            <div style={{flex:.8,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Day</div><Rolodex items={DAYS_A} sel={d.dobDay} onChange={v=>upd("dobDay",v)}/></div>
-            <div style={{flex:1.2,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Year</div><Rolodex items={YEARS_A} sel={d.dobYear} onChange={v=>upd("dobYear",v)}/></div>
+            <div style={{flex:1.4,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Month</div><Rolodex items={MONTHS_A} sel={d.dobMonth} onChange={v=>{upd("dobMonth",v);setAgeWarning(null);setParentalConfirmed(false);}}/></div>
+            <div style={{flex:.8,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Day</div><Rolodex items={DAYS_A} sel={d.dobDay} onChange={v=>{upd("dobDay",v);setAgeWarning(null);setParentalConfirmed(false);}}/></div>
+            <div style={{flex:1.2,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Year</div><Rolodex items={YEARS_A} sel={d.dobYear} onChange={v=>{upd("dobYear",v);setAgeWarning(null);setParentalConfirmed(false);}}/></div>
           </div>
-          <PrimaryBtn onClick={next} label="Continue →" style={{marginTop:20}}/>
+          {ageWarning==="blocked"&&(
+            <div style={{background:"rgba(239,68,68,.1)",border:"1.5px solid rgba(239,68,68,.4)",borderRadius:12,padding:"14px 16px",marginTop:16}}>
+              <div style={{fontWeight:700,color:"#EF4444",marginBottom:4}}>Age Requirement Not Met</div>
+              <div style={{fontSize:13,color:T.mu,lineHeight:1.6}}>Coach Macro requires users to be at least 13 years old. Please check with a parent or guardian.</div>
+            </div>
+          )}
+          {ageWarning==="parental"&&!parentalConfirmed&&(
+            <div style={{background:"rgba(251,191,36,.08)",border:"1.5px solid rgba(251,191,36,.35)",borderRadius:12,padding:"14px 16px",marginTop:16}}>
+              <div style={{fontWeight:700,color:"#FBBF24",marginBottom:4}}>Parental Consent Required</div>
+              <div style={{fontSize:13,color:T.mu,lineHeight:1.6,marginBottom:12}}>Users aged 13–15 need a parent or guardian to confirm before using Coach Macro. Please have a parent review and approve your use of this app.</div>
+              <button onClick={()=>setParentalConfirmed(true)} style={{width:"100%",padding:"11px",background:"rgba(251,191,36,.15)",border:"1.5px solid rgba(251,191,36,.4)",borderRadius:9,color:"#FBBF24",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Parent / Guardian Confirms →</button>
+            </div>
+          )}
+          {ageWarning!=="blocked"&&(ageWarning!=="parental"||parentalConfirmed)&&(
+            <PrimaryBtn onClick={()=>{
+              const age=getAge(d.dobYear,d.dobMonth,d.dobDay);
+              if(age!==null&&age<13){setAgeWarning("blocked");return;}
+              if(age!==null&&age<16&&!parentalConfirmed){setAgeWarning("parental");return;}
+              next();
+            }} label="Continue →" style={{marginTop:20}}/>
+          )}
           <FactCard emoji="⏳" stat="Age is variable #3 of 25" text="Every decade after 20 reduces your BMR by roughly 1-2%. We account for this precisely — not with a rough estimate." color={T.fat}/>
         </div>}
 
@@ -359,10 +384,10 @@ export function Onboarding({onComplete, user, signupName}) {
         </div>}
 
         {/* Screens 6-22 */}
-        {femSc===null&&sc>=6&&sc<=22&&<ChoiceScreens sc={sc} d={d} upd={upd} auto={auto} next={next} tdee={tdee} FactCard={FactCard} MiniBar={MiniBar}/>}
+        {femSc===null&&sc>=6&&sc<=23&&<ChoiceScreens sc={sc} d={d} upd={upd} auto={auto} next={next} tdee={tdee} FactCard={FactCard} MiniBar={MiniBar}/>}
 
         {/* Screen 23: TDEE reveal */}
-        {sc===23&&<TDEEReveal tdee={tdee} animTDEE={animTDEE} d={d} chatReply={chatReply} setCR={setCR} next={()=>onComplete(d,tdee)}/>}
+        {sc===24&&<TDEEReveal tdee={tdee} animTDEE={animTDEE} d={d} chatReply={chatReply} setCR={setCR} next={()=>onComplete(d,tdee)}/>}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 export { sb } from "./supabase.js";
+import { safetyCheck } from "./utils/safety.js";
 
 export async function ai(prompt, max = 900) {
   const body = JSON.stringify({
@@ -23,5 +24,5 @@ export async function ai(prompt, max = 900) {
   }
   const result = d.content?.[0]?.text || "";
   if (!result) console.warn("[ai] empty text in response:", text.slice(0, 200));
-  return result;
+  return safetyCheck(result);
 }

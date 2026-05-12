@@ -13,6 +13,7 @@ import { FuelSection } from "./fuel.jsx";
 import { sb, ai } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
+import { FlagBtn } from "./FlagBtn.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -32,8 +33,9 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
     18:{emoji:"🥩",stat:"High protein raises your metabolism by 80-100 kcal/day",text:"The thermic effect of protein is 20-30% of its calories — meaning your body burns more energy just digesting it. High protein = higher TDEE."},
     19:{emoji:"🏥",stat:"Health conditions can shift TDEE by 5-25%",text:"Thyroid conditions can reduce BMR by up to 25%. Certain medications alter fat storage and metabolism significantly. We account for all of it."},
     20:{emoji:"🔄",stat:"Hormonal cycles shift calorie needs by 150-350 kcal",text:"Metabolic rate increases 7-10% in the luteal phase (post-ovulation). Macros should shift with your cycle — most apps don't know you have one."},
-    21:{emoji:"📈",stat:"Lifting experience determines your progressive overload pace",text:"Beginners gain 1-1.5% strength per week. Intermediates 0.5%. Advanced lifters 0.25%. Your program should match where you actually are."},
-    22:{emoji:"🏃",stat:"Cardio experience affects how efficiently your body burns calories",text:"Trained runners burn fewer calories per mile than beginners — the body adapts. Your cardio history shapes your training zones and calorie targets."},
+    21:{emoji:"🏥",stat:"Your safety is our top priority",text:"These conditions help us apply the right exercise modifications, intensity limits, and safety notes to every session we build for you."},
+    22:{emoji:"📈",stat:"Lifting experience determines your progressive overload pace",text:"Beginners gain 1-1.5% strength per week. Intermediates 0.5%. Advanced lifters 0.25%. Your program should match where you actually are."},
+    23:{emoji:"🏃",stat:"Cardio experience affects how efficiently your body burns calories",text:"Trained runners burn fewer calories per mile than beginners — the body adapts. Your cardio history shapes your training zones and calorie targets."},
   };
 
   const fact=FACTS[sc];
@@ -51,8 +53,8 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
     16:{num:"16",q:"Sleep quality?",choices:[{v:"poor",l:"Poor",e:"😴"},{v:"fair",l:"Fair",e:"😐"},{v:"good",l:"Good",e:"🙂"},{v:"excellent",l:"Excellent",e:"⚡"}],key:"sleepQ"},
     17:{num:"17",q:"How long have you been dieting?",sub:"Prolonged restriction causes metabolic adaptation — we calculate it precisely.",choices:[{v:"not",l:"Not currently dieting"},{v:"u3",l:"In a deficit under 3 months"},{v:"3plus",l:"3+ months in a deficit",sub:"Significant adaptation likely"},{v:"offon",l:"On-and-off for years"}],key:"metHistory"},
     18:{num:"18",q:"How's your protein intake?",sub:"High protein intake raises your TDEE through the thermic effect of food.",choices:[{v:"none",l:"I don't track it"},{v:"low",l:"Very little protein"},{v:"moderate",l:"Some, inconsistently"},{v:"high",l:"High — I hit a daily target",sub:"0.7–1g+ per lb bodyweight"}],key:"protein"},
-    21:{num:"21",q:"Weightlifting experience?",choices:[{v:"none",l:"None",e:"🌱"},{v:"beginner",l:"Beginner",e:"💪",sub:"< 1 year"},{v:"intermediate",l:"Intermediate",e:"🔥",sub:"1–4 years"},{v:"advanced",l:"Advanced",e:"⚡",sub:"4+ years, near your genetic ceiling"}],key:"liftExp"},
-    22:{num:"22",q:"Cardio experience?",choices:[{v:"none",l:"None",e:"🌱"},{v:"beginner",l:"Beginner",e:"🚶",sub:"Occasional jogging"},{v:"intermediate",l:"Intermediate",e:"🏃",sub:"Can run 5K+ comfortably"},{v:"advanced",l:"Advanced",e:"🏅",sub:"Half marathon+ fitness"}],key:"cardioExp"},
+    22:{num:"22",q:"Weightlifting experience?",choices:[{v:"none",l:"None",e:"🌱"},{v:"beginner",l:"Beginner",e:"💪",sub:"< 1 year"},{v:"intermediate",l:"Intermediate",e:"🔥",sub:"1–4 years"},{v:"advanced",l:"Advanced",e:"⚡",sub:"4+ years, near your genetic ceiling"}],key:"liftExp"},
+    23:{num:"23",q:"Cardio experience?",choices:[{v:"none",l:"None",e:"🌱"},{v:"beginner",l:"Beginner",e:"🚶",sub:"Occasional jogging"},{v:"intermediate",l:"Intermediate",e:"🏃",sub:"Can run 5K+ comfortably"},{v:"advanced",l:"Advanced",e:"🏅",sub:"Half marathon+ fitness"}],key:"cardioExp"},
   };
 
   // Live TDEE mini-chart that updates as they answer
@@ -179,6 +181,47 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
       {fact&&<FactCard emoji={fact.emoji} stat={fact.stat} text={fact.text} color={T.carb}/>}
     </div>
   );
+
+  // Safety health check
+  if(sc===21){
+    const SAFETY_CONDITIONS=[
+      {v:"heart",l:"Heart condition",sub:"Includes cardiomyopathy, arrhythmia, valve issues"},
+      {v:"hypertension",l:"High blood pressure (hypertension)",sub:"Medicated or uncontrolled"},
+      {v:"diabetes",l:"Diabetes (Type 1 or 2)",sub:"Blood sugar management during exercise"},
+      {v:"epilepsy",l:"Epilepsy / seizure disorder",sub:"Activity safety modifications apply"},
+      {v:"surgery",l:"Recent surgery (within 12 months)",sub:"Including joint replacements"},
+      {v:"joint_replacement",l:"Joint replacement",sub:"Hip, knee, shoulder — impact limits apply"},
+      {v:"bone_condition",l:"Osteopenia or osteoporosis",sub:"Bone density affects safe loading"},
+      {v:"none",l:"None of the above"},
+    ];
+    const toggle=v=>{
+      if(v==="none"){upd("healthConditions",["none"]);return;}
+      const cur=(d.healthConditions||[]).filter(c=>c!=="none");
+      upd("healthConditions",cur.includes(v)?cur.filter(c=>c!==v):[...cur,v]);
+    };
+    const hc=d.healthConditions||[];
+    return(
+      <div style={{animation:"fadeIn 0.25s ease"}}>
+        <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Safety Check</div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:8}}>A quick safety check.</div>
+        <p style={{fontSize:13,color:T.mu,marginBottom:16,lineHeight:1.65}}>Select any that apply. We'll apply the right modifications, intensity limits, and safety notes to every session — automatically.</p>
+        {SAFETY_CONDITIONS.map(o=>(
+          <div key={o.v} onClick={()=>toggle(o.v)} style={{background:hc.includes(o.v)?`${T.prot}08`:T.s2,border:`1.5px solid ${hc.includes(o.v)?T.prot:T.bd}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+            <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:hc.includes(o.v)?T.prot:"#fff"}}>{o.l}</div>{o.sub&&<div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>}</div>
+            <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${hc.includes(o.v)?T.prot:T.bd}`,background:hc.includes(o.v)?T.prot:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              {hc.includes(o.v)&&<div style={{fontSize:11,color:"#000",fontWeight:800}}>✓</div>}
+            </div>
+          </div>
+        ))}
+        <PrimaryBtn onClick={next} label="Continue →" disabled={hc.length===0} style={{marginTop:8}}/>
+        <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"10px 14px",marginTop:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+          <span style={{fontSize:14,flexShrink:0}}>💙</span>
+          <div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>Your answers are used only to personalize your experience. Coach Macro is not a medical service — always consult a qualified healthcare professional for medical advice.</div>
+        </div>
+        {fact&&<FactCard emoji={fact.emoji} stat={fact.stat} text={fact.text} color={T.prot}/>}
+      </div>
+    );
+  }
 
   const screen=screens[sc];
   if(!screen) return null;
@@ -1505,7 +1548,8 @@ Rules:
               ?<div style={{fontSize:13,color:"var(--white-dim)",fontStyle:"italic",marginTop:8}}>Generating your brief...</div>
               :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>{morningBrief}</div>
             }
-            {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
+            {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
+              <FlagBtn responseText={morningBrief} feature="morning_brief" user={user}/>
               <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
             </div>}
           </div>

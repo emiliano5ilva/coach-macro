@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { FlagBtn } from "./FlagBtn.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
   hap, calcTDEE } from "./components.jsx";
@@ -344,6 +345,10 @@ Reply with ONLY a valid JSON object, no markdown:
                       {mn.omega3.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                   </div>
+                  <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
+                    <span style={{fontSize:12,flexShrink:0}}>💙</span>
+                    <div><div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#2979FF",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                  </div>
                 </div>
               );
             })()}
@@ -643,7 +648,10 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* Results — parse AI text into cards */}
             {recs&&!recsLoading&&(
               <div>
-                <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>🤖 AI Recommendations</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>🤖 AI Recommendations</div>
+                  <FlagBtn responseText={recs} feature="restaurant_recs" user={user}/>
+                </div>
                 <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px",lineHeight:1.9,fontSize:14,color:"#ccc",whiteSpace:"pre-wrap"}}>{recs}</div>
                 <button onClick={fetchRecs} style={{width:"100%",padding:"12px",background:T.s2,color:T.prot,fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:`1px solid ${T.prot}25`,borderRadius:10,cursor:"pointer",marginTop:10,fontFamily:"inherit"}}>↺ Refresh Results</button>
               </div>
@@ -672,8 +680,17 @@ Reply with ONLY a valid JSON object, no markdown:
                 </div>
               ))}
             </div>
+            {profile?.eatingHistory==="prefer_not"&&(
+              <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                <span style={{fontSize:13,flexShrink:0}}>💙</span>
+                <div><div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>Recipes are shown as nourishing options to fuel your performance. If you have a history with disordered eating, a registered dietitian can provide safe personalized support.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#2979FF",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+              </div>
+            )}
             {recipesLoading?<div style={{textAlign:"center",padding:"48px 0",color:T.mu}}><div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Spinner/></div><div style={{fontSize:13}}>Building your recipes…</div></div>
-              :<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",lineHeight:1.85,fontSize:14,color:"#ccc",whiteSpace:"pre-wrap",minHeight:recipes?0:80}}>{recipes||<span style={{color:T.mu}}>Tap below to generate recipes</span>}</div>}
+              :<>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",lineHeight:1.85,fontSize:14,color:"#ccc",whiteSpace:"pre-wrap",minHeight:recipes?0:80}}>{recipes||<span style={{color:T.mu}}>Tap below to generate recipes</span>}</div>
+                {recipes&&<div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}><FlagBtn responseText={recipes} feature="recipes" user={user}/></div>}
+              </>}
             <button onClick={fetchRecipes} style={{width:"100%",padding:"13px",background:T.s2,color:T.carb,fontSize:13,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:`1px solid ${T.carb}25`,borderRadius:11,cursor:"pointer",marginTop:10,fontFamily:"inherit"}}>{recipes?"↺ New Recipes":"Generate Recipes →"}</button>
           </div>
         )}

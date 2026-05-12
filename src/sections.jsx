@@ -12,6 +12,7 @@ import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE
 import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
+import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -998,6 +999,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       }));
       exercises=applyMobilitySubstitutions(exercises,wPrefs?.mobilityLimitations||[]);
       exercises=lifeStageModifier(exercises,profile);
+      const userAge=getAge(profile?.dobYear,profile?.dobMonth,profile?.dobDay);
+      const ageProg=getAgeAppropriateProgram(exercises,userAge);
+      if(ageProg!==null)exercises=ageProg;
+      const jointMode=wPrefs?.jointHealthMode!==false;
+      exercises=applyOlderAdultProgram(exercises,userAge,jointMode);
       const priorities=wPrefs?.musclePriorities||[];
       if(priorities.length>0){
         exercises=[...exercises].sort((a,b)=>(a.priority?0:1)-(b.priority?0:1));
@@ -1146,23 +1152,35 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.6}}>💡 {FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
               {/* Pregnancy permanent safety banner */}
               {profile?.lifeStage==="pregnant"&&(
-                <div style={{background:"rgba(249,115,22,.08)",border:"1.5px solid rgba(249,115,22,.3)",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",gap:12,alignItems:"flex-start"}}>
-                  <div style={{fontSize:18,flexShrink:0}}>🤰</div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:"#F97316",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
-                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
+                <>
+                  <div style={{background:"rgba(249,115,22,.08)",border:"1.5px solid rgba(249,115,22,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{fontSize:18,flexShrink:0}}>🤰</div>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:"#F97316",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
+                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
+                    </div>
                   </div>
-                </div>
+                  <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <span style={{fontSize:13,flexShrink:0}}>💙</span>
+                    <div><div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#2979FF",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                  </div>
+                </>
               )}
               {/* Postpartum phase banner */}
               {profile?.lifeStage==="postpartum"&&(()=>{const pp=getPostpartumPhase(profile.postpartumWeeks,profile.csection);return(
-                <div style={{background:"rgba(168,85,247,.08)",border:"1.5px solid rgba(168,85,247,.3)",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",gap:12,alignItems:"flex-start"}}>
-                  <div style={{fontSize:18,flexShrink:0}}>👶</div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:"#A855F7",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
-                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{pp.desc}</div>
+                <>
+                  <div style={{background:"rgba(168,85,247,.08)",border:"1.5px solid rgba(168,85,247,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{fontSize:18,flexShrink:0}}>👶</div>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:"#A855F7",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
+                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{pp.desc}</div>
+                    </div>
                   </div>
-                </div>
+                  <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <span style={{fontSize:13,flexShrink:0}}>💙</span>
+                    <div><div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider — especially with C-section recovery.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#2979FF",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                  </div>
+                </>
               );})()}
               {/* ACL Prevention prehab for female users on leg days */}
               {profile?.sex==="female"&&isLegDay(todayFocus)&&(()=>{
@@ -1180,6 +1198,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         </div>
                       ))}
                     </div>
+                  </div>
+                );
+              })()}
+              {(()=>{
+                const hc=(profile?.healthConditions||[]).filter(c=>c!=="none");
+                if(hc.length===0)return null;
+                return(
+                  <div style={{background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.25)",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
+                    <div style={{fontSize:9,color:"#FBBF24",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>⚠️ SAFETY NOTES FOR YOUR SESSION</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:T.mu,lineHeight:1.55}}><span style={{color:"#FBBF24",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
+                    </div>
+                    <a href="https://coach-macro.com/support" style={{fontSize:10,color:"#2979FF",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
                   </div>
                 );
               })()}
@@ -2491,6 +2522,17 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <Toggle on={!!wPrefs.nutritionPeriodization} onChange={v=>{const wp={...wPrefs,nutritionPeriodization:v};setWPrefs(wp);saveSettings(wp,null);}} label="Nutrition Periodization" sub="Automatically cycles macros across 8-week phases"/>
           <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Building (wk 1–3) → Deload (wk 4) → Performance (wk 5–7) → Mini Cut (wk 8)</div>
         </SectionCard>
+
+        {(profile?.is_older_adult||(()=>{const a=getAge(profile?.dobYear,profile?.dobMonth,profile?.dobDay);return a!==null&&a>=65;})())&&(
+          <SectionCard title="Joint Health Mode">
+            <Toggle on={wPrefs.jointHealthMode!==false} onChange={v=>{const wp={...wPrefs,jointHealthMode:v};setWPrefs(wp);saveSettings(wp,null);}} label="Joint Health Mode" sub="Reduces volume, adds controlled tempo cues, removes failure training"/>
+            <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Automatically applies safer exercise modifications for joint-protective training. Recommended for 65+ users.</div>
+            {wPrefs.jointHealthMode!==false&&<div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:9,padding:"10px 12px",marginTop:10}}>
+              <div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>Your sessions use 80% of standard volume with controlled tempo. For individual guidance, consult a physical therapist or exercise physiologist.</div>
+              <a href="https://coach-macro.com/support" style={{fontSize:10,color:"#2979FF",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a>
+            </div>}
+          </SectionCard>
+        )}
 
         <SectionCard title="Morning Brief">
           <Toggle on={wPrefs.morningBriefEnabled!==false} onChange={v=>{const wp={...wPrefs,morningBriefEnabled:v};setWPrefs(wp);saveSettings(wp,null);}} label="Enable Morning Brief" sub="Personalized daily coaching message before noon"/>
