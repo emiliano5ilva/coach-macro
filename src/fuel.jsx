@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
-  FoodSearchSkeleton, AIContentSkeleton, hap, calcTDEE } from "./components.jsx";
+  FoodSearchSkeleton, AIContentSkeleton, EmptyState, hap, calcTDEE } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
 import { sb, ai } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
@@ -682,6 +682,71 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
   );
 }
 
+function SwipeRow({onDelete, children, style={}}) {
+  const [offset, setOffset] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const startX = React.useRef(0);
+  const THRESHOLD = 72;
+
+  function onPointerDown(e) {
+    startX.current = e.clientX;
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e) {
+    if (!dragging) return;
+    const delta = Math.min(0, e.clientX - startX.current);
+    setOffset(Math.max(-(THRESHOLD + 10), delta));
+  }
+  function onPointerUp() {
+    setDragging(false);
+    if (offset < -THRESHOLD) { onDelete(); setOffset(0); }
+    else setOffset(0);
+  }
+
+  return (
+    <div style={{position:"relative",overflow:"hidden",...style}}>
+      <div style={{position:"absolute",right:0,top:0,bottom:0,width:THRESHOLD,background:"#EF4444",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"0 8px 8px 0",flexShrink:0}}>
+        <span style={{color:"#fff",fontSize:11,fontWeight:700,letterSpacing:"0.08em"}}>Delete</span>
+      </div>
+      <div className="swipe-row"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{transform:`translateX(${offset}px)`,transition:dragging?"none":"transform 0.25s ease",background:T.bg||"#0a0e1a",position:"relative"}}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function FoodContextMenu({item, slot, mealSlots, onDelete, onCopySlot, onClose}) {
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:8000,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.55)"}} onClick={onClose}>
+      <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:"20px 20px 0 0",padding:"8px 0 24px",width:"100%",maxWidth:480,animation:"sheet-in 0.22s ease forwards"}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:36,height:4,borderRadius:2,background:T.bd,margin:"8px auto 16px"}}/>
+        <div style={{padding:"0 20px",marginBottom:8}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
+          <div style={{fontSize:11,color:T.mu}}>{item.calories} kcal · <span style={{color:T.prot}}>P {item.protein}g</span> · <span style={{color:T.carb}}>C {item.carbs}g</span> · <span style={{color:T.fat}}>F {item.fat}g</span></div>
+        </div>
+        {mealSlots.filter(s=>s!==slot).map(s=>(
+          <button key={s} onClick={()=>onCopySlot(s)} style={{width:"100%",padding:"14px 20px",background:"none",border:"none",color:"#fff",fontSize:14,fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"inherit",borderTop:`1px solid ${T.bd}`}}>
+            Copy to {s}
+          </button>
+        ))}
+        <button onClick={()=>{onDelete();onClose();}} style={{width:"100%",padding:"14px 20px",background:"none",border:"none",color:"#EF4444",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",fontFamily:"inherit",borderTop:`1px solid ${T.bd}`}}>
+          Delete
+        </button>
+        <button onClick={onClose} style={{width:"100%",padding:"12px 20px",background:"none",border:"none",color:T.mu,fontSize:13,cursor:"pointer",textAlign:"left",fontFamily:"inherit",borderTop:`1px solid ${T.bd}`}}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottleSize=16, isMobile}) {
   const [showCustom, setShowCustom] = useState(false);
   const [customOz, setCustomOz] = useState("");
@@ -1180,6 +1245,8 @@ Reply with ONLY a valid JSON object, no markdown:
   const [showQuickLog,setShowQuickLog]=useState(false);
   const [undoEntry,setUndoEntry]=useState(null);
   const undoTimer=useRef(null);
+  const [contextMenu,setContextMenu]=useState(null); // {item, slot}
+  const longPressRef=useRef(null);
   const [mealTemplates,setMealTemplates]=useState([]);
 
   useEffect(()=>{
@@ -1328,6 +1395,17 @@ Reply with ONLY a valid JSON object, no markdown:
           <div style={{flex:1,fontSize:13,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{undoEntry.food} added</div>
           <button onClick={handleUndo} style={{padding:"6px 14px",background:"rgba(232,52,28,.15)",border:"1px solid rgba(232,52,28,.4)",borderRadius:8,color:T.prot,fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>Undo</button>
         </div>
+      )}
+      {/* Food Context Menu */}
+      {contextMenu&&(
+        <FoodContextMenu
+          item={contextMenu.item}
+          slot={contextMenu.slot}
+          mealSlots={mealSlots}
+          onDelete={()=>{removeLog(contextMenu.item.id);showToast(`${contextMenu.item.food||"Item"} removed`,"info");}}
+          onCopySlot={(targetSlot)=>{logEntry({...contextMenu.item,id:Date.now(),slot:targetSlot});showToast(`Copied to ${targetSlot}`,"success");}}
+          onClose={()=>setContextMenu(null)}
+        />
       )}
       {/* Recipe Builder */}
       {showRecipeBuilder&&(
@@ -1780,11 +1858,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 </div>
               </div>
               {log.length===0
-                ?<div style={{textAlign:"center",padding:"28px 0",color:T.mu,border:`1px dashed ${T.bd}`,borderRadius:12}}>
-                  <div style={{fontSize:32,marginBottom:8}}>🍽️</div>
-                  <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Nothing logged yet</div>
-                  <div style={{fontSize:11,color:T.dim}}>Describe a meal, scan a barcode, or use the restaurant finder</div>
-                </div>
+                ?<EmptyState icon="🍽️" title="Nothing logged yet" subtitle="Describe a meal, scan a barcode, or use the restaurant finder" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
                 :<div>
                   {mealSlots.map((slot,si)=>{
                     const slotItems=log.filter(e=>getEntrySlot(e)===slot);
@@ -1802,27 +1876,38 @@ Reply with ONLY a valid JSON object, no markdown:
                           {mealSlots.length>1&&<button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>}
                         </div>
                         {slotItems.map((item,i)=>(
-                          <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
-                            <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                              <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0}}>{item.method==="barcode"?"📷":item.method==="quick"?"✏️":"🧠"}</div>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
-                                <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"'DM Mono',monospace"}}>
-                                  <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                          <SwipeRow key={item.id}
+                            onDelete={()=>{
+                              const snap={...item};
+                              removeLog(item.id);
+                              showToast(`${snap.food||"Item"} removed`,{action:()=>logEntry(snap),actionLabel:"Undo"});
+                            }}
+                            style={{borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}
+                          >
+                            <div
+                              onPointerDown={()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
+                              onPointerUp={()=>clearTimeout(longPressRef.current)}
+                              onPointerLeave={()=>clearTimeout(longPressRef.current)}
+                              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
+                            >
+                              <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+                                <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0}}>{item.method==="barcode"?"📷":item.method==="quick"?"✏️":"🧠"}</div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
+                                  <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"'DM Mono',monospace"}}>
+                                    <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                              <div style={{textAlign:"right"}}>
-                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
-                                <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                              <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                                <div style={{textAlign:"right"}}>
+                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
+                                  <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                                </div>
+                                <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                               </div>
-                              <select value={slotAssignments[item.id]||slot} onChange={e=>setSlotAssignments(s=>({...s,[item.id]:e.target.value}))} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,borderRadius:6,padding:"3px 4px",fontSize:10,cursor:"pointer",fontFamily:"inherit",maxWidth:80}}>
-                                {mealSlots.map(s=><option key={s} value={s}>{s}</option>)}
-                              </select>
-                              <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                             </div>
-                          </div>
+                          </SwipeRow>
                         ))}
                       </div>
                     );

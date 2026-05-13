@@ -178,6 +178,10 @@ export function getDayMacros(baseCals, goal, dayType, earnedCals=0, opts={}) {
 export function getTodayKey() { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()]; }
 export function isToday(ds)    { if(!ds)return false; const d=new Date(ds),t=new Date(); return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate(); }
 export function hap()          { try{navigator.vibrate?.(8);}catch{} }
+export function hapMed()       { try{navigator.vibrate?.(15);}catch{} }
+export function hapHeavy()     { try{navigator.vibrate?.([10,30,10]);}catch{} }
+export function hapSuccess()   { try{navigator.vibrate?.([8,40,8]);}catch{} }
+export function hapPR()        { try{navigator.vibrate?.([10,30,10,30,10]);}catch{} }
 export function pad2(n)        { return String(Math.max(0,Math.floor(n))).padStart(2,"0"); }
 export function autoFocus(sch,splitType) {
   const cycles=SPLIT_CYCLES[splitType]||["Full Body"]; const f={}; let i=0;
@@ -259,10 +263,18 @@ export const GLOBAL_CSS = `
   @keyframes toast-in{0%{opacity:0;transform:translateY(16px) scale(0.96)}100%{opacity:1;transform:translateY(0) scale(1)}}
   @keyframes toast-out{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(8px) scale(0.97)}}
   @keyframes press-scale{0%{transform:scale(1)}50%{transform:scale(0.96)}100%{transform:scale(1)}}
+  @keyframes scale-in{0%{opacity:0;transform:scale(0.82)}100%{opacity:1;transform:scale(1)}}
+  @keyframes slide-up-enter{0%{opacity:0;transform:translateY(28px)}100%{opacity:1;transform:translateY(0)}}
+  @keyframes bounce-in{0%{transform:scale(0)}40%{transform:scale(1.12)}60%{transform:scale(0.94)}80%{transform:scale(1.04)}100%{transform:scale(1)}}
+  @keyframes count-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .skeleton{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite linear;border-radius:8px;flex-shrink:0}
-  .stagger-0{animation-delay:0ms}.stagger-1{animation-delay:60ms}.stagger-2{animation-delay:120ms}.stagger-3{animation-delay:180ms}.stagger-4{animation-delay:240ms}.stagger-5{animation-delay:300ms}
+  .stagger-0{animation-delay:0ms}.stagger-1{animation-delay:60ms}.stagger-2{animation-delay:120ms}.stagger-3{animation-delay:180ms}.stagger-4{animation-delay:240ms}.stagger-5{animation-delay:300ms}.stagger-6{animation-delay:360ms}.stagger-7{animation-delay:420ms}.stagger-8{animation-delay:480ms}
   .fade-up{opacity:0;animation:page-fade 0.3s cubic-bezier(.2,.7,.3,1) forwards}
+  .scale-in{animation:scale-in 0.24s cubic-bezier(.2,.7,.3,1) forwards}
+  .slide-up{animation:slide-up-enter 0.32s cubic-bezier(.2,.7,.3,1) forwards}
+  .bounce-in{animation:bounce-in 0.5s cubic-bezier(.2,.7,.3,1) forwards}
   .btn-press:active{transform:scale(0.96);transition:transform 0.08s ease}
+  .swipe-row{transition:transform 0.2s ease;touch-action:pan-y}
   .grad-text{background:linear-gradient(135deg,#e8341c 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   .hero-title{animation:slideUp .9s cubic-bezier(.16,1,.3,1) forwards}
   .hero-sub{animation:slideUp .9s cubic-bezier(.16,1,.3,1) .15s both}
@@ -532,6 +544,108 @@ export class ErrorBoundary extends React.Component {
     }
     return this.props.children;
   }
+}
+
+export function DashboardSkeleton() {
+  return (
+    <div style={{padding:20,display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}><SkeletonBox w={120} h={12}/><SkeletonBox w={180} h={24}/></div>
+        <SkeletonBox w={36} h={36} radius={18}/>
+      </div>
+      <SkeletonBox w="100%" h={80} radius={14}/>
+      <SkeletonBox w="100%" h={140} radius={20}/>
+      <div style={{display:"flex",gap:8}}>{[0,1,2,3,4,5,6].map(i=><SkeletonBox key={i} w={36} h={36} radius={18}/>)}</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>{[0,1,2].map(i=><SkeletonBox key={i} h={80} radius={16}/>)}</div>
+    </div>
+  );
+}
+
+export function WorkoutSkeleton() {
+  return (
+    <div style={{padding:"0 20px",display:"flex",flexDirection:"column",gap:12}}>
+      <SkeletonBox w="70%" h={28} radius={8}/>
+      <SkeletonBox w="100%" h={80} radius={20}/>
+      {[0,1,2,3,4].map(i=>(
+        <div key={i} className={`stagger-${Math.min(i,5)}`} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid rgba(255,255,255,0.05)",opacity:0,animation:"page-fade 0.3s ease forwards"}}>
+          <SkeletonBox w={32} h={32} radius={16}/>
+          <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}><SkeletonBox w="60%" h={16}/><SkeletonBox w="40%" h={12}/></div>
+          <SkeletonBox w={60} h={28} radius={8}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function FuelSkeleton() {
+  return (
+    <div style={{padding:20,display:"flex",flexDirection:"column",gap:16}}>
+      <SkeletonBox w="100%" h={160} radius={20}/>
+      <SkeletonBox w="50%" h={20}/>
+      {[0,1,2].map(i=>(
+        <div key={i} style={{display:"flex",flexDirection:"column",gap:8}}>
+          <SkeletonBox w="30%" h={14}/>
+          <SkeletonBox w="100%" h={44} radius={10}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ProgressSkeleton() {
+  return (
+    <div style={{padding:20,display:"flex",flexDirection:"column",gap:16}}>
+      <SkeletonBox w="100%" h={180} radius={20}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}><SkeletonBox h={100} radius={20}/><SkeletonBox h={100} radius={20}/></div>
+      <SkeletonBox w="100%" h={200} radius={20}/>
+    </div>
+  );
+}
+
+export function ExerciseSkeleton() {
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {[0,1,2,3,4].map(i=>(
+        <div key={i} className={`stagger-${Math.min(i,5)}`} style={{display:"flex",gap:12,padding:"12px 14px",background:"rgba(255,255,255,0.03)",borderRadius:14,opacity:0,animation:"page-fade 0.3s ease forwards"}}>
+          <SkeletonBox w={32} h={32} radius={16}/>
+          <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}><SkeletonBox w="55%" h={16}/><SkeletonBox w="35%" h={12}/></div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}><SkeletonBox w={50} h={14}/><SkeletonBox w={50} h={14}/></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ScoreSkeleton() {
+  return (
+    <div style={{padding:16,display:"flex",flexDirection:"column",gap:16,alignItems:"center"}}>
+      <SkeletonBox w={160} h={160} radius={80}/>
+      <div style={{width:"100%",display:"flex",flexDirection:"column",gap:12}}>
+        {[0,1,2,3].map(i=>(
+          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+            <SkeletonBox w="30%" h={14}/>
+            <SkeletonBox h={8} radius={4} style={{flex:1}}/>
+            <SkeletonBox w={30} h={14}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function CalendarSkeleton() {
+  return (
+    <div style={{padding:16,display:"flex",flexDirection:"column",gap:8}}>
+      <SkeletonBox w="40%" h={20}/>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {Array.from({length:35}).map((_,i)=><SkeletonBox key={i} w={40} h={40} radius={8}/>)}
+      </div>
+    </div>
+  );
+}
+
+export function CardSkeleton({height=120}) {
+  return <SkeletonBox w="100%" h={height} radius={20}/>;
 }
 
 // ─── LOGO ─────────────────────────────────────────────────────────────────────

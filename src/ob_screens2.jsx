@@ -3,8 +3,9 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, BodyFigure, InfoTip, ErrorBoundary,
+  DashboardSkeleton, ScoreSkeleton, CardSkeleton, ProgressSkeleton, CalendarSkeleton,
   calcTDEE, autoFocus, useCountUp, lookupBarcode,
-  getDayMacros, getTodayKey, isToday, hap, pad2 } from "./components.jsx";
+  getDayMacros, getTodayKey, isToday, hap, hapPR, hapSuccess, pad2 } from "./components.jsx";
 import { showToast, subscribeToast } from "./utils/toast.js";
 import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES,
@@ -1289,6 +1290,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [now,setNow]=useState(Date.now());
   const [city,setCity]=useState(profile.city||"");
   const [workout,setWorkout]=useState(""); const [workoutLoading,setWorkoutLoading]=useState(false);
+  const [dashboardLoaded,setDashboardLoaded]=useState(false);
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [restTimer,setRestTimer]=useState(0); const [restActive,setRestActive]=useState(false);
   const restInterval=useRef(null);
@@ -1426,6 +1428,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     // Water logs
     getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[]));
     getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[]));
+    // Mark dashboard as loaded after data arrives
+    setTimeout(()=>setDashboardLoaded(true),300);
   },[user]);
 
   // ── Morning Brief ───────────────────────────────────────────────────────────
@@ -1767,7 +1771,13 @@ Rules:
 
     startRest(secs);
     hap();
-    if(isNewPR)hap();
+    if(isNewPR){
+      hapPR();
+      showToast(`🔥 New PR — ${weight}lbs on ${ex?.name||"this exercise"}!`, "pr", {duration:5000});
+    }
+
+    // Persist workout state for resume
+    try { localStorage.setItem("cm_active_workout", JSON.stringify({...activeWorkout, ts: Date.now()})); } catch {}
   }
 
   async function finishWorkout(){
@@ -1821,14 +1831,24 @@ Rules:
       // Show summary screen instead of immediately exiting
       setActiveWorkout(null);
       skipRest();
+      try { localStorage.removeItem("cm_active_workout"); } catch {}
+      const totalSetsLogged = setsLogged.reduce((a,e)=>a+e.sets.length,0);
+      if(prs.length>0){
+        hapPR();
+        showToast(`🔥 ${prs.length} new PR${prs.length>1?"s":""} this session!`, "pr", {duration:5000});
+      } else {
+        hapSuccess();
+        showToast(`Session saved · ${totalSetsLogged} sets logged`, "success", {duration:4000});
+      }
       setWorkoutSummary({
         title:todayFocus,duration,burn,
         totalVolume:Math.round(totalVolume),
-        totalSets,completedSets:setsLogged.reduce((a,e)=>a+e.sets.length,0),
+        totalSets,completedSets:totalSetsLogged,
         prs,exercises:setsLogged,
       });
     } else {
       setActiveWorkout(null);
+      try { localStorage.removeItem("cm_active_workout"); } catch {}
       setTrainScreen("progress");
     }
   }
@@ -2014,6 +2034,9 @@ Rules:
   const weekDayLetters = ["M","T","W","T","F","S","S"];
 
   function HomeSection() {
+    if (!dashboardLoaded && log.length === 0 && workoutLogsRaw.length === 0) {
+      return <DashboardSkeleton/>;
+    }
     return (
       <div className="page-enter">
         {/* Header */}
@@ -2082,7 +2105,7 @@ Rules:
           <div style={{margin:"0 20px 12px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",animation:"fade-in 0.4s"}}>
             <div className="header-eyebrow">// Morning Brief</div>
             {morningBriefLoading
-              ?<div style={{fontSize:13,color:"var(--white-dim)",fontStyle:"italic",marginTop:8}}>Generating your brief...</div>
+              ?<div style={{marginTop:8,display:"flex",flexDirection:"column",gap:8}}>{[0,1,2].map(i=><div key={i} className={`stagger-${i}`} style={{opacity:0,animation:"page-fade 0.3s ease forwards"}}><div className="skeleton" style={{height:13,width:i===2?"65%":"100%",borderRadius:4}}/></div>)}</div>
               :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>{morningBrief}</div>
             }
             {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
@@ -2408,9 +2431,10 @@ Rules:
         {/* ── SCORE RING CARD ── */}
         <div onClick={()=>setShowScoreModal(true)} style={{margin:"0 20px 14px",padding:"28px 20px 20px",background:"var(--navy-card)",border:`1px solid ${ringColor}30`,borderRadius:20,textAlign:"center",cursor:"pointer"}}>
           <ScoreRing score={sc.total}/>
-          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:10}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:10,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
             Today · {dateStr}
             {sc.isCapped&&<span style={{marginLeft:8,color:"#EAB308"}}>⚠ Score capped</span>}
+            <span onClick={e=>{e.stopPropagation();}}><InfoTip title="Coach Macro Score" content={"A daily 0–100 score that measures how optimized your day was.\n\nRecovery (40%) — sleep quality and duration\nNutrition (30%) — hitting your macro targets\nTraining (20%) — completing your scheduled session\nConsistency (10%) — your 30-day streak\nHydration bonus — up to ±3 points\n\nScores above 80 indicate elite-level discipline. Most athletes average 55–70."}/></span>
           </div>
           <div style={{fontSize:9,color:"rgba(245,245,240,0.2)",marginTop:4}}>Tap to understand your score →</div>
 

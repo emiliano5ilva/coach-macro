@@ -4,7 +4,10 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
-  Badge, getTier, getReferralBadge } from "./components.jsx";
+  Badge, getTier, getReferralBadge,
+  hap, hapMed, hapSuccess, hapPR,
+  InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState } from "./components.jsx";
+import { showToast } from "./utils/toast.js";
 import { sb, ai } from "./client.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
@@ -392,10 +395,9 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
             </div>
 
             {workoutLoading
-              ?<div style={{textAlign:"center",padding:"56px 0",color:T.mu}}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Spinner/></div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,marginBottom:6}}>BUILDING YOUR SESSION</div>
-                <div style={{fontSize:12,color:T.dim}}>Optimizing muscle coverage · Setting progressive overload targets</div>
+              ?<div style={{padding:"8px 0"}}>
+                <div style={{fontSize:11,color:T.dim,textAlign:"center",marginBottom:12}}>Optimizing muscle coverage · Setting progressive overload targets</div>
+                <WorkoutSkeleton/>
               </div>
               :<>
                 {/* Exercise cards */}
@@ -1351,6 +1353,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const isFav=favorites.includes(name);
     const newFavs=isFav?favorites.filter(f=>f!==name):[...favorites,name];
     saveWPrefs({...wPrefs,favorites:newFavs});
+    showToast(isFav?"Removed from favorites":"❤️ Added to favorites", isFav?"info":"success");
+    hap();
   }
 
   function applySwap(exerciseIdx,swapName,permanent,originalName){
@@ -1362,7 +1366,35 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     }
     setSwapModal(null);
     setSelectedSwap(null);
+    showToast(`Swapped to ${swapName}${permanent?" · permanent":""}`, "success");
+    hapMed();
   }
+
+  // ── Active workout localStorage persistence ────────────────────────────────
+  const WORKOUT_KEY = "cm_active_workout";
+  const [resumePrompt, setResumePrompt] = useState(null);
+  useEffect(() => {
+    if (!activeWorkout) {
+      // Check for a persisted workout when there's no active session
+      try {
+        const saved = localStorage.getItem(WORKOUT_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.exercises && parsed.ts && Date.now() - parsed.ts < 4 * 60 * 60 * 1000) {
+            setResumePrompt(parsed);
+          } else {
+            localStorage.removeItem(WORKOUT_KEY);
+          }
+        }
+      } catch {}
+    }
+  }, []);
+  useEffect(() => {
+    if (activeWorkout) {
+      try { localStorage.setItem(WORKOUT_KEY, JSON.stringify({...activeWorkout, ts: Date.now()})); } catch {}
+    }
+  }, [activeWorkout]);
+  function clearPersistedWorkout() { try { localStorage.removeItem(WORKOUT_KEY); } catch {} }
 
   // ── Warm-up state ────────────────────────────────────────────────────────
   const [warmupData,setWarmupData]=useState(null);
@@ -1662,6 +1694,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       </div>
 
       <div style={{padding:isMobile?"12px 18px":"0"}}>
+
+        {/* ── Resume Workout Prompt ── */}
+        {resumePrompt&&!activeWorkout&&(
+          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
+            <div style={{fontSize:24,flexShrink:0}}>💪</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>Unfinished session</div>
+              <div style={{fontSize:11,color:"rgba(245,245,240,0.5)"}}>You left a workout in progress. Continue where you left off?</div>
+            </div>
+            <div style={{display:"flex",gap:8,flexShrink:0}}>
+              <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:"#2979FF",border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
+              <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{padding:"8px 10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Discard</button>
+            </div>
+          </div>
+        )}
 
         {/* ── TODAY ── */}
         {trainScreen==="today"&&(
@@ -2004,7 +2051,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                       {/* Set headers */}
                       <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8}}>
-                        {["SET","WEIGHT","REPS","DONE"].map(h=>(<div key={h} style={{fontSize:8,color:T.mu,fontWeight:700,letterSpacing:1.5,textAlign:"center"}}>{h}</div>))}
+                        {["SET","WEIGHT"].map(h=>(<div key={h} style={{fontSize:8,color:T.mu,fontWeight:700,letterSpacing:1.5,textAlign:"center"}}>{h}</div>))}
+                        <div style={{fontSize:8,color:T.mu,fontWeight:700,letterSpacing:1.5,textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:3}}>REPS<InfoTip title="Reps In Reserve (RIR)" content={"Stop each set when you still have 1-3 reps left in the tank.\n\nRIR 3 = easy, plenty left\nRIR 2 = working hard\nRIR 1 = nearly at limit ← most sets\nRIR 0 = true failure (avoid)\n\nStopping short of failure builds strength safely and allows consistent training week after week."}/></div>
+                        <div style={{fontSize:8,color:T.mu,fontWeight:700,letterSpacing:1.5,textAlign:"center"}}>DONE</div>
                       </div>
 
                       {/* Sets */}
@@ -2869,9 +2918,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {id:user.id,wprefs:newWPrefs||wPrefs,schedule:newSchedule||schedule},
         {onConflict:"id"}
       );
-      if(error){console.error("[saveSettings] error:",error.message);}
-      else{console.log("[saveSettings] saved");setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);}
-    }catch(e){console.error("[saveSettings] exception:",e);}
+      if(error){console.error("[saveSettings] error:",error.message);showToast("Failed to save settings","error");}
+      else{console.log("[saveSettings] saved");setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);showToast("Preferences saved","success");}
+    }catch(e){console.error("[saveSettings] exception:",e);showToast("Failed to save settings","error");}
   }
 
   // Load weight check-ins from Supabase
@@ -2925,6 +2974,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         await navigator.clipboard.writeText(link);
         setRefCopied(true);
         setTimeout(()=>setRefCopied(false),2000);
+        showToast("Link copied! 🔗","success",{duration:2000});
       }else if(method==='share'){
         if(navigator.share){
           await navigator.share({title:'Coach Macro — 2 Weeks Free',text:msg});
@@ -2932,6 +2982,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           await navigator.clipboard.writeText(link);
           setRefCopied(true);
           setTimeout(()=>setRefCopied(false),2000);
+          showToast("Link copied! 🔗","success",{duration:2000});
         }
       }
       // Refresh stats
