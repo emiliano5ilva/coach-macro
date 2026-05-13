@@ -570,10 +570,88 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
   // ── Consistency (10%) ──────────────────────────────────────────────────────
   const thirtyAgo = new Date(Date.now()-30*864e5);
   const recentN = workoutLogsRaw.filter(w=>new Date(w.date+"T12:00:00")>=thirtyAgo).length;
-  const consistency = recentN>=25?100:recentN>=20?85:recentN>=15?70:recentN>=10?55:40;
+  let consistency = recentN>=25?100:recentN>=20?85:recentN>=15?70:recentN>=10?55:40;
 
-  // ── Final ──────────────────────────────────────────────────────────────────
-  const total = Math.round(recovery*0.40 + nutrition*0.30 + training*0.20 + consistency*0.10);
+  // ── Raw total ──────────────────────────────────────────────────────────────
+  let total = Math.round(recovery*0.40 + nutrition*0.30 + training*0.20 + consistency*0.10);
+
+  // ── Safety Thresholds ─────────────────────────────────────────────────────
+  const warnings = [];
+  const loggedCalories = (log||[]).reduce((s,e)=>s+(e.calories||0),0);
+  const _age = Math.max(13, new Date().getFullYear()-parseInt(profile?.dobYear||2000));
+  const _isFemale = profile?.sex==="female";
+  const _minCal = _isFemale?1200:1500;
+  const _warnCal = _isFemale?1400:1600;
+
+  // T1 — Dangerously low calories
+  if(loggedCalories>0&&loggedCalories<_minCal){
+    total=Math.min(total,45);
+    warnings.push({type:"low_calories_danger",icon:"⚠️",title:"Eating too little",
+      message:`${loggedCalories} calories is below the safe minimum. Severe restriction reduces muscle, slows metabolism, and impairs recovery. Your score reflects this.`,
+      action:"Eat more — especially protein",severity:"danger"});
+  } else if(loggedCalories>0&&loggedCalories<_warnCal){
+    total=Math.min(total,65);
+    warnings.push({type:"low_calories_warn",icon:"⚡",title:"Calories may be too low",
+      message:`${loggedCalories} calories is below what most people need to train effectively.`,
+      action:"Consider eating more to fuel training",severity:"warning"});
+  }
+
+  // T2 — Chronic sleep deprivation
+  const _recentSleep=healthSnap?.sleep??null;
+  if(_recentSleep!==null&&_recentSleep<5){
+    recovery=Math.min(recovery,25);
+    warnings.push({type:"sleep_deprivation",icon:"😴",title:"Chronic sleep deprivation",
+      message:`Only ${_recentSleep}h sleep. Below 5 hours significantly impairs muscle growth, fat loss, and performance. No training protocol overcomes this.`,
+      action:"Sleep is the highest priority right now",severity:"danger"});
+  }
+
+  // T3 — Overtraining
+  const _weekStart=new Date();
+  _weekStart.setDate(_weekStart.getDate()-(_weekStart.getDay()||7)+1);
+  _weekStart.setHours(0,0,0,0);
+  const _weekStartStr=_weekStart.toISOString().split("T")[0];
+  const _sessionsThisWeek=(workoutLogsRaw||[]).filter(w=>w.date>=_weekStartStr&&w.date<=today).length;
+  if(_sessionsThisWeek>=7){
+    total=Math.min(total,60);
+    warnings.push({type:"overtraining",icon:"🔴",title:"No rest days this week",
+      message:"Training every day without rest leads to overtraining, injury, and performance decline. Rest is when muscles actually grow.",
+      action:"Take at least 1-2 rest days per week",severity:"warning"});
+  }
+
+  // T4 — Two-a-days without adequate fuel
+  if(loggedCalories>0&&(macros?.calories||0)>0&&loggedCalories<(macros?.calories||0)*0.85){
+    const _todayWorkouts=(workoutLogsRaw||[]).filter(w=>w.date===today);
+    if(_todayWorkouts.length>=2){
+      warnings.push({type:"twoADay_underfuel",icon:"⚡",title:"Under-fueling two-a-days",
+        message:"Training twice today but eating below your target. Two-a-days require more fuel not less.",
+        action:"Eat more on double training days",severity:"warning"});
+    }
+  }
+
+  // T5 — Age-based intensity cap
+  if(_age>=65) training=Math.min(training,85);
+
+  // T6 — Eating disorder history (no calorie danger warnings)
+  if(profile?.eatingHistory==="prefer_not"){
+    for(let i=warnings.length-1;i>=0;i--){
+      if(warnings[i].severity==="danger"||warnings[i].message.toLowerCase().includes("calorie")) warnings.splice(i,1);
+    }
+  }
+
+  // T7 — Pregnancy
+  if(profile?.lifeStage==="pregnant"){
+    total=Math.max(total,60);
+    for(let i=warnings.length-1;i>=0;i--){
+      if(warnings[i].type==="low_calories_danger"||warnings[i].type==="low_calories_warn") warnings.splice(i,1);
+    }
+    if(loggedCalories>0) warnings.push({type:"pregnancy_info",icon:"🤰",title:"Pregnancy nutrition",
+      message:"Your calorie needs are higher during pregnancy. Focus on nutrient density over restriction.",
+      action:null,severity:"info"});
+  }
+
+  // Recalculate final with capped components
+  const finalScore=Math.round(recovery*0.40+nutrition*0.30+training*0.20+consistency*0.10);
+  total=Math.min(total,finalScore);
 
   // ── Suggestions ────────────────────────────────────────────────────────────
   const tips = [];
@@ -590,7 +668,7 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
   if(training<70&&todayType!=="rest") tips.push("Complete today's training session to earn full points");
   if(consistency<70) tips.push("Log tomorrow's session to strengthen your consistency score");
 
-  return {total, r:recovery, n:nutrition, t:training, c:consistency, tips};
+  return {total, r:recovery, n:nutrition, t:training, c:consistency, tips, warnings, isCapped:total<Math.round(recovery*0.40+nutrition*0.30+training*0.20+consistency*0.10)};
 }
 
 function ScoreRing({score}) {
@@ -610,6 +688,48 @@ function ScoreRing({score}) {
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
         <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:"#fff"}}>{score}</div>
         <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:2}}>Coach Macro Score</div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreExplanationModal({sc, onClose}) {
+  const comps=[
+    {label:"Recovery",pct:40,val:sc.r,color:"#2979FF",desc:"Based on sleep duration and quality, heart rate variability, and resting heart rate from Apple Health."},
+    {label:"Nutrition",pct:30,val:sc.n,color:"#22c55e",desc:"How close you hit your macro targets today. Protein adherence weighted higher."},
+    {label:"Training",pct:20,val:sc.t,color:"var(--red)",desc:"Whether you completed today's scheduled session and how it compared to last week."},
+    {label:"Consistency",pct:10,val:sc.c,color:"#EAB308",desc:"How many of your planned sessions you've completed over the last 30 days."},
+  ];
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.92)",backdropFilter:"blur(10px)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"20px 20px 0 0",padding:"24px 20px 48px",maxWidth:480,width:"100%",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+        <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,marginBottom:4,textAlign:"center"}}>HOW YOUR SCORE IS CALCULATED</div>
+        <div style={{fontSize:11,color:"rgba(245,245,240,.4)",textAlign:"center",marginBottom:24}}>Tap anywhere to close</div>
+        {comps.map(({label,pct,val,color,desc})=>(
+          <div key={label} style={{marginBottom:20,background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.06)",borderRadius:14,padding:"16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div>
+                <div style={{fontFamily:"var(--condensed)",fontSize:17,fontWeight:800,color:"#fff"}}>{label}</div>
+                <div style={{fontSize:10,color:"rgba(245,245,240,.35)",fontWeight:600}}>Weighted {pct}% of total score</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color,lineHeight:1}}>{val}</div>
+                <div style={{fontSize:9,color:"rgba(245,245,240,.3)"}}>/ 100</div>
+              </div>
+            </div>
+            <div style={{height:4,background:"rgba(255,255,255,.06)",borderRadius:2,overflow:"hidden",marginBottom:10}}>
+              <div style={{height:"100%",width:`${val}%`,background:color,borderRadius:2,transition:"width .7s ease"}}/>
+            </div>
+            <div style={{fontSize:12,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{desc}</div>
+          </div>
+        ))}
+        <div style={{background:"rgba(41,121,255,.06)",border:"1px solid rgba(41,121,255,.15)",borderRadius:12,padding:"12px 14px",marginTop:4}}>
+          <div style={{fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.7,textAlign:"center"}}>
+            Score is for motivation and insight only. It is not a medical metric.<br/>
+            Consult a healthcare professional for medical guidance.
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1164,6 +1284,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [deloadStartedAt,setDeloadStartedAt]=useState(profile?.deload_started_at||null);
   const [deloadSnooze,setDeloadSnooze]=useState(()=>localStorage.getItem("deload_snooze")||null);
   const [dailyScores,setDailyScores]=useState(()=>(profile?.daily_scores||[]).slice(-90));
+  const [scoreMilestones,setScoreMilestones]=useState(()=>profile?.score_milestones||[]);
+  const [activeMilestone,setActiveMilestone]=useState(null);
+  const [showScoreModal,setShowScoreModal]=useState(false);
+  const [dismissedWarnings,setDismissedWarnings]=useState(()=>{try{return JSON.parse(localStorage.getItem("dismissed_score_warnings")||"{}");}catch{return{};}});
   const [comebackDismissed,setComebackDismissed]=useState(()=>localStorage.getItem("comeback_dismissed")===new Date().toISOString().split("T")[0]);
   const [planMode,setPlanMode]=useState("strength");
   const [runPlan,setRunPlan]=useState(()=>wPrefs?.runPlan||"Couch to 5K");
@@ -1723,6 +1847,50 @@ Rules:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[coachScore?.total]);
 
+  // ── Milestone detection ────────────────────────────────────────────────────
+  useEffect(()=>{
+    if(!coachScore||!user)return;
+    const today=new Date().toISOString().split("T")[0];
+    const newMs=[];
+    const has=(type)=>scoreMilestones.some(m=>m.type===type);
+
+    if(coachScore.total>=90&&!has("first90")){
+      newMs.push({type:"first90",date:today});
+      setActiveMilestone({type:"first90",score:coachScore.total});
+    } else if(coachScore.total>=80&&!has("first80")){
+      newMs.push({type:"first80",date:today});
+      setActiveMilestone({type:"first80",score:coachScore.total});
+    }
+
+    // 7-day streak above 70
+    const cutoff=new Date(Date.now()-7*864e5).toISOString().split("T")[0];
+    const last7ds=dailyScores.filter(s=>s.date>=cutoff&&s.date<=today);
+    if(last7ds.length>=7&&last7ds.every(s=>s.score>=70)&&!scoreMilestones.some(m=>m.type==="streak7"&&m.date===today)){
+      newMs.push({type:"streak7",date:today});
+      if(!activeMilestone)setActiveMilestone({type:"streak7"});
+    }
+
+    // Perfect day (all components ≥70)
+    if(coachScore.r>=70&&coachScore.n>=70&&coachScore.t>=70&&coachScore.c>=70&&!scoreMilestones.some(m=>m.type==="perfect"&&m.date===today)){
+      newMs.push({type:"perfect",date:today});
+      if(!activeMilestone)setActiveMilestone({type:"perfect"});
+    }
+
+    if(newMs.length>0){
+      const updated=[...scoreMilestones,...newMs];
+      setScoreMilestones(updated);
+      sb.from("profiles").upsert({id:user.id,score_milestones:updated,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[coachScore?.total]);
+
+  function dismissWarning(type){
+    const today=new Date().toISOString().split("T")[0];
+    const updated={...dismissedWarnings,[type]:today};
+    setDismissedWarnings(updated);
+    localStorage.setItem("dismissed_score_warnings",JSON.stringify(updated));
+  }
+
   // ── PR Predictions ─────────────────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const prPredictions = useMemo(()=>calcPRPredictions(workoutLogsRaw,profile?.wUnit),[workoutLogsRaw]);
@@ -2093,13 +2261,13 @@ Rules:
     const sc = coachScore;
     const ringColor = sc.total>=85?"#22c55e":sc.total>=70?"#2979FF":sc.total>=50?"#EAB308":"#EF4444";
     const dateStr = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"});
+    const todayStr = new Date().toISOString().split("T")[0];
     const last7 = (()=>{
-      const today = new Date().toISOString().split("T")[0];
       const out = [];
       for(let i=6;i>=0;i--){
         const d = new Date(Date.now()-i*864e5).toISOString().split("T")[0];
         const entry = dailyScores.find(s=>s.date===d);
-        out.push(entry ? {...entry} : {date:d,score:d===today?sc.total:null});
+        out.push(entry ? {...entry} : {date:d,score:d===todayStr?sc.total:null});
       }
       return out;
     })();
@@ -2109,8 +2277,66 @@ Rules:
       {label:"Training",   val:sc.t, color:"var(--red)"},
       {label:"Consistency",val:sc.c, color:"#EAB308"},
     ];
+
+    // ── Active warnings (filter dismissed, max 2, danger first) ──────────────
+    const activeWarnings=(sc.warnings||[])
+      .filter(w=>{const today2=new Date().toISOString().split("T")[0];return dismissedWarnings[w.type]!==today2;})
+      .sort((a,b)=>(a.severity==="danger"?0:1)-(b.severity==="danger"?0:1))
+      .slice(0,2);
+
+    // ── Trend analysis ───────────────────────────────────────────────────────
+    const scoredLast7=last7.filter(e=>e.score!=null);
+    const trendLabel=(()=>{
+      if(scoredLast7.length<4)return null;
+      const first=scoredLast7.slice(0,Math.floor(scoredLast7.length/2));
+      const second=scoredLast7.slice(Math.floor(scoredLast7.length/2));
+      const avg=(arr)=>arr.reduce((s,x)=>s+x.score,0)/arr.length;
+      const diff=avg(second)-avg(first);
+      if(diff>5)return{icon:"↑",text:"Trending up this week",color:"#22c55e"};
+      if(diff<-5)return{icon:"↓",text:"Trending down — check recovery",color:"#EF4444"};
+      return{icon:"→",text:"Consistent performance",color:"#EAB308"};
+    })();
+
+    // ── Weekly report (Monday only) ──────────────────────────────────────────
+    const isMonday=new Date().getDay()===1;
+    const lastWeekScores=(()=>{
+      const mon=new Date();mon.setDate(mon.getDate()-7);mon.setHours(0,0,0,0);
+      const sun=new Date();sun.setDate(sun.getDate()-1);sun.setHours(23,59,59,999);
+      const monStr=mon.toISOString().split("T")[0];
+      const sunStr=sun.toISOString().split("T")[0];
+      return dailyScores.filter(s=>s.date>=monStr&&s.date<=sunStr);
+    })();
+    const weekReport=isMonday&&lastWeekScores.length>=3?(()=>{
+      const avg=Math.round(lastWeekScores.reduce((s,x)=>s+x.score,0)/lastWeekScores.length);
+      const best=lastWeekScores.reduce((a,b)=>a.score>b.score?a:b);
+      const worst=lastWeekScores.reduce((a,b)=>a.score<b.score?a:b);
+      const bestDay=new Date(best.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"long"});
+      const worstDay=new Date(worst.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"long"});
+      const lowRecovery=lastWeekScores.filter(s=>s.r<60).length;
+      const avgSleep=healthSnap?.sleep;
+      let insight=null;
+      if(lowRecovery>=3){
+        insight=`Recovery dragged your score down ${lowRecovery} days.${avgSleep?` Average sleep was ${avgSleep}h. One extra hour per night could add ~8 points to your average.`:" Focus on sleep quality this week."}`;
+      } else if(lastWeekScores.some(s=>s.n<60)){
+        insight="Nutrition consistency was the biggest opportunity last week. Logging meals earlier in the day tends to improve hitting targets.";
+      } else if(lastWeekScores.some(s=>s.t<60)){
+        insight="Missing training sessions cost the most points last week. Pre-scheduling tomorrow's session increases follow-through significantly.";
+      }
+      return{avg,best,worst,bestDay,worstDay,insight};
+    })():null;
+
+    // ── Milestone display ────────────────────────────────────────────────────
+    const MILESTONE_COPY={
+      first80:{title:"FIRST 80+ SCORE! 🎉",sub:"You're training like an athlete.",color:"#2979FF"},
+      first90:{title:"ELITE PERFORMANCE DAY 🔥",sub:"Top 10% of Coach Macro athletes today.",color:"#22c55e"},
+      streak7:{title:"7-DAY CONSISTENCY STREAK 💪",sub:"This is how champions are built.",color:"#EAB308"},
+      perfect:{title:"PERFECT DAY ⭐",sub:"Nutrition + Training + Recovery + Consistency all firing together.",color:"#9B59FF"},
+    };
+
     return (
       <div className="page-enter">
+        {showScoreModal&&<ScoreExplanationModal sc={sc} onClose={()=>setShowScoreModal(false)}/>}
+
         <div className="screen-header" style={{paddingTop:12}}>
           <div style={{flex:1,minWidth:0}}>
             <div className="header-eyebrow">// Daily Performance</div>
@@ -2118,10 +2344,28 @@ Rules:
           </div>
         </div>
 
+        {/* ── MILESTONE CELEBRATION ── */}
+        {activeMilestone&&MILESTONE_COPY[activeMilestone.type]&&(()=>{
+          const m=MILESTONE_COPY[activeMilestone.type];
+          return(
+            <div style={{margin:"0 20px 14px",padding:"18px 20px",background:`linear-gradient(135deg,${m.color}20,${m.color}08)`,border:`1px solid ${m.color}40`,borderRadius:16,display:"flex",alignItems:"flex-start",gap:14}}>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:"#fff",marginBottom:4}}>{m.title}</div>
+                <div style={{fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.5}}>{m.sub}</div>
+              </div>
+              <button onClick={()=>setActiveMilestone(null)} style={{background:"none",border:"none",color:"rgba(245,245,240,.3)",cursor:"pointer",fontSize:18,padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+            </div>
+          );
+        })()}
+
         {/* ── SCORE RING CARD ── */}
-        <div style={{margin:"0 20px 14px",padding:"28px 20px 20px",background:"var(--navy-card)",border:`1px solid ${ringColor}30`,borderRadius:20,textAlign:"center"}}>
+        <div onClick={()=>setShowScoreModal(true)} style={{margin:"0 20px 14px",padding:"28px 20px 20px",background:"var(--navy-card)",border:`1px solid ${ringColor}30`,borderRadius:20,textAlign:"center",cursor:"pointer"}}>
           <ScoreRing score={sc.total}/>
-          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:10}}>Today · {dateStr}</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:10}}>
+            Today · {dateStr}
+            {sc.isCapped&&<span style={{marginLeft:8,color:"#EAB308"}}>⚠ Score capped</span>}
+          </div>
+          <div style={{fontSize:9,color:"rgba(245,245,240,0.2)",marginTop:4}}>Tap to understand your score →</div>
 
           {/* Component bars */}
           <div style={{marginTop:20,textAlign:"left"}}>
@@ -2129,7 +2373,7 @@ Rules:
               <div key={label} style={{marginBottom:10}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
                   <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{label}</span>
-                  <span style={{fontFamily:"var(--mono)",fontSize:11,color:"#fff",fontWeight:600}}>{val}</span>
+                  <span style={{fontFamily:"var(--mono)",fontSize:11,color:val>=70?"#fff":"#EF4444",fontWeight:600}}>{val}</span>
                 </div>
                 <div style={{height:5,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
                   <div style={{height:"100%",width:`${val}%`,background:color,borderRadius:3,transition:"width 0.7s ease"}}/>
@@ -2137,6 +2381,28 @@ Rules:
               </div>
             ))}
           </div>
+
+          {/* Warning cards */}
+          {activeWarnings.length>0&&(
+            <div style={{marginTop:16,textAlign:"left",display:"flex",flexDirection:"column",gap:8}}>
+              {activeWarnings.map(w=>{
+                const bg=w.severity==="danger"?"rgba(239,68,68,.12)":w.severity==="warning"?"rgba(234,179,8,.1)":"rgba(41,121,255,.1)";
+                const border=w.severity==="danger"?"rgba(239,68,68,.3)":w.severity==="warning"?"rgba(234,179,8,.25)":"rgba(41,121,255,.25)";
+                const ic=w.severity==="danger"?"#EF4444":w.severity==="warning"?"#EAB308":"#2979FF";
+                return(
+                  <div key={w.type} onClick={e=>e.stopPropagation()} style={{background:bg,border:`1px solid ${border}`,borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",background:`${ic}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{w.icon}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:3}}>{w.title}</div>
+                      <div style={{fontSize:11,color:"rgba(245,245,240,.6)",lineHeight:1.5,marginBottom:w.action?6:0}}>{w.message}</div>
+                      {w.action&&<div style={{fontSize:11,color:ic,fontWeight:700}}>→ {w.action}</div>}
+                    </div>
+                    <button onClick={e=>{e.stopPropagation();dismissWarning(w.type);}} style={{background:"none",border:"none",color:"rgba(245,245,240,.25)",cursor:"pointer",fontSize:16,padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── SUGGESTIONS ── */}
@@ -2154,15 +2420,44 @@ Rules:
           </div>
         )}
 
+        {/* ── WEEKLY REPORT (Mondays only) ── */}
+        {weekReport&&(
+          <div style={{margin:"0 20px 14px",padding:"18px 20px",background:"linear-gradient(135deg,rgba(155,89,255,.1),rgba(155,89,255,.04))",border:"1px solid rgba(155,89,255,.25)",borderRadius:16}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(155,89,255,.8)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>Last Week Recap</div>
+            <div style={{display:"flex",gap:12,marginBottom:14}}>
+              <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px"}}>
+                <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color:"#fff",lineHeight:1}}>{weekReport.avg}</div>
+                <div style={{fontSize:9,color:"rgba(245,245,240,.4)",textTransform:"uppercase",letterSpacing:1,marginTop:2}}>Avg Score</div>
+              </div>
+              <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px"}}>
+                <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color:"#22c55e",lineHeight:1}}>{weekReport.best.score}</div>
+                <div style={{fontSize:9,color:"rgba(245,245,240,.4)",textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{weekReport.bestDay.slice(0,3)} Best</div>
+              </div>
+              <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px"}}>
+                <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color:"#EF4444",lineHeight:1}}>{weekReport.worst.score}</div>
+                <div style={{fontSize:9,color:"rgba(245,245,240,.4)",textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{weekReport.worstDay.slice(0,3)} Worst</div>
+              </div>
+            </div>
+            {weekReport.insight&&(
+              <div style={{fontSize:12,color:"rgba(245,245,240,.65)",lineHeight:1.7,borderTop:"1px solid rgba(255,255,255,.06)",paddingTop:12}}>
+                <span style={{color:"rgba(155,89,255,.9)",fontWeight:700}}>Biggest opportunity: </span>{weekReport.insight}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── 7-DAY HISTORY CHART ── */}
         <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>7-Day Score</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase"}}>Your Trend</div>
+            {trendLabel&&<div style={{fontSize:11,fontWeight:700,color:trendLabel.color}}>{trendLabel.icon} {trendLabel.text}</div>}
+          </div>
           <div style={{display:"flex",alignItems:"flex-end",gap:6,height:72}}>
             {last7.map((entry,i)=>{
               const h=entry.score!=null?Math.max(4,Math.round((entry.score/100)*72)):4;
               const c=entry.score==null?"rgba(255,255,255,0.06)":entry.score>=85?"#22c55e":entry.score>=70?"#2979FF":entry.score>=50?"#EAB308":"#EF4444";
               const dow=new Date(entry.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"}).slice(0,2);
-              const isToday2=entry.date===new Date().toISOString().split("T")[0];
+              const isToday2=entry.date===todayStr;
               return(
                 <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                   <div style={{width:"100%",height:h,background:c,borderRadius:3,transition:"height 0.5s ease",border:isToday2?`1px solid ${c}`:"none",boxShadow:isToday2?`0 0 6px ${c}80`:"none"}}/>
