@@ -484,18 +484,22 @@ export default function CoachMacro() {
       finalProf.referralCode=first+Math.floor(1000+Math.random()*9000);
       console.log("[handleTrainDone] generated referral code:", finalProf.referralCode);
     }
-    // Apply invite free trial if present in localStorage
+    // All new users get a 2-week trial; invited users get extra tracking
     let _inviteToken=null;
     try{
       const _inv=JSON.parse(localStorage.getItem('coachMacroInvite')||'null');
       if(_inv&&(Date.now()-(_inv.savedAt||0))<7*86400000){
         finalProf.freeWeeksApplied=true;
-        finalProf.trialEndsAt=new Date(Date.now()+14*86400000).toISOString();
         finalProf.inviteCode=_inv.code||'';
         _inviteToken=_inv.token||null;
         localStorage.removeItem('coachMacroInvite');
       }
     }catch{}
+    // Give every new user a 14-day trial (invite users already have one set)
+    if(!finalProf.trialEndsAt){
+      finalProf.trialEndsAt=new Date(Date.now()+14*86400000).toISOString();
+      finalProf.trialStartAt=new Date().toISOString();
+    }
 
     // Use user-selected days from day picker, or fall back to auto-assign from freq
     let sch;
@@ -613,7 +617,10 @@ export default function CoachMacro() {
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       if(event==="SIGNED_IN"&&session?.user) handleAuth(session.user, null);
     });
-    return()=>subscription.unsubscribe();
+    // Trial/subscription expired — show paywall from anywhere in the app
+    const onSubRequired=()=>setPhase("paywall");
+    window.addEventListener("cm:subscription-required",onSubRequired);
+    return()=>{subscription.unsubscribe();window.removeEventListener("cm:subscription-required",onSubRequired);};
   },[]);
 
   useEffect(()=>{
@@ -681,10 +688,10 @@ export default function CoachMacro() {
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,fontStyle:"italic",color:T.carb,textTransform:"uppercase"}}>{cFocus}</div>
             <div style={{fontSize:12,color:T.mu,marginTop:4,lineHeight:1.5,fontFamily:"'Barlow',sans-serif"}}>{FOCUS_MUSCLES[cFocus]||"Full body movement — every major muscle pattern covered."}</div>
           </div>
-          {profile?.freeWeeksApplied&&<div style={{background:"rgba(0,230,118,0.06)",border:"1.5px solid rgba(0,230,118,0.25)",borderRadius:18,padding:"16px 24px",marginBottom:16,textAlign:"center"}}>
+          {profile?.trialEndsAt&&<div style={{background:"rgba(0,230,118,0.06)",border:"1.5px solid rgba(0,230,118,0.25)",borderRadius:18,padding:"16px 24px",marginBottom:16,textAlign:"center"}}>
             <div style={{fontSize:28,marginBottom:6}}>🎁</div>
-            <div style={{fontSize:10,color:"#00E676",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontFamily:"'DM Mono',monospace"}}>2 Weeks Free Applied</div>
-            <div style={{fontSize:13,color:T.mu,lineHeight:1.6}}>Enjoy Coach Macro on us — your trial ends {new Date(profile.trialEndsAt).toLocaleDateString("en-US",{month:"long",day:"numeric"})}.</div>
+            <div style={{fontSize:10,color:"#00E676",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontFamily:"'DM Mono',monospace"}}>2-Week Free Trial</div>
+            <div style={{fontSize:13,color:T.mu,lineHeight:1.6}}>Full AI access included — trial ends {new Date(profile.trialEndsAt).toLocaleDateString("en-US",{month:"long",day:"numeric"})}.</div>
           </div>}
           <button onClick={()=>setPhase("promo")} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,border:"none",borderRadius:14,fontWeight:700,fontSize:16,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,minHeight:52}}>
             Let's Go →

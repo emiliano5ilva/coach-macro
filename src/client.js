@@ -22,6 +22,10 @@ export async function ai(prompt, max = 900, feature = "default") {
   const text = await response.text();
   console.log('Raw response:', text.slice(0, 300));
   const d = JSON.parse(text);
+  if (response.status === 402) {
+    window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));
+    throw new Error(d.message || "Subscription required");
+  }
   if (!response.ok || d.type === "error") {
     const msg = d.error?.message || d.error || JSON.stringify(d);
     console.error("[ai] API error:", msg);

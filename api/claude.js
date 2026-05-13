@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { checkRateLimit } from './middleware/rateLimit.js';
 
 const SAFETY_SYSTEM_PROMPT = `You are Coach Macro's AI fitness and nutrition assistant. Always follow these non-negotiable safety rules:
 
@@ -13,19 +12,35 @@ MEDICAL CONDITIONS: Heart condition or hypertension — moderate intensity only,
 
 LANGUAGE: Never say "no pain no gain", "push through the pain", or "pain is weakness". Always use "listen to your body" and "train smart". Never diagnose conditions or recommend stopping medications. When safety is uncertain, recommend consulting a healthcare professional.`;
 
+// Max tokens per request per feature
 const TOKEN_LIMITS = {
   restaurant_ai:   { input: 800, output: 600 },
   adapt_now:       { input: 600, output: 500 },
   morning_brief:   { input: 400, output: 250 },
   meal_suggestion: { input: 300, output: 200 },
+  food_suggestion: { input: 300, output: 200 },
   meal_prep:       { input: 500, output: 800 },
   default:         { input: 500, output: 400 },
 };
 
-const MONTHLY_TOKEN_BUDGET = {
-  free: 50000,
-  pro:  500000,
+// Anti-abuse hourly limits per feature — real users never hit these
+const FEATURE_HOURLY_LIMITS = {
+  restaurant_ai:   10,
+  adapt_now:       5,
+  morning_brief:   3,
+  food_suggestion: 30,
+  default:         60,
 };
+
+// Single monthly budget for all trial/pro users
+// Heavy user ~38,900/month — 80k gives 2x headroom (~$0.38/user/month)
+const MONTHLY_TOKEN_BUDGET = 80000;
+
+function getFirstOfNextMonth() {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1, 1);
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
 
 function truncateToTokenLimit(messages, maxInputTokens) {
   const maxChars = maxInputTokens * 4;
@@ -40,118 +55,136 @@ function truncateToTokenLimit(messages, maxInputTokens) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id, x-is-pro');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) { res.status(500).json({ error: 'API key not configured' }); return; }
-
-  // ── Rate limit ──────────────────────────────────────────────────────────────
-  const rateCheck = await checkRateLimit(req, '/api/claude');
-  res.setHeader('X-RateLimit-Limit',     rateCheck.limit);
-  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
-  if (!rateCheck.allowed) {
-    return res.status(429).json({
-      error: 'Too many requests',
-      message: 'You have exceeded the request limit. Please wait before trying again.',
-      resetIn: Math.ceil(rateCheck.resetIn || 3600),
-      limit: rateCheck.limit,
-      upgradeMessage: 'Upgrade to Pro for 10x higher limits',
-    });
-  }
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicKey) { res.status(500).json({ error: 'API key not configured' }); return; }
 
   const userId  = req.headers['x-user-id'] || null;
-  let isPro     = req.headers['x-is-pro'] === 'true';
   const feature = req.body?.feature || 'default';
   const limits  = TOKEN_LIMITS[feature] || TOKEN_LIMITS.default;
 
-  // ── Token budget ─────────────────────────────────────────────────────────────
-  let sb = null;
-  if (userId && process.env.SUPABASE_SERVICE_KEY) {
-    sb = createClient(
-      'https://oxxihlwqukbakmnnavuy.supabase.co',
-      process.env.SUPABASE_SERVICE_KEY
-    );
-
-    // Look up pro status from profile (authoritative source)
-    const { data: profile } = await sb.from('profiles')
-      .select('is_pro')
-      .eq('id', userId)
-      .maybeSingle();
-    if (profile?.is_pro) isPro = true;
-
-    const thisMonth = new Date().toISOString().slice(0, 7);
-    const { data: usageRow } = await sb.from('token_usage')
-      .select('tokens_used')
-      .eq('user_id', userId)
-      .eq('month', thisMonth)
-      .maybeSingle();
-
-    const used   = usageRow?.tokens_used || 0;
-    const budget = isPro ? MONTHLY_TOKEN_BUDGET.pro : MONTHLY_TOKEN_BUDGET.free;
-
-    if (used >= budget) {
-      const resetDate = new Date();
-      resetDate.setMonth(resetDate.getMonth() + 1, 1);
-      const resetsIn = resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      return res.status(429).json({
-        error: 'Monthly AI limit reached',
-        message: isPro
-          ? `You have reached your monthly AI limit. It resets on ${resetsIn}.`
-          : 'You have reached your free AI limit. Upgrade to Pro for 10x more AI features.',
-        used,
-        budget,
-        resetsIn,
-        upgradeUrl: 'coach-macro.com/pro',
-      });
-    }
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required', reason: 'unauthenticated' });
   }
 
-  // ── Call Anthropic ──────────────────────────────────────────────────────────
+  const sb = createClient(
+    'https://oxxihlwqukbakmnnavuy.supabase.co',
+    process.env.SUPABASE_SERVICE_KEY
+  );
+
+  // ── 1. Subscription check ──────────────────────────────────────────────────
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('is_pro, profile_data')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const now         = new Date();
+  const trialEndsAt = profile?.profile_data?.trialEndsAt;
+  const trialActive = trialEndsAt && new Date(trialEndsAt) > now;
+  const isPro       = profile?.is_pro === true;
+
+  if (!isPro && !trialActive) {
+    return res.status(402).json({
+      error:        'Subscription required',
+      reason:       'subscription_required',
+      message:      trialEndsAt
+        ? 'Your free trial has ended. Upgrade to Pro to continue using AI features.'
+        : 'Upgrade to Pro to access AI features.',
+      trialExpired: !!trialEndsAt,
+    });
+  }
+
+  // ── 2. Per-feature hourly rate limit (anti-abuse only) ────────────────────
+  const hourlyLimit = FEATURE_HOURLY_LIMITS[feature] || FEATURE_HOURLY_LIMITS.default;
+  const windowStart = Math.floor(Date.now() / 3600000);
+  const rateKey     = `claude_${feature}_${userId}_${windowStart}`;
+
+  try {
+    const { data: rateRow } = await sb
+      .from('rate_limits')
+      .select('count')
+      .eq('key', rateKey)
+      .maybeSingle();
+
+    if (rateRow && rateRow.count >= hourlyLimit) {
+      return res.status(429).json({
+        error:   'Rate limit exceeded',
+        reason:  'rate_limit',
+        message: "You're using AI features very quickly. Wait a few minutes and try again.",
+        resetIn: 3600 - (Math.floor(Date.now() / 1000) % 3600),
+      });
+    }
+
+    await sb.from('rate_limits').upsert({
+      key:          rateKey,
+      count:        (rateRow?.count || 0) + 1,
+      window_start: windowStart,
+      expires_at:   new Date((windowStart + 1) * 3600000).toISOString(),
+    }, { onConflict: 'key' });
+  } catch {
+    // If rate limit DB is down, allow the request rather than blocking the user
+  }
+
+  // ── 3. Monthly token budget ────────────────────────────────────────────────
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const { data: usageRow } = await sb
+    .from('token_usage')
+    .select('tokens_used')
+    .eq('user_id', userId)
+    .eq('month', thisMonth)
+    .maybeSingle();
+
+  const tokensUsedSoFar = usageRow?.tokens_used || 0;
+  if (tokensUsedSoFar >= MONTHLY_TOKEN_BUDGET) {
+    return res.status(429).json({
+      error:     'Monthly AI limit reached',
+      reason:    'monthly_limit',
+      message:   "You've reached your monthly AI limit. It resets on the 1st.",
+      resetDate: getFirstOfNextMonth(),
+      used:      tokensUsedSoFar,
+      budget:    MONTHLY_TOKEN_BUDGET,
+    });
+  }
+
+  // ── 4. Call Anthropic ──────────────────────────────────────────────────────
   try {
     const { feature: _f, ...bodyRest } = req.body;
     const messages = truncateToTokenLimit(bodyRest.messages || [], limits.input);
 
-    const payload = {
-      ...bodyRest,
-      messages,
-      system: SAFETY_SYSTEM_PROMPT,
-      max_tokens: limits.output,
-    };
-
     const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
+      method:  'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
+        'Content-Type':    'application/json',
+        'x-api-key':       anthropicKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...bodyRest,
+        messages,
+        system:     SAFETY_SYSTEM_PROMPT,
+        max_tokens: limits.output,
+      }),
     });
 
     const d = await r.json();
 
-    // ── Track token usage ─────────────────────────────────────────────────────
-    if (sb && userId && r.ok && d.usage) {
+    // ── 5. Track token usage ─────────────────────────────────────────────────
+    if (r.ok && d.usage) {
       const tokensUsed = (d.usage.input_tokens || 0) + (d.usage.output_tokens || 0);
-      const thisMonth  = new Date().toISOString().slice(0, 7);
-      const { data: currentRow } = await sb.from('token_usage')
-        .select('tokens_used')
-        .eq('user_id', userId)
-        .eq('month', thisMonth)
-        .maybeSingle();
-
       await sb.from('token_usage').upsert({
         user_id:      userId,
         month:        thisMonth,
-        tokens_used:  (currentRow?.tokens_used || 0) + tokensUsed,
+        tokens_used:  tokensUsedSoFar + tokensUsed,
         last_feature: feature,
         updated_at:   new Date().toISOString(),
       }, { onConflict: 'user_id,month' });
     }
 
     res.status(r.status).json(d);
-  } catch (e) {
+  } catch {
     res.status(500).json({ error: 'AI error' });
   }
 }
