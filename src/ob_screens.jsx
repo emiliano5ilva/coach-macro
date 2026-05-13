@@ -111,19 +111,28 @@ export function Onboarding({onComplete, user, signupName}) {
         </div>}
 
         {/* ── SCREEN 1 — Apple Health ── */}
-        {sc===1&&<div style={{animation:"fadeIn 0.25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 1</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Let's start strong, {d.name}.</div>
-          <p style={{fontSize:13,color:T.mu,lineHeight:1.65,marginBottom:20}}>Connect Apple Health and your plan is accurate from day one — real steps, real sleep, real workouts feeding into your macros automatically.</p>
-          <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"24px",textAlign:"center",marginBottom:14}}>
-            <div style={{fontSize:44,marginBottom:8}}>🍎</div>
-            <div style={{fontSize:17,fontWeight:700,marginBottom:5}}>Apple Health</div>
-            <p style={{fontSize:12,color:T.mu,marginBottom:18,lineHeight:1.6}}>Workouts · Steps · Sleep · Heart Rate</p>
-            <button onClick={()=>{upd("healthConn",true);setTimeout(next,280);}} style={{width:"100%",padding:"14px",background:T.prot,color:"#fff",fontWeight:700,fontSize:14,letterSpacing:1,border:"none",borderRadius:10,cursor:"pointer",textTransform:"uppercase",fontFamily:"inherit"}}>Allow Apple Health →</button>
-          </div>
-          <button onClick={next} style={{width:"100%",padding:"12px",background:"none",color:T.mu,fontWeight:500,fontSize:13,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit"}}>Skip for now</button>
-          <FactCard emoji="📊" stat="Athletes who sync devices see 23% better adherence" text="Real data makes your plan real. Step counts, burned calories, and sleep quality all feed directly into your daily macro targets." color={T.prot}/>
-        </div>}
+        {sc===1&&(()=>{
+          const isNative=typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()===true;
+          return <div style={{animation:"fadeIn 0.25s ease"}}>
+            <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 1</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Let's start strong, {d.name}.</div>
+            {isNative
+              ? <p style={{fontSize:13,color:T.mu,lineHeight:1.65,marginBottom:20}}>Connect Apple Health and your plan is accurate from day one — real steps, real sleep, real workouts feeding into your macros automatically.</p>
+              : <p style={{fontSize:13,color:T.mu,lineHeight:1.65,marginBottom:20}}>After setup, download the iOS app to connect Apple Health — real sleep, steps, and HRV will automatically personalize your targets.</p>
+            }
+            <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"24px",textAlign:"center",marginBottom:14}}>
+              <div style={{fontSize:44,marginBottom:8}}>🍎</div>
+              <div style={{fontSize:17,fontWeight:700,marginBottom:5}}>Apple Health</div>
+              <p style={{fontSize:12,color:T.mu,marginBottom:18,lineHeight:1.6}}>Workouts · Steps · Sleep · Heart Rate</p>
+              {isNative
+                ? <button onClick={()=>{upd("healthConn",true);setTimeout(next,280);}} style={{width:"100%",padding:"14px",background:T.prot,color:"#fff",fontWeight:700,fontSize:14,letterSpacing:1,border:"none",borderRadius:10,cursor:"pointer",textTransform:"uppercase",fontFamily:"inherit"}}>Allow Apple Health →</button>
+                : <div style={{padding:"12px",background:"rgba(245,245,240,0.04)",borderRadius:10,fontSize:12,color:T.mu,lineHeight:1.5}}>Available on the iPhone app — connect after downloading.</div>
+              }
+            </div>
+            <button onClick={next} style={{width:"100%",padding:"12px",background:"none",color:T.mu,fontWeight:500,fontSize:13,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit"}}>{isNative?"Skip for now":"Continue"}</button>
+            <FactCard emoji="📊" stat="Athletes who sync devices see 23% better adherence" text="Real data makes your plan real. Step counts, burned calories, and sleep quality all feed directly into your daily macro targets." color={T.prot}/>
+          </div>;
+        })()}
 
         {/* ── SCREEN 2 — Sex ── */}
         {sc===2&&<div style={{animation:"fadeIn 0.25s ease"}}>

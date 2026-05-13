@@ -1346,18 +1346,15 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   useEffect(()=>{
     const isNative=typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()===true;
     async function loadHealth(){
-      if(isNative){
-        const authorized=await checkAppleHealthAuthorized();
-        if(!authorized){
-          if(healthDismissCount.current<3)setShowHealthModal(true);
-          return;
-        }
-        setHealthConnected(true);
-        const snap=await getDailyHealthSnapshot();
-        setHealthSnap(snap);
-      } else {
+      if(!isNative) return; // Apple Health is iOS only — never prompt on web
+      const authorized=await checkAppleHealthAuthorized();
+      if(!authorized){
         if(healthDismissCount.current<3)setShowHealthModal(true);
+        return;
       }
+      setHealthConnected(true);
+      const snap=await getDailyHealthSnapshot();
+      setHealthSnap(snap);
     }
     loadHealth();
   },[]);
