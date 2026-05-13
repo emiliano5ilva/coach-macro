@@ -13,7 +13,8 @@ import { FuelSection } from "./fuel.jsx";
 import { sb, ai } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
-import { getDayType, getDayTypeNutrition, getWeekNutrition } from "./utils/dayTypeNutrition.js";
+import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
+import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
 
@@ -488,6 +489,18 @@ function DeloadActiveBadge({daysLeft, onComplete}) {
       {daysLeft<=0&&<button onClick={onComplete} style={{padding:"8px 14px",background:"var(--green,#22c55e)",border:"none",borderRadius:8,color:"#000",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Resume →</button>}
     </div>
   );
+}
+
+// ─── HYDRATION BONUS ─────────────────────────────────────────────────────────
+
+function getHydrationBonus(loggedOz, targetOz) {
+  if (!loggedOz || !targetOz) return 0;
+  const pct = loggedOz / targetOz;
+  if (pct >= 1.0)  return 3;
+  if (pct >= 0.75) return 1;
+  if (pct >= 0.5)  return 0;
+  if (pct >= 0.25) return -1;
+  return -3;
 }
 
 // ─── COACH MACRO SCORE ────────────────────────────────────────────────────────
@@ -1288,6 +1301,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [activeMilestone,setActiveMilestone]=useState(null);
   const [showScoreModal,setShowScoreModal]=useState(false);
   const [dismissedWarnings,setDismissedWarnings]=useState(()=>{try{return JSON.parse(localStorage.getItem("dismissed_score_warnings")||"{}");}catch{return{};}});
+  const [waterLogs,setWaterLogs]=useState([]);
+  const [waterHistory,setWaterHistory]=useState([]);
   const [comebackDismissed,setComebackDismissed]=useState(()=>localStorage.getItem("comeback_dismissed")===new Date().toISOString().split("T")[0]);
   const [planMode,setPlanMode]=useState("strength");
   const [runPlan,setRunPlan]=useState(()=>wPrefs?.runPlan||"Couch to 5K");
@@ -1399,6 +1414,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         setHistory(hist);
       }
     });
+    // Water logs
+    getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[]));
+    getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[]));
   },[user]);
 
   // ── Morning Brief ───────────────────────────────────────────────────────────
@@ -1507,6 +1525,22 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   }
   const consumed=log.reduce((a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fat:a.fat+i.fat}),{calories:0,protein:0,carbs:0,fat:0});
   const remaining={calories:macros.calories-consumed.calories,protein:macros.protein-consumed.protein,carbs:macros.carbs-consumed.carbs,fat:macros.fat-consumed.fat};
+
+  // ── Water tracking ──────────────────────────────────────────────────────────
+  const waterTarget=getDailyWaterTarget(_profileWithDeload,todayDayType);
+  const waterLoggedOz=waterLogs.reduce((s,l)=>s+Number(l.amount_oz),0);
+  const hydrationBonus=getHydrationBonus(waterLoggedOz,waterTarget);
+
+  async function handleAddWater(oz){
+    const today=new Date().toISOString().split("T")[0];
+    const log2=await addWaterLog(user.id,oz,today);
+    if(log2)setWaterLogs(prev=>[...prev,log2]);
+  }
+  async function handleDeleteWater(id){
+    await deleteWaterLog(id);
+    setWaterLogs(prev=>prev.filter(l=>l.id!==id));
+  }
+
   // ── Comeback Protocol ────────────────────────────────────────────────────────
   const lastWorkoutDate=workoutLogsRaw.length>0?workoutLogsRaw[0].date:null;
   const daysSinceWorkout=lastWorkoutDate?Math.floor((new Date()-new Date(lastWorkoutDate+"T12:00:00"))/86400000):null;
@@ -1830,10 +1864,12 @@ Rules:
   },[deloadActive,deloadStartedAt]);
 
   // ── Coach Macro Score ──────────────────────────────────────────────────────
-  const coachScore = useMemo(()=>calcCoachScore({
-    profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType,healthSnap
+  const coachScore = useMemo(()=>{
+    const sc=calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType,healthSnap});
+    const bonusedTotal=Math.max(0,Math.min(100,sc.total+hydrationBonus));
+    return {...sc,total:bonusedTotal,hydrationBonus};
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }),[log.length,workoutLogsRaw.length,todayKey,todayType,profile?.sleep,schedule,healthSnap]);
+  },[log.length,workoutLogsRaw.length,todayKey,todayType,profile?.sleep,schedule,healthSnap,hydrationBonus]);
 
   useEffect(()=>{
     if(!user||!coachScore) return;
@@ -2271,11 +2307,13 @@ Rules:
       }
       return out;
     })();
+    const hydPct=Math.min(100,Math.round((waterLoggedOz/Math.max(1,waterTarget))*100));
     const components=[
       {label:"Recovery",   val:sc.r, color:"#2979FF"},
       {label:"Nutrition",  val:sc.n, color:"#22c55e"},
       {label:"Training",   val:sc.t, color:"var(--red)"},
       {label:"Consistency",val:sc.c, color:"#EAB308"},
+      {label:"Hydration",  val:hydPct, color:"#06B6D4", suffix:` (${hydrationBonus>=0?"+":""}${hydrationBonus}pts)`},
     ];
 
     // ── Active warnings (filter dismissed, max 2, danger first) ──────────────
@@ -2369,11 +2407,11 @@ Rules:
 
           {/* Component bars */}
           <div style={{marginTop:20,textAlign:"left"}}>
-            {components.map(({label,val,color})=>(
+            {components.map(({label,val,color,suffix})=>(
               <div key={label} style={{marginBottom:10}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                  <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{label}</span>
-                  <span style={{fontFamily:"var(--mono)",fontSize:11,color:val>=70?"#fff":"#EF4444",fontWeight:600}}>{val}</span>
+                  <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{label}{suffix&&<span style={{color:"rgba(245,245,240,0.3)",fontSize:9,marginLeft:4}}>{suffix}</span>}</span>
+                  <span style={{fontFamily:"var(--mono)",fontSize:11,color:val>=70?"#fff":"#EF4444",fontWeight:600}}>{val}%</span>
                 </div>
                 <div style={{height:5,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
                   <div style={{height:"100%",width:`${val}%`,background:color,borderRadius:3,transition:"width 0.7s ease"}}/>
@@ -2468,6 +2506,36 @@ Rules:
             })}
           </div>
         </div>
+
+        {/* ── WATER HISTORY ── */}
+        {waterHistory.length>0&&(()=>{
+          const maxOz=Math.max(...waterHistory.map(d=>d.oz),waterTarget||80);
+          return(
+            <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase"}}>Hydration — 7 Days</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#06B6D4"}}>Target: {waterTarget} oz</div>
+              </div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:6,height:60}}>
+                {waterHistory.map((entry,i)=>{
+                  const h=Math.max(4,Math.round((entry.oz/maxOz)*60));
+                  const pctOfTarget=entry.oz/Math.max(1,waterTarget);
+                  const c=pctOfTarget>=1?"#22c55e":pctOfTarget>=0.75?"#06B6D4":pctOfTarget>=0.5?"#EAB308":"#EF4444";
+                  const dow=new Date(entry.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"}).slice(0,2);
+                  const isToday2=entry.date===todayStr;
+                  return(
+                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                      <div style={{width:"100%",height:h,background:c,borderRadius:3,border:isToday2?`1px solid ${c}`:"none",boxShadow:isToday2?`0 0 6px ${c}80`:"none"}}/>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",lineHeight:1}}>{Math.round(entry.oz)}</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:isToday2?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.2)",lineHeight:1}}>{dow}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {waterTarget>0&&<div style={{height:1,background:"rgba(6,182,212,0.2)",borderRadius:1,marginTop:4,position:"relative"}}><div style={{position:"absolute",right:0,top:-9,fontFamily:"var(--mono)",fontSize:7,color:"rgba(6,182,212,0.5)"}}>goal</div></div>}
+            </div>
+          );
+        })()}
 
         {/* ── WEEKLY NUTRITION CALENDAR ── */}
         {(()=>{
@@ -2568,7 +2636,7 @@ Rules:
       <div className="app-screen grid-bg">
         {section==="home"&&<HomeSection/>}
         {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime}/>}
-        {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros}/>}
+        {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater}/>}
         {section==="progress"&&<ProgressSection/>}
         {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}
       </div>

@@ -521,3 +521,47 @@ export const searchCustomFoods = async (userId, query) => {
     return [];
   }
 };
+
+export const getWaterLogs = async (userId, date) => {
+  try {
+    const { data } = await sb.from("water_logs")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("date", date)
+      .order("logged_at", { ascending: true });
+    return data || [];
+  } catch { return []; }
+};
+
+export const addWaterLog = async (userId, amountOz, date) => {
+  try {
+    const { data, error } = await sb.from("water_logs")
+      .insert({ user_id: userId, date, amount_oz: amountOz })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch { return null; }
+};
+
+export const deleteWaterLog = async (logId) => {
+  try {
+    await sb.from("water_logs").delete().eq("id", logId);
+    return true;
+  } catch { return false; }
+};
+
+export const getWaterHistory = async (userId, days = 7) => {
+  try {
+    const cutoff = new Date(Date.now() - days * 864e5).toISOString().split("T")[0];
+    const { data } = await sb.from("water_logs")
+      .select("date, amount_oz")
+      .eq("user_id", userId)
+      .gte("date", cutoff)
+      .order("date", { ascending: true });
+    if (!data) return [];
+    const byDate = {};
+    data.forEach(r => { byDate[r.date] = (byDate[r.date] || 0) + Number(r.amount_oz); });
+    return Object.entries(byDate).map(([date, oz]) => ({ date, oz: Math.round(oz * 10) / 10 }));
+  } catch { return []; }
+};

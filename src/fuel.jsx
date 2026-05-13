@@ -12,6 +12,7 @@ import {
   saveCustomFood, getSmartServings, QUICK_FOODS,
   updateUsualPortion, getMealTemplates, saveMealTemplate, deleteMealTemplate, incrementTemplateUse,
   getUserRecipes, saveUserRecipe, updateUserRecipe, deleteUserRecipe, incrementRecipeUse,
+  addWaterLog, deleteWaterLog,
 } from "./services/foodDatabase.js";
 
 const MEAL_SLOT_DEFS = {
@@ -680,6 +681,104 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
   );
 }
 
+function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottleSize=16, isMobile}) {
+  const [showCustom, setShowCustom] = useState(false);
+  const [customOz, setCustomOz] = useState("");
+  const [longPressId, setLongPressId] = useState(null);
+  const pressTimer = useRef(null);
+
+  const totalOz = waterLogs.reduce((s, l) => s + Number(l.amount_oz), 0);
+  const pct = Math.min(1, totalOz / Math.max(1, waterTarget));
+  const drops = 8;
+  const filledDrops = Math.round(pct * drops);
+  const ozLeft = Math.max(0, waterTarget - totalOz);
+
+  function startPress(id) {
+    pressTimer.current = setTimeout(() => setLongPressId(id), 500);
+  }
+  function endPress() { clearTimeout(pressTimer.current); }
+
+  async function handleQuickAdd(oz) {
+    await onAddWater(oz);
+  }
+
+  async function handleCustom() {
+    const oz = parseFloat(customOz);
+    if (!oz || oz <= 0) return;
+    await onAddWater(oz);
+    setCustomOz("");
+    setShowCustom(false);
+  }
+
+  const lastFive = [...waterLogs].slice(-5).reverse();
+
+  return (
+    <div style={{background:"linear-gradient(135deg,rgba(41,121,255,0.1),rgba(41,121,255,0.04))",border:"1px solid rgba(41,121,255,0.2)",borderRadius:16,padding:"16px 18px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(41,121,255,0.9)",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
+      </div>
+
+      {/* 8-drop visual */}
+      <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:12}}>
+        {Array.from({length:drops}).map((_,i)=>(
+          <div key={i} style={{fontSize:22,filter:i<filledDrops?"none":"grayscale(1) opacity(0.2)",transition:"filter 0.3s"}}>💧</div>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{height:4,background:"rgba(41,121,255,0.12)",borderRadius:2,overflow:"hidden",marginBottom:14}}>
+        <div style={{height:"100%",width:`${pct*100}%`,background:"#2979FF",borderRadius:2,transition:"width 0.4s ease"}}/>
+      </div>
+
+      {/* Quick-add buttons */}
+      <div style={{display:"flex",gap:8,marginBottom:10}}>
+        <button onClick={()=>handleQuickAdd(bottleSize)} style={{flex:1,padding:"9px 0",background:"rgba(41,121,255,0.15)",border:"1px solid rgba(41,121,255,0.3)",borderRadius:10,color:"#2979FF",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+{bottleSize} oz</button>
+        <button onClick={()=>handleQuickAdd(8)} style={{flex:1,padding:"9px 0",background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.18)",borderRadius:10,color:"rgba(41,121,255,0.8)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+8 oz</button>
+        <button onClick={()=>setShowCustom(v=>!v)} style={{flex:1,padding:"9px 0",background:"none",border:"1px dashed rgba(41,121,255,0.25)",borderRadius:10,color:"rgba(41,121,255,0.6)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Custom</button>
+      </div>
+
+      {showCustom&&(
+        <div style={{display:"flex",gap:8,marginBottom:10}}>
+          <input type="number" value={customOz} onChange={e=>setCustomOz(e.target.value)} placeholder="oz" min={1} max={128}
+            style={{flex:1,background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.25)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"'DM Mono',monospace",outline:"none"}}/>
+          <button onClick={handleCustom} style={{padding:"8px 18px",background:"#2979FF",border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
+        </div>
+      )}
+
+      {/* Recent logs with long-press to delete */}
+      {lastFive.length>0&&(
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+          {lastFive.map(log=>(
+            <div key={log.id} onPointerDown={()=>startPress(log.id)} onPointerUp={()=>endPress()} onPointerLeave={()=>endPress()}
+              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(41,121,255,0.06)",borderRadius:8,position:"relative"}}>
+              <div style={{fontSize:11,color:"rgba(245,245,240,0.5)",fontFamily:"'DM Mono',monospace"}}>
+                {new Date(log.logged_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+              </div>
+              <div style={{fontSize:11,color:"rgba(41,121,255,0.9)",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>+{log.amount_oz} oz</div>
+              {longPressId===log.id&&(
+                <div style={{position:"absolute",right:0,top:-2,zIndex:10,display:"flex",gap:6}}>
+                  <button onClick={()=>{onDeleteWater(log.id);setLongPressId(null);}}
+                    style={{padding:"5px 10px",background:"#EF4444",border:"none",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+                  <button onClick={()=>setLongPressId(null)}
+                    style={{padding:"5px 10px",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:8,color:"rgba(245,245,240,0.5)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {totalOz>=waterTarget&&(
+        <div style={{textAlign:"center",marginTop:10,fontSize:12,color:"#22c55e",fontWeight:700}}>✓ Daily water goal met! 💪</div>
+      )}
+      {totalOz>0&&totalOz<waterTarget&&(
+        <div style={{textAlign:"center",marginTop:8,fontSize:11,color:"rgba(245,245,240,0.4)"}}>{Math.round(ozLeft)} oz to go</div>
+      )}
+    </div>
+  );
+}
+
 function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotIdx,addMealSlot,setFuelScreen,isMobile}){
   const [query,setQuery]=useState("");
   const [results,setResults]=useState([]);
@@ -917,7 +1016,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -1647,6 +1746,18 @@ Reply with ONLY a valid JSON object, no markdown:
                 <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
               </div>
             </button>
+
+            {/* WATER TRACKER */}
+            {waterTarget>0&&(
+              <WaterTracker
+                waterLogs={waterLogs||[]}
+                waterTarget={waterTarget}
+                onAddWater={onAddWater}
+                onDeleteWater={onDeleteWater}
+                bottleSize={profile?.water_bottle_size||16}
+                isMobile={isMobile}
+              />
+            )}
 
             {/* FOOD LOG — grouped by meal slots */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>

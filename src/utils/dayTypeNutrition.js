@@ -429,6 +429,27 @@ export function getDayTypeNutrition(baseCals, bodyweightKg, dayType, profile = {
   };
 }
 
+const TRAINING_DAY_TYPES = [
+  'heavy_lower','heavy_upper','hypertrophy',
+  'long_run','tempo_run','interval_run',
+  'hyrox_station','hyrox_race','hybrid',
+];
+
+export function getDailyWaterTarget(profile, dayType) {
+  const wLbs = profile?.wUnit === 'kg'
+    ? (parseFloat(profile?.weight || 70) * 2.205)
+    : parseFloat(profile?.weight || 160);
+  let oz = Math.round(wLbs * 0.67);
+  if (TRAINING_DAY_TYPES.includes(dayType)) oz += 16;
+  else if (['easy_run','active_recovery'].includes(dayType)) oz += 8;
+  if (profile?.sex === 'female') {
+    if (profile?.isPregnant) oz += 10;
+    if (profile?.isBreastfeeding) oz += 13;
+  }
+  if (profile?.hot_weather_mode) oz += 16;
+  return Math.round(oz);
+}
+
 export function getWeekNutrition(schedule, baseCals, bodyweightKg, profile) {
   const WDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   return WDAYS.map(day => {
