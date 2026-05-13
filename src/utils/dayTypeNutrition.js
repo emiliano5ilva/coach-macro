@@ -1,3 +1,5 @@
+import { getCyclePhase } from './ait.js';
+
 export const DAY_TYPES = {
   HEAVY_LOWER:     'heavy_lower',
   HEAVY_UPPER:     'heavy_upper',
@@ -7,8 +9,11 @@ export const DAY_TYPES = {
   EASY_RUN:        'easy_run',
   INTERVAL_RUN:    'interval_run',
   HYROX_STATION:   'hyrox_station',
+  HYROX_RACE:      'hyrox_race',
   HYBRID_LIFT_RUN: 'hybrid',
   ACTIVE_RECOVERY: 'active_recovery',
+  DELOAD:          'deload',
+  SICK:            'sick',
   REST:            'rest',
 };
 
@@ -19,24 +24,32 @@ const LOWER_BODY_EXERCISES = [
 ];
 
 export function getDayType(scheduleType, workout, profile = {}) {
+  // Sick overrides everything
+  if (profile.isSick || scheduleType === 'sick') return DAY_TYPES.SICK;
+
   if (!scheduleType || scheduleType === 'rest') return DAY_TYPES.REST;
 
   if (scheduleType === 'active_recovery') return DAY_TYPES.ACTIVE_RECOVERY;
 
   if (scheduleType === 'cardio' || scheduleType === 'run') {
     const distance = workout?.distance || 0;
-    const type = workout?.runType || 'easy';
+    const type     = workout?.runType || 'easy';
     if (type === 'long' || distance > 8) return DAY_TYPES.LONG_RUN;
     if (type === 'tempo')                return DAY_TYPES.TEMPO_RUN;
     if (type === 'interval')             return DAY_TYPES.INTERVAL_RUN;
     return DAY_TYPES.EASY_RUN;
   }
 
-  if (scheduleType === 'hyrox') return DAY_TYPES.HYROX_STATION;
+  if (scheduleType === 'hyrox') {
+    return workout?.isRace ? DAY_TYPES.HYROX_RACE : DAY_TYPES.HYROX_STATION;
+  }
 
   if (scheduleType === 'hybrid') return DAY_TYPES.HYBRID_LIFT_RUN;
 
   if (scheduleType === 'training') {
+    // Deload overrides training-day type classification
+    if (profile.deloadActive) return DAY_TYPES.DELOAD;
+
     const mesocycleWeek = profile.mesocycle_week || 1;
     const rirTarget     = profile.current_rir    || 3;
     const repRange      = workout?.primaryRepRange || workout?.repRange || '8-12';
@@ -45,8 +58,8 @@ export function getDayType(scheduleType, workout, profile = {}) {
     const isHeavy = minReps <= 6 || rirTarget <= 1;
     const isPeak  = mesocycleWeek >= 5;
 
-    const exercises  = workout?.exercises || [];
-    const isLower = exercises.some(e => LOWER_BODY_EXERCISES.includes(e.name));
+    const exercises = workout?.exercises || [];
+    const isLower   = exercises.some(e => LOWER_BODY_EXERCISES.includes(e.name));
 
     if (isPeak || (isHeavy && isLower)) return DAY_TYPES.HEAVY_LOWER;
     if (isHeavy && !isLower)            return DAY_TYPES.HEAVY_UPPER;
@@ -56,14 +69,25 @@ export function getDayType(scheduleType, workout, profile = {}) {
   return DAY_TYPES.REST;
 }
 
-function applyGoalCap(adjustedCalories, baseCals, goal) {
-  const caps = {
-    Cut:      baseCals + 100,
-    Recomp:   baseCals + 150,
-    Maintain: baseCals + 300,
-    Bulk:     baseCals + 400,
+// Floors prevent under-fueling on high-demand days regardless of goal.
+// Caps prevent over-eating on low-demand days during a cut/recomp.
+function applyGoalAdjustment(dayType, baseCals, rawCalories, goal) {
+  const hardFloors = {
+    [DAY_TYPES.LONG_RUN]:       baseCals + 300,
+    [DAY_TYPES.HYROX_RACE]:     baseCals + 500,
+    [DAY_TYPES.HYROX_STATION]:  baseCals + 200,
+    [DAY_TYPES.HYBRID_LIFT_RUN]:baseCals + 150,
   };
-  return Math.min(adjustedCalories, caps[goal] || baseCals + 300);
+  const softCaps = {
+    Cut:      baseCals + 150,
+    Recomp:   baseCals + 200,
+    Maintain: baseCals + 350,
+    Bulk:     baseCals + 500,
+  };
+  const floor = hardFloors[dayType] || 0;
+  const cap   = softCaps[goal] || baseCals + 350;
+  // Floor always beats cap — a runner in a cut still needs fuel
+  return Math.max(floor, Math.min(rawCalories, cap));
 }
 
 const ADJUSTMENTS = {
@@ -72,18 +96,18 @@ const ADJUSTMENTS = {
     label: 'Heavy Leg Day',
     keyInsight: 'Carbs are up today. You need them.',
     reasoning: 'Squats and deadlifts demand maximum fuel. Carbs are high to support intense lower body work and recovery.',
-    preFuel:  'Large carb meal 2–3 hours before. Oats, rice, or sweet potato.',
-    postFuel: '40g protein + 60g fast carbs within 30 minutes.',
+    preFuel:   'Large carb meal 2–3 hours before. Oats, rice, or sweet potato.',
+    postFuel:  '40g protein + 60g fast carbs within 30 minutes.',
     duringFuel: null,
     timing: 'Eat more today — especially carbs.',
     color: '#2979FF',
     timingSlots: [
-      { t: '7:00 AM',   m: 'Breakfast — high carb (oats + banana + eggs)' },
-      { t: '10:00 AM',  m: 'Pre-workout snack — rice cakes or fruit' },
-      { t: '12:00 PM',  m: '🏋️ Train' },
-      { t: '1:30 PM',   m: '✅ Post-workout priority — protein + 60g fast carbs' },
-      { t: '5:00 PM',   m: 'Dinner — balanced, keep carbs moderate' },
-      { t: '8:00 PM',   m: 'Evening snack (optional) — protein focus' },
+      { t: '7:00 AM',  m: 'Breakfast — high carb (oats + banana + eggs)' },
+      { t: '10:00 AM', m: 'Pre-workout snack — rice cakes or fruit' },
+      { t: '12:00 PM', m: '🏋️ Train' },
+      { t: '1:30 PM',  m: '✅ Post-workout priority — protein + 60g fast carbs' },
+      { t: '5:00 PM',  m: 'Dinner — balanced, keep carbs moderate' },
+      { t: '8:00 PM',  m: 'Evening snack (optional) — protein focus' },
     ],
   },
   [DAY_TYPES.HEAVY_UPPER]: {
@@ -91,8 +115,8 @@ const ADJUSTMENTS = {
     label: 'Heavy Upper Day',
     keyInsight: 'Prioritize protein. Moderate carb increase.',
     reasoning: 'Heavy pressing and pulling requires solid fuel but less than leg day.',
-    preFuel:  'Moderate carbs 2 hours before. Bread or rice.',
-    postFuel: '40g protein within 30 minutes.',
+    preFuel:   'Moderate carbs 2 hours before. Bread or rice.',
+    postFuel:  '40g protein within 30 minutes.',
     duringFuel: null,
     timing: 'Standard training day — prioritize protein.',
     color: '#2979FF',
@@ -109,8 +133,8 @@ const ADJUSTMENTS = {
     label: 'Hypertrophy Day',
     keyInsight: 'Volume training needs steady fuel.',
     reasoning: 'Volume training needs fuel but not as much as heavy strength work. Moderate carb increase.',
-    preFuel:  'Light carbs 90 minutes before.',
-    postFuel: 'Protein shake within 30 minutes.',
+    preFuel:   'Light carbs 90 minutes before.',
+    postFuel:  'Protein shake within 30 minutes.',
     duringFuel: null,
     timing: 'Standard training day.',
     color: '#2979FF',
@@ -120,6 +144,21 @@ const ADJUSTMENTS = {
       { t: '12:30 PM', m: '🏋️ Train' },
       { t: '2:00 PM',  m: '✅ Post-workout — protein shake + food' },
       { t: '6:30 PM',  m: 'Dinner' },
+    ],
+  },
+  [DAY_TYPES.DELOAD]: {
+    calOffset: -50, proteinMultiplier: 1.0, carbPercent: 0.40, fatPercent: 0.32,
+    label: 'Deload Week',
+    keyInsight: 'Eat normally. Slightly less carbs.',
+    reasoning: 'Lighter training this week. Slight calorie reduction to manage any surplus from the building phase.',
+    preFuel:   null,
+    postFuel:  null,
+    duringFuel: null,
+    timing: 'Eat normally. Slightly less carbs.',
+    color: '#EAB308',
+    timingSlots: [
+      { t: 'Any time', m: 'Normal meal timing — no special prep needed' },
+      { t: 'Post',     m: 'Light protein meal within an hour' },
     ],
   },
   [DAY_TYPES.LONG_RUN]: {
@@ -146,8 +185,8 @@ const ADJUSTMENTS = {
     label: 'Tempo Run Day',
     keyInsight: 'Higher carbs today. Threshold work burns glycogen.',
     reasoning: 'Threshold work burns significant calories and depletes glycogen. Carb focus.',
-    preFuel:  'Simple carbs 90 min before. Banana or toast.',
-    postFuel: 'Carbs + protein within 30 min.',
+    preFuel:   'Simple carbs 90 min before. Banana or toast.',
+    postFuel:  'Carbs + protein within 30 min.',
     duringFuel: null,
     timing: 'Higher carbs today.',
     color: '#22c55e',
@@ -164,8 +203,8 @@ const ADJUSTMENTS = {
     label: 'Speed Work Day',
     keyInsight: 'Moderate increase. Light meal before intervals.',
     reasoning: 'Intervals are short but intense. Moderate calorie increase with carb focus.',
-    preFuel:  'Light carbs 60–90 min before. Nothing heavy.',
-    postFuel: 'Protein priority post-session.',
+    preFuel:   'Light carbs 60–90 min before. Nothing heavy.',
+    postFuel:  'Protein priority post-session.',
     duringFuel: null,
     timing: 'Moderate increase today.',
     color: '#22c55e',
@@ -182,8 +221,8 @@ const ADJUSTMENTS = {
     label: 'Easy Run Day',
     keyInsight: 'Small increase. No special fueling needed.',
     reasoning: 'Easy runs burn modest calories. Small increase — fat fuels easy activity well.',
-    preFuel:  null,
-    postFuel: 'Normal meal within an hour.',
+    preFuel:   null,
+    postFuel:  'Normal meal within an hour.',
     duringFuel: null,
     timing: 'Slight increase. No special fueling needed.',
     color: '#22c55e',
@@ -193,21 +232,40 @@ const ADJUSTMENTS = {
     ],
   },
   [DAY_TYPES.HYROX_STATION]: {
-    calOffset: 350, proteinMultiplier: 1.05, carbPercent: 0.50, fatPercent: 0.25,
-    label: 'HYROX Day',
+    calOffset: 350, proteinMultiplier: 1.05, carbPercent: 0.52, fatPercent: 0.25,
+    label: 'Hyrox Training Day',
     keyInsight: 'High demand session. Fuel both strength and endurance.',
-    reasoning: 'HYROX combines strength and endurance — high calorie demand across the board.',
-    preFuel:  'Carb-forward meal 2 hours before. No fasting.',
-    postFuel: 'Protein + carbs within 30 minutes.',
+    reasoning: 'Station work combines heavy strength and high-intensity cardio. Both systems need fuel.',
+    preFuel:   'High carb meal 2–3 hours before. Your body needs glycogen for both the runs and the stations.',
+    postFuel:  'Carbs + protein immediately after. Hyrox training depletes both.',
     duringFuel: null,
     timing: 'Higher calories today — balanced macros.',
     color: '#EAB308',
     timingSlots: [
       { t: '7:00 AM',  m: 'High carb breakfast' },
-      { t: '9:30 AM',  m: 'Pre-session snack' },
+      { t: '9:30 AM',  m: 'Pre-session snack — simple carbs' },
       { t: '11:00 AM', m: '🏋️ HYROX session' },
-      { t: '12:30 PM', m: '✅ Post-session — protein + carbs' },
+      { t: '12:30 PM', m: '✅ Post-session — protein + carbs immediately' },
       { t: '6:00 PM',  m: 'Dinner' },
+    ],
+  },
+  [DAY_TYPES.HYROX_RACE]: {
+    calOffset: 600, proteinMultiplier: 0.9, carbPercent: 0.60, fatPercent: 0.20,
+    label: 'RACE DAY 🏆',
+    keyInsight: 'Your highest calorie day of the year. Eat intentionally.',
+    reasoning: 'Race day demands maximum fuel. This is not the day to restrict.',
+    preFuel:   'Carb load the night before AND morning of race. Oats + banana + sports drink. No new foods.',
+    postFuel:  'Eat immediately after finishing. Carbs + protein within 30 minutes.',
+    duringFuel: 'Gel at station 4–5. Electrolytes throughout. Drink at every water station.',
+    timing: 'Your highest calorie day of the year. Eat intentionally.',
+    color: '#EAB308',
+    timingSlots: [
+      { t: 'Night before', m: '🍝 Carb load — pasta, rice, or oats. Keep fat low.' },
+      { t: '5:30 AM',      m: 'Race morning — oats + banana + sports drink' },
+      { t: '7:00 AM',      m: '🏆 Race starts' },
+      { t: 'Station 4–5',  m: '⚡ Gel + electrolytes' },
+      { t: 'Every station',m: 'Water at every water station — no exceptions' },
+      { t: 'Post-race',    m: '✅ Eat immediately — carbs + protein within 30 min' },
     ],
   },
   [DAY_TYPES.HYBRID_LIFT_RUN]: {
@@ -215,8 +273,8 @@ const ADJUSTMENTS = {
     label: 'Hybrid Day',
     keyInsight: "Your highest calorie day. Eat intentionally.",
     reasoning: "Lifting AND running in one day demands significantly more fuel. Don't under-eat today.",
-    preFuel:  'Large carb meal before. Snack between sessions.',
-    postFuel: 'Full meal within 45 minutes.',
+    preFuel:   'Large carb meal before. Snack between sessions.',
+    postFuel:  'Full meal within 45 minutes.',
     duringFuel: null,
     timing: 'Your highest calorie day. Eat intentionally.',
     color: '#9B59FF',
@@ -232,8 +290,8 @@ const ADJUSTMENTS = {
     label: 'Active Recovery Day',
     keyInsight: 'Slightly less today. Protein stays high.',
     reasoning: 'Light movement only. Slightly reduced carbs — fat fuels easy activity well.',
-    preFuel:  null,
-    postFuel: null,
+    preFuel:   null,
+    postFuel:  null,
     duringFuel: null,
     timing: 'Slightly less today. Protein stays high for recovery.',
     color: '#6B7280',
@@ -241,13 +299,29 @@ const ADJUSTMENTS = {
       { t: 'Any time', m: 'Normal meals — protein focus, lower carbs' },
     ],
   },
+  [DAY_TYPES.SICK]: {
+    calOffset: -100, proteinMultiplier: 1.1, carbPercent: 0.42, fatPercent: 0.30,
+    label: 'Recovery Day',
+    keyInsight: 'Eat what you can. Protein and hydration first.',
+    reasoning: 'Illness raises protein needs for immune function. Eat what you can but prioritize protein above all.',
+    preFuel:   null,
+    postFuel:  null,
+    duringFuel: null,
+    timing: 'Appetite may be low. Focus on protein and hydration first.',
+    note: 'Consider resting instead of training. Your immune system needs the energy.',
+    color: '#6B7280',
+    timingSlots: [
+      { t: 'Any time', m: 'Small frequent meals — prioritize protein and fluids' },
+      { t: 'Hydration', m: 'Water, electrolytes, broth — stay hydrated' },
+    ],
+  },
   [DAY_TYPES.REST]: {
     calOffset: -250, proteinMultiplier: 1.0, carbPercent: 0.35, fatPercent: 0.35,
     label: 'Rest Day',
     keyInsight: 'Carbs down, protein stays the same.',
     reasoning: 'No training means lower energy needs. Reduce carbs — protein stays high for muscle repair.',
-    preFuel:  null,
-    postFuel: null,
+    preFuel:   null,
+    postFuel:  null,
     duringFuel: null,
     timing: 'Eat less today — especially carbs. Protein stays the same.',
     color: '#6B7280',
@@ -258,32 +332,100 @@ const ADJUSTMENTS = {
 };
 
 export function getDayTypeNutrition(baseCals, bodyweightKg, dayType, profile = {}) {
-  const adj = ADJUSTMENTS[dayType] || ADJUSTMENTS[DAY_TYPES.REST];
+  // ── Postpartum override ──────────────────────────────────────────────────────
+  if (profile.lifeStage === 'postpartum') {
+    const bfBonus         = profile.breastfeeding ? 500 : 0;
+    const adjustedBase    = baseCals + bfBonus;
+    const postpartumWeeks = profile.postpartumWeeks || 0;
+    let effectiveDayType  = dayType;
+
+    if (postpartumWeeks < 12) {
+      // Phase 1–2: treat all sessions as active recovery
+      effectiveDayType = DAY_TYPES.ACTIVE_RECOVERY;
+    } else if (postpartumWeeks < 24) {
+      // Phase 3: cap at hypertrophy level
+      if (dayType === DAY_TYPES.HEAVY_LOWER || dayType === DAY_TYPES.HEAVY_UPPER) {
+        effectiveDayType = DAY_TYPES.HYPERTROPHY;
+      }
+    }
+
+    const result = getDayTypeNutrition(adjustedBase, bodyweightKg, effectiveDayType, {
+      ...profile,
+      lifeStage: undefined, // prevent infinite recursion
+    });
+    result.postpartumNote = bfBonus > 0
+      ? 'Breastfeeding adds 500 kcal to your daily target.'
+      : postpartumWeeks < 12
+        ? 'Active recovery level training recommended — your body is still healing.'
+        : 'Heavy training capped at hypertrophy level for postpartum recovery.';
+    return result;
+  }
+
+  const adj  = ADJUSTMENTS[dayType] || ADJUSTMENTS[DAY_TYPES.REST];
   const goal = profile.goal || 'Maintain';
 
   const baseProtein = Math.max(120, Math.round(bodyweightKg * 2.2 * adj.proteinMultiplier));
   const rawCalories = baseCals + adj.calOffset;
-  const cappedCalories = applyGoalCap(rawCalories, baseCals, goal);
-  const targetCalories = Math.max(1200, cappedCalories);
+  let   targetCalories = Math.max(1200, applyGoalAdjustment(dayType, baseCals, rawCalories, goal));
+
+  // ── Female cycle interaction ─────────────────────────────────────────────────
+  let cycleNote = null;
+  let ironNote  = null;
+
+  if (profile.sex === 'female' && profile.cycleTracking) {
+    const lastPeriod = profile.lastPeriodDate || profile.lastPeriod;
+    const cycleData  = lastPeriod ? getCyclePhase(lastPeriod) : null;
+    const phase      = cycleData?.phase || profile.cyclePhase;
+
+    if (phase === 'luteal') {
+      // Luteal phase raises metabolism 100–300 kcal
+      targetCalories += 150;
+      if (
+        dayType === DAY_TYPES.HEAVY_LOWER ||
+        dayType === DAY_TYPES.HEAVY_UPPER ||
+        dayType === DAY_TYPES.HYROX_STATION
+      ) {
+        targetCalories += 100;
+        cycleNote = 'Luteal phase raises your metabolism. Combined with heavy training — eat a little more today.';
+      } else {
+        cycleNote = 'Luteal phase raises your metabolism ~150 kcal. This is accounted for today.';
+      }
+    }
+
+    if (phase === 'follicular' && goal === 'Cut') {
+      // Follicular phase — body responds better to a deficit
+      targetCalories -= 50;
+      cycleNote = 'Follicular phase — your body responds well to a deficit right now.';
+    }
+
+    if (phase === 'menstrual') {
+      ironNote = 'Prioritize iron-rich foods today: red meat, lentils, spinach, fortified cereals.';
+    }
+  }
+
+  targetCalories = Math.max(1200, targetCalories);
 
   const carbCalories = targetCalories * adj.carbPercent;
   const fatCalories  = targetCalories * adj.fatPercent;
 
   return {
-    calories: targetCalories,
-    protein:  baseProtein,
-    carbs:    Math.round(carbCalories / 4),
-    fat:      Math.round(fatCalories / 9),
+    calories:    targetCalories,
+    protein:     baseProtein,
+    carbs:       Math.round(carbCalories / 4),
+    fat:         Math.round(fatCalories  / 9),
     dayType,
-    label:      adj.label,
-    keyInsight: adj.keyInsight,
-    reasoning:  adj.reasoning,
-    preFuel:    adj.preFuel   || null,
-    postFuel:   adj.postFuel  || null,
-    duringFuel: adj.duringFuel || null,
-    timing:     adj.timing,
-    color:      adj.color,
+    label:       adj.label,
+    keyInsight:  adj.keyInsight,
+    reasoning:   adj.reasoning,
+    preFuel:     adj.preFuel    || null,
+    postFuel:    adj.postFuel   || null,
+    duringFuel:  adj.duringFuel || null,
+    timing:      adj.timing,
+    note:        adj.note       || null,
+    color:       adj.color,
     timingSlots: adj.timingSlots || [],
+    cycleNote,
+    ironNote,
   };
 }
 

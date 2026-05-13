@@ -1351,9 +1351,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const periodizationInfo=_phase?{phase:_phase.phase,wks:_phase.wks,cycleWeek,note:_phase.note}:null;
 
   // Day-type specific nutrition (uses active workout exercises when available)
-  const todayDayType=getDayType(todayType,activeWorkout,profile);
-  const dayNutrition=getDayTypeNutrition(profile.goalCals||_baseTDEE,_bodyweightKg,todayDayType,profile);
-  const weekMacros=useMemo(()=>getWeekNutrition(schedule,profile.goalCals||_baseTDEE,_bodyweightKg,profile),[schedule,profile.goalCals,_bodyweightKg,profile.goal]);
+  const _profileWithDeload={...profile,deloadActive};
+  const todayDayType=getDayType(todayType,activeWorkout,_profileWithDeload);
+  const dayNutrition=getDayTypeNutrition(profile.goalCals||_baseTDEE,_bodyweightKg,todayDayType,_profileWithDeload);
+  const weekMacros=useMemo(()=>getWeekNutrition(schedule,profile.goalCals||_baseTDEE,_bodyweightKg,_profileWithDeload),[schedule,profile.goalCals,_bodyweightKg,profile.goal,deloadActive]);
 
   let macros;
   if(wPrefs.nutritionPeriodization&&_phase){
