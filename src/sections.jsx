@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
   Badge, getTier, getReferralBadge } from "./components.jsx";
-import { sb } from "./client.js";
+import { sb, ai } from "./client.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
@@ -819,7 +819,259 @@ Rules:
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user}) {
+// ─── WORKOUT COACHING COMPONENTS ─────────────────────────────────────────────
+
+const _p2 = n => String(Math.max(0, Math.floor(n))).padStart(2, "0");
+
+function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, onAdjust }) {
+  if (!restActive || !lls) return null;
+  const total = lls.restSecs || 90;
+  const pct = Math.max(0, Math.min(1, restTimer / total));
+  const R = 64; const C = 2 * Math.PI * R;
+  const ringColor = restTimer > 15 ? "#22c55e" : restTimer > 5 ? "#EAB308" : "#EF4444";
+
+  const badge = lls.isNewPR
+    ? { text: "🔥 PR pace", color: "#EF4444", bg: "rgba(239,68,68,0.12)" }
+    : lls.prevBestWeight != null && parseFloat(lls.weight) >= lls.prevBestWeight
+      ? { text: "✓ On track", color: "#22c55e", bg: "rgba(34,197,94,0.12)" }
+      : lls.prevBestWeight != null
+        ? { text: "Keep going", color: "#EAB308", bg: "rgba(234,179,8,0.12)" }
+        : null;
+
+  const isLastSet = (lls.setIndex + 1) >= lls.totalSets;
+  let nextLine = null;
+  if (!isLastSet) {
+    if (lls.hitAllReps && lls.suggestWeight) {
+      nextLine = { text: `↑ Try ${lls.suggestWeight} lbs next set`, color: "#22c55e" };
+    } else if (!lls.hitAllReps) {
+      nextLine = { text: `Stay at ${lls.weight} lbs`, color: "#EAB308" };
+    } else {
+      nextLine = { text: `Next: ${lls.nextSetWeight || lls.weight} lbs × ${lls.nextSetReps || lls.targetReps} reps`, color: "rgba(245,245,240,0.55)" };
+    }
+  }
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:8000,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div style={{width:"100%",maxWidth:480,background:"#0b1120",borderRadius:"22px 22px 0 0",padding:"0 24px 44px",border:"1px solid rgba(245,245,240,0.08)"}}>
+        <div style={{height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{width:36,height:4,borderRadius:2,background:"rgba(245,245,240,0.12)"}}/>
+        </div>
+
+        {/* What you just did */}
+        <div style={{textAlign:"center",marginBottom:18}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.38)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:5}}>
+            Set {lls.setIndex + 1} of {lls.totalSets} complete
+          </div>
+          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:30,textTransform:"uppercase",lineHeight:1,color:"#fff"}}>
+            {lls.weight ? `${lls.weight} lbs × ` : ""}{lls.reps} reps
+          </div>
+          {badge && (
+            <div style={{display:"inline-flex",alignItems:"center",marginTop:8,padding:"4px 14px",borderRadius:20,background:badge.bg,border:`1px solid ${badge.color}30`,fontFamily:"var(--mono)",fontSize:11,color:badge.color,fontWeight:700,letterSpacing:"0.05em"}}>
+              {badge.text}
+            </div>
+          )}
+        </div>
+
+        {/* Countdown ring */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:18}}>
+          <div style={{position:"relative",width:160,height:160}}>
+            <svg width={160} height={160} style={{transform:"rotate(-90deg)",display:"block"}}>
+              <circle cx={80} cy={80} r={R} stroke="rgba(245,245,240,0.07)" strokeWidth={10} fill="none"/>
+              <circle cx={80} cy={80} r={R} stroke={ringColor} strokeWidth={10} fill="none"
+                strokeLinecap="round"
+                strokeDasharray={C} strokeDashoffset={C * (1 - pct)}
+                style={{transition:"stroke-dashoffset 1s linear, stroke 0.5s"}}
+              />
+            </svg>
+            <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+              <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:50,lineHeight:1,color:ringColor,fontVariantNumeric:"tabular-nums",transition:"color 0.5s"}}>
+                {_p2(Math.floor(restTimer / 60))}:{_p2(restTimer % 60)}
+              </div>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:3,textAlign:"center",maxWidth:110,lineHeight:1.3}}>
+                {lls.restReason || "Rest"}
+              </div>
+            </div>
+          </div>
+          {nextLine && (
+            <div style={{marginTop:10,fontFamily:"var(--body)",fontSize:13,color:nextLine.color,textAlign:"center",lineHeight:1.4}}>
+              {nextLine.text}
+            </div>
+          )}
+          {isLastSet && (
+            <div style={{marginTop:10,fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>
+              Last set — great work
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1.4fr 1fr",gap:10}}>
+          <button onClick={() => onAdjust(-30)} style={{padding:"13px 0",background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:16,cursor:"pointer",letterSpacing:"0.04em"}}>−30s</button>
+          <button onClick={onSkip} style={{padding:"13px 0",background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>Skip Rest</button>
+          <button onClick={() => onAdjust(30)} style={{padding:"13px 0",background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:16,cursor:"pointer",letterSpacing:"0.04em"}}>+30s</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MomentumBar({ activeWorkout, history }) {
+  const score = useMemo(() => {
+    if (!activeWorkout) return 0;
+    let totalSets = 0, completedSets = 0, volumeWins = 0, exWithHistory = 0;
+    (activeWorkout.exercises || []).forEach(ex => {
+      const sets = ex.sets || [];
+      totalSets += sets.length;
+      const done = sets.filter(s => s.done);
+      completedSets += done.length;
+      if (done.length > 0) {
+        const k = ex.name.toLowerCase().replace(/\s+/g, "_");
+        const prev = history?.[k];
+        if (prev?.length) {
+          exWithHistory++;
+          const prevMax = Math.max(...prev[prev.length-1].sets.map(s => parseFloat(s.weight)||0));
+          const currMax = Math.max(...done.map(s => parseFloat(s.weight)||0));
+          if (currMax >= prevMax) volumeWins++;
+        }
+      }
+    });
+    const compPct = totalSets > 0 ? completedSets / totalSets : 0;
+    const volPct = exWithHistory > 0 ? volumeWins / exWithHistory : 0.75;
+    return Math.round((compPct * 0.55 + volPct * 0.45) * 100);
+  }, [activeWorkout, history]);
+
+  const completedSets = (activeWorkout?.exercises||[]).reduce((a, e) => a + e.sets.filter(s => s.done).length, 0);
+  if (completedSets === 0) return null;
+
+  const label = score >= 90 ? "Elite session" : score >= 75 ? "Strong session" : score >= 60 ? "Solid session" : "Recovery session";
+  const barColor = score >= 90 ? "#22c55e" : score >= 75 ? "#2979FF" : score >= 60 ? "#EAB308" : "#EF4444";
+  return (
+    <div style={{padding:"10px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:12,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.38)",letterSpacing:"0.18em",textTransform:"uppercase"}}>Workout Momentum</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,color:barColor,fontWeight:700}}>{score}% — {label}</div>
+      </div>
+      <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${score}%`,background:barColor,borderRadius:2,transition:"width 0.6s ease"}}/>
+      </div>
+    </div>
+  );
+}
+
+function PrevSessionRow({ exerciseName, history }) {
+  const k = (exerciseName||"").toLowerCase().replace(/\s+/g, "_");
+  const prev = history?.[k];
+  if (!prev?.length) return (
+    <div style={{marginBottom:10,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.28)",letterSpacing:"0.12em",textTransform:"uppercase"}}>First time logging this exercise</div>
+  );
+  const last = prev[prev.length - 1];
+  const sets = last.sets || [];
+  if (!sets.length) return null;
+  const maxW = Math.max(...sets.map(s => parseFloat(s.weight)||0));
+  const reps = sets[0]?.reps;
+  const dateStr = new Date(last.date).toLocaleDateString("en-US", {month:"short", day:"numeric"});
+  return (
+    <div style={{marginBottom:10,padding:"6px 10px",background:"rgba(245,245,240,0.03)",borderRadius:8,border:"1px solid rgba(245,245,240,0.06)"}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>Last session</div>
+      <div style={{fontSize:12,color:"rgba(245,245,240,0.5)"}}>
+        {maxW > 0 ? `${maxW} lbs × ` : ""}{reps} reps × {sets.length} sets
+        <span style={{color:"rgba(245,245,240,0.28)",marginLeft:8}}>— {dateStr}</span>
+      </div>
+    </div>
+  );
+}
+
+function SetFlashOverlay({ flash }) {
+  if (!flash) return null;
+  const cfg = {
+    pr:       { bg:"rgba(239,68,68,0.18)",  border:"#EF4444", icon:"🔥", title:"New PR!",                    color:"#EF4444" },
+    complete: { bg:"rgba(34,197,94,0.14)",  border:"#22c55e", icon:"✓",  title:"Set complete",               color:"#22c55e" },
+    missed:   { bg:"rgba(234,179,8,0.14)",  border:"#EAB308", icon:"📝", title:`Missed ${flash.missedCount} rep${flash.missedCount===1?"":"s"}`, color:"#EAB308" },
+  }[flash.type] || { bg:"rgba(34,197,94,0.14)", border:"#22c55e", icon:"✓", title:"Set complete", color:"#22c55e" };
+  return (
+    <div style={{position:"fixed",bottom:110,left:"50%",transform:"translateX(-50%)",zIndex:9500,background:cfg.bg,border:`1px solid ${cfg.border}50`,borderRadius:16,padding:"12px 22px",display:"flex",alignItems:"center",gap:10,backdropFilter:"blur(10px)",minWidth:180,justifyContent:"center",pointerEvents:"none"}}>
+      <span style={{fontSize:18}}>{cfg.icon}</span>
+      <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:17,color:cfg.color,textTransform:"uppercase",letterSpacing:"0.06em"}}>{cfg.title}</span>
+    </div>
+  );
+}
+
+function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogMore }) {
+  const [coachNote, setCoachNote] = useState(null);
+  const [noteLoading, setNoteLoading] = useState(true);
+
+  useEffect(() => {
+    if (!summary) return;
+    const prText = (summary.prs||[]).length > 0
+      ? `PRs hit: ${summary.prs.map(p => `${p.name} ${p.weight}${profile?.wUnit||"lbs"}`).join(", ")}. `
+      : "";
+    ai(`Brief 1-2 sentence coach note for: ${summary.title} session, ${summary.duration}min, ${(summary.totalVolume||0).toLocaleString()} lbs total volume, ${summary.completedSets}/${summary.totalSets} sets. ${prText}Punchy and specific. No leading emoji.`, 80)
+      .then(n => { setCoachNote(n.trim()); setNoteLoading(false); })
+      .catch(() => { setCoachNote("Solid session. Stay consistent — results compound."); setNoteLoading(false); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary?.title]);
+
+  if (!summary) return null;
+  const wUnit = profile?.wUnit || "lbs";
+  const compPct = summary.totalSets > 0 ? Math.round(summary.completedSets / summary.totalSets * 100) : 100;
+
+  return (
+    <div style={{animation:"fade-in 0.3s"}}>
+      <div style={{textAlign:"center",padding:"24px 0 16px"}}>
+        <div style={{fontSize:52,marginBottom:6}}>🔥</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--red)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Session Complete</div>
+        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:40,textTransform:"uppercase",lineHeight:.9}}>{summary.title}</div>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+        {[
+          ["Total Volume", `${(summary.totalVolume||0).toLocaleString()} ${wUnit}`, "var(--red)"],
+          ["Duration",     `${summary.duration} min`,                              "#2979FF"],
+          ["Sets",         `${summary.completedSets}/${summary.totalSets}`,        "#22c55e"],
+          ["Completion",   `${compPct}%`,                                          compPct===100?"#22c55e":"#EAB308"],
+        ].map(([label, val, color]) => (
+          <div key={label} style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"14px 16px",textAlign:"center"}}>
+            <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:26,color,lineHeight:1}}>{val}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.38)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:4}}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* PRs */}
+      {summary.prs?.length > 0 && (
+        <div style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:14,padding:"12px 16px",marginBottom:14}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(239,68,68,0.8)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Personal Records</div>
+          {summary.prs.map((pr, i) => (
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:i<summary.prs.length-1?6:0}}>
+              <span style={{fontSize:13,fontWeight:600}}>{pr.name}</span>
+              <span style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:18,color:"#EF4444"}}>{pr.weight} {wUnit} ← new PR</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Coach note */}
+      <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",padding:"12px 16px",marginBottom:16}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>// Coach</div>
+        {noteLoading
+          ? <div style={{fontSize:12,color:"rgba(245,245,240,0.4)",fontStyle:"italic"}}>Generating note...</div>
+          : <div style={{fontSize:13.5,lineHeight:1.55,fontStyle:"italic"}}>{coachNote}</div>
+        }
+      </div>
+
+      {/* Actions */}
+      <button onClick={onSaveAndExit} style={{width:"100%",padding:"15px",background:"var(--red)",color:"white",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:16,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",marginBottom:10}}>
+        Save & Exit →
+      </button>
+      <button onClick={onLogMore} style={{width:"100%",padding:"13px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.6)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>
+        Log Another Exercise
+      </button>
+    </div>
+  );
+}
+
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime}) {
   const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
@@ -1371,6 +1623,18 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {/* ── ACTIVE WORKOUT ── */}
         {trainScreen==="active"&&(
           <div style={{maxWidth:isMobile?"100%":680}}>
+            {/* Set completion flash overlay */}
+            <SetFlashOverlay flash={setFlash}/>
+
+            {/* Enhanced rest timer — fixed overlay */}
+            <EnhancedRestTimer
+              restTimer={restTimer}
+              restActive={restActive}
+              lastLoggedSet={lastLoggedSet}
+              onSkip={skipRest}
+              onAdjust={adjustRest}
+            />
+
             {!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
                 <div style={{fontSize:48,marginBottom:16}}>💪</div>
@@ -1378,9 +1642,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{fontSize:14,color:T.mu,marginBottom:24,lineHeight:1.6}}>Go to Lift Smarter, build your workout, then tap "Start This Session" to begin tracking sets and reps here.</div>
                 <button onClick={()=>setTrainScreen("builder")} style={{padding:"14px 28px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Build a Workout →</button>
               </div>
-              :<div>
+              : workoutSummary
+                ? <WorkoutSummaryScreen
+                    summary={workoutSummary}
+                    history={history}
+                    profile={profile}
+                    onSaveAndExit={clearWorkoutSummary}
+                    onLogMore={()=>{clearWorkoutSummary();setTrainScreen("builder");}}
+                  />
+                :<div>
                 {/* Header */}
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>ACTIVE SESSION</div>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
@@ -1391,7 +1663,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                 {/* Readiness banner */}
                 {activeWorkout.readinessTier&&(()=>{const cfg=READINESS_CONFIG[activeWorkout.readinessTier];return(
-                  <div style={{background:`${cfg.color}10`,border:`1.5px solid ${cfg.color}30`,borderRadius:14,padding:"10px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{background:`${cfg.color}10`,border:`1.5px solid ${cfg.color}30`,borderRadius:14,padding:"10px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
                     <div style={{fontSize:11,fontWeight:700,color:cfg.color,letterSpacing:".1em"}}>{cfg.badge}</div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{cfg.label}</div>
@@ -1400,14 +1672,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                 );})()}
 
-                {/* Rest timer */}
-                {restActive&&<div style={{background:`rgba(0,201,167,.08)`,border:`1px solid rgba(0,201,167,.25)`,borderRadius:16,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:10,color:"#00C9A7",fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>⏱ Rest Timer</div>
-                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>Next set when ready</div>
-                  </div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,color:"#00C9A7",fontVariantNumeric:"tabular-nums"}}>{pad2(Math.floor(restTimer/60))}:{pad2(restTimer%60)}</div>
-                </div>}
+                {/* Momentum bar */}
+                <MomentumBar activeWorkout={activeWorkout} history={history}/>
 
                 {/* Exercise cards */}
                 {(activeWorkout.exercises||[]).map((ex,ei)=>{
@@ -1453,6 +1719,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <div style={{height:3,background:T.s3,borderRadius:2,marginBottom:12,overflow:"hidden"}}>
                         <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:T.carb,borderRadius:2,transition:"width .4s"}}/>
                       </div>
+
+                      {/* Previous session reference */}
+                      <PrevSessionRow exerciseName={ex.name} history={history}/>
 
                       {/* Set headers */}
                       <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8}}>

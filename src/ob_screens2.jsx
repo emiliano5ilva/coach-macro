@@ -1225,6 +1225,18 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     setShowHealthModal(false);
   }
 
+  // ── Workout coaching state ─────────────────────────────────────────────────
+  const [lastLoggedSet,setLastLoggedSet]=useState(null);
+  const [setFlash,setSetFlash]=useState(null);
+  const [workoutStartTime,setWorkoutStartTime]=useState(null);
+  const [workoutSummary,setWorkoutSummary]=useState(null);
+  const notifTimeoutRef=useRef(null);
+
+  useEffect(()=>{
+    if(activeWorkout&&!workoutStartTime)setWorkoutStartTime(Date.now());
+    if(!activeWorkout&&!workoutSummary)setWorkoutStartTime(null);
+  },[activeWorkout]);
+
   useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(id);},[]);
 
   // ── Persist food log: single row per day, entries = full jsonb array ────────
@@ -1360,11 +1372,49 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const fastRemaining=fastActive?Math.max(0,(fastHours*3600000)-(now-fastStart)):fastHours*3600000;
   const eatOpen=fastActive&&fastElapsed>=fastHours;
 
+  function getRestDuration(tier,repsStr,exRestSecs){
+    const reps=parseInt(repsStr)||10;
+    if(exRestSecs&&exRestSecs!==90&&exRestSecs!==120)return{secs:exRestSecs,reason:`${Math.round(exRestSecs/60)} min rest`};
+    if(tier==="A"&&reps<=5)return{secs:180,reason:"3 min rest — heavy compound"};
+    if(tier==="A"&&reps<=12)return{secs:120,reason:"2 min rest — compound work"};
+    if(tier==="B"&&reps<=8)return{secs:120,reason:"2 min rest — secondary compound"};
+    if(tier==="C")return{secs:60,reason:"60 sec rest — isolation"};
+    return{secs:90,reason:"90 sec rest"};
+  }
+
+  function scheduleRestNotification(secs){
+    clearTimeout(notifTimeoutRef.current);
+    if(typeof window==="undefined"||!window.Notification)return;
+    const doSchedule=()=>{
+      notifTimeoutRef.current=setTimeout(()=>{
+        if(document.hidden)new window.Notification("Rest Complete",{body:"Time for your next set 💪",tag:"rest-timer"});
+      },secs*1000);
+    };
+    if(window.Notification.permission==="granted")doSchedule();
+    else if(window.Notification.permission!=="denied")window.Notification.requestPermission().then(p=>{if(p==="granted")doSchedule();});
+  }
+
   function startRest(secs){
+    clearTimeout(notifTimeoutRef.current);
     clearInterval(restInterval.current);setRestTimer(secs);setRestActive(true);
+    scheduleRestNotification(secs);
     restInterval.current=setInterval(()=>setRestTimer(prev=>{if(prev<=1){clearInterval(restInterval.current);setRestActive(false);hap();return 0;}if(prev===11)hap();return prev-1;}),1000);
   }
-  useEffect(()=>()=>clearInterval(restInterval.current),[]);
+
+  function skipRest(){
+    clearTimeout(notifTimeoutRef.current);
+    clearInterval(restInterval.current);setRestActive(false);setRestTimer(0);setLastLoggedSet(null);
+  }
+
+  function adjustRest(delta){
+    setRestTimer(prev=>{
+      const nv=Math.max(5,prev+delta);
+      clearTimeout(notifTimeoutRef.current);scheduleRestNotification(nv);
+      return nv;
+    });
+  }
+
+  useEffect(()=>()=>{clearInterval(restInterval.current);clearTimeout(notifTimeoutRef.current);},[]);
 
   async function aiLog(){
     if(!foodInput.trim())return;setLogging(true);setLogMsg("");
@@ -1477,13 +1527,67 @@ Rules:
 
   function logSet(ei,si,reps,weight){
     setActiveWorkout(prev=>{if(!prev)return prev;const u={...prev};u.exercises=prev.exercises.map((ex,i)=>i!==ei?ex:{...ex,sets:ex.sets.map((s,j)=>j!==si?s:{...s,reps,weight,done:true})});return u;});
-    const ex=activeWorkout?.exercises[ei];startRest(ex?.restSecs||90);hap();
+    const ex=activeWorkout?.exercises[ei];
+    const{secs,reason}=getRestDuration(ex?.tier,reps,ex?.restSecs);
+
+    // History lookup for PR detection
+    const k=(ex?.name||"").toLowerCase().replace(/\s+/g,"_");
+    const prevHistory=history[k];
+    const prevLast=prevHistory?.[prevHistory.length-1];
+    const prevBestWeight=prevLast?Math.max(...prevLast.sets.map(s=>parseFloat(s.weight)||0)):null;
+    const isNewPR=prevBestWeight!=null&&parseFloat(weight)>prevBestWeight;
+
+    // Rep completion
+    const sets=ex?.sets||[];
+    const targetReps=sets[si]?.reps;
+    const targetNum=parseInt(targetReps)||0;
+    const completedNum=parseInt(reps)||0;
+    const missedCount=targetNum>0&&completedNum<targetNum?targetNum-completedNum:0;
+    const hitAllReps=missedCount===0;
+
+    // Next set context
+    const doneSets=sets.filter(s=>s.done).length+1;
+    const totalSets=sets.length;
+    const nextSet=si+1<totalSets?sets[si+1]:null;
+    let suggestWeight=null;
+    if(nextSet&&!nextSet.done&&hitAllReps){
+      const w=parseFloat(weight)||0;
+      suggestWeight=ex?.tier==="A"?String(Math.round((w+5)/2.5)*2.5):String(Math.round((w+2.5)*2)/2);
+    }
+
+    setLastLoggedSet({
+      exerciseName:ex?.name,
+      setIndex:si,
+      totalSets,
+      doneSets:Math.min(doneSets,totalSets),
+      reps,weight,targetReps,
+      prevBestWeight,
+      prevBestDate:prevLast?new Date(prevLast.date).toLocaleDateString("en-US",{month:"short",day:"numeric"}):null,
+      isNewPR,missedCount,hitAllReps,
+      restSecs:secs,restReason:reason,
+      nextSetIndex:si+1,
+      nextSetReps:nextSet?.reps,
+      nextSetWeight:nextSet?.weight||weight,
+      suggestWeight,
+    });
+
+    const flashType=isNewPR?"pr":missedCount>0?"missed":"complete";
+    setSetFlash({type:flashType,reps,targetReps,missedCount});
+    setTimeout(()=>setSetFlash(null),1400);
+
+    startRest(secs);
+    hap();
+    if(isNewPR)hap();
   }
 
   async function finishWorkout(){
     if(activeWorkout){
       const nh={...history};
       const setsLogged=[];
+      const prs=[];
+      let totalVolume=0;
+      const totalSets=activeWorkout.exercises.reduce((a,e)=>a+(e.sets?.length||0),0);
+
       activeWorkout.exercises.forEach(ex=>{
         const k=ex.name.toLowerCase().replace(/\s+/g,"_");
         const done=ex.sets.filter(s=>s.done);
@@ -1491,11 +1595,27 @@ Rules:
           if(!nh[k])nh[k]=[];
           nh[k]=[...nh[k],{date:new Date().toISOString(),sets:done}];
           setsLogged.push({name:ex.name,sets:done});
+          done.forEach(s=>{totalVolume+=(parseFloat(s.weight)||0)*(parseInt(s.reps)||0);});
+          // PR detection
+          const prevH=history[k];
+          if(prevH?.length){
+            const prevMax=Math.max(...prevH.flatMap(sess=>sess.sets.map(s=>parseFloat(s.weight)||0)));
+            const sessionMax=Math.max(...done.map(s=>parseFloat(s.weight)||0));
+            if(sessionMax>prevMax)prs.push({name:ex.name,weight:sessionMax,reps:done.find(s=>parseFloat(s.weight)===sessionMax)?.reps});
+          }
         }
       });
       setHistory(nh);
-      const burn=todayType==="training"?Math.round(45*6):Math.round(45*11);
+
+      const duration=workoutStartTime?Math.max(1,Math.round((Date.now()-workoutStartTime)/60000)):45;
+      const burn=todayType==="training"?Math.round(duration*6):Math.round(duration*11);
       if(onEarnedCals)onEarnedCals(burn);
+
+      // Save to Apple Health if connected
+      if(healthConnected){
+        try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn});}catch{}
+      }
+
       if(user){
         try{
           const feedbackData=activeWorkout.exercises.filter(ex=>ex.feedback).map(ex=>({name:ex.name,feedback:ex.feedback}));
@@ -1505,12 +1625,27 @@ Rules:
             workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData}
           });
           console.log("[finishWorkout] saved",setsLogged.length,"exercises to Supabase");
-          setWorkoutSavedMsg(`✓ Workout saved. Great session! ${setsLogged.length} exercise${setsLogged.length===1?"":"s"} logged.`);
-          setTimeout(()=>setWorkoutSavedMsg(""),4000);
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
+
+      // Show summary screen instead of immediately exiting
+      setActiveWorkout(null);
+      skipRest();
+      setWorkoutSummary({
+        title:todayFocus,duration,burn,
+        totalVolume:Math.round(totalVolume),
+        totalSets,completedSets:setsLogged.reduce((a,e)=>a+e.sets.length,0),
+        prs,exercises:setsLogged,
+      });
+    } else {
+      setActiveWorkout(null);
+      setTrainScreen("progress");
     }
-    setActiveWorkout(null);
+  }
+
+  function clearWorkoutSummary(){
+    setWorkoutSummary(null);
+    setWorkoutStartTime(null);
     setTrainScreen("progress");
   }
 
@@ -2061,7 +2196,7 @@ Rules:
       {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal}/>}
       <div className="app-screen grid-bg">
         {section==="home"&&<HomeSection/>}
-        {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user}/>}
+        {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime}/>}
         {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile}/>}
         {section==="progress"&&<ProgressSection/>}
         {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}
