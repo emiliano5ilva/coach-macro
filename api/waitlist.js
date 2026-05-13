@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 import { checkRateLimit } from './middleware/rateLimit.js';
+import { withLogging } from './middleware/logger.js';
 
 async function sendEmail(to, subject, html) {
   const r = await fetch('https://api.resend.com/emails', {
@@ -277,4 +278,4 @@ export default async function handler(req, res) {
     console.error('STACK:', err.stack);
     return res.status(500).json({ error: err.message });
   }
-}
+});

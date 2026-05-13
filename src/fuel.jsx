@@ -5,6 +5,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   FoodSearchSkeleton, AIContentSkeleton, EmptyState, hap, calcTDEE } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
+import { track, EVENTS } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
 import {
@@ -1233,6 +1234,7 @@ Reply with ONLY a valid JSON object, no markdown:
         setGroceryChecked(new Set());
         if(user){
           await sb.from("profiles").upsert({id:user.id,meal_prep_plan:plan,meal_prep_generated_at:now,updated_at:now},{onConflict:"id"}).catch(e=>console.error("[savePrepPlan]",e));
+          track(EVENTS.AI_MEAL_PREP,{proteins:plan.proteins?.length,grocery_categories:Object.keys(plan.grocery||{}).length},user.id);
         }
       }
     }catch(e){console.error("[generatePrepPlan]",e);}

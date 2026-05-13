@@ -1,6 +1,7 @@
 import { checkRateLimit } from './middleware/rateLimit.js';
+import { withLogging } from './middleware/logger.js';
 
-export default async function handler(req, res) {
+export default withLogging(async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const rateCheck = await checkRateLimit(req, '/api/r');
@@ -84,4 +85,4 @@ export default async function handler(req, res) {
   return res.redirect(302,
     `https://coach-macro.com?invited=true&token=${encodeURIComponent(token)}&code=${encodeURIComponent(code)}`
   );
-}
+});

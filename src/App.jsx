@@ -125,6 +125,7 @@ import { useState, useEffect, useRef } from "react";
   create policy "Users manage own custom foods" on custom_foods for all using (auth.uid() = user_id);
 */
 import { sb, signInWithGoogle, signInWithApple } from "./supabase.js";
+import { track, EVENTS, setAnalyticsEnabled } from "./services/analytics.js";
 
 // ─── STRIPE PAYMENT LINKS ─────────────────────────────────────────────────────
 // Replace these two URLs with your actual Stripe Payment Links
@@ -202,10 +203,14 @@ function AuthScreen({onAuth}) {
       if(view==="signup") {
         const {data,error:e}=await sb.auth.signUp({email,password});
         if(e)throw e;
-        if(data.user) onAuth(data.user, name.trim());
+        if(data.user){
+          track(EVENTS.USER_SIGNUP,{method:"email"},data.user.id);
+          onAuth(data.user, name.trim());
+        }
       } else {
         const {data,error:e}=await sb.auth.signInWithPassword({email,password});
         if(e)throw e;
+        track(EVENTS.USER_LOGIN,{method:"email"},data.user.id);
         onAuth(data.user, null);
       }
     } catch(e){setError(getErrorMessage(e));}
@@ -218,7 +223,7 @@ function AuthScreen({onAuth}) {
       const fn=provider==="apple"?signInWithApple:signInWithGoogle;
       const {error:e}=await fn();
       if(e)throw e;
-      // page will redirect; oauthLoading stays true
+      // page will redirect; oauthLoading stays true — track after redirect in handleAuth
     } catch(e){setError(getErrorMessage(e));setOauthLoading("");}
   }
 
@@ -374,6 +379,8 @@ export default function CoachMacro() {
       if(data.profile_data) setProfile({...data.profile_data,referralCount:data.referral_count||data.profile_data?.referralCount||0});
       if(data.schedule) setSchedule(data.schedule);
       if(data.wprefs) setWPrefs(data.wprefs);
+      // Sync analytics opt-out preference
+      setAnalyticsEnabled(data.analytics_enabled !== false);
       console.log("[loadProfile] done — routing to app");
       setPhase("app");
     } catch(e){
@@ -594,10 +601,18 @@ export default function CoachMacro() {
     if(_inviteToken){
       sb.from('referrals').update({recipient_user_id:user.id}).eq('token',_inviteToken).eq('clicked',true).then(()=>{});
     }
+    track(EVENTS.ONBOARDING_COMPLETE,{
+      goal:       finalProf.goal,
+      trainType:  finalProf.trainType||trainData.trainType,
+      experience: finalProf.liftExp||trainData.liftExp,
+      daysPerWeek:trainData.freq,
+    },user?.id);
+    track(EVENTS.TRIAL_START,{trial_ends_at:finalProf.trialEndsAt},user?.id);
     setPhase("celebrate");
   }
 
   async function handleSignOut() {
+    track(EVENTS.USER_LOGOUT,{},user?.id);
     await sb.auth.signOut();
     setUser(null);setProfile(null);setPhase("landing");
   }
@@ -704,6 +719,7 @@ export default function CoachMacro() {
   }
   if(phase==="promo")      return <PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
   if(phase==="paywall")    return <Paywall profile={profile}/>;
-  if(phase==="upgrade")    return <UpgradeScreen profile={profile} onContinue={()=>setPhase("app")}/>;
+  if(phase==="upgrade"){track(EVENTS.UPGRADE_VIEWED,{trial_ended:!!profile?.trialEndsAt},user?.id);return <UpgradeScreen profile={profile} onContinue={()=>setPhase("app")}/>;}
+
   return <App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user}/>;
 }

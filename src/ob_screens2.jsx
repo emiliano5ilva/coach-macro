@@ -13,6 +13,7 @@ import { TrainSection, ConnectSection, SettingsSection,
 import { getWorkoutForDay } from "./programs.js";
 import { FuelSection } from "./fuel.jsx";
 import { sb, ai, streamAI } from "./client.js";
+import { track, EVENTS, trackError } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
@@ -1463,7 +1464,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       try{
         await streamAI(prompt,400,"morning_brief",
           (partial)=>{setMorningBrief(partial);},
-          (full)=>{setMorningBrief(full);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",full);setMorningBriefLoading(false);}
+          (full)=>{setMorningBrief(full);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",full);setMorningBriefLoading(false);if(user)track(EVENTS.AI_MORNING_BRIEF,{chars:full.length},user.id);}
         );
       }catch(e){console.error("[morningBrief] error:",e);const m=getAIErrorMessage(e);if(m)setMorningBrief("⚠️ "+m);setMorningBriefLoading(false);}
     })();
@@ -1551,7 +1552,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   async function handleAddWater(oz){
     const today=new Date().toISOString().split("T")[0];
     const log2=await addWaterLog(user.id,oz,today);
-    if(log2)setWaterLogs(prev=>[...prev,log2]);
+    if(log2){setWaterLogs(prev=>[...prev,log2]);track(EVENTS.WATER_LOGGED,{oz},user.id);}
   }
   async function handleDeleteWater(id){
     await deleteWaterLog(id);
@@ -1624,7 +1625,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       setLog(newLog);
       setLogMsg(`✓ ${p.food} — ${p.calories} kcal`);
       setFoodInput("");
-      if(user)saveFoodLog(user.id,newLog);
+      if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"ai",calories:p.calories,protein:p.protein},user.id);}
     }
     catch(e){console.error("[aiLog] error:",e);const m=getAIErrorMessage(e);if(m)setLogMsg("⚠️ "+m);}
     setLogging(false);
@@ -1633,10 +1634,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     if(!barcodeInput.trim())return;setBarcodeLoading(true);setBarcodeResult(null);
     const result=await lookupBarcode(barcodeInput.trim());setBarcodeResult(result);setBarcodeLoading(false);
   }
-  function addBarcode(){if(!barcodeResult)return;const entry={...barcodeResult,id:Date.now(),method:"barcode"};const newLog=[entry,...log];setLog(newLog);if(user)saveFoodLog(user.id,newLog);setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);}
-  function addQuick(){if(!quickFields.calories)return;const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick"};const newLog=[entry,...log];setLog(newLog);if(user)saveFoodLog(user.id,newLog);setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
+  function addBarcode(){if(!barcodeResult)return;const entry={...barcodeResult,id:Date.now(),method:"barcode"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);}
+  function addQuick(){if(!quickFields.calories)return;const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"quick",calories:entry.calories,protein:entry.protein},user.id);}setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
   function removeLog(id){const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
-  function logEntry(entry){const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
+  function logEntry(entry){const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
 
   async function fetchRecs(){
     setRecsLoading(true);setRecs("");
@@ -1645,9 +1646,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     try{
       await streamAI(`You are a precision nutrition coach. The user is in ${city||"their city"} and needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations ("no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers.`,900,"restaurant_ai",
         (partial)=>{setRecs(partial);},
-        ()=>{setRecsLoading(false);}
+        (full)=>{setRecsLoading(false);if(user)track(EVENTS.AI_RESTAURANT,{city,chars:full.length},user.id);}
       );
-    }catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");setRecsLoading(false);}
+    }catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");if(user)trackError(e,"restaurant_ai",user.id);setRecsLoading(false);}
   }
 
   async function fetchRecipes(){
@@ -1848,6 +1849,11 @@ Rules:
         hapSuccess();
         showToast(`Session saved · ${totalSetsLogged} sets logged`, "success", {duration:4000});
       }
+      if(user)track(EVENTS.WORKOUT_COMPLETED,{
+        program:wPrefs?.splitType,focus:todayFocus,
+        duration_minutes:duration,sets_completed:totalSetsLogged,sets_planned:totalSets,
+        had_pr:prs.length>0,total_volume:Math.round(totalVolume),
+      },user.id);
       setWorkoutSummary({
         title:todayFocus,duration,burn,
         totalVolume:Math.round(totalVolume),

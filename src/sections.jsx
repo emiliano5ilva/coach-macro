@@ -9,6 +9,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
+import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
@@ -712,8 +713,10 @@ Rules:
       if (!m) throw new Error("No JSON");
       const parsed = JSON.parse(m[0]);
       if (!parsed.adapted_exercises?.length) throw new Error("No exercises");
+      track(EVENTS.AI_ADAPT_NOW,{reason:selectedReason,changes:parsed.changes?.length,exercises:parsed.adapted_exercises.length});
       setResult(parsed); setScreen("results");
     } catch(e) {
+      trackError(e,"adapt_now");
       const m=getAIErrorMessage(e);
       setErr(m||"Couldn't adapt your session. Try again."); setScreen("categories");
     }
@@ -3372,6 +3375,24 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </SectionCard>
           );
         })()}
+
+        {/* Privacy */}
+        <SectionCard title="Privacy">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0"}}>
+            <div>
+              <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:2}}>Usage Analytics</div>
+              <div style={{fontSize:12,color:T.mu,lineHeight:1.5}}>Share anonymous feature usage to help improve Coach Macro. No personal data is collected.</div>
+            </div>
+            <Toggle
+              value={profile?.analytics_enabled !== false}
+              onChange={async (v)=>{
+                if(!user)return;
+                setAnalyticsEnabled(v);
+                await sb.from("profiles").upsert({id:user.id,analytics_enabled:v},{onConflict:"id"});
+              }}
+            />
+          </div>
+        </SectionCard>
 
         {/* Account Actions */}
         <SectionCard title="Account">

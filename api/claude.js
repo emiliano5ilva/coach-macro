@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { withLogging } from './middleware/logger.js';
 
 const SAFETY_SYSTEM_PROMPT = `You are Coach Macro's AI fitness and nutrition assistant. Always follow these non-negotiable safety rules:
 
@@ -54,7 +55,7 @@ function truncateToTokenLimit(messages, maxInputTokens) {
   });
 }
 
-export default async function handler(req, res) {
+export default withLogging(async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id');
@@ -270,4 +271,4 @@ export default async function handler(req, res) {
   } catch {
     res.status(500).json({ error: 'AI error' });
   }
-}
+});
