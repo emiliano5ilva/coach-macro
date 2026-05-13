@@ -4,7 +4,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
   FoodSearchSkeleton, AIContentSkeleton, EmptyState, hap, calcTDEE } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
-import { sb, ai } from "./client.js";
+import { sb, ai, streamAI } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
 import {
@@ -1214,15 +1214,19 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
       const dietary=(profile?.dietary||[]).filter(d=>d!=="none");
       const dietaryStr=dietary.length>0?`Dietary restrictions (STRICTLY follow): ${dietary.join(", ")}.`:"No dietary restrictions.";
       const slotsForFreq=MEAL_SLOT_DEFS[profile?.mealFreq||"4"]||["Breakfast","Lunch","Dinner","Snack"];
-      const r=await ai(`You are a nutrition coach. Create a practical weekly meal prep plan for Sunday prep day.
+      let rawText='';
+      await streamAI(`You are a nutrition coach. Create a practical weekly meal prep plan for Sunday prep day.
 Goal: ${goal}. Training days: ${trainingDays.join(",")||"Mon,Wed,Fri"} (${trainingCals} kcal, ${macros?.protein||150}g protein). Rest days: ${restDays.join(",")} (${restCals} kcal, ${Math.round((macros?.protein||150)*0.85)}g protein).
 Meals per day: ${slotsForFreq.join(", ")}.
 ${dietaryStr}
 Reply with ONLY a valid JSON object, no markdown:
-{"proteins":[{"name":"...","amount":"...","prep":"..."}],"carbs":[{"name":"...","amount":"...","prep":"..."}],"vegetables":[{"name":"...","amount":"...","prep":"..."}],"snacks":[{"name":"...","amount":"...","prep":"..."}],"mealAssignments":{"training":{"${slotsForFreq[0]}":"meal + macros (≈Xkcal Xg protein)"},"rest":{"${slotsForFreq[0]}":"meal + macros (≈Xkcal Xg protein)"}},"grocery":{"Proteins & Dairy":["item"],"Grains & Carbs":["item"],"Produce":["item"],"Pantry":["item"]}}`,1400);
+{"proteins":[{"name":"...","amount":"...","prep":"..."}],"carbs":[{"name":"...","amount":"...","prep":"..."}],"vegetables":[{"name":"...","amount":"...","prep":"..."}],"snacks":[{"name":"...","amount":"...","prep":"..."}],"mealAssignments":{"training":{"${slotsForFreq[0]}":"meal + macros (≈Xkcal Xg protein)"},"rest":{"${slotsForFreq[0]}":"meal + macros (≈Xkcal Xg protein)"}},"grocery":{"Proteins & Dairy":["item"],"Grains & Carbs":["item"],"Produce":["item"],"Pantry":["item"]}}`,1400,"meal_prep",
+        ()=>{},
+        (text)=>{rawText=text;}
+      );
       let plan=null;
-      try{const j=r.replace(/```json|```/g,"").trim();plan=JSON.parse(j);}
-      catch{const m=r.match(/\{[\s\S]*\}/);if(m)try{plan=JSON.parse(m[0]);}catch{}}
+      try{const j=rawText.replace(/```json|```/g,"").trim();plan=JSON.parse(j);}
+      catch{const m=rawText.match(/\{[\s\S]*\}/);if(m)try{plan=JSON.parse(m[0]);}catch{}}
       if(plan){
         const now=new Date().toISOString();
         setPrepPlan(plan);
@@ -2043,21 +2047,25 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             </div>
 
-            {/* Loading */}
-            {recsLoading&&<div style={{padding:"16px 0",color:T.mu}}>
+            {/* Loading spinner — only before first text arrives */}
+            {recsLoading&&!recs&&<div style={{padding:"16px 0",color:T.mu}}>
               <AIContentSkeleton/>
               <div style={{fontSize:11,color:T.dim,textAlign:"center",marginTop:8}}>Matching menu items to your macros…</div>
             </div>}
 
-            {/* Results — parse AI text into cards */}
-            {recs&&!recsLoading&&(
+            {/* Results — show while streaming and after complete */}
+            {recs&&(
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                   <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>🤖 AI Recommendations</div>
-                  <FlagBtn responseText={recs} feature="restaurant_recs" user={user}/>
+                  {!recsLoading&&<FlagBtn responseText={recs} feature="restaurant_recs" user={user}/>}
                 </div>
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px",lineHeight:1.9,fontSize:14,color:"#ccc",whiteSpace:"pre-wrap"}}>{recs}</div>
-                <button onClick={fetchRecs} style={{width:"100%",padding:"12px",background:T.s2,color:T.prot,fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:`1px solid ${T.prot}25`,borderRadius:10,cursor:"pointer",marginTop:10,fontFamily:"inherit"}}>↺ Refresh Results</button>
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px",lineHeight:1.9,fontSize:14,color:"#ccc",whiteSpace:"pre-wrap"}}>
+                  <style>{`@keyframes cm-blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+                  {recs}
+                  {recsLoading&&<span style={{display:"inline-block",width:2,height:"1em",background:T.prot,marginLeft:2,verticalAlign:"text-bottom",animation:"cm-blink 1s step-end infinite"}}/>}
+                </div>
+                {!recsLoading&&<button onClick={fetchRecs} style={{width:"100%",padding:"12px",background:T.s2,color:T.prot,fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:`1px solid ${T.prot}25`,borderRadius:10,cursor:"pointer",marginTop:10,fontFamily:"inherit"}}>↺ Refresh Results</button>}
               </div>
             )}
 

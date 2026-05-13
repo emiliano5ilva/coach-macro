@@ -8,7 +8,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   hap, hapMed, hapSuccess, hapPR,
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
-import { sb, ai } from "./client.js";
+import { sb, ai, streamAI } from "./client.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
@@ -703,13 +703,12 @@ Rules:
 - Time constraints: keep only the primary compound movements, cut accessories to fit the time.
 - Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.`;
 
-      const r = await fetch("/api/claude", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({model:"claude-haiku-4-5-20251001", max_tokens:2000, messages:[{role:"user",content:prompt}]})
-      });
-      const d = await r.json();
-      const text = d.content?.[0]?.text || "";
-      const m = text.match(/\{[\s\S]*\}/);
+      let adaptText = '';
+      await streamAI(prompt, 2000, "adapt_now",
+        () => {},
+        (text) => { adaptText = text; }
+      );
+      const m = adaptText.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("No JSON");
       const parsed = JSON.parse(m[0]);
       if (!parsed.adapted_exercises?.length) throw new Error("No exercises");

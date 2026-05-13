@@ -12,7 +12,7 @@ import { TrainSection, ConnectSection, SettingsSection,
   PROMOS, AthletePassport, TrainingDNA, PerformanceCalendar, RacePredictor } from "./sections.jsx";
 import { getWorkoutForDay } from "./programs.js";
 import { FuelSection } from "./fuel.jsx";
-import { sb, ai } from "./client.js";
+import { sb, ai, streamAI } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
@@ -1460,9 +1460,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       const weekNum=Math.floor(Math.max(0,(new Date()-startD)/86400000)/7)+1;
       const cMacros=getDayMacros(profile.goalCals,profile.goal,schedule[getTodayKey()]||"training",0);
       const prompt=`You are a world-class personal trainer and nutritionist texting your athlete their morning briefing.\n\nAthlete data:\n- Name: ${profile.name}\n- Today: ${dayFocus[getTodayKey()]||"Training"} day — Week ${weekNum} of ${wPrefs.splitType||"training"}\n- Last session: ${lastSession}\n- Today's macros: ${cMacros.calories}kcal, ${cMacros.protein}g protein, ${cMacros.carbs}g carbs, ${cMacros.fat}g fat\n- Current streak: ${streak} days\n- Recent sleep: ${sleepAvg} hours average\n\nWrite a brief morning message (4-6 lines max) that:\n1. States today's training focus and one specific target\n2. Gives today's macro targets\n3. Suggests a first meal that fits the macros\n4. One motivational line based on their streak or recent performance\n\nWrite like a coach texting — direct, specific, no fluff. Not a formal notification. A real message from someone who knows them.`;
-      try{const brief=await ai(prompt,400,"morning_brief");setMorningBrief(brief);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",brief);}
-      catch(e){console.error("[morningBrief] error:",e);const m=getAIErrorMessage(e);if(m)setMorningBrief("⚠️ "+m);}
-      setMorningBriefLoading(false);
+      try{
+        await streamAI(prompt,400,"morning_brief",
+          (partial)=>{setMorningBrief(partial);},
+          (full)=>{setMorningBrief(full);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",full);setMorningBriefLoading(false);}
+        );
+      }catch(e){console.error("[morningBrief] error:",e);const m=getAIErrorMessage(e);if(m)setMorningBrief("⚠️ "+m);setMorningBriefLoading(false);}
     })();
   },[user,wPrefs.morningBriefEnabled,briefTrigger]);
 
@@ -1639,8 +1642,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     setRecsLoading(true);setRecs("");
     const actCtx=todayActs.length>0?`\nToday's activity: ${todayActs.map(a=>`${a.type} (${a.calories} kcal via ${a.source})`).join(", ")}\n`:"";
     const dietaryCtx=(profile.dietary||[]).filter(d=>d!=="none");
-    try{const txt=await ai(`You are a precision nutrition coach. The user is in ${city||"their city"} and needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations ("no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers.`,900);setRecs(txt);}
-    catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");}setRecsLoading(false);
+    try{
+      await streamAI(`You are a precision nutrition coach. The user is in ${city||"their city"} and needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations ("no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers.`,900,"restaurant_ai",
+        (partial)=>{setRecs(partial);},
+        ()=>{setRecsLoading(false);}
+      );
+    }catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");setRecsLoading(false);}
   }
 
   async function fetchRecipes(){
@@ -2105,9 +2112,13 @@ Rules:
         {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
           <div style={{margin:"0 20px 12px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",animation:"fade-in 0.4s"}}>
             <div className="header-eyebrow">// Morning Brief</div>
-            {morningBriefLoading
+            {morningBriefLoading&&!morningBrief
               ?<div style={{marginTop:8,display:"flex",flexDirection:"column",gap:8}}>{[0,1,2].map(i=><div key={i} className={`stagger-${i}`} style={{opacity:0,animation:"page-fade 0.3s ease forwards"}}><div className="skeleton" style={{height:13,width:i===2?"65%":"100%",borderRadius:4}}/></div>)}</div>
-              :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>{morningBrief}</div>
+              :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>
+                <style>{`@keyframes cm-blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+                {morningBrief}
+                {morningBriefLoading&&<span style={{display:"inline-block",width:2,height:"1em",background:"var(--red)",marginLeft:2,verticalAlign:"text-bottom",animation:"cm-blink 1s step-end infinite"}}/>}
+              </div>
             }
             {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
               <FlagBtn responseText={morningBrief} feature="morning_brief" user={user}/>

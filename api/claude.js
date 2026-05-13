@@ -36,6 +36,8 @@ const FEATURE_HOURLY_LIMITS = {
 // Heavy user ~38,900/month — 80k gives 2x headroom (~$0.38/user/month)
 const MONTHLY_TOKEN_BUDGET = 80000;
 
+const STREAMABLE_FEATURES = ['morning_brief', 'restaurant_ai', 'meal_prep', 'adapt_now'];
+
 function getFirstOfNextMonth() {
   const d = new Date();
   d.setMonth(d.getMonth() + 1, 1);
@@ -149,11 +151,92 @@ export default async function handler(req, res) {
     });
   }
 
-  // ── 4. Call Anthropic ──────────────────────────────────────────────────────
-  try {
-    const { feature: _f, ...bodyRest } = req.body;
-    const messages = truncateToTokenLimit(bodyRest.messages || [], limits.input);
+  const { feature: _f, stream: _streamFlag, ...bodyRest } = req.body;
+  const messages = truncateToTokenLimit(bodyRest.messages || [], limits.input);
+  const shouldStream = req.body.stream === true && STREAMABLE_FEATURES.includes(feature);
 
+  // ── 4a. Streaming response ─────────────────────────────────────────────────
+  if (shouldStream) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method:  'POST',
+        headers: {
+          'Content-Type':      'application/json',
+          'x-api-key':         anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          ...bodyRest,
+          messages,
+          system:     SAFETY_SYSTEM_PROMPT,
+          max_tokens: limits.output,
+          stream:     true,
+        }),
+      });
+
+      if (!r.ok) {
+        const errData = await r.json().catch(() => ({}));
+        res.write(`data: ${JSON.stringify({ error: errData.error?.message || 'AI error' })}\n\n`);
+        res.end();
+        return;
+      }
+
+      const reader  = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf          = '';
+      let inputTokens  = 0;
+      let outputTokens = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+          try {
+            const evt = JSON.parse(raw);
+            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+              res.write(`data: ${JSON.stringify({ text: evt.delta.text })}\n\n`);
+            } else if (evt.type === 'message_start' && evt.message?.usage) {
+              inputTokens = evt.message.usage.input_tokens || 0;
+            } else if (evt.type === 'message_delta' && evt.usage) {
+              outputTokens = evt.usage.output_tokens || 0;
+            }
+          } catch {}
+        }
+      }
+
+      const tokensUsed = inputTokens + outputTokens;
+      if (tokensUsed > 0) {
+        await sb.from('token_usage').upsert({
+          user_id:      userId,
+          month:        thisMonth,
+          tokens_used:  tokensUsedSoFar + tokensUsed,
+          last_feature: feature,
+          updated_at:   new Date().toISOString(),
+        }, { onConflict: 'user_id,month' });
+      }
+
+      res.write('data: [DONE]\n\n');
+      res.end();
+    } catch (e) {
+      res.write(`data: ${JSON.stringify({ error: e.message || 'AI error' })}\n\n`);
+      res.end();
+    }
+    return;
+  }
+
+  // ── 4b. Non-streaming response ─────────────────────────────────────────────
+  try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
       headers: {
@@ -171,7 +254,7 @@ export default async function handler(req, res) {
 
     const d = await r.json();
 
-    // ── 5. Track token usage ─────────────────────────────────────────────────
+    // ── 5. Track token usage ──────────────────────────────────────────────────
     if (r.ok && d.usage) {
       const tokensUsed = (d.usage.input_tokens || 0) + (d.usage.output_tokens || 0);
       await sb.from('token_usage').upsert({
