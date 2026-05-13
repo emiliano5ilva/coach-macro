@@ -389,6 +389,83 @@ export const incrementTemplateUse = async (templateId) => {
   } catch {}
 };
 
+// ── User Recipes ──────────────────────────────────────────────────────────────
+
+export const getUserRecipes = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data } = await sb
+      .from("recipes")
+      .select("*")
+      .eq("user_id", userId)
+      .order("use_count", { ascending: false });
+    return data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveUserRecipe = async (userId, recipe) => {
+  if (!userId) return null;
+  try {
+    const { data } = await sb.from("recipes").insert({
+      user_id: userId,
+      name: recipe.name,
+      category: recipe.category || null,
+      servings_count: recipe.servings_count || 1,
+      ingredients: recipe.ingredients || [],
+      calories_per_serving: Math.round(recipe.calories_per_serving || 0),
+      protein_per_serving: Math.round((recipe.protein_per_serving || 0) * 10) / 10,
+      carbs_per_serving: Math.round((recipe.carbs_per_serving || 0) * 10) / 10,
+      fat_per_serving: Math.round((recipe.fat_per_serving || 0) * 10) / 10,
+      fiber_per_serving: Math.round((recipe.fiber_per_serving || 0) * 10) / 10,
+    }).select().single();
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export const updateUserRecipe = async (userId, recipeId, recipe) => {
+  if (!userId || !recipeId) return null;
+  try {
+    const { data } = await sb.from("recipes").update({
+      name: recipe.name,
+      category: recipe.category || null,
+      servings_count: recipe.servings_count || 1,
+      ingredients: recipe.ingredients || [],
+      calories_per_serving: Math.round(recipe.calories_per_serving || 0),
+      protein_per_serving: Math.round((recipe.protein_per_serving || 0) * 10) / 10,
+      carbs_per_serving: Math.round((recipe.carbs_per_serving || 0) * 10) / 10,
+      fat_per_serving: Math.round((recipe.fat_per_serving || 0) * 10) / 10,
+      fiber_per_serving: Math.round((recipe.fiber_per_serving || 0) * 10) / 10,
+    }).eq("id", recipeId).eq("user_id", userId).select().single();
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export const deleteUserRecipe = async (userId, recipeId) => {
+  if (!userId || !recipeId) return;
+  try {
+    await sb.from("recipes").delete().eq("id", recipeId).eq("user_id", userId);
+  } catch {}
+};
+
+export const incrementRecipeUse = async (recipeId) => {
+  if (!recipeId) return;
+  try {
+    const { data } = await sb.from("recipes").select("use_count").eq("id", recipeId).single();
+    if (data) {
+      await sb.from("recipes").update({
+        use_count: (data.use_count || 0) + 1,
+        last_used: new Date().toISOString(),
+      }).eq("id", recipeId);
+    }
+  } catch {}
+};
+
 export const saveCustomFood = async (userId, food) => {
   if (!userId) return null;
   try {
