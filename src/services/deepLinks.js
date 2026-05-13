@@ -1,4 +1,13 @@
-import { App as CapApp } from '@capacitor/app';
+let CapApp = null;
+
+async function getCapApp() {
+  if (CapApp) return CapApp;
+  try {
+    const mod = await import('@capacitor/app');
+    CapApp = mod.App;
+  } catch {}
+  return CapApp;
+}
 
 const handlers = new Map();
 
@@ -6,15 +15,19 @@ export function onDeepLink(route, handler) {
   handlers.set(route, handler);
 }
 
-export function initDeepLinks() {
-  CapApp.addListener('appUrlOpen', ({ url }) => {
+export async function initDeepLinks() {
+  const cap = await getCapApp();
+  if (!cap) return;
+
+  cap.addListener('appUrlOpen', ({ url }) => {
     handleDeepLink(url);
   });
 
   // Handle cold-start URL (app opened via deep link while closed)
-  CapApp.getLaunchUrl().then(({ url }) => {
+  try {
+    const { url } = await cap.getLaunchUrl();
     if (url) handleDeepLink(url);
-  }).catch(() => {});
+  } catch {}
 }
 
 function handleDeepLink(url) {
@@ -29,12 +42,10 @@ function handleDeepLink(url) {
     return;
   }
 
-  // Fallback: dispatch custom event so App.jsx can handle it
   window.dispatchEvent(new CustomEvent('cm:deeplink', { detail: { route, parts } }));
 }
 
 export function openDeepLink(route, ...parts) {
-  const url = ['coachmacro:/', route, ...parts].join('/');
   window.dispatchEvent(new CustomEvent('cm:deeplink', { detail: { route, parts } }));
-  return url;
+  return ['coachmacro:/', route, ...parts].join('/');
 }

@@ -31,7 +31,13 @@ const Root = LegalPage || App;
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Sentry.ErrorBoundary fallback={<div style={{padding:40,color:'#fff',fontFamily:'sans-serif'}}>Something went wrong. Please reload the app.</div>}>
+    <Sentry.ErrorBoundary
+      onError={(error, componentStack) => {
+        console.error('BOUNDARY CAUGHT:', error.message);
+        console.error('STACK:', componentStack);
+      }}
+      fallback={<div style={{padding:40,color:'#fff',fontFamily:'sans-serif'}}>Something went wrong. Please reload the app.</div>}
+    >
       <Root />
     </Sentry.ErrorBoundary>
   </React.StrictMode>
