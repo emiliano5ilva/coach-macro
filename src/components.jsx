@@ -537,8 +537,8 @@ export class ErrorBoundary extends React.Component {
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,padding:"40px 24px",textAlign:"center"}}>
           <div style={{fontSize:32}}>⚠️</div>
           <div style={{fontSize:16,fontWeight:700,color:T.txt}}>Something went wrong</div>
-          <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",maxWidth:260}}>{this.state.error?.message||"An unexpected error occurred."}</div>
-          <button onClick={()=>this.setState({hasError:false,error:null})} style={{padding:"10px 24px",background:T.prot,border:"none",borderRadius:24,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Try Again</button>
+          <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",maxWidth:260}}>An unexpected error occurred. Your data is safe — tap below to reload this section.</div>
+          <button onClick={()=>this.setState({hasError:false,error:null})} style={{padding:"10px 24px",background:T.prot,border:"none",borderRadius:24,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Reload Section</button>
         </div>
       );
     }

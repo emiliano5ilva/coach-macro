@@ -19,6 +19,7 @@ import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget 
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
+import { getAIErrorMessage } from "./utils/errors.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1459,8 +1460,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       const weekNum=Math.floor(Math.max(0,(new Date()-startD)/86400000)/7)+1;
       const cMacros=getDayMacros(profile.goalCals,profile.goal,schedule[getTodayKey()]||"training",0);
       const prompt=`You are a world-class personal trainer and nutritionist texting your athlete their morning briefing.\n\nAthlete data:\n- Name: ${profile.name}\n- Today: ${dayFocus[getTodayKey()]||"Training"} day — Week ${weekNum} of ${wPrefs.splitType||"training"}\n- Last session: ${lastSession}\n- Today's macros: ${cMacros.calories}kcal, ${cMacros.protein}g protein, ${cMacros.carbs}g carbs, ${cMacros.fat}g fat\n- Current streak: ${streak} days\n- Recent sleep: ${sleepAvg} hours average\n\nWrite a brief morning message (4-6 lines max) that:\n1. States today's training focus and one specific target\n2. Gives today's macro targets\n3. Suggests a first meal that fits the macros\n4. One motivational line based on their streak or recent performance\n\nWrite like a coach texting — direct, specific, no fluff. Not a formal notification. A real message from someone who knows them.`;
-      try{const brief=await ai(prompt,400);setMorningBrief(brief);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",brief);}
-      catch(e){console.error("[morningBrief] error:",e);}
+      try{const brief=await ai(prompt,400,"morning_brief");setMorningBrief(brief);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",brief);}
+      catch(e){console.error("[morningBrief] error:",e);const m=getAIErrorMessage(e);if(m)setMorningBrief("⚠️ "+m);}
       setMorningBriefLoading(false);
     })();
   },[user,wPrefs.morningBriefEnabled,briefTrigger]);
@@ -1622,7 +1623,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       setFoodInput("");
       if(user)saveFoodLog(user.id,newLog);
     }
-    catch(e){console.error("[aiLog] error:",e);setLogMsg("⚠️ AI unavailable. Try again.");}
+    catch(e){console.error("[aiLog] error:",e);const m=getAIErrorMessage(e);if(m)setLogMsg("⚠️ "+m);}
     setLogging(false);
   }
   async function scanBarcode(){
@@ -1639,7 +1640,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const actCtx=todayActs.length>0?`\nToday's activity: ${todayActs.map(a=>`${a.type} (${a.calories} kcal via ${a.source})`).join(", ")}\n`:"";
     const dietaryCtx=(profile.dietary||[]).filter(d=>d!=="none");
     try{const txt=await ai(`You are a precision nutrition coach. The user is in ${city||"their city"} and needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations ("no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers.`,900);setRecs(txt);}
-    catch(e){console.error("[fetchRecs] error:",e);setRecs("⚠️ AI temporarily unavailable. Tap 'Get Recommendations' to retry.");}setRecsLoading(false);
+    catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");}setRecsLoading(false);
   }
 
   async function fetchRecipes(){
@@ -1647,7 +1648,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const recipeDietCtx=(profile.dietary||[]).filter(d=>d!=="none");
     const recipeCondCtx=(profile.conditions||[]).filter(c=>c!=="none");
     try{const txt=await ai(`Remaining macros I need to hit:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal} · Day: ${todayType}${recipeDietCtx.length>0?". Dietary restrictions: "+recipeDietCtx.join(", "):""}${recipeCondCtx.length>0?". Health conditions: "+recipeCondCtx.join(", "):""}\n\nGive 3 simple home recipes. Each: name, ingredients (max 6 with amounts), steps (max 5), macro breakdown, prep time. Easy to cook. Hit the protein and calorie targets.`,900);setRecipes(txt);}
-    catch(e){console.error("[fetchRecipes] error:",e);setRecipes("⚠️ AI temporarily unavailable. Tap 'Get Recipes' to retry.");}setRecipesLoading(false);
+    catch(e){console.error("[fetchRecipes] error:",e);const m=getAIErrorMessage(e);if(m)setRecipes("⚠️ "+m+" Tap 'Get Recipes' to retry.");}setRecipesLoading(false);
   }
 
   async function generateWorkout(type="lifting",split="",runPlan="",hybridTemplate=""){
@@ -1661,7 +1662,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const prompt=todayType==="rest"
       ?`REST DAY recovery for ${profile.goal} athlete. Mobility, stretching, foam rolling, recovery nutrition. Equipment: ${wPrefs.equipment}. Clear sections.`
       :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${actCtx}${deloadCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
-    try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);setWorkout("⚠️ AI temporarily unavailable. Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
+    try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);const m=getAIErrorMessage(e);if(m)setWorkout("⚠️ "+m+" Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
   }
 
   async function startStructured(splitName="",runPlanName="",hybridName=""){
@@ -1712,9 +1713,9 @@ Rules:
           setActiveWorkout({title:todayFocus,exercises:exs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}))});
           setTrainScreen("active");
         }else{
-          setWorkout("⚠️ AI unavailable. Use Today tab → Start Workout to begin.");
+          setWorkout("⚠️ AI unavailable. Use the Today tab → Start Workout to begin.");
         }
-      }catch(fe){setWorkout("⚠️ AI unavailable. Use Today tab → Start Workout to begin.");}
+      }catch(fe){setWorkout("⚠️ AI unavailable. Use the Today tab → Start Workout to begin.");}
     }
     setWorkoutLoading(false);
   }

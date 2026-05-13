@@ -953,10 +953,15 @@ function WaitlistSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, firstName }),
       });
-      if (res.ok) setSubmitted(true);
-      else setError('Something went wrong. Please try again.');
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const d = await res.json().catch(()=>({}));
+        if (res.status === 429) setError('Too many sign-up attempts. Please wait a few minutes and try again.');
+        else setError(d.error || 'Unable to join waitlist right now. Please try again.');
+      }
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError('No connection. Check your internet and try again.');
     } finally {
       setLoading(false);
     }

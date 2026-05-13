@@ -143,6 +143,8 @@ import { T, GLOBAL_CSS, WDAYS, MONTHS_A, DAYS_A, YEARS_A, FT_A, IN_A, CM_A, LBS_
   calcTDEE, useCountUp, lookupBarcode } from "./components.jsx";
 import { Onboarding } from "./ob_screens.jsx";
 import { getAge } from "./utils/safety.js";
+import { getErrorMessage } from "./utils/errors.js";
+import { ErrorMessage } from "./utils/errors.jsx";
 import { App } from "./ob_screens2.jsx";
 import { LandingPage } from "./landing.jsx";
 import { FuelSection } from "./fuel.jsx";
@@ -206,7 +208,7 @@ function AuthScreen({onAuth}) {
         if(e)throw e;
         onAuth(data.user, null);
       }
-    } catch(e){setError(e.message||"Something went wrong. Try again.");}
+    } catch(e){setError(getErrorMessage(e));}
     setLoading(false);
   }
 
@@ -217,7 +219,7 @@ function AuthScreen({onAuth}) {
       const {error:e}=await fn();
       if(e)throw e;
       // page will redirect; oauthLoading stays true
-    } catch(e){setError(e.message||`${provider} sign-in failed. Try again.`);setOauthLoading("");}
+    } catch(e){setError(getErrorMessage(e));setOauthLoading("");}
   }
 
   const inputStyle=(val)=>({
@@ -290,7 +292,7 @@ function AuthScreen({onAuth}) {
         {socialDivider}
         {appleBtn}
         {googleBtn}
-        {error&&<div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:10,padding:"11px 14px",marginTop:8,fontSize:13,color:"var(--red)",fontFamily:"var(--body)"}}>{error}</div>}
+        {error&&<ErrorMessage error={error} style={{marginTop:8}}/>}
         <div style={{textAlign:"center",marginTop:16,fontSize:11,color:"var(--white-faint)",fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>Secure · Private · No spam</div>
       </div>
     </div>
@@ -319,7 +321,7 @@ function AuthScreen({onAuth}) {
         {field("Email",email,setEmail,"email","you@email.com")}
         {field("Password",password,setPassword,"password","Min 6 characters")}
 
-        {error&&<div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:10,padding:"11px 14px",marginBottom:16,fontSize:13,color:"var(--red)",fontFamily:"var(--body)"}}>{error}</div>}
+        {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
 
         <button onClick={handle} disabled={loading||!!oauthLoading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:16}}>
           {loading?"...":(view==="signup"?"Create Account →":"Sign In →")}

@@ -18,6 +18,7 @@ import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieF
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
 import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
 import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN } from "./utils/warmupProtocols.js";
+import { getAIErrorMessage } from "./utils/errors.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -714,7 +715,8 @@ Rules:
       if (!parsed.adapted_exercises?.length) throw new Error("No exercises");
       setResult(parsed); setScreen("results");
     } catch(e) {
-      setErr("Couldn't adapt session — try again."); setScreen("categories");
+      const m=getAIErrorMessage(e);
+      setErr(m||"Couldn't adapt your session. Try again."); setScreen("categories");
     }
   }
 
@@ -2919,9 +2921,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {id:user.id,wprefs:newWPrefs||wPrefs,schedule:newSchedule||schedule},
         {onConflict:"id"}
       );
-      if(error){console.error("[saveSettings] error:",error.message);showToast("Failed to save settings","error");}
+      if(error){console.error("[saveSettings] error:",error.message);showToast("Couldn't save — check your connection","error");}
       else{console.log("[saveSettings] saved");setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);showToast("Preferences saved","success");}
-    }catch(e){console.error("[saveSettings] exception:",e);showToast("Failed to save settings","error");}
+    }catch(e){console.error("[saveSettings] exception:",e);showToast("Couldn't save — check your connection","error");}
   }
 
   // Load weight check-ins from Supabase

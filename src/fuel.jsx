@@ -15,6 +15,7 @@ import {
   getUserRecipes, saveUserRecipe, updateUserRecipe, deleteUserRecipe, incrementRecipeUse,
   addWaterLog, deleteWaterLog,
 } from "./services/foodDatabase.js";
+import { getAIErrorMessage } from "./utils/errors.js";
 
 const MEAL_SLOT_DEFS = {
   "2":  ["Breakfast","Dinner"],
@@ -1130,7 +1131,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(bodySuggestLoading)return;
     setBodySuggestLoading(true);setBodySuggest("");
     try{const r=await ai(`Suggest one simple meal to close this macro gap. Remaining: ${remaining.calories} kcal, ${remaining.protein}g protein, ${remaining.carbs}g carbs, ${remaining.fat}g fat. Reply in one line: "MealName — ~XXXkcal · Xg protein". Be specific and realistic.`,100);setBodySuggest(r.trim());}
-    catch{setBodySuggest("Unable to fetch suggestion right now.");}
+    catch(e){const m=getAIErrorMessage(e);setBodySuggest(m||"Unable to fetch suggestion right now.");}
     setBodySuggestLoading(false);
   }
   const useBudgetView=wPrefs?.fuelView==="budget";
