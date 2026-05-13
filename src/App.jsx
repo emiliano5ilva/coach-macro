@@ -150,7 +150,7 @@ import { LandingPage } from "./landing.jsx";
 import { FuelSection } from "./fuel.jsx";
 import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES, PROMOS,
-  PromoScreen, Paywall } from "./sections.jsx";
+  PromoScreen, Paywall, UpgradeScreen } from "./sections.jsx";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 
 // ─── SPLASH SCREEN ────────────────────────────────────────────────────────────
@@ -341,7 +341,7 @@ function AuthScreen({onAuth}) {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function CoachMacro() {
-  const [phase,setPhase]=useState("splash"); // splash | landing | loading | auth | onboarding | promo | paywall | app
+  const [phase,setPhase]=useState("splash"); // splash | landing | loading | auth | onboarding | promo | paywall | upgrade | app
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
@@ -620,7 +620,7 @@ export default function CoachMacro() {
       if(event==="SIGNED_IN"&&session?.user) handleAuth(session.user, null);
     });
     // Trial/subscription expired — show paywall from anywhere in the app
-    const onSubRequired=()=>setPhase("paywall");
+    const onSubRequired=()=>setPhase("upgrade");
     window.addEventListener("cm:subscription-required",onSubRequired);
     return()=>{subscription.unsubscribe();window.removeEventListener("cm:subscription-required",onSubRequired);};
   },[]);
@@ -704,5 +704,6 @@ export default function CoachMacro() {
   }
   if(phase==="promo")      return <PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
   if(phase==="paywall")    return <Paywall profile={profile}/>;
+  if(phase==="upgrade")    return <UpgradeScreen profile={profile} onContinue={()=>setPhase("app")}/>;
   return <App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user}/>;
 }

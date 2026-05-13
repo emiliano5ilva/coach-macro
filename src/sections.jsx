@@ -3483,6 +3483,12 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
   );
 }
 
+// ─── STRIPE PAYMENT LINKS ─────────────────────────────────────────────────────
+const STRIPE = {
+  annual:  "https://buy.stripe.com/test_4gM8wQaGPepKaiQ83l7wA00",
+  monthly: "https://buy.stripe.com/test_6oU6oI4ir4PafDa5Vd7wA01",
+};
+
 // ─── PAYWALL ──────────────────────────────────────────────────────────────────
 export function Paywall({profile}) {
   const [plan, setPlan] = useState('annual');
@@ -3545,6 +3551,113 @@ export function Paywall({profile}) {
         </div>
         <div style={{fontSize:12,color:T.mu,textAlign:'center'}}>
           Secure checkout · Cancel anytime · No charge for 7 days
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── UPGRADE SCREEN (mid-app trial expiry) ────────────────────────────────────
+export function UpgradeScreen({ profile, onContinue }) {
+  const [plan, setPlan] = useState('annual');
+  const firstName = (profile?.name || '').split(' ')[0] || 'there';
+  const plans = {
+    annual:  { label:'Yearly',  badge:'BEST VALUE — 67% OFF', price:'$19.99', per:'/yr',  sub:'$1.67/month · billed annually', link: STRIPE.annual },
+    monthly: { label:'Monthly', badge:null,                   price:'$4.99',  per:'/mo',  sub:'billed monthly · cancel anytime', link: STRIPE.monthly },
+  };
+  const p = plans[plan];
+
+  const locked = [
+    'AI food logging',
+    'Restaurant AI',
+    'Morning brief + coaching',
+    'Recipe generator',
+    'Adapt Now',
+  ];
+  const free = [
+    'Workout tracking',
+    'Macro targets + food diary',
+    'Barcode scanner',
+    'Progress stats + photos',
+    'Apple Health sync',
+  ];
+
+  return (
+    <div style={{ minHeight:'100vh', background:T.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px 20px' }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900;ital@0,900;1,900&family=Inter:wght@300;400;500;600;700;800&display=swap');`}</style>
+      <div style={{ width:'100%', maxWidth:440 }}>
+
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:32 }}>
+          <svg width={52} height={22} viewBox="0 0 52 22">
+            <rect x={0}  y={0}  width={14} height={22} rx={3} fill={T.prot}/>
+            <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
+            <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
+          </svg>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, letterSpacing:3, fontSize:17, lineHeight:1.1 }}>
+            <div style={{ color:'#fff' }}>COACH</div>
+            <div><span style={{ color:T.prot }}>M</span><span style={{ color:T.carb }}>A</span><span style={{ color:T.fat }}>C</span><span style={{ color:'#fff' }}>RO</span></div>
+          </div>
+        </div>
+
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:44, fontWeight:900, fontStyle:'italic', lineHeight:.92, marginBottom:10 }}>
+          YOUR TRIAL<br/><span style={{ color:T.prot }}>HAS ENDED.</span>
+        </div>
+        <p style={{ fontSize:15, color:'#888', marginBottom:24, lineHeight:1.65 }}>
+          Hey {firstName} — your 14-day free trial is up. Upgrade to keep AI features, or continue with core tracking for free.
+        </p>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
+          <div style={{ background:'rgba(232,52,28,0.07)', border:'1px solid rgba(232,52,28,0.2)', borderRadius:12, padding:'14px' }}>
+            <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.2, color:'rgba(232,52,28,0.75)', marginBottom:10 }}>AI PAUSED</div>
+            {locked.map(f => (
+              <div key={f} style={{ display:'flex', gap:8, padding:'5px 0', fontSize:12, color:'rgba(245,245,240,0.45)', alignItems:'flex-start' }}>
+                <span style={{ color:'rgba(232,52,28,0.5)', flexShrink:0 }}>✕</span>{f}
+              </div>
+            ))}
+          </div>
+          <div style={{ background:'rgba(80,200,80,0.05)', border:'1px solid rgba(80,200,80,0.15)', borderRadius:12, padding:'14px' }}>
+            <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.2, color:'rgba(80,200,80,0.8)', marginBottom:10 }}>STILL FREE</div>
+            {free.map(f => (
+              <div key={f} style={{ display:'flex', gap:8, padding:'5px 0', fontSize:12, color:'rgba(245,245,240,0.65)', alignItems:'flex-start' }}>
+                <span style={{ color:'rgba(80,200,80,0.8)', flexShrink:0 }}>✓</span>{f}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display:'flex', background:T.s1, border:`1px solid ${T.bd}`, borderRadius:10, padding:4, marginBottom:16, gap:4 }}>
+          {Object.entries(plans).map(([k,v]) => (
+            <button key={k} onClick={() => setPlan(k)} style={{ flex:1, padding:'11px', borderRadius:8, border:'none', cursor:'pointer', background:plan===k?T.prot:'none', color:plan===k?'#fff':T.mu, fontWeight:700, fontSize:14, fontFamily:"'Inter',sans-serif", transition:'all .2s' }}>
+              {v.label}{k==='annual' && <span style={{ fontSize:11, opacity:.8 }}> — 67% off</span>}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ background:T.s1, border:`1.5px solid ${T.prot}`, borderRadius:16, padding:'24px 24px 22px', marginBottom:12, position:'relative' }}>
+          {p.badge && (
+            <div style={{ position:'absolute', top:-11, left:'50%', transform:'translateX(-50%)', background:T.prot, color:'#fff', fontSize:9, fontWeight:800, padding:'4px 14px', borderRadius:9, letterSpacing:1.5, whiteSpace:'nowrap' }}>
+              {p.badge}
+            </div>
+          )}
+          <div style={{ display:'flex', alignItems:'baseline', gap:4, marginBottom:4 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:56, fontWeight:900, color:T.prot, lineHeight:1, letterSpacing:-1 }}>{p.price}</div>
+            <div style={{ fontSize:18, color:T.mu }}>{p.per}</div>
+          </div>
+          <div style={{ fontSize:13, color:T.mu, marginBottom:20 }}>{p.sub}</div>
+          <a href={p.link} style={{ display:'block', textAlign:'center', padding:'16px', background:T.prot, color:'#fff', fontWeight:700, fontSize:16, borderRadius:10, textDecoration:'none', letterSpacing:.3 }}>
+            Upgrade to Pro →
+          </a>
+        </div>
+
+        <button
+          onClick={onContinue}
+          style={{ width:'100%', background:'none', border:`1px solid ${T.bd}`, borderRadius:10, padding:'13px', color:T.mu, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:"'Inter',sans-serif", marginBottom:14 }}
+        >
+          Continue with limited access
+        </button>
+
+        <div style={{ fontSize:12, color:T.mu, textAlign:'center' }}>
+          Secure checkout · Cancel anytime
         </div>
       </div>
     </div>
