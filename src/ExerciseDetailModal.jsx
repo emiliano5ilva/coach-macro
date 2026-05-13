@@ -224,16 +224,34 @@ function GifSkeleton() {
   );
 }
 
+function ExerciseImages({ url1, url2 }) {
+  const [err1, setErr1] = useState(false);
+  const [err2, setErr2] = useState(false);
+  if (!url1 || err1) return <GifPlaceholder/>;
+  if (!url2 || err2) {
+    return <img src={url1} alt="exercise start" onError={()=>setErr1(true)} style={{width:"100%",borderRadius:14,marginBottom:20,display:"block",objectFit:"cover"}}/>;
+  }
+  return (
+    <div style={{position:"relative",width:"100%",aspectRatio:"4/3",borderRadius:14,overflow:"hidden",marginBottom:20,background:T.s2}}>
+      <style>{`
+        @keyframes ex-a{0%,42%{opacity:1}50%,100%{opacity:0}}
+        @keyframes ex-b{0%,42%{opacity:0}50%,100%{opacity:1}}
+      `}</style>
+      <img src={url1} alt="start" onError={()=>setErr1(true)} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",animation:"ex-a 2.4s ease-in-out infinite"}}/>
+      <img src={url2} alt="end"   onError={()=>setErr2(true)} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",animation:"ex-b 2.4s ease-in-out infinite"}}/>
+      <div style={{position:"absolute",top:8,left:8,background:"rgba(0,0,0,0.55)",borderRadius:6,padding:"2px 7px",fontSize:9,fontWeight:700,letterSpacing:1,color:"rgba(255,255,255,0.7)"}}>START → END</div>
+    </div>
+  );
+}
+
 export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
   const [exData,   setExData]   = useState(null);
   const [loading,  setLoading]  = useState(true);
-  const [gifError, setGifError] = useState(false);
   const [wxHistory,setWxHistory]= useState([]);
 
   useEffect(() => {
     setLoading(true);
     setExData(null);
-    setGifError(false);
     setWxHistory([]);
 
     getCachedExerciseData(exerciseName).then(d => {
@@ -303,14 +321,8 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
         )}
 
         <div style={{padding:"0 20px 28px"}}>
-          {/* GIF */}
-          {loading ? <GifSkeleton/> : exData?.gif_url && !gifError ? (
-            <img
-              src={exData.gif_url} alt={exerciseName}
-              onError={()=>setGifError(true)}
-              style={{width:"100%",borderRadius:14,marginBottom:20,display:"block",objectFit:"cover"}}
-            />
-          ) : <GifPlaceholder/>}
+          {/* Images */}
+          {loading ? <GifSkeleton/> : <ExerciseImages url1={exData?.gif_url} url2={exData?.gif_url_2}/>}
 
           {/* Muscles */}
           {!loading && (exData?.target_muscles?.length>0 || exData?.secondary_muscles?.length>0) && (

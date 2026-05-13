@@ -1,141 +1,164 @@
 import { sb } from "../supabase.js";
 
 const EXERCISEDB_BASE = "https://exercisedb.p.rapidapi.com";
-const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY;
+const RAPIDAPI_KEY    = import.meta.env.VITE_RAPIDAPI_KEY;
+const FREE_DB_BASE    = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 
-export const EXERCISE_NAME_MAP = {
-  "Barbell Squat":           "barbell squat",
-  "Barbell Bench Press":     "barbell bench press",
-  "Deadlift":                "deadlift",
-  "Overhead Press":          "barbell overhead press",
-  "Barbell Row":             "barbell bent over row",
-  "Pull Up":                 "pull-up",
-  "Romanian Deadlift":       "romanian deadlift",
-  "Lat Pulldown":            "cable lat pulldown",
-  "Incline Dumbbell Press":  "incline dumbbell press",
-  "Lateral Raise":           "dumbbell lateral raise",
-  "Face Pull":               "cable face pull",
-  "Leg Press":               "leg press",
-  "Leg Curl":                "lying leg curls",
-  "Leg Extension":           "leg extension",
-  "Calf Raise":              "standing calf raises",
-  "Hip Thrust":              "barbell hip thrust",
-  "Bulgarian Split Squat":   "dumbbell bulgarian split squat",
-  "Hack Squat":              "hack squat",
-  "Cable Row":               "cable seated row",
-  "Tricep Pushdown":         "cable pushdown",
-  "Skull Crusher":           "ez barbell skull crusher",
-  "Barbell Curl":            "barbell curl",
-  "Hammer Curl":             "dumbbell hammer curl",
-  "Ab Wheel Rollout":        "ab wheel rollout",
-  "Hanging Leg Raise":       "hanging leg raise",
-  "Dumbbell Row":            "dumbbell bent over row",
-  "Incline Barbell Press":   "barbell incline bench press",
-  "Close Grip Bench":        "close-grip bench press",
-  "Dip":                     "chest dips",
-  "Chin Up":                 "chin-up",
-  "Seated Row":              "cable seated row",
-  "Cable Crossover":         "cable crossover",
-  "Pec Deck":                "pec deck fly",
-  "Preacher Curl":           "ez-bar preacher curl",
-  "Concentration Curl":      "dumbbell concentration curl",
-  "Tricep Extension":        "dumbbell triceps extension",
-  "Overhead Tricep":         "dumbbell overhead tricep extension",
-  "Goblet Squat":            "kettlebell goblet squat",
-  "Sumo Deadlift":           "sumo deadlift",
-  "Front Squat":             "barbell front squat",
-  "Good Morning":            "good morning",
-  "Hyperextension":          "back extension",
-  "Glute Bridge":            "glute bridge",
-  "Reverse Fly":             "bent over dumbbell reverse fly",
-  "Shrug":                   "barbell shrug",
-  "Upright Row":             "barbell upright row",
-  "Arnold Press":            "arnold press",
+// Maps our display names → ExerciseDB search strings
+export const EXERCISEDB_NAME_MAP = {
+  "Barbell Squat":          "barbell squat",
+  "Barbell Bench Press":    "barbell bench press",
+  "Deadlift":               "barbell deadlift",
+  "Overhead Press":         "barbell shoulder press",
+  "Barbell Row":            "bent over barbell row",
+  "Pull Up":                "pull-up",
+  "Romanian Deadlift":      "romanian deadlift",
+  "Lat Pulldown":           "lat pulldown",
+  "Incline Dumbbell Press": "incline dumbbell press",
+  "Lateral Raise":          "dumbbell lateral raise",
+  "Face Pull":              "face pull",
+  "Leg Press":              "leg press",
+  "Leg Curl":               "lying leg curls",
+  "Leg Extension":          "leg extension",
+  "Calf Raise":             "standing calf raises",
+  "Hip Thrust":             "barbell hip thrust",
+  "Bulgarian Split Squat":  "bulgarian split squat",
+  "Hack Squat":             "hack squat",
+  "Cable Row":              "cable row",
+  "Tricep Pushdown":        "tricep pushdown",
+  "Skull Crusher":          "skull crusher",
+  "Barbell Curl":           "barbell curl",
+  "Hammer Curl":            "hammer curl",
+  "Ab Wheel Rollout":       "ab rollout",
+  "Hanging Leg Raise":      "hanging leg raise",
+  "Dumbbell Row":           "dumbbell row",
+  "Incline Barbell Press":  "barbell incline bench press",
+  "Close Grip Bench":       "close grip bench press",
+  "Dip":                    "chest dips",
+  "Chin Up":                "chin-up",
+  "Seated Row":             "seated row",
+  "Cable Crossover":        "cable crossover",
+  "Pec Deck":               "pec deck",
+  "Preacher Curl":          "preacher curl",
+  "Tricep Extension":       "triceps extension",
+  "Goblet Squat":           "goblet squat",
+  "Sumo Deadlift":          "sumo deadlift",
+  "Front Squat":            "front squat",
+  "Good Morning":           "good morning",
+  "Hyperextension":         "back extension",
+  "Glute Bridge":           "glute bridge",
+  "Reverse Fly":            "rear delt fly",
+  "Shrug":                  "barbell shrug",
+  "Arnold Press":           "arnold press",
 };
 
-async function fetchFromExerciseDB(exerciseName) {
+// Maps our display names → free-exercise-db GitHub folder names
+export const FREE_EXERCISE_DB_MAP = {
+  "Barbell Squat":          "Barbell_Squat",
+  "Barbell Bench Press":    "Barbell_Bench_Press_-_Medium_Grip",
+  "Deadlift":               "Barbell_Deadlift",
+  "Overhead Press":         "Barbell_Shoulder_Press",
+  "Barbell Row":            "Bent_Over_Barbell_Row",
+  "Pull Up":                "Band_Assisted_Pull-Up",
+  "Romanian Deadlift":      "Stiff-Legged_Barbell_Deadlift",
+  "Lat Pulldown":           "Close-Grip_Front_Lat_Pulldown",
+  "Incline Dumbbell Press": "Incline_Dumbbell_Press",
+  "Lateral Raise":          "Cable_Seated_Lateral_Raise",
+  "Face Pull":              "Face_Pull",
+  "Leg Press":              "Leg_Press",
+  "Leg Curl":               "Lying_Leg_Curls",
+  "Leg Extension":          "Leg_Extensions",
+  "Calf Raise":             "Donkey_Calf_Raises",
+  "Hip Thrust":             "Barbell_Hip_Thrust",
+  "Bulgarian Split Squat":  "Barbell_Side_Split_Squat",
+  "Hack Squat":             "Barbell_Hack_Squat",
+  "Cable Row":              "Elevated_Cable_Rows",
+  "Tricep Pushdown":        "Cable_Incline_Pushdown",
+  "Skull Crusher":          "EZ-Bar_Skullcrusher",
+  "Barbell Curl":           "Barbell_Curl",
+  "Hammer Curl":            "Hammer_Curls",
+  "Ab Wheel Rollout":       "Barbell_Ab_Rollout_-_On_Knees",
+  "Hanging Leg Raise":      "Hanging_Leg_Raise",
+  "Dumbbell Row":           "One-Arm_Dumbbell_Row",
+  "Incline Barbell Press":  "Barbell_Incline_Bench_Press_-_Medium_Grip",
+  "Close Grip Bench":       "Close-Grip_Barbell_Bench_Press",
+  "Dip":                    "Bench_Dips",
+  "Chin Up":                "Chin-Up",
+  "Seated Row":             "Elevated_Cable_Rows",
+  "Cable Crossover":        "Cable_Crossover",
+  "Pec Deck":               null,
+  "Preacher Curl":          "Cable_Preacher_Curl",
+  "Tricep Extension":       "Dumbbell_One-Arm_Triceps_Extension",
+  "Goblet Squat":           "Goblet_Squat",
+  "Sumo Deadlift":          "Barbell_Deadlift",
+  "Front Squat":            "Front_Squat_Clean_Grip",
+  "Good Morning":           "Good_Morning",
+  "Hyperextension":         "Hyperextensions_Back_Extensions",
+  "Glute Bridge":           "Barbell_Glute_Bridge",
+  "Reverse Fly":            "Dumbbell_Lying_Rear_Lateral_Raise",
+  "Shrug":                  "Dumbbell_Shrug",
+  "Arnold Press":           "Arnold_Dumbbell_Press",
+};
+
+function githubImageUrls(exerciseName) {
+  const folder = FREE_EXERCISE_DB_MAP[exerciseName];
+  if (!folder) return { gif_url: null, gif_url_2: null };
+  return {
+    gif_url:   `${FREE_DB_BASE}/${folder}/0.jpg`,
+    gif_url_2: `${FREE_DB_BASE}/${folder}/1.jpg`,
+  };
+}
+
+async function fetchMetadataFromExerciseDB(exerciseName) {
   if (!RAPIDAPI_KEY) return null;
   try {
-    const searchName = EXERCISE_NAME_MAP[exerciseName] || exerciseName.toLowerCase();
+    const searchName = EXERCISEDB_NAME_MAP[exerciseName] || exerciseName.toLowerCase();
     const res = await fetch(
       `${EXERCISEDB_BASE}/exercises/name/${encodeURIComponent(searchName)}?limit=1`,
-      {
-        headers: {
-          "X-RapidAPI-Key":  RAPIDAPI_KEY,
-          "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
-        },
-      }
+      { headers: { "X-RapidAPI-Key": RAPIDAPI_KEY, "X-RapidAPI-Host": "exercisedb.p.rapidapi.com" } }
     );
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data?.[0]?.gifUrl) return null;
+    if (!data?.[0]) return null;
+    const d = data[0];
     return {
-      gif_url:           data[0].gifUrl,
-      target_muscles:    data[0].targetMuscles    || [],
-      secondary_muscles: data[0].secondaryMuscles || [],
-      instructions:      data[0].instructions     || [],
-      equipment:         data[0].equipment        || null,
-      body_part:         data[0].bodyPart         || null,
-      source:            "exercisedb",
+      target_muscles:    d.target    ? [d.target]           : [],
+      secondary_muscles: d.secondaryMuscles                 || [],
+      instructions:      d.instructions                     || [],
+      equipment:         d.equipment                        || null,
+      body_part:         d.bodyPart                         || null,
     };
   } catch { return null; }
 }
 
-async function fetchFromWger(exerciseName) {
+async function cacheToSupabase(exerciseName, row) {
   try {
-    const res = await fetch(
-      `https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(exerciseName)}&language=english&format=json`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const id = data?.suggestions?.[0]?.data?.id;
-    if (!id) return null;
-    const [imgRes] = await Promise.all([
-      fetch(`https://wger.de/api/v2/exerciseimage/?exercise_base=${id}&format=json`),
-    ]);
-    const imgData = await imgRes.json();
-    const img = imgData?.results?.find(i => i.is_main) || imgData?.results?.[0];
-    if (!img?.image) return null;
-    return {
-      gif_url:           img.image,
-      target_muscles:    [],
-      secondary_muscles: [],
-      instructions:      [],
-      equipment:         null,
-      body_part:         null,
-      source:            "wger",
-    };
-  } catch { return null; }
-}
-
-async function cacheToSupabase(exerciseName, data) {
-  try {
-    await sb.from("exercise_cache").insert({
-      exercise_name:     exerciseName,
-      gif_url:           data.gif_url,
-      target_muscles:    data.target_muscles    || [],
-      secondary_muscles: data.secondary_muscles || [],
-      instructions:      data.instructions      || [],
-      equipment:         data.equipment         || null,
-    });
+    await sb.from("exercise_cache").insert({ exercise_name: exerciseName, ...row });
   } catch { /* ignore duplicate key */ }
 }
 
 export async function getCachedExerciseData(exerciseName) {
+  // Supabase cache first
   try {
-    const { data } = await sb
-      .from("exercise_cache")
-      .select("*")
-      .eq("exercise_name", exerciseName)
-      .maybeSingle();
+    const { data } = await sb.from("exercise_cache").select("*").eq("exercise_name", exerciseName).maybeSingle();
     if (data) return { ...data, cached: true };
-  } catch { /* continue to live fetch */ }
+  } catch { /* continue */ }
 
-  const exData = await fetchFromExerciseDB(exerciseName);
-  if (exData) { cacheToSupabase(exerciseName, exData); return exData; }
+  // Build image URLs from free-exercise-db (zero API calls)
+  const images = githubImageUrls(exerciseName);
 
-  const wgerData = await fetchFromWger(exerciseName);
-  if (wgerData) { cacheToSupabase(exerciseName, wgerData); return wgerData; }
+  // Fetch metadata from ExerciseDB API
+  const meta = await fetchMetadataFromExerciseDB(exerciseName);
 
-  return null;
+  const row = {
+    gif_url:           images.gif_url,
+    gif_url_2:         images.gif_url_2,
+    target_muscles:    meta?.target_muscles    || [],
+    secondary_muscles: meta?.secondary_muscles || [],
+    instructions:      meta?.instructions      || [],
+    equipment:         meta?.equipment         || null,
+  };
+
+  cacheToSupabase(exerciseName, row); // fire-and-forget
+  return row;
 }

@@ -1,98 +1,138 @@
 #!/usr/bin/env node
 /**
- * Preloads exercise GIF data into Supabase exercise_cache.
- * Run once during development to avoid hitting the 50 req/day API limit.
+ * Preloads exercise data into Supabase exercise_cache.
+ * - Images: free-exercise-db GitHub repo (zero API calls, unlimited)
+ * - Metadata: ExerciseDB RapidAPI (muscles, instructions — uses ~44 of 50 daily free requests)
  *
- * Usage:
- *   RAPIDAPI_KEY=your_key node scripts/preload-exercise-cache.js
- *
- * Or with a .env file:
+ * Usage (from project root):
  *   node --env-file=.env scripts/preload-exercise-cache.js
  *
- * Requires Node 18+. No extra dependencies beyond @supabase/supabase-js
- * (already installed). Creates exercise_cache rows for all mapped exercises.
+ * Requires Node 18+. No extra packages needed.
  */
 
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://oxxihlwqukbakmnnavuy.supabase.co";
-// Use the service-role key here so RLS doesn't block inserts.
-// Get it from: Supabase Dashboard → Settings → API → service_role key
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || "";
+const SUPABASE_URL         = "https://oxxihlwqukbakmnnavuy.supabase.co";
+const SUPABASE_ANON_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk";
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
 
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || process.env.VITE_RAPIDAPI_KEY || "";
+const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY || process.env.VITE_RAPIDAPI_KEY || "";
+const EXERCISEDB    = "https://exercisedb.p.rapidapi.com";
+const FREE_DB_BASE  = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 
-const EXERCISEDB_BASE = "https://exercisedb.p.rapidapi.com";
-
-const EXERCISE_NAME_MAP = {
+// ExerciseDB search names (for metadata only — muscles, instructions, equipment)
+const EXERCISEDB_NAME_MAP = {
   "Barbell Squat":          "barbell squat",
   "Barbell Bench Press":    "barbell bench press",
-  "Deadlift":               "deadlift",
-  "Overhead Press":         "barbell overhead press",
-  "Barbell Row":            "barbell bent over row",
+  "Deadlift":               "barbell deadlift",
+  "Overhead Press":         "barbell shoulder press",
+  "Barbell Row":            "bent over barbell row",
   "Pull Up":                "pull-up",
   "Romanian Deadlift":      "romanian deadlift",
-  "Lat Pulldown":           "cable lat pulldown",
+  "Lat Pulldown":           "lat pulldown",
   "Incline Dumbbell Press": "incline dumbbell press",
   "Lateral Raise":          "dumbbell lateral raise",
-  "Face Pull":              "cable face pull",
+  "Face Pull":              "face pull",
   "Leg Press":              "leg press",
   "Leg Curl":               "lying leg curls",
   "Leg Extension":          "leg extension",
   "Calf Raise":             "standing calf raises",
   "Hip Thrust":             "barbell hip thrust",
-  "Bulgarian Split Squat":  "dumbbell bulgarian split squat",
+  "Bulgarian Split Squat":  "bulgarian split squat",
   "Hack Squat":             "hack squat",
-  "Cable Row":              "cable seated row",
-  "Tricep Pushdown":        "cable pushdown",
-  "Skull Crusher":          "ez barbell skull crusher",
+  "Cable Row":              "cable row",
+  "Tricep Pushdown":        "tricep pushdown",
+  "Skull Crusher":          "skull crusher",
   "Barbell Curl":           "barbell curl",
-  "Hammer Curl":            "dumbbell hammer curl",
-  "Ab Wheel Rollout":       "ab wheel rollout",
+  "Hammer Curl":            "hammer curl",
+  "Ab Wheel Rollout":       "ab rollout",
   "Hanging Leg Raise":      "hanging leg raise",
-  "Dumbbell Row":           "dumbbell bent over row",
+  "Dumbbell Row":           "dumbbell row",
   "Incline Barbell Press":  "barbell incline bench press",
-  "Close Grip Bench":       "close-grip bench press",
+  "Close Grip Bench":       "close grip bench press",
   "Dip":                    "chest dips",
   "Chin Up":                "chin-up",
-  "Seated Row":             "cable seated row",
+  "Seated Row":             "seated row",
   "Cable Crossover":        "cable crossover",
-  "Pec Deck":               "pec deck fly",
-  "Preacher Curl":          "ez-bar preacher curl",
-  "Tricep Extension":       "dumbbell triceps extension",
-  "Goblet Squat":           "kettlebell goblet squat",
+  "Pec Deck":               "pec deck",
+  "Preacher Curl":          "preacher curl",
+  "Tricep Extension":       "triceps extension",
+  "Goblet Squat":           "goblet squat",
   "Sumo Deadlift":          "sumo deadlift",
-  "Front Squat":            "barbell front squat",
+  "Front Squat":            "front squat",
   "Good Morning":           "good morning",
   "Hyperextension":         "back extension",
   "Glute Bridge":           "glute bridge",
-  "Reverse Fly":            "bent over dumbbell reverse fly",
+  "Reverse Fly":            "rear delt fly",
   "Shrug":                  "barbell shrug",
   "Arnold Press":           "arnold press",
 };
 
+// free-exercise-db folder names for start/end position images
+const FREE_EXERCISE_DB_MAP = {
+  "Barbell Squat":          "Barbell_Squat",
+  "Barbell Bench Press":    "Barbell_Bench_Press_-_Medium_Grip",
+  "Deadlift":               "Barbell_Deadlift",
+  "Overhead Press":         "Barbell_Shoulder_Press",
+  "Barbell Row":            "Bent_Over_Barbell_Row",
+  "Pull Up":                "Band_Assisted_Pull-Up",
+  "Romanian Deadlift":      "Stiff-Legged_Barbell_Deadlift",
+  "Lat Pulldown":           "Close-Grip_Front_Lat_Pulldown",
+  "Incline Dumbbell Press": "Incline_Dumbbell_Press",
+  "Lateral Raise":          "Cable_Seated_Lateral_Raise",
+  "Face Pull":              "Face_Pull",
+  "Leg Press":              "Leg_Press",
+  "Leg Curl":               "Lying_Leg_Curls",
+  "Leg Extension":          "Leg_Extensions",
+  "Calf Raise":             "Donkey_Calf_Raises",
+  "Hip Thrust":             "Barbell_Hip_Thrust",
+  "Bulgarian Split Squat":  "Barbell_Side_Split_Squat",
+  "Hack Squat":             "Barbell_Hack_Squat",
+  "Cable Row":              "Elevated_Cable_Rows",
+  "Tricep Pushdown":        "Cable_Incline_Pushdown",
+  "Skull Crusher":          "EZ-Bar_Skullcrusher",
+  "Barbell Curl":           "Barbell_Curl",
+  "Hammer Curl":            "Hammer_Curls",
+  "Ab Wheel Rollout":       "Barbell_Ab_Rollout_-_On_Knees",
+  "Hanging Leg Raise":      "Hanging_Leg_Raise",
+  "Dumbbell Row":           "One-Arm_Dumbbell_Row",
+  "Incline Barbell Press":  "Barbell_Incline_Bench_Press_-_Medium_Grip",
+  "Close Grip Bench":       "Close-Grip_Barbell_Bench_Press",
+  "Dip":                    "Bench_Dips",
+  "Chin Up":                "Chin-Up",
+  "Seated Row":             "Elevated_Cable_Rows",
+  "Cable Crossover":        "Cable_Crossover",
+  "Pec Deck":               null,
+  "Preacher Curl":          "Cable_Preacher_Curl",
+  "Tricep Extension":       "Dumbbell_One-Arm_Triceps_Extension",
+  "Goblet Squat":           "Goblet_Squat",
+  "Sumo Deadlift":          "Barbell_Deadlift",
+  "Front Squat":            "Front_Squat_Clean_Grip",
+  "Good Morning":           "Good_Morning",
+  "Hyperextension":         "Hyperextensions_Back_Extensions",
+  "Glute Bridge":           "Barbell_Glute_Bridge",
+  "Reverse Fly":            "Dumbbell_Lying_Rear_Lateral_Raise",
+  "Shrug":                  "Dumbbell_Shrug",
+  "Arnold Press":           "Arnold_Dumbbell_Press",
+};
+
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function fetchFromExerciseDB(searchName) {
+async function fetchMetadata(searchName) {
   try {
     const res = await fetch(
-      `${EXERCISEDB_BASE}/exercises/name/${encodeURIComponent(searchName)}?limit=1`,
-      {
-        headers: {
-          "X-RapidAPI-Key":  RAPIDAPI_KEY,
-          "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
-        },
-      }
+      `${EXERCISEDB}/exercises/name/${encodeURIComponent(searchName)}?limit=1`,
+      { headers: { "X-RapidAPI-Key": RAPIDAPI_KEY, "X-RapidAPI-Host": "exercisedb.p.rapidapi.com" } }
     );
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data?.[0]?.gifUrl) return null;
+    if (!data?.[0]) return null;
+    const d = data[0];
     return {
-      gif_url:           data[0].gifUrl,
-      target_muscles:    data[0].targetMuscles    || [],
-      secondary_muscles: data[0].secondaryMuscles || [],
-      instructions:      data[0].instructions     || [],
-      equipment:         data[0].equipment        || null,
+      target_muscles:    d.target    ? [d.target]  : [],
+      secondary_muscles: d.secondaryMuscles         || [],
+      instructions:      d.instructions             || [],
+      equipment:         d.equipment                || null,
     };
   } catch (e) {
     console.error("  ExerciseDB error:", e.message);
@@ -100,83 +140,107 @@ async function fetchFromExerciseDB(searchName) {
   }
 }
 
-async function fetchFromWger(exerciseName) {
-  try {
-    const res = await fetch(
-      `https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(exerciseName)}&language=english&format=json`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const id = data?.suggestions?.[0]?.data?.id;
-    if (!id) return null;
-    const imgRes = await fetch(`https://wger.de/api/v2/exerciseimage/?exercise_base=${id}&format=json`);
-    const imgData = await imgRes.json();
-    const img = imgData?.results?.find(i => i.is_main) || imgData?.results?.[0];
-    if (!img?.image) return null;
-    return { gif_url: img.image, target_muscles: [], secondary_muscles: [], instructions: [], equipment: null };
-  } catch { return null; }
-}
-
 async function main() {
   if (!RAPIDAPI_KEY) {
-    console.error("❌ No RAPIDAPI_KEY set. Export it before running:\n   export RAPIDAPI_KEY=your_key");
+    console.error("❌ No RAPIDAPI_KEY. Run: node --env-file=.env scripts/preload-exercise-cache.js");
     process.exit(1);
   }
-  if (!SUPABASE_SERVICE_KEY) {
-    console.warn("⚠️  No SUPABASE_SERVICE_KEY — using anon key (RLS may block inserts).");
+
+  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // Detect which optional columns exist in the live table
+  const { error: e2 } = await sb.from("exercise_cache").select("gif_url_2").limit(1);
+  const { error: e3 } = await sb.from("exercise_cache").select("secondary_muscles").limit(1);
+  const hasGifUrl2        = !e2?.message?.includes("gif_url_2");
+  const hasSecondaryMuscles = !e3?.message?.includes("secondary_muscles");
+
+  if (!hasGifUrl2 || !hasSecondaryMuscles) {
+    console.warn("⚠️  Some columns are missing from exercise_cache. Run this in Supabase SQL editor for full data:");
+    console.warn("    alter table exercise_cache add column if not exists gif_url_2 text;");
+    console.warn("    alter table exercise_cache add column if not exists secondary_muscles text[] default '{}';");
+    console.warn("    Then wait ~60 seconds and re-run this script to populate those fields.\n");
+    console.warn("    Continuing now with available columns only...\n");
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk");
+  // Fetch full existing rows so we know what's already populated
+  const { data: existing } = await sb.from("exercise_cache").select("exercise_name, target_muscles");
+  const cachedMap = Object.fromEntries((existing || []).map(r => [r.exercise_name, r]));
+  const cachedCount = Object.keys(cachedMap).length;
+  console.log(`ℹ  Already cached: ${cachedCount} exercises\n`);
 
-  // Get already-cached exercises
-  const { data: existing } = await supabase.from("exercise_cache").select("exercise_name");
-  const cached = new Set((existing || []).map(r => r.exercise_name));
-  console.log(`ℹ  Already cached: ${cached.size} exercises`);
+  let inserted = 0, updated = 0, skipped = 0, imgMiss = 0;
 
-  const exercises = Object.entries(EXERCISE_NAME_MAP);
-  let fetched = 0, skipped = 0, failed = 0;
+  for (const [displayName, searchName] of Object.entries(EXERCISEDB_NAME_MAP)) {
+    const folder    = FREE_EXERCISE_DB_MAP[displayName];
+    const gif_url   = folder ? `${FREE_DB_BASE}/${folder}/0.jpg` : null;
+    const gif_url_2 = folder ? `${FREE_DB_BASE}/${folder}/1.jpg` : null;
+    if (!folder) imgMiss++;
 
-  for (const [displayName, searchName] of exercises) {
-    if (cached.has(displayName)) {
-      console.log(`  ⏭  ${displayName} — already cached`);
-      skipped++;
-      continue;
-    }
+    const existingRow = cachedMap[displayName];
 
-    console.log(`  🔍 ${displayName} (searching: "${searchName}")…`);
-    let exData = await fetchFromExerciseDB(searchName);
-
-    if (!exData) {
-      console.log(`     ↪ ExerciseDB miss — trying Wger…`);
-      exData = await fetchFromWger(displayName);
-    }
-
-    if (exData) {
-      const { error } = await supabase.from("exercise_cache").insert({
-        exercise_name:     displayName,
-        gif_url:           exData.gif_url,
-        target_muscles:    exData.target_muscles    || [],
-        secondary_muscles: exData.secondary_muscles || [],
-        instructions:      exData.instructions      || [],
-        equipment:         exData.equipment         || null,
-      });
-      if (error) {
-        console.log(`     ❌ Insert error: ${error.message}`);
-        failed++;
-      } else {
-        console.log(`     ✅ Cached — ${exData.gif_url?.slice(0,60)}…`);
-        fetched++;
+    if (existingRow) {
+      // Already inserted — update only if new columns are available
+      if (!hasGifUrl2 && !hasSecondaryMuscles) {
+        console.log(`  ⏭  ${displayName} — columns not ready yet`);
+        skipped++;
+        continue;
       }
-    } else {
-      console.log(`     ⚠️  No data found from either API`);
-      failed++;
-    }
 
-    // Respect rate limits: ExerciseDB free = ~50/day, ~1 req/sec is safe
-    await sleep(1200);
+      // gif_url_2 needs no API call. secondary_muscles needs one API call,
+      // but only if this exercise had metadata in the first run.
+      const hadMeta = existingRow.target_muscles?.length > 0;
+      let secondary_muscles = [];
+
+      if (hasSecondaryMuscles && hadMeta) {
+        process.stdout.write(`  🔄 ${displayName}… `);
+        const meta = await fetchMetadata(searchName);
+        secondary_muscles = meta?.secondary_muscles || [];
+        process.stdout.write(secondary_muscles.length
+          ? `secondary: [${secondary_muscles.join(",")}]\n`
+          : `(none)\n`
+        );
+        await sleep(1300);
+      } else {
+        console.log(`  🔄 ${displayName} — images only`);
+      }
+
+      const updateRow = {};
+      if (hasGifUrl2)          updateRow.gif_url_2         = gif_url_2;
+      if (hasSecondaryMuscles) updateRow.secondary_muscles = secondary_muscles;
+
+      const { error } = await sb.from("exercise_cache")
+        .update(updateRow)
+        .eq("exercise_name", displayName);
+
+      if (error) console.log(`     ❌ Update error: ${error.message}`);
+      else updated++;
+
+    } else {
+      // New exercise — full insert
+      process.stdout.write(`  🔍 ${displayName}… `);
+      const meta = await fetchMetadata(searchName);
+      if (meta) process.stdout.write(`✅ [${meta.target_muscles.join(",")}]\n`);
+      else       process.stdout.write(`⚠️  no metadata\n`);
+
+      const row = {
+        exercise_name:  displayName,
+        gif_url,
+        target_muscles: meta?.target_muscles || [],
+        instructions:   meta?.instructions   || [],
+        equipment:      meta?.equipment      || null,
+      };
+      if (hasGifUrl2)          row.gif_url_2         = gif_url_2;
+      if (hasSecondaryMuscles) row.secondary_muscles = meta?.secondary_muscles || [];
+
+      const { error } = await sb.from("exercise_cache").insert(row);
+      if (error) console.log(`     ❌ DB error: ${error.message}`);
+      else inserted++;
+
+      await sleep(1300);
+    }
   }
 
-  console.log(`\n✅ Done. Fetched: ${fetched}  Skipped: ${skipped}  Failed: ${failed}`);
+  console.log(`\n✅ Done.  Inserted: ${inserted}  Updated: ${updated}  Skipped: ${skipped}  No image: ${imgMiss}`);
 }
 
 main();
