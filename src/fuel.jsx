@@ -619,7 +619,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -684,6 +684,15 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   function renameSlot(idx,name){setMealSlots(s=>s.map((v,i)=>i===idx?name:v));setEditingSlot(null);}
   function addMealSlot(){const newName=`Meal ${mealSlots.length+1}`;setMealSlots(s=>[...s,newName]);setActiveSlotIdx(mealSlots.length);}
   function removeSlot(idx){if(mealSlots.length<=1)return;setMealSlots(s=>s.filter((_,i)=>i!==idx));setActiveSlotIdx(0);}
+
+  // ── Day Type Nutrition ────────────────────────────────────────────────────────
+  const [showNutritionReasoning,setShowNutritionReasoning]=useState(false);
+  const WDAYS_ORDER=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const todayIdx=WDAYS_ORDER.indexOf(todayKey);
+  const yesterdayKey=WDAYS_ORDER[(todayIdx+6)%7];
+  const todayWeekEntry=weekMacros?.find(d=>d.day===todayKey);
+  const yesterdayEntry=weekMacros?.find(d=>d.day===yesterdayKey);
+  const calDelta=todayWeekEntry&&yesterdayEntry?todayWeekEntry.calories-yesterdayEntry.calories:null;
 
   // ── Macro Memory ─────────────────────────────────────────────────────────────
   const [memorySuggestions,setMemorySuggestions]=useState([]);
@@ -944,7 +953,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${macros.isFlexDay?"#F59E0B":cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                   <div>
-                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{macros.isFlexDay?"flex day":todayType+" day"}</div>
+                    <div style={{fontSize:10,color:macros.isFlexDay?"#F59E0B":(dayNutrition?.color||T.mu),fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{macros.isFlexDay?"Flex Day":(dayNutrition?.label||todayType+" day")}</div>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>Fuel {macros.isFlexDay?"🍕":cfg.emoji}</div>
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -979,6 +988,79 @@ Reply with ONLY a valid JSON object, no markdown:
                     {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:10,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days 🍕</div>}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* WHY THESE MACROS TODAY */}
+            {dayNutrition&&!macros.isFlexDay&&(
+              <div style={{background:T.s1,border:`1px solid ${dayNutrition.color||T.bd}30`,borderRadius:16,overflow:"hidden"}}>
+                {/* Collapsed header — always visible */}
+                <button onClick={()=>setShowNutritionReasoning(r=>!r)} style={{width:"100%",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                      <div style={{fontSize:11,fontWeight:700,color:dayNutrition.color||T.prot,letterSpacing:".1em",textTransform:"uppercase"}}>{dayNutrition.label}</div>
+                      {calDelta!=null&&Math.abs(calDelta)>30&&(
+                        <div style={{fontSize:10,fontWeight:700,color:calDelta>0?"#22c55e":"#F59E0B",background:calDelta>0?"rgba(34,197,94,.1)":"rgba(245,158,11,.1)",borderRadius:5,padding:"2px 7px"}}>
+                          {calDelta>0?"↑":"↓"} {Math.abs(calDelta)} vs yesterday
+                        </div>
+                      )}
+                    </div>
+                    <div style={{fontSize:13,color:"rgba(245,245,240,.7)",lineHeight:1.4}}>{dayNutrition.keyInsight}</div>
+                  </div>
+                  <div style={{color:T.mu,flexShrink:0,fontSize:11,fontWeight:700}}>
+                    {showNutritionReasoning?"▲":"Why? →"}
+                  </div>
+                </button>
+
+                {/* Expanded details */}
+                {showNutritionReasoning&&(
+                  <div style={{padding:"0 18px 18px",borderTop:`1px solid rgba(255,255,255,.05)`}}>
+                    {/* Reasoning */}
+                    <div style={{padding:"14px 0",borderBottom:`1px solid rgba(255,255,255,.05)`}}>
+                      <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:6}}>Why these macros today?</div>
+                      <div style={{fontSize:13,color:"rgba(245,245,240,.75)",lineHeight:1.65}}>{dayNutrition.reasoning}</div>
+                    </div>
+
+                    {/* Pre/post/during fuel */}
+                    {(dayNutrition.preFuel||dayNutrition.postFuel||dayNutrition.duringFuel)&&(
+                      <div style={{padding:"14px 0",borderBottom:`1px solid rgba(255,255,255,.05)`,display:"flex",flexDirection:"column",gap:10}}>
+                        {dayNutrition.preFuel&&(
+                          <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>⏰</span>
+                            <div><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>Pre-Workout</div><div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{dayNutrition.preFuel}</div></div>
+                          </div>
+                        )}
+                        {dayNutrition.duringFuel&&(
+                          <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>🏃</span>
+                            <div><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>During</div><div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{dayNutrition.duringFuel}</div></div>
+                          </div>
+                        )}
+                        {dayNutrition.postFuel&&(
+                          <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>✅</span>
+                            <div><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>Post-Workout</div><div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{dayNutrition.postFuel}</div></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Meal timing */}
+                    {dayNutrition.timingSlots?.length>0&&(
+                      <div style={{paddingTop:14}}>
+                        <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:10}}>Meal Timing</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                          {dayNutrition.timingSlots.map((slot,i)=>(
+                            <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"8px 0",borderBottom:i<dayNutrition.timingSlots.length-1?"1px solid rgba(255,255,255,.04)":"none"}}>
+                              <div style={{width:60,flexShrink:0,fontFamily:"'DM Mono',monospace",fontSize:9,color:dayNutrition.color||T.prot,fontWeight:700,paddingTop:2}}>{slot.t}</div>
+                              <div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{slot.m}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

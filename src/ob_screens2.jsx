@@ -13,6 +13,7 @@ import { FuelSection } from "./fuel.jsx";
 import { sb, ai } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
+import { getDayType, getDayTypeNutrition, getWeekNutrition } from "./utils/dayTypeNutrition.js";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
 
@@ -1346,7 +1347,14 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const _phase=PERIO_PHASES[cycleWeek];
   const _baseTDEE=profile?.baseTDEE||profile?.goalCals||2000;
   const _wLbs=profile?.wUnit==="kg"?(parseFloat(profile?.weight||70)*2.205):parseFloat(profile?.weight||160);
+  const _bodyweightKg=profile?.wUnit==="lbs"?parseFloat(profile?.weight||160)*0.4536:parseFloat(profile?.weight||70);
   const periodizationInfo=_phase?{phase:_phase.phase,wks:_phase.wks,cycleWeek,note:_phase.note}:null;
+
+  // Day-type specific nutrition (uses active workout exercises when available)
+  const todayDayType=getDayType(todayType,activeWorkout,profile);
+  const dayNutrition=getDayTypeNutrition(profile.goalCals||_baseTDEE,_bodyweightKg,todayDayType,profile);
+  const weekMacros=useMemo(()=>getWeekNutrition(schedule,profile.goalCals||_baseTDEE,_bodyweightKg,profile),[schedule,profile.goalCals,_bodyweightKg,profile.goal]);
+
   let macros;
   if(wPrefs.nutritionPeriodization&&_phase){
     const adjCals=Math.max(1200,Math.round(_baseTDEE+_phase.cal)+earnedCals);
@@ -1356,7 +1364,21 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const fatG=Math.max(30,Math.round((adjCals-protG*4-carbG*4)/9));
     macros={calories:adjCals,protein:protG,carbs:carbG,fat:fatG,isFlexDay:false};
   }else{
-    macros=getDayMacros(profile.goalCals,profile.goal,todayType,earnedCals,{weekendFlexMode:wPrefs.weekendFlexMode||false,flexDays:wPrefs.flexDays||["Sat","Sun"],flexCalorieIncrease:wPrefs.flexCalorieIncrease||20,todayKey});
+    const flexOpts={weekendFlexMode:wPrefs.weekendFlexMode||false,flexDays:wPrefs.flexDays||["Sat","Sun"],flexCalorieIncrease:wPrefs.flexCalorieIncrease||20,todayKey};
+    const isFlexDay=flexOpts.weekendFlexMode&&flexOpts.flexDays.includes(todayKey);
+    if(isFlexDay){
+      macros=getDayMacros(profile.goalCals,profile.goal,todayType,earnedCals,flexOpts);
+    }else{
+      // Day-type specific nutrition path
+      let baseCals=dayNutrition.calories+earnedCals;
+      let flexDeficit=0;
+      if(flexOpts.weekendFlexMode&&flexOpts.flexDays.length>0){
+        const bonusPerFlexDay=Math.round((profile.goalCals||_baseTDEE)*(flexOpts.flexCalorieIncrease/100));
+        flexDeficit=Math.round((bonusPerFlexDay*flexOpts.flexDays.length)/Math.max(1,7-flexOpts.flexDays.length));
+        baseCals=Math.max(1200,baseCals-flexDeficit);
+      }
+      macros={calories:baseCals,protein:dayNutrition.protein,carbs:dayNutrition.carbs,fat:dayNutrition.fat,isFlexDay:false,flexDeficit};
+    }
   }
   const consumed=log.reduce((a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fat:a.fat+i.fat}),{calories:0,protein:0,carbs:0,fat:0});
   const remaining={calories:macros.calories-consumed.calories,protein:macros.protein-consumed.protein,carbs:macros.carbs-consumed.carbs,fat:macros.fat-consumed.fat};
@@ -2151,6 +2173,59 @@ Rules:
           </div>
         </div>
 
+        {/* ── WEEKLY NUTRITION CALENDAR ── */}
+        {(()=>{
+          const [expandedDay,setExpandedDay]=React.useState(null);
+          const calColors={heavy_lower:"#2979FF",heavy_upper:"#2979FF",hypertrophy:"#2979FF",long_run:"#22c55e",tempo_run:"#22c55e",easy_run:"#22c55e",interval_run:"#22c55e",hyrox_station:"#EAB308",hybrid:"#9B59FF",active_recovery:"#6B7280",rest:"#374151"};
+          const minCal=Math.min(...weekMacros.map(d=>d.calories));
+          const maxCal=Math.max(...weekMacros.map(d=>d.calories));
+          return(
+            <div style={{margin:"0 20px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>Weekly Nutrition Targets</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:12}}>
+                {weekMacros.map(d=>{
+                  const isToday2=d.day===todayKey;
+                  const c=calColors[d.dayType]||"#374151";
+                  const barH=maxCal>minCal?Math.max(8,Math.round(((d.calories-minCal)/(maxCal-minCal))*48)+8):28;
+                  return(
+                    <button key={d.day} onClick={()=>setExpandedDay(expandedDay===d.day?null:d.day)}
+                      style={{background:"none",border:`1.5px solid ${isToday2?c:"rgba(255,255,255,0.06)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
+                      <div style={{fontSize:8,fontWeight:700,color:isToday2?c:"rgba(245,245,240,0.35)",marginBottom:4,letterSpacing:1,textTransform:"uppercase"}}>{d.day}</div>
+                      <div style={{height:barH,background:isToday2?c:`${c}55`,borderRadius:3,margin:"0 2px 4px",minHeight:8}}/>
+                      <div style={{fontSize:8,fontWeight:700,color:isToday2?"#fff":"rgba(245,245,240,0.5)",lineHeight:1}}>{Math.round(d.calories/100)*100}</div>
+                      {isToday2&&<div style={{position:"absolute",top:2,right:2,width:5,height:5,borderRadius:"50%",background:c}}/>}
+                    </button>
+                  );
+                })}
+              </div>
+              {expandedDay&&(()=>{
+                const d=weekMacros.find(x=>x.day===expandedDay);
+                if(!d)return null;
+                const c=calColors[d.dayType]||"#374151";
+                return(
+                  <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <div>
+                        <div style={{fontSize:10,color:c,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{d.day} — {d.label}</div>
+                        <div style={{fontSize:12,color:"rgba(245,245,240,0.7)",lineHeight:1.5}}>{d.keyInsight}</div>
+                      </div>
+                      <div style={{fontSize:18,fontWeight:900,color:"#fff",flexShrink:0}}>{d.calories.toLocaleString()}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}> kcal</span></div>
+                    </div>
+                    <div style={{display:"flex",gap:10}}>
+                      {[["P",d.protein,"g","var(--red)"],["C",d.carbs,"g","var(--blue)"],["F",d.fat,"g","var(--amber)"]].map(([l,v,u,c2])=>(
+                        <div key={l} style={{flex:1,background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                          <div style={{fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{l}</div>
+                          <div style={{fontSize:16,fontWeight:800,color:c2}}>{v}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}>{u}</span></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })()}
+
         {/* ── INJURY RISK REPORT ── */}
         <InjuryRiskReport risks={injuryData?.risks} muscleSetCounts={injuryData?.muscleSetCounts}/>
 
@@ -2197,7 +2272,7 @@ Rules:
       <div className="app-screen grid-bg">
         {section==="home"&&<HomeSection/>}
         {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime}/>}
-        {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile}/>}
+        {section==="fuel"&&<FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros}/>}
         {section==="progress"&&<ProgressSection/>}
         {section==="settings"&&<SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/>}
       </div>
