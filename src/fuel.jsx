@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
-  hap, calcTDEE } from "./components.jsx";
+  FoodSearchSkeleton, AIContentSkeleton, hap, calcTDEE } from "./components.jsx";
+import { showToast } from "./utils/toast.js";
 import { sb, ai } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
@@ -700,12 +701,18 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
 
   async function handleQuickAdd(oz) {
     await onAddWater(oz);
+    const newTotal = totalOz + oz;
+    const left = Math.max(0, waterTarget - newTotal);
+    showToast(`+${oz} oz added${left > 0 ? ` · ${Math.round(left)} oz remaining` : " · Goal reached! 🎉"}`, "info");
   }
 
   async function handleCustom() {
     const oz = parseFloat(customOz);
     if (!oz || oz <= 0) return;
     await onAddWater(oz);
+    const newTotal = totalOz + oz;
+    const left = Math.max(0, waterTarget - newTotal);
+    showToast(`+${oz} oz added${left > 0 ? ` · ${Math.round(left)} oz remaining` : " · Goal reached! 🎉"}`, "info");
     setCustomOz("");
     setShowCustom(false);
   }
@@ -939,10 +946,10 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       {toast&&<div style={{position:"fixed",top:24,left:"50%",transform:"translateX(-50%)",background:T.prot,color:"#fff",padding:"10px 20px",borderRadius:20,fontSize:13,fontWeight:700,zIndex:999,boxShadow:"0 4px 16px rgba(0,0,0,0.4)"}}>{toast}</div>}
       <div style={{position:"relative",marginBottom:16}}>
         <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search food or enter barcode number…" style={{width:"100%",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 48px 14px 16px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-        {searching&&<div style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)"}}><Spinner/></div>}
         {!searching&&query&&<button onClick={()=>{setQuery("");setResults([]);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:T.mu,fontSize:18,cursor:"pointer",lineHeight:1,padding:"0 2px"}}>×</button>}
       </div>
-      {results.length>0&&(
+      {searching&&<div style={{marginBottom:16}}><FoodSearchSkeleton/></div>}
+      {!searching&&results.length>0&&(
         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,marginBottom:16,overflow:"hidden"}}>
           {results.slice(0,12).map((food,i)=>(
             <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit"}}>
@@ -1185,6 +1192,10 @@ Reply with ONLY a valid JSON object, no markdown:
     setUndoEntry(entry);
     clearTimeout(undoTimer.current);
     undoTimer.current=setTimeout(()=>setUndoEntry(null),5000);
+    showToast(`${entry.food||"Food"} logged`, "success", {
+      action: ()=>{ removeLog(entry.id); setUndoEntry(null); clearTimeout(undoTimer.current); },
+      actionLabel: "Undo",
+    });
   }
 
   function handleUndo(){
@@ -1947,10 +1958,9 @@ Reply with ONLY a valid JSON object, no markdown:
             </div>
 
             {/* Loading */}
-            {recsLoading&&<div style={{textAlign:"center",padding:"48px 0",color:T.mu}}>
-              <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Spinner/></div>
-              <div style={{fontSize:13,marginBottom:4}}>Scanning nearby restaurants…</div>
-              <div style={{fontSize:11,color:T.dim}}>Matching exact menu items to your macros</div>
+            {recsLoading&&<div style={{padding:"16px 0",color:T.mu}}>
+              <AIContentSkeleton/>
+              <div style={{fontSize:11,color:T.dim,textAlign:"center",marginTop:8}}>Matching menu items to your macros…</div>
             </div>}
 
             {/* Results — parse AI text into cards */}
@@ -1998,7 +2008,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {(recipes||recipesLoading)&&(
               <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",marginBottom:20}}>
                 {recipesLoading
-                  ?<div style={{textAlign:"center",padding:"24px 0",color:T.mu}}><div style={{display:"flex",justifyContent:"center",marginBottom:8}}><Spinner/></div><div style={{fontSize:12}}>Building recipes…</div></div>
+                  ?<div style={{padding:"8px 0"}}><AIContentSkeleton/></div>
                   :<><div style={{lineHeight:1.85,fontSize:13,color:"#ccc",whiteSpace:"pre-wrap"}}>{recipes}</div><div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><FlagBtn responseText={recipes} feature="recipes" user={user}/></div></>
                 }
               </div>
@@ -2067,9 +2077,9 @@ Reply with ONLY a valid JSON object, no markdown:
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Cook once, eat all week · based on your training schedule</p>
 
             {prepLoading&&(
-              <div style={{textAlign:"center",padding:"60px 0",color:T.mu}}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Spinner/></div>
-                <div style={{fontSize:14,marginBottom:4}}>Building your meal prep plan…</div>
+              <div style={{padding:"16px 0",color:T.mu}}>
+                <AIContentSkeleton/>
+                <div style={{fontSize:13,color:T.dim,textAlign:"center",marginTop:8}}>Building your meal prep plan…</div>
                 <div style={{fontSize:11,color:"rgba(245,245,240,0.35)"}}>Analyzing training schedule and macro targets</div>
               </div>
             )}

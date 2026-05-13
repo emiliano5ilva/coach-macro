@@ -256,6 +256,13 @@ export const GLOBAL_CSS = `
   @keyframes pulse-dot{0%,100%{opacity:0.3}50%{opacity:1}}
   @keyframes scan-line{0%,100%{transform:translateY(0)}50%{transform:translateY(160px)}}
   @keyframes splash-logo{0%{opacity:0;transform:scale(0.88)}100%{opacity:1;transform:scale(1)}}
+  @keyframes toast-in{0%{opacity:0;transform:translateY(16px) scale(0.96)}100%{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes toast-out{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(8px) scale(0.97)}}
+  @keyframes press-scale{0%{transform:scale(1)}50%{transform:scale(0.96)}100%{transform:scale(1)}}
+  .skeleton{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite linear;border-radius:8px;flex-shrink:0}
+  .stagger-0{animation-delay:0ms}.stagger-1{animation-delay:60ms}.stagger-2{animation-delay:120ms}.stagger-3{animation-delay:180ms}.stagger-4{animation-delay:240ms}.stagger-5{animation-delay:300ms}
+  .fade-up{opacity:0;animation:page-fade 0.3s cubic-bezier(.2,.7,.3,1) forwards}
+  .btn-press:active{transform:scale(0.96);transition:transform 0.08s ease}
   .grad-text{background:linear-gradient(135deg,#e8341c 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   .hero-title{animation:slideUp .9s cubic-bezier(.16,1,.3,1) forwards}
   .hero-sub{animation:slideUp .9s cubic-bezier(.16,1,.3,1) .15s both}
@@ -441,6 +448,90 @@ export function SectionCard({title,children,action}) {
 
 export function Spinner() {
   return <div style={{width:20,height:20,border:`2px solid ${T.bd}`,borderTopColor:T.prot,borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>;
+}
+
+export function SkeletonBox({w="100%",h=16,radius=8,style={}}) {
+  return <div className="skeleton" style={{width:w,height:h,borderRadius:radius,...style}}/>;
+}
+
+export function FoodSearchSkeleton() {
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {[0,1,2,3,4,5].map(i=>(
+        <div key={i} className={`stagger-${i}`} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${T.bd}`,opacity:0,animation:`page-fade 0.3s ease forwards`}}>
+          <SkeletonBox w={40} h={40} radius={10}/>
+          <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
+            <SkeletonBox w="70%" h={13}/>
+            <SkeletonBox w="45%" h={11}/>
+          </div>
+          <SkeletonBox w={50} h={13} radius={6}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AIContentSkeleton() {
+  const widths=["90%","75%","85%","60%","80%","55%"];
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10,padding:"8px 0"}}>
+      {widths.map((w,i)=>(
+        <div key={i} className={`stagger-${i}`} style={{opacity:0,animation:`page-fade 0.3s ease forwards`}}>
+          <SkeletonBox w={w} h={14}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function EmptyState({icon="📭",title,subtitle,actionLabel,onAction}) {
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"48px 24px",gap:12,textAlign:"center"}}>
+      <div style={{fontSize:40,lineHeight:1}}>{icon}</div>
+      <div style={{fontSize:17,fontWeight:700,color:T.txt}}>{title}</div>
+      {subtitle && <div style={{fontSize:14,color:"rgba(245,245,240,0.5)",maxWidth:280}}>{subtitle}</div>}
+      {actionLabel && onAction && (
+        <button className="btn-press" onClick={onAction} style={{marginTop:8,padding:"10px 24px",background:T.prot,border:"none",borderRadius:24,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>{actionLabel}</button>
+      )}
+    </div>
+  );
+}
+
+export function InfoTip({title,content}) {
+  const [open,setOpen]=React.useState(false);
+  return (
+    <>
+      <button onClick={()=>{hap();setOpen(true);}} style={{background:"none",border:`1px solid ${T.bd}`,borderRadius:"50%",width:18,height:18,color:"rgba(245,245,240,0.45)",fontSize:10,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1}}>?</button>
+      {open && (
+        <div style={{position:"fixed",inset:0,zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)"}} onClick={()=>setOpen(false)}>
+          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"24px 20px",maxWidth:320,width:"90%",animation:"toast-in 0.22s cubic-bezier(.2,.7,.3,1) forwards"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:15,fontWeight:800,color:T.txt,marginBottom:10}}>{title}</div>
+            <div style={{fontSize:14,color:"rgba(245,245,240,0.7)",lineHeight:1.6}}>{content}</div>
+            <button onClick={()=>setOpen(false)} style={{marginTop:16,width:"100%",padding:"10px",background:T.bd,border:"none",borderRadius:12,color:T.txt,fontSize:14,fontWeight:600,cursor:"pointer"}}>Got it</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export class ErrorBoundary extends React.Component {
+  constructor(props){super(props);this.state={hasError:false,error:null};}
+  static getDerivedStateFromError(error){return {hasError:true,error};}
+  componentDidCatch(error,info){console.error("[ErrorBoundary]",error,info);}
+  render(){
+    if(this.state.hasError){
+      return (
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,padding:"40px 24px",textAlign:"center"}}>
+          <div style={{fontSize:32}}>⚠️</div>
+          <div style={{fontSize:16,fontWeight:700,color:T.txt}}>Something went wrong</div>
+          <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",maxWidth:260}}>{this.state.error?.message||"An unexpected error occurred."}</div>
+          <button onClick={()=>this.setState({hasError:false,error:null})} style={{padding:"10px 24px",background:T.prot,border:"none",borderRadius:24,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Try Again</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 // ─── LOGO ─────────────────────────────────────────────────────────────────────

@@ -223,8 +223,17 @@ const deduplicateFoods = (foods) => {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+const FOOD_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 export const searchFoods = async (query) => {
   if (!query || query.length < 2) return [];
+  const cacheKey = `food_search_${query.toLowerCase().trim()}`;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const { ts, data } = JSON.parse(cached);
+      if (Date.now() - ts < FOOD_CACHE_TTL) return data;
+    }
+  } catch {}
   try {
     const [usdaResults, offResults] = await Promise.allSettled([
       searchUSDA(query),
@@ -234,7 +243,9 @@ export const searchFoods = async (query) => {
       ...(usdaResults.value || []),
       ...(offResults.value || []),
     ];
-    return deduplicateFoods(combined).slice(0, 20);
+    const results = deduplicateFoods(combined).slice(0, 20);
+    try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: results })); } catch {}
+    return results;
   } catch {
     return [];
   }
