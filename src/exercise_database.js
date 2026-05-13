@@ -709,6 +709,88 @@ export const EQUIPMENT_ALTERNATIVES = {
     "Bodyweight Only":"Bear Crawl",
     "Cables Only":    "Bear Crawl",
     "Machines Only":  "Bear Crawl"
+  },
+
+  // ── COMMIT 3: RESISTANCE BAND + EXTRA ADDITIONS ───────────────────────────
+  "Band Pull Apart": {
+    "Full Gym":       "Face Pull",
+    "Home Gym":       "Band Pull Apart",
+    "Dumbbells Only": "Rear Delt Fly",
+    "Bodyweight Only":"Band Pull Apart",
+    "Cables Only":    "Cable Rear Delt Fly",
+    "Machines Only":  "Machine Rear Delt"
+  },
+  "Band Face Pull": {
+    "Full Gym":       "Face Pull",
+    "Home Gym":       "Band Face Pull",
+    "Dumbbells Only": "Rear Delt Fly",
+    "Bodyweight Only":"Band Face Pull",
+    "Cables Only":    "Face Pull",
+    "Machines Only":  "Machine Rear Delt"
+  },
+  "Band Curl": {
+    "Full Gym":       "Barbell Curl",
+    "Home Gym":       "Band Curl",
+    "Dumbbells Only": "Dumbbell Curl",
+    "Bodyweight Only":"Band Curl",
+    "Cables Only":    "Cable Curl",
+    "Machines Only":  "Machine Curl"
+  },
+  "Band Tricep Pushdown": {
+    "Full Gym":       "Tricep Pushdown",
+    "Home Gym":       "Band Tricep Pushdown",
+    "Dumbbells Only": "Overhead Tricep Extension",
+    "Bodyweight Only":"Band Tricep Pushdown",
+    "Cables Only":    "Tricep Pushdown",
+    "Machines Only":  "Machine Tricep Extension"
+  },
+  "Band Squat": {
+    "Full Gym":       "Barbell Squat",
+    "Home Gym":       "Band Squat",
+    "Dumbbells Only": "Goblet Squat",
+    "Bodyweight Only":"Band Squat",
+    "Cables Only":    "Goblet Squat",
+    "Machines Only":  "Leg Press"
+  },
+  "Band Hip Thrust": {
+    "Full Gym":       "Barbell Hip Thrust",
+    "Home Gym":       "Band Hip Thrust",
+    "Dumbbells Only": "Dumbbell Hip Thrust",
+    "Bodyweight Only":"Band Hip Thrust",
+    "Cables Only":    "Cable Pull Through",
+    "Machines Only":  "Machine Hip Thrust"
+  },
+  "Band Row": {
+    "Full Gym":       "Barbell Row",
+    "Home Gym":       "Band Row",
+    "Dumbbells Only": "Dumbbell Row",
+    "Bodyweight Only":"Inverted Row",
+    "Cables Only":    "Cable Row",
+    "Machines Only":  "Machine Row"
+  },
+  "Band Lateral Walk": {
+    "Full Gym":       "Hip Abduction Machine",
+    "Home Gym":       "Band Lateral Walk",
+    "Dumbbells Only": "Band Lateral Walk",
+    "Bodyweight Only":"Band Lateral Walk",
+    "Cables Only":    "Cable Kickback",
+    "Machines Only":  "Hip Abduction Machine"
+  },
+  "Reverse Curl": {
+    "Full Gym":       "Reverse Curl",
+    "Home Gym":       "Reverse Curl",
+    "Dumbbells Only": "Reverse Curl",
+    "Bodyweight Only":"Reverse Curl",
+    "Cables Only":    "Cable Reverse Curl",
+    "Machines Only":  "Reverse Curl"
+  },
+  "Dumbbell Upright Row": {
+    "Full Gym":       "Barbell Upright Row",
+    "Home Gym":       "Dumbbell Upright Row",
+    "Dumbbells Only": "Dumbbell Upright Row",
+    "Bodyweight Only":"Band Upright Row",
+    "Cables Only":    "Cable Upright Row",
+    "Machines Only":  "Machine Lateral Raise"
   }
 };
 
@@ -783,6 +865,11 @@ export const EXERCISE_MUSCLE_GROUP = {
   "Inverted Row":"back","Tricep Dip":"triceps","Bodyweight Step Up":"legs",
   "Assisted Pistol Squat":"legs","Mountain Climber":"core","Superman Hold":"back",
   "Bird Dog":"core","Burpee":"full_body","Bear Crawl":"core",
+  // COMMIT 3: RESISTANCE BAND + EXTRA ADDITIONS
+  "Band Pull Apart":"shoulders","Band Face Pull":"shoulders","Band Curl":"biceps",
+  "Band Tricep Pushdown":"triceps","Band Squat":"legs","Band Hip Thrust":"glutes",
+  "Band Row":"back","Band Lateral Walk":"glutes",
+  "Reverse Curl":"biceps","Single Leg Calf Raise":"calves","Dumbbell Upright Row":"shoulders",
 };
 
 export const MUSCLE_GROUP_POOL = {
@@ -796,6 +883,7 @@ export const MUSCLE_GROUP_POOL = {
   core:["Ab Wheel Rollout","Plank","Cable Crunch","Hanging Leg Raise","Russian Twist","Hollow Hold","Dead Bug","Pallof Press","Mountain Climber","Bird Dog","Bear Crawl"],
   calves:["Calf Raise","Seated Calf Raise","Machine Calf Raise","Standing Calf Raise","Single Leg Calf Raise"],
   full_body:["Burpee","Farmers Carry","Kettlebell Swing","Thruster"],
+  bands:["Band Squat","Band Hip Thrust","Band Row","Band Curl","Band Tricep Pushdown","Band Pull Apart","Band Face Pull","Band Lateral Walk"],
 };
 
 export function getSwapOptions(exerciseName, equipment="Full Gym", count=6) {
@@ -1130,4 +1218,282 @@ export const EXERCISE_DETAILS = {
     progressionRule:"Add dumbbell when 15 reps per leg with full range.",
     deloadNote:"Drop to two-leg calf raise.",
   },
+  // ── COMMIT 3: RESISTANCE BAND + EXTRA ADDITIONS ───────────────────────────
+  "Band Pull Apart": {
+    muscleGroup:"shoulders", tier:"C",
+    primaryMuscles:["rear_delts","rotator_cuff"], secondaryMuscles:["rhomboids"],
+    equipment:["resistance_band"],
+    setup:"Hold band with both hands at shoulder width, arms straight in front at shoulder height.",
+    cue:"Pull band apart to full shoulder width. Arms stay straight. Control the return.",
+    breathe:"Exhale as you pull apart. Inhale on the return.",
+    mistake:"Bending the elbows — arms must stay straight throughout.",
+    feel:"Rear delts and between shoulder blades contracting.",
+    progressionRule:"Use a thicker band or hold wider to increase resistance.",
+    deloadNote:"Use a lighter band.",
+  },
+  "Band Face Pull": {
+    muscleGroup:"shoulders", tier:"C",
+    primaryMuscles:["rear_delts","rotator_cuff"], secondaryMuscles:[],
+    equipment:["resistance_band"],
+    setup:"Anchor band at face height. Hold with both hands, palms facing in.",
+    cue:"Pull toward face with elbows flaring out and high. Externally rotate at the end.",
+    breathe:"Exhale as you pull. Inhale on the return.",
+    mistake:"Elbows dropping below the band. They must stay at or above band height.",
+    feel:"Identical to cable face pull — rear delts and rotator cuff.",
+    progressionRule:"Use a thicker band.",
+    deloadNote:"Lighter band or shorter range of motion.",
+  },
+  "Band Curl": {
+    muscleGroup:"biceps", tier:"C",
+    primaryMuscles:["biceps"], secondaryMuscles:["brachialis"],
+    equipment:["resistance_band"],
+    setup:"Stand on the center of the band. Hold both handles with palms up.",
+    cue:"Curl handles to shoulders. Keep elbows pinned at sides. Control the descent.",
+    breathe:"Exhale as you curl. Inhale as you lower.",
+    mistake:"Swinging body or letting elbows drift forward.",
+    feel:"Biceps peak contraction at the top. Band provides increasing resistance.",
+    progressionRule:"Use a thicker band or stand wider on the band.",
+    deloadNote:"Use a lighter band.",
+  },
+  "Band Tricep Pushdown": {
+    muscleGroup:"triceps", tier:"C",
+    primaryMuscles:["triceps"], secondaryMuscles:[],
+    equipment:["resistance_band"],
+    setup:"Anchor band overhead. Hold handle(s) with palms down. Elbows at sides.",
+    cue:"Push down keeping elbows pinned at sides. Full extension at the bottom.",
+    breathe:"Exhale as you push down. Inhale as you return.",
+    mistake:"Elbows flaring out or moving forward. Keep them anchored at your sides.",
+    feel:"Triceps fully contracted at the bottom. Same as cable pushdown.",
+    progressionRule:"Use a thicker band or step further from the anchor.",
+    deloadNote:"Lighter band.",
+  },
+  "Band Squat": {
+    muscleGroup:"legs", tier:"A",
+    primaryMuscles:["quads","glutes"], secondaryMuscles:["hamstrings","core"],
+    equipment:["resistance_band"],
+    setup:"Stand on the center of the band. Hold handles at shoulder height (front squat position).",
+    cue:"Squat normally — band provides resistance. Stay upright as the band will try to pull you forward.",
+    breathe:"Inhale and brace at the top. Exhale as you stand.",
+    mistake:"Band pulling torso forward. Brace core hard and keep chest up.",
+    feel:"Similar to goblet squat — front-loaded feel from the band.",
+    progressionRule:"Use a thicker band. Progress to goblet squat then barbell.",
+    deloadNote:"Use a lighter band or go narrower on the anchor.",
+    noviceVersion:{ equipment:"resistance_band", notes:"Band squats teach the squat pattern with minimal load. Great starting point.", repRange:"12-15", sets:3 },
+  },
+  "Band Hip Thrust": {
+    muscleGroup:"glutes", tier:"A",
+    primaryMuscles:["glutes","hamstrings"], secondaryMuscles:["core"],
+    equipment:["resistance_band"],
+    setup:"Anchor band across hips. Both ends held down by hands or anchored. Upper back on bench edge.",
+    cue:"Drive hips up against band resistance. Same movement as barbell hip thrust.",
+    breathe:"Inhale at bottom. Exhale as hips drive up.",
+    mistake:"Band slipping — anchor it securely before starting.",
+    feel:"Constant tension throughout range unlike barbell (which is easier at bottom). Great for glute activation.",
+    progressionRule:"Thicker band. Progress to dumbbell then barbell hip thrust.",
+    deloadNote:"Lighter band or glute bridge on floor.",
+    noviceVersion:{ equipment:"resistance_band", notes:"Great intro to the hip thrust pattern with low load.", repRange:"15-20", sets:3 },
+  },
+  "Band Row": {
+    muscleGroup:"back", tier:"A",
+    primaryMuscles:["back","biceps"], secondaryMuscles:["rear_delts"],
+    equipment:["resistance_band"],
+    setup:"Anchor band at chest height. Hold handles, step back for tension. Slight hinge forward.",
+    cue:"Pull handles to sides of torso. Squeeze shoulder blades together at the end.",
+    breathe:"Exhale as you pull. Inhale as you extend.",
+    mistake:"Using momentum or letting shoulder blades collapse forward on the way out.",
+    feel:"Back muscles contracting. Similar feel to cable row.",
+    progressionRule:"Thicker band. Step further back for more resistance.",
+    deloadNote:"Step closer to the anchor for less resistance.",
+    noviceVersion:{ equipment:"resistance_band", notes:"Teaches the rowing pattern. Great for building back strength before cable/barbell.", repRange:"12-15", sets:3 },
+  },
+  "Band Lateral Walk": {
+    muscleGroup:"glutes", tier:"C",
+    primaryMuscles:["glutes","hip_abductors"], secondaryMuscles:[],
+    equipment:["resistance_band"],
+    setup:"Band around ankles or just above knees. Slight squat position throughout.",
+    cue:"Step sideways maintaining constant band tension. Don't let feet come together.",
+    breathe:"Breathe continuously.",
+    mistake:"Steps too wide — you lose band tension. Keep steps controlled.",
+    feel:"Outer glute (glute medius) and hip burning. Great warm-up or prehab.",
+    progressionRule:"Use a thicker band.",
+    deloadNote:"Use a lighter band.",
+  },
+  "Reverse Curl": {
+    muscleGroup:"biceps", tier:"C",
+    primaryMuscles:["brachialis","biceps"], secondaryMuscles:["brachioradialis"],
+    equipment:["barbell","dumbbell","cable"],
+    setup:"Overhand (pronated) grip on barbell or dumbbells. Same stance as regular curl.",
+    cue:"Curl with overhand grip. Lead with the forearms. Wrists stay neutral — don't extend.",
+    breathe:"Exhale as you curl. Inhale as you lower.",
+    mistake:"Wrists bending back — keep them neutral and firm throughout.",
+    feel:"Top of forearm and outer bicep (brachialis). Very different from regular curl.",
+    progressionRule:"Add 5 lbs when all reps with neutral wrists.",
+    deloadNote:"Use lighter weight — brachialis often underdeveloped.",
+  },
+  "Dumbbell Upright Row": {
+    muscleGroup:"shoulders", tier:"C",
+    primaryMuscles:["traps","side_delts"], secondaryMuscles:["front_delts","biceps"],
+    equipment:["dumbbell"],
+    setup:"Hold dumbbells in front of thighs. Overhand grip. Feet shoulder-width.",
+    cue:"Pull elbows up and out simultaneously. Stop at chin height. Elbows lead — not the wrists.",
+    breathe:"Exhale as you pull up. Inhale as you lower.",
+    mistake:"Going too heavy and shrugging the weight up. This causes shoulder impingement.",
+    feel:"Traps and side delts working together. Lighter than you think is needed.",
+    progressionRule:"Add 2.5 lbs per dumbbell when all reps with elbows leading.",
+    deloadNote:"Drop significantly in weight. This is a technique exercise.",
+    avoid_if:["shoulder_impingement"],
+    modify_if:{ shoulder_impingement:"Avoid entirely — substitute with lateral raises." },
+  },
 };
+
+// ─── EQUIPMENT POOLS ─────────────────────────────────────────────────────────
+// Maps gym setup → exercises available for that setup.
+// Used to filter swap options and build equipment-appropriate programs.
+export const EQUIPMENT_POOLS = {
+  full_gym: [
+    // Chest
+    "Barbell Bench Press","Incline Barbell Press","Decline Barbell Press",
+    "Dumbbell Bench Press","Incline Dumbbell Press","Decline Dumbbell Press",
+    "Cable Fly","High Cable Fly","Low Cable Fly","Pec Deck Machine","Dumbbell Fly",
+    "Push Up","Diamond Push Up","Wide Push Up","Chest Dip","Floor Press",
+    // Back
+    "Deadlift","Trap Bar Deadlift","Barbell Row","Pull Up","Chin Up","Lat Pulldown",
+    "Cable Row","Seated Cable Row","Dumbbell Row","Face Pull","Inverted Row",
+    // Shoulders
+    "Overhead Press","Dumbbell Shoulder Press","Arnold Press","Lateral Raise",
+    "Rear Delt Fly","Face Pull","Shrug","Front Raise","Upright Row","Dumbbell Upright Row",
+    // Arms
+    "Barbell Curl","Dumbbell Curl","Hammer Curl","EZ Bar Curl","Preacher Curl",
+    "Incline Dumbbell Curl","Concentration Curl","Cable Curl","Reverse Curl",
+    "Tricep Pushdown","Skull Crusher","Close Grip Bench Press","Overhead Tricep Extension",
+    "Tricep Dip","Diamond Push Up",
+    // Legs
+    "Barbell Squat","Front Squat","Hack Squat","Leg Press","Bulgarian Split Squat",
+    "Walking Lunge","Reverse Lunge","Leg Extension","Goblet Squat",
+    "Romanian Deadlift","Leg Curl","Nordic Curl","Good Morning",
+    "Dumbbell Lunge","Dumbbell Step Up","Single Leg Romanian Deadlift",
+    // Glutes
+    "Barbell Hip Thrust","Dumbbell Hip Thrust","Glute Bridge","Single Leg Glute Bridge",
+    "Sumo Deadlift","Cable Kickback","Lateral Band Walk","Clamshell",
+    // Calves
+    "Calf Raise","Seated Calf Raise","Single Leg Calf Raise",
+    // Core
+    "Ab Wheel Rollout","Hanging Leg Raise","Cable Crunch","Plank","Side Plank",
+    "Dead Bug","Russian Twist","Pallof Press","Mountain Climber","Bird Dog","Bear Crawl",
+  ],
+
+  home_barbell: [
+    // Chest
+    "Barbell Bench Press","Incline Barbell Press","Decline Barbell Press",
+    "Dumbbell Bench Press","Incline Dumbbell Press","Floor Press",
+    "Push Up","Diamond Push Up","Wide Push Up","Chest Dip",
+    // Back
+    "Deadlift","Barbell Row","Pull Up","Chin Up","Dumbbell Row",
+    "Face Pull","Inverted Row","Dumbbell Deadlift",
+    // Shoulders
+    "Overhead Press","Dumbbell Shoulder Press","Arnold Press","Lateral Raise",
+    "Rear Delt Fly","Shrug","Dumbbell Upright Row","Band Pull Apart","Band Face Pull",
+    // Arms
+    "Barbell Curl","Dumbbell Curl","Hammer Curl","Incline Dumbbell Curl",
+    "Concentration Curl","Reverse Curl",
+    "Skull Crusher","Close Grip Bench Press","Overhead Tricep Extension","Tricep Dip",
+    // Legs
+    "Barbell Squat","Front Squat","Bulgarian Split Squat","Walking Lunge","Reverse Lunge",
+    "Romanian Deadlift","Nordic Curl","Good Morning","Goblet Squat",
+    "Dumbbell Lunge","Dumbbell Step Up","Single Leg Romanian Deadlift",
+    // Glutes
+    "Barbell Hip Thrust","Dumbbell Hip Thrust","Glute Bridge","Single Leg Glute Bridge",
+    "Sumo Deadlift","Lateral Band Walk","Band Hip Thrust",
+    // Calves
+    "Calf Raise","Single Leg Calf Raise",
+    // Core
+    "Ab Wheel Rollout","Hanging Leg Raise","Plank","Side Plank",
+    "Dead Bug","Russian Twist","Mountain Climber","Bird Dog","Bear Crawl",
+  ],
+
+  dumbbells_only: [
+    // Chest
+    "Dumbbell Bench Press","Incline Dumbbell Press","Decline Dumbbell Press",
+    "Dumbbell Fly","Floor Press",
+    "Push Up","Diamond Push Up","Wide Push Up","Chest Dip",
+    // Back
+    "Dumbbell Row","Dumbbell Deadlift","Inverted Row","Pull Up","Chin Up",
+    "Band Row","Superman Hold",
+    // Shoulders
+    "Dumbbell Shoulder Press","Arnold Press","Lateral Raise","Rear Delt Fly",
+    "Dumbbell Upright Row","Band Pull Apart","Band Face Pull","Pike Push Up",
+    // Arms
+    "Dumbbell Curl","Hammer Curl","Incline Dumbbell Curl","Concentration Curl","Reverse Curl",
+    "Overhead Tricep Extension","Tricep Dip","Diamond Push Up",
+    // Legs
+    "Goblet Squat","Bulgarian Split Squat","Walking Lunge","Reverse Lunge",
+    "Dumbbell Romanian Deadlift","Single Leg Romanian Deadlift",
+    "Dumbbell Lunge","Dumbbell Step Up","Bodyweight Step Up","Assisted Pistol Squat",
+    // Glutes
+    "Dumbbell Hip Thrust","Glute Bridge","Single Leg Glute Bridge",
+    "Lateral Band Walk","Band Hip Thrust","Clamshell",
+    // Calves
+    "Calf Raise","Single Leg Calf Raise","Seated Calf Raise",
+    // Core
+    "Ab Wheel Rollout","Plank","Side Plank","Dead Bug","Russian Twist",
+    "Mountain Climber","Bird Dog","Bear Crawl",
+  ],
+
+  resistance_bands: [
+    // Chest
+    "Push Up","Diamond Push Up","Wide Push Up",
+    // Back
+    "Band Row","Inverted Row","Superman Hold",
+    // Shoulders
+    "Band Pull Apart","Band Face Pull","Pike Push Up",
+    // Arms
+    "Band Curl","Band Tricep Pushdown",
+    // Legs
+    "Band Squat","Walking Lunge","Reverse Lunge","Bodyweight Step Up",
+    "Single Leg Romanian Deadlift",
+    // Glutes
+    "Band Hip Thrust","Glute Bridge","Single Leg Glute Bridge",
+    "Band Lateral Walk","Clamshell",
+    // Calves
+    "Single Leg Calf Raise","Calf Raise",
+    // Core
+    "Plank","Side Plank","Dead Bug","Mountain Climber","Bird Dog","Bear Crawl",
+  ],
+
+  bodyweight_only: [
+    // Chest
+    "Push Up","Diamond Push Up","Wide Push Up","Chest Dip",
+    // Back
+    "Pull Up","Chin Up","Inverted Row","Superman Hold",
+    // Shoulders
+    "Pike Push Up",
+    // Arms
+    "Diamond Push Up","Tricep Dip",
+    // Legs
+    "Bulgarian Split Squat","Walking Lunge","Reverse Lunge",
+    "Bodyweight Step Up","Assisted Pistol Squat","Single Leg Romanian Deadlift",
+    // Glutes
+    "Glute Bridge","Single Leg Glute Bridge","Clamshell",
+    // Calves
+    "Single Leg Calf Raise","Calf Raise",
+    // Core
+    "Plank","Side Plank","Ab Wheel Rollout","Hanging Leg Raise","Dead Bug",
+    "Mountain Climber","Bird Dog","Bear Crawl","Burpee",
+  ],
+};
+
+export function getExercisesForEquipment(equipmentSetup) {
+  return EQUIPMENT_POOLS[equipmentSetup] || EQUIPMENT_POOLS.full_gym;
+}
+
+export function getSwapOptionsForEquipment(exerciseName, equipmentSetup, count=6) {
+  const group = EXERCISE_MUSCLE_GROUP[exerciseName];
+  if (!group) return [];
+  const available = new Set(getExercisesForEquipment(equipmentSetup));
+  const pool = (MUSCLE_GROUP_POOL[group] || []).filter(
+    n => n !== exerciseName && available.has(n)
+  );
+  return pool.slice(0, count).map(n => ({
+    name: n, originalName: n, muscleGroup: group,
+  }));
+}
