@@ -2904,7 +2904,9 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
 
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
 export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief}) {
+  const [delStep,setDelStep]=useState(0); // 0=idle 1=warning 2=confirm 3=deleting
   const [delConfirm,setDelConfirm]=useState(false);
+  const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
   const [checkInWeight,setCheckInWeight]=useState("");
   const [checkIns,setCheckIns]=useState([]);
@@ -2965,13 +2967,23 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   }
 
   async function deleteAccount() {
-    if(!user)return;
+    if(!user||delInput.trim()!=="DELETE")return;
+    setDelStep(3);
     setDeleting(true);
-    // Delete all user data
-    await sb.from("profiles").delete().eq("id",user.id);
-    await sb.from("weight_checkins").delete().eq("user_id",user.id);
-    await sb.from("food_logs").delete().eq("user_id",user.id);
-    await sb.from("workout_logs").delete().eq("user_id",user.id);
+    try {
+      const { data:{ session } } = await sb.auth.getSession();
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+        },
+      });
+      if (!res.ok) throw new Error("Delete failed");
+    } catch(e) {
+      // Fallback: client-side cleanup if server delete unavailable
+      await sb.from("profiles").delete().eq("id",user.id);
+    }
     await sb.auth.signOut();
   }
 
@@ -3397,17 +3409,40 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* Account Actions */}
         <SectionCard title="Account">
           <button onClick={onSignOut} style={{width:"100%",padding:"13px",background:T.s3,color:"#fff",border:`1px solid ${T.bd}`,borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>Sign Out</button>
-          {!delConfirm
-            ?<button onClick={()=>setDelConfirm(true)} style={{width:"100%",padding:"13px",background:"none",color:"#FF4D6D",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Delete Account</button>
-            :<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px"}}>
-              <div style={{fontSize:13,color:"#FF4D6D",fontWeight:700,marginBottom:8}}>⚠️ This permanently deletes all your data.</div>
-              <div style={{fontSize:12,color:T.mu,marginBottom:14}}>Your profile, food logs, workout history, and weight check-ins will be gone forever. This cannot be undone.</div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>setDelConfirm(false)} style={{flex:1,padding:"11px",background:T.s3,color:T.mu,border:`1px solid ${T.bd}`,borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-                <button onClick={deleteAccount} disabled={deleting} style={{flex:1,padding:"11px",background:"#FF4D6D",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
-              </div>
+          {delStep===0&&<button onClick={()=>setDelStep(1)} style={{width:"100%",padding:"13px",background:"none",color:"#FF4D6D",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Delete Account</button>}
+          {delStep===1&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px"}}>
+            <div style={{fontSize:13,color:"#FF4D6D",fontWeight:700,marginBottom:8}}>Delete your account?</div>
+            <div style={{fontSize:12,color:T.mu,marginBottom:6}}>This will permanently delete:</div>
+            <ul style={{fontSize:12,color:T.mu,margin:"0 0 14px 0",paddingLeft:18,lineHeight:1.8}}>
+              <li>Your profile and all settings</li>
+              <li>All food logs and nutrition history</li>
+              <li>All workout logs and progress data</li>
+              <li>Weight check-ins and body measurements</li>
+              <li>Your subscription and billing records</li>
+            </ul>
+            <div style={{fontSize:11,color:"#FF4D6D",marginBottom:14,fontWeight:600}}>This action cannot be undone.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:T.s3,color:T.mu,border:`1px solid ${T.bd}`,borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"#FF4D6D",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>I understand, continue</button>
             </div>
-          }
+          </div>}
+          {delStep===2&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px"}}>
+            <div style={{fontSize:13,color:"#FF4D6D",fontWeight:700,marginBottom:8}}>Final confirmation</div>
+            <div style={{fontSize:12,color:T.mu,marginBottom:12}}>Type <strong style={{color:"#fff"}}>DELETE</strong> to permanently delete your account.</div>
+            <input
+              value={delInput}
+              onChange={e=>setDelInput(e.target.value)}
+              placeholder="Type DELETE here"
+              style={{width:"100%",padding:"10px 12px",background:T.s3,color:"#fff",border:`1px solid ${delInput==="DELETE"?"#FF4D6D":T.bd}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}
+            />
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:T.s3,color:T.mu,border:`1px solid ${T.bd}`,borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"#FF4D6D":"rgba(255,77,109,.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit",transition:"background .2s"}}>{deleting?"Deleting...":"Delete Forever"}</button>
+            </div>
+          </div>}
+          {delStep===3&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px",textAlign:"center"}}>
+            <div style={{fontSize:13,color:T.mu}}>Deleting your account...</div>
+          </div>}
         </SectionCard>
       </div>
     </div>

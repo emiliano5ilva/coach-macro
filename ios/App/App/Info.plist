@@ -49,5 +49,24 @@
 	<string>Coach Macro reads your sleep, steps, heart rate, and HRV data to score your daily recovery and personalize your training intensity and nutrition targets.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Coach Macro saves your completed workouts and active calorie burns to Apple Health to keep your activity records in sync.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Coach Macro uses your camera to scan barcodes on food packaging so you can quickly log meals without typing.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Coach Macro uses your microphone to let you log meals and workouts by speaking, so you can track hands-free.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Coach Macro uses speech recognition to convert your voice into food and workout entries so logging is fast and effortless.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Coach Macro lets you attach progress photos to your check-ins to visually track your body composition over time.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.coachmacro.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>coachmacro</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

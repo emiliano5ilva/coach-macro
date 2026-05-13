@@ -9,6 +9,9 @@
     "CapacitorHealthKit": {
       "healthSharePermission": "Coach Macro reads your health data to personalize your training and nutrition.",
       "healthUpdatePermission": "Coach Macro saves workouts and calorie data to Apple Health."
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
     }
   }
 }

@@ -126,6 +126,8 @@ import { useState, useEffect, useRef } from "react";
 */
 import { sb, signInWithGoogle, signInWithApple } from "./supabase.js";
 import { track, EVENTS, setAnalyticsEnabled } from "./services/analytics.js";
+import { initDeepLinks } from "./services/deepLinks.js";
+import { initPushNotifications, scheduleTrialExpiryNotification } from "./services/notifications.js";
 
 // ─── STRIPE PAYMENT LINKS ─────────────────────────────────────────────────────
 // Replace these two URLs with your actual Stripe Payment Links
@@ -381,6 +383,9 @@ export default function CoachMacro() {
       if(data.wprefs) setWPrefs(data.wprefs);
       // Sync analytics opt-out preference
       setAnalyticsEnabled(data.analytics_enabled !== false);
+      // Initialize push notifications and trial expiry warning
+      initPushNotifications(uid);
+      if(data.profile_data?.trialEndsAt) scheduleTrialExpiryNotification(data.profile_data.trialEndsAt);
       console.log("[loadProfile] done — routing to app");
       setPhase("app");
     } catch(e){
@@ -637,7 +642,37 @@ export default function CoachMacro() {
     // Trial/subscription expired — show paywall from anywhere in the app
     const onSubRequired=()=>setPhase("upgrade");
     window.addEventListener("cm:subscription-required",onSubRequired);
-    return()=>{subscription.unsubscribe();window.removeEventListener("cm:subscription-required",onSubRequired);};
+
+    // Deep link handler for coachmacro:// URL scheme
+    const onDeepLink=(e)=>{
+      const {route,parts}=e.detail||{};
+      if(route==="invite"&&parts[0]&&parts[1]){
+        try{
+          const inv={code:parts[0],token:parts[1],freeWeeks:2,savedAt:Date.now()};
+          localStorage.setItem("coachMacroInvite",JSON.stringify(inv));
+        }catch{}
+      } else if(route==="workout"){
+        setPhase("app");
+        setTimeout(()=>window.dispatchEvent(new CustomEvent("cm:nav",{detail:"train"})),100);
+      } else if(route==="fuel"){
+        setPhase("app");
+        setTimeout(()=>window.dispatchEvent(new CustomEvent("cm:nav",{detail:"fuel"})),100);
+      } else if(route==="pro"){
+        setPhase("upgrade");
+      } else if(route==="reset-password"){
+        setPhase("auth");
+      }
+    };
+    window.addEventListener("cm:deeplink",onDeepLink);
+
+    // Initialize Capacitor deep links (no-op on web)
+    try { initDeepLinks(); } catch{}
+
+    return()=>{
+      subscription.unsubscribe();
+      window.removeEventListener("cm:subscription-required",onSubRequired);
+      window.removeEventListener("cm:deeplink",onDeepLink);
+    };
   },[]);
 
   useEffect(()=>{
