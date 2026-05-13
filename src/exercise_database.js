@@ -521,6 +521,96 @@ export const EQUIPMENT_ALTERNATIVES = {
     "Bodyweight Only":"Sumo Squat",
     "Cables Only":    "Cable Sumo Squat",
     "Machines Only":  "Leg Press"
+  },
+
+  // ── COMMIT 1: FULL GYM + DUMBBELL ADDITIONS ──────────────────────────────
+  "Seated Calf Raise": {
+    "Full Gym":       "Seated Calf Raise",
+    "Home Gym":       "Calf Raise",
+    "Dumbbells Only": "Single Leg Calf Raise",
+    "Bodyweight Only":"Single Leg Calf Raise",
+    "Cables Only":    "Calf Raise",
+    "Machines Only":  "Seated Calf Raise"
+  },
+  "Chest Dip": {
+    "Full Gym":       "Chest Dip",
+    "Home Gym":       "Chest Dip",
+    "Dumbbells Only": "Dumbbell Bench Press",
+    "Bodyweight Only":"Wide Push Up",
+    "Cables Only":    "Cable Fly",
+    "Machines Only":  "Pec Deck Machine"
+  },
+  "Trap Bar Deadlift": {
+    "Full Gym":       "Trap Bar Deadlift",
+    "Home Gym":       "Deadlift",
+    "Dumbbells Only": "Dumbbell Deadlift",
+    "Bodyweight Only":"Single Leg Romanian Deadlift",
+    "Cables Only":    "Cable Pull Through",
+    "Machines Only":  "Leg Press"
+  },
+  "Goblet Squat": {
+    "Full Gym":       "Goblet Squat",
+    "Home Gym":       "Goblet Squat",
+    "Dumbbells Only": "Goblet Squat",
+    "Bodyweight Only":"Bulgarian Split Squat",
+    "Cables Only":    "Goblet Squat",
+    "Machines Only":  "Hack Squat"
+  },
+  "Dumbbell Deadlift": {
+    "Full Gym":       "Deadlift",
+    "Home Gym":       "Dumbbell Deadlift",
+    "Dumbbells Only": "Dumbbell Deadlift",
+    "Bodyweight Only":"Single Leg Romanian Deadlift",
+    "Cables Only":    "Cable Pull Through",
+    "Machines Only":  "Leg Press"
+  },
+  "Dumbbell Hip Thrust": {
+    "Full Gym":       "Barbell Hip Thrust",
+    "Home Gym":       "Dumbbell Hip Thrust",
+    "Dumbbells Only": "Dumbbell Hip Thrust",
+    "Bodyweight Only":"Glute Bridge",
+    "Cables Only":    "Cable Pull Through",
+    "Machines Only":  "Machine Hip Thrust"
+  },
+  "Floor Press": {
+    "Full Gym":       "Barbell Bench Press",
+    "Home Gym":       "Floor Press",
+    "Dumbbells Only": "Floor Press",
+    "Bodyweight Only":"Push Up",
+    "Cables Only":    "Cable Fly",
+    "Machines Only":  "Chest Press Machine"
+  },
+  "Single Leg Romanian Deadlift": {
+    "Full Gym":       "Romanian Deadlift",
+    "Home Gym":       "Single Leg Romanian Deadlift",
+    "Dumbbells Only": "Single Leg Romanian Deadlift",
+    "Bodyweight Only":"Single Leg Romanian Deadlift",
+    "Cables Only":    "Cable Romanian Deadlift",
+    "Machines Only":  "Romanian Deadlift"
+  },
+  "Dumbbell Step Up": {
+    "Full Gym":       "Barbell Squat",
+    "Home Gym":       "Dumbbell Step Up",
+    "Dumbbells Only": "Dumbbell Step Up",
+    "Bodyweight Only":"Bodyweight Step Up",
+    "Cables Only":    "Dumbbell Step Up",
+    "Machines Only":  "Leg Press"
+  },
+  "Dumbbell Lunge": {
+    "Full Gym":       "Walking Lunge",
+    "Home Gym":       "Dumbbell Lunge",
+    "Dumbbells Only": "Dumbbell Lunge",
+    "Bodyweight Only":"Walking Lunge",
+    "Cables Only":    "Dumbbell Lunge",
+    "Machines Only":  "Leg Press"
+  },
+  "Single Leg Calf Raise": {
+    "Full Gym":       "Single Leg Calf Raise",
+    "Home Gym":       "Single Leg Calf Raise",
+    "Dumbbells Only": "Single Leg Calf Raise",
+    "Bodyweight Only":"Single Leg Calf Raise",
+    "Cables Only":    "Single Leg Calf Raise",
+    "Machines Only":  "Seated Calf Raise"
   }
 };
 
@@ -584,19 +674,24 @@ export const EXERCISE_MUSCLE_GROUP = {
   "Hollow Hold":"core","Dead Bug":"core","Pallof Press":"core",
   // CALVES
   "Calf Raise":"calves","Seated Calf Raise":"calves","Standing Calf Raise":"calves",
-  "Machine Calf Raise":"calves",
+  "Machine Calf Raise":"calves","Single Leg Calf Raise":"calves",
+  // COMMIT 1: FULL GYM + DUMBBELL ADDITIONS
+  "Barbell Hip Thrust":"glutes","Chest Dip":"chest","Trap Bar Deadlift":"back",
+  "Goblet Squat":"legs","Dumbbell Deadlift":"back","Dumbbell Hip Thrust":"glutes",
+  "Floor Press":"chest","Single Leg Romanian Deadlift":"legs",
+  "Dumbbell Step Up":"legs","Dumbbell Lunge":"legs","Good Morning":"legs",
 };
 
 export const MUSCLE_GROUP_POOL = {
-  chest:["Barbell Bench Press","Incline Dumbbell Press","Dumbbell Bench Press","Incline Barbell Press","Cable Fly","Dumbbell Fly","Push Up","Chest Press Machine","Pec Deck Machine","Cable Crossover","Chest Dip","Decline Barbell Press"],
-  back:["Deadlift","Barbell Row","Pull Up","Lat Pulldown","Cable Row","T-Bar Row","Single Arm Dumbbell Row","Chest-Supported Row","Neutral Grip Pulldown","Face Pull","Seated Cable Row","Rack Pull"],
+  chest:["Barbell Bench Press","Incline Dumbbell Press","Dumbbell Bench Press","Incline Barbell Press","Cable Fly","Dumbbell Fly","Push Up","Chest Press Machine","Pec Deck Machine","Cable Crossover","Chest Dip","Decline Barbell Press","Floor Press"],
+  back:["Deadlift","Barbell Row","Pull Up","Lat Pulldown","Cable Row","T-Bar Row","Single Arm Dumbbell Row","Chest-Supported Row","Neutral Grip Pulldown","Face Pull","Seated Cable Row","Rack Pull","Trap Bar Deadlift","Dumbbell Deadlift"],
   shoulders:["Overhead Press","Dumbbell Shoulder Press","Arnold Press","Lateral Raise","Cable Lateral Raise","Reverse Fly","Front Raise","Machine Lateral Raise","Upright Row"],
-  legs:["Barbell Squat","Romanian Deadlift","Leg Press","Bulgarian Split Squat","Leg Extension","Seated Leg Curl","Nordic Curl","Hack Squat","Goblet Squat","Lunge","Walking Lunge"],
-  glutes:["Hip Thrust","Glute Bridge","Sumo Squat","Cable Kickback","Clamshell","Abduction Machine"],
+  legs:["Barbell Squat","Romanian Deadlift","Leg Press","Bulgarian Split Squat","Leg Extension","Seated Leg Curl","Nordic Curl","Hack Squat","Goblet Squat","Lunge","Walking Lunge","Dumbbell Lunge","Dumbbell Step Up","Single Leg Romanian Deadlift","Good Morning"],
+  glutes:["Hip Thrust","Barbell Hip Thrust","Glute Bridge","Sumo Squat","Cable Kickback","Clamshell","Abduction Machine","Dumbbell Hip Thrust"],
   biceps:["Barbell Curl","Dumbbell Curl","Hammer Curl","EZ Bar Curl","Cable Curl","Incline Dumbbell Curl","Concentration Curl","Preacher Curl"],
   triceps:["Tricep Pushdown","Skull Crusher","Overhead Tricep Extension","Close Grip Bench Press","Tricep Dip","Diamond Push Up","Rope Pushdown"],
   core:["Ab Wheel Rollout","Plank","Cable Crunch","Hanging Leg Raise","Russian Twist","Hollow Hold","Dead Bug","Pallof Press"],
-  calves:["Calf Raise","Seated Calf Raise","Machine Calf Raise","Standing Calf Raise"],
+  calves:["Calf Raise","Seated Calf Raise","Machine Calf Raise","Standing Calf Raise","Single Leg Calf Raise"],
 };
 
 export function getSwapOptions(exerciseName, equipment="Full Gym", count=6) {
@@ -608,3 +703,178 @@ export function getSwapOptions(exerciseName, equipment="Full Gym", count=6) {
     .map(n=>({name:getEquipmentExercise(n,equipment),originalName:n,muscleGroup:group}))
     .slice(0,count);
 }
+
+// ─── EXERCISE DETAILS ────────────────────────────────────────────────────────
+// Full coaching structure: setup, cue, breathe, mistake, feel, progression,
+// tier, muscles, equipment, contraindications.
+// Extends COACHING_CUES in ExerciseDetailModal for new exercises.
+export const EXERCISE_DETAILS = {
+  "Barbell Hip Thrust": {
+    muscleGroup:"glutes", tier:"A",
+    primaryMuscles:["glutes","hamstrings"], secondaryMuscles:["core","quads"],
+    equipment:["barbell","bench"],
+    setup:"Upper back on bench edge at shoulder-blade height. Barbell on hip crease with pad. Feet flat, shoulder-width, knees at 90° at top.",
+    cue:"Drive hips up explosively. Squeeze glutes hard at the top. Full hip extension.",
+    breathe:"Inhale at bottom. Brace core. Exhale as hips drive up.",
+    mistake:"Not reaching full hip extension — get all the way up. Hips fully open at the top.",
+    feel:"Deep glute contraction at lockout — not lower back.",
+    progressionRule:"Add 10 lbs when all sets completed with full hip extension and a 1-sec pause at top.",
+    deloadNote:"Drop to 60%. Slow tempo, feel the glute squeeze.",
+    avoid_if:[],
+    modify_if:{ lower_back:"Reduce range to where glutes engage before the back takes over." },
+  },
+  "Seated Calf Raise": {
+    muscleGroup:"calves", tier:"C",
+    primaryMuscles:["soleus"], secondaryMuscles:["gastrocnemius"],
+    equipment:["machine"],
+    setup:"Sit with pad just above knees. Balls of feet on platform edge. Full hang at the start.",
+    cue:"Drive through the ball of the foot. Full range — all the way up, all the way down.",
+    breathe:"Breathe freely — isolation movement.",
+    mistake:"Bouncing through the stretch. Control the descent.",
+    feel:"Deep stretch in the lower calf (soleus) at the bottom — different from standing calf raise.",
+    progressionRule:"Add 5 lbs when all reps with full range of motion.",
+    deloadNote:"Drop to bodyweight. Focus on range.",
+  },
+  "Good Morning": {
+    muscleGroup:"legs", tier:"B",
+    primaryMuscles:["hamstrings","lower_back","glutes"], secondaryMuscles:["core"],
+    equipment:["barbell"],
+    setup:"Bar on upper back (high bar position). Feet shoulder-width. Soft knee bend throughout.",
+    cue:"Hinge at hips — push them back as you lean forward. Keep chest proud and spine neutral.",
+    breathe:"Inhale and brace at the top. Hold through the hinge. Exhale on the way back up.",
+    mistake:"Rounding the lower back. This is a hinge, not a spinal flexion exercise.",
+    feel:"Deep hamstring stretch — very similar to RDL but with the bar on your back.",
+    progressionRule:"Add 5 lbs when all sets with neutral spine throughout.",
+    deloadNote:"Drop to 50% and prioritize spinal position.",
+    avoid_if:["lower_back_pain"],
+    modify_if:{ lower_back:"Replace with Romanian Deadlift until the back is stronger." },
+  },
+  "Chest Dip": {
+    muscleGroup:"chest", tier:"B",
+    primaryMuscles:["lower_chest","triceps","front_delts"], secondaryMuscles:["triceps"],
+    equipment:["dip_bars"],
+    setup:"Grip slightly wider than shoulder-width. Lean torso forward 20-30° to shift load to chest.",
+    cue:"Lean forward to target chest. Lower until upper arms are parallel to floor. Press up and slightly forward.",
+    breathe:"Inhale as you lower. Exhale as you press up.",
+    mistake:"Not going deep enough — upper arms must reach parallel to the floor minimum.",
+    feel:"Lower chest stretch at the bottom — distinct from the tricep-focused upright dip.",
+    progressionRule:"Add weight with a dip belt when you hit 12+ clean bodyweight reps.",
+    deloadNote:"Use band assistance or switch to push ups.",
+    avoid_if:["shoulder_pain_pressing"],
+    modify_if:{ shoulder_impingement:"Reduce depth to where shoulders don't click or impinge." },
+  },
+  "Trap Bar Deadlift": {
+    muscleGroup:"back", tier:"A",
+    primaryMuscles:["back","glutes","hamstrings","quads"], secondaryMuscles:["core","traps","forearms"],
+    equipment:["trap_bar"],
+    setup:"Stand in the center of the hex bar. Handles at sides. Sit slightly lower than conventional — more upright torso.",
+    cue:"Push the floor away. More upright torso than conventional deadlift. Think 'squat and pull' simultaneously.",
+    breathe:"Big breath and brace before each rep. Exhale at full lockout.",
+    mistake:"Rising hips first, leaving the bar behind. Push floor away and keep chest up simultaneously.",
+    feel:"More quad involvement than conventional deadlift — great for quad-dominant athletes.",
+    progressionRule:"Add 10 lbs when all sets with full hip extension at lockout.",
+    deloadNote:"Drop to 60%. Focus on position — chest up, hips fully extending.",
+    avoid_if:[],
+    modify_if:{ lower_back:"Often safer than conventional — more quad-friendly and less spinal shear." },
+  },
+  "Goblet Squat": {
+    muscleGroup:"legs", tier:"A",
+    primaryMuscles:["quads","glutes"], secondaryMuscles:["core","upper_back"],
+    equipment:["dumbbell","kettlebell"],
+    setup:"Hold weight vertically at chest with both hands. Feet shoulder-width, toes slightly out.",
+    cue:"Hold weight at chest as a counterbalance. Elbows inside knees at the bottom. Sit between your heels.",
+    breathe:"Inhale at top. Brace. Exhale as you stand.",
+    mistake:"Heels rising off the floor. Sit into the squat — don't lean forward.",
+    feel:"Deep quad and glute engagement. You should feel 'open' at the bottom of the movement.",
+    progressionRule:"Add weight when you can do 15 reps with full depth and chest up.",
+    deloadNote:"Drop to bodyweight squat to perfect the depth.",
+    noviceVersion:{ equipment:"dumbbell", notes:"Excellent first squat. Weight acts as counterbalance to help you stay upright.", repRange:"12-15", sets:3 },
+  },
+  "Dumbbell Deadlift": {
+    muscleGroup:"back", tier:"A",
+    primaryMuscles:["back","glutes","hamstrings"], secondaryMuscles:["core","traps","forearms"],
+    equipment:["dumbbells"],
+    setup:"Dumbbells at sides. Hinge at hips — same position as barbell deadlift. Back flat, chest proud.",
+    cue:"Push the floor away. Keep dumbbells close to legs throughout. Identical hinge to barbell — just lighter.",
+    breathe:"Inhale and brace before each rep. Exhale at lockout.",
+    mistake:"Squatting the weight up instead of hinging. Push hips back, don't squat down.",
+    feel:"Same hamstring and glute engagement as barbell deadlift — identical movement pattern.",
+    progressionRule:"Add 5 lbs per dumbbell when all sets completed. Transition to barbell when ready.",
+    deloadNote:"Drop to single-leg RDL for unilateral focus.",
+    noviceVersion:{ equipment:"dumbbells", notes:"Identical to barbell deadlift — builds the hip hinge pattern before loading heavily.", repRange:"10-12", sets:3 },
+  },
+  "Dumbbell Hip Thrust": {
+    muscleGroup:"glutes", tier:"A",
+    primaryMuscles:["glutes","hamstrings"], secondaryMuscles:["core"],
+    equipment:["dumbbell","bench"],
+    setup:"Upper back on bench edge. Dumbbell balanced vertically on hip crease. Both hands stabilize the dumbbell.",
+    cue:"Drive hips up explosively — same movement as barbell hip thrust. Squeeze at the top.",
+    breathe:"Inhale at bottom. Exhale as hips drive up.",
+    mistake:"Dumbbell slipping — hold it vertical on the hip crease with both hands stabilizing.",
+    feel:"Maximum glute contraction at top. Identical feel to barbell — just lighter load.",
+    progressionRule:"Add 5 lbs when all reps completed. Transition to barbell when available.",
+    deloadNote:"Drop to glute bridge (floor) for volume.",
+    noviceVersion:{ equipment:"dumbbell", notes:"Great intro to hip thrust before moving to barbell.", repRange:"12-15", sets:3 },
+  },
+  "Floor Press": {
+    muscleGroup:"chest", tier:"B",
+    primaryMuscles:["chest","triceps"], secondaryMuscles:["front_delts"],
+    equipment:["dumbbells"],
+    setup:"Lie on floor. Arms at 45° from torso. Elbows will touch the floor between reps.",
+    cue:"Press up normally. Let elbows touch the floor between reps and pause briefly — don't bounce.",
+    breathe:"Inhale when elbows touch floor. Press with exhale.",
+    mistake:"Bouncing off the floor. Pause with control when elbows touch.",
+    feel:"Triceps work harder than on bench due to the limited range of motion. Good for elbow strength.",
+    progressionRule:"Add 5 lbs per dumbbell when all reps with 1-sec pause at the floor.",
+    deloadNote:"Drop to push ups.",
+  },
+  "Single Leg Romanian Deadlift": {
+    muscleGroup:"legs", tier:"B",
+    primaryMuscles:["hamstrings","glutes","core"], secondaryMuscles:["lower_back"],
+    equipment:["dumbbell"],
+    setup:"Hold dumbbell in the hand opposite to working leg. Standing on one leg, slight knee bend.",
+    cue:"Hinge forward as you extend rear leg simultaneously — like a see-saw. Keep hips square to the floor.",
+    breathe:"Inhale before hinge. Hold. Exhale as you return to standing.",
+    mistake:"Rotating hips open — the hip of the extended leg should not rise above the standing hip.",
+    feel:"Deep hamstring stretch on working leg. Balance challenge makes the core work very hard.",
+    progressionRule:"Add 5 lbs when all reps without losing balance or rotating hips.",
+    deloadNote:"Switch to two-leg RDL while working on balance separately.",
+    modify_if:{ balance:"Lightly touch back foot to floor for support while building balance." },
+  },
+  "Dumbbell Step Up": {
+    muscleGroup:"legs", tier:"C",
+    primaryMuscles:["quads","glutes"], secondaryMuscles:["hamstrings","core"],
+    equipment:["dumbbells","bench_or_box"],
+    setup:"Hold dumbbells at sides. Box height: thigh roughly parallel when foot is on it.",
+    cue:"Drive through the heel of the working leg. Back leg should barely contribute — all work from the front.",
+    breathe:"Exhale as you step up. Inhale as you step down.",
+    mistake:"Pushing off the back foot to help, which reduces load on the working leg.",
+    feel:"Quad and glute of working leg should burn. Back leg is just for balance.",
+    progressionRule:"Add 5 lbs per dumbbell when 12 controlled reps per leg.",
+    deloadNote:"Drop to bodyweight step up.",
+  },
+  "Dumbbell Lunge": {
+    muscleGroup:"legs", tier:"C",
+    primaryMuscles:["quads","glutes","hamstrings"], secondaryMuscles:["core"],
+    equipment:["dumbbells"],
+    setup:"Hold dumbbells at sides. Stand tall. Take one large step forward.",
+    cue:"Front shin vertical. Back knee hovers above the floor. Drive up through the front heel.",
+    breathe:"Inhale as you step and lower. Exhale as you push back to start.",
+    mistake:"Front knee caving inward or knee travelling too far past the toes.",
+    feel:"Front leg does all the work. Rear leg is just for balance.",
+    progressionRule:"Add 5 lbs per dumbbell when all reps with shin vertical and controlled back knee.",
+    deloadNote:"Drop to bodyweight lunges.",
+  },
+  "Single Leg Calf Raise": {
+    muscleGroup:"calves", tier:"C",
+    primaryMuscles:["calves","soleus"], secondaryMuscles:[],
+    equipment:["bodyweight","dumbbell"],
+    setup:"Stand on one leg on a step or platform. Hold dumbbell if needed. Full hang at the start.",
+    cue:"Full range of motion — all the way up and all the way down. Pause at the bottom for stretch.",
+    breathe:"Breathe freely.",
+    mistake:"Cutting range of motion short at the top or bottom.",
+    feel:"Deep stretch at the bottom. Significant burn at the top on single leg.",
+    progressionRule:"Add dumbbell when 15 reps per leg with full range.",
+    deloadNote:"Drop to two-leg calf raise.",
+  },
+};
