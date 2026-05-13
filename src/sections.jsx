@@ -2688,6 +2688,29 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           })()}
         </SectionCard>}
 
+        {/* Connected Apps */}
+        <SectionCard title="🔗 Connected Apps">
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:`1px solid ${T.bd}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"rgba(255,69,58,0.12)",border:"1px solid rgba(255,69,58,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>❤️</div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13}}>Apple Health</div>
+                <div style={{fontSize:11,color:T.mu,marginTop:1}}>Sleep · HRV · Steps · Workouts</div>
+              </div>
+            </div>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,padding:"4px 10px",borderRadius:6,
+              background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(245,245,240,0.06)",
+              color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#22c55e":T.mu,
+              border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":T.bd}`,
+              letterSpacing:"0.1em",textTransform:"uppercase"}}>
+              {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
+            </div>
+          </div>
+          <div style={{paddingTop:10,fontSize:11,color:T.mu,lineHeight:1.6}}>
+            Coach Macro uses Apple Health to personalize your recovery score, calorie targets, and training intensity using real biometric data.
+          </div>
+        </SectionCard>
+
         {/* Account Actions */}
         <SectionCard title="Account">
           <button onClick={onSignOut} style={{width:"100%",padding:"13px",background:T.s3,color:"#fff",border:`1px solid ${T.bd}`,borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>Sign Out</button>

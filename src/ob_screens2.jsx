@@ -14,6 +14,7 @@ import { sb, ai } from "./client.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 import { FlagBtn } from "./FlagBtn.jsx";
+import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -493,11 +494,31 @@ function DeloadActiveBadge({daysLeft, onComplete}) {
 const SCORE_SLEEP = {u5:20,"5-6":40,"6-7":65,"7-8":85,"8+":100};
 const _WDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType}) {
+function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType,healthSnap}) {
   const today = new Date().toISOString().split("T")[0];
 
   // ── Recovery (40%) ─────────────────────────────────────────────────────────
-  const sleepPts = SCORE_SLEEP[profile?.sleep] ?? 65;
+  // Use real HealthKit data when available, fall back to onboarding self-report
+  let sleepPts;
+  if (healthSnap?.sleep != null) {
+    const s = healthSnap.sleep;
+    sleepPts = s>=8?100:s>=7?85:s>=6?65:s>=5?45:25;
+  } else {
+    sleepPts = SCORE_SLEEP[profile?.sleep] ?? 65;
+  }
+
+  let hrvPts = 75;
+  if (healthSnap?.hrv != null) {
+    const h = healthSnap.hrv;
+    hrvPts = h>60?100:h>40?85:h>25?65:h>15?40:20;
+  }
+
+  let rhrPts = 75;
+  if (healthSnap?.rhr != null) {
+    const r = healthSnap.rhr;
+    rhrPts = r<50?100:r<60?85:r<70?65:r<80?45:25;
+  }
+
   const todayIdx = _WDAYS.indexOf(todayKey);
   let consecutive = 0;
   for(let i=0; i<=6; i++){
@@ -507,7 +528,15 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
     consecutive++;
   }
   const restPts = consecutive<=2?100:consecutive===3?80:consecutive===4?60:40;
-  const recovery = Math.min(100, Math.round((sleepPts + restPts) / 2));
+
+  const hasRealHealth = healthSnap?.sleep!=null || healthSnap?.hrv!=null || healthSnap?.rhr!=null;
+  let recovery;
+  if (hasRealHealth) {
+    const bioScore = Math.round(sleepPts*0.35 + hrvPts*0.50 + rhrPts*0.15);
+    recovery = Math.min(100, Math.round(bioScore*0.80 + restPts*0.20));
+  } else {
+    recovery = Math.min(100, Math.round((sleepPts + restPts) / 2));
+  }
 
   // ── Nutrition (30%) ────────────────────────────────────────────────────────
   let nutrition;
@@ -548,9 +577,9 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
   // ── Suggestions ────────────────────────────────────────────────────────────
   const tips = [];
   if(recovery<70){
-    const sh=SCORE_SLEEP[profile?.sleep]??65;
-    if(sh<70) tips.push("Sleep by 10pm tonight to improve your recovery score");
-    else tips.push("Schedule a rest day — you've trained multiple days straight");
+    if(healthSnap?.sleep!=null&&healthSnap.sleep<7) tips.push(`You got ${healthSnap.sleep}h sleep — aim for 8+ tonight to boost recovery`);
+    else if(healthSnap?.hrv!=null&&healthSnap.hrv<30) tips.push(`HRV at ${healthSnap.hrv}ms — take it easy, prioritize recovery today`);
+    else{const sh=SCORE_SLEEP[profile?.sleep]??65;if(sh<70)tips.push("Sleep by 10pm tonight to improve your recovery score");else tips.push("Schedule a rest day — you've trained multiple days straight");}
   }
   if(nutrition<70){
     if(!log.length) tips.push("Log your meals today to complete your nutrition score");
@@ -1050,6 +1079,53 @@ function InjuryRiskReport({risks, muscleSetCounts}) {
   );
 }
 
+function AppleHealthModal({onConnect, onDismiss}) {
+  const [connecting, setConnecting] = useState(false);
+  async function handleConnect() {
+    setConnecting(true);
+    const ok = await initAppleHealth();
+    setConnecting(false);
+    onConnect(ok);
+  }
+  const isNative = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.() === true;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
+      <div style={{width:"100%",maxWidth:480,background:"var(--navy-card)",borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",border:"1px solid var(--white-border)"}}>
+        <div style={{width:40,height:4,borderRadius:2,background:"rgba(245,245,240,0.15)",margin:"0 auto 24px"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+          <div style={{width:48,height:48,borderRadius:14,background:"rgba(255,69,58,0.12)",border:"1px solid rgba(255,69,58,0.25)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="#FF453A"/></svg>
+          </div>
+          <div>
+            <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:22,textTransform:"uppercase",lineHeight:1}}>Connect Apple Health</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:3}}>Personalize with real data</div>
+          </div>
+        </div>
+        <div style={{marginBottom:20,display:"flex",flexDirection:"column",gap:8}}>
+          {[["Sleep","Adjust training intensity based on last night's sleep"],["HRV & Heart Rate","Real-time recovery scoring using biometric data"],["Steps","Earn calorie adjustments for daily activity"],["Workouts","Auto-save sessions and sync active calories"]].map(([title,desc])=>(
+            <div key={title} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 12px",background:"rgba(245,245,240,0.03)",borderRadius:10,border:"1px solid rgba(245,245,240,0.06)"}}>
+              <div style={{color:"var(--green)",marginTop:2,flexShrink:0}}>
+                <svg width={14} height={14} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <div>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em"}}>{title}</div>
+                <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1,lineHeight:1.45}}>{desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {isNative
+          ? <button onClick={handleConnect} disabled={connecting} style={{width:"100%",padding:"15px",background:connecting?"rgba(245,245,240,0.08)":"#FF453A",color:connecting?"var(--white-dim)":"white",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,letterSpacing:"0.1em",textTransform:"uppercase",cursor:connecting?"default":"pointer",marginBottom:12}}>
+              {connecting?"Requesting Access...":"Connect Apple Health →"}
+            </button>
+          : <div style={{textAlign:"center",padding:"12px",background:"rgba(245,245,240,0.04)",borderRadius:12,marginBottom:12,fontFamily:"var(--body)",fontSize:12,color:"var(--white-dim)",lineHeight:1.5}}>Apple Health is available when you install the app on your iPhone.</div>
+        }
+        <button onClick={onDismiss} style={{width:"100%",padding:"12px",background:"transparent",color:"var(--white-dim)",border:"none",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Not Now</button>
+      </div>
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("home"); // home | train | fuel | progress | settings
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -1107,6 +1183,47 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [morningBriefLoading,setMorningBriefLoading]=useState(false);
   const [briefDismissed,setBriefDismissed]=useState(()=>localStorage.getItem("brief_dismissed")===new Date().toISOString().split("T")[0]);
   const [briefTrigger,setBriefTrigger]=useState(0);
+
+  // ── Apple Health ───────────────────────────────────────────────────────────
+  const [healthSnap,setHealthSnap]=useState(null);
+  const [healthConnected,setHealthConnected]=useState(false);
+  const [showHealthModal,setShowHealthModal]=useState(false);
+  const healthDismissCount=useRef(parseInt(localStorage.getItem("health_modal_dismiss")||"0"));
+
+  useEffect(()=>{
+    const isNative=typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()===true;
+    async function loadHealth(){
+      if(isNative){
+        const authorized=await checkAppleHealthAuthorized();
+        if(!authorized){
+          if(healthDismissCount.current<3)setShowHealthModal(true);
+          return;
+        }
+        setHealthConnected(true);
+        const snap=await getDailyHealthSnapshot();
+        setHealthSnap(snap);
+      } else {
+        if(healthDismissCount.current<3)setShowHealthModal(true);
+      }
+    }
+    loadHealth();
+  },[]);
+
+  async function handleHealthConnect(authorized){
+    setShowHealthModal(false);
+    if(authorized){
+      setHealthConnected(true);
+      const snap=await getDailyHealthSnapshot();
+      setHealthSnap(snap);
+    }
+  }
+
+  function dismissHealthModal(){
+    const next=healthDismissCount.current+1;
+    healthDismissCount.current=next;
+    localStorage.setItem("health_modal_dismiss",String(next));
+    setShowHealthModal(false);
+  }
 
   useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(id);},[]);
 
@@ -1198,7 +1315,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     ...ahActs,...garminActs,...fitbitActs
   ].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const todayActs=allActs.filter(a=>isToday(a.date));
-  const earnedCals=todayActs.reduce((s,a)=>s+a.calories,0);
+  const earnedCals=todayActs.reduce((s,a)=>s+a.calories,0)+stepsToCalorieBonus(healthSnap?.steps);
   // ── Nutrition Periodization ─────────────────────────────────────────────────
   const _startD=profile?.startDate?new Date(profile.startDate):new Date();
   const _daysSince=Math.max(0,Math.floor((new Date()-_startD)/86400000));
@@ -1432,9 +1549,9 @@ Rules:
 
   // ── Coach Macro Score ──────────────────────────────────────────────────────
   const coachScore = useMemo(()=>calcCoachScore({
-    profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType
+    profile,consumed,macros,log,workoutLogsRaw,schedule,todayKey,todayType,healthSnap
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }),[log.length,workoutLogsRaw.length,todayKey,todayType,profile?.sleep,schedule]);
+  }),[log.length,workoutLogsRaw.length,todayKey,todayType,profile?.sleep,schedule,healthSnap]);
 
   useEffect(()=>{
     if(!user||!coachScore) return;
@@ -1539,6 +1656,55 @@ Rules:
             <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,var(--red),#8b1a0a)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--condensed)",fontWeight:800,fontStyle:"italic",fontSize:16,color:"white"}}>{firstName[0].toUpperCase()}</div>
           </div>
         </div>
+
+        {/* Apple Health Strip */}
+        {healthSnap&&(healthSnap.sleep!=null||healthSnap.rhr!=null||healthSnap.hrv!=null||healthSnap.steps!=null||healthSnap.calories!=null)&&(
+          <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(255,69,58,0.06)",border:"1px solid rgba(255,69,58,0.18)",borderRadius:14,display:"flex",gap:0,overflowX:"auto"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:0,display:"flex",gap:16,alignItems:"center",flexShrink:0}}>
+              {healthSnap.sleep!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
+                <span style={{fontSize:16}}>😴</span>
+                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.sleep}h</span>
+                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Sleep</span>
+              </div>}
+              {healthSnap.rhr!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
+                <span style={{fontSize:16}}>❤️</span>
+                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.rhr}</span>
+                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>RHR</span>
+              </div>}
+              {healthSnap.hrv!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
+                <span style={{fontSize:16}}>⚡</span>
+                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.hrv}ms</span>
+                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>HRV</span>
+              </div>}
+              {healthSnap.steps!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:52}}>
+                <span style={{fontSize:16}}>👟</span>
+                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.steps>=1000?(healthSnap.steps/1000).toFixed(1)+"k":healthSnap.steps}</span>
+                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Steps</span>
+              </div>}
+              {healthSnap.calories!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:52}}>
+                <span style={{fontSize:16}}>🔥</span>
+                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.calories}</span>
+                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Active</span>
+              </div>}
+            </div>
+          </div>
+        )}
+
+        {/* Morning Adjustment Banner */}
+        {healthSnap&&(()=>{
+          const adj=getMorningAdjustment({sleep:healthSnap.sleep,hrv:healthSnap.hrv});
+          if(adj.type==="normal")return null;
+          const isReduce=adj.type==="reduce";
+          return(
+            <div style={{margin:"0 20px 12px",padding:"12px 14px",background:isReduce?"rgba(239,68,68,0.08)":"rgba(34,197,94,0.08)",border:`1px solid ${isReduce?"rgba(239,68,68,0.25)":"rgba(34,197,94,0.25)"}`,borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
+              <span style={{fontSize:20}}>{isReduce?"⚡":"🔥"}</span>
+              <div>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:isReduce?"#EF4444":"#22c55e"}}>{isReduce?"Reduce Intensity Today":"Peak Recovery — Push Hard"}</div>
+                <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>{adj.reason}</div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Morning Brief */}
         {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
@@ -1892,6 +2058,7 @@ Rules:
       {workoutSavedMsg&&<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"var(--red)",color:"var(--white)",padding:"13px 22px",borderRadius:14,fontSize:14,fontWeight:700,zIndex:1000,boxShadow:"0 4px 32px rgba(232,52,28,0.5)",whiteSpace:"nowrap",pointerEvents:"none",fontFamily:"var(--condensed)",letterSpacing:1,textTransform:"uppercase"}}>{workoutSavedMsg}</div>}
 
 
+      {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal}/>}
       <div className="app-screen grid-bg">
         {section==="home"&&<HomeSection/>}
         {section==="train"&&<TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user}/>}
