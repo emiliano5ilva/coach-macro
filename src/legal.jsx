@@ -83,7 +83,7 @@ export function PrivacyPolicy() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Privacy Policy</h1>
-        <div className="legal-updated">Last Updated: May 7, 2026</div>
+        <div className="legal-updated">Last Updated: May 13, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Information We Collect</h2>
@@ -128,16 +128,55 @@ export function PrivacyPolicy() {
           <h2 className="legal-h2">4. Third Party Services</h2>
           <p className="legal-p">Coach Macro uses the following third-party services to operate:</p>
           <ul className="legal-ul">
-            <li><strong>Supabase</strong> — database and authentication</li>
-            <li><strong>Anthropic Claude API</strong> — AI features</li>
-            <li><strong>Stripe</strong> — payment processing</li>
-            <li><strong>Resend</strong> — email delivery</li>
-            <li><strong>Strava, Apple Health, Garmin</strong> — optional fitness integrations</li>
+            <li><strong>Supabase</strong> (database and authentication) — stores all user data</li>
+            <li><strong>Anthropic Claude API</strong> (AI features) — processes prompts containing nutrition and training context. We do not send personally identifiable information to Anthropic beyond what is necessary for AI feature functionality.</li>
+            <li><strong>RevenueCat</strong> (subscription management) — manages in-app purchases and subscription status</li>
+            <li><strong>Paddle</strong> (web payment processing) — processes web subscriptions</li>
+            <li><strong>Stripe</strong> (payment processing) — legacy web payments</li>
+            <li><strong>Resend</strong> (email delivery) — sends transactional emails</li>
+            <li><strong>Apple Health</strong> (optional integration) — reads sleep, heart rate, HRV, and steps when user grants permission</li>
+            <li><strong>ExerciseDB via RapidAPI</strong> — provides exercise demonstration data</li>
+            <li><strong>Open Food Facts</strong> (food database) — open source food nutrition data</li>
+            <li><strong>USDA FoodData Central</strong> — US government food nutrition database</li>
+            <li><strong>Google Sign-In</strong> — authentication option</li>
+            <li><strong>Sign in with Apple</strong> — authentication option</li>
           </ul>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">5. Your Rights</h2>
+          <h2 className="legal-h2">5. Artificial Intelligence Features</h2>
+          <p className="legal-p">Coach Macro uses the Anthropic Claude API to power several features including:</p>
+          <ul className="legal-ul">
+            <li>Personalized nutrition suggestions</li>
+            <li>Restaurant meal recommendations</li>
+            <li>Workout adaptation (Adapt Now)</li>
+            <li>Morning Brief coaching messages</li>
+            <li>Meal planning and prep suggestions</li>
+          </ul>
+          <p className="legal-p">When you use AI features, relevant context about your fitness goals, current macros, and training schedule may be sent to Anthropic's API to generate personalized responses. We do not send your name, email, or other directly identifying information in AI prompts.</p>
+          <p className="legal-p">You can disable AI features in <strong>Settings → Preferences → AI Features</strong>. Disabling AI features will not affect core nutrition tracking or program access.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">6. Social Sign In</h2>
+          <p className="legal-p">If you choose to sign in with Google or Apple:</p>
+          <p className="legal-p"><strong>Google Sign In:</strong> We receive your name and email address from Google. We do not receive your Google password or access to other Google services.</p>
+          <p className="legal-p"><strong>Sign In with Apple:</strong> We receive your name and either your real email or an Apple relay email address. Apple Sign In is privacy-preserving — Apple does not share additional data with us.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">7. Local Device Storage</h2>
+          <p className="legal-p">Coach Macro stores certain data locally on your device to:</p>
+          <ul className="legal-ul">
+            <li>Enable offline functionality in the gym</li>
+            <li>Cache your workout and nutrition data for faster loading</li>
+            <li>Store your app preferences and settings</li>
+          </ul>
+          <p className="legal-p">Local data is encrypted by your device's security system and is deleted when you uninstall the app or clear app data.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">8. Your Rights</h2>
           <ul className="legal-ul">
             <li>Access your data at any time through the app</li>
             <li>Export your data by contacting support</li>
@@ -147,7 +186,25 @@ export function PrivacyPolicy() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">6. Contact</h2>
+          <h2 className="legal-h2">9. Account Deletion</h2>
+          <p className="legal-p">You can delete your account at any time:</p>
+          <ol className="legal-ul" style={{listStyleType:"decimal"}}>
+            <li>Go to <strong>Settings → Account → Delete Account</strong></li>
+            <li>Confirm deletion</li>
+          </ol>
+          <p className="legal-p" style={{marginTop:14}}>Upon deletion:</p>
+          <ul className="legal-ul">
+            <li>All personal data deleted within 30 days</li>
+            <li>Health and fitness data deleted immediately</li>
+            <li>Subscription cancelled (no refund for remaining subscription period)</li>
+            <li>Anonymous aggregate data may be retained for analytics</li>
+          </ul>
+          <p className="legal-p">For <strong>Sign in with Apple</strong> users: deleting your account also revokes Coach Macro's access to your Apple ID.</p>
+          <p className="legal-p">To request manual deletion: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">10. Contact</h2>
           <p className="legal-p">For privacy-related questions or requests, contact us at: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
         </div>
 
@@ -166,7 +223,7 @@ export function WashingtonPrivacy() {
         <LegalLogo />
         <div className="legal-tag">State Privacy Notice</div>
         <h1 className="legal-title" style={{ fontSize: 38 }}>Washington My Health MY Data Act</h1>
-        <div className="legal-updated">Last Updated: May 7, 2026</div>
+        <div className="legal-updated">Last Updated: May 13, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Introduction</h2>
@@ -238,7 +295,7 @@ export function CaliforniaPrivacy() {
         <div className="legal-tag">State Privacy Notice</div>
         <h1 className="legal-title" style={{ fontSize: 42 }}>California Privacy Notice</h1>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>CCPA / CPRA</div>
-        <div className="legal-updated">Last Updated: May 7, 2026</div>
+        <div className="legal-updated">Last Updated: May 13, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Introduction</h2>
@@ -316,7 +373,7 @@ export function TermsOfService() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Terms of Service</h1>
-        <div className="legal-updated">Last Updated: May 7, 2026</div>
+        <div className="legal-updated">Last Updated: May 13, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Acceptance of Terms</h2>
@@ -348,18 +405,32 @@ export function TermsOfService() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">5. Subscription and Payment</h2>
+          <h2 className="legal-h2">5. Artificial Intelligence</h2>
+          <p className="legal-p">Coach Macro uses AI to provide personalized recommendations. AI-generated content is for informational purposes only and does not constitute medical, nutritional, or fitness professional advice.</p>
+          <p className="legal-p">AI recommendations may occasionally be inaccurate. Always use your judgment and consult qualified professionals for medical or clinical guidance.</p>
+          <p className="legal-p">You can report inaccurate AI responses using the flag button (🚩) on any AI-generated content.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">6. Subscription and Cancellation</h2>
+          <p className="legal-p"><strong>Free Trial:</strong> New users and referral recipients may receive a free trial period. No charge occurs during the trial. You may cancel before the trial ends without being charged.</p>
           <ul className="legal-ul">
             <li>Coach Macro offers free and paid subscription tiers</li>
             <li>Paid subscriptions are billed monthly or annually</li>
             <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
-            <li>Refunds are provided at our discretion within 7 days of purchase</li>
             <li>Prices may change with 30 days notice</li>
           </ul>
+          <p className="legal-p"><strong>Cancellation:</strong> You may cancel at any time through:</p>
+          <ul className="legal-ul">
+            <li><strong>iOS:</strong> Settings → Apple ID → Subscriptions</li>
+            <li><strong>Web:</strong> coach-macro.com/account → Manage Subscription</li>
+            <li><strong>Email:</strong> <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></li>
+          </ul>
+          <p className="legal-p">Cancellation takes effect at the end of the current billing period. No partial refunds for unused subscription time unless required by applicable law.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">6. Acceptable Use</h2>
+          <h2 className="legal-h2">7. Acceptable Use</h2>
           <p className="legal-p">You agree not to:</p>
           <ul className="legal-ul">
             <li>Use the service for any unlawful purpose</li>
@@ -371,32 +442,32 @@ export function TermsOfService() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">7. Health Disclaimer</h2>
+          <h2 className="legal-h2">8. Health Disclaimer</h2>
           <p className="legal-p">Coach Macro provides general fitness and nutrition guidance only. Always consult a qualified healthcare provider before starting any diet or exercise program. See our full <a className="legal-email" href="/health-disclaimer">Health Disclaimer</a>.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">8. Intellectual Property</h2>
+          <h2 className="legal-h2">9. Intellectual Property</h2>
           <p className="legal-p">All content, features, and functionality of Coach Macro are owned by Coach Macro LLC and protected by copyright law.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">9. Limitation of Liability</h2>
+          <h2 className="legal-h2">10. Limitation of Liability</h2>
           <p className="legal-p">Coach Macro LLC is not liable for any indirect, incidental, or consequential damages arising from your use of the service. Our total liability shall not exceed the amount you paid in the 12 months preceding the claim.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">10. Termination</h2>
+          <h2 className="legal-h2">11. Termination</h2>
           <p className="legal-p">We may terminate your account for violation of these terms. You may cancel your account at any time through the app settings.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">11. Governing Law</h2>
+          <h2 className="legal-h2">12. Governing Law</h2>
           <p className="legal-p">These terms are governed by the laws of the State of Texas.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">12. Contact</h2>
+          <h2 className="legal-h2">13. Contact</h2>
           <p className="legal-p">Email: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
         </div>
 
@@ -415,7 +486,7 @@ export function HealthDisclaimer() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Health Disclaimer</h1>
-        <div className="legal-updated">Last Updated: May 7, 2026</div>
+        <div className="legal-updated">Last Updated: May 13, 2026</div>
 
         <div className="legal-warning" style={{ marginBottom: 48 }}>
           <div className="legal-warning-title">Important — Please Read Carefully</div>
@@ -482,7 +553,7 @@ export function HealthDataNotice() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Health Data Notice</h1>
-        <div className="legal-updated">Last Updated: May 7, 2026</div>
+        <div className="legal-updated">Last Updated: May 13, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Types of Health Data We Collect</h2>
@@ -510,12 +581,40 @@ export function HealthDataNotice() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">3. Health Data Sharing</h2>
+          <h2 className="legal-h2">3. Apple Health Integration (Optional)</h2>
+          <p className="legal-p">When you connect Apple Health, Coach Macro reads the following data types with your explicit permission:</p>
+          <ul className="legal-ul">
+            <li>Sleep analysis (hours and quality)</li>
+            <li>Resting heart rate</li>
+            <li>Heart rate variability (HRV)</li>
+            <li>Step count</li>
+            <li>Active energy burned</li>
+            <li>Body weight (if available)</li>
+          </ul>
+          <p className="legal-p">This data is used exclusively to:</p>
+          <ul className="legal-ul">
+            <li>Calculate your daily Coach Macro Score</li>
+            <li>Adjust today's workout intensity based on your recovery</li>
+            <li>Modify calorie targets based on activity</li>
+            <li>Generate personalized Morning Brief messages</li>
+          </ul>
+          <p className="legal-p">Coach Macro writes the following to Apple Health with your permission:</p>
+          <ul className="legal-ul">
+            <li>Completed workout sessions</li>
+            <li>Active calories from logged workouts</li>
+          </ul>
+          <div className="legal-highlight">
+            <p><strong>Apple Health data is never sent to third-party services or used for advertising.</strong> You can revoke Apple Health access at any time in <strong>iOS Settings → Privacy → Health → Coach Macro</strong>.</p>
+          </div>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">4. Health Data Sharing</h2>
           <p className="legal-p">We share your health data only with:</p>
           <ul className="legal-ul">
             <li><strong>Supabase:</strong> our secure database provider for storage</li>
             <li><strong>Anthropic:</strong> our AI provider processes prompts that may include health context</li>
-            <li><strong>Fitness integrations</strong> you explicitly connect (Strava, Apple Health, Garmin)</li>
+            <li><strong>Fitness integrations</strong> you explicitly connect (Apple Health)</li>
           </ul>
           <div className="legal-highlight">
             <p><strong>We never sell health data. We never share health data with advertisers.</strong></p>
@@ -523,7 +622,7 @@ export function HealthDataNotice() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">4. Sensitive Health Data</h2>
+          <h2 className="legal-h2">5. Sensitive Health Data</h2>
           <p className="legal-p">We treat reproductive health data (menstrual cycle information) as sensitive and apply additional protections:</p>
           <ul className="legal-ul">
             <li>This data is never included in AI prompts sent to third parties</li>
@@ -533,7 +632,7 @@ export function HealthDataNotice() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">5. Data Retention and Deletion</h2>
+          <h2 className="legal-h2">6. Data Retention and Deletion</h2>
           <ul className="legal-ul">
             <li><strong>Active account:</strong> health data retained for service delivery</li>
             <li><strong>Account deletion:</strong> all health data permanently deleted within 30 days</li>
@@ -542,7 +641,7 @@ export function HealthDataNotice() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">6. Your Health Data Rights</h2>
+          <h2 className="legal-h2">7. Your Health Data Rights</h2>
           <ul className="legal-ul">
             <li>View all your health data in the app</li>
             <li>Export your health data by contacting support</li>
