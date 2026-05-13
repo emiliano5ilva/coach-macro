@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
+import { checkRateLimit } from './middleware/rateLimit.js';
 
 async function sendEmail(to, subject, html) {
   const r = await fetch('https://api.resend.com/emails', {
@@ -124,6 +125,17 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (req.method === 'POST') {
+    const rateCheck = await checkRateLimit(req, '/api/waitlist');
+    if (!rateCheck.allowed) {
+      return res.status(429).json({
+        error: 'Too many requests',
+        message: 'Too many sign-up attempts. Please wait before trying again.',
+        resetIn: Math.ceil(rateCheck.resetIn || 3600),
+      });
+    }
+  }
 
   console.log('METHOD:', req.method);
   console.log('SUPABASE KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);

@@ -1,5 +1,18 @@
+import { checkRateLimit } from './middleware/rateLimit.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  const rateCheck = await checkRateLimit(req, '/api/support');
+  res.setHeader('X-RateLimit-Limit',     rateCheck.limit);
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+  if (!rateCheck.allowed) {
+    return res.status(429).json({
+      error: 'Too many requests',
+      message: 'Too many support requests. Please wait before trying again.',
+      resetIn: Math.ceil(rateCheck.resetIn || 3600),
+    });
+  }
 
   const { name, email, category, subject, description } = req.body;
 

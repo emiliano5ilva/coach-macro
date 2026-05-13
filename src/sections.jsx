@@ -2910,6 +2910,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [referralStats,setReferralStats]=useState({sent:0,clicked:0});
   const [refGenerating,setRefGenerating]=useState(false);
   const [refCopied,setRefCopied]=useState(false);
+  const [aiUsage,setAiUsage]=useState(null);
 
   async function saveSettings(newWPrefs,newSchedule){
     if(!user)return;
@@ -2937,6 +2938,18 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       if(data)setReferralStats({sent:data.length,clicked:data.filter(r=>r.clicked).length});
     });
   },[user]);
+
+  useEffect(()=>{
+    if(!user)return;
+    const thisMonth=new Date().toISOString().slice(0,7);
+    sb.from("token_usage").select("tokens_used").eq("user_id",user.id).eq("month",thisMonth).maybeSingle().then(({data})=>{
+      const isPro=!!profile?.is_pro;
+      const budget=isPro?500000:50000;
+      const used=data?.tokens_used||0;
+      const pct=Math.round((used/budget)*100);
+      setAiUsage({used,budget,pct,isPro});
+    });
+  },[user,profile?.is_pro]);
 
   async function saveCheckIn() {
     if(!checkInWeight||!user)return;
@@ -3333,6 +3346,32 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             Coach Macro uses Apple Health to personalize your recovery score, calorie targets, and training intensity using real biometric data.
           </div>
         </SectionCard>
+
+        {/* AI Usage — only shown when >70% */}
+        {aiUsage&&aiUsage.pct>=70&&(()=>{
+          const daysLeft=(()=>{const d=new Date();d.setMonth(d.getMonth()+1,1);return Math.ceil((d-Date.now())/86400000);})();
+          const barColor=aiUsage.pct>=100?"#FF4D6D":aiUsage.pct>=90?T.red:T.carb;
+          return(
+            <SectionCard title="AI Usage This Month">
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <span style={{fontSize:11,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.12em"}}>{aiUsage.isPro?"PRO":"FREE"} · {aiUsage.pct}% USED</span>
+                <span style={{fontSize:11,color:T.dim,fontFamily:"'DM Mono',monospace"}}>{aiUsage.used.toLocaleString()} / {aiUsage.budget.toLocaleString()}</span>
+              </div>
+              <div style={{height:6,background:T.s3,borderRadius:3,overflow:"hidden",marginBottom:10}}>
+                <div style={{height:"100%",width:`${Math.min(aiUsage.pct,100)}%`,background:barColor,borderRadius:3,transition:"width .4s"}}/>
+              </div>
+              {aiUsage.pct>=100
+                ?aiUsage.isPro
+                  ?<div style={{fontSize:12,color:T.red,lineHeight:1.6}}>Monthly limit reached. Resets in {daysLeft} day{daysLeft!==1?"s":""}.</div>
+                  :<div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:9,padding:"10px 12px"}}>
+                    <div style={{fontSize:12,color:T.red,fontWeight:700,marginBottom:4}}>Free AI limit reached</div>
+                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Upgrade to Pro for 10× more AI features. Resets in {daysLeft} day{daysLeft!==1?"s":""}.</div>
+                  </div>
+                :<div style={{fontSize:12,color:T.red,lineHeight:1.6}}>Approaching your monthly AI limit — {daysLeft} day{daysLeft!==1?"s":""} until reset.</div>
+              }
+            </SectionCard>
+          );
+        })()}
 
         {/* Account Actions */}
         <SectionCard title="Account">

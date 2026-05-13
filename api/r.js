@@ -1,5 +1,12 @@
+import { checkRateLimit } from './middleware/rateLimit.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  const rateCheck = await checkRateLimit(req, '/api/r');
+  if (!rateCheck.allowed) {
+    return res.redirect(302, 'https://coach-macro.com?ref=ratelimited');
+  }
 
   const { code, token } = req.query;
 
