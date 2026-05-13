@@ -296,11 +296,11 @@ export const getFrequentFoods = async (userId) => {
   try {
     const { data } = await sb
       .from("food_history")
-      .select("food_data")
+      .select("food_name, food_data, use_count, usual_portion, usual_unit")
       .eq("user_id", userId)
       .order("use_count", { ascending: false })
       .limit(8);
-    return data?.map(r => r.food_data) || [];
+    return data || [];
   } catch {
     return [];
   }
@@ -311,14 +311,82 @@ export const getRecentFoods = async (userId) => {
   try {
     const { data } = await sb
       .from("food_history")
-      .select("food_data")
+      .select("food_name, food_data, usual_portion, usual_unit")
       .eq("user_id", userId)
       .order("last_used", { ascending: false })
       .limit(5);
-    return data?.map(r => r.food_data) || [];
+    return data || [];
   } catch {
     return [];
   }
+};
+
+export const updateUsualPortion = async (userId, foodId, portion, unit) => {
+  if (!userId || !foodId) return;
+  try {
+    await sb.from("food_history")
+      .update({ usual_portion: portion, usual_unit: unit })
+      .eq("user_id", userId)
+      .eq("food_id", foodId);
+  } catch {}
+};
+
+export const getMealTemplates = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data } = await sb
+      .from("meal_templates")
+      .select("*")
+      .eq("user_id", userId)
+      .order("use_count", { ascending: false })
+      .limit(10);
+    return data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveMealTemplate = async (userId, name, entries) => {
+  if (!userId || !entries?.length) return null;
+  try {
+    const totals = entries.reduce((acc, e) => ({
+      calories: acc.calories + (e.calories || 0),
+      protein: acc.protein + (e.protein || 0),
+      carbs: acc.carbs + (e.carbs || 0),
+      fat: acc.fat + (e.fat || 0),
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+    const { data } = await sb.from("meal_templates").insert({
+      user_id: userId,
+      name,
+      entries,
+      total_calories: Math.round(totals.calories),
+      total_protein: Math.round(totals.protein * 10) / 10,
+      total_carbs: Math.round(totals.carbs * 10) / 10,
+      total_fat: Math.round(totals.fat * 10) / 10,
+    }).select().single();
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+export const deleteMealTemplate = async (userId, templateId) => {
+  if (!userId || !templateId) return;
+  try {
+    await sb.from("meal_templates").delete().eq("id", templateId).eq("user_id", userId);
+  } catch {}
+};
+
+export const incrementTemplateUse = async (templateId) => {
+  if (!templateId) return;
+  try {
+    await sb.rpc("increment_template_use", { tid: templateId }).catch(() => {
+      sb.from("meal_templates").select("use_count").eq("id", templateId).single()
+        .then(({ data }) => {
+          if (data) sb.from("meal_templates").update({ use_count: (data.use_count || 1) + 1 }).eq("id", templateId).catch(() => {});
+        });
+    });
+  } catch {}
 };
 
 export const saveCustomFood = async (userId, food) => {

@@ -10,6 +10,7 @@ import {
   searchFoods, searchByBarcode, searchCustomFoods,
   saveFoodToHistory, getFrequentFoods, getRecentFoods,
   saveCustomFood, getSmartServings, QUICK_FOODS,
+  updateUsualPortion, getMealTemplates, saveMealTemplate, deleteMealTemplate, incrementTemplateUse,
 } from "./services/foodDatabase.js";
 
 const MEAL_SLOT_DEFS = {
@@ -18,6 +19,368 @@ const MEAL_SLOT_DEFS = {
   "5":  ["Breakfast","Lunch","Snack","Dinner","Evening Snack"],
   "6+": ["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening"],
 };
+
+function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd, onClose }) {
+  const smart = getSmartServings(food?.name || "");
+  const [portionGrams, setPortionGrams] = useState(() => food?.usual_portion || (smart[0]?.grams ?? 100));
+  const [portionMode, setPortionMode] = useState("smart");
+  const [customVal, setCustomVal] = useState("");
+
+  const grams = portionMode === "custom" ? (parseFloat(customVal) || portionGrams) : portionGrams;
+  const f = grams / 100;
+  const m = {
+    calories: Math.round((food?.calories || 0) * f),
+    protein: Math.round((food?.protein || 0) * f * 10) / 10,
+    carbs: Math.round((food?.carbs || 0) * f * 10) / 10,
+    fat: Math.round((food?.fat || 0) * f * 10) / 10,
+  };
+
+  if (!food) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.9)", backdropFilter: "blur(8px)", zIndex: 310, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }} onClick={e => e.stopPropagation()}>
+        <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 2 }}>{food.name}</div>
+        {food.brand && <div style={{ fontSize: 11, color: T.mu, marginBottom: 14 }}>{food.brand}</div>}
+        <div style={{ display: "flex", gap: 14, marginBottom: 20, background: T.s2, borderRadius: 12, padding: "12px 16px" }}>
+          {[["Cal", m.calories, "", "#fff"], ["P", m.protein, "g", T.prot], ["C", m.carbs, "g", T.carb], ["F", m.fat, "g", T.fat]].map(([l, v, u, c]) => (
+            <div key={l} style={{ textAlign: "center", flex: 1 }}>
+              <div style={{ fontSize: 9, color: T.mu, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{l}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: c, lineHeight: 1 }}>{v}{u}</div>
+            </div>
+          ))}
+        </div>
+        {smart.length > 0 ? (
+          <>
+            <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Serving size</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              {smart.map((s, i) => (
+                <button key={i} onClick={() => { setPortionMode("smart"); setPortionGrams(s.grams); }} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${portionMode === "smart" && portionGrams === s.grams ? T.carb : T.bd}`, background: portionMode === "smart" && portionGrams === s.grams ? `${T.carb}15` : "none", color: portionMode === "smart" && portionGrams === s.grams ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{s.label}</button>
+              ))}
+              <button onClick={() => setPortionMode("custom")} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${portionMode === "custom" ? T.carb : T.bd}`, background: portionMode === "custom" ? `${T.carb}15` : "none", color: portionMode === "custom" ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Custom (g)</button>
+            </div>
+            {portionMode === "custom" && <input type="number" value={customVal} onChange={e => setCustomVal(e.target.value)} placeholder="Enter grams" style={{ width: "100%", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: "#fff", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit", marginBottom: 12 }} />}
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Grams</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+              <button onClick={() => setPortionGrams(g => Math.max(10, g - 10))} style={{ width: 40, height: 40, borderRadius: 10, background: T.s2, border: `1px solid ${T.bd}`, color: "#fff", fontSize: 22, cursor: "pointer", fontFamily: "inherit", lineHeight: 1 }}>−</button>
+              <div style={{ flex: 1, textAlign: "center", fontSize: 28, fontWeight: 900 }}>{portionGrams}<span style={{ fontSize: 12, color: T.mu, fontWeight: 400 }}>g</span></div>
+              <button onClick={() => setPortionGrams(g => g + 10)} style={{ width: 40, height: 40, borderRadius: 10, background: T.s2, border: `1px solid ${T.bd}`, color: "#fff", fontSize: 22, cursor: "pointer", fontFamily: "inherit", lineHeight: 1 }}>+</button>
+            </div>
+          </>
+        )}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Log to meal</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {mealSlots.map((slot, i) => (
+              <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.carb : T.bd}`, background: activeSlotIdx === i ? `${T.carb}15` : "none", color: activeSlotIdx === i ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{slot}</button>
+            ))}
+          </div>
+        </div>
+        <button onClick={() => onAdd(food, grams, mealSlots[activeSlotIdx] || "Lunch")} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1, textTransform: "uppercase" }}>Add to Log →</button>
+      </div>
+    </div>
+  );
+}
+
+function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFoods, mealTemplates, onDeleteTemplate, mealSlots, activeSlotIdx, setActiveSlotIdx, onLog, onLogTemplate, log }) {
+  const [tab, setTab] = useState("recent");
+  const [portionFood, setPortionFood] = useState(null);
+  const [quickCategory, setQuickCategory] = useState(null);
+  const [voiceState, setVoiceState] = useState("idle"); // idle | listening | processing | confirm
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceEntries, setVoiceEntries] = useState([]);
+  const [saveTemplateMode, setSaveTemplateMode] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [scanMode, setScanMode] = useState(false);
+  const [scanInput, setScanInput] = useState("");
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const recRef = React.useRef(null);
+  const videoRef = React.useRef(null);
+
+  if (!open) return null;
+
+  const totalToday = (log || []).reduce((s, e) => s + (e.calories || 0), 0);
+  const calPct = Math.min(100, Math.round(totalToday / Math.max(1, remaining.calories + totalToday) * 100));
+  const proteinPct = Math.min(100, Math.round((remaining.protein < 0 ? 1 : 1 - remaining.protein / Math.max(1, remaining.protein + (log || []).reduce((s, e) => s + (e.protein || 0), 0))) * 100));
+
+  function startVoice() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert("Voice not supported in this browser"); return; }
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    rec.onresult = e => {
+      const t = Array.from(e.results).map(r => r[0].transcript).join(" ");
+      setVoiceTranscript(t);
+    };
+    rec.onend = async () => {
+      setVoiceState("processing");
+      try {
+        const slot = mealSlots[activeSlotIdx] || "Lunch";
+        const resp = await ai(
+          `Parse this meal description into JSON entries. Reply ONLY with a JSON array, no markdown. Each entry: {"food":"name","calories":N,"protein":N,"carbs":N,"fat":N}. Meal: "${voiceTranscript || rec._lastTranscript}"`,
+          300
+        );
+        const clean = resp.replace(/```json|```/g, "").trim();
+        const entries = JSON.parse(clean);
+        setVoiceEntries(entries.map(e => ({ ...e, id: Date.now() + Math.random(), slot })));
+        setVoiceState("confirm");
+      } catch {
+        setVoiceState("idle");
+        setVoiceTranscript("");
+      }
+    };
+    rec.onerror = () => setVoiceState("idle");
+    recRef.current = rec;
+    rec.start();
+    setVoiceState("listening");
+  }
+
+  function stopVoice() { recRef.current?.stop(); }
+
+  async function lookupBarcode(code) {
+    if (!code.trim()) return;
+    setScanLoading(true);
+    setScanResult(null);
+    try {
+      const r = await searchByBarcode(code.trim());
+      setScanResult(r || null);
+    } catch { setScanResult(null); }
+    setScanLoading(false);
+  }
+
+  async function saveAsTemplate() {
+    if (!templateName.trim() || !user) return;
+    setSavingTemplate(true);
+    await saveMealTemplate(user.id, templateName.trim(), log || []);
+    setSavingTemplate(false);
+    setSaveTemplateMode(false);
+    setTemplateName("");
+  }
+
+  if (voiceState === "confirm") {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.92)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
+          <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
+          <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 6 }}>Voice Log Preview</div>
+          <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>"{voiceTranscript}"</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+            {voiceEntries.map((e, i) => (
+              <div key={i} style={{ background: T.s2, borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{e.food}</div>
+                  <div style={{ fontSize: 11, color: T.mu }}><span style={{ color: T.prot }}>P {e.protein}g</span> · <span style={{ color: T.carb }}>C {e.carbs}g</span> · <span style={{ color: T.fat }}>F {e.fat}g</span></div>
+                </div>
+                <div style={{ fontWeight: 900, fontSize: 16 }}>{e.calories} kcal</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => { setVoiceState("idle"); setVoiceEntries([]); setVoiceTranscript(""); }} style={{ flex: 1, padding: "13px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 12, color: T.mu, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Redo</button>
+            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || "Lunch", true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1 }}>Log All →</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (portionFood) {
+    return <PortionSheet food={portionFood} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} onAdd={(food, grams, slot) => { onLog(food, grams, slot); setPortionFood(null); }} onClose={() => setPortionFood(null)} />;
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.88)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "0 0 48px", maxWidth: 480, width: "100%", maxHeight: "88vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding: "20px 20px 0" }}>
+          <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 16px" }} />
+
+          {/* Macro progress bar */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase" }}>Quick Log</div>
+              <div style={{ display: "flex", gap: 10, fontSize: 10, color: T.mu }}>
+                <span style={{ color: T.prot }}>P {remaining.protein > 0 ? remaining.protein : 0}g left</span>
+                <span style={{ color: T.carb }}>C {remaining.carbs > 0 ? remaining.carbs : 0}g</span>
+                <span style={{ color: T.fat }}>F {remaining.fat > 0 ? remaining.fat : 0}g</span>
+              </div>
+            </div>
+            <div style={{ height: 6, background: "rgba(255,255,255,.06)", borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${calPct}%`, background: `linear-gradient(90deg,${T.prot},${T.carb})`, borderRadius: 3, transition: "width .4s" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 9, color: T.mu }}>
+              <span>{totalToday} kcal eaten</span>
+              <span>{remaining.calories > 0 ? remaining.calories : 0} kcal left</span>
+            </div>
+          </div>
+
+          {/* Voice + Scan buttons */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <button onClick={voiceState === "listening" ? stopVoice : startVoice} style={{ flex: 1, padding: "11px 8px", background: voiceState === "listening" ? "rgba(232,52,28,.15)" : T.s2, border: `1.5px solid ${voiceState === "listening" ? T.prot : T.bd}`, borderRadius: 10, color: voiceState === "listening" ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              {voiceState === "listening" ? "🔴 Listening..." : voiceState === "processing" ? "⏳ Processing..." : "🎤 Voice Log"}
+            </button>
+            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(96,165,250,.1)" : T.s2, border: `1.5px solid ${scanMode ? T.carb : T.bd}`, borderRadius: 10, color: scanMode ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📷 Scan Barcode</button>
+          </div>
+
+          {/* Barcode scanner */}
+          {scanMode && (
+            <div style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px", marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Barcode number</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={scanInput} onChange={e => setScanInput(e.target.value)} onKeyDown={e => e.key === "Enter" && lookupBarcode(scanInput)} placeholder="Enter or scan barcode number" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+                <button onClick={() => lookupBarcode(scanInput)} disabled={scanLoading || !scanInput.trim()} style={{ padding: "10px 16px", background: T.carb, color: "#000", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{scanLoading ? "..." : "Look Up"}</button>
+              </div>
+              {scanResult && (
+                <div style={{ marginTop: 10, padding: "12px", background: T.s1, borderRadius: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{scanResult.name}</div>
+                  <div style={{ fontSize: 11, color: T.mu, marginBottom: 10 }}>{scanResult.brand} · {scanResult.calories} kcal · P {scanResult.protein}g · C {scanResult.carbs}g · F {scanResult.fat}g</div>
+                  <button onClick={() => { setPortionFood(scanResult); setScanMode(false); setScanInput(""); setScanResult(null); }} style={{ width: "100%", padding: "10px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Set Portion →</button>
+                </div>
+              )}
+              {scanLoading && <div style={{ marginTop: 8, textAlign: "center", fontSize: 12, color: T.mu }}>Looking up product…</div>}
+              {!scanResult && !scanLoading && scanInput && <div style={{ marginTop: 6, fontSize: 10, color: T.mu }}>Tip: use camera app to read barcode, paste number above</div>}
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div style={{ display: "flex", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 3, gap: 3, marginBottom: 16 }}>
+            {[["recent", "Recent"], ["frequent", "Most Used"], ["quick", "Quick Add"], ["templates", "Templates"]].map(([k, l]) => (
+              <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit", background: tab === k ? `${T.prot}18` : "none", outline: tab === k ? `1.5px solid ${T.prot}` : "none", color: tab === k ? T.prot : T.mu, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab content */}
+        <div style={{ padding: "0 20px" }}>
+
+          {/* Recent tab */}
+          {tab === "recent" && (
+            <div>
+              {recentFoods.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: T.mu, fontSize: 13 }}>Log some foods to see recents here</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {recentFoods.map((f, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.food_name}</div>
+                        <div style={{ fontSize: 10, color: T.mu }}>
+                          {f.usual_portion ? `${f.usual_portion}g · ` : ""}{f.food_data?.calories} kcal · <span style={{ color: T.prot }}>P {f.food_data?.protein}g</span> · <span style={{ color: T.carb }}>C {f.food_data?.carbs}g</span> · <span style={{ color: T.fat }}>F {f.food_data?.fat}g</span>
+                        </div>
+                      </div>
+                      <button onClick={() => setPortionFood({ ...f.food_data, usual_portion: f.usual_portion, usual_unit: f.usual_unit })} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Frequent tab */}
+          {tab === "frequent" && (
+            <div>
+              {frequentFoods.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: T.mu, fontSize: 13 }}>Log foods regularly to see your favorites here</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {frequentFoods.map((f, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.food_name}</div>
+                        <div style={{ fontSize: 10, color: T.mu }}>
+                          {f.food_data?.calories} kcal · <span style={{ color: T.prot }}>P {f.food_data?.protein}g</span>
+                          {f.use_count > 1 && <span style={{ color: "rgba(245,245,240,.3)", marginLeft: 6 }}>× {f.use_count}</span>}
+                        </div>
+                      </div>
+                      <button onClick={() => setPortionFood({ ...f.food_data, usual_portion: f.usual_portion, usual_unit: f.usual_unit })} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick Add tab */}
+          {tab === "quick" && (
+            <div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                {[["protein", "🥩 Protein", T.prot], ["carbs", "🍚 Carbs", T.carb], ["fat", "🥑 Fat", T.fat]].map(([k, l, c]) => (
+                  <button key={k} onClick={() => setQuickCategory(quickCategory === k ? null : k)} style={{ flex: 1, padding: "10px 4px", background: quickCategory === k ? `${c}18` : "none", border: `1.5px solid ${quickCategory === k ? c : T.bd}`, borderRadius: 10, cursor: "pointer", color: quickCategory === k ? c : T.mu, fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{l}</button>
+                ))}
+              </div>
+              {quickCategory && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {(QUICK_FOODS[quickCategory] || []).map((food, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{food.name}</div>
+                        <div style={{ fontSize: 10, color: T.mu }}>{food.calories} kcal · P {food.protein}g · C {food.carbs}g · F {food.fat}g</div>
+                      </div>
+                      <button onClick={() => { onLog(food, null, mealSlots[activeSlotIdx] || "Lunch", true); }} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!quickCategory && <div style={{ textAlign: "center", padding: "24px 0", color: T.mu, fontSize: 13 }}>Select a category above</div>}
+            </div>
+          )}
+
+          {/* Templates tab */}
+          {tab === "templates" && (
+            <div>
+              {(log || []).length >= 2 && !saveTemplateMode && (
+                <button onClick={() => setSaveTemplateMode(true)} style={{ width: "100%", padding: "11px", background: "rgba(155,89,255,.1)", border: `1px dashed rgba(155,89,255,.4)`, borderRadius: 10, color: "#9B59FF", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>💾 Save Today's Meal as Template</button>
+              )}
+              {saveTemplateMode && (
+                <div style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: T.mu, marginBottom: 8 }}>Template name</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="e.g. High Protein Breakfast" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+                    <button onClick={saveAsTemplate} disabled={savingTemplate || !templateName.trim()} style={{ padding: "10px 14px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{savingTemplate ? "..." : "Save"}</button>
+                    <button onClick={() => setSaveTemplateMode(false)} style={{ padding: "10px 12px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, color: T.mu, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                  </div>
+                </div>
+              )}
+              {mealTemplates.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: T.mu, fontSize: 13 }}>No templates yet — log 2+ foods and save as a template</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {mealTemplates.map((t) => (
+                    <div key={t.id} style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
+                          <div style={{ fontSize: 10, color: T.mu }}>{t.total_calories} kcal · P {t.total_protein}g · C {t.total_carbs}g · F {t.total_fat}g</div>
+                        </div>
+                        <button onClick={() => onDeleteTemplate(t.id)} style={{ background: "none", border: "none", color: "rgba(245,245,240,.2)", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
+                      </div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
+                        {(t.entries || []).slice(0, 4).map((e, i) => (
+                          <span key={i} style={{ fontSize: 10, background: "rgba(255,255,255,.06)", borderRadius: 5, padding: "2px 7px", color: "rgba(245,245,240,.6)" }}>{e.food}</span>
+                        ))}
+                        {(t.entries || []).length > 4 && <span style={{ fontSize: 10, color: T.mu }}>+{t.entries.length - 4} more</span>}
+                      </div>
+                      <button onClick={() => { onLogTemplate(t); }} style={{ width: "100%", padding: "10px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Log All →</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotIdx,addMealSlot,setFuelScreen,isMobile}){
   const [query,setQuery]=useState("");
@@ -400,8 +763,111 @@ Reply with ONLY a valid JSON object, no markdown:
     if(daysSince>=7||isMonday)generatePrepPlan();
   },[]);
 
+  // ── Quick Log Sheet ─────────────────────────────────────────────────────────
+  const [showQuickLog,setShowQuickLog]=useState(false);
+  const [undoEntry,setUndoEntry]=useState(null);
+  const undoTimer=useRef(null);
+  const [mealTemplates,setMealTemplates]=useState([]);
+
+  useEffect(()=>{
+    if(!user)return;
+    getMealTemplates(user.id).then(d=>setMealTemplates(d||[]));
+  },[user]);
+
+  function logEntryWithUndo(entry){
+    logEntry(entry);
+    setUndoEntry(entry);
+    clearTimeout(undoTimer.current);
+    undoTimer.current=setTimeout(()=>setUndoEntry(null),5000);
+  }
+
+  function handleUndo(){
+    if(!undoEntry)return;
+    removeLog(undoEntry.id);
+    setUndoEntry(null);
+    clearTimeout(undoTimer.current);
+  }
+
+  function handleQuickLog(food, grams, slot, isQuick){
+    const fg = grams != null ? grams / 100 : 1;
+    const entry = grams != null ? {
+      id: Date.now(),
+      food: food.name + (food.brand ? ` (${food.brand})` : ""),
+      calories: Math.round((food.calories||0)*fg),
+      protein: Math.round((food.protein||0)*fg*10)/10,
+      carbs: Math.round((food.carbs||0)*fg*10)/10,
+      fat: Math.round((food.fat||0)*fg*10)/10,
+      grams,
+      slot: slot || mealSlots[activeSlotIdx] || "Lunch",
+      source: food.source || "usda",
+    } : {
+      id: Date.now(),
+      food: food.name,
+      calories: food.calories||0,
+      protein: food.protein||0,
+      carbs: food.carbs||0,
+      fat: food.fat||0,
+      slot: slot || mealSlots[activeSlotIdx] || "Lunch",
+      source: "quick",
+    };
+    logEntryWithUndo(entry);
+    if(user && food.id && grams != null) {
+      saveFoodToHistory(user.id, food).catch(()=>{});
+      updateUsualPortion(user.id, food.id, grams, "g").catch(()=>{});
+    }
+    if(!isQuick) setShowQuickLog(false);
+  }
+
+  function handleLogTemplate(template){
+    (template.entries||[]).forEach((e,i)=>{
+      setTimeout(()=>logEntryWithUndo({...e,id:Date.now()+i,slot:mealSlots[activeSlotIdx]||"Lunch"}),i*10);
+    });
+    incrementTemplateUse(template.id).catch(()=>{});
+    setShowQuickLog(false);
+  }
+
+  function handleDeleteTemplate(id){
+    setMealTemplates(ts=>ts.filter(t=>t.id!==id));
+    if(user)deleteMealTemplate(user.id,id).catch(()=>{});
+  }
+
+  // quick log food state for FuelSection-level frequent/recent refresh
+  const [qlRecentFoods,setQlRecentFoods]=useState([]);
+  const [qlFrequentFoods,setQlFrequentFoods]=useState([]);
+  useEffect(()=>{
+    if(!user||!showQuickLog)return;
+    getRecentFoods(user.id).then(d=>setQlRecentFoods(d||[]));
+    getFrequentFoods(user.id).then(d=>setQlFrequentFoods(d||[]));
+  },[user,showQuickLog]);
+
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
+      {/* Undo Toast */}
+      {undoEntry&&(
+        <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",background:"#1a2236",border:"1px solid rgba(255,255,255,.15)",borderRadius:14,padding:"12px 16px",zIndex:400,display:"flex",alignItems:"center",gap:14,boxShadow:"0 8px 32px rgba(0,0,0,.5)",minWidth:260}}>
+          <div style={{flex:1,fontSize:13,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{undoEntry.food} added</div>
+          <button onClick={handleUndo} style={{padding:"6px 14px",background:"rgba(232,52,28,.15)",border:"1px solid rgba(232,52,28,.4)",borderRadius:8,color:T.prot,fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>Undo</button>
+        </div>
+      )}
+      {/* Quick Log Sheet */}
+      {showQuickLog&&(
+        <QuickLogSheet
+          open={showQuickLog}
+          onClose={()=>setShowQuickLog(false)}
+          user={user}
+          remaining={remaining}
+          recentFoods={qlRecentFoods}
+          frequentFoods={qlFrequentFoods}
+          mealTemplates={mealTemplates}
+          onDeleteTemplate={handleDeleteTemplate}
+          mealSlots={mealSlots}
+          activeSlotIdx={activeSlotIdx}
+          setActiveSlotIdx={setActiveSlotIdx}
+          onLog={handleQuickLog}
+          onLogTemplate={handleLogTemplate}
+          log={log}
+        />
+      )}
       {/* Sub-nav */}
       <div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto",flexShrink:0}}>
         {FUEL_TABS.map(tab=>(
@@ -685,7 +1151,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* QUICK ACTIONS */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-              {[["+ Food",()=>setFuelScreen("log"),T.prot,"🧠"],["Restaurants",()=>setFuelScreen("recs"),T.carb,"🍗"],["Recipes",()=>setFuelScreen("recipes"),T.fat,"👨‍🍳"],["Fasting",()=>setFuelScreen("fast"),"#9B59FF","⏱️"]].map(([l,fn,c,e])=>(
+              {[["+ Food",()=>setShowQuickLog(true),T.prot,"⚡"],["Restaurants",()=>setFuelScreen("recs"),T.carb,"🍗"],["Recipes",()=>setFuelScreen("recipes"),T.fat,"👨‍🍳"],["Fasting",()=>setFuelScreen("fast"),"#9B59FF","⏱️"]].map(([l,fn,c,e])=>(
                 <button key={l} onClick={fn} style={{padding:"14px 6px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"inherit",textAlign:"center",transition:"all .15s"}}>
                   <div style={{fontSize:20,marginBottom:4}}>{e}</div>
                   <div style={{color:c,fontSize:10,fontWeight:700}}>{l}</div>
@@ -723,7 +1189,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Today&apos;s Log</div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={addMealSlot} style={{background:"rgba(41,121,255,0.1)",border:"1px dashed rgba(41,121,255,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
-                  <button onClick={()=>setFuelScreen("log")} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
+                  <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
                 </div>
               </div>
               {log.length===0
