@@ -138,61 +138,44 @@ export default withLogging(async function handler(req, res) {
     }
   }
 
-  console.log('METHOD:', req.method);
-  console.log('SUPABASE KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
-  console.log('SUPABASE KEY length:', process.env.SUPABASE_SERVICE_KEY?.length);
-  console.log('SUPABASE KEY prefix:', process.env.SUPABASE_SERVICE_KEY?.slice(0, 20));
-  console.log('RESEND KEY exists:', !!process.env.RESEND_API_KEY);
-
   const supabase = createClient(
     'https://oxxihlwqukbakmnnavuy.supabase.co',
     process.env.SUPABASE_SERVICE_KEY
   );
-  console.log('Supabase client created');
 
   try {
-
-    console.log('1 - parsing body');
     const { action, email, firstName, token } = req.method === 'GET'
       ? req.query
       : req.body;
-    console.log('2 - action:', action, 'email:', email, 'token:', token);
 
     // ── JOIN WAITLIST ──────────────────────────────────────────────────────────
     if (req.method === 'POST' || action === 'join') {
-      console.log('3 - join action started');
-
       if (!email || !email.includes('@')) {
-        console.log('4 - invalid email');
         return res.status(400).json({ error: 'Valid email required' });
       }
-      console.log('4 - email valid');
 
       const normalizedEmail = email.toLowerCase().trim();
       const newToken = randomUUID();
-      console.log('5 - checking existing');
 
       const { data: existing, error: existingError } = await supabase
         .from('waitlist')
         .select('id, confirmed')
         .eq('email', normalizedEmail)
         .maybeSingle();
-      console.log('6 - existing result:', existing, 'existingError:', existingError);
+
+      if (existingError) console.error('[waitlist] lookup error:', existingError.message);
 
       if (existing?.confirmed) {
-        console.log('7 - already confirmed, returning success');
         return res.status(200).json({ success: true });
       }
 
       if (existing) {
-        console.log('8 - updating existing unconfirmed row');
         const { error: updateError } = await supabase
           .from('waitlist')
           .update({ first_name: firstName?.trim() || null, confirm_token: newToken })
           .eq('email', normalizedEmail);
-        console.log('9 - update error:', updateError);
+        if (updateError) console.error('[waitlist] update error:', updateError.message);
       } else {
-        console.log('10 - inserting new row');
         const { error: insertError } = await supabase
           .from('waitlist')
           .insert({
@@ -202,80 +185,67 @@ export default withLogging(async function handler(req, res) {
             confirmed: false,
             created_at: new Date().toISOString(),
           });
-        console.log('11 - insert error:', insertError);
         if (insertError) {
+          console.error('[waitlist] insert error:', insertError.message);
           return res.status(500).json({ error: 'Could not save your email. Try again.' });
         }
       }
 
-      console.log('12 - building confirm URL');
       const proto = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers['x-forwarded-host'] || req.headers.host;
       const confirmUrl = `${proto}://${host}/api/waitlist?token=${newToken}`;
-      console.log('13 - confirmUrl:', confirmUrl);
 
-      console.log('14 - sending confirmation email');
       const emailOk = await sendEmail(
         normalizedEmail,
         'Confirm your spot on the Coach Macro waitlist',
         confirmationEmailHtml(firstName?.trim(), confirmUrl)
       );
-      console.log('15 - email sent ok:', emailOk);
+      if (!emailOk) console.error('[waitlist] confirmation email failed for:', normalizedEmail);
 
       return res.status(200).json({ success: true });
     }
 
     // ── CONFIRM EMAIL (GET ?token=XXX) ─────────────────────────────────────────
     if (req.method === 'GET') {
-      console.log('3 - confirm action started, token:', token);
-
       if (!token) {
-        console.log('4 - no token, redirecting invalid');
         res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
         return res.status(302).end();
       }
 
-      console.log('5 - looking up token');
       const { data, error: lookupError } = await supabase
         .from('waitlist')
         .select('*')
         .eq('confirm_token', token)
         .maybeSingle();
-      console.log('6 - lookup result:', data, 'error:', lookupError);
 
-      if (lookupError || !data) {
-        console.log('7 - not found, redirecting invalid');
+      if (lookupError) console.error('[waitlist] confirm lookup error:', lookupError.message);
+
+      if (!data) {
         res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
         return res.status(302).end();
       }
 
       if (!data.confirmed) {
-        console.log('8 - marking confirmed');
         await supabase
           .from('waitlist')
           .update({ confirmed: true, confirmed_at: new Date().toISOString() })
           .eq('confirm_token', token);
-        console.log('9 - sending thank-you email');
-        await sendEmail(
+        const emailOk = await sendEmail(
           data.email,
           "You're in. Your spot is secured.",
           thankYouEmailHtml(data.first_name)
         );
-        console.log('10 - thank-you email sent');
-      } else {
-        console.log('8 - already confirmed');
+        if (!emailOk) console.error('[waitlist] thank-you email failed for:', data.email);
       }
 
       res.setHeader('Location', 'https://coach-macro.com?waitlist=confirmed');
       return res.status(302).end();
     }
 
-    console.log('METHOD NOT HANDLED:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('FULL ERROR:', err.message);
-    console.error('STACK:', err.stack);
-    return res.status(500).json({ error: err.message });
+    console.error('[waitlist] unhandled error:', err.message);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
