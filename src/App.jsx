@@ -83,6 +83,22 @@ import { useState, useEffect, useRef } from "react";
   alter table food_history enable row level security;
   create policy "Users manage own food history" on food_history for all using (auth.uid() = user_id);
 
+  -- exercise_cache: GIF URLs and metadata from ExerciseDB/Wger, cached forever
+  create table if not exists exercise_cache (
+    id uuid primary key default gen_random_uuid(),
+    exercise_name text unique not null,
+    gif_url text,
+    target_muscles text[] default '{}',
+    secondary_muscles text[] default '{}',
+    instructions text[] default '{}',
+    equipment text,
+    created_at timestamptz default now()
+  );
+  -- No RLS needed — public read, public insert (cache only, no user data)
+  alter table exercise_cache enable row level security;
+  create policy "Public read exercise cache" on exercise_cache for select using (true);
+  create policy "Authenticated insert exercise cache" on exercise_cache for insert with check (true);
+
   -- custom_foods: user-created foods for food search
   create table if not exists custom_foods (
     id uuid primary key default gen_random_uuid(),

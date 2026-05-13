@@ -13,6 +13,7 @@ import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
+import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -818,10 +819,17 @@ Rules:
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user}) {
   const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
+
+  // ── Exercise detail modal ────────────────────────────────────────────────
+  const [detailModal,setDetailModal]=useState(null); // {exerciseName, exerciseIdx}
+  const longPressTimer=useRef(null);
+  function openDetail(exerciseName,exerciseIdx){setDetailModal({exerciseName,exerciseIdx});}
+  function startLongPress(exerciseName,exerciseIdx){longPressTimer.current=setTimeout(()=>openDetail(exerciseName,exerciseIdx),500);}
+  function cancelLongPress(){if(longPressTimer.current){clearTimeout(longPressTimer.current);longPressTimer.current=null;}}
 
   // ── Favorites & Swap state ───────────────────────────────────────────────
   const favorites=wPrefs.favorites||[];
@@ -1415,12 +1423,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                             <div style={{width:24,height:24,borderRadius:"50%",background:allDone?T.carb:T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>{allDone?"✓":ei+1}</div>
-                            <div style={{fontSize:16,fontWeight:700,flex:1}}>
+                            <div
+                              style={{fontSize:16,fontWeight:700,flex:1,cursor:"pointer",userSelect:"none"}}
+                              onPointerDown={()=>startLongPress(ex.name,ei)}
+                              onPointerUp={cancelLongPress}
+                              onPointerLeave={cancelLongPress}
+                              onPointerCancel={cancelLongPress}
+                            >
                               {ex.name}
                               {ex.tier&&<span style={{marginLeft:6,fontSize:9,fontWeight:700,background:ex.tier==="A"?`${T.prot}20`:ex.tier==="B"?`${T.carb}20`:"rgba(255,255,255,.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em",verticalAlign:"middle"}}>{ex.tier}</span>}
                               {ex.priority&&<span style={{marginLeft:4,fontSize:9,fontWeight:700,background:"rgba(249,115,22,.15)",color:"#F97316",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",verticalAlign:"middle"}}>⭐ PRIORITY</span>}
                               {ex.mobilitySubstituted&&<span style={{marginLeft:4,fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",verticalAlign:"middle"}}>♿ MODIFIED</span>}
                             </div>
+                            <button onClick={()=>openDetail(ex.name,ei)} title="Exercise info" style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:15,lineHeight:1,color:"rgba(245,245,240,.4)",flexShrink:0}}>ⓘ</button>
                             <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:15,lineHeight:1,flexShrink:0}}>{favorites.includes(ex.originalName||ex.name)?"❤️":"🤍"}</button>
                             <button onClick={()=>setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:14,lineHeight:1,color:"rgba(245,245,240,.35)",flexShrink:0}}>🔄</button>
                           </div>
@@ -1506,6 +1521,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </div>
             }
           </div>
+        )}
+
+        {/* ── Exercise detail modal ── */}
+        {detailModal&&(
+          <ExerciseDetailModal
+            exerciseName={detailModal.exerciseName}
+            user={user}
+            onClose={()=>setDetailModal(null)}
+            onSwap={()=>{
+              setDetailModal(null);
+              setSwapModal({exerciseIdx:detailModal.exerciseIdx,exerciseName:detailModal.exerciseName,originalName:(activeWorkout?.exercises?.[detailModal.exerciseIdx]?.originalName)||detailModal.exerciseName});
+            }}
+          />
         )}
 
         {/* ── PLAN ── */}
