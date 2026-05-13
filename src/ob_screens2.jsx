@@ -1922,7 +1922,7 @@ Rules:
     const entry={date:today,score:coachScore.total,r:coachScore.r,n:coachScore.n,t:coachScore.t,c:coachScore.c};
     const updated=[...dailyScores.filter(s=>s.date!==today),entry].slice(-90);
     setDailyScores(updated);
-    sb.from("profiles").upsert({id:user.id,daily_scores:updated,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(e=>console.error("[saveScore]",e));
+    (async()=>{ const {error}=await sb.from("profiles").upsert({id:user.id,daily_scores:updated,updated_at:new Date().toISOString()},{onConflict:"id"}); if(error)console.error("[saveScore]",error); })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[coachScore?.total]);
 
@@ -1958,7 +1958,7 @@ Rules:
     if(newMs.length>0){
       const updated=[...scoreMilestones,...newMs];
       setScoreMilestones(updated);
-      sb.from("profiles").upsert({id:user.id,score_milestones:updated,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+      (async()=>{ await sb.from("profiles").upsert({id:user.id,score_milestones:updated,updated_at:new Date().toISOString()},{onConflict:"id"}); })();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[coachScore?.total]);

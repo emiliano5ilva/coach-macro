@@ -1122,7 +1122,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(setSchedule)setSchedule(newSch);
     const newWPrefs={...(wPrefs||{}),flexDays:newFlex,weekendFlexMode:newFlex.length>0};
     saveFlexPrefs(newWPrefs);
-    if(user)sb.from("profiles").upsert({id:user.id,schedule:newSch},{onConflict:"id"}).catch(e=>console.error("[setDayType]",e));
+    if(user)(async()=>{ const {error}=await sb.from("profiles").upsert({id:user.id,schedule:newSch},{onConflict:"id"}); if(error)console.error("[setDayType]",error); })();
   }
 
   // ── Body Budget ─────────────────────────────────────────────────────────────
@@ -1233,7 +1233,8 @@ Reply with ONLY a valid JSON object, no markdown:
         setPrepPlan(plan);
         setGroceryChecked(new Set());
         if(user){
-          await sb.from("profiles").upsert({id:user.id,meal_prep_plan:plan,meal_prep_generated_at:now,updated_at:now},{onConflict:"id"}).catch(e=>console.error("[savePrepPlan]",e));
+          const {error:prepErr}=await sb.from("profiles").upsert({id:user.id,meal_prep_plan:plan,meal_prep_generated_at:now,updated_at:now},{onConflict:"id"});
+          if(prepErr)console.error("[savePrepPlan]",prepErr);
           track(EVENTS.AI_MEAL_PREP,{proteins:plan.proteins?.length,grocery_categories:Object.keys(plan.grocery||{}).length},user.id);
         }
       }

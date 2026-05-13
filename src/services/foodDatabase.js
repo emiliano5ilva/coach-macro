@@ -391,12 +391,12 @@ export const deleteMealTemplate = async (userId, templateId) => {
 export const incrementTemplateUse = async (templateId) => {
   if (!templateId) return;
   try {
-    await sb.rpc("increment_template_use", { tid: templateId }).catch(() => {
-      sb.from("meal_templates").select("use_count").eq("id", templateId).single()
-        .then(({ data }) => {
-          if (data) sb.from("meal_templates").update({ use_count: (data.use_count || 1) + 1 }).eq("id", templateId).catch(() => {});
-        });
-    });
+    const { error } = await sb.rpc("increment_template_use", { tid: templateId });
+    if (error) {
+      // Fallback: manual increment
+      const { data } = await sb.from("meal_templates").select("use_count").eq("id", templateId).single();
+      if (data) await sb.from("meal_templates").update({ use_count: (data.use_count || 1) + 1 }).eq("id", templateId);
+    }
   } catch {}
 };
 
