@@ -1247,11 +1247,13 @@ function InjuryRiskReport({risks, muscleSetCounts}) {
 
 function AppleHealthModal({onConnect, onDismiss}) {
   const [connecting, setConnecting] = useState(false);
+  const [permDenied, setPermDenied] = useState(false);
   async function handleConnect() {
-    setConnecting(true);
+    setConnecting(true);setPermDenied(false);
     const ok = await initAppleHealth();
     setConnecting(false);
-    onConnect(ok);
+    if(ok){onConnect(true);}
+    else{setPermDenied(true);}
   }
   const isNative = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.() === true;
   return (
@@ -1280,9 +1282,15 @@ function AppleHealthModal({onConnect, onDismiss}) {
             </div>
           ))}
         </div>
+        {permDenied&&(
+          <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.3)",borderRadius:12,padding:"12px 14px",marginBottom:12,fontSize:12,color:"#f87171",lineHeight:1.55}}>
+            Apple Health access denied. To enable:<br/>
+            <strong style={{color:"#fff"}}>Settings → Privacy & Security → Health → Coach Macro</strong>
+          </div>
+        )}
         {isNative
           ? <button onClick={handleConnect} disabled={connecting} style={{width:"100%",padding:"15px",background:connecting?"rgba(245,245,240,0.08)":"#FF453A",color:connecting?"var(--white-dim)":"white",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,letterSpacing:"0.1em",textTransform:"uppercase",cursor:connecting?"default":"pointer",marginBottom:12}}>
-              {connecting?"Requesting Access...":"Connect Apple Health →"}
+              {connecting?"Requesting Access...":permDenied?"Try Again →":"Connect Apple Health →"}
             </button>
           : <div style={{textAlign:"center",padding:"12px",background:"rgba(245,245,240,0.04)",borderRadius:12,marginBottom:12,fontFamily:"var(--body)",fontSize:12,color:"var(--white-dim)",lineHeight:1.5}}>Apple Health is available when you install the app on your iPhone.</div>
         }
@@ -1617,6 +1625,9 @@ Be specific and practical. Empathetic tone. No fluff.`,
       localStorage.setItem("calendar_connected","1");
       setCalendarConnected(true);
       setShowCalendarPrompt(false);
+      showToast("Calendar connected — workouts will adapt around your schedule");
+    }else{
+      showToast("Calendar access denied. Enable in Settings → Coach Macro → Calendar.",{duration:5000});
     }
   }
 
