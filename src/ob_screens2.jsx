@@ -1901,9 +1901,12 @@ Be specific and practical. Empathetic tone. No fluff.`,
     catch(e){console.error("[aiLog] error:",e);const m=getAIErrorMessage(e);if(m)setLogMsg("⚠️ "+m);}
     setLogging(false);
   }
-  async function scanBarcode(){
-    if(!barcodeInput.trim())return;setBarcodeLoading(true);setBarcodeResult(null);
-    const result=await lookupBarcode(barcodeInput.trim());setBarcodeResult(result);setBarcodeLoading(false);
+  async function scanBarcode(code){
+    const barcode=(code||barcodeInput).trim();
+    if(!barcode)return null;
+    setBarcodeLoading(true);setBarcodeResult(null);
+    const result=await lookupBarcode(barcode);setBarcodeResult(result);setBarcodeLoading(false);
+    return result;
   }
   function addBarcode(){if(!barcodeResult)return;const entry={...barcodeResult,id:Date.now(),method:"barcode"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);}
   function addQuick(){if(!quickFields.calories)return;const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"quick",calories:entry.calories,protein:entry.protein},user.id);}setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}

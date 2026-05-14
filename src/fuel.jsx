@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import BarcodeScanner from "./BarcodeScanner.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
@@ -2034,12 +2035,16 @@ Reply with ONLY a valid JSON object, no markdown:
                 <PrimaryBtn onClick={aiLog} label={logging?"Analyzing…":"Add to Log →"} disabled={logging||!foodInput.trim()}/>
               </>}
               {logMode==="barcode"&&<>
-                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
-                  <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Barcode number</div>
-                  <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value)} placeholder="e.g. 0070038642824" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"11px 13px",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit",letterSpacing:1}}/>
-                  <div style={{fontSize:10,color:T.mu,marginTop:7}}>Tip: Use your phone camera app to scan — it shows the barcode number. Paste it here.</div>
-                </div>
-                {barcodeResult&&<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:12}}>
+                <BarcodeScanner
+                  onDetected={async(code)=>{
+                    setBarcodeInput(code);setBarcodeLoading(true);setBarcodeResult(null);
+                    const result=await scanBarcode(code);
+                    setBarcodeResult(result);setBarcodeLoading(false);
+                  }}
+                  onCancel={()=>setLogMode("search")}
+                />
+                {barcodeLoading&&<div style={{textAlign:"center",padding:"16px",color:T.mu,fontSize:13}}>Looking up product…</div>}
+                {barcodeResult&&<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:12,marginTop:8}}>
                   <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{barcodeResult.name}</div>
                   {barcodeResult.brand&&<div style={{fontSize:11,color:T.mu,marginBottom:8}}>{barcodeResult.brand} · {barcodeResult.serving}</div>}
                   <div style={{display:"flex",gap:14,marginBottom:12}}>
@@ -2047,8 +2052,6 @@ Reply with ONLY a valid JSON object, no markdown:
                   </div>
                   <PrimaryBtn onClick={addBarcode} label="Add to Log →"/>
                 </div>}
-                {barcodeLoading&&<div style={{textAlign:"center",padding:"16px",color:T.mu,fontSize:13}}>Looking up product…</div>}
-                <PrimaryBtn onClick={scanBarcode} label="Look Up Barcode →" disabled={barcodeLoading||!barcodeInput.trim()}/>
               </>}
               {logMode==="quick"&&<>
                 <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
