@@ -31,6 +31,7 @@ import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFr
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
 import { getAIErrorMessage } from "./utils/errors.js";
+import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -3379,6 +3380,9 @@ Rules:
             </div>
           );
         })()}
+
+        {/* ── MUSCLE VOLUME CHART ── */}
+        <MuscleVolumeChart userId={user?.id}/>
 
         {/* ── INJURY RISK REPORT ── */}
         <InjuryRiskReport risks={injuryData?.risks} muscleSetCounts={injuryData?.muscleSetCounts}/>
