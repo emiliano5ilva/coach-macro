@@ -1091,7 +1091,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -1937,7 +1937,11 @@ Reply with ONLY a valid JSON object, no markdown:
                               style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
                             >
                               <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                                <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0}}>{item.method==="barcode"?"📷":item.method==="quick"?"✏️":"🧠"}</div>
+                                <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0,overflow:"hidden"}}>
+                                  {item.photo_url
+                                    ? <img src={item.photo_url} style={{width:30,height:30,borderRadius:8,objectFit:"cover"}} alt=""/>
+                                    : item.method==="photo"?"📸":item.method==="barcode"?"🔲":item.method==="quick"?"✏️":"🧠"}
+                                </div>
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
                                   <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"'DM Mono',monospace"}}>
@@ -2000,8 +2004,13 @@ Reply with ONLY a valid JSON object, no markdown:
           <div style={{maxWidth:isMobile?"100%":600}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
             <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Search 1M+ foods or describe your meal with AI</p>
+            {onOpenPhotoLogger&&(
+              <button onClick={onOpenPhotoLogger} style={{width:"100%",padding:"14px",borderRadius:14,background:`${T.brand}18`,border:`1.5px solid ${T.brand}50`,color:T.brand,fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                📷 SNAP &amp; LOG — Point camera at your plate
+              </button>
+            )}
             <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:18,overflowX:"auto"}}>
-              {[["search","🔍 Search"],["ai","🧠 AI"],["barcode","📷 Barcode"],["quick","✏️ Quick"]].map(([k,l])=>(
+              {[["search","🔍 Search"],["ai","🧠 AI"],["barcode","🔲 Barcode"],["quick","✏️ Quick"]].map(([k,l])=>(
                 <button key={k} onClick={()=>setLogMode(k)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
               ))}
             </div>
