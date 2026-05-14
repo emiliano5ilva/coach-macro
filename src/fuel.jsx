@@ -1090,7 +1090,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -1395,8 +1395,37 @@ Reply with ONLY a valid JSON object, no markdown:
     getFrequentFoods(user.id).then(d=>setQlFrequentFoods(d||[]));
   },[user,showQuickLog]);
 
+  const today=new Date().toISOString().split("T")[0];
+  const isToday2=!logDate||logDate===today;
+  function shiftDate(days){
+    if(!setLogDate)return;
+    const d=new Date((logDate||today)+"T12:00:00");
+    d.setDate(d.getDate()+days);
+    const next=d.toISOString().split("T")[0];
+    if(next>today)return;
+    setLogDate(next);
+  }
+  const dateLabelFuel=(()=>{
+    if(!logDate||isToday2)return"Today";
+    const d=new Date(logDate+"T12:00:00");
+    const yesterday=new Date(Date.now()-864e5).toISOString().split("T")[0];
+    if(logDate===yesterday)return"Yesterday";
+    return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  })();
+
   return (
     <div style={{paddingBottom:isMobile?20:0}}>
+      {/* Date navigator */}
+      {setLogDate&&(
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:0,padding:"10px 20px 4px"}}>
+          <button onClick={()=>shiftDate(-1)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.5)",cursor:"pointer",fontSize:20,padding:"4px 12px",lineHeight:1,fontFamily:"inherit"}}>‹</button>
+          <div style={{flex:1,textAlign:"center"}}>
+            <div style={{fontSize:13,fontWeight:700,color:isToday2?"var(--red)":"#fff"}}>{dateLabelFuel}</div>
+            {!isToday2&&<div style={{fontSize:10,color:"rgba(245,245,240,0.35)",fontFamily:"var(--mono)",letterSpacing:"0.1em"}}>VIEW ONLY</div>}
+          </div>
+          <button onClick={()=>shiftDate(1)} disabled={isToday2} style={{background:"none",border:"none",color:isToday2?"rgba(245,245,240,0.15)":"rgba(245,245,240,0.5)",cursor:isToday2?"default":"pointer",fontSize:20,padding:"4px 12px",lineHeight:1,fontFamily:"inherit"}}>›</button>
+        </div>
+      )}
       {/* Undo Toast */}
       {undoEntry&&(
         <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",background:"#1a2236",border:"1px solid rgba(255,255,255,.15)",borderRadius:14,padding:"12px 16px",zIndex:400,display:"flex",alignItems:"center",gap:14,boxShadow:"0 8px 32px rgba(0,0,0,.5)",minWidth:260}}>

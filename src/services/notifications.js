@@ -103,3 +103,20 @@ export async function cancelRestTimerNotification() {
   if (!Local) return;
   try { await Local.cancel({ notifications: [{ id: 2001 }] }); } catch {}
 }
+
+export async function requestNotificationPermission() {
+  const Push = await getPush();
+  if (!Push) return false;
+  try {
+    const { receive } = await Push.checkPermissions();
+    if (receive === 'granted') return true;
+    if (receive === 'prompt') {
+      const result = await Push.requestPermissions();
+      return result.receive === 'granted';
+    }
+    return false;
+  } catch (e) {
+    console.warn('[Push] permission request failed:', e.message);
+    return false;
+  }
+}

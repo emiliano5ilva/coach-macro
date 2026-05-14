@@ -1,0 +1,511 @@
+import { useState, useEffect } from "react";
+import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES,
+  Logo, getDayMacros, getTodayKey, autoFocus,
+  calcTDEE, FOCUS_MUSCLES } from "./components.jsx";
+import { Onboarding } from "./ob_screens.jsx";
+import { App } from "./ob_screens2.jsx";
+import { getAge } from "./utils/safety.js";
+import { getErrorMessage } from "./utils/errors.js";
+import { ErrorMessage } from "./utils/errors.jsx";
+import { sb } from "./supabase.js";
+import { track, EVENTS, setAnalyticsEnabled } from "./services/analytics.js";
+import { initDeepLinks } from "./services/deepLinks.js";
+import { initPushNotifications, scheduleTrialExpiryNotification } from "./services/notifications.js";
+import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
+import { PromoScreen, Paywall, UpgradeScreen } from "./sections.jsx";
+
+// ── Splash Screen ─────────────────────────────────────────────────────────────
+function SplashScreen({onDone}) {
+  useEffect(()=>{
+    const t=setTimeout(onDone,1500);
+    return()=>clearTimeout(t);
+  },[]);
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+      <style>{GLOBAL_CSS}{`
+        @keyframes splash-in{0%{opacity:0;transform:scale(0.85)}100%{opacity:1;transform:scale(1)}}
+        @keyframes splash-pulse{0%,100%{transform:scale(1);opacity:0.6}50%{transform:scale(1.18);opacity:0.25}}
+        @keyframes splash-fade{0%{opacity:1}100%{opacity:0}}
+      `}</style>
+      <div style={{animation:"splash-in 0.7s cubic-bezier(.2,.7,.3,1) forwards",display:"flex",flexDirection:"column",alignItems:"center",gap:16,position:"relative"}}>
+        {/* Pulsing red ring */}
+        <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",border:"2px solid var(--red)",animation:"splash-pulse 1.2s ease-in-out infinite",pointerEvents:"none"}}/>
+        <Logo size={52} text={false}/>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,letterSpacing:"-0.01em",textTransform:"uppercase",color:"var(--white)"}}>Coach Macro</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--red)"}}>AI ATHLETIC COACHING</div>
+      </div>
+    </div>
+  );
+}
+
+// ── SVGs ──────────────────────────────────────────────────────────────────────
+const AppleSVG=()=>(
+  <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+  </svg>
+);
+const GoogleSVG=()=>(
+  <svg width={18} height={18} viewBox="0 0 24 24">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+);
+
+// ── Auth Screen ───────────────────────────────────────────────────────────────
+function AuthScreen({onAuth, startView="welcome"}) {
+  // view: welcome | signin | signup | forgot | forgot-sent | reset
+  const [view,setView]=useState(startView);
+  const [name,setName]=useState("");
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [newPassword,setNewPassword]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [oauthLoading,setOauthLoading]=useState("");
+  const [error,setError]=useState("");
+  const [resetSent,setResetSent]=useState(false);
+
+  async function handleEmailAuth(){
+    if(view==="signup"&&!name.trim()){setError("Please enter your name.");return;}
+    if(!email.trim()){setError("Please enter your email.");return;}
+    if(password.length<6){setError("Password must be at least 6 characters.");return;}
+    setLoading(true);setError("");
+    try{
+      if(view==="signup"){
+        const{data,error:e}=await sb.auth.signUp({email,password});
+        if(e)throw e;
+        if(data.user){track(EVENTS.USER_SIGNUP,{method:"email"},data.user.id);onAuth(data.user,name.trim());}
+      }else{
+        const{data,error:e}=await sb.auth.signInWithPassword({email,password});
+        if(e)throw e;
+        track(EVENTS.USER_LOGIN,{method:"email"},data.user.id);
+        onAuth(data.user,null);
+      }
+    }catch(e){setError(getErrorMessage(e));}
+    setLoading(false);
+  }
+
+  async function handleForgot(){
+    if(!email.trim()){setError("Please enter your email.");return;}
+    setLoading(true);setError("");
+    try{
+      const{error:e}=await sb.auth.resetPasswordForEmail(email,{
+        redirectTo:"coachmacro://reset-password",
+      });
+      if(e)throw e;
+      setResetSent(true);setView("forgot-sent");
+    }catch(e){setError(getErrorMessage(e));}
+    setLoading(false);
+  }
+
+  async function handleResetPassword(){
+    if(newPassword.length<6){setError("Password must be at least 6 characters.");return;}
+    setLoading(true);setError("");
+    try{
+      const{error:e}=await sb.auth.updateUser({password:newPassword});
+      if(e)throw e;
+      setView("signin");
+      setError("");
+      // Show success via error state repurposed
+      setTimeout(()=>setError("✓ Password updated — please sign in"),100);
+    }catch(e){setError(getErrorMessage(e));}
+    setLoading(false);
+  }
+
+  async function handleOAuth(provider){
+    setOauthLoading(provider);setError("");
+    try{
+      const{error:e}=await sb.auth.signInWithOAuth({provider,options:{redirectTo:window.location.origin}});
+      if(e)throw e;
+    }catch(e){setError(getErrorMessage(e));setOauthLoading("");}
+  }
+
+  const inputStyle={width:"100%",background:"rgba(245,245,240,0.04)",border:"1.5px solid var(--white-border)",borderRadius:12,padding:"14px 16px",color:"var(--white)",fontSize:15,outline:"none",fontFamily:"var(--body)",boxSizing:"border-box"};
+  const labelStyle={display:"block",fontSize:10,color:"var(--white-dim)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"var(--mono)"};
+  const outer={minHeight:"100vh",background:"var(--navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",position:"relative",overflow:"hidden"};
+  const invitePending=(()=>{try{return JSON.parse(localStorage.getItem("coachMacroInvite")||"null");}catch{return null;}})();
+
+  const field=(label,val,setVal,type="text",ph="")=>(
+    <div style={{marginBottom:14}}>
+      <label style={labelStyle}>{label}</label>
+      <input value={val} onChange={e=>setVal(e.target.value)} type={type} placeholder={ph}
+        onKeyDown={e=>e.key==="Enter"&&(view==="forgot"?handleForgot():view==="reset"?handleResetPassword():handleEmailAuth())}
+        style={inputStyle}/>
+    </div>
+  );
+
+  const socialDivider=(
+    <div style={{display:"flex",alignItems:"center",gap:12,margin:"20px 0"}}>
+      <div style={{flex:1,height:1,background:"var(--white-border)"}}/>
+      <span style={{fontSize:10,color:"var(--white-faint)",fontFamily:"var(--mono)",letterSpacing:"0.12em",textTransform:"uppercase",whiteSpace:"nowrap"}}>or continue with</span>
+      <div style={{flex:1,height:1,background:"var(--white-border)"}}/>
+    </div>
+  );
+
+  const appleBtn=(
+    <button onClick={()=>handleOAuth("apple")} disabled={!!oauthLoading} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"14px",background:oauthLoading==="apple"?"rgba(245,245,240,0.06)":"rgba(245,245,240,0.97)",color:oauthLoading==="apple"?"var(--white-dim)":"#111",fontWeight:700,fontSize:14,letterSpacing:"0.04em",border:"none",borderRadius:13,cursor:"pointer",fontFamily:"var(--body)",marginBottom:10,transition:"opacity .15s"}}>
+      <AppleSVG/>{oauthLoading==="apple"?"Redirecting…":"Continue with Apple"}
+    </button>
+  );
+
+  const googleBtn=(
+    <button onClick={()=>handleOAuth("google")} disabled={!!oauthLoading} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"14px",background:"rgba(245,245,240,0.06)",color:"var(--white)",fontWeight:700,fontSize:14,letterSpacing:"0.04em",border:"1px solid var(--white-border)",borderRadius:13,cursor:"pointer",fontFamily:"var(--body)",transition:"opacity .15s"}}>
+      <GoogleSVG/>{oauthLoading==="google"?"Redirecting…":"Continue with Google"}
+    </button>
+  );
+
+  if(view==="forgot-sent") return(
+    <div style={outer}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
+        <div style={{fontSize:52,marginBottom:16}}>📬</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:.9,marginBottom:16,textTransform:"uppercase"}}>Check Your<br/><span style={{color:"var(--red)"}}>Email.</span></div>
+        <p style={{fontSize:14,color:"var(--white-dim)",marginBottom:28,lineHeight:1.65}}>
+          We sent a reset link to <strong style={{color:"#fff"}}>{email}</strong>. Open the link on your phone to set a new password.
+        </p>
+        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"14px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase"}}>Back to Sign In</button>
+      </div>
+    </div>
+  );
+
+  if(view==="reset") return(
+    <div style={outer}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{width:"100%",maxWidth:420}}>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:.9,marginBottom:24,textTransform:"uppercase"}}>New<br/><span style={{color:"var(--red)"}}>Password.</span></div>
+        {field("New Password",newPassword,setNewPassword,"password","Min 6 characters")}
+        {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
+        <button onClick={handleResetPassword} disabled={loading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"#fff",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)"}}>
+          {loading?"Saving...":"Set New Password →"}
+        </button>
+      </div>
+    </div>
+  );
+
+  if(view==="forgot") return(
+    <div style={outer}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{width:"100%",maxWidth:420}}>
+        <button onClick={()=>setView("signin")} style={{background:"none",border:"none",color:"var(--white-dim)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:32,display:"flex",alignItems:"center",gap:6,padding:0}}>
+          <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:.9,marginBottom:8,textTransform:"uppercase"}}>Reset<br/><span style={{color:"var(--red)"}}>Password.</span></div>
+        <p style={{fontSize:13,color:"var(--white-dim)",marginBottom:24,lineHeight:1.6}}>Enter your email and we'll send a reset link.</p>
+        {field("Email",email,setEmail,"email","you@email.com")}
+        {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
+        <button onClick={handleForgot} disabled={loading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"#fff",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)"}}>
+          {loading?"Sending...":"Send Reset Email →"}
+        </button>
+      </div>
+    </div>
+  );
+
+  if(view==="welcome") return(
+    <div style={outer}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
+        <div style={{marginBottom:32,display:"flex",justifyContent:"center"}}><Logo size={40} text={false}/></div>
+        {invitePending&&<div style={{background:"rgba(0,230,118,0.08)",border:"1px solid rgba(0,230,118,0.3)",borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:22}}>🎉</span>
+          <div><div style={{fontSize:13,fontWeight:700,color:"#00E676",fontFamily:"var(--condensed)",letterSpacing:1}}>You've been invited!</div>
+          <div style={{fontSize:12,color:"var(--white-dim)",marginTop:2}}>Sign up for 2 weeks free — no credit card needed.</div></div>
+        </div>}
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:52,lineHeight:.88,marginBottom:18,color:"var(--white)",textAlign:"center",textTransform:"uppercase"}}>
+          Stop Guessing.<br/><span style={{color:"var(--red)"}}>Start Knowing.</span>
+        </div>
+        <p style={{fontSize:14,color:"var(--white-dim)",marginBottom:28,lineHeight:1.65,textAlign:"center"}}>
+          AI-powered macros, workouts, and coaching — built around your body and your goals.
+        </p>
+        <button onClick={()=>setView("signup")} style={{width:"100%",padding:"16px",background:"var(--red)",color:"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:12}}>Get Started →</button>
+        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"16px",background:"rgba(245,245,240,0.06)",color:"var(--white)",fontWeight:700,fontSize:15,letterSpacing:"0.1em",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:8}}>Sign In</button>
+        {socialDivider}{appleBtn}{googleBtn}
+        {error&&<ErrorMessage error={error} style={{marginTop:8}}/>}
+      </div>
+    </div>
+  );
+
+  return(
+    <div style={outer}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
+        <button onClick={()=>{setView("welcome");setError("");}} style={{background:"none",border:"none",color:"var(--white-dim)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:32,display:"flex",alignItems:"center",gap:6,padding:0}}>
+          <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.88,marginBottom:24,color:"var(--white)",textTransform:"uppercase"}}>
+          {view==="signup"?<span>Your Plan<br/><span style={{color:"var(--red)"}}>Awaits.</span></span>:<span>Good to<br/><span style={{color:"var(--red)"}}>See You.</span></span>}
+        </div>
+        {appleBtn}{googleBtn}{socialDivider}
+        {view==="signup"&&field("Your Name",name,setName,"text","e.g. Marcus")}
+        {field("Email",email,setEmail,"email","you@email.com")}
+        {field("Password",password,setPassword,"password","Min 6 characters")}
+        {view==="signin"&&(
+          <div style={{textAlign:"right",marginBottom:14,marginTop:-8}}>
+            <button onClick={()=>{setView("forgot");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Forgot password?</button>
+          </div>
+        )}
+        {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
+        <button onClick={handleEmailAuth} disabled={loading||!!oauthLoading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:16}}>
+          {loading?"...":(view==="signup"?"Create Account →":"Sign In →")}
+        </button>
+        <div style={{textAlign:"center",fontSize:11,color:"var(--white-faint)",fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>
+          {view==="signup"
+            ?<span>Already have an account? <button onClick={()=>{setView("signin");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Sign In</button></span>
+            :<span>New here? <button onClick={()=>{setView("signup");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Create Account</button></span>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Root ──────────────────────────────────────────────────────────────────────
+export default function NativeApp() {
+  const [phase,setPhase]=useState("splash");
+  const [user,setUser]=useState(null);
+  const [profile,setProfile]=useState(null);
+  const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
+  const [wPrefs,setWPrefs]=useState({splitType:"Push/Pull/Legs",equipment:"Full Gym",isHybrid:false,isHyrox:false});
+  const [dayFocus,setDayFocus]=useState(autoFocus({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"},"Push/Pull/Legs"));
+  const [earnedCals,setEarnedCals]=useState(0);
+  const [signupName,setSignupName]=useState("");
+  const [saveErr,setSaveErr]=useState("");
+  const [authView,setAuthView]=useState("welcome");
+
+  async function loadProfile(uid){
+    try{
+      const{data,error}=await sb.from("profiles").select("*").eq("id",uid).maybeSingle();
+      if(error||!data){setPhase("onboarding");return;}
+      if(data.profile_data)setProfile({...data.profile_data,referralCount:data.referral_count||0});
+      if(data.schedule)setSchedule(data.schedule);
+      if(data.wprefs)setWPrefs(data.wprefs);
+      setAnalyticsEnabled(data.analytics_enabled!==false);
+      initPushNotifications(uid);
+      if(data.profile_data?.trialEndsAt)scheduleTrialExpiryNotification(data.profile_data.trialEndsAt);
+      setPhase("app");
+    }catch(e){console.error("[loadProfile]",e);setPhase("onboarding");}
+  }
+
+  async function saveProfile(uid,prof,sch,wp){
+    try{
+      const{error}=await sb.from("profiles").upsert({
+        id:uid,profile_data:prof,schedule:sch,wprefs:wp,
+        referral_code:prof.referralCode||null,
+        updated_at:new Date().toISOString(),
+      },{onConflict:"id"}).select();
+      if(error)throw error;
+      return true;
+    }catch(e){console.error("[saveProfile]",e);return false;}
+  }
+
+  async function handleAuth(authUser,name=""){
+    setPhase("loading");setUser(authUser);
+    if(name)setSignupName(name);
+    await loadProfile(authUser.id);
+  }
+
+  function handleProfileDone(od,tdee){
+    const a=getAge(od.dobYear,od.dobMonth,od.dobDay);
+    const baseProf={
+      name:od.name,email:od.email||user?.email||"",
+      sex:od.sex,dobMonth:od.dobMonth,dobDay:od.dobDay,dobYear:od.dobYear,
+      hUnit:od.hUnit,hFt:od.hFt,hIn:od.hIn,hCm:od.hCm,
+      wUnit:od.wUnit||"lbs",weight:od.weight,startWeight:parseFloat(od.weight)||0,
+      startDate:new Date().toISOString().split("T")[0],
+      bodyFat:od.bodyFat,job:od.job,steps:od.steps,activity:od.activity,
+      sleep:od.sleep,sleepQ:od.sleepQ,conditions:od.conditions||[],cycle:od.cycle,
+      metHistory:od.metHistory,protein:od.protein,healthConn:od.healthConn,
+      baseTDEE:tdee.total,bmr:tdee.bmr,city:"",
+      lifeStage:od.lifeStage||"",trimester:od.trimester||"",postpartumWeeks:od.postpartumWeeks||0,
+      csection:od.csection||false,menopauseSymptoms:od.menopauseSymptoms||[],
+      cycleCondition:od.cycleCondition||[],fitnessMotivation:od.fitnessMotivation||"",
+      eatingHistory:od.eatingHistory||"",boneHistory:od.boneHistory||"",
+      healthConditions:od.healthConditions||[],
+      is_youth:a!==null&&a>=13&&a<18,
+      is_older_adult:a!==null&&a>=65,
+    };
+    setProfile(baseProf);setPhase("onboarding-fuel");
+  }
+
+  function handleFuelDone(fuelData){
+    const updated={...profile,...fuelData};
+    if(updated.goal)updated.goal=updated.goal.charAt(0).toUpperCase()+updated.goal.slice(1).toLowerCase();
+    setProfile(updated);setPhase("onboarding-train");
+  }
+
+  async function handleTrainDone(trainData){
+    setSaveErr("");
+    const finalProf={...profile,...trainData};
+    if(!finalProf.referralCode){
+      const first=(finalProf.name||"USER").split(" ")[0].replace(/[^A-Za-z]/g,"").toUpperCase().slice(0,8)||"USER";
+      finalProf.referralCode=first+Math.floor(1000+Math.random()*9000);
+    }
+    let _inviteToken=null;
+    try{
+      const _inv=JSON.parse(localStorage.getItem("coachMacroInvite")||"null");
+      if(_inv&&(Date.now()-(_inv.savedAt||0))<7*86400000){
+        finalProf.freeWeeksApplied=true;finalProf.inviteCode=_inv.code||"";
+        _inviteToken=_inv.token||null;localStorage.removeItem("coachMacroInvite");
+      }
+    }catch{}
+    if(!finalProf.trialEndsAt){
+      finalProf.trialEndsAt=new Date(Date.now()+14*86400000).toISOString();
+      finalProf.trialStartAt=new Date().toISOString();
+    }
+    let sch;
+    if(trainData.selectedDays&&Object.values(trainData.selectedDays).some(v=>v!=="rest")){
+      sch=trainData.selectedDays;
+    }else{
+      const dmap={"1-2":["Mon","Thu"],"3":["Mon","Wed","Fri"],"4":["Mon","Tue","Thu","Fri"],"5":["Mon","Tue","Wed","Thu","Fri"],"6":["Mon","Tue","Wed","Thu","Fri","Sat"],"7":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]};
+      const td=dmap[trainData.freq]||["Mon","Wed","Fri"];
+      sch={Mon:"rest",Tue:"rest",Wed:"rest",Thu:"rest",Fri:"rest",Sat:"rest",Sun:"rest"};
+      td.forEach(d=>{sch[d]="training";});
+    }
+    const splitMap={"full_body":"Full Body","ppl_half":"Push/Pull/Legs","upper_lower_3":"Upper/Lower","upper_lower":"Upper/Lower","ppl_upper":"Push/Pull/Legs","bro_4":"Bro Split","bro_split":"Bro Split","upper_lower_5":"Upper/Lower","ppl_upper_lower":"Push/Pull/Legs","ppl_6":"Push/Pull/Legs","arnold":"Arnold Split","upper_lower_6":"Upper/Lower","ppl_7":"Push/Pull/Legs","bro_7":"Bro Split","c25k":"Full Body","5k_sub25":"Full Body","10k":"Full Body","half":"Full Body","marathon":"Full Body","hyrox_12w":"Full Body","hyrox_strength":"Full Body","hyrox_run":"Full Body","strength_run":"Push/Pull/Legs","ppl_hyrox":"Push/Pull/Legs","upper_lower_run":"Upper/Lower","hyrox_hybrid":"Full Body"};
+    const wp={
+      splitType:splitMap[trainData.split]||"Push/Pull/Legs",
+      equipment:trainData.equipment||"Full Gym",isHybrid:trainData.trainType==="hybrid",
+      isHyrox:trainData.trainType==="hyrox",sessionLength:trainData.sessionLength||60,
+      weakPoints:trainData.weakPoints||[],injuries:trainData.injuries||[],
+      current5KTime:trainData.current5KTime||null,runningGoal:trainData.runningGoal||"",
+      raceDate:trainData.raceDate||"",terrain:trainData.terrain||"road",
+      trackAccess:trainData.trackAccess||false,longRunDay:trainData.longRunDay||"Sunday",
+      cardioExp:trainData.cardioExp||"",
+      runPlan:({"first_5k":"Couch to 5K","fitness":"Couch to 5K","sub25_5k":"Sub-25 5K","first_10k":"10K Training","sub50_10k":"10K Training","half":"Half Marathon","marathon":"Half Marathon"})[trainData.runningGoal||""]||"Couch to 5K",
+      recoveryCapacity:trainData.recoveryCapacity||"normal",musclePriorities:trainData.musclePriorities||[],
+      trainingAge:trainData.trainingAge||"developing",blackoutDays:trainData.blackoutDays||[],
+      mobilityLimitations:trainData.mobilityLimitations||[],stressLevel:trainData.stressLevel||"low",
+      sleepQuality:trainData.sleepQuality||"average",jobPhysicality:trainData.jobPhysicality||"desk",
+      cycleTracking:trainData.cycleTracking??null,hybridBias:trainData.hybridBias||"",
+    };
+    setSchedule(sch);setWPrefs(wp);setProfile(finalProf);setPhase("loading");
+    if(!user){setSaveErr("Not logged in. Please sign in again.");return;}
+    const saved=await saveProfile(user.id,finalProf,sch,wp);
+    if(!saved){
+      await new Promise(r=>setTimeout(r,1500));
+      const saved2=await saveProfile(user.id,finalProf,sch,wp);
+      if(!saved2){setSaveErr("Could not save your profile. Check your connection and try again.");return;}
+    }
+    if(_inviteToken)sb.from("referrals").update({recipient_user_id:user.id}).eq("token",_inviteToken).eq("clicked",true).then(()=>{});
+    track(EVENTS.ONBOARDING_COMPLETE,{goal:finalProf.goal,trainType:finalProf.trainType||trainData.trainType,experience:finalProf.liftExp||trainData.liftExp,daysPerWeek:trainData.freq},user?.id);
+    track(EVENTS.TRIAL_START,{trial_ends_at:finalProf.trialEndsAt},user?.id);
+    setPhase("celebrate");
+  }
+
+  async function handleSignOut(){
+    track(EVENTS.USER_LOGOUT,{},user?.id);
+    await sb.auth.signOut();
+    setUser(null);setProfile(null);setPhase("welcome-screen");
+  }
+
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    if(params.get("invited")==="true"){
+      try{const inv={code:params.get("code")||"",token:params.get("token")||"",freeWeeks:2,savedAt:Date.now()};localStorage.setItem("coachMacroInvite",JSON.stringify(inv));}catch{}
+      window.history.replaceState({},"","/");
+    }
+    // Check session after splash completes (splash auto-advances to session-check)
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session?.user)handleAuth(session.user,null);
+      else setTimeout(()=>setPhase("welcome-screen"),1600);
+    });
+    const{data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
+      if(event==="SIGNED_IN"&&session?.user)handleAuth(session.user,null);
+      if(event==="PASSWORD_RECOVERY")setPhase("reset-password");
+    });
+    const onSubRequired=()=>setPhase("upgrade");
+    window.addEventListener("cm:subscription-required",onSubRequired);
+    const onDeepLink=(e)=>{
+      const{route}=e.detail||{};
+      if(route==="workout"){setPhase("app");setTimeout(()=>window.dispatchEvent(new CustomEvent("cm:nav",{detail:"train"})),100);}
+      else if(route==="fuel"){setPhase("app");setTimeout(()=>window.dispatchEvent(new CustomEvent("cm:nav",{detail:"fuel"})),100);}
+      else if(route==="pro")setPhase("upgrade");
+      else if(route==="reset-password")setPhase("reset-password");
+    };
+    window.addEventListener("cm:deeplink",onDeepLink);
+    try{initDeepLinks();}catch{}
+    return()=>{
+      subscription.unsubscribe();
+      window.removeEventListener("cm:subscription-required",onSubRequired);
+      window.removeEventListener("cm:deeplink",onDeepLink);
+    };
+  },[]);
+
+  useEffect(()=>{
+    if(!profile)return;
+    const cycles=SPLIT_CYCLES[wPrefs.splitType]||["Full Body"];
+    const f={};let i=0;
+    WDAYS.forEach(d=>{
+      if(schedule[d]==="training")f[d]=cycles[i++%cycles.length];
+      else if(["cardio","run","hyrox"].includes(schedule[d]))f[d]=(DAY_CFG[schedule[d]]||DAY_CFG.rest).label;
+      else f[d]="Rest";
+    });
+    setDayFocus(f);
+  },[wPrefs.splitType,schedule,profile]);
+
+  if(phase==="splash")return<SplashScreen onDone={()=>setPhase("session-check")}/>;
+
+  if(phase==="session-check")return(
+    <div style={{minHeight:"100vh",background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <style>{GLOBAL_CSS}</style>
+      <Logo size={32} text={false}/>
+    </div>
+  );
+
+  if(phase==="reset-password")return<AuthScreen onAuth={handleAuth} startView="reset"/>;
+  if(phase==="welcome-screen")return<AuthScreen onAuth={handleAuth} startView="welcome"/>;
+
+  if(phase==="loading")return(
+    <div style={{minHeight:"100vh",background:"var(--navy)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{textAlign:"center",maxWidth:340}}>
+        <div style={{marginBottom:16}}><Logo size={36} text={true}/></div>
+        {saveErr
+          ?<><div style={{fontSize:13,color:"var(--red)",marginBottom:16,lineHeight:1.6}}>{saveErr}</div>
+            <button onClick={()=>{setSaveErr("");window.location.reload();}} style={{padding:"12px 28px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:1,textTransform:"uppercase"}}>Try Again</button></>
+          :<div style={{fontSize:11,color:"var(--white-dim)",letterSpacing:"0.16em",fontFamily:"var(--mono)",textTransform:"uppercase"}}>LOADING...</div>
+        }
+      </div>
+    </div>
+  );
+
+  if(phase==="onboarding")return<Onboarding onComplete={(d,tdee)=>handleProfileDone(d,tdee)} user={user} signupName={signupName}/>;
+  if(phase==="onboarding-fuel")return<FuelOnboarding d={profile} onComplete={handleFuelDone} onBack={()=>setPhase("onboarding")}/>;
+  if(phase==="onboarding-train")return<TrainOnboarding d={profile} onComplete={handleTrainDone} onBack={()=>setPhase("onboarding-fuel")}/>;
+
+  if(phase==="celebrate"){
+    const cKey=getTodayKey();
+    const cType=schedule[cKey]||"training";
+    const cMacros=getDayMacros(profile?.goalCals,profile?.goal,cType,0);
+    const cFocus=dayFocus[cKey]||"Full Body";
+    return(
+      <div style={{minHeight:"100vh",background:"var(--navy)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+        <style>{GLOBAL_CSS}</style>
+        <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
+          <div style={{fontSize:64,marginBottom:8}}>🎉</div>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.9,marginBottom:24,textTransform:"uppercase"}}>LET'S GO,<br/><span style={{color:"var(--red)"}}>{profile?.name?.toUpperCase()||"ATHLETE"}.</span></div>
+          <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:18,padding:"20px 24px",marginBottom:16,textAlign:"left"}}>
+            <div style={{fontSize:10,color:"var(--red)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14,fontFamily:"var(--mono)"}}>Today's Targets</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+              {[["Cals",cMacros.calories,"kcal","var(--red)"],["Prot",cMacros.protein,"g","var(--red)"],["Carbs",cMacros.carbs,"g","#60a5fa"],["Fat",cMacros.fat,"g","#f59e0b"]].map(([l,v,u,c])=>(
+                <div key={l} style={{background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,fontStyle:"italic",color:c,lineHeight:1}}>{v}</div>
+                  <div style={{fontSize:9,color:"var(--white-dim)",marginTop:2,fontFamily:"var(--mono)"}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button onClick={()=>setPhase("promo")} style={{width:"100%",padding:"16px",background:"var(--red)",color:"#fff",border:"none",borderRadius:14,fontWeight:700,fontSize:16,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Let's Go →</button>
+        </div>
+      </div>
+    );
+  }
+
+  if(phase==="promo")return<PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
+  if(phase==="paywall")return<Paywall profile={profile}/>;
+  if(phase==="upgrade"){track(EVENTS.UPGRADE_VIEWED,{},user?.id);return<UpgradeScreen profile={profile} onContinue={()=>setPhase("app")}/>;}
+
+  return<App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user}/>;
+}

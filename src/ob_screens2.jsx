@@ -288,6 +288,7 @@ export function TDEEReveal({tdee,animTDEE,d,chatReply,setCR,next}) {
 }
 
 export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
+  const [termsAccepted,setTermsAccepted]=useState(false);
   const rates={cut:["−500","−250","−125"],bulk:["+125","+250","+500"]};
   const getExpertRec=()=>{
     const hasAdaptation=d.metHistory==="3plus"||d.metHistory==="offon";
@@ -369,7 +370,18 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
           ))}
         </div>
       </>}
-      <PrimaryBtn onClick={onComplete} label="Build My Dashboard →" disabled={!d.goal||(d.goal!=="maintain"&&!goalRate)||!d.goalTimeline}/>
+      <div onClick={()=>setTermsAccepted(v=>!v)} style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:16,cursor:"pointer",padding:"2px 0"}}>
+        <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${termsAccepted?T.prot:T.bd}`,background:termsAccepted?T.prot:"transparent",flexShrink:0,marginTop:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s"}}>
+          {termsAccepted&&<svg width={11} height={9} viewBox="0 0 11 9" fill="none"><path d="M1 4l3 3 6-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </div>
+        <div style={{fontSize:12,color:T.mu,lineHeight:1.6}}>
+          I agree to the{" "}
+          <a href="/terms" target="_blank" onClick={e=>e.stopPropagation()} style={{color:T.prot,textDecoration:"none"}}>Terms of Service</a>
+          {" "}and{" "}
+          <a href="/privacy" target="_blank" onClick={e=>e.stopPropagation()} style={{color:T.prot,textDecoration:"none"}}>Privacy Policy</a>
+        </div>
+      </div>
+      <PrimaryBtn onClick={onComplete} label="Build My Dashboard →" disabled={!d.goal||(d.goal!=="maintain"&&!goalRate)||!d.goalTimeline||!termsAccepted}/>
     </div>
   );
 }
@@ -1375,6 +1387,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     setShowHealthModal(false);
   }
 
+  // ── Food log date navigation ───────────────────────────────────────────────
+  const [logDate,setLogDate]=useState(()=>new Date().toISOString().split("T")[0]);
+
+  // ── Bodyweight logs ────────────────────────────────────────────────────────
+  const [bodyweightLogs,setBodyweightLogs]=useState([]);
+
   // ── Workout coaching state ─────────────────────────────────────────────────
   const [lastLoggedSet,setLastLoggedSet]=useState(null);
   const [setFlash,setSetFlash]=useState(null);
@@ -1398,15 +1416,19 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     else console.log("[saveFoodLog] saved",entries.length,"entries");
   }
 
-  // Load today's food logs and workout history on mount
+  // Load food log for selected date (re-runs when logDate or user changes)
+  useEffect(()=>{
+    if(!user)return;
+    setLog([]);
+    sb.from("food_logs").select("entries").eq("user_id",user.id).eq("date",logDate).maybeSingle().then(({data})=>{
+      if(data?.entries)setLog(data.entries);
+    });
+  },[user,logDate]);
+
+  // Load workout history + bodyweight + water on mount
   useEffect(()=>{
     if(!user)return;
     const today=new Date().toISOString().split("T")[0];
-    // Food log — single row per day
-    sb.from("food_logs").select("entries").eq("user_id",user.id).eq("date",today).maybeSingle().then(({data,error})=>{
-      console.log("[loadFoodLog] entries:",data?.entries?.length||0,"error:",error?.message);
-      if(data?.entries)setLog(data.entries);
-    });
     // Workout history — last 50 sessions
     sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50).then(({data,error})=>{
       console.log("[loadWorkoutHistory] rows:",data?.length||0,"error:",error?.message);
@@ -1423,6 +1445,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         });
         setHistory(hist);
       }
+    });
+    // Bodyweight logs — last 90 days
+    sb.from("bodyweight_logs").select("date,weight").eq("user_id",user.id).order("date",{ascending:true}).limit(90).then(({data})=>{
+      if(data&&data.length>0)setBodyweightLogs(data);
     });
     // Water logs
     getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[]));
@@ -1851,6 +1877,21 @@ Rules:
         duration_minutes:duration,sets_completed:totalSetsLogged,sets_planned:totalSets,
         had_pr:prs.length>0,total_volume:Math.round(totalVolume),
       },user.id);
+
+      // Priority 7: notification permission after first workout
+      const isNative=typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()===true;
+      if(isNative&&!localStorage.getItem("first_workout_done")){
+        localStorage.setItem("first_workout_done","1");
+        try{const{requestNotificationPermission}=await import("./services/notifications.js");await requestNotificationPermission();}catch{}
+      }
+
+      // Priority 8: app rating after 5th workout
+      const workoutCount=(workoutLogsRaw.length||0)+1;
+      if(isNative&&workoutCount>=5&&!localStorage.getItem("rating_prompt_shown")){
+        localStorage.setItem("rating_prompt_shown","1");
+        try{const m=await import(/* @vite-ignore */ "@capacitor-community/in-app-review");await(m.InAppReview||m.AppReview)?.requestReview?.();}catch{}
+      }
+
       setWorkoutSummary({
         title:todayFocus,duration,burn,
         totalVolume:Math.round(totalVolume),
@@ -2340,6 +2381,148 @@ Rules:
     );
   }
 
+  function WorkoutHistorySection({logs}) {
+    const [expandedIdx,setExpandedIdx]=useState(null);
+    return(
+      <div style={{margin:"0 20px 14px"}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>HISTORY</div>
+        <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,overflow:"hidden"}}>
+          {logs.slice(0,20).map((w,i)=>{
+            const dateLabel=new Date(w.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+            const focus=w.workout?.focus||"Workout";
+            const dur=w.workout?.calories_burned?Math.round(w.workout.calories_burned/6)+"m":"—";
+            const sets=(w.workout?.exercises||[]).reduce((a,e)=>a+(e.sets?.length||0),0);
+            const expanded=expandedIdx===i;
+            return(
+              <div key={w.id||i} style={{borderBottom:i<Math.min(logs.length,20)-1?"1px solid rgba(245,245,240,0.06)":"none"}}>
+                <div onClick={()=>setExpandedIdx(expanded?null:i)} style={{display:"flex",alignItems:"center",padding:"12px 16px",cursor:"pointer",gap:12}}>
+                  <div style={{width:34,height:34,borderRadius:10,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>💪</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{focus}</div>
+                    <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",marginTop:2}}>{dateLabel} · {dur} · {sets} sets</div>
+                  </div>
+                  <div style={{color:"rgba(245,245,240,0.3)",fontSize:14,flexShrink:0,transition:"transform .2s",transform:expanded?"rotate(180deg)":"none"}}>▾</div>
+                </div>
+                {expanded&&(
+                  <div style={{padding:"0 16px 14px",display:"flex",flexDirection:"column",gap:6}}>
+                    {(w.workout?.exercises||[]).map((ex,j)=>(
+                      <div key={j} style={{background:"rgba(245,245,240,0.03)",borderRadius:8,padding:"8px 10px"}}>
+                        <div style={{fontSize:12,fontWeight:600,color:"rgba(245,245,240,0.75)",marginBottom:4}}>{ex.name}</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                          {(ex.sets||[]).filter(s=>s.done||s.weight).map((s,k)=>(
+                            <div key={k} style={{fontSize:10,color:"rgba(245,245,240,0.45)",background:"rgba(245,245,240,0.06)",borderRadius:4,padding:"2px 7px"}}>{s.weight||0}lbs × {s.reps||0}</div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  function BodyweightSection({logs,user:u,setLogs,wUnit}) {
+    const [bwModal,setBwModal]=useState(false);
+    const [bwInput,setBwInput]=useState("");
+    const [bwDate,setBwDate]=useState(()=>new Date().toISOString().split("T")[0]);
+    const [bwSaving,setBwSaving]=useState(false);
+
+    async function saveWeight(){
+      const w=parseFloat(bwInput);
+      if(!w||!u)return;
+      setBwSaving(true);
+      const entry={date:bwDate,weight:w};
+      await sb.from("bodyweight_logs").upsert({user_id:u.id,...entry},{onConflict:"user_id,date"});
+      setLogs(prev=>[...prev.filter(x=>x.date!==bwDate),entry].sort((a,b)=>a.date.localeCompare(b.date)));
+      setBwModal(false);setBwInput("");setBwSaving(false);
+    }
+
+    const chartData=(()=>{
+      if(logs.length<2)return null;
+      const vals=logs.map(x=>x.weight);
+      const minW=Math.min(...vals)-2,maxW=Math.max(...vals)+2;
+      const n=logs.length;
+      const W=300,H=80;
+      const px=(idx)=>Math.round((idx/(n-1))*W);
+      const py=(v)=>Math.round(H-((v-minW)/(maxW-minW))*H);
+      const line=logs.map((x,idx)=>`${idx===0?"M":"L"}${px(idx)},${py(x.weight)}`).join(" ");
+      const ma=logs.map((_,idx)=>{
+        const slice=logs.slice(Math.max(0,idx-3),idx+4);
+        return slice.reduce((s,x)=>s+x.weight,0)/slice.length;
+      });
+      const maLine=ma.map((v,idx)=>`${idx===0?"M":"L"}${px(idx)},${py(v)}`).join(" ");
+      const startW=Math.ceil(vals[0]/5)*5;
+      const milestones=[];
+      for(let m=startW;m<=maxW+5;m+=5)if(m>=minW)milestones.push(m);
+      return{line,maLine,W,H,vals,py,px,milestones,n};
+    })();
+
+    const latest=logs[logs.length-1];
+
+    return(
+      <div style={{margin:"0 20px 14px"}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>WEIGHT</div>
+        <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+            <div>
+              {latest
+                ?<><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1}}>{latest.weight}<span style={{fontSize:14,fontWeight:400,color:"rgba(245,245,240,0.45)",marginLeft:4}}>{wUnit}</span></div>
+                  <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginTop:2}}>Last: {new Date(latest.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div></>
+                :<div style={{fontSize:13,color:"rgba(245,245,240,0.45)"}}>No entries yet</div>}
+            </div>
+            <button onClick={()=>setBwModal(true)} style={{padding:"8px 16px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.05em"}}>+ Log</button>
+          </div>
+          {chartData&&(
+            <svg viewBox={`0 0 ${chartData.W} ${chartData.H}`} style={{width:"100%",height:80,overflow:"visible",display:"block"}}>
+              {chartData.milestones.map(m=>(
+                <line key={m} x1={0} y1={chartData.py(m)} x2={chartData.W} y2={chartData.py(m)} stroke="rgba(245,245,240,0.06)" strokeWidth={1}/>
+              ))}
+              <path d={chartData.line} fill="none" stroke="rgba(232,52,28,0.4)" strokeWidth={1.5}/>
+              <path d={chartData.maLine} fill="none" stroke="var(--red)" strokeWidth={2} strokeLinecap="round"/>
+              {logs.map((x,idx)=>{
+                const isMilestone=chartData.milestones.some(m=>Math.abs(x.weight-m)<0.5);
+                if(!isMilestone&&idx!==logs.length-1)return null;
+                return<circle key={idx} cx={chartData.px(idx)} cy={chartData.py(x.weight)} r={isMilestone?4:3} fill={isMilestone?"#EAB308":"var(--red)"} stroke="var(--navy-card)" strokeWidth={2}/>;
+              })}
+            </svg>
+          )}
+          {chartData&&<div style={{display:"flex",gap:16,marginTop:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
+              <div style={{width:16,height:2,background:"var(--red)",borderRadius:1}}/>7-day avg
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:"#EAB308"}}/>5 {wUnit} milestone
+            </div>
+          </div>}
+        </div>
+        {bwModal&&(
+          <div onClick={()=>setBwModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:"#0D1827",borderRadius:"20px 20px 0 0",padding:24,width:"100%",maxWidth:480,paddingBottom:"max(24px,env(safe-area-inset-bottom))"}}>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginBottom:16}}>Log Weight</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+                <div>
+                  <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"var(--mono)"}}>Weight ({wUnit})</div>
+                  <input autoFocus value={bwInput} onChange={e=>setBwInput(e.target.value)} type="number" step="0.1" placeholder="e.g. 175" style={{width:"100%",background:"rgba(245,245,240,0.06)",border:"1.5px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                </div>
+                <div>
+                  <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"var(--mono)"}}>Date</div>
+                  <input value={bwDate} onChange={e=>setBwDate(e.target.value)} type="date" style={{width:"100%",background:"rgba(245,245,240,0.06)",border:"1.5px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",colorScheme:"dark"}}/>
+                </div>
+              </div>
+              <button onClick={saveWeight} disabled={!bwInput||bwSaving} style={{width:"100%",padding:"14px",background:!bwInput||bwSaving?"rgba(245,245,240,0.1)":"var(--red)",color:!bwInput||bwSaving?"rgba(245,245,240,0.3)":"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:!bwInput||bwSaving?"default":"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                {bwSaving?"Saving...":"Save Weight"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function ProgressSection() {
     const sc = coachScore;
     const ringColor = sc.total>=85?"#22c55e":sc.total>=70?"#2979FF":sc.total>=50?"#EAB308":"#EF4444";
@@ -2665,6 +2848,12 @@ Rules:
           ))}
         </div>
 
+        {/* ── WORKOUT HISTORY ── */}
+        {workoutLogsRaw.length>0&&<WorkoutHistorySection logs={workoutLogsRaw}/>}
+
+        {/* ── BODYWEIGHT LOG ── */}
+        <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||"lbs"}/>
+
         <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
         <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
         <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
@@ -2691,7 +2880,7 @@ Rules:
       <div className="app-screen grid-bg">
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate}/></ErrorBoundary>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/></ErrorBoundary>}
       </div>
