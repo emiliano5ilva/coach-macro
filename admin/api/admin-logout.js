@@ -1,10 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
 
-const sb = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error(
+    'Missing Supabase credentials. ' +
+    'URL: ' + !!SUPABASE_URL +
+    ' Key: ' + !!SUPABASE_KEY
+  );
+}
+
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
