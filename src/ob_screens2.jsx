@@ -34,6 +34,7 @@ import { getAIErrorMessage } from "./utils/errors.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
 import { BodyCompositionVector, GoalProbabilityCone, BalanceCheck } from "./ProgressCharts2.jsx";
+import { NutritionPerformanceChart, WeightTrendChart, MacroCalendarHeatmap, SleepPerformanceChart } from "./ProgressCharts3.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -3397,6 +3398,18 @@ Rules:
 
         {/* ── BALANCE CHECK ── */}
         <BalanceCheck workoutLogsRaw={workoutLogsRaw} wUnit={profile?.wUnit||"lbs"} onViewExercises={()=>setSection("train")}/>
+
+        {/* ── NUTRITION × PERFORMANCE ── */}
+        <NutritionPerformanceChart userId={user?.id} profile={profile} workoutLogsRaw={workoutLogsRaw}/>
+
+        {/* ── WEIGHT TREND ── */}
+        <WeightTrendChart bodyweightLogs={bodyweightLogs} profile={profile} wUnit={profile?.wUnit||"lbs"}/>
+
+        {/* ── MACRO CALENDAR HEATMAP ── */}
+        <MacroCalendarHeatmap userId={user?.id} profile={profile}/>
+
+        {/* ── SLEEP vs PERFORMANCE ── */}
+        <SleepPerformanceChart userId={user?.id}/>
 
         {/* ── MUSCLE VOLUME CHART ── */}
         <MuscleVolumeChart userId={user?.id}/>
