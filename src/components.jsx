@@ -293,6 +293,8 @@ export const GLOBAL_CSS = `
   .slide-up{animation:slide-up-enter 0.32s cubic-bezier(.2,.7,.3,1) forwards}
   .bounce-in{animation:bounce-in 0.5s cubic-bezier(.2,.7,.3,1) forwards}
   .btn-press:active{transform:scale(0.96);transition:transform 0.08s ease}
+  .card-press{transition:transform 0.1s ease,box-shadow 0.1s ease}
+  .card-press:active{transform:scale(0.98);}
   .swipe-row{transition:transform 0.2s ease;touch-action:pan-y}
   .grad-text{background:linear-gradient(135deg,#e8341c 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   .hero-title{animation:slideUp .9s cubic-bezier(.16,1,.3,1) forwards}
@@ -326,7 +328,8 @@ export const GLOBAL_CSS = `
   .ob-inner{width:100%;max-width:480px;margin:0 auto;padding:max(env(safe-area-inset-top,0px),20px) 20px 60px}
   .rolodex-scroll::-webkit-scrollbar{display:none}
   @media(min-width:768px){.app-tab-bar{max-width:480px;left:50%;transform:translateX(-50%)}}
-  .app-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--white-faint);cursor:pointer;padding:8px 4px;transition:color 0.2s;position:relative}
+  .app-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--white-faint);cursor:pointer;padding:8px 4px;transition:color 0.2s,transform 0.1s;position:relative}
+  .app-tab:active{transform:scale(0.88)}
   .app-tab.active{color:var(--white)}
   .app-tab.active .tab-icon-wrap::before{content:'';position:absolute;inset:-8px -14px;background:radial-gradient(circle,rgba(232,52,28,0.25),transparent 70%);z-index:-1}
   .tab-icon-wrap{position:relative}

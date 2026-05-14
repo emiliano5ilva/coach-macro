@@ -1932,6 +1932,7 @@ Reply with ONLY a valid JSON object, no markdown:
                             style={{borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}
                           >
                             <div
+                              className="card-press"
                               onPointerDown={()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
                               onPointerUp={()=>clearTimeout(longPressRef.current)}
                               onPointerLeave={()=>clearTimeout(longPressRef.current)}

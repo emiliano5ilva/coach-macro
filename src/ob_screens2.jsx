@@ -719,6 +719,7 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
 function ScoreRing({score}) {
   const R=72; const C=2*Math.PI*R;
   const color=score>=85?"#00B894":score>=70?"#4A90E2":score>=50?"#F5A623":"#EF4444";
+  const displayScore=useCountUp(score,1200);
   return (
     <div style={{position:"relative",width:180,height:180,margin:"0 auto"}}>
       <svg width={180} height={180} style={{transform:"rotate(-90deg)",display:"block"}}>
@@ -731,7 +732,7 @@ function ScoreRing({score}) {
         />
       </svg>
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:"#fff"}}>{score}</div>
+        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:"#fff"}}>{displayScore}</div>
         <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:2}}>Coach Macro Score</div>
       </div>
     </div>

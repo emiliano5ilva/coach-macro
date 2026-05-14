@@ -2359,7 +2359,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     const trend=diff?diff>0?"↑":diff<0?"↓":"→":null;
                     const tc=trend==="↑"?T.carb:trend==="↓"?"#FF4D6D":T.mu;
                     return(
-                      <div key={key} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"14px 16px",position:"relative",overflow:"hidden"}}>
+                      <div key={key} className="card-press" style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"14px 16px",position:"relative",overflow:"hidden"}}>
                         {trend==="↑"&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:T.carb,borderRadius:"14px 14px 0 0"}}/>}
                         <div style={{fontSize:11,fontWeight:600,color:"#bbb",textTransform:"capitalize",marginBottom:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{key.replace(/_/g," ")}</div>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
