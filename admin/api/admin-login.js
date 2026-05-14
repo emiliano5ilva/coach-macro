@@ -40,73 +40,97 @@ export default async function handler(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
 
-  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-
-  const limit = await checkIpLimit(ip);
-  if (!limit.allowed) {
-    return res.status(429).json({
-      error: `Too many attempts. Try again in ${Math.ceil(limit.resetIn / 60)} minute(s).`,
+  try {
+    console.log('Login attempt started');
+    console.log('ENV check:', {
+      hasSupabaseUrl:    !!process.env.SUPABASE_URL,
+      hasServiceKey:     !!process.env.SUPABASE_SERVICE_KEY,
     });
-  }
 
-  const { code } = req.body || {};
-  if (!code) return res.status(400).json({ error: 'Code required' });
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+    console.log('IP:', ip);
 
-  const { data: admin } = await sb
-    .from('admin_users')
-    .select('id, email, totp_secret, totp_enabled, backup_codes')
-    .eq('totp_enabled', true)
-    .maybeSingle();
-
-  if (!admin?.totp_secret) {
-    return res.status(403).json({ error: 'TOTP not configured. Complete setup first.' });
-  }
-
-  const trimmed = code.trim();
-  let valid = false;
-
-  if (trimmed.length === 6 && /^\d{6}$/.test(trimmed)) {
-    // Standard TOTP — accept current window ±1 step for clock skew
-    valid = authenticator.verify({ token: trimmed, secret: admin.totp_secret });
-  } else if (trimmed.length === 8) {
-    // Backup code — compare against stored hashes
-    const codeHash = hashToken(trimmed.toUpperCase());
-    const codes = Array.isArray(admin.backup_codes) ? admin.backup_codes : [];
-    if (codes.includes(codeHash)) {
-      // Consume the backup code (remove it)
-      const remaining = codes.filter((c) => c !== codeHash);
-      await sb.from('admin_users').update({ backup_codes: remaining }).eq('id', admin.id);
-      valid = true;
+    console.log('Checking rate limit…');
+    const limit = await checkIpLimit(ip);
+    if (!limit.allowed) {
+      return res.status(429).json({
+        error: `Too many attempts. Try again in ${Math.ceil(limit.resetIn / 60)} minute(s).`,
+      });
     }
+
+    const { code } = req.body || {};
+    if (!code) return res.status(400).json({ error: 'Code required' });
+    console.log('Code length:', code.trim().length);
+
+    console.log('Fetching admin row…');
+    const { data: admin, error: adminErr } = await sb
+      .from('admin_users')
+      .select('id, email, totp_secret, totp_enabled, backup_codes')
+      .eq('totp_enabled', true)
+      .maybeSingle();
+
+    if (adminErr) console.error('admin_users query error:', adminErr.message);
+    console.log('Admin found:', !!admin, '| totp_enabled:', admin?.totp_enabled, '| has_secret:', !!admin?.totp_secret);
+
+    if (!admin?.totp_secret) {
+      return res.status(403).json({ error: 'TOTP not configured. Complete setup first.' });
+    }
+
+    const trimmed = code.trim();
+    let valid = false;
+
+    if (trimmed.length === 6 && /^\d{6}$/.test(trimmed)) {
+      console.log('Verifying TOTP code…');
+      valid = authenticator.verify({ token: trimmed, secret: admin.totp_secret });
+      console.log('TOTP valid:', valid);
+    } else if (trimmed.length === 8) {
+      console.log('Verifying backup code…');
+      const codeHash = hashToken(trimmed.toUpperCase());
+      const codes = Array.isArray(admin.backup_codes) ? admin.backup_codes : [];
+      if (codes.includes(codeHash)) {
+        const remaining = codes.filter((c) => c !== codeHash);
+        await sb.from('admin_users').update({ backup_codes: remaining }).eq('id', admin.id);
+        valid = true;
+      }
+      console.log('Backup code valid:', valid);
+    }
+
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid code. Try again.' });
+    }
+
+    await sb.from('rate_limits').delete().eq('key', RATE_KEY(ip));
+
+    await sb
+      .from('admin_users')
+      .update({ last_login: new Date().toISOString(), login_attempts: 0, locked_until: null })
+      .eq('id', admin.id);
+
+    console.log('Creating session…');
+    const token     = randomBytes(32).toString('hex');
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+
+    const { error: sessionErr } = await sb.from('admin_sessions').insert({
+      admin_id:   admin.id,
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+      ip_address: ip,
+    });
+
+    if (sessionErr) console.error('Session insert error:', sessionErr.message);
+
+    res.setHeader(
+      'Set-Cookie',
+      `admin_session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${8 * 60 * 60}`
+    );
+
+    console.log('Login success');
+    return res.status(200).json({ success: true });
+
+  } catch (error) {
+    console.error('Admin login error:', error.message);
+    console.error('Stack:', error.stack);
+    return res.status(500).json({ error: 'Server error', detail: error.message });
   }
-
-  if (!valid) {
-    return res.status(401).json({ error: 'Invalid code. Try again.' });
-  }
-
-  // Reset IP rate limit on success
-  await sb.from('rate_limits').delete().eq('key', RATE_KEY(ip));
-
-  await sb
-    .from('admin_users')
-    .update({ last_login: new Date().toISOString(), login_attempts: 0, locked_until: null })
-    .eq('id', admin.id);
-
-  const token    = randomBytes(32).toString('hex');
-  const tokenHash = hashToken(token);
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
-
-  await sb.from('admin_sessions').insert({
-    admin_id:   admin.id,
-    token_hash: tokenHash,
-    expires_at: expiresAt,
-    ip_address: ip,
-  });
-
-  res.setHeader(
-    'Set-Cookie',
-    `admin_session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${8 * 60 * 60}`
-  );
-
-  return res.status(200).json({ success: true });
 }
