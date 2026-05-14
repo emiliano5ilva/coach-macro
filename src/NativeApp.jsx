@@ -75,10 +75,13 @@ function AuthScreen({onAuth, startView="welcome"}) {
       if(view==="signup"){
         const{data,error:e}=await sb.auth.signUp({email,password});
         if(e)throw e;
-        if(data.user){track(EVENTS.USER_SIGNUP,{method:"email"},data.user.id);onAuth(data.user,name.trim());}
+        if(!data?.user?.id)throw new Error("Sign up succeeded but no account was returned. Please try signing in.");
+        track(EVENTS.USER_SIGNUP,{method:"email"},data.user.id);
+        setView("verify-email");
       }else{
         const{data,error:e}=await sb.auth.signInWithPassword({email,password});
         if(e)throw e;
+        if(!data?.user?.id)throw new Error("Sign in succeeded but no session was returned. Please try again.");
         track(EVENTS.USER_LOGIN,{method:"email"},data.user.id);
         onAuth(data.user,null);
       }
@@ -153,6 +156,45 @@ function AuthScreen({onAuth, startView="welcome"}) {
     <button onClick={()=>handleOAuth("google")} disabled={!!oauthLoading} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"14px",background:"rgba(245,245,240,0.06)",color:"var(--white)",fontWeight:700,fontSize:14,letterSpacing:"0.04em",border:"1px solid var(--white-border)",borderRadius:13,cursor:"pointer",fontFamily:"var(--body)",transition:"opacity .15s"}}>
       <GoogleSVG/>{oauthLoading==="google"?"Redirecting…":"Continue with Google"}
     </button>
+  );
+
+  const [resendCooldown,setResendCooldown]=useState(0);
+  async function handleResendVerification(){
+    if(resendCooldown>0||!email)return;
+    setLoading(true);setError("");
+    try{
+      const{error:e}=await sb.auth.resend({type:"signup",email});
+      if(e)throw e;
+      setResendCooldown(60);
+      const iv=setInterval(()=>setResendCooldown(c=>{if(c<=1){clearInterval(iv);return 0;}return c-1;}),1000);
+    }catch(e){setError(getErrorMessage(e));}
+    setLoading(false);
+  }
+
+  if(view==="verify-email") return(
+    <div style={outer}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
+        <div style={{fontSize:52,marginBottom:16}}>✉️</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:.9,marginBottom:16,textTransform:"uppercase"}}>Check Your<br/><span style={{color:"var(--red)"}}>Email.</span></div>
+        <p style={{fontSize:14,color:"var(--white-dim)",marginBottom:8,lineHeight:1.65}}>
+          We sent a verification link to<br/><strong style={{color:"#fff"}}>{email}</strong>
+        </p>
+        <p style={{fontSize:13,color:"var(--white-dim)",marginBottom:28,lineHeight:1.55}}>
+          Tap the link in the email to activate your account, then come back to sign in.
+        </p>
+        {error&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#f87171",marginBottom:16}}>{error}</div>}
+        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"15px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:15,border:"none",borderRadius:13,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
+          Go to Sign In →
+        </button>
+        <button onClick={handleResendVerification} disabled={loading||resendCooldown>0} style={{width:"100%",padding:"12px",background:"rgba(245,245,240,0.06)",color:resendCooldown>0?"var(--white-dim)":"var(--white)",fontWeight:600,fontSize:14,border:"1px solid var(--white-border)",borderRadius:13,cursor:resendCooldown>0?"default":"pointer",fontFamily:"var(--body)",marginBottom:12}}>
+          {resendCooldown>0?`Resend in ${resendCooldown}s`:"Resend verification email"}
+        </button>
+        <button onClick={()=>{setView("signup");setEmail("");setPassword("");}} style={{background:"none",border:"none",color:"var(--white-dim)",fontSize:12,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>
+          Use a different email
+        </button>
+      </div>
+    </div>
   );
 
   if(view==="forgot-sent") return(
