@@ -3110,7 +3110,9 @@ Rules:
     function saveChartSettings(next) {
       setChartSettings(next);
       try { localStorage.setItem("cm_chart_settings", JSON.stringify(next)); } catch {}
-      if (user?.id) sb.from("profiles").update({chart_settings:next}).eq("id",user.id).catch(()=>{});
+      if (user?.id) sb.from("profiles").update({chart_settings:next}).eq("id",user.id)
+        .then(({error})=>{ if(error) showToast("Chart settings saved locally (sync failed)"); })
+        .catch(()=>{ showToast("Chart settings saved locally (sync failed)"); });
     }
 
     const RANGE_DAYS = { "1week":7, "1month":30, "3months":90, "all":3650 };

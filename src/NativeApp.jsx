@@ -69,7 +69,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
   async function handleEmailAuth(){
     if(view==="signup"&&!name.trim()){setError("Please enter your name.");return;}
     if(!email.trim()){setError("Please enter your email.");return;}
-    if(password.length<6){setError("Password must be at least 6 characters.");return;}
+    if(password.length<8){setError("Password must be at least 8 characters.");return;}
     setLoading(true);setError("");
     try{
       if(view==="signup"){

@@ -709,14 +709,18 @@ Rules:
 - Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.`;
 
       let adaptText = '';
-      await streamAI(prompt, 2000, "adapt_now",
-        () => {},
-        (text) => { adaptText = text; }
-      );
+      const timeout = new Promise((_,rej) => setTimeout(() => rej(new Error("Adaptation timed out. Try again.")), 25000));
+      await Promise.race([
+        streamAI(prompt, 2000, "adapt_now",
+          () => {},
+          (text) => { adaptText = text; }
+        ),
+        timeout,
+      ]);
       const m = adaptText.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("No JSON");
+      if (!m) throw new Error("AI returned an unexpected response. Try again.");
       const parsed = JSON.parse(m[0]);
-      if (!parsed.adapted_exercises?.length) throw new Error("No exercises");
+      if (!parsed.adapted_exercises?.length) throw new Error("No exercises in adapted plan. Try again.");
       track(EVENTS.AI_ADAPT_NOW,{reason:selectedReason,changes:parsed.changes?.length,exercises:parsed.adapted_exercises.length});
       setResult(parsed); setScreen("results");
     } catch(e) {
