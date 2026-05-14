@@ -1389,6 +1389,50 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [showCalendarPrompt,setShowCalendarPrompt]=useState(false);
   const [dismissedAlerts,setDismissedAlerts]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("dismissed_cal_alerts")||"[]"));}catch{return new Set();}});
 
+  // ── Pull-to-refresh ────────────────────────────────────────────────────────
+  const [isRefreshing,setIsRefreshing]=useState(false);
+  const pullStartY=useRef(null);
+  const appScreenRef=useRef(null);
+
+  async function refreshData(){
+    if(!user||isRefreshing)return;
+    setIsRefreshing(true);
+    hap?.();
+    const today=new Date().toISOString().split("T")[0];
+    await Promise.allSettled([
+      sb.from("food_logs").select("entries").eq("user_id",user.id).eq("date",logDate).maybeSingle()
+        .then(({data})=>{if(data?.entries)setLog(data.entries);}),
+      getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[])),
+      getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[])),
+      sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50)
+        .then(({data})=>{
+          if(data?.length){
+            setWorkoutLogsRaw(data);
+            const hist={};
+            data.forEach(w=>{
+              (w.workout?.exercises||w.entry?.exercises||[]).forEach(ex=>{
+                const k=ex.name.toLowerCase().replace(/\s+/g,"_");
+                if(!hist[k])hist[k]=[];
+                hist[k].push({date:w.date||w.logged_at,sets:ex.sets});
+              });
+            });
+            setHistory(hist);
+          }
+        }),
+    ]);
+    setIsRefreshing(false);
+  }
+
+  function onPullStart(e){
+    if(appScreenRef.current?.scrollTop===0) pullStartY.current=e.touches[0].clientY;
+  }
+  function onPullEnd(e){
+    if(pullStartY.current===null)return;
+    const delta=e.changedTouches[0].clientY-pullStartY.current;
+    pullStartY.current=null;
+    if(delta>80)refreshData();
+  }
+
   // ── Apple Health ───────────────────────────────────────────────────────────
   const [healthSnap,setHealthSnap]=useState(null);
   const [healthConnected,setHealthConnected]=useState(false);
@@ -3596,7 +3640,8 @@ Rules:
           onDismiss={()=>setShowAdaptationModal(false)}
         />
       )}
-      <div className="app-screen grid-bg">
+      <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd}>
+        {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)}/></ErrorBoundary>}
