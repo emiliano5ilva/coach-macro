@@ -7,6 +7,7 @@ import ForecastSection       from './sections/ForecastSection.jsx';
 import SupportSection        from './sections/SupportSection.jsx';
 import CompetitionIntel      from './sections/CompetitionIntel.jsx';
 import SessionsSection       from './sections/SessionsSection.jsx';
+import AgentsSection         from './sections/Agents.jsx';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -751,6 +752,11 @@ const NAV_GROUPS = [
       { id: 'competition', label: 'Competition', icon: '◎' },
     ]
   },
+  { label: 'AI',
+    items: [
+      { id: 'agents', label: 'AI Agents', icon: '◈' },
+    ]
+  },
   { label: 'System',
     items: [
       { id: 'infra',    label: 'Infrastructure', icon: '⬡' },
@@ -780,6 +786,7 @@ const SECTION_COMPONENTS = {
   support:     WrappedSupport,
   sessions:    WrappedSessions,
   competition: CompetitionIntel,
+  agents:      AgentsSection,
   infra:       null, // rendered specially below (needs infra props)
 };
 
