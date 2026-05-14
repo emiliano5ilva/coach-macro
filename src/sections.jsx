@@ -3379,15 +3379,21 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             {getReferralBadge(referralStats.clicked)&&<Badge type={getReferralBadge(referralStats.clicked)}/>}
           </div>}
 
-          {/* Stats row */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+          {referralStats.sent===0&&<div style={{textAlign:"center",padding:"20px 8px 16px",border:`1px dashed ${T.bd}`,borderRadius:14,marginBottom:14}}>
+            <div style={{fontSize:32,marginBottom:10}}>🎁</div>
+            <div style={{fontSize:15,fontWeight:700,color:T.txt,marginBottom:6}}>Invite friends, earn free time</div>
+            <div style={{fontSize:12,color:T.dim,lineHeight:1.6,marginBottom:4}}>Share your link — every person who clicks earns you 2 weeks free. Unlock custom icons, themes, and VERIFIED status.</div>
+          </div>}
+
+          {/* Stats row — only show once links have been sent */}
+          {referralStats.sent>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
             {[["Links Sent",referralStats.sent],["Clicked",referralStats.clicked],["Rate",referralStats.sent>0?Math.round(referralStats.clicked/referralStats.sent*100)+"%":"—"]].map(([l,v])=>(
               <div key={l} style={{background:T.s3,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.white,lineHeight:1}}>{v}</div>
                 <div style={{fontSize:9,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em",marginTop:3,textTransform:"uppercase"}}>{l}</div>
               </div>
             ))}
-          </div>
+          </div>}
 
           {/* Share buttons */}
           <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Share &amp; earn 2 weeks free</div>

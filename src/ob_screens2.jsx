@@ -3085,7 +3085,11 @@ Rules:
               {latest
                 ?<><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1}}>{latest.weight}<span style={{fontSize:14,fontWeight:400,color:"rgba(245,245,240,0.45)",marginLeft:4}}>{wUnit}</span></div>
                   <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginTop:2}}>Last: {new Date(latest.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div></>
-                :<div style={{fontSize:13,color:"rgba(245,245,240,0.45)"}}>No entries yet</div>}
+                :<div style={{textAlign:"center",padding:"8px 0 4px"}}>
+                  <div style={{fontSize:28,marginBottom:6}}>⚖️</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"rgba(245,245,240,0.65)"}}>No weight logged yet</div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,0.35)",marginTop:3}}>Log daily to see your trend</div>
+                </div>}
             </div>
             <button onClick={()=>setBwModal(true)} style={{padding:"8px 16px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.05em"}}>+ Log</button>
           </div>
@@ -3179,18 +3183,32 @@ Rules:
     },[chartSettings, chartCategory]);
 
     const wUnit = profile?.wUnit||"lbs";
+    const hasWorkoutData = filteredLogs.length >= 3;
+    const hasBodyweightData = bodyweightLogs.length >= 2;
+
+    function ChartNoData({icon="🏋️",heading,sub,ctaLabel,ctaAction}){
+      return(
+        <div style={{textAlign:"center",padding:"40px 20px 32px"}}>
+          <div style={{fontSize:36,marginBottom:12,opacity:0.6}}>{icon}</div>
+          <div style={{fontSize:15,fontWeight:700,color:"rgba(245,245,240,0.65)",marginBottom:6}}>{heading}</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,0.35)",maxWidth:240,margin:"0 auto",lineHeight:1.6}}>{sub}</div>
+          {ctaLabel&&ctaAction&&<button onClick={ctaAction} style={{marginTop:18,padding:"10px 24px",background:"var(--red)",color:"#fff",border:"none",borderRadius:20,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{ctaLabel}</button>}
+        </div>
+      );
+    }
+
     function renderChart(key) {
       switch(key) {
-        case "flux_range":       return <FluxRangeChart workoutLogsRaw={filteredLogs} wUnit={wUnit}/>;
-        case "peak_performance": return <PeakPerformanceChart workoutLogsRaw={filteredLogs}/>;
-        case "body_comp_vector": return <BodyCompositionVector workoutLogsRaw={filteredLogs} bodyweightLogs={bodyweightLogs} wUnit={wUnit}/>;
+        case "flux_range":       return !hasWorkoutData?<ChartNoData icon="📈" heading="Complete 3+ workouts first" sub="This chart tracks your strength progress over time. Log a few sessions to see it come to life." ctaLabel="Start Workout" ctaAction={()=>setSection("train")}/>:<FluxRangeChart workoutLogsRaw={filteredLogs} wUnit={wUnit}/>;
+        case "peak_performance": return !hasWorkoutData?<ChartNoData icon="⚡" heading="Not enough data yet" sub="Peak Performance needs at least 3 logged sessions to model your fitness and fatigue balance." ctaLabel="Log a Workout" ctaAction={()=>setSection("train")}/>:<PeakPerformanceChart workoutLogsRaw={filteredLogs}/>;
+        case "body_comp_vector": return (!hasWorkoutData||!hasBodyweightData)?<ChartNoData icon="🧬" heading="Log workouts and weight" sub="This chart needs both workout history and daily weigh-ins to show your body composition direction."/>:<BodyCompositionVector workoutLogsRaw={filteredLogs} bodyweightLogs={bodyweightLogs} wUnit={wUnit}/>;
         case "muscle_volume":    return <MuscleVolumeChart userId={user?.id}/>;
-        case "goal_cone":        return <GoalProbabilityCone workoutLogsRaw={filteredLogs} wUnit={wUnit}/>;
-        case "balance_check":    return <BalanceCheck workoutLogsRaw={filteredLogs} wUnit={wUnit} onViewExercises={()=>setSection("train")}/>;
+        case "goal_cone":        return !hasWorkoutData?<ChartNoData icon="🎯" heading="Build your baseline first" sub="Log 3+ sessions so we can model your rate of progress and project your goal timeline." ctaLabel="Log a Workout" ctaAction={()=>setSection("train")}/>:<GoalProbabilityCone workoutLogsRaw={filteredLogs} wUnit={wUnit}/>;
+        case "balance_check":    return !hasWorkoutData?<ChartNoData icon="⚖️" heading="Log a full week first" sub="Balance Check needs workouts across multiple muscle groups to detect push/pull and upper/lower imbalances."/>:<BalanceCheck workoutLogsRaw={filteredLogs} wUnit={wUnit} onViewExercises={()=>setSection("train")}/>;
         case "injury_risk":      return <InjuryRiskReport risks={injuryData?.risks} muscleSetCounts={injuryData?.muscleSetCounts}/>;
-        case "weight_trend":     return <WeightTrendChart bodyweightLogs={bodyweightLogs} profile={profile} wUnit={wUnit}/>;
+        case "weight_trend":     return !hasBodyweightData?<ChartNoData icon="⚖️" heading="Log your weight daily" sub="Track your weight for at least 2 days to see your trend line and filter out daily fluctuations."/>:<WeightTrendChart bodyweightLogs={bodyweightLogs} profile={profile} wUnit={wUnit}/>;
         case "macro_calendar":   return <MacroCalendarHeatmap userId={user?.id} profile={profile}/>;
-        case "nutrition_perf":   return <NutritionPerformanceChart userId={user?.id} profile={profile} workoutLogsRaw={filteredLogs}/>;
+        case "nutrition_perf":   return !hasWorkoutData?<ChartNoData icon="🥗" heading="Log food and workouts" sub="This chart correlates what you eat with how you train 48 hours later. It needs both data streams."/>:<NutritionPerformanceChart userId={user?.id} profile={profile} workoutLogsRaw={filteredLogs}/>;
         case "sleep_perf":       return <SleepPerformanceChart userId={user?.id}/>;
         default: return null;
       }
