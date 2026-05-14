@@ -1,88 +1,103 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash, randomBytes } from 'crypto';
+import { authenticator } from 'otplib';
 
 const sb = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-const hashPassword = (password) =>
-  createHash('sha256')
-    .update(password + process.env.ADMIN_SALT)
-    .digest('hex');
+const hashToken = (t) => createHash('sha256').update(t).digest('hex');
 
-const hashToken = (token) =>
-  createHash('sha256').update(token).digest('hex');
+const RATE_KEY   = (ip) => `admin_login:${ip}`;
+const MAX_TRIES  = 5;
+const WINDOW_SEC = 15 * 60;
+
+async function checkIpLimit(ip) {
+  const key = RATE_KEY(ip);
+  const { data } = await sb
+    .from('rate_limits')
+    .select('count, reset_at')
+    .eq('key', key)
+    .maybeSingle();
+
+  const now = new Date();
+  if (data && new Date(data.reset_at) > now) {
+    if (data.count >= MAX_TRIES) {
+      return { allowed: false, resetIn: Math.ceil((new Date(data.reset_at) - now) / 1000) };
+    }
+    await sb.from('rate_limits').update({ count: data.count + 1 }).eq('key', key);
+  } else {
+    const reset_at = new Date(Date.now() + WINDOW_SEC * 1000).toISOString();
+    await sb.from('rate_limits').upsert({ key, count: 1, reset_at }, { onConflict: 'key' });
+  }
+  return { allowed: true };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
 
-  const { email, password } = req.body || {};
-  const ip =
-    req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
-  }
-
-  const { data: admin } = await sb
-    .from('admin_users')
-    .select('*')
-    .eq('email', email.toLowerCase().trim())
-    .maybeSingle();
-
-  // Account locked check
-  if (admin?.locked_until && new Date(admin.locked_until) > new Date()) {
-    const minutesLeft = Math.ceil(
-      (new Date(admin.locked_until) - new Date()) / 60000
-    );
+  const limit = await checkIpLimit(ip);
+  if (!limit.allowed) {
     return res.status(429).json({
-      error: `Account locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`,
+      error: `Too many attempts. Try again in ${Math.ceil(limit.resetIn / 60)} minute(s).`,
     });
   }
 
-  const passwordHash = hashPassword(password);
-  const validPassword = admin?.password_hash === passwordHash;
+  const { code } = req.body || {};
+  if (!code) return res.status(400).json({ error: 'Code required' });
 
-  if (!admin || !validPassword) {
-    if (admin) {
-      const attempts = (admin.login_attempts || 0) + 1;
-      const locked = attempts >= 5;
-      await sb
-        .from('admin_users')
-        .update({
-          login_attempts: attempts,
-          locked_until: locked
-            ? new Date(Date.now() + 15 * 60000).toISOString()
-            : null,
-        })
-        .eq('id', admin.id);
-    }
-    // Same error regardless — prevent user enumeration
-    return res.status(401).json({ error: 'Invalid email or password' });
+  const { data: admin } = await sb
+    .from('admin_users')
+    .select('id, email, totp_secret, totp_enabled, backup_codes')
+    .eq('totp_enabled', true)
+    .maybeSingle();
+
+  if (!admin?.totp_secret) {
+    return res.status(403).json({ error: 'TOTP not configured. Complete setup first.' });
   }
 
-  // Reset failed attempts on success
+  const trimmed = code.trim();
+  let valid = false;
+
+  if (trimmed.length === 6 && /^\d{6}$/.test(trimmed)) {
+    // Standard TOTP — accept current window ±1 step for clock skew
+    valid = authenticator.verify({ token: trimmed, secret: admin.totp_secret });
+  } else if (trimmed.length === 8) {
+    // Backup code — compare against stored hashes
+    const codeHash = hashToken(trimmed.toUpperCase());
+    const codes = Array.isArray(admin.backup_codes) ? admin.backup_codes : [];
+    if (codes.includes(codeHash)) {
+      // Consume the backup code (remove it)
+      const remaining = codes.filter((c) => c !== codeHash);
+      await sb.from('admin_users').update({ backup_codes: remaining }).eq('id', admin.id);
+      valid = true;
+    }
+  }
+
+  if (!valid) {
+    return res.status(401).json({ error: 'Invalid code. Try again.' });
+  }
+
+  // Reset IP rate limit on success
+  await sb.from('rate_limits').delete().eq('key', RATE_KEY(ip));
+
   await sb
     .from('admin_users')
-    .update({
-      login_attempts: 0,
-      locked_until: null,
-      last_login: new Date().toISOString(),
-    })
+    .update({ last_login: new Date().toISOString(), login_attempts: 0, locked_until: null })
     .eq('id', admin.id);
 
-  // Generate session token
-  const token = randomBytes(32).toString('hex');
+  const token    = randomBytes(32).toString('hex');
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
 
   await sb.from('admin_sessions').insert({
-    admin_id: admin.id,
+    admin_id:   admin.id,
     token_hash: tokenHash,
     expires_at: expiresAt,
     ip_address: ip,

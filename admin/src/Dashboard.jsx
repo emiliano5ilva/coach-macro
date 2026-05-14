@@ -6,6 +6,7 @@ import UserHealthSection     from './sections/UserHealthSection.jsx';
 import ForecastSection       from './sections/ForecastSection.jsx';
 import SupportSection        from './sections/SupportSection.jsx';
 import CompetitionIntel      from './sections/CompetitionIntel.jsx';
+import SessionsSection       from './sections/SessionsSection.jsx';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -688,6 +689,7 @@ function WrappedGrowth()       { const s = useSection('growth');      return <Gr
 function WrappedUserHealth()   { const s = useSection('user-health'); return <UserHealthSection   {...s} />; }
 function WrappedForecast()     { const s = useSection('forecast');    return <ForecastSection     {...s} />; }
 function WrappedSupport()      { const s = useSection('support');     return <SupportSection      {...s} />; }
+function WrappedSessions()     { const s = useSection('sessions');    return <SessionsSection     {...s} />; }
 
 // ── Global alert banners ───────────────────────────────────────────────────────
 
@@ -751,9 +753,10 @@ const NAV_GROUPS = [
   },
   { label: 'System',
     items: [
-      { id: 'infra',   label: 'Infrastructure', icon: '⬡' },
-      { id: 'health',  label: 'Logs',           icon: '♥' },
-      { id: 'support', label: 'Support',         icon: '✉' },
+      { id: 'infra',    label: 'Infrastructure', icon: '⬡' },
+      { id: 'health',   label: 'Logs',           icon: '♥' },
+      { id: 'support',  label: 'Support',        icon: '✉' },
+      { id: 'sessions', label: 'Sessions',       icon: '⚿' },
     ]
   },
 ];
@@ -775,6 +778,7 @@ const SECTION_COMPONENTS = {
   'user-health': WrappedUserHealth,
   forecast:    WrappedForecast,
   support:     WrappedSupport,
+  sessions:    WrappedSessions,
   competition: CompetitionIntel,
   infra:       null, // rendered specially below (needs infra props)
 };

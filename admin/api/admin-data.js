@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       case 'user-health':return res.json(await getUserHealth());
       case 'forecast':   return res.json(await getForecast());
       case 'support':    return res.json(await getSupport());
+      case 'sessions':   return res.json(await getSessions(session));
       default:
         return res.status(400).json({ error: 'Invalid section' });
     }
@@ -612,5 +613,32 @@ async function getSupport() {
     thisWeek:    weekRes?.count    || 0,
     recent:      recentRes?.data   || [],
     categories:  catCounts,
+  };
+}
+
+// ── SESSIONS ──────────────────────────────────────────────────────────────────
+
+async function getSessions(currentSession) {
+  const { data: sessions } = await sb
+    .from('admin_sessions')
+    .select('id, token_hash, ip_address, created_at, expires_at')
+    .eq('admin_id', currentSession.admin_id)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+
+  return {
+    current: {
+      id:         currentSession.id,
+      ip:         currentSession.ip_address,
+      startedAt:  currentSession.created_at,
+      expiresAt:  currentSession.expires_at,
+    },
+    all: (sessions || []).map((s) => ({
+      id:         s.id,
+      ip:         s.ip_address,
+      startedAt:  s.created_at,
+      expiresAt:  s.expires_at,
+      isCurrent:  s.id === currentSession.id,
+    })),
   };
 }
