@@ -20,6 +20,7 @@ import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDIT
 import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
 import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN } from "./utils/warmupProtocols.js";
 import { getAIErrorMessage } from "./utils/errors.js";
+import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -458,9 +459,11 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
   );
 }
 
+// ProgramLibraryScreen is imported from ./ProgramLibrary.jsx
+// Legacy CATEGORY_ORDER kept in case other code references it
 const CATEGORY_ORDER=["Hypertrophy","Strength","Fat Loss & Conditioning","Running","Hyrox","Hybrid","Glute Focus"];
 
-function ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen}){
+function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen}){
   const [confirmProg,setConfirmProg]=useState(null);
   const [switching,setSwitching]=useState(false);
 
@@ -1336,6 +1339,22 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function startLongPress(exerciseName,exerciseIdx){longPressTimer.current=setTimeout(()=>openDetail(exerciseName,exerciseIdx),500);}
   function cancelLongPress(){if(longPressTimer.current){clearTimeout(longPressTimer.current);longPressTimer.current=null;}}
 
+  // ── Custom routine session handoff ──────────────────────────────────────
+  useEffect(()=>{
+    if(trainScreen==="active"){
+      try{
+        const raw=sessionStorage.getItem("cm_custom_routine_session");
+        if(raw){
+          const parsed=JSON.parse(raw);
+          sessionStorage.removeItem("cm_custom_routine_session");
+          if(parsed?.exercises?.length&&!activeWorkout){
+            setActiveWorkout({title:parsed.title||"Custom Routine",exercises:parsed.exercises});
+          }
+        }
+      }catch{}
+    }
+  },[trainScreen]);
+
   // ── Favorites & Swap state ───────────────────────────────────────────────
   const favorites=wPrefs.favorites||[];
   const permanentSwaps=wPrefs.permanentSwaps||{};
@@ -1691,13 +1710,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {/* Toast */}
       {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(41,121,255,.4)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
 
-      <div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto"}}>
+      {trainScreen!=="routine-builder"&&<div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto"}}>
         {TRAIN_TABS.map(tab=>(
           <button key={tab.id} onClick={()=>setTrainScreen(tab.id)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",background:trainScreen===tab.id?T.carb:"none",color:trainScreen===tab.id?"#000":T.mu,fontSize:13,fontWeight:600,whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0}}>{tab.l}</button>
         ))}
-      </div>
+      </div>}
 
-      <div style={{padding:isMobile?"12px 18px":"0"}}>
+      <div style={{padding:trainScreen==="routine-builder"?0:isMobile?"12px 18px":"0"}}>
 
         {/* ── Resume Workout Prompt ── */}
         {resumePrompt&&!activeWorkout&&(
@@ -2177,7 +2196,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── LIBRARY ── */}
-        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen}/>}
+        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user}/>}
+
+        {/* ── CUSTOM ROUTINE BUILDER ── */}
+        {trainScreen==="routine-builder"&&<CustomRoutineBuilder user={user} setTrainScreen={setTrainScreen} onSaved={()=>{}} />}
 
         {/* ── PROGRESS ── */}
         {trainScreen==="progress"&&(
