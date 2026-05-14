@@ -18,6 +18,8 @@ import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
+import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
+import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
 import { getAIErrorMessage } from "./utils/errors.js";
@@ -1342,6 +1344,11 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [briefDismissed,setBriefDismissed]=useState(()=>localStorage.getItem("brief_dismissed")===new Date().toISOString().split("T")[0]);
   const [briefTrigger,setBriefTrigger]=useState(0);
 
+  // ── Biological Algorithm ───────────────────────────────────────────────────
+  const [bioInsights,setBioInsights]=useState({});
+  const [bioDataCounts,setBioDataCounts]=useState({});
+  const [bioScreen,setBioScreen]=useState(false);
+
   // ── Apple Health ───────────────────────────────────────────────────────────
   const [healthSnap,setHealthSnap]=useState(null);
   const [healthConnected,setHealthConnected]=useState(false);
@@ -1453,6 +1460,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     // Water logs
     getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[]));
     getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[]));
+    // Biological Algorithm — load insights and data point counts
+    Promise.all([getInsights(user.id),getDataPointCounts(user.id)]).then(([ins,cnts])=>{
+      setBioInsights(ins||{});setBioDataCounts(cnts||{});
+    }).catch(()=>{});
     // Mark dashboard as loaded after data arrives
     setTimeout(()=>setDashboardLoaded(true),300);
   },[user]);
@@ -1878,6 +1889,23 @@ Rules:
         had_pr:prs.length>0,total_volume:Math.round(totalVolume),
       },user.id);
 
+      // Biological Algorithm — record data points from this session
+      if(user){
+        const perfScore=calcPerformanceScore(activeWorkout.exercises,history);
+        recordWorkoutBioData(user.id,{
+          sleepHours:healthSnap?.sleep??null,
+          readinessTier:activeWorkout.readinessTier||null,
+          workoutStartTime,
+          performanceScore:perfScore,
+          exercises:activeWorkout.exercises||[],
+        }).then(()=>{
+          // Refresh insights after recording
+          Promise.all([getInsights(user.id),getDataPointCounts(user.id)]).then(([ins,cnts])=>{
+            setBioInsights(ins||{});setBioDataCounts(cnts||{});
+          }).catch(()=>{});
+        }).catch(()=>{});
+      }
+
       // Priority 7: notification permission after first workout
       const isNative=typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()===true;
       if(isNative&&!localStorage.getItem("first_workout_done")){
@@ -2136,9 +2164,46 @@ Rules:
           </div>
         )}
 
-        {/* Morning Adjustment Banner */}
+        {/* Morning Adjustment Banner — with Biological Algorithm personalization */}
         {healthSnap&&(()=>{
           const adj=getMorningAdjustment({sleep:healthSnap.sleep,hrv:healthSnap.hrv});
+          const sleepInsight=bioInsights?.sleep_performance?.insight_value;
+          const sleepHours=healthSnap.sleep;
+
+          // Personalized bio insight overrides generic banner when available
+          if(sleepInsight&&sleepHours!=null){
+            const sweet=sleepInsight.sweetSpotKey;
+            const belowSweet=(sweet==="over_8"&&sleepHours<8)||(sweet==="7_to_8"&&sleepHours<7)||(sweet==="6_to_7"&&sleepHours<6);
+            const perfImp=sleepInsight.performanceImprovement||0;
+            if(belowSweet&&perfImp>5){
+              const expectedDrop=Math.round(perfImp*((sleepInsight.sweetSpotKey==="over_8"?8:sleepInsight.sweetSpotKey==="7_to_8"?7.5:6.5)-sleepHours)/1.5);
+              return(
+                <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:12,display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <span style={{fontSize:20,flexShrink:0}}>💤</span>
+                  <div>
+                    <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:"#EF4444"}}>Below YOUR Sleep Sweet Spot</div>
+                    <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>
+                      You slept {parseFloat(sleepHours).toFixed(1)}h — below your personal {sleepInsight.sweetSpot} sweet spot. Expect ~{Math.max(5,expectedDrop)}% lower performance today. Session adjusted.
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            if(!belowSweet&&adj.type==="normal"){
+              return(
+                <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontSize:20}}>🧬</span>
+                  <div>
+                    <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:"#22c55e"}}>In Your Sweet Spot</div>
+                    <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>
+                      {parseFloat(sleepHours).toFixed(1)}h sleep — your personal optimal. Based on YOUR data: expect strong performance today.
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          }
+
           if(adj.type==="normal")return null;
           const isReduce=adj.type==="reduce";
           return(
@@ -2626,6 +2691,29 @@ Rules:
           );
         })()}
 
+        {/* ── BIOLOGICAL ALGORITHM CARD ── */}
+        {(()=>{
+          const unlockedCount=Object.keys(bioInsights).length;
+          const totalDataPts=Object.values(bioDataCounts).reduce((a,v)=>a+v,0);
+          const hasInsights=unlockedCount>0;
+          return(
+            <div onClick={()=>setBioScreen(true)} style={{margin:"0 20px 14px",padding:"16px 18px",background:hasInsights?"linear-gradient(135deg,rgba(123,104,238,.08),rgba(41,121,255,.05))":"rgba(255,255,255,.02)",border:`1px solid ${hasInsights?"rgba(123,104,238,.3)":"rgba(255,255,255,.07)"}`,borderRadius:16,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{fontSize:28,flexShrink:0}}>🧬</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"var(--condensed)",fontSize:15,fontWeight:800,letterSpacing:".04em",color:hasInsights?"#fff":"rgba(245,245,240,.5)",textTransform:"uppercase",marginBottom:3}}>
+                  {hasInsights?"Your Biological Algorithm":"Algorithm Unlocking..."}
+                </div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,.45)"}}>
+                  {hasInsights
+                    ?`${unlockedCount}/5 insights · ${totalDataPts} data points collected`
+                    :`${totalDataPts} data points collected — keep training to unlock`}
+                </div>
+              </div>
+              <div style={{fontSize:14,color:hasInsights?"rgba(123,104,238,.8)":"rgba(255,255,255,.2)",flexShrink:0}}>›</div>
+            </div>
+          );
+        })()}
+
         {/* ── SCORE RING CARD ── */}
         <div onClick={()=>setShowScoreModal(true)} style={{margin:"0 20px 14px",padding:"28px 20px 20px",background:"var(--navy-card)",border:`1px solid ${ringColor}30`,borderRadius:20,textAlign:"center",cursor:"pointer"}}>
           <ScoreRing score={sc.total}/>
@@ -2877,6 +2965,7 @@ Rules:
       </div>
 
       {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal}/>}
+      {bioScreen&&<BioAlgorithmScreen user={user} profile={profile} onClose={()=>setBioScreen(false)}/>}
       <div className="app-screen grid-bg">
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length}/></ErrorBoundary>}
