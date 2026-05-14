@@ -1330,6 +1330,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [city,setCity]=useState(profile.city||"");
   const [workout,setWorkout]=useState(""); const [workoutLoading,setWorkoutLoading]=useState(false);
   const [dashboardLoaded,setDashboardLoaded]=useState(false);
+  const [workoutsLoaded,setWorkoutsLoaded]=useState(false);
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [restTimer,setRestTimer]=useState(0); const [restActive,setRestActive]=useState(false);
   const restInterval=useRef(null);
@@ -1559,6 +1560,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         });
         setHistory(hist);
       }
+      setWorkoutsLoaded(true);
     });
     // Bodyweight logs — last 90 days
     sb.from("bodyweight_logs").select("date,weight").eq("user_id",user.id).order("date",{ascending:true}).limit(90).then(({data})=>{
@@ -3556,13 +3558,16 @@ Rules:
         })()}
 
         {/* ── CHART STACK — ordered & filtered by settings ── */}
-        {orderedChartKeys.map(key=>(
-          <ChartWrap key={key} chartKey={key}
-            onHide={()=>saveChartSettings({...chartSettings,visible_charts:{...chartSettings.visible_charts,[key]:false}})}
-            onExplain={()=>setExplainChartKey(key)}>
-            {renderChart(key)}
-          </ChartWrap>
-        ))}
+        {!workoutsLoaded
+          ?<ProgressSkeleton/>
+          :orderedChartKeys.map(key=>(
+            <ChartWrap key={key} chartKey={key}
+              onHide={()=>saveChartSettings({...chartSettings,visible_charts:{...chartSettings.visible_charts,[key]:false}})}
+              onExplain={()=>setExplainChartKey(key)}>
+              {renderChart(key)}
+            </ChartWrap>
+          ))
+        }
 
         {/* Chart settings overlay */}
         {chartSettingsOpen&&(
