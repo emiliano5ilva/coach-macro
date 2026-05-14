@@ -260,6 +260,8 @@ export const GLOBAL_CSS = `
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html,body,#root{height:100%}
+  button,a,[role=button]{min-height:44px;min-width:44px}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
   body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(74,144,226,0.06),transparent 50%)}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}

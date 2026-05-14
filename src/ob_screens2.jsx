@@ -3684,7 +3684,7 @@ Rules:
       </div>
       <div className="app-tab-bar">
         {NAV_ITEMS.map(item=>(
-          <button key={item.id} className={`app-tab${section===item.id?" active":""}`} onClick={()=>setSection(item.id)}>
+          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}`} onClick={()=>setSection(item.id)}>
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <TabIcon name={item.icon} size={22}/>
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:"#F5A623",border:"2px solid var(--navy)"}}/>}
