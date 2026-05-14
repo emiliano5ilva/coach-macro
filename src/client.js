@@ -62,7 +62,6 @@ export async function ai(prompt, max = 900, feature = "default") {
     feature,
     messages: [{ role: "user", content: prompt }],
   });
-  console.log('Calling /api/claude with:', body.slice(0, 200));
   const headers = { "Content-Type": "application/json" };
   if (session?.user?.id) headers["x-user-id"] = session.user.id;
   const response = await fetch("/api/claude", {
@@ -70,9 +69,7 @@ export async function ai(prompt, max = 900, feature = "default") {
     headers,
     body,
   });
-  console.log('Response status:', response.status);
   const text = await response.text();
-  console.log('Raw response:', text.slice(0, 300));
   const d = JSON.parse(text);
   if (response.status === 402) {
     window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));

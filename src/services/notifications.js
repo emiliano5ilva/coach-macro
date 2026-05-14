@@ -32,8 +32,8 @@ export async function initPushNotifications(userId) {
       console.error('[Push] registration error:', err);
     });
 
-    Push.addListener('pushNotificationReceived', (notification) => {
-      console.log('[Push] received in foreground:', notification);
+    Push.addListener('pushNotificationReceived', (_notification) => {
+      // handled via UI dispatch in pushNotificationActionPerformed
     });
 
     Push.addListener('pushNotificationActionPerformed', (action) => {

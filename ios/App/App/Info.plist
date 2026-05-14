@@ -33,8 +33,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -57,6 +55,10 @@
 	<string>Coach Macro uses speech recognition to convert your voice into food and workout entries so logging is fast and effortless.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Coach Macro lets you attach progress photos to your check-ins to visually track your body composition over time.</string>
+	<key>NSCalendarUsageDescription</key>
+	<string>Coach Macro reads your calendar to detect travel, high-stress weeks, and busy days so it can automatically adjust your training schedule and nutrition targets around your real life.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Coach Macro sends rest-timer alerts between sets, your daily morning brief, and reminders to hit your nutrition targets.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

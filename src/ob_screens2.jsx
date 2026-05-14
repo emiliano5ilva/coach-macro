@@ -1516,7 +1516,6 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const {error}=await sb.from("food_logs")
       .upsert({user_id:uid,date:today,entries},{onConflict:"user_id,date"});
     if(error)console.error("[saveFoodLog] error:",error.message,error.code);
-    else console.log("[saveFoodLog] saved",entries.length,"entries");
   }
 
   function handlePhotoLog(entries){
@@ -1546,7 +1545,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const today=new Date().toISOString().split("T")[0];
     // Workout history — last 50 sessions
     sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50).then(({data,error})=>{
-      console.log("[loadWorkoutHistory] rows:",data?.length||0,"error:",error?.message);
+      if(error)console.error("[loadWorkoutHistory] error:",error.message);
       if(data&&data.length>0){
         setWorkoutLogsRaw(data);
         const hist={};
@@ -2175,7 +2174,6 @@ Rules:
             date:new Date().toISOString().split("T")[0],
             workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData}
           });
-          console.log("[finishWorkout] saved",setsLogged.length,"exercises to Supabase");
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
 

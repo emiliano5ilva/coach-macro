@@ -3044,7 +3044,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {onConflict:"id"}
       );
       if(error){console.error("[saveSettings] error:",error.message);showToast("Couldn't save — check your connection","error");}
-      else{console.log("[saveSettings] saved");setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);showToast("Preferences saved","success");}
+      else{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);showToast("Preferences saved","success");}
     }catch(e){console.error("[saveSettings] exception:",e);showToast("Couldn't save — check your connection","error");}
   }
 
