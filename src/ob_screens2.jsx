@@ -35,6 +35,7 @@ import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
 import { BodyCompositionVector, GoalProbabilityCone, BalanceCheck } from "./ProgressCharts2.jsx";
 import { NutritionPerformanceChart, WeightTrendChart, MacroCalendarHeatmap, SleepPerformanceChart } from "./ProgressCharts3.jsx";
+import ChartSettingsScreen, { CHART_REGISTRY, DEFAULT_SETTINGS as CHART_DEFAULT_SETTINGS, ChartWrap, ChartExplainModal } from "./screens/ChartSettings.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -3065,6 +3066,63 @@ Rules:
 
   function ProgressSection() {
     const sc = coachScore;
+
+    // ── Chart settings state ─────────────────────────────────────────────────
+    const [chartSettings, setChartSettings] = useState(()=>{
+      try {
+        const s = localStorage.getItem("cm_chart_settings");
+        if (s) return { ...CHART_DEFAULT_SETTINGS, ...JSON.parse(s) };
+      } catch {}
+      return { ...CHART_DEFAULT_SETTINGS, ...(profile?.chart_settings||{}) };
+    });
+    const [chartCategory,    setChartCategory]    = useState("all");
+    const [chartSettingsOpen,setChartSettingsOpen] = useState(false);
+    const [explainChartKey,  setExplainChartKey]   = useState(null);
+
+    function saveChartSettings(next) {
+      setChartSettings(next);
+      try { localStorage.setItem("cm_chart_settings", JSON.stringify(next)); } catch {}
+      if (user?.id) sb.from("profiles").update({chart_settings:next}).eq("id",user.id).catch(()=>{});
+    }
+
+    const RANGE_DAYS = { "1week":7, "1month":30, "3months":90, "all":3650 };
+    const filteredLogs = useMemo(()=>{
+      const days = RANGE_DAYS[chartSettings.time_range] || 30;
+      const cutoff = new Date(Date.now()-days*864e5).toISOString().split("T")[0];
+      return (workoutLogsRaw||[]).filter(l=>l.date>=cutoff);
+    },[workoutLogsRaw, chartSettings.time_range]);
+
+    const orderedChartKeys = useMemo(()=>{
+      const order = chartSettings.chart_order || CHART_REGISTRY.map(c=>c.key);
+      return order.filter(key=>{
+        if (chartSettings.visible_charts?.[key]===false) return false;
+        if (chartCategory!=="all") {
+          const reg = CHART_REGISTRY.find(c=>c.key===key);
+          if (!reg || reg.category!==chartCategory) return false;
+        }
+        return true;
+      });
+    },[chartSettings, chartCategory]);
+
+    const wUnit = profile?.wUnit||"lbs";
+    function renderChart(key) {
+      switch(key) {
+        case "flux_range":       return <FluxRangeChart workoutLogsRaw={filteredLogs} wUnit={wUnit}/>;
+        case "peak_performance": return <PeakPerformanceChart workoutLogsRaw={filteredLogs}/>;
+        case "body_comp_vector": return <BodyCompositionVector workoutLogsRaw={filteredLogs} bodyweightLogs={bodyweightLogs} wUnit={wUnit}/>;
+        case "muscle_volume":    return <MuscleVolumeChart userId={user?.id}/>;
+        case "goal_cone":        return <GoalProbabilityCone workoutLogsRaw={filteredLogs} wUnit={wUnit}/>;
+        case "balance_check":    return <BalanceCheck workoutLogsRaw={filteredLogs} wUnit={wUnit} onViewExercises={()=>setSection("train")}/>;
+        case "injury_risk":      return <InjuryRiskReport risks={injuryData?.risks} muscleSetCounts={injuryData?.muscleSetCounts}/>;
+        case "weight_trend":     return <WeightTrendChart bodyweightLogs={bodyweightLogs} profile={profile} wUnit={wUnit}/>;
+        case "macro_calendar":   return <MacroCalendarHeatmap userId={user?.id} profile={profile}/>;
+        case "nutrition_perf":   return <NutritionPerformanceChart userId={user?.id} profile={profile} workoutLogsRaw={filteredLogs}/>;
+        case "sleep_perf":       return <SleepPerformanceChart userId={user?.id}/>;
+        default: return null;
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const ringColor = sc.total>=90?"#FFD700":sc.total>=85?"#00B894":sc.total>=70?"#4A90E2":sc.total>=50?"#F5A623":"#EF4444";
     const dateStr = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"});
     const todayStr = new Date().toISOString().split("T")[0];
@@ -3150,6 +3208,16 @@ Rules:
             <div className="header-eyebrow">// Daily Performance</div>
             <div className="header-title">Progress</div>
           </div>
+          <button onClick={()=>setChartSettingsOpen(true)} title="Customize charts" style={{background:"none",border:"1px solid rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 10px",color:"rgba(245,245,240,0.50)",cursor:"pointer",fontSize:16,flexShrink:0,lineHeight:1}}>⊞</button>
+        </div>
+
+        {/* Category filter pills */}
+        <div style={{display:"flex",gap:6,overflowX:"auto",padding:"0 20px 12px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+          {[{id:"all",label:"All"},{id:"overview",label:"Overview"},{id:"strength",label:"Strength"},{id:"nutrition",label:"Nutrition"},{id:"recovery",label:"Recovery"}].map(({id,label})=>(
+            <button key={id} onClick={()=>setChartCategory(id)} style={{flexShrink:0,padding:"5px 14px",borderRadius:20,background:chartCategory===id?"var(--red)":"rgba(255,255,255,0.06)",border:chartCategory===id?"none":"1px solid rgba(255,255,255,0.10)",color:chartCategory===id?"white":"rgba(245,245,240,0.55)",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",lineHeight:1.4}}>
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* ── MILESTONE CELEBRATION ── */}
@@ -3384,38 +3452,28 @@ Rules:
           );
         })()}
 
-        {/* ── FLUX RANGE CHART ── */}
-        <FluxRangeChart workoutLogsRaw={workoutLogsRaw} wUnit={profile?.wUnit||"lbs"}/>
+        {/* ── CHART STACK — ordered & filtered by settings ── */}
+        {orderedChartKeys.map(key=>(
+          <ChartWrap key={key} chartKey={key}
+            onHide={()=>saveChartSettings({...chartSettings,visible_charts:{...chartSettings.visible_charts,[key]:false}})}
+            onExplain={()=>setExplainChartKey(key)}>
+            {renderChart(key)}
+          </ChartWrap>
+        ))}
 
-        {/* ── PEAK PERFORMANCE TIMING ── */}
-        <PeakPerformanceChart workoutLogsRaw={workoutLogsRaw}/>
+        {/* Chart settings overlay */}
+        {chartSettingsOpen&&(
+          <ChartSettingsScreen
+            settings={chartSettings}
+            onSave={saveChartSettings}
+            onClose={()=>setChartSettingsOpen(false)}
+          />
+        )}
 
-        {/* ── BODY COMPOSITION VECTOR ── */}
-        <BodyCompositionVector workoutLogsRaw={workoutLogsRaw} bodyweightLogs={bodyweightLogs} wUnit={profile?.wUnit||"lbs"}/>
-
-        {/* ── GOAL PROBABILITY CONE ── */}
-        <GoalProbabilityCone workoutLogsRaw={workoutLogsRaw} wUnit={profile?.wUnit||"lbs"}/>
-
-        {/* ── BALANCE CHECK ── */}
-        <BalanceCheck workoutLogsRaw={workoutLogsRaw} wUnit={profile?.wUnit||"lbs"} onViewExercises={()=>setSection("train")}/>
-
-        {/* ── NUTRITION × PERFORMANCE ── */}
-        <NutritionPerformanceChart userId={user?.id} profile={profile} workoutLogsRaw={workoutLogsRaw}/>
-
-        {/* ── WEIGHT TREND ── */}
-        <WeightTrendChart bodyweightLogs={bodyweightLogs} profile={profile} wUnit={profile?.wUnit||"lbs"}/>
-
-        {/* ── MACRO CALENDAR HEATMAP ── */}
-        <MacroCalendarHeatmap userId={user?.id} profile={profile}/>
-
-        {/* ── SLEEP vs PERFORMANCE ── */}
-        <SleepPerformanceChart userId={user?.id}/>
-
-        {/* ── MUSCLE VOLUME CHART ── */}
-        <MuscleVolumeChart userId={user?.id}/>
-
-        {/* ── INJURY RISK REPORT ── */}
-        <InjuryRiskReport risks={injuryData?.risks} muscleSetCounts={injuryData?.muscleSetCounts}/>
+        {/* Explain overlay */}
+        {explainChartKey&&(
+          <ChartExplainModal chartKey={explainChartKey} onClose={()=>setExplainChartKey(null)}/>
+        )}
 
         {/* ── INJURY HISTORY + ACWR RISKS ── */}
         <InjuryHistorySection

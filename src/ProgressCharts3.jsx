@@ -77,7 +77,7 @@ function bandPath(upper, lower) {
 // Shared card wrapper
 function ChartCard({ title, subtitle, children, style={} }) {
   return (
-    <div style={{background:T.s1,borderRadius:16,padding:"16px 16px 14px",marginBottom:16,border:`1px solid ${T.bd}`,...style}}>
+    <div style={{background:T.s1,borderRadius:16,padding:"16px 16px 14px",margin:"0 20px 14px",border:`1px solid ${T.bd}`,...style}}>
       {title&&<div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:CC.white,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:2}}>{title}</div>}
       {subtitle&&<div style={{fontSize:11,color:T.mu,marginBottom:10}}>{subtitle}</div>}
       {children}
