@@ -33,6 +33,7 @@ import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, ge
 import { getAIErrorMessage } from "./utils/errors.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
+import { BodyCompositionVector, GoalProbabilityCone, BalanceCheck } from "./ProgressCharts2.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -3387,6 +3388,15 @@ Rules:
 
         {/* ── PEAK PERFORMANCE TIMING ── */}
         <PeakPerformanceChart workoutLogsRaw={workoutLogsRaw}/>
+
+        {/* ── BODY COMPOSITION VECTOR ── */}
+        <BodyCompositionVector workoutLogsRaw={workoutLogsRaw} bodyweightLogs={bodyweightLogs} wUnit={profile?.wUnit||"lbs"}/>
+
+        {/* ── GOAL PROBABILITY CONE ── */}
+        <GoalProbabilityCone workoutLogsRaw={workoutLogsRaw} wUnit={profile?.wUnit||"lbs"}/>
+
+        {/* ── BALANCE CHECK ── */}
+        <BalanceCheck workoutLogsRaw={workoutLogsRaw} wUnit={profile?.wUnit||"lbs"} onViewExercises={()=>setSection("train")}/>
 
         {/* ── MUSCLE VOLUME CHART ── */}
         <MuscleVolumeChart userId={user?.id}/>
