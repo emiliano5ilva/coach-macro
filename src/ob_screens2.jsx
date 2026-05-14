@@ -20,6 +20,8 @@ import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget 
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
 import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
 import { calculatePRProbability, generateWeeklyForecast, calculateGoalTrajectories, calcNutritionAdherence7d, trackPredictionOutcome } from "./services/predictionEngine.js";
+import { detectMetabolicAdaptation, generateAdaptationProtocol, buildProtocolPhases, saveDetectedAdaptation, getActiveAdaptation, dismissAdaptation, startProtocol as startMetabolicProtocol, completeProtocol, getProtocolProgress } from "./services/metabolicAdaptation.js";
+import { MetabolicAdaptationBanner, MetabolicAdaptationModal, MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
@@ -1355,6 +1357,11 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [weeklyForecast,setWeeklyForecast]=useState([]);
   const [goalTrajectories,setGoalTrajectories]=useState({strength:null,bodyComp:null,running:null});
 
+  // ── Metabolic Adaptation Intelligence ─────────────────────────────────────
+  const [metabolicAdaptation,setMetabolicAdaptation]=useState(null);
+  const [showAdaptationModal,setShowAdaptationModal]=useState(false);
+  const [adaptationChecking,setAdaptationChecking]=useState(false);
+
   // ── Apple Health ───────────────────────────────────────────────────────────
   const [healthSnap,setHealthSnap]=useState(null);
   const [healthConnected,setHealthConnected]=useState(false);
@@ -1480,6 +1487,34 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     }).catch(()=>{});
     // Mark dashboard as loaded after data arrives
     setTimeout(()=>setDashboardLoaded(true),300);
+
+    // Metabolic Adaptation — load existing active/detected, then run weekly check
+    getActiveAdaptation(user.id).then(existing=>{
+      if(existing)setMetabolicAdaptation(existing);
+    }).catch(()=>{});
+    const lastCheck=localStorage.getItem("ma_last_check");
+    const shouldCheck=!lastCheck||(Date.now()-parseInt(lastCheck))>7*864e5;
+    if(shouldCheck&&profile){
+      setAdaptationChecking(true);
+      detectMetabolicAdaptation(user.id,profile).then(async plateau=>{
+        localStorage.setItem("ma_last_check",String(Date.now()));
+        setAdaptationChecking(false);
+        if(!plateau)return;
+        // Already have an active protocol? Don't re-detect
+        const existing=await getActiveAdaptation(user.id);
+        if(existing)return;
+        // Generate protocol (phases computed locally, AI explanation async)
+        const phases=buildProtocolPhases(plateau);
+        const saved=await saveDetectedAdaptation(user.id,plateau,{phases,explanation:"",estimatedWeeklyLoss:phases.estimatedWeeklyLoss});
+        if(saved)setMetabolicAdaptation(saved);
+        // Enrich with AI explanation in background
+        generateAdaptationProtocol(plateau,profile).then(({explanation,phases:p})=>{
+          const enriched={...saved,protocol:{phases:p,explanation,estimatedWeeklyLoss:p.estimatedWeeklyLoss}};
+          setMetabolicAdaptation(enriched);
+          sb.from("metabolic_adaptations").update({protocol:enriched.protocol}).eq("id",saved.id).catch(()=>{});
+        }).catch(()=>{});
+      }).catch(()=>{setAdaptationChecking(false);});
+    }
   },[user]);
 
   // ── Session Prediction — compute when entering active session ─────────────
@@ -2006,6 +2041,43 @@ Rules:
     }
   }
 
+  // ── Metabolic Adaptation handlers ─────────────────────────────────────────
+  async function handleStartMetabolicProtocol(){
+    if(!metabolicAdaptation||!user)return;
+    const phases=metabolicAdaptation.protocol?.phases;
+    if(!phases?.phase1?.calories)return;
+    // Update profile goalCals to phase 1 calories
+    const newCals=phases.phase1.calories;
+    try{
+      await sb.from("profiles").upsert({id:user.id,goalCals:newCals,updated_at:new Date().toISOString()},{onConflict:"id"});
+      await startMetabolicProtocol(metabolicAdaptation.id);
+      const updated={...metabolicAdaptation,status:"active",started_at:new Date().toISOString()};
+      setMetabolicAdaptation(updated);
+      setShowAdaptationModal(false);
+      showToast("Metabolic reset protocol started 🔥","success",{duration:5000});
+      track(EVENTS.FEATURE_USED||"metabolic_adaptation.started",{phases:3},user.id);
+    }catch(e){console.error("[handleStartMetabolicProtocol]",e);}
+  }
+
+  async function handleDismissAdaptation(){
+    if(!metabolicAdaptation)return;
+    await dismissAdaptation(metabolicAdaptation.id).catch(()=>{});
+    setMetabolicAdaptation(null);
+    setShowAdaptationModal(false);
+  }
+
+  async function handleCompleteAdaptation(){
+    if(!metabolicAdaptation)return;
+    // Restore to phase 3 calories permanently
+    const phase3Cals=metabolicAdaptation.protocol?.phases?.phase3?.calories;
+    if(phase3Cals&&user){
+      await sb.from("profiles").upsert({id:user.id,goalCals:phase3Cals,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+    }
+    await completeProtocol(metabolicAdaptation.id).catch(()=>{});
+    setMetabolicAdaptation(null);
+    showToast("Metabolic reset complete ✓ New deficit active","success",{duration:5000});
+  }
+
   async function handleDeloadComplete(){
     const now=new Date().toISOString();
     setDeloadActive(false);setDeloadStartedAt(null);
@@ -2217,6 +2289,29 @@ Rules:
             </div>
           </div>
         )}
+
+        {/* ── METABOLIC ADAPTATION BANNER ── */}
+        {metabolicAdaptation&&metabolicAdaptation.status==="detected"&&(
+          <MetabolicAdaptationBanner
+            adaptation={metabolicAdaptation}
+            onView={()=>setShowAdaptationModal(true)}
+            onDismiss={handleDismissAdaptation}
+          />
+        )}
+
+        {/* ── METABOLIC RESET PROGRESS (while protocol active) ── */}
+        {metabolicAdaptation&&metabolicAdaptation.status==="active"&&(()=>{
+          const progress=getProtocolProgress(metabolicAdaptation);
+          if(!progress)return null;
+          return(
+            <div style={{margin:"0 20px 14px"}}>
+              <MetabolicResetProgressCard
+                progress={progress}
+                onComplete={handleCompleteAdaptation}
+              />
+            </div>
+          );
+        })()}
 
         {/* ── PAST SECTION — Your Last 30 Days ── */}
         {workoutLogsRaw.length>0&&(()=>{
@@ -3143,10 +3238,17 @@ Rules:
 
       {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal}/>}
       {bioScreen&&<BioAlgorithmScreen user={user} profile={profile} onClose={()=>setBioScreen(false)}/>}
+      {showAdaptationModal&&metabolicAdaptation&&(
+        <MetabolicAdaptationModal
+          adaptation={metabolicAdaptation}
+          onStartProtocol={handleStartMetabolicProtocol}
+          onDismiss={()=>setShowAdaptationModal(false)}
+        />
+      )}
       <div className="app-screen grid-bg">
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null}/></ErrorBoundary>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/></ErrorBoundary>}
       </div>

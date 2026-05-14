@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FlagBtn } from "./FlagBtn.jsx";
+import { MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
   FoodSearchSkeleton, AIContentSkeleton, EmptyState, hap, calcTDEE } from "./components.jsx";
@@ -1090,7 +1091,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -1670,6 +1671,14 @@ Reply with ONLY a valid JSON object, no markdown:
                   </div>
                 )}
               </div>
+            )}
+
+            {/* METABOLIC RESET PROGRESS */}
+            {metabolicProtocol?.progress&&(
+              <MetabolicResetProgressCard
+                progress={metabolicProtocol.progress}
+                onComplete={metabolicProtocol.onComplete}
+              />
             )}
 
             {/* NUTRITION PERIODIZATION */}
