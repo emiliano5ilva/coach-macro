@@ -72,13 +72,15 @@ export const DEFAULT_SETTINGS = {
   analyst_options: { show_ctl_atl: false, show_formulas: false, show_confidence: false },
 };
 
-// ── ChartWrap — adds ⋮ menu to any chart card ─────────────────────────────────
+// ── ChartWrap — adds ⋮ menu and tap-to-expand to any chart card ───────────────
 export function ChartWrap({ chartKey, onHide, onExplain, children }) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div style={{ position: "relative" }}>
       {children}
-      {/* 3-dot button: top-right corner, inside the 20px card margin */}
+      {/* 3-dot button */}
       <button
         onPointerDown={e => { e.stopPropagation(); setOpen(o => !o); }}
         style={{
@@ -101,11 +103,26 @@ export function ChartWrap({ chartKey, onHide, onExplain, children }) {
             borderRadius: 12, padding: "4px 0", minWidth: 168,
             boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
           }}>
-            <DropBtn onClick={() => { onExplain(); setOpen(false); }}>Explain this chart</DropBtn>
+            <DropBtn onClick={() => { setExpanded(true); setOpen(false); }}>Expand chart</DropBtn>
+            <DropBtn onClick={() => { onExplain(chartKey); setOpen(false); }}>Explain this chart</DropBtn>
             <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "3px 0" }} />
             <DropBtn onClick={() => { onHide(); setOpen(false); }} danger>Hide this chart</DropBtn>
           </div>
         </>
+      )}
+
+      {/* Full-screen expanded view */}
+      {expanded && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "#060D1A", overflowY: "auto" }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 10, background: "#060D1A", padding: "max(52px,env(safe-area-inset-top)) 20px 12px", display: "flex", justifyContent: "flex-end" }}>
+            <button onClick={() => setExpanded(false)} style={{ background: "rgba(245,245,240,0.08)", border: "1px solid rgba(245,245,240,0.12)", borderRadius: 20, padding: "8px 18px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              Close ×
+            </button>
+          </div>
+          <div style={{ transform: "scale(1.05)", transformOrigin: "top center", paddingBottom: 48 }}>
+            {children}
+          </div>
+        </div>
       )}
     </div>
   );
