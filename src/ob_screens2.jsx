@@ -32,6 +32,7 @@ import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPre
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
+import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -3380,6 +3381,12 @@ Rules:
             </div>
           );
         })()}
+
+        {/* ── FLUX RANGE CHART ── */}
+        <FluxRangeChart workoutLogsRaw={workoutLogsRaw} wUnit={profile?.wUnit||"lbs"}/>
+
+        {/* ── PEAK PERFORMANCE TIMING ── */}
+        <PeakPerformanceChart workoutLogsRaw={workoutLogsRaw}/>
 
         {/* ── MUSCLE VOLUME CHART ── */}
         <MuscleVolumeChart userId={user?.id}/>
