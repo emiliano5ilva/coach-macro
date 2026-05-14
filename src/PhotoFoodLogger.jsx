@@ -518,6 +518,7 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) 
 
   async function handleLog(items, totals) {
     const photoUrl = user?.id ? await uploadPhoto(user.id, capturedBase64) : null;
+    if (user?.id && !photoUrl) showToast("Items logged — photo thumbnail upload failed");
 
     const entries = items.map(item => ({
       id: Date.now() + Math.random(),
@@ -532,7 +533,7 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) 
     }));
 
     onLog(entries);
-    showToast(`Logged ${items.length} item${items.length !== 1 ? "s" : ""} from photo`);
+    if (photoUrl) showToast(`Logged ${items.length} item${items.length !== 1 ? "s" : ""} from photo`);
   }
 
   function handleRetake() {

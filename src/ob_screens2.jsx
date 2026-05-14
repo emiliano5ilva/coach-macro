@@ -1389,6 +1389,16 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [showCalendarPrompt,setShowCalendarPrompt]=useState(false);
   const [dismissedAlerts,setDismissedAlerts]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("dismissed_cal_alerts")||"[]"));}catch{return new Set();}});
 
+  // ── Offline detection ─────────────────────────────────────────────────────
+  const [isOnline,setIsOnline]=useState(()=>typeof navigator!=="undefined"?navigator.onLine:true);
+  useEffect(()=>{
+    const goOnline=()=>setIsOnline(true);
+    const goOffline=()=>setIsOnline(false);
+    window.addEventListener("online",goOnline);
+    window.addEventListener("offline",goOffline);
+    return()=>{window.removeEventListener("online",goOnline);window.removeEventListener("offline",goOffline);};
+  },[]);
+
   // ── Pull-to-refresh ────────────────────────────────────────────────────────
   const [isRefreshing,setIsRefreshing]=useState(false);
   const pullStartY=useRef(null);
@@ -3658,7 +3668,11 @@ Rules:
           onDismiss={()=>setShowAdaptationModal(false)}
         />
       )}
-      <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd}>
+      {!isOnline&&<div style={{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"rgba(239,68,68,0.95)",padding:"max(env(safe-area-inset-top),10px) 16px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,backdropFilter:"blur(8px)"}}>
+        <span style={{fontSize:14}}>📡</span>
+        <span style={{fontSize:13,fontWeight:700,color:"#fff",letterSpacing:"0.03em"}}>No internet connection — data may be outdated</span>
+      </div>}
+      <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
