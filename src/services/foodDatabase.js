@@ -1,7 +1,5 @@
 import { sb } from "../supabase.js";
 
-const USDA_BASE = "https://api.nal.usda.gov/fdc/v1";
-const USDA_KEY = "DEMO_KEY"; // Get a free key at api.nal.usda.gov
 const OFF_BASE = "https://world.openfoodfacts.org";
 
 // ── Smart serving sizes for common foods ─────────────────────────────────────
@@ -142,7 +140,7 @@ export const QUICK_FOODS = {
   ],
 };
 
-// ── USDA FoodData Central ─────────────────────────────────────────────────────
+// ── USDA FoodData Central (proxied through server to keep API key secret) ─────
 
 const getNutrient = (nutrients, nutrientId) => {
   const n = nutrients?.find(n => n.nutrientId === nutrientId || n.nutrient?.id === nutrientId);
@@ -151,11 +149,13 @@ const getNutrient = (nutrients, nutrientId) => {
 
 const searchUSDA = async (query) => {
   try {
-    const url = `${USDA_BASE}/foods/search?query=${encodeURIComponent(query)}&dataType=Foundation,SR%20Legacy&pageSize=10&api_key=${USDA_KEY}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const API_BASE = typeof import.meta !== "undefined" ? (import.meta.env?.VITE_API_BASE || "") : "";
+    const res = await fetch(`${API_BASE}/api/food-search-usda?query=${encodeURIComponent(query)}`, {
+      signal: AbortSignal.timeout(6000),
+    });
     if (!res.ok) return [];
     const data = await res.json();
-    if (!data.foods) return [];
+    if (!Array.isArray(data.foods)) return [];
     return data.foods
       .filter(f => f.foodNutrients?.length > 0)
       .map(food => ({
@@ -235,14 +235,16 @@ export const searchFoods = async (query) => {
     }
   } catch {}
   try {
-    const [usdaResults, offResults] = await Promise.allSettled([
+    const settled = await Promise.allSettled([
       searchUSDA(query),
       searchOpenFoodFacts(query),
     ]);
-    const combined = [
-      ...(usdaResults.value || []),
-      ...(offResults.value || []),
-    ];
+    settled.forEach((r, i) => {
+      if (r.status === "rejected") console.warn(`[searchFoods] source ${i} failed:`, r.reason);
+    });
+    const combined = settled.flatMap(r =>
+      r.status === "fulfilled" && Array.isArray(r.value) ? r.value : []
+    );
     const results = deduplicateFoods(combined).slice(0, 20);
     try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: results })); } catch {}
     return results;
