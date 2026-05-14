@@ -2,7 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyAdminSession } from './admin-verify.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SERVICE_ROLE_KEY;
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_KEY;
+
+console.log('All env vars available:', Object.keys(process.env).filter(k => k.includes('SUPA') || k.includes('SERVICE')));
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   throw new Error(

@@ -3,8 +3,14 @@ import { createHash, randomBytes } from 'crypto';
 import { authenticator } from 'otplib';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SERVICE_ROLE_KEY;
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_KEY;
 
+console.log('All env vars available:', Object.keys(process.env).filter(k => k.includes('SUPA') || k.includes('SERVICE')));
 console.log('Supabase URL found:', !!SUPABASE_URL);
 console.log('Supabase Key found:', !!SUPABASE_KEY);
 
