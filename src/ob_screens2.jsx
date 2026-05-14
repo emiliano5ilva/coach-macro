@@ -19,6 +19,7 @@ import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorie
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
 import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
+import { calculatePRProbability, generateWeeklyForecast, calculateGoalTrajectories, calcNutritionAdherence7d, trackPredictionOutcome } from "./services/predictionEngine.js";
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
@@ -1349,6 +1350,11 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [bioDataCounts,setBioDataCounts]=useState({});
   const [bioScreen,setBioScreen]=useState(false);
 
+  // ── Predictive Performance Engine ─────────────────────────────────────────
+  const [sessionPrediction,setSessionPrediction]=useState(null);
+  const [weeklyForecast,setWeeklyForecast]=useState([]);
+  const [goalTrajectories,setGoalTrajectories]=useState({strength:null,bodyComp:null,running:null});
+
   // ── Apple Health ───────────────────────────────────────────────────────────
   const [healthSnap,setHealthSnap]=useState(null);
   const [healthConnected,setHealthConnected]=useState(false);
@@ -1463,10 +1469,54 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     // Biological Algorithm — load insights and data point counts
     Promise.all([getInsights(user.id),getDataPointCounts(user.id)]).then(([ins,cnts])=>{
       setBioInsights(ins||{});setBioDataCounts(cnts||{});
+      // Predictive Performance Engine — load with bio insights for personalization
+      Promise.all([
+        generateWeeklyForecast(user.id,ins||{},schedule,null),
+        calculateGoalTrajectories(user.id,profile||{}),
+      ]).then(([forecast,trajectories])=>{
+        setWeeklyForecast(forecast||[]);
+        setGoalTrajectories(trajectories||{strength:null,bodyComp:null,running:null});
+      }).catch(()=>{});
     }).catch(()=>{});
     // Mark dashboard as loaded after data arrives
     setTimeout(()=>setDashboardLoaded(true),300);
   },[user]);
+
+  // ── Session Prediction — compute when entering active session ─────────────
+  useEffect(()=>{
+    if(trainScreen!=="active"||!user)return;
+    async function buildPrediction(){
+      try{
+        const adherence=await calcNutritionAdherence7d(user.id);
+        const{data:lastLog}=await sb.from("workout_logs").select("date").eq("user_id",user.id).order("date",{ascending:false}).limit(1);
+        const lastDate=lastLog?.[0]?.date;
+        const recoveryDays=lastDate?Math.max(0,Math.floor((Date.now()-new Date(lastDate+"T12:00:00"))/864e5)):2;
+        const readinessTierToStress=t=>{
+          if(!t)return 3;
+          const s={excellent:1,good:2,train:3,reduce:4,rest:5};
+          return typeof t==="string"?s[t]||3:t;
+        };
+        const prob=calculatePRProbability({
+          sleepHours:healthSnap?.sleep??null,
+          hrv:healthSnap?.hrv??null,
+          recoveryDaysSinceLast:recoveryDays,
+          nutritionAdherence:adherence,
+          stressLevel:readinessTierToStress(activeWorkout?.readinessTier),
+          mesocycleWeek:wPrefs?.mesocycleWeek||2,
+          currentHour:new Date().getHours(),
+        },bioInsights);
+        const factors=[
+          {label:"Sleep",ok:healthSnap?.sleep!=null?(healthSnap.sleep>=7?true:healthSnap.sleep>=6?null:false):null},
+          {label:"Recovery",ok:recoveryDays>=2?true:recoveryDays===1?null:false},
+          {label:"Nutrition",ok:adherence>=0.8?true:adherence>=0.5?null:false},
+          {label:"HRV",ok:healthSnap?.hrv!=null?(healthSnap.hrv>=50?true:healthSnap.hrv>=35?null:false):null},
+          {label:"Stress",ok:readinessTierToStress(activeWorkout?.readinessTier)<=2?true:readinessTierToStress(activeWorkout?.readinessTier)<=3?null:false},
+        ].filter(f=>f.ok!==null);
+        setSessionPrediction({probability:prob,factors});
+      }catch{setSessionPrediction(null);}
+    }
+    buildPrediction();
+  },[trainScreen,user,activeWorkout?.readinessTier]);
 
   // ── Morning Brief ───────────────────────────────────────────────────────────
   useEffect(()=>{
@@ -1892,6 +1942,10 @@ Rules:
       // Biological Algorithm — record data points from this session
       if(user){
         const perfScore=calcPerformanceScore(activeWorkout.exercises,history);
+        // Prediction accuracy tracking
+        if(sessionPrediction?.probability!=null){
+          trackPredictionOutcome(user.id,sessionPrediction.probability,perfScore).catch(()=>{});
+        }
         recordWorkoutBioData(user.id,{
           sleepHours:healthSnap?.sleep??null,
           readinessTier:activeWorkout.readinessTier||null,
@@ -2164,6 +2218,47 @@ Rules:
           </div>
         )}
 
+        {/* ── PAST SECTION — Your Last 30 Days ── */}
+        {workoutLogsRaw.length>0&&(()=>{
+          const now=new Date();
+          const cutoff=new Date(now.getFullYear(),now.getMonth(),now.getDate()-30);
+          const last30=workoutLogsRaw.filter(w=>new Date(w.date+"T12:00:00")>=cutoff);
+          const sessionsCount=last30.length;
+          const totalSetsAll=last30.reduce((a,w)=>(w.workout?.exercises||[]).reduce((b,ex)=>b+(ex.sets?.length||0),a),0);
+          // Nutrition adherence: logged days in last 30
+          const loggedDays=new Set(log.filter(l=>{const d=new Date(l.date+"T12:00:00");return d>=cutoff;}).map(l=>l.date)).size;
+          const nutPct=Math.round((loggedDays/30)*100);
+          // Strength gain: compare avg session volume this 15d vs prior 15d
+          const mid=new Date(now.getFullYear(),now.getMonth(),now.getDate()-15);
+          const recent=last30.filter(w=>new Date(w.date+"T12:00:00")>=mid);
+          const older=last30.filter(w=>new Date(w.date+"T12:00:00")<mid);
+          const avgVol=arr=>arr.length?arr.reduce((a,w)=>(w.workout?.exercises||[]).reduce((b,ex)=>b+(ex.sets||[]).filter(s=>s.done).reduce((c,s)=>c+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0),a),0)/arr.length:0;
+          const volGain=older.length&&recent.length?Math.round((avgVol(recent)-avgVol(older))/Math.max(avgVol(older),1)*100):null;
+          if(!sessionsCount)return null;
+          return(
+            <div style={{margin:"0 20px 14px"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                <span>// PAST · LAST 30 DAYS</span>
+                <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                <div style={{background:"rgba(34,197,94,.07)",border:"1px solid rgba(34,197,94,.15)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:"#22c55e",lineHeight:1}}>{sessionsCount}</div>
+                  <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Sessions</div>
+                </div>
+                <div style={{background:"rgba(59,130,246,.07)",border:"1px solid rgba(59,130,246,.15)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:"#3b82f6",lineHeight:1}}>{nutPct}%</div>
+                  <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Nutrition</div>
+                </div>
+                <div style={{background:volGain!=null&&volGain>=0?"rgba(245,158,11,.07)":"rgba(239,68,68,.07)",border:`1px solid ${volGain!=null&&volGain>=0?"rgba(245,158,11,.15)":"rgba(239,68,68,.15)"}`,borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:volGain!=null&&volGain>=0?"#f59e0b":"#ef4444",lineHeight:1}}>{volGain!=null?`${volGain>=0?"+":""}${volGain}%`:"—"}</div>
+                  <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Strength</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Morning Adjustment Banner — with Biological Algorithm personalization */}
         {healthSnap&&(()=>{
           const adj=getMorningAdjustment({sleep:healthSnap.sleep,hrv:healthSnap.hrv});
@@ -2430,6 +2525,88 @@ Rules:
             </div>
           ))}
         </div>
+
+        {/* ── FUTURE SECTION ── */}
+        {(sessionPrediction||weeklyForecast.length>0||goalTrajectories.strength||goalTrajectories.bodyComp)&&(()=>{
+          const todayProb=sessionPrediction?.probability??weeklyForecast.find(d=>d.isTraining&&d.probability!=null)?.probability;
+          const probColor=todayProb>=75?"#22c55e":todayProb>=50?"#3b82f6":"#f59e0b";
+          const trainingDays=weeklyForecast.filter(d=>d.isTraining&&d.probability!=null);
+          return(
+            <div style={{margin:"0 20px 14px"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                <span>// FUTURE</span>
+                <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
+              </div>
+
+              {/* Today's PR probability */}
+              {todayProb!=null&&todayType==="training"&&(
+                <div style={{background:`${probColor}0d`,border:`1px solid ${probColor}25`,borderRadius:14,padding:"14px 16px",marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:20,color:probColor,textTransform:"uppercase",letterSpacing:".04em"}}>
+                      {todayProb>=75?"🔥 STRONG DAY":todayProb>=50?"💪 SOLID SESSION":"⚡ RECOVERY SESSION"}
+                    </div>
+                    <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:28,color:probColor}}>{todayProb}%</div>
+                  </div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,.45)"}}>PR probability · based on sleep, recovery, nutrition & your biology</div>
+                </div>
+              )}
+
+              {/* Weekly forecast grid */}
+              {trainingDays.length>0&&(
+                <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"12px 14px",marginBottom:10}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.14em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:10}}>This Week's Forecast</div>
+                  <div style={{display:"grid",gridTemplateColumns:`repeat(${trainingDays.length},1fr)`,gap:6}}>
+                    {trainingDays.map((d,i)=>{
+                      const c=d.probability>=75?"#22c55e":d.probability>=50?"#3b82f6":"#f59e0b";
+                      const isToday3=d.date===new Date().toISOString().split("T")[0];
+                      return(
+                        <div key={i} style={{textAlign:"center",background:`${c}12`,borderRadius:10,padding:"8px 4px",border:`1px solid ${isToday3?c+"50":"transparent"}`}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,.45)",letterSpacing:".1em",marginBottom:4}}>{d.wday.toUpperCase()}</div>
+                          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:18,color:c,lineHeight:1}}>{d.probability}%</div>
+                          <div style={{fontSize:8,color:"rgba(245,245,240,.3)",marginTop:2}}>PR PROB</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Goal trajectories */}
+              {(goalTrajectories.strength||goalTrajectories.bodyComp)&&(
+                <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"12px 14px"}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.14em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:10}}>Goal Trajectories</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {goalTrajectories.strength&&(
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Strength</div>
+                          <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>{goalTrajectories.strength.weeklyGainPct>0?"+":""}{goalTrajectories.strength.weeklyGainPct}% per session avg</div>
+                        </div>
+                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.strength.trend==="up"?"#22c55e":goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(255,255,255,.05)"}}>
+                          {goalTrajectories.strength.trend==="up"?"↗ PROGRESSING":goalTrajectories.strength.trend==="down"?"↘ DECLINING":"→ STABLE"}
+                        </div>
+                      </div>
+                    )}
+                    {goalTrajectories.bodyComp&&(
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Body Comp</div>
+                          <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>
+                            {Math.abs(goalTrajectories.bodyComp.weeklyChange)<0.05?"Weight stable":`${goalTrajectories.bodyComp.weeklyChange>0?"+":""}${goalTrajectories.bodyComp.weeklyChange.toFixed(1)}${goalTrajectories.bodyComp.wUnit}/wk`}
+                            {goalTrajectories.bodyComp.weeksToGoal&&` · ~${goalTrajectories.bodyComp.weeksToGoal}w to goal`}
+                          </div>
+                        </div>
+                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.bodyComp.trend==="gaining"?"#f59e0b":goalTrajectories.bodyComp.trend==="losing"?"#22c55e":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(255,255,255,.05)"}}>
+                          {goalTrajectories.bodyComp.trend==="gaining"?"↗ GAINING":goalTrajectories.bodyComp.trend==="losing"?"↘ LOSING":"→ STABLE"}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Quick actions */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 24px"}}>
@@ -2968,7 +3145,7 @@ Rules:
       {bioScreen&&<BioAlgorithmScreen user={user} profile={profile} onClose={()=>setBioScreen(false)}/>}
       <div className="app-screen grid-bg">
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate}/></ErrorBoundary>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/></ErrorBoundary>}

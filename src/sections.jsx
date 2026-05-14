@@ -1327,7 +1327,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction}) {
   const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
@@ -2020,6 +2020,39 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </div>
                   </div>
                 );})()}
+
+                {/* Pre-session prediction card */}
+                {sessionPrediction!=null&&(()=>{
+                  const p=sessionPrediction;
+                  const isStrong=p.probability>=75;
+                  const isSolid=p.probability>=50&&p.probability<75;
+                  const color=isStrong?"#22c55e":isSolid?"#3b82f6":"#f59e0b";
+                  const badge=isStrong?"🔥 STRONG DAY":isSolid?"💪 SOLID SESSION":"⚡ RECOVERY SESSION";
+                  const sub=isStrong?"Conditions aligned — PR opportunity today":isSolid?"Good session likely — execute your plan":"Suboptimal conditions — focus on technique";
+                  const factors=p.factors||[];
+                  return(
+                    <div style={{background:`${color}0d`,border:`1.5px solid ${color}30`,borderRadius:14,padding:"12px 16px",marginBottom:12}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                        <div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:15,color,letterSpacing:".06em",textTransform:"uppercase"}}>{badge} — {p.probability}% PR PROBABILITY</div>
+                          <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginTop:2}}>{sub}</div>
+                        </div>
+                      </div>
+                      {factors.length>0&&(
+                        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                          {factors.map((f,fi)=>(
+                            <span key={fi} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
+                              background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(255,255,255,.06)",
+                              color:f.ok?"#22c55e":f.ok===false?"#ef4444":"rgba(245,245,240,.4)",
+                              border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(255,255,255,.1)"}`}}>
+                              {f.ok?"✓":f.ok===false?"✗":"—"} {f.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Momentum bar */}
                 <MomentumBar activeWorkout={activeWorkout} history={history}/>
