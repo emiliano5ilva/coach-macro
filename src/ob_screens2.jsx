@@ -82,7 +82,7 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
       {label:"Base BMR",val:tdee.bmr,color:T.prot},
       {label:"Activity & NEAT",val:Math.round(tdee.total*.35),color:T.carb},
       {label:"Exercise",val:Math.round(tdee.total*.2),color:T.fat},
-      {label:"Thermic Effect",val:tdee.tef,color:"#9B59FF"},
+      {label:"Thermic Effect",val:tdee.tef,color:"#7E57C2"},
     ];
     const maxV=Math.max(...vars.map(v=>v.val));
     return(
@@ -232,9 +232,9 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
           </div>
         ))}
         <PrimaryBtn onClick={next} label="Continue →" disabled={hc.length===0} style={{marginTop:8}}/>
-        <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:10,padding:"10px 14px",marginTop:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+        <div style={{background:"rgba(74,144,226,.07)",border:"1px solid rgba(74,144,226,.2)",borderRadius:10,padding:"10px 14px",marginTop:14,display:"flex",gap:10,alignItems:"flex-start"}}>
           <span style={{fontSize:14,flexShrink:0}}>💙</span>
-          <div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>Your answers are used only to personalize your experience. Coach Macro is not a medical service — always consult a qualified healthcare professional for medical advice.</div>
+          <div style={{fontSize:11,color:"rgba(74,144,226,.9)",lineHeight:1.6}}>Your answers are used only to personalize your experience. Coach Macro is not a medical service — always consult a qualified healthcare professional for medical advice.</div>
         </div>
         {fact&&<FactCard emoji={fact.emoji} stat={fact.stat} text={fact.text} color={T.prot}/>}
       </div>
@@ -480,10 +480,10 @@ function analyzeDeload(logs, profile, schedule) {
 
 function DeloadCard({signals, onStart, onDismiss}) {
   return (
-    <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"#0d1508",border:"1px solid rgba(234,179,8,0.3)",borderLeft:"3px solid #EAB308",borderRadius:"4px 14px 14px 4px"}}>
+    <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"#0d1508",border:"1px solid rgba(245,166,35,0.3)",borderLeft:"3px solid #F5A623",borderRadius:"4px 14px 14px 4px"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
         <span style={{fontSize:14}}>⚠️</span>
-        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:"#EAB308",textTransform:"uppercase",fontWeight:700}}>Deload Recommended</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:"#F5A623",textTransform:"uppercase",fontWeight:700}}>Deload Recommended</div>
       </div>
       <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:14}}>Your body is signaling recovery is needed.</div>
       <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
@@ -494,7 +494,7 @@ function DeloadCard({signals, onStart, onDismiss}) {
           </div>
         ))}
       </div>
-      <div style={{fontSize:11,color:"rgba(234,179,8,0.6)",lineHeight:1.7,marginBottom:14,fontStyle:"italic"}}>
+      <div style={{fontSize:11,color:"rgba(245,166,35,0.6)",lineHeight:1.7,marginBottom:14,fontStyle:"italic"}}>
         "This is not failure. This is strategy.<br/>Elite athletes deload every 4–8 weeks."
       </div>
       <div style={{display:"flex",gap:8}}>
@@ -507,13 +507,13 @@ function DeloadCard({signals, onStart, onDismiss}) {
 
 function DeloadActiveBadge({daysLeft, onComplete}) {
   return (
-    <div style={{margin:"0 20px 14px",padding:"14px 18px",background:"rgba(234,179,8,0.06)",border:"1px solid rgba(234,179,8,0.25)",borderLeft:"3px solid #EAB308",borderRadius:"4px 14px 14px 4px",display:"flex",alignItems:"center",gap:12}}>
+    <div style={{margin:"0 20px 14px",padding:"14px 18px",background:"rgba(245,166,35,0.06)",border:"1px solid rgba(245,166,35,0.25)",borderLeft:"3px solid #F5A623",borderRadius:"4px 14px 14px 4px",display:"flex",alignItems:"center",gap:12}}>
       <span style={{fontSize:20}}>🔄</span>
       <div style={{flex:1}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#EAB308",letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Deload Week Active</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#F5A623",letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Deload Week Active</div>
         <div style={{fontSize:12,color:"rgba(245,245,240,0.55)"}}>{daysLeft>0?`${daysLeft} day${daysLeft===1?"":"s"} remaining — 60% weights, 12–15 reps`:"Deload complete — returning to full program"}</div>
       </div>
-      {daysLeft<=0&&<button onClick={onComplete} style={{padding:"8px 14px",background:"var(--green,#22c55e)",border:"none",borderRadius:8,color:"#000",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Resume →</button>}
+      {daysLeft<=0&&<button onClick={onComplete} style={{padding:"8px 14px",background:"var(--green,#00B894)",border:"none",borderRadius:8,color:"#000",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Resume →</button>}
     </div>
   );
 }
@@ -713,7 +713,7 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
 
 function ScoreRing({score}) {
   const R=72; const C=2*Math.PI*R;
-  const color=score>=85?"#22c55e":score>=70?"#2979FF":score>=50?"#EAB308":"#EF4444";
+  const color=score>=85?"#00B894":score>=70?"#4A90E2":score>=50?"#F5A623":"#EF4444";
   return (
     <div style={{position:"relative",width:180,height:180,margin:"0 auto"}}>
       <svg width={180} height={180} style={{transform:"rotate(-90deg)",display:"block"}}>
@@ -735,10 +735,10 @@ function ScoreRing({score}) {
 
 function ScoreExplanationModal({sc, onClose}) {
   const comps=[
-    {label:"Recovery",pct:40,val:sc.r,color:"#2979FF",desc:"Based on sleep duration and quality, heart rate variability, and resting heart rate from Apple Health."},
-    {label:"Nutrition",pct:30,val:sc.n,color:"#22c55e",desc:"How close you hit your macro targets today. Protein adherence weighted higher."},
+    {label:"Recovery",pct:40,val:sc.r,color:"#4A90E2",desc:"Based on sleep duration and quality, heart rate variability, and resting heart rate from Apple Health."},
+    {label:"Nutrition",pct:30,val:sc.n,color:"#00B894",desc:"How close you hit your macro targets today. Protein adherence weighted higher."},
     {label:"Training",pct:20,val:sc.t,color:"var(--red)",desc:"Whether you completed today's scheduled session and how it compared to last week."},
-    {label:"Consistency",pct:10,val:sc.c,color:"#EAB308",desc:"How many of your planned sessions you've completed over the last 30 days."},
+    {label:"Consistency",pct:10,val:sc.c,color:"#F5A623",desc:"How many of your planned sessions you've completed over the last 30 days."},
   ];
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.92)",backdropFilter:"blur(10px)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
@@ -764,7 +764,7 @@ function ScoreExplanationModal({sc, onClose}) {
             <div style={{fontSize:12,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{desc}</div>
           </div>
         ))}
-        <div style={{background:"rgba(41,121,255,.06)",border:"1px solid rgba(41,121,255,.15)",borderRadius:12,padding:"12px 14px",marginTop:4}}>
+        <div style={{background:"rgba(74,144,226,.06)",border:"1px solid rgba(74,144,226,.15)",borderRadius:12,padding:"12px 14px",marginTop:4}}>
           <div style={{fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.7,textAlign:"center"}}>
             Score is for motivation and insight only. It is not a medical metric.<br/>
             Consult a healthcare professional for medical guidance.
@@ -930,7 +930,7 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
           <div key={pred.key} style={{marginBottom:showDivider?20:0,paddingBottom:showDivider?20:0,borderBottom:showDivider?"1px solid rgba(255,255,255,0.05)":"none"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
               <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:17,letterSpacing:.5}}>{pred.label.toUpperCase()}</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:12,color:"#2979FF",fontWeight:600}}>~{pred.current1RM} {unit} est. 1RM</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:12,color:"#4A90E2",fontWeight:600}}>~{pred.current1RM} {unit} est. 1RM</div>
             </div>
             {pred.declining&&(
               <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8}}>
@@ -939,21 +939,21 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
               </div>
             )}
             {pred.plateau&&!pred.declining&&(
-              <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(234,179,8,0.07)",border:"1px solid rgba(234,179,8,0.2)",borderRadius:8}}>
-                <div style={{fontSize:11,color:"#EAB308",fontWeight:700,marginBottom:3}}>⚠️ Plateau detected — 3 sessions no progress</div>
+              <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(245,166,35,0.07)",border:"1px solid rgba(245,166,35,0.2)",borderRadius:8}}>
+                <div style={{fontSize:11,color:"#F5A623",fontWeight:700,marginBottom:3}}>⚠️ Plateau detected — 3 sessions no progress</div>
                 <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",lineHeight:1.6}}>Consider a deload or technique focus</div>
               </div>
             )}
             {pred.milestones.length>0&&(
               <>
                 <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:3,marginBottom:10,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${barPct}%`,background:"linear-gradient(90deg,#2979FF,#22c55e)",borderRadius:3,transition:"width 0.7s ease"}}/>
+                  <div style={{height:"100%",width:`${barPct}%`,background:"linear-gradient(90deg,#4A90E2,#00B894)",borderRadius:3,transition:"width 0.7s ease"}}/>
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:7}}>
                   {pred.milestones.slice(0,4).map((m,mi)=>{
-                    const col = m.weeks<=4?"#22c55e":m.weeks<=8?"#2979FF":"#EAB308";
-                    const bg  = m.weeks<=4?"rgba(34,197,94,0.09)":m.weeks<=8?"rgba(41,121,255,0.09)":"rgba(234,179,8,0.09)";
-                    const bd  = m.weeks<=4?"rgba(34,197,94,0.28)":m.weeks<=8?"rgba(41,121,255,0.28)":"rgba(234,179,8,0.28)";
+                    const col = m.weeks<=4?"#00B894":m.weeks<=8?"#4A90E2":"#F5A623";
+                    const bg  = m.weeks<=4?"rgba(0,184,148,0.09)":m.weeks<=8?"rgba(74,144,226,0.09)":"rgba(245,166,35,0.09)";
+                    const bd  = m.weeks<=4?"rgba(0,184,148,0.28)":m.weeks<=8?"rgba(74,144,226,0.28)":"rgba(245,166,35,0.28)";
                     return (
                       <div key={mi} style={{padding:"5px 10px",background:bg,border:`1px solid ${bd}`,borderRadius:20,display:"flex",alignItems:"center",gap:5}}>
                         <span style={{fontFamily:"var(--mono)",fontSize:11,color:col,fontWeight:700}}>{m.weight} {unit}</span>
@@ -974,7 +974,7 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
             <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:17,letterSpacing:.5}}>RUNNING PACE</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:12,color:"#2979FF",fontWeight:600}}>{_fmtPace(runData.avgPace)} avg</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:12,color:"#4A90E2",fontWeight:600}}>{_fmtPace(runData.avgPace)} avg</div>
           </div>
           {runData.declining&&(
             <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8}}>
@@ -983,15 +983,15 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
             </div>
           )}
           {runData.improving&&!runData.declining&&(
-            <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8}}>
-              <div style={{fontSize:11,color:"#22c55e",fontWeight:700}}>📈 Pace improving — trending faster</div>
+            <div style={{marginBottom:10,padding:"8px 12px",background:"rgba(0,184,148,0.07)",border:"1px solid rgba(0,184,148,0.2)",borderRadius:8}}>
+              <div style={{fontSize:11,color:"#00B894",fontWeight:700}}>📈 Pace improving — trending faster</div>
             </div>
           )}
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:7}}>
             {runData.races.map((r,ri)=>(
-              <div key={ri} style={{padding:"5px 10px",background:"rgba(41,121,255,0.09)",border:"1px solid rgba(41,121,255,0.28)",borderRadius:20,display:"flex",alignItems:"center",gap:6}}>
+              <div key={ri} style={{padding:"5px 10px",background:"rgba(74,144,226,0.09)",border:"1px solid rgba(74,144,226,0.28)",borderRadius:20,display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.45)"}}>{r.name}</span>
-                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"#2979FF",fontWeight:700}}>{_fmtFinish(r.mins)}</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"#4A90E2",fontWeight:700}}>{_fmtFinish(r.mins)}</span>
               </div>
             ))}
           </div>
@@ -1167,7 +1167,7 @@ function InjuryAlertCard({risks, onAdapt, onDismiss}) {
   const LC={
     high:    {label:"🔴 HIGH RISK",    color:"#EF4444",bg:"rgba(239,68,68,0.06)",  border:"rgba(239,68,68,0.28)",  left:"#EF4444"},
     moderate:{label:"🟠 MODERATE RISK",color:"#F97316",bg:"rgba(249,115,22,0.06)", border:"rgba(249,115,22,0.28)", left:"#F97316"},
-    low:     {label:"🟡 LOW RISK",     color:"#EAB308",bg:"rgba(234,179,8,0.06)",  border:"rgba(234,179,8,0.28)",  left:"#EAB308"},
+    low:     {label:"🟡 LOW RISK",     color:"#F5A623",bg:"rgba(245,166,35,0.06)",  border:"rgba(245,166,35,0.28)",  left:"#F5A623"},
   };
   const lc=LC[top.level]||LC.low;
   return (
@@ -1206,7 +1206,7 @@ function InjuryRiskReport({risks, muscleSetCounts}) {
   const hasSets=Object.values(muscleSetCounts||{}).some(v=>v>0);
   if(!hasSets&&(!risks||risks.length===0))return null;
   const overallLevel=risks?.some(r=>r.level==="high")?"HIGH":risks?.some(r=>r.level==="moderate")?"MODERATE":"LOW";
-  const LC={HIGH:"#EF4444",MODERATE:"#F97316",LOW:"#22c55e"};
+  const LC={HIGH:"#EF4444",MODERATE:"#F97316",LOW:"#00B894"};
   const mostAtRisk=risks&&risks.length>0?risks[0]:null;
   return (
     <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
@@ -1223,7 +1223,7 @@ function InjuryRiskReport({risks, muscleSetCounts}) {
       {Object.entries(MUSCLE_THRESHOLDS).map(([muscle,threshold])=>{
         const sets=(muscleSetCounts||{})[muscle]||0;
         const pct=Math.min(1,sets/threshold);
-        const barColor=pct>=1?"#EF4444":pct>=0.8?"#F97316":pct>=0.6?"#EAB308":"#22c55e";
+        const barColor=pct>=1?"#EF4444":pct>=0.8?"#F97316":pct>=0.6?"#F5A623":"#00B894";
         return (
           <div key={muscle} style={{marginBottom:7}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
@@ -2525,16 +2525,16 @@ Rules:
                 <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                <div style={{background:"rgba(34,197,94,.07)",border:"1px solid rgba(34,197,94,.15)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:"#22c55e",lineHeight:1}}>{sessionsCount}</div>
+                <div style={{background:"rgba(0,184,148,.07)",border:"1px solid rgba(0,184,148,.15)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:"#00B894",lineHeight:1}}>{sessionsCount}</div>
                   <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Sessions</div>
                 </div>
                 <div style={{background:"rgba(59,130,246,.07)",border:"1px solid rgba(59,130,246,.15)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
                   <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:"#3b82f6",lineHeight:1}}>{nutPct}%</div>
                   <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Nutrition</div>
                 </div>
-                <div style={{background:volGain!=null&&volGain>=0?"rgba(245,158,11,.07)":"rgba(239,68,68,.07)",border:`1px solid ${volGain!=null&&volGain>=0?"rgba(245,158,11,.15)":"rgba(239,68,68,.15)"}`,borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:volGain!=null&&volGain>=0?"#f59e0b":"#ef4444",lineHeight:1}}>{volGain!=null?`${volGain>=0?"+":""}${volGain}%`:"—"}</div>
+                <div style={{background:volGain!=null&&volGain>=0?"rgba(245,166,35,.07)":"rgba(239,68,68,.07)",border:`1px solid ${volGain!=null&&volGain>=0?"rgba(245,166,35,.15)":"rgba(239,68,68,.15)"}`,borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:volGain!=null&&volGain>=0?"#F5A623":"#ef4444",lineHeight:1}}>{volGain!=null?`${volGain>=0?"+":""}${volGain}%`:"—"}</div>
                   <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Strength</div>
                 </div>
               </div>
@@ -2569,10 +2569,10 @@ Rules:
             }
             if(!belowSweet&&adj.type==="normal"){
               return(
-                <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
+                <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(0,184,148,0.07)",border:"1px solid rgba(0,184,148,0.2)",borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
                   <span style={{fontSize:20}}>🧬</span>
                   <div>
-                    <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:"#22c55e"}}>In Your Sweet Spot</div>
+                    <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:"#00B894"}}>In Your Sweet Spot</div>
                     <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>
                       {parseFloat(sleepHours).toFixed(1)}h sleep — your personal optimal. Based on YOUR data: expect strong performance today.
                     </div>
@@ -2585,10 +2585,10 @@ Rules:
           if(adj.type==="normal")return null;
           const isReduce=adj.type==="reduce";
           return(
-            <div style={{margin:"0 20px 12px",padding:"12px 14px",background:isReduce?"rgba(239,68,68,0.08)":"rgba(34,197,94,0.08)",border:`1px solid ${isReduce?"rgba(239,68,68,0.25)":"rgba(34,197,94,0.25)"}`,borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
+            <div style={{margin:"0 20px 12px",padding:"12px 14px",background:isReduce?"rgba(239,68,68,0.08)":"rgba(0,184,148,0.08)",border:`1px solid ${isReduce?"rgba(239,68,68,0.25)":"rgba(0,184,148,0.25)"}`,borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
               <span style={{fontSize:20}}>{isReduce?"⚡":"🔥"}</span>
               <div>
-                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:isReduce?"#EF4444":"#22c55e"}}>{isReduce?"Reduce Intensity Today":"Peak Recovery — Push Hard"}</div>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:isReduce?"#EF4444":"#00B894"}}>{isReduce?"Reduce Intensity Today":"Peak Recovery — Push Hard"}</div>
                 <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>{adj.reason}</div>
               </div>
             </div>
@@ -2616,7 +2616,7 @@ Rules:
 
         {/* Comeback Protocol */}
         {showComebackProtocol&&(
-          <div style={{margin:"0 20px 12px",padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14}}>
+          <div style={{margin:"0 20px 12px",padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,166,35,0.3)",borderRadius:14}}>
             <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--amber)",textTransform:"uppercase",marginBottom:6}}>// {daysSinceWorkout} Days Out</div>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginTop:0,textTransform:"uppercase",marginBottom:10}}>Welcome Back, {firstName}.</div>
             {["Muscles recovered — full intensity ready","Macros reset to maintenance this week",`Program resumes: Week ${programWeek}, ${todayFocus}`].map((t,i)=>(
@@ -2730,27 +2730,27 @@ Rules:
         ))}
 
         {/* Today's session */}
-        <div style={{margin:"0 20px 14px",padding:"16px",background:deloadActive?"linear-gradient(135deg,#1a1508,var(--navy-card) 70%)":"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:`1px solid ${deloadActive?"rgba(234,179,8,0.2)":"rgba(232,52,28,0.2)"}`,borderRadius:14}}>
+        <div style={{margin:"0 20px 14px",padding:"16px",background:deloadActive?"linear-gradient(135deg,#1a1508,var(--navy-card) 70%)":"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:`1px solid ${deloadActive?"rgba(245,166,35,0.2)":"rgba(232,52,28,0.2)"}`,borderRadius:14}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div className="header-eyebrow">// Today's Session</div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
               {topRiskLevel&&!deloadActive&&(
                 <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:6,
-                  background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(234,179,8,0.12)",
-                  color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":"#EAB308",
-                  border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(234,179,8,0.3)"}`,
+                  background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,166,35,0.12)",
+                  color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":"#F5A623",
+                  border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,166,35,0.3)"}`,
                   fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
                   ⚠️ {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
                 </span>
               )}
               {deloadActive
-                ?<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(234,179,8,0.15)",color:"#EAB308",border:"1px solid rgba(234,179,8,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>DELOAD</span>
-                :<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
+                ?<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(245,166,35,0.15)",color:"#F5A623",border:"1px solid rgba(245,166,35,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>DELOAD</span>
+                :<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(0,184,148,0.15)",color:"var(--green)",border:"1px solid rgba(0,184,148,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
               }
             </div>
           </div>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
-          <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:deloadActive?"#EAB308":"var(--red)",border:"none",borderRadius:12,color:deloadActive?"#0a0e1a":"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:deloadActive?"#F5A623":"var(--red)",border:"none",borderRadius:12,color:deloadActive?"#0a0e1a":"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
             <svg width={14} height={14} viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>
             Start Session
           </button>
@@ -2824,7 +2824,7 @@ Rules:
         {/* ── FUTURE SECTION ── */}
         {(sessionPrediction||weeklyForecast.length>0||goalTrajectories.strength||goalTrajectories.bodyComp)&&(()=>{
           const todayProb=sessionPrediction?.probability??weeklyForecast.find(d=>d.isTraining&&d.probability!=null)?.probability;
-          const probColor=todayProb>=75?"#22c55e":todayProb>=50?"#3b82f6":"#f59e0b";
+          const probColor=todayProb>=75?"#00B894":todayProb>=50?"#3b82f6":"#F5A623";
           const trainingDays=weeklyForecast.filter(d=>d.isTraining&&d.probability!=null);
           return(
             <div style={{margin:"0 20px 14px"}}>
@@ -2852,7 +2852,7 @@ Rules:
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.14em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:10}}>This Week's Forecast</div>
                   <div style={{display:"grid",gridTemplateColumns:`repeat(${trainingDays.length},1fr)`,gap:6}}>
                     {trainingDays.map((d,i)=>{
-                      const c=d.probability>=75?"#22c55e":d.probability>=50?"#3b82f6":"#f59e0b";
+                      const c=d.probability>=75?"#00B894":d.probability>=50?"#3b82f6":"#F5A623";
                       const isToday3=d.date===new Date().toISOString().split("T")[0];
                       return(
                         <div key={i} style={{textAlign:"center",background:`${c}12`,borderRadius:10,padding:"8px 4px",border:`1px solid ${isToday3?c+"50":"transparent"}`}}>
@@ -2877,7 +2877,7 @@ Rules:
                           <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Strength</div>
                           <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>{goalTrajectories.strength.weeklyGainPct>0?"+":""}{goalTrajectories.strength.weeklyGainPct}% per session avg</div>
                         </div>
-                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.strength.trend==="up"?"#22c55e":goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(255,255,255,.05)"}}>
+                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.strength.trend==="up"?"#00B894":goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.strength.trend==="up"?"rgba(0,184,148,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(255,255,255,.05)"}}>
                           {goalTrajectories.strength.trend==="up"?"↗ PROGRESSING":goalTrajectories.strength.trend==="down"?"↘ DECLINING":"→ STABLE"}
                         </div>
                       </div>
@@ -2891,7 +2891,7 @@ Rules:
                             {goalTrajectories.bodyComp.weeksToGoal&&` · ~${goalTrajectories.bodyComp.weeksToGoal}w to goal`}
                           </div>
                         </div>
-                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.bodyComp.trend==="gaining"?"#f59e0b":goalTrajectories.bodyComp.trend==="losing"?"#22c55e":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(255,255,255,.05)"}}>
+                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.bodyComp.trend==="gaining"?"#F5A623":goalTrajectories.bodyComp.trend==="losing"?"#00B894":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,166,35,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(0,184,148,.1)":"rgba(255,255,255,.05)"}}>
                           {goalTrajectories.bodyComp.trend==="gaining"?"↗ GAINING":goalTrajectories.bodyComp.trend==="losing"?"↘ LOSING":"→ STABLE"}
                         </div>
                       </div>
@@ -3023,7 +3023,7 @@ Rules:
               {logs.map((x,idx)=>{
                 const isMilestone=chartData.milestones.some(m=>Math.abs(x.weight-m)<0.5);
                 if(!isMilestone&&idx!==logs.length-1)return null;
-                return<circle key={idx} cx={chartData.px(idx)} cy={chartData.py(x.weight)} r={isMilestone?4:3} fill={isMilestone?"#EAB308":"var(--red)"} stroke="var(--navy-card)" strokeWidth={2}/>;
+                return<circle key={idx} cx={chartData.px(idx)} cy={chartData.py(x.weight)} r={isMilestone?4:3} fill={isMilestone?"#F5A623":"var(--red)"} stroke="var(--navy-card)" strokeWidth={2}/>;
               })}
             </svg>
           )}
@@ -3032,7 +3032,7 @@ Rules:
               <div style={{width:16,height:2,background:"var(--red)",borderRadius:1}}/>7-day avg
             </div>
             <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:"#EAB308"}}/>5 {wUnit} milestone
+              <div style={{width:8,height:8,borderRadius:"50%",background:"#F5A623"}}/>5 {wUnit} milestone
             </div>
           </div>}
         </div>
@@ -3062,7 +3062,7 @@ Rules:
 
   function ProgressSection() {
     const sc = coachScore;
-    const ringColor = sc.total>=85?"#22c55e":sc.total>=70?"#2979FF":sc.total>=50?"#EAB308":"#EF4444";
+    const ringColor = sc.total>=90?"#FFD700":sc.total>=85?"#00B894":sc.total>=70?"#4A90E2":sc.total>=50?"#F5A623":"#EF4444";
     const dateStr = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"});
     const todayStr = new Date().toISOString().split("T")[0];
     const last7 = (()=>{
@@ -3076,10 +3076,10 @@ Rules:
     })();
     const hydPct=Math.min(100,Math.round((waterLoggedOz/Math.max(1,waterTarget))*100));
     const components=[
-      {label:"Recovery",   val:sc.r, color:"#2979FF"},
-      {label:"Nutrition",  val:sc.n, color:"#22c55e"},
+      {label:"Recovery",   val:sc.r, color:"#4A90E2"},
+      {label:"Nutrition",  val:sc.n, color:"#00B894"},
       {label:"Training",   val:sc.t, color:"var(--red)"},
-      {label:"Consistency",val:sc.c, color:"#EAB308"},
+      {label:"Consistency",val:sc.c, color:"#F5A623"},
       {label:"Hydration",  val:hydPct, color:"#06B6D4", suffix:` (${hydrationBonus>=0?"+":""}${hydrationBonus}pts)`},
     ];
 
@@ -3097,9 +3097,9 @@ Rules:
       const second=scoredLast7.slice(Math.floor(scoredLast7.length/2));
       const avg=(arr)=>arr.reduce((s,x)=>s+x.score,0)/arr.length;
       const diff=avg(second)-avg(first);
-      if(diff>5)return{icon:"↑",text:"Trending up this week",color:"#22c55e"};
+      if(diff>5)return{icon:"↑",text:"Trending up this week",color:"#00B894"};
       if(diff<-5)return{icon:"↓",text:"Trending down — check recovery",color:"#EF4444"};
-      return{icon:"→",text:"Consistent performance",color:"#EAB308"};
+      return{icon:"→",text:"Consistent performance",color:"#F5A623"};
     })();
 
     // ── Weekly report (Monday only) ──────────────────────────────────────────
@@ -3132,10 +3132,10 @@ Rules:
 
     // ── Milestone display ────────────────────────────────────────────────────
     const MILESTONE_COPY={
-      first80:{title:"FIRST 80+ SCORE! 🎉",sub:"You're training like an athlete.",color:"#2979FF"},
-      first90:{title:"ELITE PERFORMANCE DAY 🔥",sub:"Top 10% of Coach Macro athletes today.",color:"#22c55e"},
-      streak7:{title:"7-DAY CONSISTENCY STREAK 💪",sub:"This is how champions are built.",color:"#EAB308"},
-      perfect:{title:"PERFECT DAY ⭐",sub:"Nutrition + Training + Recovery + Consistency all firing together.",color:"#9B59FF"},
+      first80:{title:"FIRST 80+ SCORE! 🎉",sub:"You're training like an athlete.",color:"#4A90E2"},
+      first90:{title:"ELITE PERFORMANCE DAY 🔥",sub:"Top 10% of Coach Macro athletes today.",color:"#00B894"},
+      streak7:{title:"7-DAY CONSISTENCY STREAK 💪",sub:"This is how champions are built.",color:"#FFD700"},
+      perfect:{title:"PERFECT DAY ⭐",sub:"Nutrition + Training + Recovery + Consistency all firing together.",color:"#FFD700"},
     };
 
     return (
@@ -3169,7 +3169,7 @@ Rules:
           const totalDataPts=Object.values(bioDataCounts).reduce((a,v)=>a+v,0);
           const hasInsights=unlockedCount>0;
           return(
-            <div onClick={()=>setBioScreen(true)} style={{margin:"0 20px 14px",padding:"16px 18px",background:hasInsights?"linear-gradient(135deg,rgba(123,104,238,.08),rgba(41,121,255,.05))":"rgba(255,255,255,.02)",border:`1px solid ${hasInsights?"rgba(123,104,238,.3)":"rgba(255,255,255,.07)"}`,borderRadius:16,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+            <div onClick={()=>setBioScreen(true)} style={{margin:"0 20px 14px",padding:"16px 18px",background:hasInsights?"linear-gradient(135deg,rgba(123,104,238,.08),rgba(74,144,226,.05))":"rgba(255,255,255,.02)",border:`1px solid ${hasInsights?"rgba(123,104,238,.3)":"rgba(255,255,255,.07)"}`,borderRadius:16,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
               <div style={{fontSize:28,flexShrink:0}}>🧬</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"var(--condensed)",fontSize:15,fontWeight:800,letterSpacing:".04em",color:hasInsights?"#fff":"rgba(245,245,240,.5)",textTransform:"uppercase",marginBottom:3}}>
@@ -3191,7 +3191,7 @@ Rules:
           <ScoreRing score={sc.total}/>
           <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:10,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
             Today · {dateStr}
-            {sc.isCapped&&<span style={{marginLeft:8,color:"#EAB308"}}>⚠ Score capped</span>}
+            {sc.isCapped&&<span style={{marginLeft:8,color:"#F5A623"}}>⚠ Score capped</span>}
             <span onClick={e=>{e.stopPropagation();}}><InfoTip title="Coach Macro Score" content={"A daily 0–100 score that measures how optimized your day was.\n\nRecovery (40%) — sleep quality and duration\nNutrition (30%) — hitting your macro targets\nTraining (20%) — completing your scheduled session\nConsistency (10%) — your 30-day streak\nHydration bonus — up to ±3 points\n\nScores above 80 indicate elite-level discipline. Most athletes average 55–70."}/></span>
           </div>
           <div style={{fontSize:9,color:"rgba(245,245,240,0.2)",marginTop:4}}>Tap to understand your score →</div>
@@ -3215,9 +3215,9 @@ Rules:
           {activeWarnings.length>0&&(
             <div style={{marginTop:16,textAlign:"left",display:"flex",flexDirection:"column",gap:8}}>
               {activeWarnings.map(w=>{
-                const bg=w.severity==="danger"?"rgba(239,68,68,.12)":w.severity==="warning"?"rgba(234,179,8,.1)":"rgba(41,121,255,.1)";
-                const border=w.severity==="danger"?"rgba(239,68,68,.3)":w.severity==="warning"?"rgba(234,179,8,.25)":"rgba(41,121,255,.25)";
-                const ic=w.severity==="danger"?"#EF4444":w.severity==="warning"?"#EAB308":"#2979FF";
+                const bg=w.severity==="danger"?"rgba(239,68,68,.12)":w.severity==="warning"?"rgba(245,166,35,.1)":"rgba(74,144,226,.1)";
+                const border=w.severity==="danger"?"rgba(239,68,68,.3)":w.severity==="warning"?"rgba(245,166,35,.25)":"rgba(74,144,226,.25)";
+                const ic=w.severity==="danger"?"#EF4444":w.severity==="warning"?"#F5A623":"#4A90E2";
                 return(
                   <div key={w.type} onClick={e=>e.stopPropagation()} style={{background:bg,border:`1px solid ${border}`,borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
                     <div style={{width:32,height:32,borderRadius:"50%",background:`${ic}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{w.icon}</div>
@@ -3251,15 +3251,15 @@ Rules:
 
         {/* ── WEEKLY REPORT (Mondays only) ── */}
         {weekReport&&(
-          <div style={{margin:"0 20px 14px",padding:"18px 20px",background:"linear-gradient(135deg,rgba(155,89,255,.1),rgba(155,89,255,.04))",border:"1px solid rgba(155,89,255,.25)",borderRadius:16}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(155,89,255,.8)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>Last Week Recap</div>
+          <div style={{margin:"0 20px 14px",padding:"18px 20px",background:"linear-gradient(135deg,rgba(126,87,194,.1),rgba(126,87,194,.04))",border:"1px solid rgba(126,87,194,.25)",borderRadius:16}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(126,87,194,.8)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>Last Week Recap</div>
             <div style={{display:"flex",gap:12,marginBottom:14}}>
               <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px"}}>
                 <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color:"#fff",lineHeight:1}}>{weekReport.avg}</div>
                 <div style={{fontSize:9,color:"rgba(245,245,240,.4)",textTransform:"uppercase",letterSpacing:1,marginTop:2}}>Avg Score</div>
               </div>
               <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px"}}>
-                <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color:"#22c55e",lineHeight:1}}>{weekReport.best.score}</div>
+                <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color:"#00B894",lineHeight:1}}>{weekReport.best.score}</div>
                 <div style={{fontSize:9,color:"rgba(245,245,240,.4)",textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{weekReport.bestDay.slice(0,3)} Best</div>
               </div>
               <div style={{flex:1,textAlign:"center",background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px"}}>
@@ -3269,7 +3269,7 @@ Rules:
             </div>
             {weekReport.insight&&(
               <div style={{fontSize:12,color:"rgba(245,245,240,.65)",lineHeight:1.7,borderTop:"1px solid rgba(255,255,255,.06)",paddingTop:12}}>
-                <span style={{color:"rgba(155,89,255,.9)",fontWeight:700}}>Biggest opportunity: </span>{weekReport.insight}
+                <span style={{color:"rgba(126,87,194,.9)",fontWeight:700}}>Biggest opportunity: </span>{weekReport.insight}
               </div>
             )}
           </div>
@@ -3284,7 +3284,7 @@ Rules:
           <div style={{display:"flex",alignItems:"flex-end",gap:6,height:72}}>
             {last7.map((entry,i)=>{
               const h=entry.score!=null?Math.max(4,Math.round((entry.score/100)*72)):4;
-              const c=entry.score==null?"rgba(255,255,255,0.06)":entry.score>=85?"#22c55e":entry.score>=70?"#2979FF":entry.score>=50?"#EAB308":"#EF4444";
+              const c=entry.score==null?"rgba(255,255,255,0.06)":entry.score>=85?"#00B894":entry.score>=70?"#4A90E2":entry.score>=50?"#F5A623":"#EF4444";
               const dow=new Date(entry.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"}).slice(0,2);
               const isToday2=entry.date===todayStr;
               return(
@@ -3311,7 +3311,7 @@ Rules:
                 {waterHistory.map((entry,i)=>{
                   const h=Math.max(4,Math.round((entry.oz/maxOz)*60));
                   const pctOfTarget=entry.oz/Math.max(1,waterTarget);
-                  const c=pctOfTarget>=1?"#22c55e":pctOfTarget>=0.75?"#06B6D4":pctOfTarget>=0.5?"#EAB308":"#EF4444";
+                  const c=pctOfTarget>=1?"#00B894":pctOfTarget>=0.75?"#06B6D4":pctOfTarget>=0.5?"#F5A623":"#EF4444";
                   const dow=new Date(entry.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"}).slice(0,2);
                   const isToday2=entry.date===todayStr;
                   return(
@@ -3331,7 +3331,7 @@ Rules:
         {/* ── WEEKLY NUTRITION CALENDAR ── */}
         {(()=>{
           const [expandedDay,setExpandedDay]=React.useState(null);
-          const calColors={heavy_lower:"#2979FF",heavy_upper:"#2979FF",hypertrophy:"#2979FF",long_run:"#22c55e",tempo_run:"#22c55e",easy_run:"#22c55e",interval_run:"#22c55e",hyrox_station:"#EAB308",hybrid:"#9B59FF",active_recovery:"#6B7280",rest:"#374151"};
+          const calColors={heavy_lower:"#4A90E2",heavy_upper:"#4A90E2",hypertrophy:"#4A90E2",long_run:"#00B894",tempo_run:"#00B894",easy_run:"#00B894",interval_run:"#00B894",hyrox_station:"#F5A623",hybrid:"#7E57C2",active_recovery:"#6B7280",rest:"#374151"};
           const minCal=Math.min(...weekMacros.map(d=>d.calories));
           const maxCal=Math.max(...weekMacros.map(d=>d.calories));
           return(
@@ -3443,7 +3443,7 @@ Rules:
       {/* Toast container */}
       <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"center",pointerEvents:"none",width:"min(380px,90vw)"}}>
         {toasts.map(toast=>(
-          <div key={toast.id} style={{background:toast.type==="pr"?"linear-gradient(135deg,#f59e0b,#d97706)":toast.type==="error"?"#ef4444":toast.type==="info"?"#3b82f6":T.prot,color:"#fff",padding:"13px 18px",borderRadius:14,fontSize:13,fontWeight:700,boxShadow:"0 4px 24px rgba(0,0,0,0.4)",display:"flex",alignItems:"center",gap:10,animation:"toast-in 0.22s cubic-bezier(.2,.7,.3,1) forwards",pointerEvents:"auto",whiteSpace:"nowrap",maxWidth:"100%",letterSpacing:"0.02em"}}>
+          <div key={toast.id} style={{background:toast.type==="pr"?"linear-gradient(135deg,#FFD700,#FFA000)":toast.type==="error"?"#ef4444":toast.type==="info"?"#3b82f6":T.prot,color:"#fff",padding:"13px 18px",borderRadius:14,fontSize:13,fontWeight:700,boxShadow:"0 4px 24px rgba(0,0,0,0.4)",display:"flex",alignItems:"center",gap:10,animation:"toast-in 0.22s cubic-bezier(.2,.7,.3,1) forwards",pointerEvents:"auto",whiteSpace:"nowrap",maxWidth:"100%",letterSpacing:"0.02em"}}>
             <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis"}}>{toast.message}</span>
             {toast.action&&<button onClick={()=>{hap();toast.action();setToasts(t=>t.filter(x=>x.id!==toast.id));}} style={{background:"rgba(255,255,255,0.22)",border:"none",borderRadius:8,padding:"4px 10px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}}>{toast.actionLabel||"Undo"}</button>}
           </div>
@@ -3490,8 +3490,8 @@ Rules:
           <button key={item.id} className={`app-tab${section===item.id?" active":""}`} onClick={()=>setSection(item.id)}>
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <TabIcon name={item.icon} size={22}/>
-              {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:"#EAB308",border:"2px solid var(--navy)"}}/>}
-              {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":"#EAB308",border:"2px solid var(--navy)"}}/>}
+              {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:"#F5A623",border:"2px solid var(--navy)"}}/>}
+              {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":"#F5A623",border:"2px solid var(--navy)"}}/>}
             </div>
             <div className="tab-label-txt">{item.label}</div>
           </button>

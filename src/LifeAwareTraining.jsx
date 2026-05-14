@@ -74,21 +74,21 @@ export function ScheduleAlertCard({ alert, onAction, onDismiss }) {
 
   const borderColor =
     alert.severity === "high" ? "rgba(239,68,68,0.3)" :
-    alert.severity === "medium" ? "rgba(245,158,11,0.3)" :
+    alert.severity === "medium" ? "rgba(245,166,35,0.3)" :
     alert.severity === "info" ? "rgba(59,130,246,0.3)" :
-    "rgba(34,197,94,0.3)";
+    "rgba(0,184,148,0.3)";
 
   const bgColor =
     alert.severity === "high" ? "rgba(239,68,68,0.07)" :
-    alert.severity === "medium" ? "rgba(245,158,11,0.07)" :
+    alert.severity === "medium" ? "rgba(245,166,35,0.07)" :
     alert.severity === "info" ? "rgba(59,130,246,0.07)" :
-    "rgba(34,197,94,0.07)";
+    "rgba(0,184,148,0.07)";
 
   const labelColor =
     alert.severity === "high" ? "#ef4444" :
-    alert.severity === "medium" ? "#f59e0b" :
+    alert.severity === "medium" ? "#F5A623" :
     alert.severity === "info" ? "#3b82f6" :
-    "#22c55e";
+    "#00B894";
 
   return (
     <div style={{
@@ -152,7 +152,7 @@ export function ScheduleAlertCard({ alert, onAction, onDismiss }) {
             <button
               onClick={() => { onAction(alert, alert.suggestion); dismiss(); }}
               style={{
-                flex: 1, padding: "11px 14px", background: "#f59e0b",
+                flex: 1, padding: "11px 14px", background: "#F5A623",
                 border: "none", borderRadius: 10, color: "#000",
                 fontFamily: "var(--condensed)", fontWeight: 800,
                 fontSize: 13, letterSpacing: ".08em", textTransform: "uppercase", cursor: "pointer",
@@ -177,7 +177,7 @@ export function ScheduleAlertCard({ alert, onAction, onDismiss }) {
             <button
               onClick={() => { onAction(alert, alert.suggestion); dismiss(); }}
               style={{
-                flex: 1, padding: "11px 14px", background: "#22c55e",
+                flex: 1, padding: "11px 14px", background: "#00B894",
                 border: "none", borderRadius: 10, color: "#000",
                 fontFamily: "var(--condensed)", fontWeight: 800,
                 fontSize: 13, letterSpacing: ".08em", textTransform: "uppercase", cursor: "pointer",
@@ -220,32 +220,32 @@ export function TravelNutritionCard({ travelAdvice, onDismiss }) {
     <div style={{
       margin: "0 20px 12px",
       borderRadius: 16,
-      border: "1px solid rgba(245,158,11,0.3)",
+      border: "1px solid rgba(245,166,35,0.3)",
       overflow: "hidden",
     }}>
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
-          background: "rgba(245,158,11,0.08)",
+          background: "rgba(245,166,35,0.08)",
           padding: "12px 14px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           cursor: "pointer",
-          borderBottom: expanded ? "1px solid rgba(245,158,11,0.15)" : "none",
+          borderBottom: expanded ? "1px solid rgba(245,166,35,0.15)" : "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>✈️</span>
           <div>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 9, letterSpacing: "0.16em", color: "#f59e0b", textTransform: "uppercase", fontWeight: 700 }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 9, letterSpacing: "0.16em", color: "#F5A623", textTransform: "uppercase", fontWeight: 700 }}>
               TRAVEL DAY NUTRITION
             </div>
             <div style={{ fontSize: 11, color: "rgba(245,245,240,.5)", marginTop: 1 }}>{travelAdvice.dateLabel}</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "#f59e0b" }}>Tap for game plan</span>
+          <span style={{ fontFamily: "var(--mono)", fontSize: 9, color: "#F5A623" }}>Tap for game plan</span>
           <div style={{ color: "rgba(245,245,240,.3)", fontSize: 14, transition: "transform .2s", transform: expanded ? "rotate(180deg)" : "none" }}>▾</div>
         </div>
       </div>
@@ -294,9 +294,9 @@ export function CalendarSettingsPanel({ connected, onConnect, onDisconnect, pref
         </div>
         <div style={{
           fontFamily: "var(--mono)", fontSize: 10, padding: "4px 10px", borderRadius: 6,
-          background: connected ? "rgba(34,197,94,0.12)" : isNative ? "rgba(245,245,240,0.06)" : "rgba(245,245,240,0.04)",
-          color: connected ? "#22c55e" : isNative ? T.mu : "rgba(245,245,240,0.3)",
-          border: `1px solid ${connected ? "rgba(34,197,94,0.3)" : T.bd}`,
+          background: connected ? "rgba(0,184,148,0.12)" : isNative ? "rgba(245,245,240,0.06)" : "rgba(245,245,240,0.04)",
+          color: connected ? "#00B894" : isNative ? T.mu : "rgba(245,245,240,0.3)",
+          border: `1px solid ${connected ? "rgba(0,184,148,0.3)" : T.bd}`,
           letterSpacing: "0.1em", textTransform: "uppercase",
         }}>
           {connected ? "Connected ✓" : isNative ? "Not connected" : "iPhone Only"}

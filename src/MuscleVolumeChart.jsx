@@ -13,35 +13,35 @@ import { EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
 // ── Chart-only color palette — do NOT use in other components ────────────────
 const VOLUME_COLORS = {
   under: {
-    zone:   "rgba(84,110,122,0.15)",  // slate grey zone bg
-    border: "rgba(84,110,122,0.5)",
-    bar:    "#78909C",                // slate bar fill
+    zone:   "rgba(96,125,139,0.14)",
+    border: "rgba(96,125,139,0.5)",
+    bar:    "#607D8B",
     label:  "#90A4AE",
-    bg:     "rgba(84,110,122,0.12)",
+    bg:     "rgba(96,125,139,0.12)",
     name:   "Train more",
   },
   optimal: {
-    zone:   "rgba(0,188,212,0.12)",   // teal zone bg
-    border: "rgba(0,188,212,0.5)",
-    bar:    "#00E5FF",                // bright teal bar
-    label:  "#00BCD4",
-    bg:     "rgba(0,188,212,0.12)",
+    zone:   "rgba(78,205,196,0.12)",
+    border: "rgba(78,205,196,0.5)",
+    bar:    "#4ECDC4",
+    label:  "#4ECDC4",
+    bg:     "rgba(78,205,196,0.12)",
     name:   "Just right ✓",
   },
   warn: {
-    zone:   "rgba(255,112,67,0.10)",  // orange zone bg
-    border: "rgba(255,112,67,0.5)",
-    bar:    "#FF7043",                // orange bar
-    label:  "#FF7043",
-    bg:     "rgba(255,112,67,0.12)",
+    zone:   "rgba(255,159,67,0.10)",
+    border: "rgba(255,159,67,0.5)",
+    bar:    "#FF9F43",
+    label:  "#FF9F43",
+    bg:     "rgba(255,159,67,0.12)",
     name:   "Near limit",
   },
   over: {
-    zone:   "rgba(255,87,34,0.10)",   // coral/dark-orange zone bg
-    border: "rgba(255,87,34,0.5)",
-    bar:    "#FF5722",                // coral bar
-    label:  "#FF5722",
-    bg:     "rgba(255,87,34,0.12)",
+    zone:   "rgba(255,82,82,0.10)",
+    border: "rgba(255,82,82,0.5)",
+    bar:    "#FF5252",
+    label:  "#FF5252",
+    bg:     "rgba(255,82,82,0.12)",
     name:   "Ease up",
   },
 };

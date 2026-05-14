@@ -15,7 +15,7 @@ export function MetabolicAdaptationBanner({ adaptation, onView, onDismiss }) {
     }}>
       {/* Header strip */}
       <div style={{
-        background: "linear-gradient(135deg,rgba(239,68,68,0.15),rgba(245,158,11,0.1))",
+        background: "linear-gradient(135deg,rgba(239,68,68,0.15),rgba(245,166,35,0.1))",
         padding: "10px 16px",
         display: "flex",
         alignItems: "center",
@@ -34,7 +34,7 @@ export function MetabolicAdaptationBanner({ adaptation, onView, onDismiss }) {
           METABOLIC ADAPTATION DETECTED
         </div>
         <div style={{ fontSize: 13, color: "rgba(245,245,240,.7)", lineHeight: 1.6, marginBottom: 14 }}>
-          You've been eating <strong style={{ color: "#fff" }}>{pd.currentCalories} calories</strong> for <strong style={{ color: "#fff" }}>{pd.weeksOnSameCalories} weeks</strong> and your weight has barely moved — despite hitting your targets <strong style={{ color: "#22c55e" }}>{pd.adherence}%</strong> of the time.
+          You've been eating <strong style={{ color: "#fff" }}>{pd.currentCalories} calories</strong> for <strong style={{ color: "#fff" }}>{pd.weeksOnSameCalories} weeks</strong> and your weight has barely moved — despite hitting your targets <strong style={{ color: "#00B894" }}>{pd.adherence}%</strong> of the time.
           <br /><br />
           This is metabolic adaptation. It's not your fault. It happens to everyone. Your body is smart — it adjusted.
           <br /><br />
@@ -135,7 +135,7 @@ export function MetabolicAdaptationModal({ adaptation, onStartProtocol, onDismis
               name="Reverse Diet"
               duration="2 weeks"
               calories={phases.phase1.calories}
-              color="#f59e0b"
+              color="#F5A623"
               why="Gradually restores your metabolic rate. Your body has adapted to your current intake — we need to bring it back up slowly."
               expect={`Scale may go up 0.5–1 ${pd.wUnit || "lbs"} (water and glycogen — not fat)`}
             />
@@ -161,7 +161,7 @@ export function MetabolicAdaptationModal({ adaptation, onStartProtocol, onDismis
               name="New Deficit"
               duration="Ongoing"
               calories={phases.phase3.calories}
-              color="#22c55e"
+              color="#00B894"
               why={`${phases.phase3.calories} is ${phases.phase3.calories - pd.currentCalories > 0 ? (phases.phase3.calories - pd.currentCalories) + " more" : "slightly less"} than your previous target — but now it's an actual deficit because your metabolism has reset.`}
               expect={`~${protocol.estimatedWeeklyLoss || 0.5} ${pd.wUnit || "lbs"}/week fat loss resumes`}
             />
@@ -268,10 +268,10 @@ function ConfirmPanel({ adaptation, onConfirm, onCancel }) {
         <div style={{ margin: "10px 0", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 22, color: "rgba(245,245,240,.4)", textDecoration: "line-through" }}>{pd.currentCalories}</span>
           <span style={{ color: "rgba(245,245,240,.3)" }}>→</span>
-          <span style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 26, color: "#f59e0b" }}>{phases.phase1?.calories}</span>
+          <span style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 26, color: "#F5A623" }}>{phases.phase1?.calories}</span>
           <span style={{ fontSize: 11, color: "rgba(245,245,240,.4)" }}>cal/day this week</span>
         </div>
-        <span style={{ color: "#f59e0b", fontWeight: 700 }}>This is intentional</span> — eating more to lose more. Trust the process.
+        <span style={{ color: "#F5A623", fontWeight: 700 }}>This is intentional</span> — eating more to lose more. Trust the process.
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={onConfirm} style={{
@@ -299,7 +299,7 @@ export function MetabolicResetProgressCard({ progress, onComplete }) {
   if (!progress) return null;
   const [expanded, setExpanded] = useState(false);
 
-  const phaseColor = progress.phase === 1 ? "#f59e0b" : progress.phase === 2 ? "#3b82f6" : "#22c55e";
+  const phaseColor = progress.phase === 1 ? "#F5A623" : progress.phase === 2 ? "#3b82f6" : "#00B894";
   const weekLabel = progress.weekNum ? `WEEK ${progress.weekNum} OF ${progress.totalWeeks}` : "PHASE 3 ACTIVE";
 
   return (
@@ -364,7 +364,7 @@ export function MetabolicResetProgressCard({ progress, onComplete }) {
               <div style={{ fontSize: 11, color: "rgba(245,245,240,.65)", lineHeight: 1.6 }}>
                 Scale may go up slightly.<br />
                 This is water and glycogen — not fat.<br />
-                <strong style={{ color: "#f59e0b" }}>Trust the process.</strong>
+                <strong style={{ color: "#F5A623" }}>Trust the process.</strong>
               </div>
             )}
             {progress.phase === 2 && (
@@ -377,12 +377,12 @@ export function MetabolicResetProgressCard({ progress, onComplete }) {
             {progress.phase === 3 && !progress.isComplete && (
               <div style={{ fontSize: 11, color: "rgba(245,245,240,.65)", lineHeight: 1.6 }}>
                 New deficit is active. Progress should resume within 2 weeks.<br />
-                <strong style={{ color: "#22c55e" }}>Monitor the scale — you should see movement now.</strong>
+                <strong style={{ color: "#00B894" }}>Monitor the scale — you should see movement now.</strong>
               </div>
             )}
             {progress.isComplete && (
               <div>
-                <div style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 16, color: "#22c55e", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 16, color: "#00B894", marginBottom: 6 }}>
                   METABOLIC RESET COMPLETE ✓
                 </div>
                 <div style={{ fontSize: 11, color: "rgba(245,245,240,.65)", lineHeight: 1.6, marginBottom: 10 }}>
@@ -391,7 +391,7 @@ export function MetabolicResetProgressCard({ progress, onComplete }) {
                 <button
                   onClick={onComplete}
                   style={{
-                    padding: "10px 18px", background: "#22c55e", border: "none", borderRadius: 10,
+                    padding: "10px 18px", background: "#00B894", border: "none", borderRadius: 10,
                     color: "#000", fontFamily: "var(--condensed)", fontWeight: 800, fontSize: 12,
                     letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer",
                   }}

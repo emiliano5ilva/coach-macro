@@ -313,7 +313,7 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
 
         {/* Running totals */}
         {ingredients.length > 0 && (
-          <div style={{ marginTop: 14, background: "rgba(41,121,255,.07)", border: "1px solid rgba(41,121,255,.2)", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ marginTop: 14, background: "rgba(74,144,226,.07)", border: "1px solid rgba(74,144,226,.2)", borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: T.prot, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 10 }}>Per Serving ({servingsCount > 1 ? `1 of ${servingsCount}` : "1 serving"})</div>
             <div style={{ display: "flex", gap: 0, marginBottom: 10 }}>
               {[["Cal", perServing.calories, "", "#fff"], ["P", perServing.protein, "g", T.prot], ["C", perServing.carbs, "g", T.carb], ["F", perServing.fat, "g", T.fat]].map(([l, v, u, c]) => (
@@ -502,7 +502,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
             <button onClick={voiceState === "listening" ? stopVoice : startVoice} style={{ flex: 1, padding: "11px 8px", background: voiceState === "listening" ? "rgba(232,52,28,.15)" : T.s2, border: `1.5px solid ${voiceState === "listening" ? T.prot : T.bd}`, borderRadius: 10, color: voiceState === "listening" ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               {voiceState === "listening" ? "🔴 Listening..." : voiceState === "processing" ? "⏳ Processing..." : "🎤 Voice Log"}
             </button>
-            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(96,165,250,.1)" : T.s2, border: `1.5px solid ${scanMode ? T.carb : T.bd}`, borderRadius: 10, color: scanMode ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📷 Scan Barcode</button>
+            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(74,144,226,.1)" : T.s2, border: `1.5px solid ${scanMode ? T.carb : T.bd}`, borderRadius: 10, color: scanMode ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📷 Scan Barcode</button>
           </div>
 
           {/* Barcode scanner */}
@@ -640,7 +640,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
           {tab === "templates" && (
             <div>
               {(log || []).length >= 2 && !saveTemplateMode && (
-                <button onClick={() => setSaveTemplateMode(true)} style={{ width: "100%", padding: "11px", background: "rgba(155,89,255,.1)", border: `1px dashed rgba(155,89,255,.4)`, borderRadius: 10, color: "#9B59FF", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>💾 Save Today's Meal as Template</button>
+                <button onClick={() => setSaveTemplateMode(true)} style={{ width: "100%", padding: "11px", background: "rgba(126,87,194,.1)", border: `1px dashed rgba(126,87,194,.4)`, borderRadius: 10, color: "#7E57C2", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>💾 Save Today's Meal as Template</button>
               )}
               {saveTemplateMode && (
                 <div style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
@@ -788,10 +788,10 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
   const lastFive = [...waterLogs].slice(-5).reverse();
 
   return (
-    <div style={{background:"linear-gradient(135deg,rgba(41,121,255,0.1),rgba(41,121,255,0.04))",border:"1px solid rgba(41,121,255,0.2)",borderRadius:16,padding:"16px 18px",marginBottom:12}}>
+    <div style={{background:"linear-gradient(135deg,rgba(74,144,226,0.1),rgba(74,144,226,0.04))",border:"1px solid rgba(74,144,226,0.2)",borderRadius:16,padding:"16px 18px",marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(41,121,255,0.9)",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(74,144,226,0.9)",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
       </div>
 
       {/* 8-drop visual */}
@@ -802,22 +802,22 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
       </div>
 
       {/* Progress bar */}
-      <div style={{height:4,background:"rgba(41,121,255,0.12)",borderRadius:2,overflow:"hidden",marginBottom:14}}>
-        <div style={{height:"100%",width:`${pct*100}%`,background:"#2979FF",borderRadius:2,transition:"width 0.4s ease"}}/>
+      <div style={{height:4,background:"rgba(74,144,226,0.12)",borderRadius:2,overflow:"hidden",marginBottom:14}}>
+        <div style={{height:"100%",width:`${pct*100}%`,background:"#4A90E2",borderRadius:2,transition:"width 0.4s ease"}}/>
       </div>
 
       {/* Quick-add buttons */}
       <div style={{display:"flex",gap:8,marginBottom:10}}>
-        <button onClick={()=>handleQuickAdd(bottleSize)} style={{flex:1,padding:"9px 0",background:"rgba(41,121,255,0.15)",border:"1px solid rgba(41,121,255,0.3)",borderRadius:10,color:"#2979FF",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+{bottleSize} oz</button>
-        <button onClick={()=>handleQuickAdd(8)} style={{flex:1,padding:"9px 0",background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.18)",borderRadius:10,color:"rgba(41,121,255,0.8)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+8 oz</button>
-        <button onClick={()=>setShowCustom(v=>!v)} style={{flex:1,padding:"9px 0",background:"none",border:"1px dashed rgba(41,121,255,0.25)",borderRadius:10,color:"rgba(41,121,255,0.6)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Custom</button>
+        <button onClick={()=>handleQuickAdd(bottleSize)} style={{flex:1,padding:"9px 0",background:"rgba(74,144,226,0.15)",border:"1px solid rgba(74,144,226,0.3)",borderRadius:10,color:"#4A90E2",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+{bottleSize} oz</button>
+        <button onClick={()=>handleQuickAdd(8)} style={{flex:1,padding:"9px 0",background:"rgba(74,144,226,0.08)",border:"1px solid rgba(74,144,226,0.18)",borderRadius:10,color:"rgba(74,144,226,0.8)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+8 oz</button>
+        <button onClick={()=>setShowCustom(v=>!v)} style={{flex:1,padding:"9px 0",background:"none",border:"1px dashed rgba(74,144,226,0.25)",borderRadius:10,color:"rgba(74,144,226,0.6)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Custom</button>
       </div>
 
       {showCustom&&(
         <div style={{display:"flex",gap:8,marginBottom:10}}>
           <input type="number" value={customOz} onChange={e=>setCustomOz(e.target.value)} placeholder="oz" min={1} max={128}
-            style={{flex:1,background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.25)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"'DM Mono',monospace",outline:"none"}}/>
-          <button onClick={handleCustom} style={{padding:"8px 18px",background:"#2979FF",border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
+            style={{flex:1,background:"rgba(74,144,226,0.08)",border:"1px solid rgba(74,144,226,0.25)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"'DM Mono',monospace",outline:"none"}}/>
+          <button onClick={handleCustom} style={{padding:"8px 18px",background:"#4A90E2",border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
         </div>
       )}
 
@@ -826,11 +826,11 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
         <div style={{display:"flex",flexDirection:"column",gap:4}}>
           {lastFive.map(log=>(
             <div key={log.id} onPointerDown={()=>startPress(log.id)} onPointerUp={()=>endPress()} onPointerLeave={()=>endPress()}
-              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(41,121,255,0.06)",borderRadius:8,position:"relative"}}>
+              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(74,144,226,0.06)",borderRadius:8,position:"relative"}}>
               <div style={{fontSize:11,color:"rgba(245,245,240,0.5)",fontFamily:"'DM Mono',monospace"}}>
                 {new Date(log.logged_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
               </div>
-              <div style={{fontSize:11,color:"rgba(41,121,255,0.9)",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>+{log.amount_oz} oz</div>
+              <div style={{fontSize:11,color:"rgba(74,144,226,0.9)",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>+{log.amount_oz} oz</div>
               {longPressId===log.id&&(
                 <div style={{position:"absolute",right:0,top:-2,zIndex:10,display:"flex",gap:6}}>
                   <button onClick={()=>{onDeleteWater(log.id);setLongPressId(null);}}
@@ -845,7 +845,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
       )}
 
       {totalOz>=waterTarget&&(
-        <div style={{textAlign:"center",marginTop:10,fontSize:12,color:"#22c55e",fontWeight:700}}>✓ Daily water goal met! 💪</div>
+        <div style={{textAlign:"center",marginTop:10,fontSize:12,color:"#00B894",fontWeight:700}}>✓ Daily water goal met! 💪</div>
       )}
       {totalOz>0&&totalOz<waterTarget&&(
         <div style={{textAlign:"center",marginTop:8,fontSize:11,color:"rgba(245,245,240,0.4)"}}>{Math.round(ozLeft)} oz to go</div>
@@ -1558,7 +1558,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
               </div>
             ):(
-              <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.35)":T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
+              <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,166,35,.35)":T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
                 <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${macros.isFlexDay?"#F59E0B":cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                   <div>
@@ -1567,7 +1567,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
                     {earnedCals>0&&<div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>+{earnedCals} earned 🔥</div>}
-                    {macros.isFlexDay&&<div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontSize:11,color:"#F59E0B",fontWeight:700}}>🍕 Flex Day</div>}
+                    {macros.isFlexDay&&<div style={{background:"rgba(245,166,35,.15)",border:"1px solid rgba(245,166,35,.35)",borderRadius:20,padding:"6px 14px",fontSize:11,color:"#F59E0B",fontWeight:700}}>🍕 Flex Day</div>}
                     <div style={{background:`${cfg.color}12`,border:`1px solid ${cfg.color}30`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
                   </div>
                 </div>
@@ -1593,7 +1593,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <MacroBar label="Protein" consumed={consumed.protein} target={macros.protein} color={T.prot}/>
                     <MacroBar label="Carbs"   consumed={consumed.carbs}   target={macros.carbs}   color={T.carb}/>
                     <MacroBar label="Fat"     consumed={consumed.fat}     target={macros.fat}     color={T.fat}/>
-                    {macros.isFlexDay&&<div style={{marginTop:10,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>🍕 Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
+                    {macros.isFlexDay&&<div style={{marginTop:10,background:"rgba(245,166,35,.07)",border:"1px solid rgba(245,166,35,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,166,35,.9)",lineHeight:1.6}}>🍕 Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
                     {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:10,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days 🍕</div>}
                   </div>
                 </div>
@@ -1609,7 +1609,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
                       <div style={{fontSize:11,fontWeight:700,color:dayNutrition.color||T.prot,letterSpacing:".1em",textTransform:"uppercase"}}>{dayNutrition.label}</div>
                       {calDelta!=null&&Math.abs(calDelta)>30&&(
-                        <div style={{fontSize:10,fontWeight:700,color:calDelta>0?"#22c55e":"#F59E0B",background:calDelta>0?"rgba(34,197,94,.1)":"rgba(245,158,11,.1)",borderRadius:5,padding:"2px 7px"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:calDelta>0?"#00B894":"#F59E0B",background:calDelta>0?"rgba(0,184,148,.1)":"rgba(245,166,35,.1)",borderRadius:5,padding:"2px 7px"}}>
                           {calDelta>0?"↑":"↓"} {Math.abs(calDelta)} vs yesterday
                         </div>
                       )}
@@ -1683,11 +1683,11 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* NUTRITION PERIODIZATION */}
             {periodizationInfo&&(
-              <div style={{background:"rgba(41,121,255,0.08)",border:"1px solid rgba(41,121,255,0.25)",borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:14}}>
+              <div style={{background:"rgba(74,144,226,0.08)",border:"1px solid rgba(74,144,226,0.25)",borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:14}}>
                 <div style={{flexShrink:0,fontSize:22,marginTop:2}}>📅</div>
                 <div style={{flex:1}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                    <div style={{fontSize:10,color:"#2979FF",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>WEEK {periodizationInfo.cycleWeek} — {periodizationInfo.phase.toUpperCase()}</div>
+                    <div style={{fontSize:10,color:"#4A90E2",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>WEEK {periodizationInfo.cycleWeek} — {periodizationInfo.phase.toUpperCase()}</div>
                     <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontFamily:"'DM Mono',monospace"}}>WEEKS {periodizationInfo.wks}</div>
                   </div>
                   <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.5}}>{periodizationInfo.note}</div>
@@ -1737,7 +1737,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {(profile?.lifeStage==="perimenopause"||profile?.lifeStage==="menopause")&&(()=>{
               const mn=profile.lifeStage==="menopause"?MENO_NUTRITION:PERI_NUTRITION;
               return(
-                <div style={{background:"rgba(34,197,94,.07)",border:"1.5px solid rgba(34,197,94,.25)",borderRadius:14,padding:"14px 18px"}}>
+                <div style={{background:"rgba(0,184,148,.07)",border:"1.5px solid rgba(0,184,148,.25)",borderRadius:14,padding:"14px 18px"}}>
                   <div style={{fontSize:10,color:"#22C55E",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>
                     {profile.lifeStage==="menopause"?"🦋 MENOPAUSE NUTRITION":"🌊 PERIMENOPAUSE NUTRITION"}
                   </div>
@@ -1752,9 +1752,9 @@ Reply with ONLY a valid JSON object, no markdown:
                       {mn.omega3.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                   </div>
-                  <div style={{background:"rgba(41,121,255,.07)",border:"1px solid rgba(41,121,255,.2)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
+                  <div style={{background:"rgba(74,144,226,.07)",border:"1px solid rgba(74,144,226,.2)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
                     <span style={{fontSize:12,flexShrink:0}}>💙</span>
-                    <div><div style={{fontSize:11,color:"rgba(41,121,255,.9)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#2979FF",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                    <div><div style={{fontSize:11,color:"rgba(74,144,226,.9)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#4A90E2",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </div>
               );
@@ -1788,7 +1788,7 @@ Reply with ONLY a valid JSON object, no markdown:
             )}
 
             {/* WEEKEND FLEX MODE */}
-            <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.3)":T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+            <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,166,35,.3)":T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:flexOn?14:0}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:800,letterSpacing:"0.08em",color:flexOn?"#F59E0B":"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:flexOn?3:0}}>Weekend Flex 🍕</div>
@@ -1808,8 +1808,8 @@ Reply with ONLY a valid JSON object, no markdown:
                     const dayIcon=isFlex?"🍕":schedType==="training"?"🏋️":(schedType==="cardio"||schedType==="run"||schedType==="hyrox")?"🏃":"😴";
                     return(
                       <button key={day} onClick={()=>setDayModal(day)}
-                        style={{background:isToday?"rgba(41,121,255,.12)":isFlex?"rgba(245,158,11,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(41,121,255,.5)":isFlex?"rgba(245,158,11,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
-                        <div style={{fontSize:9,fontWeight:700,color:isToday?"#2979FF":isFlex?"#F59E0B":"rgba(245,245,240,.4)",marginBottom:3,letterSpacing:1}}>{day}</div>
+                        style={{background:isToday?"rgba(74,144,226,.12)":isFlex?"rgba(245,166,35,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(74,144,226,.5)":isFlex?"rgba(245,166,35,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
+                        <div style={{fontSize:9,fontWeight:700,color:isToday?"#4A90E2":isFlex?"#F59E0B":"rgba(245,245,240,.4)",marginBottom:3,letterSpacing:1}}>{day}</div>
                         <div style={{fontSize:14}}>{dayIcon}</div>
                       </button>
                     );
@@ -1831,17 +1831,17 @@ Reply with ONLY a valid JSON object, no markdown:
                       const isSelected=isFlex?flexDays.includes(dayModal):(!flexDays.includes(dayModal)&&(schedule?.[dayModal]||"rest")===type);
                       return(
                         <button key={type} onClick={()=>{if(type==="flex")toggleFlexDay(dayModal);else setDayTypeInSchedule(dayModal,type);setDayModal(null);}}
-                          style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,158,11,.15)":"rgba(41,121,255,.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,158,11,.5)":"rgba(41,121,255,.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                          style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,166,35,.15)":"rgba(74,144,226,.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,166,35,.5)":"rgba(74,144,226,.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
                           <div style={{fontSize:22,marginBottom:4}}>{emoji}</div>
-                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"#F59E0B":"#2979FF"):"rgba(245,245,240,.5)"}}>{label}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"#F59E0B":"#4A90E2"):"rgba(245,245,240,.5)"}}>{label}</div>
                         </button>
                       );
                     })}
                   </div>
                   <div style={{fontSize:12,color:"rgba(245,245,240,.35)",lineHeight:1.8,marginBottom:20}}>
-                    <span style={{color:"rgba(41,121,255,.8)"}}>Training</span> = higher carbs for workout fuel<br/>
+                    <span style={{color:"rgba(74,144,226,.8)"}}>Training</span> = higher carbs for workout fuel<br/>
                     <span style={{color:"rgba(245,245,240,.5)"}}>Rest</span> = standard lower calories<br/>
-                    <span style={{color:"rgba(245,158,11,.8)"}}>Flex</span> = +{flexPct}% calories, protein stays fixed
+                    <span style={{color:"rgba(245,166,35,.8)"}}>Flex</span> = +{flexPct}% calories, protein stays fixed
                   </div>
                   <button onClick={()=>setDayModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Done</button>
                 </div>
@@ -1850,7 +1850,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* QUICK ACTIONS */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-              {[["+ Food",()=>setShowQuickLog(true),T.prot,"⚡"],["Restaurants",()=>setFuelScreen("recs"),T.carb,"🍗"],["Recipes",()=>setFuelScreen("recipes"),T.fat,"👨‍🍳"],["Fasting",()=>setFuelScreen("fast"),"#9B59FF","⏱️"]].map(([l,fn,c,e])=>(
+              {[["+ Food",()=>setShowQuickLog(true),T.prot,"⚡"],["Restaurants",()=>setFuelScreen("recs"),T.carb,"🍗"],["Recipes",()=>setFuelScreen("recipes"),T.fat,"👨‍🍳"],["Fasting",()=>setFuelScreen("fast"),"#7E57C2","⏱️"]].map(([l,fn,c,e])=>(
                 <button key={l} onClick={fn} style={{padding:"14px 6px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"inherit",textAlign:"center",transition:"all .15s"}}>
                   <div style={{fontSize:20,marginBottom:4}}>{e}</div>
                   <div style={{color:c,fontSize:10,fontWeight:700}}>{l}</div>
@@ -1859,7 +1859,7 @@ Reply with ONLY a valid JSON object, no markdown:
             </div>
 
             {/* RESTAURANT AI CARD */}
-            <button onClick={()=>setFuelScreen("recs")} style={{width:"100%",background:"linear-gradient(135deg,rgba(96,165,250,0.12),rgba(96,165,250,0.04))",border:"1px solid rgba(96,165,250,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
+            <button onClick={()=>setFuelScreen("recs")} style={{width:"100%",background:"linear-gradient(135deg,rgba(74,144,226,0.12),rgba(74,144,226,0.04))",border:"1px solid rgba(74,144,226,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
               <div style={{fontSize:36,flexShrink:0}}>🍗</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Restaurant AI</div>
@@ -1871,13 +1871,13 @@ Reply with ONLY a valid JSON object, no markdown:
             </button>
 
             {/* MEAL PREP CARD */}
-            <button onClick={()=>setFuelScreen("prep")} style={{width:"100%",background:"linear-gradient(135deg,rgba(155,89,255,0.12),rgba(155,89,255,0.04))",border:"1px solid rgba(155,89,255,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
+            <button onClick={()=>setFuelScreen("prep")} style={{width:"100%",background:"linear-gradient(135deg,rgba(126,87,194,0.12),rgba(126,87,194,0.04))",border:"1px solid rgba(126,87,194,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
               <div style={{fontSize:36,flexShrink:0}}>🥡</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Meal Prep Planner</div>
                 <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{prepPlan?"View your weekly prep plan · proteins, carbs, veggies + grocery list":"Generate your weekly meal prep plan based on your training schedule"}</div>
               </div>
-              <div style={{color:"#9B59FF",flexShrink:0}}>
+              <div style={{color:"#7E57C2",flexShrink:0}}>
                 <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
               </div>
             </button>
@@ -1899,7 +1899,7 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Today&apos;s Log</div>
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={addMealSlot} style={{background:"rgba(41,121,255,0.1)",border:"1px dashed rgba(41,121,255,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
+                  <button onClick={addMealSlot} style={{background:"rgba(74,144,226,0.1)",border:"1px dashed rgba(74,144,226,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
                   <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
                 </div>
               </div>
@@ -2130,7 +2130,7 @@ Reply with ONLY a valid JSON object, no markdown:
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Save multi-ingredient recipes · log as a single tap</p>
 
             {/* AI recipe ideas button */}
-            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"linear-gradient(135deg,rgba(96,165,250,.1),rgba(96,165,250,.04))",border:"1px solid rgba(96,165,250,.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"linear-gradient(135deg,rgba(74,144,226,.1),rgba(74,144,226,.04))",border:"1px solid rgba(74,144,226,.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
               <div style={{fontSize:24,flexShrink:0}}>🧠</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>AI Recipe Ideas</div>
@@ -2151,7 +2151,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* Smart save suggestion */}
             {recipeSuggestSlot&&(
-              <div style={{background:"rgba(41,121,255,.08)",border:"1px solid rgba(41,121,255,.25)",borderRadius:14,padding:"14px 16px",marginBottom:20}}>
+              <div style={{background:"rgba(74,144,226,.08)",border:"1px solid rgba(74,144,226,.25)",borderRadius:14,padding:"14px 16px",marginBottom:20}}>
                 <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>You often eat these together for {recipeSuggestSlot}:</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:12}}>
                   {log.filter(e=>(e.slot||"Lunch")===recipeSuggestSlot).slice(0,3).map(e=>e.food).join(" + ")}
@@ -2206,7 +2206,7 @@ Reply with ONLY a valid JSON object, no markdown:
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900}}>MEAL PREP 🥡</div>
               {prepPlan&&!prepLoading&&(
-                <button onClick={generatePrepPlan} style={{fontSize:11,color:"#9B59FF",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
+                <button onClick={generatePrepPlan} style={{fontSize:11,color:"#7E57C2",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
               )}
             </div>
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Cook once, eat all week · based on your training schedule</p>
@@ -2224,7 +2224,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{fontSize:48,marginBottom:14}}>🥡</div>
                 <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Generate Your Prep Plan</div>
                 <div style={{fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.65,maxWidth:300,margin:"0 auto 28px"}}>AI builds a complete Sunday prep guide — proteins, carbs, vegetables, and a ready-to-shop grocery list</div>
-                <button onClick={generatePrepPlan} style={{padding:"14px 32px",background:"#9B59FF",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Generate Plan →</button>
+                <button onClick={generatePrepPlan} style={{padding:"14px 32px",background:"#7E57C2",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Generate Plan →</button>
               </div>
             )}
 
@@ -2237,10 +2237,10 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     {["training","rest"].map(type=>(
                       <div key={type} style={{background:T.s2,borderRadius:14,padding:"14px"}}>
-                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10,color:type==="training"?"#2979FF":"rgba(245,245,240,0.4)",fontFamily:"'DM Mono',monospace"}}>{type==="training"?"🏋️ TRAINING DAY":"😴 REST DAY"}</div>
+                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10,color:type==="training"?"#4A90E2":"rgba(245,245,240,0.4)",fontFamily:"'DM Mono',monospace"}}>{type==="training"?"🏋️ TRAINING DAY":"😴 REST DAY"}</div>
                         {Object.entries(prepPlan.mealAssignments?.[type]||{}).map(([meal,desc])=>(
                           <div key={meal} style={{marginBottom:8,paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                            <div style={{fontSize:9,color:type==="training"?"rgba(41,121,255,0.7)":"rgba(245,245,240,0.35)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:3}}>{meal}</div>
+                            <div style={{fontSize:9,color:type==="training"?"rgba(74,144,226,0.7)":"rgba(245,245,240,0.35)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:3}}>{meal}</div>
                             <div style={{fontSize:11,color:"rgba(245,245,240,0.75)",lineHeight:1.55}}>{desc}</div>
                           </div>
                         ))}
@@ -2272,7 +2272,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
                 {/* CARBS */}
                 {prepPlan.carbs?.length>0&&(
-                  <div style={{background:T.s1,border:`1px solid rgba(96,165,250,0.2)`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div style={{background:T.s1,border:`1px solid rgba(74,144,226,0.2)`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🍚</span>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.carb,letterSpacing:.5}}>CARBS</div>
@@ -2293,17 +2293,17 @@ Reply with ONLY a valid JSON object, no markdown:
 
                 {/* VEGETABLES */}
                 {prepPlan.vegetables?.length>0&&(
-                  <div style={{background:T.s1,border:"1px solid rgba(34,197,94,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div style={{background:T.s1,border:"1px solid rgba(0,184,148,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🥦</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#22c55e",letterSpacing:.5}}>VEGETABLES</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#00B894",letterSpacing:.5}}>VEGETABLES</div>
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       {prepPlan.vegetables.map((item,i)=>(
                         <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                             <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:"#22c55e",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                            <div style={{fontSize:11,color:"#00B894",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
                           </div>
                           <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
                         </div>
@@ -2314,17 +2314,17 @@ Reply with ONLY a valid JSON object, no markdown:
 
                 {/* SNACKS */}
                 {prepPlan.snacks?.length>0&&(
-                  <div style={{background:T.s1,border:"1px solid rgba(155,89,255,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div style={{background:T.s1,border:"1px solid rgba(126,87,194,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🍎</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#9B59FF",letterSpacing:.5}}>SNACKS</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#7E57C2",letterSpacing:.5}}>SNACKS</div>
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       {prepPlan.snacks.map((item,i)=>(
                         <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                             <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:"#9B59FF",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                            <div style={{fontSize:11,color:"#7E57C2",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
                           </div>
                           <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
                         </div>
@@ -2342,7 +2342,7 @@ Reply with ONLY a valid JSON object, no markdown:
                         <button onClick={()=>{
                           const text=Object.entries(prepPlan.grocery).map(([cat,items])=>`${cat}:\n${items.map(i=>`  • ${i}`).join("\n")}`).join("\n\n");
                           navigator.clipboard?.writeText(text);
-                        }} style={{padding:"6px 12px",background:"rgba(41,121,255,0.1)",border:"1px solid rgba(41,121,255,0.3)",color:T.prot,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Copy</button>
+                        }} style={{padding:"6px 12px",background:"rgba(74,144,226,0.1)",border:"1px solid rgba(74,144,226,0.3)",color:T.prot,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Copy</button>
                         <button onClick={()=>setGroceryOpen(o=>!o)} style={{padding:"6px 12px",background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{groceryOpen?"Hide ▲":"Show ▼"}</button>
                       </div>
                     </div>
@@ -2357,8 +2357,8 @@ Reply with ONLY a valid JSON object, no markdown:
                               return(
                                 <div key={i} onClick={()=>setGroceryChecked(s=>{const n=new Set(s);if(checked)n.delete(key);else n.add(key);return n;})}
                                   style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
-                                  <div style={{width:18,height:18,borderRadius:4,border:`1.5px solid ${checked?"#22c55e":T.bd}`,background:checked?"rgba(34,197,94,0.15)":"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
-                                    {checked&&<span style={{color:"#22c55e",fontSize:10,fontWeight:900,lineHeight:1}}>✓</span>}
+                                  <div style={{width:18,height:18,borderRadius:4,border:`1.5px solid ${checked?"#00B894":T.bd}`,background:checked?"rgba(0,184,148,0.15)":"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+                                    {checked&&<span style={{color:"#00B894",fontSize:10,fontWeight:900,lineHeight:1}}>✓</span>}
                                   </div>
                                   <span style={{fontSize:13,color:checked?"rgba(245,245,240,0.35)":"rgba(245,245,240,0.85)",textDecoration:checked?"line-through":"none",transition:"all 0.15s"}}>{item}</span>
                                 </div>
@@ -2366,7 +2366,7 @@ Reply with ONLY a valid JSON object, no markdown:
                             })}
                           </div>
                         ))}
-                        <div style={{marginTop:4,padding:"10px 14px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.12)",borderRadius:10,fontSize:12,color:"rgba(245,245,240,0.45)",textAlign:"center"}}>
+                        <div style={{marginTop:4,padding:"10px 14px",background:"rgba(0,184,148,0.06)",border:"1px solid rgba(0,184,148,0.12)",borderRadius:10,fontSize:12,color:"rgba(245,245,240,0.45)",textAlign:"center"}}>
                           {groceryChecked.size} / {Object.values(prepPlan.grocery).reduce((s,a)=>s+(a?.length||0),0)} items checked
                         </div>
                       </div>
@@ -2374,7 +2374,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   </div>
                 )}
 
-                <button onClick={generatePrepPlan} style={{width:"100%",padding:"13px",background:T.s2,color:"#9B59FF",fontSize:13,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:"1px solid rgba(155,89,255,0.25)",borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Regenerate Plan</button>
+                <button onClick={generatePrepPlan} style={{width:"100%",padding:"13px",background:T.s2,color:"#7E57C2",fontSize:13,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:"1px solid rgba(126,87,194,0.25)",borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Regenerate Plan</button>
               </div>
             )}
           </div>
@@ -2406,7 +2406,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {!fastActive?<PrimaryBtn onClick={()=>{setFastActive(true);setFastStart(Date.now());hap();}} label="Start Fasting →"/>
               :<div style={{display:"flex",gap:8}}>
                 <button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:1,padding:"14px",background:T.s2,color:T.red,fontWeight:700,fontSize:13,border:`1px solid ${T.red}30`,borderRadius:11,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>End Fast</button>
-                {eatOpen&&<button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:2,padding:"14px",background:T.green||"#22c55e",color:"#000",fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Break Fast 🎉</button>}
+                {eatOpen&&<button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:2,padding:"14px",background:T.green||"#00B894",color:"#000",fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Break Fast 🎉</button>}
               </div>}
           </div>
         )}
