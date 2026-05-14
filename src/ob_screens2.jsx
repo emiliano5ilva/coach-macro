@@ -22,6 +22,9 @@ import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceS
 import { calculatePRProbability, generateWeeklyForecast, calculateGoalTrajectories, calcNutritionAdherence7d, trackPredictionOutcome } from "./services/predictionEngine.js";
 import { detectMetabolicAdaptation, generateAdaptationProtocol, buildProtocolPhases, saveDetectedAdaptation, getActiveAdaptation, dismissAdaptation, startProtocol as startMetabolicProtocol, completeProtocol, getProtocolProgress } from "./services/metabolicAdaptation.js";
 import { MetabolicAdaptationBanner, MetabolicAdaptationModal, MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
+import { requestCalendarAccess, checkCalendarAuthorized, getUpcomingEvents } from "./services/calendarService.js";
+import { analyzeScheduleForTraining, buildHotelWorkout } from "./services/calendarAnalysis.js";
+import { ScheduleAlertCard, TravelNutritionCard, CalendarConnectPrompt } from "./LifeAwareTraining.jsx";
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
@@ -1362,6 +1365,13 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [showAdaptationModal,setShowAdaptationModal]=useState(false);
   const [adaptationChecking,setAdaptationChecking]=useState(false);
 
+  // ── Life-Aware Training — Calendar ────────────────────────────────────────
+  const [calendarConnected,setCalendarConnected]=useState(()=>localStorage.getItem("calendar_connected")==="1");
+  const [calendarAlerts,setCalendarAlerts]=useState([]);
+  const [travelAdvice,setTravelAdvice]=useState(null);
+  const [showCalendarPrompt,setShowCalendarPrompt]=useState(false);
+  const [dismissedAlerts,setDismissedAlerts]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("dismissed_cal_alerts")||"[]"));}catch{return new Set();}});
+
   // ── Apple Health ───────────────────────────────────────────────────────────
   const [healthSnap,setHealthSnap]=useState(null);
   const [healthConnected,setHealthConnected]=useState(false);
@@ -1516,6 +1526,116 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       }).catch(()=>{setAdaptationChecking(false);});
     }
   },[user]);
+
+  // ── Calendar — load and analyze events each day ───────────────────────────
+  useEffect(()=>{
+    if(!calendarConnected||!user)return;
+    const lastScan=localStorage.getItem("calendar_last_scan");
+    const today=new Date().toISOString().split("T")[0];
+    if(lastScan===today)return; // already scanned today
+    async function loadCalendar(){
+      try{
+        const authorized=await checkCalendarAuthorized();
+        if(!authorized){localStorage.removeItem("calendar_connected");setCalendarConnected(false);return;}
+        const events=await getUpcomingEvents(14);
+        localStorage.setItem("calendar_last_scan",today);
+        const calPrefs=wPrefs?.calendarPrefs||{};
+        const alerts=analyzeScheduleForTraining(events,schedule,calPrefs);
+        // Filter already dismissed
+        const visible=alerts.filter(a=>!dismissedAlerts.has(a.id));
+        setCalendarAlerts(visible);
+        // Travel nutrition — check for travel today or tomorrow
+        const travelEv=events.find(e=>e.type==="travel"&&(
+          e.startDate.split("T")[0]===today||
+          e.startDate.split("T")[0]===new Date(Date.now()+864e5).toISOString().split("T")[0]
+        ));
+        if(travelEv){
+          const advice=await generateTravelNutritionAdvice(travelEv,profile);
+          setTravelAdvice(advice);
+        }
+      }catch(e){console.error("[calendar]",e);}
+    }
+    loadCalendar();
+  },[calendarConnected,user,schedule]);
+
+  async function generateTravelNutritionAdvice(travelEvent,prof){
+    if(!prof)return null;
+    try{
+      const {ai:callAI}=await import("./client.js");
+      const dateLabel=new Date(travelEvent.startDate).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+      const text=await callAI(
+        `A Coach Macro user is traveling on ${dateLabel} (event: "${travelEvent.title}").
+Profile: goal=${prof.goal}, calories=${prof.goalCals}/day, protein target=${Math.round((prof.goalCals||2000)*0.3/4)}g.
+
+Write a brief travel day nutrition game plan (under 150 words):
+1. Pre-travel breakfast tip (protein-heavy)
+2. Best airport/travel food option (real chain name, specific order, approximate calories + protein)
+3. What to avoid and why
+4. Macro adjustment note (travel = lower activity = slightly fewer carbs)
+
+Be specific and practical. Empathetic tone. No fluff.`,
+        600,"travel_nutrition");
+      return{text,dateLabel,event:travelEvent.title};
+    }catch{return null;}
+  }
+
+  async function handleConnectCalendar(){
+    const authorized=await requestCalendarAccess();
+    if(authorized){
+      localStorage.setItem("calendar_connected","1");
+      setCalendarConnected(true);
+      setShowCalendarPrompt(false);
+    }
+  }
+
+  function handleDisconnectCalendar(){
+    localStorage.removeItem("calendar_connected");
+    localStorage.removeItem("calendar_last_scan");
+    setCalendarConnected(false);
+    setCalendarAlerts([]);
+    setTravelAdvice(null);
+  }
+
+  function handleDismissAlert(alertId){
+    const next=new Set(dismissedAlerts);
+    next.add(alertId);
+    setDismissedAlerts(next);
+    localStorage.setItem("dismissed_cal_alerts",JSON.stringify([...next]));
+    setCalendarAlerts(prev=>prev.filter(a=>a.id!==alertId));
+  }
+
+  function handleCalendarAction(alert,suggestion){
+    switch(suggestion.action){
+      case "swap_to_hotel_workout":{
+        const hotel=buildHotelWorkout(todayFocus);
+        setActiveWorkout(hotel);
+        setTrainScreen("active");
+        setSection("train");
+        showToast("Hotel gym session loaded — let's go 🏨","success");
+        break;
+      }
+      case "reschedule":{
+        showToast(`Noted — moving session to ${suggestion.data?.altDay||"another day"}. Adjust your schedule in Train → Program.`,"info",{duration:5000});
+        break;
+      }
+      case "skip":{
+        showToast("Got it — rest day scheduled instead.","info");
+        break;
+      }
+      case "reduce_volume_this_week":{
+        const next={...wPrefs,lighterWeek:true,lighterWeekDate:new Date().toISOString().split("T")[0]};
+        setWPrefs(next);
+        if(user)sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"}).catch(()=>{});
+        showToast("Lighter week applied — 20% fewer sets this week 💪","success",{duration:5000});
+        break;
+      }
+      case "schedule_in_free_time":{
+        setSection("train");
+        showToast("Head to Train to start your session!","success");
+        break;
+      }
+    }
+  }
 
   // ── Session Prediction — compute when entering active session ─────────────
   useEffect(()=>{
@@ -2312,6 +2432,32 @@ Rules:
             </div>
           );
         })()}
+
+        {/* ── CALENDAR CONNECT PROMPT (first-time, native only) ── */}
+        {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()&&!calendarConnected&&!showCalendarPrompt&&localStorage.getItem("cal_prompt_dismissed")!=="1"&&workoutLogsRaw.length>=3&&(
+          <CalendarConnectPrompt
+            onConnect={handleConnectCalendar}
+            onDismiss={()=>{setShowCalendarPrompt(false);localStorage.setItem("cal_prompt_dismissed","1");}}
+          />
+        )}
+
+        {/* ── LIFE-AWARE TRAINING — Calendar alerts ── */}
+        {calendarAlerts.filter(a=>!dismissedAlerts.has(a.id)).map(alert=>(
+          <ScheduleAlertCard
+            key={alert.id}
+            alert={alert}
+            onAction={handleCalendarAction}
+            onDismiss={handleDismissAlert}
+          />
+        ))}
+
+        {/* ── TRAVEL DAY NUTRITION ── */}
+        {travelAdvice&&(
+          <TravelNutritionCard
+            travelAdvice={travelAdvice}
+            onDismiss={()=>setTravelAdvice(null)}
+          />
+        )}
 
         {/* ── PAST SECTION — Your Last 30 Days ── */}
         {workoutLogsRaw.length>0&&(()=>{
@@ -3250,7 +3396,7 @@ Rules:
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null}/></ErrorBoundary>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
-        {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief}/></ErrorBoundary>}
+        {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar}/></ErrorBoundary>}
       </div>
       <div className="app-tab-bar">
         {NAV_ITEMS.map(item=>(

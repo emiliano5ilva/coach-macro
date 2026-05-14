@@ -176,7 +176,22 @@ export function PrivacyPolicy() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">8. Your Rights</h2>
+          <h2 className="legal-h2">8. Calendar Access (Optional)</h2>
+          <p className="legal-p">When you connect your calendar, Coach Macro reads the following to adapt training around your schedule:</p>
+          <ul className="legal-ul">
+            <li>Event titles (to detect travel, deadlines, and free time blocks)</li>
+            <li>Event start and end times</li>
+            <li>Event dates</li>
+          </ul>
+          <div className="legal-highlight">
+            <p><strong>We do NOT read:</strong> event descriptions or notes, attendee information, location details, or any event content beyond title and time.</p>
+          </div>
+          <p className="legal-p">Calendar data is processed on-device. Event titles are never sent to our servers or to third-party services — all analysis runs locally on your device.</p>
+          <p className="legal-p">Coach Macro will never write to your calendar without your explicit permission. You can disconnect calendar access at any time in <strong>Settings → Calendar Integration</strong>.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">9. Your Rights</h2>
           <ul className="legal-ul">
             <li>Access your data at any time through the app</li>
             <li>Export your data by contacting support</li>
@@ -186,7 +201,7 @@ export function PrivacyPolicy() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">9. Account Deletion</h2>
+          <h2 className="legal-h2">10. Account Deletion</h2>
           <p className="legal-p">You can delete your account at any time:</p>
           <ol className="legal-ul" style={{listStyleType:"decimal"}}>
             <li>Go to <strong>Settings → Account → Delete Account</strong></li>
@@ -204,7 +219,7 @@ export function PrivacyPolicy() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">10. Contact</h2>
+          <h2 className="legal-h2">11. Contact</h2>
           <p className="legal-p">For privacy-related questions or requests, contact us at: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
         </div>
 

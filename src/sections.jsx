@@ -21,6 +21,7 @@ import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
 import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN } from "./utils/warmupProtocols.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
+import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -2958,7 +2959,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
 }
 
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
-export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief}) {
+export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect}) {
   const [delStep,setDelStep]=useState(0); // 0=idle 1=warning 2=confirm 3=deleting
   const [delConfirm,setDelConfirm]=useState(false);
   const [delInput,setDelInput]=useState("");
@@ -3415,6 +3416,21 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{paddingTop:10,fontSize:11,color:T.mu,lineHeight:1.6}}>
             Coach Macro uses Apple Health to personalize your recovery score, calorie targets, and training intensity using real biometric data.
           </div>
+        </SectionCard>
+
+        {/* Calendar Integration */}
+        <SectionCard title="🗓️ Calendar Integration">
+          <CalendarSettingsPanel
+            connected={calendarConnected||false}
+            onConnect={onCalendarConnect||(() =>{})}
+            onDisconnect={onCalendarDisconnect||(() =>{})}
+            prefs={wPrefs?.calendarPrefs||{}}
+            onPrefsChange={async(key,val)=>{
+              const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};
+              setWPrefs(next);
+              if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}
+            }}
+          />
         </SectionCard>
 
         {/* AI Usage — only shown when ≥80% to avoid anxiety */}
