@@ -28,6 +28,11 @@ export default async function handler(req, res) {
       case 'health':     return res.json(await getHealth());
       case 'promo-codes':return res.json(await getPromoCodes());
       case 'churn':      return res.json(await getChurn());
+      case 'financial':  return res.json(await getFinancial());
+      case 'growth':     return res.json(await getGrowth());
+      case 'user-health':return res.json(await getUserHealth());
+      case 'forecast':   return res.json(await getForecast());
+      case 'support':    return res.json(await getSupport());
       default:
         return res.status(400).json({ error: 'Invalid section' });
     }
@@ -378,5 +383,234 @@ async function getChurn() {
       ...u,
       email: emailMap[u.id] || '—',
     })),
+  };
+}
+
+// ── FINANCIAL ──────────────────────────────────────────────────────────────────
+
+async function getFinancial() {
+  const now      = new Date();
+  const monthStr = now.toISOString().slice(0, 7);
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+
+  const [proRes, totalRes, tokenRes, refRes] = await Promise.all([
+    sb.from('profiles').select('*', { count: 'exact', head: true }).eq('is_pro', true),
+    sb.from('profiles').select('*', { count: 'exact', head: true }),
+    sb.from('token_usage').select('tokens_used').eq('month', monthStr),
+    sb.from('profiles').select('referral_count'),
+  ]);
+
+  const proCount    = proRes.count   || 0;
+  const totalCount  = totalRes.count || 0;
+  const mrr         = proCount * 2.99;
+  const arpu        = proCount > 0 ? mrr / proCount : 0;
+  const totalTokens = (tokenRes.data || []).reduce((s, r) => s + (r.tokens_used || 0), 0);
+  const aiCost      = (totalTokens / 1_000_000) * (3.0 * 0.7 + 15.0 * 0.3);
+  const totalRefs   = (refRes.data || []).reduce((s, r) => s + (r.referral_count || 0), 0);
+
+  // LTV assumes 12-month avg retention (update as you get real churn data)
+  const ltv               = arpu * 12;
+  const viralCoefficient  = totalCount > 0 ? totalRefs / totalCount : 0;
+
+  // Monthly cost breakdown
+  const netRevenue = mrr - aiCost;
+  const margin     = mrr > 0 ? ((netRevenue / mrr) * 100) : 0;
+
+  return {
+    mrr:              mrr.toFixed(2),
+    arr:              (mrr * 12).toFixed(2),
+    arpu:             arpu.toFixed(2),
+    ltv:              ltv.toFixed(2),
+    ltvAssumedMonths: 12,
+    aiCostThisMonth:  aiCost.toFixed(4),
+    netRevenue:       netRevenue.toFixed(2),
+    marginPct:        margin.toFixed(1),
+    viralCoefficient: viralCoefficient.toFixed(2),
+    totalReferrals:   totalRefs,
+    proUsers:         proCount,
+    totalUsers:       totalCount,
+    // CAC is manual — no marketing spend tracked in DB
+  };
+}
+
+// ── GROWTH ─────────────────────────────────────────────────────────────────────
+
+async function getGrowth() {
+  const now          = new Date();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Weekly new signups (last 8 weeks)
+  const weeklyPromises = [];
+  for (let i = 7; i >= 0; i--) {
+    const start = new Date(now - (i + 1) * 7 * 24 * 60 * 60 * 1000).toISOString();
+    const end   = new Date(now - i * 7 * 24 * 60 * 60 * 1000).toISOString();
+    const label = new Date(now - (i + 1) * 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    weeklyPromises.push(
+      sb.from('profiles').select('*', { count: 'exact', head: true })
+        .gte('created_at', start).lt('created_at', end)
+        .then(({ count }) => ({ week: label, newUsers: count || 0 }))
+    );
+  }
+
+  const [weeklyGrowth, featureEvents, totalRes, refRes] = await Promise.all([
+    Promise.all(weeklyPromises),
+    sb.from('analytics_events').select('event, user_id').gte('created_at', thirtyDaysAgo),
+    sb.from('profiles').select('*', { count: 'exact', head: true }),
+    sb.from('profiles').select('referral_count'),
+  ]);
+
+  const totalUsers  = totalRes.count || 0;
+  const totalRefs   = (refRes.data || []).reduce((s, r) => s + (r.referral_count || 0), 0);
+  const viralCoeff  = totalUsers > 0 ? (totalRefs / totalUsers).toFixed(2) : 0;
+
+  // Feature adoption
+  const byFeature = {};
+  for (const e of featureEvents.data || []) {
+    if (!byFeature[e.event]) byFeature[e.event] = new Set();
+    byFeature[e.event].add(e.user_id);
+  }
+  const featureAdoption = Object.entries(byFeature)
+    .map(([event, users]) => ({
+      event,
+      activeUsers:   users.size,
+      adoptionPct:   totalUsers > 0 ? ((users.size / totalUsers) * 100).toFixed(1) : 0,
+    }))
+    .sort((a, b) => b.activeUsers - a.activeUsers)
+    .slice(0, 12);
+
+  // Week-over-week growth rate (last 2 weeks)
+  const weeks = weeklyGrowth.slice(-2);
+  const wowRate = weeks[0].newUsers > 0
+    ? (((weeks[1].newUsers - weeks[0].newUsers) / weeks[0].newUsers) * 100).toFixed(1)
+    : null;
+
+  return { weeklyGrowth, featureAdoption, viralCoefficient: viralCoeff, wowGrowthRate: wowRate, totalUsers };
+}
+
+// ── USER HEALTH ────────────────────────────────────────────────────────────────
+
+async function getUserHealth() {
+  const now          = new Date();
+  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const todayStart   = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+  const [profilesRes, recentEventsRes] = await Promise.all([
+    sb.from('profiles').select('id, is_pro, created_at').order('created_at', { ascending: false }).limit(300),
+    sb.from('analytics_events').select('user_id, event, created_at').gte('created_at', sevenDaysAgo),
+  ]);
+
+  const profiles = profilesRes.data || [];
+
+  // Build per-user activity map
+  const activity = {};
+  for (const e of recentEventsRes.data || []) {
+    if (!activity[e.user_id]) activity[e.user_id] = { events: 0, uniqueEvents: new Set(), lastSeen: null };
+    activity[e.user_id].events++;
+    activity[e.user_id].uniqueEvents.add(e.event);
+    if (!activity[e.user_id].lastSeen || e.created_at > activity[e.user_id].lastSeen) {
+      activity[e.user_id].lastSeen = e.created_at;
+    }
+  }
+
+  const today = now.toISOString().slice(0, 10);
+  const dist  = Array(10).fill(0); // index 0 = score 1
+  const atRisk = [];
+
+  for (const p of profiles) {
+    const a = activity[p.id] || { events: 0, uniqueEvents: new Set(), lastSeen: null };
+    let score = 0;
+    if (p.is_pro)                score += 3;
+    if (a.events > 0)            score += 2;
+    if (a.events > 5)            score += 1;
+    if (a.uniqueEvents.size > 3) score += 2;
+    if (a.lastSeen?.slice(0, 10) === today) score += 2;
+    score = Math.max(1, Math.min(10, score));
+    dist[score - 1]++;
+    if (score <= 3) atRisk.push({ id: p.id, score, is_pro: p.is_pro, created_at: p.created_at, lastSeen: a.lastSeen });
+  }
+
+  // Get emails for at-risk users
+  const { data: authData } = await sb.auth.admin.listUsers({ perPage: 500 });
+  const emailMap = {};
+  for (const u of authData?.users || []) emailMap[u.id] = u.email;
+
+  return {
+    distribution: dist.map((count, i) => ({ score: i + 1, count })),
+    atRiskCount:  atRisk.length,
+    atRiskUsers:  atRisk.slice(0, 30).map((u) => ({ ...u, email: emailMap[u.id] || '—' })),
+    totalScored:  profiles.length,
+    avgScore:     profiles.length > 0
+      ? (dist.reduce((s, c, i) => s + c * (i + 1), 0) / profiles.length).toFixed(1)
+      : 0,
+  };
+}
+
+// ── FORECAST ───────────────────────────────────────────────────────────────────
+
+async function getForecast() {
+  const now = new Date();
+
+  // New signups per month for last 6 months
+  const monthlyData = [];
+  for (let i = 5; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1).toISOString();
+    const end   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1).toISOString();
+    const label = start.slice(0, 7);
+    const [{ count: newUsers }, { count: newPro }] = await Promise.all([
+      sb.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', start).lt('created_at', end),
+      sb.from('profiles').select('*', { count: 'exact', head: true }).eq('is_pro', true).gte('created_at', start).lt('created_at', end),
+    ]);
+    monthlyData.push({ month: label, newUsers: newUsers || 0, newPro: newPro || 0 });
+  }
+
+  const { count: totalPro } = await sb.from('profiles').select('*', { count: 'exact', head: true }).eq('is_pro', true);
+  const currentMrr = (totalPro || 0) * 2.99;
+
+  // Simple linear growth: avg new pro users per month over last 3 months
+  const last3 = monthlyData.slice(-3);
+  const avgNewPro = last3.reduce((s, m) => s + m.newPro, 0) / 3;
+
+  // Project next 6 months
+  const forecast = [];
+  let projectedPro = totalPro || 0;
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    projectedPro += avgNewPro;
+    forecast.push({
+      month: d.toISOString().slice(0, 7),
+      projectedPro: Math.round(projectedPro),
+      projectedMrr: (projectedPro * 2.99).toFixed(2),
+    });
+  }
+
+  return { history: monthlyData, forecast, currentMrr: currentMrr.toFixed(2), currentProUsers: totalPro || 0, avgNewProPerMonth: avgNewPro.toFixed(1) };
+}
+
+// ── SUPPORT ────────────────────────────────────────────────────────────────────
+
+async function getSupport() {
+  const oneDayAgo  = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [todayRes, weekRes, recentRes, categoryRes] = await Promise.all([
+    sb.from('support_tickets').select('*', { count: 'exact', head: true }).gte('created_at', oneDayAgo),
+    sb.from('support_tickets').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
+    sb.from('support_tickets').select('id, name, email, category, subject, status, created_at').order('created_at', { ascending: false }).limit(20),
+    sb.from('support_tickets').select('category').gte('created_at', sevenDaysAgo),
+  ]).catch(() => [
+    { count: 0 }, { count: 0 }, { data: [] }, { data: [] },
+  ]);
+
+  const catCounts = {};
+  for (const r of (categoryRes?.data || [])) {
+    const c = r.category || 'general';
+    catCounts[c] = (catCounts[c] || 0) + 1;
+  }
+
+  return {
+    today:       todayRes?.count   || 0,
+    thisWeek:    weekRes?.count    || 0,
+    recent:      recentRes?.data   || [],
+    categories:  catCounts,
   };
 }

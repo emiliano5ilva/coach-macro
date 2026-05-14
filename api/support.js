@@ -1,5 +1,11 @@
+import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit } from './middleware/rateLimit.js';
 import { withLogging } from './middleware/logger.js';
+
+const sb = createClient(
+  'https://oxxihlwqukbakmnnavuy.supabase.co',
+  process.env.SUPABASE_SERVICE_KEY
+);
 
 export default withLogging(async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -20,6 +26,9 @@ export default withLogging(async function handler(req, res) {
   if (!name || !email || !subject || !description) {
     return res.status(400).json({ error: 'All fields required' });
   }
+
+  // Log ticket to DB for admin dashboard tracking (fire-and-forget)
+  sb.from('support_tickets').insert({ name, email, category: category || 'general', subject, description }).catch(() => {});
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',

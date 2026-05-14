@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import InfrastructureSection from './sections/InfrastructureSection.jsx';
+import FinancialSection      from './sections/FinancialSection.jsx';
+import GrowthSection         from './sections/GrowthSection.jsx';
+import UserHealthSection     from './sections/UserHealthSection.jsx';
+import ForecastSection       from './sections/ForecastSection.jsx';
+import SupportSection        from './sections/SupportSection.jsx';
+import CompetitionIntel      from './sections/CompetitionIntel.jsx';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -674,19 +681,84 @@ function HealthSection() {
   );
 }
 
+// ── Wrapped section components (inject useSection data) ───────────────────────
+
+function WrappedFinancial()    { const s = useSection('financial');   return <FinancialSection    {...s} />; }
+function WrappedGrowth()       { const s = useSection('growth');      return <GrowthSection       {...s} />; }
+function WrappedUserHealth()   { const s = useSection('user-health'); return <UserHealthSection   {...s} />; }
+function WrappedForecast()     { const s = useSection('forecast');    return <ForecastSection     {...s} />; }
+function WrappedSupport()      { const s = useSection('support');     return <SupportSection      {...s} />; }
+
+// ── Global alert banners ───────────────────────────────────────────────────────
+
+function GlobalAlerts({ infra }) {
+  if (!infra) return null;
+  const alerts = [];
+
+  const connPct    = infra.database?.activeConnections != null
+    ? (infra.database.activeConnections / (infra.database.connectionLimit || 60)) * 100 : 0;
+  const projCost   = parseFloat(infra.ai?.projectedMonthCost || 0);
+  const errCount   = infra.errors?.last24Hours || 0;
+
+  if (connPct >= 80) alerts.push({ type: 'red',   msg: '⚠️ DATABASE CONNECTIONS AT 80% — Consider upgrading Supabase to Pro' });
+  if (errCount > 100) alerts.push({ type: 'red',  msg: '⚠️ HIGH ERROR RATE — ' + errCount + ' errors in last 24h. Check Infrastructure → Errors.' });
+  if (projCost > 200) alerts.push({ type: 'amber', msg: '⚡ AI COSTS ELEVATED — Projected $' + projCost + '/month. Review token usage.' });
+
+  if (!alerts.length) return null;
+  return (
+    <div style={{ padding: '12px 32px 0' }}>
+      {alerts.map((a, i) => (
+        <div key={i} style={{
+          padding: '10px 16px', marginBottom: 8, fontSize: 12, fontWeight: 500,
+          background: a.type === 'red' ? 'rgba(220,38,38,0.12)' : 'rgba(251,191,36,0.08)',
+          border:     `1px solid ${a.type === 'red' ? 'rgba(220,38,38,0.3)' : 'rgba(251,191,36,0.25)'}`,
+          color:      a.type === 'red' ? '#f87171' : '#fbbf24',
+        }}>
+          {a.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Nav config ─────────────────────────────────────────────────────────────────
 
-const NAV = [
-  { id: 'overview',    label: 'Overview',    icon: '◼' },
-  { id: 'revenue',     label: 'Revenue',     icon: '＄' },
-  { id: 'users',       label: 'Users',       icon: '⊞' },
-  { id: 'churn',       label: 'Churn',       icon: '↓' },
-  { id: 'promo-codes', label: 'Promo Codes', icon: '✦' },
-  { id: 'features',    label: 'Features',    icon: '⚡' },
-  { id: 'referrals',   label: 'Referrals',   icon: '↗' },
-  { id: 'health',      label: 'Health',      icon: '♥' },
-  { id: 'waitlist',    label: 'Waitlist',    icon: '☰' },
+const NAV_GROUPS = [
+  { label: 'Business',
+    items: [
+      { id: 'overview',    label: 'Overview',    icon: '◼' },
+      { id: 'revenue',     label: 'Revenue',     icon: '＄' },
+      { id: 'financial',   label: 'Financial',   icon: '◈' },
+      { id: 'forecast',    label: 'Forecast',    icon: '▲' },
+    ]
+  },
+  { label: 'Users',
+    items: [
+      { id: 'users',        label: 'Users',       icon: '⊞' },
+      { id: 'churn',        label: 'Churn',       icon: '↓' },
+      { id: 'user-health',  label: 'User Health', icon: '◉' },
+      { id: 'growth',       label: 'Growth',      icon: '↑' },
+      { id: 'referrals',    label: 'Referrals',   icon: '↗' },
+    ]
+  },
+  { label: 'Product',
+    items: [
+      { id: 'features',    label: 'Features',    icon: '⚡' },
+      { id: 'promo-codes', label: 'Promo Codes', icon: '✦' },
+      { id: 'waitlist',    label: 'Waitlist',    icon: '☰' },
+      { id: 'competition', label: 'Competition', icon: '◎' },
+    ]
+  },
+  { label: 'System',
+    items: [
+      { id: 'infra',   label: 'Infrastructure', icon: '⬡' },
+      { id: 'health',  label: 'Logs',           icon: '♥' },
+      { id: 'support', label: 'Support',         icon: '✉' },
+    ]
+  },
 ];
+
+const ALL_NAV = NAV_GROUPS.flatMap((g) => g.items);
 
 const SECTION_COMPONENTS = {
   overview:    OverviewSection,
@@ -698,6 +770,13 @@ const SECTION_COMPONENTS = {
   referrals:   ReferralsSection,
   health:      HealthSection,
   waitlist:    WaitlistSection,
+  financial:   WrappedFinancial,
+  growth:      WrappedGrowth,
+  'user-health': WrappedUserHealth,
+  forecast:    WrappedForecast,
+  support:     WrappedSupport,
+  competition: CompetitionIntel,
+  infra:       null, // rendered specially below (needs infra props)
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -705,15 +784,42 @@ const SECTION_COMPONENTS = {
 export default function Dashboard({ adminEmail, onLogout }) {
   const [active, setActive] = useState('overview');
 
-  const ActiveSection = SECTION_COMPONENTS[active] || (() => null);
-  const navTitle      = NAV.find((n) => n.id === active)?.label || active;
+  // Infrastructure data polled at Dashboard level (for global alerts + infra section)
+  const [infraData,        setInfraData]        = useState(null);
+  const [infraLoading,     setInfraLoading]     = useState(true);
+  const [infraLastUpdated, setInfraLastUpdated] = useState(null);
+
+  const loadInfra = useCallback(() => {
+    setInfraLoading(true);
+    fetch('/api/admin-infrastructure', { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { setInfraData(d); setInfraLoading(false); setInfraLastUpdated(new Date()); })
+      .catch(() => setInfraLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadInfra();
+    const interval = setInterval(loadInfra, 60000);
+    return () => clearInterval(interval);
+  }, [loadInfra]);
+
+  const navTitle      = ALL_NAV.find((n) => n.id === active)?.label || active;
+  const ActiveSection = SECTION_COMPONENTS[active];
+
+  const renderSection = () => {
+    if (active === 'infra') {
+      return <InfrastructureSection data={infraData} loading={infraLoading} lastUpdated={infraLastUpdated} />;
+    }
+    if (ActiveSection) return <ActiveSection key={active} />;
+    return <div style={{ padding: 32, color: '#555' }}>Section not found.</div>;
+  };
 
   return (
     <>
       <style>{css}</style>
       <div className="admin-layout">
         {/* Sidebar */}
-        <nav className="sidebar">
+        <nav className="sidebar" style={{ overflowY: 'auto' }}>
           <div className="sidebar-logo">
             <svg width="22" height="16" viewBox="0 0 36 26" fill="none" style={{ display: 'block', marginBottom: 8 }}>
               <rect y="0"    width="36" height="5" rx="2.5" fill="#dc2626" />
@@ -726,15 +832,22 @@ export default function Dashboard({ adminEmail, onLogout }) {
             </div>
           </div>
 
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item${active === item.id ? ' active' : ''}`}
-              onClick={() => setActive(item.id)}
-            >
-              <span className="icon">{item.icon}</span>
-              {item.label}
-            </button>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <div style={{ padding: '12px 20px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: '#333', textTransform: 'uppercase' }}>
+                {group.label}
+              </div>
+              {group.items.map((item) => (
+                <button
+                  key={item.id}
+                  className={`nav-item${active === item.id ? ' active' : ''}`}
+                  onClick={() => setActive(item.id)}
+                >
+                  <span className="icon">{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
           ))}
 
           <div className="nav-spacer" />
@@ -766,8 +879,9 @@ export default function Dashboard({ adminEmail, onLogout }) {
               </a>
             </div>
           </div>
+          <GlobalAlerts infra={infraData} />
           <div className="content">
-            <ActiveSection key={active} />
+            {renderSection()}
           </div>
         </main>
       </div>
