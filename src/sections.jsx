@@ -1328,7 +1328,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
   const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
@@ -1435,6 +1435,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const rd={tier,config:cfg,answers:rdAnswers};
     setSessionReadiness(rd);
     setShowReadiness(false);
+    if((rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&rdAnswers.painRegions?.length>0){
+      onLogPain?.({painLevel:rdAnswers.painLevel,painRegions:rdAnswers.painRegions,painType:rdAnswers.painType});
+    }
     _doStartFromProgram(rd);
   }
 
@@ -1676,7 +1679,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </div>
             </div>
             {/* Energy */}
-            <div style={{marginBottom:22}}>
+            <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Energy</div>
               <div style={{display:"flex",gap:8}}>
                 {[["low","⚡ Low"],["normal","✅ Normal"],["high","🔥 High"]].map(([v,l])=>(
@@ -1684,6 +1687,50 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
+            {/* Pain check */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Any pain or discomfort?</div>
+              <div style={{display:"flex",gap:8}}>
+                {[["none","😊 None"],["minor","😬 Minor"],["significant","😣 Significant"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))}
+                    style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.painLevel===v?T.prot:T.bd}`,
+                    background:rdAnswers.painLevel===v?`${T.prot}18`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",
+                    fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                ))}
+              </div>
+            </div>
+            {/* Pain regions */}
+            {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Where?</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","other"].map(r=>{
+                    const sel=(rdAnswers.painRegions||[]).includes(r);
+                    const label=r.replace("_"," ");
+                    return(
+                      <button key={r} onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})}
+                        style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${sel?T.prot:T.bd}`,
+                        background:sel?`${T.prot}18`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,
+                        cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{label}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {/* Pain type */}
+            {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(rdAnswers.painRegions||[]).length>0&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>What kind?</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {[["soreness","Soreness"],["sharp_pain","Sharp Pain"],["stiffness","Stiffness"],["weakness","Weakness"],["swelling","Swelling"]].map(([v,l])=>(
+                    <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))}
+                      style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${rdAnswers.painType===v?T.prot:T.bd}`,
+                      background:rdAnswers.painType===v?`${T.prot}18`:T.s2,color:rdAnswers.painType===v?T.prot:"#fff",
+                      fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Preview tier when all answered */}
             {rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy&&(()=>{
               const s=scoreReadiness({sleep:rdAnswers.sleep,stress:rdAnswers.stress,energy:rdAnswers.energy});
@@ -2054,6 +2101,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </div>
                   );
                 })()}
+
+                {/* Active workout ACWR risk banner */}
+                {acwrHighRisks?.length>0&&(
+                  <div style={{background:"rgba(239,68,68,0.08)",border:"1.5px solid rgba(239,68,68,0.25)",borderRadius:14,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                    <div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:13,color:"#ef4444",letterSpacing:".06em",textTransform:"uppercase"}}>⚠️ {acwrHighRisks[0].region.replace("_"," ").toUpperCase()} RISK ELEVATED</div>
+                      <div style={{fontSize:11,color:"rgba(245,245,240,.5)",marginTop:2}}>Consider reducing sets by 1 for safety</div>
+                    </div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#ef4444"}}>{acwrHighRisks[0].score}%</div>
+                  </div>
+                )}
 
                 {/* Momentum bar */}
                 <MomentumBar activeWorkout={activeWorkout} history={history}/>
@@ -2959,7 +3017,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
 }
 
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
-export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect}) {
+export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury}) {
   const [delStep,setDelStep]=useState(0); // 0=idle 1=warning 2=confirm 3=deleting
   const [delConfirm,setDelConfirm]=useState(false);
   const [delInput,setDelInput]=useState("");
@@ -3431,6 +3489,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}
             }}
           />
+        </SectionCard>
+
+        {/* Injury & Pain Log */}
+        <SectionCard title="🩹 Injury & Pain Log">
+          <div style={{fontSize:12,color:T.mu,lineHeight:1.6,marginBottom:12}}>
+            Log current or past injuries to improve your injury risk predictions and training recommendations.
+          </div>
+          <button onClick={()=>onLogInjury&&onLogInjury()} style={{width:"100%",padding:"12px",background:`${T.prot}15`,border:`1px solid ${T.prot}30`,borderRadius:12,color:T.prot,fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:".08em",textTransform:"uppercase",cursor:"pointer"}}>
+            Log Injury / Pain →
+          </button>
         </SectionCard>
 
         {/* AI Usage — only shown when ≥80% to avoid anxiety */}

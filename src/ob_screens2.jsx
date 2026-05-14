@@ -27,6 +27,8 @@ import { analyzeScheduleForTraining, buildHotelWorkout } from "./services/calend
 import { ScheduleAlertCard, TravelNutritionCard, CalendarConnectPrompt } from "./LifeAwareTraining.jsx";
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
+import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
+import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 
@@ -1483,6 +1485,17 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     // Water logs
     getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[]));
     getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[]));
+    // Injury logs
+    getInjuryLogs(user.id).then(logs=>setInjuryLogs(logs||[])).catch(()=>{});
+    // ACWR risks — recalculate weekly
+    const lastRiskCheck=localStorage.getItem("acwr_last_check");
+    const shouldCheckRisk=!lastRiskCheck||(Date.now()-parseInt(lastRiskCheck))>7*864e5;
+    if(shouldCheckRisk&&profile){
+      calculateAllRisks(user.id,profile).then(risks=>{
+        localStorage.setItem("acwr_last_check",String(Date.now()));
+        setAcwrRisks(risks||{});
+      }).catch(()=>{});
+    }
     // Biological Algorithm — load insights and data point counts
     Promise.all([getInsights(user.id),getDataPointCounts(user.id)]).then(([ins,cnts])=>{
       setBioInsights(ins||{});setBioDataCounts(cnts||{});
@@ -2307,6 +2320,34 @@ Rules:
   const activeInjuryRisks=(injuryData?.risks||[]).filter(r=>!dismissedInjuryAlerts.has(r.id));
   const topRiskLevel=activeInjuryRisks[0]?.level||null;
 
+  // ── ACWR Injury Prediction state ──────────────────────────────────────────
+  const [injuryLogs, setInjuryLogs] = useState([]);
+  const [acwrRisks, setAcwrRisks] = useState({});
+  const [showInjuryRiskModal, setShowInjuryRiskModal] = useState(null);
+  const [showPainLogModal, setShowPainLogModal] = useState(false);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const acwrHighRisks = useMemo(()=>
+    Object.entries(acwrRisks)
+      .filter(([,r])=>r.level==="HIGH")
+      .map(([region,r])=>({region,...r})),
+    [acwrRisks]
+  );
+
+  async function handleLogPain({painLevel,painRegions,painType}){
+    if(!user||!painRegions?.length)return;
+    const severity=painLevel==="significant"?3:2;
+    try{
+      const newLogs=[];
+      for(const region of painRegions){
+        const log=await logInjury(user.id,{body_region:region,pain_type:painType||"soreness",severity,notes:null});
+        if(log)newLogs.push(log);
+      }
+      if(newLogs.length)setInjuryLogs(prev=>[...newLogs,...prev]);
+      showToast(`Pain logged — ${painRegions.length} region${painRegions.length>1?"s":""} noted`,"info");
+    }catch(e){console.error("[handleLogPain]",e);}
+  }
+
   function getSuggestion(name){
     const k=name.toLowerCase().replace(/\s+/g,"_");const prev=history[k];if(!prev||!prev.length)return null;
     const last=prev[prev.length-1];const lastSet=last.sets[last.sets.length-1];if(!lastSet)return null;
@@ -2674,6 +2715,18 @@ Rules:
             onDismiss={()=>dismissInjuryAlert(activeInjuryRisks[0].id)}
           />
         )}
+
+        {/* ── ACWR HIGH-RISK ALERTS ── */}
+        {acwrHighRisks.map(r=>(
+          <div key={r.region} onClick={()=>setShowInjuryRiskModal(r.region)} style={{margin:"0 20px 12px",padding:"14px 16px",background:"rgba(239,68,68,0.07)",border:"1.5px solid rgba(239,68,68,0.28)",borderLeft:"3px solid #EF4444",borderRadius:"4px 14px 14px 4px",cursor:"pointer"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"#EF4444",textTransform:"uppercase",fontWeight:700,marginBottom:6}}>⚠️ INJURY RISK ALERT — {r.region.replace("_"," ").toUpperCase()}</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.6,marginBottom:8}}>
+              Your {r.region.replace("_"," ")} training load is significantly above average this week (ACWR: {r.acwrRatio}).
+              {r.recentPain>0&&` You've also reported pain in this area recently.`}
+            </div>
+            <div style={{fontSize:11,color:"#EF4444",fontWeight:700}}>See My Recommendation →</div>
+          </div>
+        ))}
 
         {/* Today's session */}
         <div style={{margin:"0 20px 14px",padding:"16px",background:deloadActive?"linear-gradient(135deg,#1a1508,var(--navy-card) 70%)":"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:`1px solid ${deloadActive?"rgba(234,179,8,0.2)":"rgba(232,52,28,0.2)"}`,borderRadius:14}}>
@@ -3330,6 +3383,17 @@ Rules:
         {/* ── INJURY RISK REPORT ── */}
         <InjuryRiskReport risks={injuryData?.risks} muscleSetCounts={injuryData?.muscleSetCounts}/>
 
+        {/* ── INJURY HISTORY + ACWR RISKS ── */}
+        <InjuryHistorySection
+          injuryLogs={injuryLogs}
+          injuryRisks={acwrRisks}
+          onResolve={async(id)=>{
+            await resolveInjury(id).catch(()=>{});
+            setInjuryLogs(prev=>prev.map(l=>l.id===id?{...l,resolved_at:new Date().toISOString()}:l));
+          }}
+          onLogNew={()=>setShowPainLogModal(true)}
+        />
+
         {/* ── PR PREDICTIONS ── */}
         {(()=>{
           const runActs = allActs.filter(a=>(a.type||"").toLowerCase().includes("run")&&parseFloat(a.distanceKm)>1);
@@ -3384,6 +3448,25 @@ Rules:
 
       {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal}/>}
       {bioScreen&&<BioAlgorithmScreen user={user} profile={profile} onClose={()=>setBioScreen(false)}/>}
+      {showInjuryRiskModal&&acwrRisks[showInjuryRiskModal]&&(
+        <InjuryRiskModal
+          risk={acwrRisks[showInjuryRiskModal]}
+          region={showInjuryRiskModal}
+          onProtect={()=>{showToast(`Protecting ${showInjuryRiskModal.replace("_"," ")} — modified program active`,"success");setShowInjuryRiskModal(null);}}
+          onOverride={()=>{showToast("Got it — proceeding as normal","info");setShowInjuryRiskModal(null);}}
+          onClose={()=>setShowInjuryRiskModal(null)}
+        />
+      )}
+      {showPainLogModal&&(
+        <PainLogModal
+          user={user}
+          onSave={async(data)=>{
+            await handleLogPain(data);
+            setShowPainLogModal(false);
+          }}
+          onClose={()=>setShowPainLogModal(false)}
+        />
+      )}
       {showAdaptationModal&&metabolicAdaptation&&(
         <MetabolicAdaptationModal
           adaptation={metabolicAdaptation}
@@ -3393,10 +3476,10 @@ Rules:
       )}
       <div className="app-screen grid-bg">
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null}/></ErrorBoundary>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
-        {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar}/></ErrorBoundary>}
+        {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></ErrorBoundary>}
       </div>
       <div className="app-tab-bar">
         {NAV_ITEMS.map(item=>(
