@@ -64,6 +64,21 @@ export const CHART_REGISTRY = [
     description: "Shows your training intensity as a waveform over the last 12 weeks. Peaks show your hardest weeks; valleys show deload or rest. The shape reveals whether you're building smart progressive overload or training randomly.",
     whatToDo: "Look for a gradual rising baseline with planned valleys every 4–5 weeks. That's the shape of long-term progress.",
   },
+  {
+    key: "run_pace", label: "Pace Over Time", category: "cardio", beginner: true,
+    description: "Your estimated running pace per session over the last 12 weeks. A falling line means you're getting faster. Jumps in pace often correspond to harder session types — that's normal.",
+    whatToDo: "Focus on easy run pace as your baseline. If it's not improving after 6 weeks of consistent training, add 1 more easy run per week.",
+  },
+  {
+    key: "run_weekly_miles", label: "Weekly Miles", category: "cardio", beginner: true,
+    description: "Total estimated miles run per week. The 10% rule: don't increase weekly volume more than 10% week-over-week. Violations are the #1 cause of overuse running injuries.",
+    whatToDo: "Keep increases under 10% per week. Build for 3 weeks, then drop to 70% for a recovery week.",
+  },
+  {
+    key: "run_training_load", label: "Run Training Load", category: "cardio", beginner: false,
+    description: "Compares your recent running load (last 7 days) to your chronic load (last 28 days). Values above 1.3 = injury risk. The sweet spot for adaptation is 0.8–1.3.",
+    whatToDo: "If your score exceeds 1.3, take a lighter week before adding volume. Build your chronic load first, then push acute load.",
+  },
 ];
 
 export const BEGINNER_CHARTS = ["flux_range","muscle_volume","weight_trend","macro_calendar","peak_performance","sleep_perf"];

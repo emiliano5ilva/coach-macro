@@ -990,3 +990,219 @@ export function AthleteWaveformChart({ userId }) {
     </ChartCard>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RUNNING CHARTS SHARED HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+const DIST_BY_TYPE = {"easy run":4,"tempo run":5,"long run":8,"intervals":4,"progression run":5,"recovery run":3,"hill run":4,"race pace run":5};
+const VHR = 120;
+const PR  = { t:14, r:12, b:28, l:40 };
+const PWR = 320;
+const PHR = VHR - PR.t - PR.b;
+
+function runWkKey(dateStr) {
+  const d = new Date(dateStr);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return d.toISOString().split("T")[0];
+}
+
+async function fetchRunSessions(userId) {
+  const start = new Date(Date.now() - 84 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const { data } = await sb.from("workout_logs").select("date,workout").eq("user_id", userId).gte("date", start).order("date", { ascending: true });
+  return (data || []).filter(w =>
+    w.workout?.type === "running" ||
+    (w.workout?.exercises || []).some(e => e.name?.toLowerCase().includes("run"))
+  ).map(w => {
+    let distKm = 0, durationMin = 0;
+    (w.workout?.exercises || []).forEach(ex => {
+      const nm = (ex.name || "").toLowerCase();
+      const dg = Object.entries(DIST_BY_TYPE).find(([k]) => nm.includes(k))?.[1] || 0;
+      if (dg) distKm += dg;
+      (ex.sets || []).filter(s => s.done).forEach(s => {
+        const m = String(s.reps || s.weight || "").match(/(\d+)/);
+        if (m) durationMin += parseInt(m[1]);
+      });
+    });
+    return { date: w.date, distKm, durationMin };
+  }).filter(r => r.distKm > 0 || r.durationMin > 0);
+}
+
+function RunEmptyState() {
+  return <div style={{textAlign:"center",padding:"24px 0",fontSize:12,color:CC.neutral}}>Log running workouts to see this chart</div>;
+}
+
+// ── Chart 11: Pace Over Time ──────────────────────────────────────────────────
+export function RunPaceChart({ userId }) {
+  const [sessions, setSessions] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    fetchRunSessions(userId).then(s => { setSessions(s); setLoading(false); }).catch(() => setLoading(false));
+  }, [userId]);
+
+  const points = sessions.filter(s => s.distKm > 0 && s.durationMin > 0)
+    .map(s => ({ date: s.date, pace: s.durationMin / s.distKm }));
+
+  if (!loading && points.length < 2) return <ChartCard title="Pace Over Time" subtitle="min/km per session"><RunEmptyState/></ChartCard>;
+
+  const paces = points.map(p => p.pace);
+  const maxP = Math.max(...paces), minP = Math.min(...paces, maxP - 0.1);
+  const xs = points.map((_,i) => PR.l + (i / (points.length-1)) * (PWR - PR.l - PR.r));
+  const ys = points.map(p => PR.t + (1 - (maxP - p.pace) / (maxP - minP)) * PHR);
+  const lineD = points.length < 2 ? "" : `M ${xs[0]} ${ys[0]} ` + xs.slice(1).map((x,i) => `L ${x} ${ys[i+1]}`).join(" ");
+
+  const fmt = m => `${Math.floor(m)}:${String(Math.round((m%1)*60)).padStart(2,"0")}`;
+
+  return (
+    <ChartCard title="Pace Over Time" subtitle="Estimated min/km per session">
+      {loading ? <Skeleton h={VHR}/> : (
+        <>
+          <svg width="100%" viewBox={`0 0 ${PWR} ${VHR}`} style={{display:"block",overflow:"visible"}}>
+            <line x1={PR.l} y1={PR.t} x2={PR.l} y2={PR.t+PHR} stroke="rgba(245,245,240,0.05)" strokeWidth="1"/>
+            <line x1={PR.l} y1={PR.t+PHR} x2={PWR-PR.r} y2={PR.t+PHR} stroke="rgba(245,245,240,0.05)" strokeWidth="1"/>
+            <path d={lineD} fill="none" stroke={CC.optimal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            {points.map((p,i) => <circle key={i} cx={xs[i]} cy={ys[i]} r="3" fill={CC.optimal} opacity="0.8"/>)}
+            <text x={PR.l-4} y={PR.t+3} textAnchor="end" fontSize="8" fill={T.mu}>{fmt(minP)}</text>
+            <text x={PR.l-4} y={PR.t+PHR+3} textAnchor="end" fontSize="8" fill={T.mu}>{fmt(maxP)}</text>
+            <text x={xs[0]||0} y={VHR-2} textAnchor="middle" fontSize="8" fill={T.mu}>{points[0]?.date?.slice(5)}</text>
+            <text x={xs[xs.length-1]||PWR-PR.r} y={VHR-2} textAnchor="end" fontSize="8" fill={T.mu}>{points[points.length-1]?.date?.slice(5)}</text>
+          </svg>
+          <div style={{fontSize:11,color:T.mu,marginTop:4}}>{points.length} sessions · Avg {fmt(paces.reduce((a,b)=>a+b,0)/paces.length)} min/km</div>
+        </>
+      )}
+    </ChartCard>
+  );
+}
+
+// ── Chart 12: Weekly Miles ────────────────────────────────────────────────────
+export function RunWeeklyMilesChart({ userId }) {
+  const [weeks, setWeeks] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    fetchRunSessions(userId).then(sessions => {
+      const map = {};
+      sessions.forEach(s => {
+        const wk = runWkKey(s.date);
+        map[wk] = (map[wk] || 0) + s.distKm * 0.621371;
+      });
+      setWeeks(Object.entries(map).sort(([a],[b]) => a.localeCompare(b)).slice(-12));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [userId]);
+
+  const miles = weeks.map(([,v]) => v);
+  const maxM = Math.max(...miles, 1);
+  const barW = Math.max(8, Math.floor((PWR - PR.l - PR.r) / (miles.length + 0.5)));
+
+  const TEN_PCT_LINE = miles.length > 1
+    ? miles[miles.length - 2] * 1.1
+    : null;
+
+  return (
+    <ChartCard title="Weekly Miles" subtitle="Estimated miles per week · 10% rule">
+      {loading ? <Skeleton h={VHR}/> : miles.length < 2 ? <RunEmptyState/> : (
+        <>
+          <svg width="100%" viewBox={`0 0 ${PWR} ${VHR}`} style={{display:"block",overflow:"visible"}}>
+            {/* 10% rule line */}
+            {TEN_PCT_LINE && (() => {
+              const y = PR.t + (1 - TEN_PCT_LINE / maxM) * PHR;
+              return y > PR.t && y < PR.t + PHR ? (
+                <>
+                  <line x1={PR.l} y1={y} x2={PWR-PR.r} y2={y} stroke="rgba(255,159,67,0.4)" strokeWidth="1" strokeDasharray="4,3"/>
+                  <text x={PWR-PR.r+2} y={y+3} fontSize="7" fill="rgba(255,159,67,0.7)">+10%</text>
+                </>
+              ) : null;
+            })()}
+            {weeks.map(([wk, mi], i) => {
+              const x = PR.l + i * (barW + 2);
+              const barH = Math.max(2, (mi / maxM) * PHR);
+              const y = PR.t + PHR - barH;
+              const isOver = TEN_PCT_LINE != null && i === weeks.length - 1 && mi > TEN_PCT_LINE;
+              return (
+                <g key={wk}>
+                  <rect x={x} y={y} width={barW} height={barH} rx="2" fill={isOver ? CC.danger : CC.brand} opacity="0.85"/>
+                  <text x={x + barW/2} y={VHR-2} textAnchor="middle" fontSize="7" fill={T.mu}>{wk.slice(5)}</text>
+                </g>
+              );
+            })}
+            <text x={PR.l-4} y={PR.t+3} textAnchor="end" fontSize="8" fill={T.mu}>{maxM.toFixed(0)}</text>
+          </svg>
+          <div style={{fontSize:11,color:T.mu,marginTop:4}}>
+            {weeks.length} weeks · Total {miles.reduce((a,b)=>a+b,0).toFixed(0)} mi ·
+            <span style={{color:CC.caution}}> keep increases under 10%</span>
+          </div>
+        </>
+      )}
+    </ChartCard>
+  );
+}
+
+// ── Chart 13: Running Training Load (Acute:Chronic) ──────────────────────────
+export function RunTrainingLoadChart({ userId }) {
+  const [weeks, setWeeks] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    fetchRunSessions(userId).then(sessions => {
+      const map = {};
+      sessions.forEach(s => {
+        const wk = runWkKey(s.date);
+        map[wk] = (map[wk] || 0) + s.durationMin;
+      });
+      setWeeks(Object.entries(map).sort(([a],[b]) => a.localeCompare(b)));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [userId]);
+
+  const pts = weeks.map(([wk, mins], i) => {
+    const acute = mins;
+    const chronic = i >= 3 ? (weeks.slice(i-3, i+1).reduce((s,[,m])=>s+m,0)/4) : (weeks.slice(0, i+1).reduce((s,[,m])=>s+m,0)/(i+1));
+    return { wk, ratio: chronic > 0 ? acute / chronic : 0 };
+  });
+
+  const maxR = Math.max(...pts.map(p => p.ratio), 1.5);
+  const xs = pts.map((_,i) => PR.l + (i / Math.max(pts.length-1,1)) * (PWR - PR.l - PR.r));
+  const ys = pts.map(p => PR.t + (1 - p.ratio / maxR) * PHR);
+
+  const safeY1 = PR.t + (1 - 0.8 / maxR) * PHR;
+  const safeY2 = PR.t + (1 - 1.3 / maxR) * PHR;
+
+  return (
+    <ChartCard title="Run Training Load" subtitle="Acute:Chronic load ratio — 0.8–1.3 is the sweet spot">
+      {loading ? <Skeleton h={VHR}/> : pts.length < 2 ? <RunEmptyState/> : (
+        <>
+          <svg width="100%" viewBox={`0 0 ${PWR} ${VHR}`} style={{display:"block",overflow:"visible"}}>
+            {/* Safe zone band */}
+            {safeY2 > PR.t && safeY1 < PR.t + PHR && (
+              <rect x={PR.l} y={Math.max(PR.t, safeY2)} width={PWR-PR.l-PR.r}
+                height={Math.min(PHR, safeY1 - safeY2)} fill="rgba(78,205,196,0.08)" rx="2"/>
+            )}
+            <line x1={PR.l} y1={safeY1} x2={PWR-PR.r} y2={safeY1} stroke="rgba(78,205,196,0.3)" strokeWidth="1" strokeDasharray="4,3"/>
+            <line x1={PR.l} y1={safeY2} x2={PWR-PR.r} y2={safeY2} stroke="rgba(78,205,196,0.3)" strokeWidth="1" strokeDasharray="4,3"/>
+            <text x={PWR-PR.r+2} y={safeY1+3} fontSize="7" fill="rgba(78,205,196,0.6)">0.8</text>
+            <text x={PWR-PR.r+2} y={safeY2+3} fontSize="7" fill="rgba(78,205,196,0.6)">1.3</text>
+            {/* Line */}
+            <path d={`M ${xs[0]} ${ys[0]} ` + xs.slice(1).map((x,i)=>`L ${x} ${ys[i+1]}`).join(" ")}
+              fill="none" stroke={CC.brand} strokeWidth="2" strokeLinecap="round"/>
+            {pts.map((p,i) => (
+              <circle key={i} cx={xs[i]} cy={ys[i]} r="3"
+                fill={p.ratio > 1.3 ? CC.danger : p.ratio < 0.8 ? CC.neutral : CC.optimal} opacity="0.9"/>
+            ))}
+            <text x={xs[0]||0} y={VHR-2} textAnchor="middle" fontSize="8" fill={T.mu}>{pts[0]?.wk?.slice(5)}</text>
+            <text x={xs[xs.length-1]||PWR-PR.r} y={VHR-2} textAnchor="end" fontSize="8" fill={T.mu}>{pts[pts.length-1]?.wk?.slice(5)}</text>
+          </svg>
+          <div style={{fontSize:11,color:T.mu,marginTop:4}}>
+            Current ratio: <span style={{color:pts[pts.length-1]?.ratio > 1.3 ? CC.danger : CC.optimal, fontWeight:700}}>
+              {pts[pts.length-1]?.ratio.toFixed(2)}
+            </span> · sweet spot 0.8–1.3
+          </div>
+        </>
+      )}
+    </ChartCard>
+  );
+}
