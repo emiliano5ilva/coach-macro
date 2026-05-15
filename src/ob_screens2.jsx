@@ -719,28 +719,51 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
 function ScoreRing({score}) {
   const R=72; const C=2*Math.PI*R;
   const isElite=score>=90;
-  const color=isElite?"#FFD700":score>=85?T.green:score>=70?T.carb:score>=50?T.fat:"#EF4444";
+  const isGreat=score>=85;
+  const color=isElite?"#FFD700":isGreat?T.green:score>=70?T.carb:score>=50?T.fat:"#EF4444";
+
+  // Animate ring fill from empty on mount
+  const [offset,setOffset]=useState(C);
+  useEffect(()=>{
+    const id=requestAnimationFrame(()=>setOffset(C*(1-score/100)));
+    return()=>cancelAnimationFrame(id);
+  },[score]);
+
   const displayScore=useCountUp(score,1200);
+
+  const tierLabel=isElite?"ELITE":isGreat?"GREAT":score>=70?"GOOD":score>=50?"FAIR":"LOW";
+  const tierColor=isElite?"#FFD700":isGreat?T.green:score>=70?T.carb:score>=50?T.fat:"#EF4444";
+
   return (
     <div style={{position:"relative",width:180,height:180,margin:"0 auto"}}>
       {isElite&&(
         <>
-          <style>{`@keyframes score-ring-glow{0%,100%{opacity:.45}50%{opacity:1}}`}</style>
-          <div style={{position:"absolute",inset:0,borderRadius:"50%",boxShadow:"0 0 36px 10px rgba(255,215,0,0.35)",animation:"score-ring-glow 0.8s ease-in-out infinite",pointerEvents:"none"}}/>
+          <style>{`@keyframes score-glow-pulse{0%,100%{opacity:.35}50%{opacity:.85}}`}</style>
+          <div style={{
+            position:"absolute",inset:-8,borderRadius:"50%",
+            boxShadow:"0 0 40px 12px rgba(255,215,0,0.3)",
+            animation:"score-glow-pulse 2s ease-in-out infinite",
+            pointerEvents:"none",
+          }}/>
         </>
       )}
-      <svg width={180} height={180} style={{transform:"rotate(-90deg)",display:"block",filter:isElite?"drop-shadow(0 0 8px rgba(255,215,0,0.6))":"none"}}>
+      <svg width={180} height={180} style={{
+        transform:"rotate(-90deg)",display:"block",
+        filter:isElite?"drop-shadow(0 0 6px rgba(255,215,0,0.55))":"none",
+        transition:"filter 0.32s cubic-bezier(.2,.7,.3,1)",
+      }}>
         <circle cx={90} cy={90} r={R} stroke="rgba(255,255,255,0.06)" strokeWidth={14} fill="none"/>
         <circle cx={90} cy={90} r={R} stroke={color} strokeWidth={14} fill="none"
           strokeLinecap="round"
           strokeDasharray={C}
-          strokeDashoffset={C*(1-score/100)}
-          style={{transition:"stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1)"}}
+          strokeDashoffset={offset}
+          style={{transition:"stroke-dashoffset 1.1s cubic-bezier(.2,.7,.3,1), stroke 0.32s"}}
         />
       </svg>
-      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:isElite?"#FFD700":"#fff"}}>{displayScore}</div>
-        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:2}}>Coach Macro Score</div>
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:0}}>
+        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:isElite?"#FFD700":"#fff",transition:"color 0.32s"}}>{displayScore}</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.32)",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:3}}>Coach Macro Score</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:tierColor,letterSpacing:"0.14em",textTransform:"uppercase",marginTop:4,fontWeight:700,transition:"color 0.32s"}}>{tierLabel}</div>
       </div>
     </div>
   );
