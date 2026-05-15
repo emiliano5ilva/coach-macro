@@ -2505,12 +2505,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 :<div>
                 {/* Header */}
                 <div className="hero-card" style={{padding:"18px 20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
+                  <div style={{flex:1,minWidth:0}}>
                     <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// ACTIVE SESSION</div>
                     <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
                     <div style={{fontSize:11,color:T.mu,marginTop:4}}>{activeWorkout.exercises?.length||0} exercises · {activeWorkout.exercises?.reduce((a,e)=>a+(e.sets?.length||0),0)||0} total sets</div>
                   </div>
-                  <button onClick={finishWorkout} style={{padding:"12px 20px",background:T.prot,color:T.white,fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>✓ Finish</button>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+                    {adaptLeft>0&&(
+                      <button onClick={()=>setShowAdapt(true)} title="Adapt session" style={{width:40,height:40,borderRadius:11,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)",cursor:"pointer",flexShrink:0}}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
+                      </button>
+                    )}
+                    <button onClick={finishWorkout} style={{padding:"12px 20px",background:T.prot,color:T.white,fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>✓ Finish</button>
+                  </div>
                 </div>
 
                 {/* Readiness banner */}
