@@ -3502,7 +3502,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </div>}
 
           {referralStats.sent===0&&<div style={{textAlign:"center",padding:"20px 8px 16px",border:`1px dashed ${T.bd}`,borderRadius:14,marginBottom:14}}>
-            <div style={{fontSize:32,marginBottom:10}}>🎁</div>
+            <div style={{marginBottom:10,display:"flex",justifyContent:"center"}}><svg width={36} height={36} viewBox="0 0 24 24" fill="none"><rect x="3" y="8" width="18" height="13" rx="2" stroke={T.prot} strokeWidth={1.5}/><path d="M12 8v13M3 12h18" stroke={T.prot} strokeWidth={1.5} strokeLinecap="round"/><path d="M12 8s-2-3-4-3a2 2 0 0 0 0 4c2 0 4-1 4-1zM12 8s2-3 4-3a2 2 0 0 1 0 4c-2 0-4-1-4-1z" stroke={T.prot} strokeWidth={1.5} strokeLinecap="round"/></svg></div>
             <div style={{fontSize:15,fontWeight:700,color:T.txt,marginBottom:6}}>Invite friends, earn free time</div>
             <div style={{fontSize:12,color:T.dim,lineHeight:1.6,marginBottom:4}}>Share your link — every person who clicks earns you 2 weeks free. Unlock custom icons, themes, and VERIFIED status.</div>
           </div>}
@@ -3553,32 +3553,47 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                       {t===3&&`${10-cnt} more click${10-cnt!==1?"s":""} to unlock dashboard customization`}
                     </div>
                   </>
-                ):<div style={{fontSize:13,color:"#00E676",fontWeight:700,marginBottom:12}}>You are VERIFIED and fully unlocked. 💎</div>}
+                ):<div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#FFD700",fontWeight:700,marginBottom:12}}><svg width={14} height={14} viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>LEGEND status — all perks unlocked</div>}
                 <div style={{display:"flex",flexDirection:"column",gap:7}}>
                   {[
-                    {badge:"VIP",minRef:1,rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},
-                    {badge:"VERIFIED",minRef:5,rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:10}]},
-                  ].map(tb=>(
-                    <div key={tb.badge} style={{background:T.s3,borderRadius:10,padding:"10px 12px",border:`1px solid ${cnt>=tb.minRef?"rgba(245,245,240,0.10)":"rgba(245,245,240,0.04)"}`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                    {badge:"VIP",    minRef:1,  rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},
+                    {badge:"VERIFIED",minRef:5, rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:8}]},
+                    {badge:"LEGEND", minRef:10, rewards:[{l:"Priority support",minRef:10},{l:"Early feature access",minRef:10}]},
+                  ].map(tb=>{
+                    const achieved=cnt>=tb.minRef;
+                    const borderColor=achieved
+                      ?tb.badge==="LEGEND"?"rgba(255,215,0,0.3)":tb.badge==="VERIFIED"?"rgba(0,230,118,0.25)":"rgba(255,215,64,0.25)"
+                      :"rgba(245,245,240,0.05)";
+                    return(
+                    <div key={tb.badge} style={{background:T.s3,borderRadius:10,padding:"10px 12px",border:`1px solid ${borderColor}`,boxShadow:achieved&&tb.badge==="LEGEND"?"0 0 12px rgba(255,215,0,0.1)":"none",transition:"border-color 0.32s,box-shadow 0.32s"}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                         <Badge type={tb.badge}/>
-                        <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{tb.minRef} click{tb.minRef>1?"s":""} required</span>
+                        <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{tb.minRef}+ clicks</span>
                       </div>
                       {tb.rewards.map(r=>{
                         const unlocked=cnt>=r.minRef;
                         const diff=r.minRef-cnt;
                         return(
-                          <div key={r.l} style={{display:"flex",alignItems:"center",gap:6,marginTop:5}}>
-                            <span style={{fontSize:13}}>{unlocked?"🔓":"🔒"}</span>
-                            <span style={{fontSize:12,color:unlocked?T.white:T.mu}}>
+                          <div key={r.l} style={{display:"flex",alignItems:"center",gap:8,marginTop:5}}>
+                            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>
+                              {unlocked
+                                ?<path d="M5 13l4 4L19 7" stroke="#00E676" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
+                                :<><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7} strokeLinecap="round"/></>
+                              }
+                            </svg>
+                            <span style={{fontSize:12,color:unlocked?T.white:T.mu,flex:1}}>
                               {r.l}
-                              {unlocked?<span style={{color:"#00E676",marginLeft:4,fontSize:10,fontWeight:700}}> UNLOCKED</span>:diff>0?<span style={{color:T.mu}}> — {diff} click{diff!==1?"s":""} away</span>:null}
+                              {unlocked
+                                ?<span style={{color:"#00E676",marginLeft:5,fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em"}}> UNLOCKED</span>
+                                :diff>0?<span style={{color:"rgba(245,245,240,0.3)",marginLeft:4,fontSize:10}}> · {diff} away</span>
+                                :null}
                             </span>
                           </div>
                         );
                       })}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );

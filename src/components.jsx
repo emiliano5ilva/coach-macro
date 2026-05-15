@@ -1132,16 +1132,43 @@ export function getReferralBadge(count) {
 }
 
 export function Badge({type}) {
-  const styles={
-    PRO:{bg:'#2979FF',text:'PRO',border:'1px solid rgba(41,121,255,0.6)'},
-    VIP:{bg:'rgba(255,215,64,0.15)',text:'VIP',textColor:'#FFD740',border:'1px solid rgba(255,255,255,0.55)'},
-    VERIFIED:{bg:'rgba(0,230,118,0.12)',text:'VERIFIED ✓',textColor:'#00E676',border:'1px solid #2979FF'},
-    LEGEND:{bg:'rgba(255,215,0,0.12)',text:'LEGEND ★',textColor:'#FFD700',border:'1px solid #FFD700',shadow:'0 0 12px rgba(255,215,0,0.45)'},
+  const TIERS={
+    PRO:{
+      bg:'rgba(41,121,255,0.15)',textColor:'#5B9EFF',border:'1px solid rgba(41,121,255,0.45)',
+      label:'PRO',
+      icon:<svg width={9} height={9} viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#5B9EFF" strokeWidth={2} strokeLinejoin="round"/></svg>,
+    },
+    VIP:{
+      bg:'rgba(255,215,64,0.1)',textColor:'#FFD740',border:'1px solid rgba(255,215,64,0.45)',
+      label:'VIP',
+      icon:<svg width={9} height={9} viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#FFD740" strokeWidth={2} strokeLinejoin="round"/></svg>,
+    },
+    VERIFIED:{
+      bg:'rgba(0,230,118,0.1)',textColor:'#00E676',border:'1px solid rgba(0,230,118,0.4)',
+      label:'VERIFIED',
+      icon:<svg width={9} height={9} viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#00E676" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    },
+    LEGEND:{
+      bg:'rgba(255,215,0,0.1)',textColor:'#FFD700',border:'1px solid rgba(255,215,0,0.5)',
+      shadow:'0 0 14px rgba(255,215,0,0.3)',
+      label:'LEGEND',
+      icon:<svg width={9} height={9} viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+    },
   };
-  const s=styles[type];
+  const s=TIERS[type];
   if(!s)return null;
   return(
-    <span style={{background:s.bg,color:s.textColor||'#fff',fontSize:10,fontWeight:900,letterSpacing:1.5,padding:'3px 8px',borderRadius:6,marginLeft:6,fontFamily:"'Barlow Condensed',sans-serif",display:"inline-block",border:s.border||'none',boxShadow:s.shadow||'none'}}>{s.text}</span>
+    <span style={{
+      background:s.bg,color:s.textColor,
+      fontSize:10,fontWeight:800,letterSpacing:1.2,
+      padding:'3px 8px 3px 6px',borderRadius:6,marginLeft:6,
+      fontFamily:"'Barlow Condensed',sans-serif",
+      display:"inline-flex",alignItems:"center",gap:4,
+      border:s.border,boxShadow:s.shadow||'none',
+      transition:'box-shadow 0.32s',
+    }}>
+      {s.icon}{s.label}
+    </span>
   );
 }
 
