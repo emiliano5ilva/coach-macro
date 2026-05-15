@@ -99,12 +99,25 @@ function Tutorial({ onDone }) {
 
 // ── Camera Screen ─────────────────────────────────────────────────────────────
 
+const CAMERA_TIPS = [
+  '💡 Include a fork in frame for better accuracy',
+  '💡 A hand next to food helps portion estimates',
+  '💡 Top-down shots work best',
+  '💡 Good lighting = better results',
+];
+
 function CameraScreen({ onCapture, onClose, onFallback, photoMode, setPhotoMode }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [torch, setTorch] = useState(false);
   const [permDenied, setPermDenied] = useState(false);
+  const [tipIdx, setTipIdx] = useState(0);
+
+  useEffect(() => {
+    const iv = setInterval(() => setTipIdx(i => (i + 1) % CAMERA_TIPS.length), 4000);
+    return () => clearInterval(iv);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -210,16 +223,23 @@ function CameraScreen({ onCapture, onClose, onFallback, photoMode, setPhotoMode 
       </div>
 
       {/* Bottom capture controls */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 32px 52px", display: "flex", justifyContent: "center", alignItems: "center", gap: 40, background: "linear-gradient(to top,rgba(0,0,0,.7),transparent)" }}>
-        <button onClick={onFallback} style={{ background: "rgba(255,255,255,.15)", border: "1.5px solid rgba(255,255,255,.3)", borderRadius: 12, padding: "10px 16px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
-          📁<br/>Library
-        </button>
-        <button
-          onClick={capture}
-          disabled={!ready}
-          style={{ width: 72, height: 72, borderRadius: "50%", background: ready ? T.brand : T.bd, border: "4px solid rgba(255,255,255,.6)", cursor: ready ? "pointer" : "default", flexShrink: 0, transition: "all .15s", transform: ready ? "scale(1)" : "scale(.9)" }}
-        />
-        <div style={{ width: 56 }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top,rgba(0,0,0,.8),transparent)" }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 40, padding: "20px 32px 16px" }}>
+          <button onClick={onFallback} style={{ background: "rgba(255,255,255,.15)", border: "1.5px solid rgba(255,255,255,.3)", borderRadius: 12, padding: "10px 16px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
+            📁<br/>Library
+          </button>
+          <button
+            onClick={capture}
+            disabled={!ready}
+            style={{ width: 72, height: 72, borderRadius: "50%", background: ready ? T.brand : T.bd, border: "4px solid rgba(255,255,255,.6)", cursor: ready ? "pointer" : "default", flexShrink: 0, transition: "all .15s", transform: ready ? "scale(1)" : "scale(.9)" }}
+          />
+          <div style={{ width: 56 }} />
+        </div>
+        <div style={{ textAlign: "center", padding: "0 24px 48px", minHeight: 36 }}>
+          <div key={tipIdx} style={{ fontSize: 11, color: "rgba(255,255,255,.6)", animation: "fadeIn .4s ease" }}>
+            {CAMERA_TIPS[tipIdx]}
+          </div>
+        </div>
       </div>
     </div>
   );

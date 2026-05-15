@@ -199,6 +199,14 @@ Return ONLY valid JSON, no markdown fences, no explanation:
 
 If no food is clearly visible return exactly: {"error":"No food detected"}
 
+Reference object calibration:
+Look for these objects in the frame and use them to calibrate portion sizes:
+- Fork or spoon: typically 7 inches / 18 cm long
+- Credit card: 3.4 × 2.1 inches / 8.6 × 5.4 cm
+- Human hand: palm typically 3–4 inches / 7–10 cm wide
+- Plate: small ≈ 7", medium ≈ 9", large ≈ 11" diameter
+If you find a reference object, use it to calibrate your estimates and mention which one in the notes field of the relevant item (e.g. "Calibrated against fork in frame"). If no reference object is visible, add a note on one item: "No size reference visible — estimate may vary ±20%".
+
 Portion reference:
 - palm-sized chicken breast = 4–6 oz (113–170g) = 160–280 kcal, 30–50g protein
 - 1 cup cooked rice = ~200g = 260 kcal, 5g protein, 53g carbs
