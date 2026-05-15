@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { T } from "./components.jsx";
 import { sb } from "./client.js";
 import { showToast } from "./utils/toast.js";
@@ -51,12 +51,17 @@ const TUTORIAL_STEPS = [
   {
     icon: "🧠",
     title: "AI Identifies Foods",
-    body: "Claude scans your meal and estimates portions and macros for each item.",
+    body: "Claude scans your meal and breaks it into individual ingredients with estimated macros.",
+  },
+  {
+    icon: "📝",
+    title: "Add Notes for Accuracy",
+    body: 'Tap "Photo + Notes" to describe your meal — cooking method, brand, or portion size — for more precise results.',
   },
   {
     icon: "✅",
-    title: "Review & Log",
-    body: "Adjust any portion sizes, then tap Log to add everything at once.",
+    title: "Review & Edit",
+    body: "Adjust portions, fix names, or add missing items. Then tap Log to add everything at once.",
   },
 ];
 
@@ -94,7 +99,7 @@ function Tutorial({ onDone }) {
 
 // ── Camera Screen ─────────────────────────────────────────────────────────────
 
-function CameraScreen({ onCapture, onClose, onFallback }) {
+function CameraScreen({ onCapture, onClose, onFallback, photoMode, setPhotoMode }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -164,10 +169,8 @@ function CameraScreen({ onCapture, onClose, onFallback }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 500 }}>
-      {/* Live preview */}
       <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
 
-      {/* Corner guides */}
       {ready && (
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
           {[["top:15%,left:10%","top right"],["top:15%,right:10%","top left"],["bottom:20%,left:10%","bottom right"],["bottom:20%,right:10%","bottom left"]].map(([pos, corners], idx) => {
@@ -175,18 +178,10 @@ function CameraScreen({ onCapture, onClose, onFallback }) {
             return (
               <div key={idx} style={{ position: "absolute", width: 40, height: 40, ...style }}>
                 <svg width="40" height="40" viewBox="0 0 40 40">
-                  {corners.includes("top") && corners.includes("left") && <>
-                    <path d="M2 14 L2 2 L14 2" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                  </>}
-                  {corners.includes("top") && corners.includes("right") && <>
-                    <path d="M26 2 L38 2 L38 14" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                  </>}
-                  {corners.includes("bottom") && corners.includes("left") && <>
-                    <path d="M2 26 L2 38 L14 38" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                  </>}
-                  {corners.includes("bottom") && corners.includes("right") && <>
-                    <path d="M26 38 L38 38 L38 26" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                  </>}
+                  {corners.includes("top") && corners.includes("left") && <path d="M2 14 L2 2 L14 2" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />}
+                  {corners.includes("top") && corners.includes("right") && <path d="M26 2 L38 2 L38 14" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />}
+                  {corners.includes("bottom") && corners.includes("left") && <path d="M2 26 L2 38 L14 38" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />}
+                  {corners.includes("bottom") && corners.includes("right") && <path d="M26 38 L38 38 L38 26" stroke="rgba(255,255,255,.7)" strokeWidth="2.5" fill="none" strokeLinecap="round" />}
                 </svg>
               </div>
             );
@@ -203,6 +198,15 @@ function CameraScreen({ onCapture, onClose, onFallback }) {
         <button onClick={toggleTorch} style={{ background: torch ? "rgba(255,200,0,.3)" : "rgba(0,0,0,.4)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 20, padding: "8px 16px", color: torch ? "#FFD700" : "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
           {torch ? "⚡ On" : "⚡ Flash"}
         </button>
+      </div>
+
+      {/* Mode toggle pill */}
+      <div style={{ position: "absolute", top: "calc(52px + 44px + 16px)", left: "50%", transform: "translateX(-50%)", display: "flex", background: "rgba(0,0,0,.55)", border: "1px solid rgba(255,255,255,.15)", borderRadius: 24, padding: 3, gap: 2 }}>
+        {[["photo", "📷 Photo Only"], ["photo+text", "📝 Photo + Notes"]].map(([mode, label]) => (
+          <button key={mode} onClick={() => setPhotoMode(mode)} style={{ padding: "6px 14px", borderRadius: 20, border: "none", background: photoMode === mode ? "rgba(255,255,255,.2)" : "none", color: photoMode === mode ? "#fff" : "rgba(255,255,255,.5)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Bottom capture controls */}
@@ -254,6 +258,56 @@ function FilePicker({ onCapture, onClose }) {
   );
 }
 
+// ── Notes Screen ──────────────────────────────────────────────────────────────
+
+function NotesScreen({ previewDataUrl, onAnalyze, onSkip, onCancel }) {
+  const [text, setText] = useState("");
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: 500, display: "flex", flexDirection: "column" }}>
+      {/* Header */}
+      <div style={{ padding: "52px 20px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+        {previewDataUrl && (
+          <img src={previewDataUrl} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", border: `1.5px solid ${T.bd}`, flexShrink: 0 }} />
+        )}
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 900, fontFamily: "'Barlow Condensed',sans-serif" }}>DESCRIBE YOUR MEAL</div>
+          <div style={{ fontSize: 12, color: T.mu, marginTop: 2 }}>Help the AI be more accurate</div>
+        </div>
+      </div>
+
+      <div style={{ padding: "0 20px", flex: 1 }}>
+        <textarea
+          autoFocus
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder={`Examples:\n• "Chicken breast grilled in olive oil, about 6oz"\n• "McDonald's Big Mac and medium fries"\n• "Homemade protein smoothie with 2 scoops whey, banana, almond milk"`}
+          style={{ width: "100%", minHeight: 180, background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 14, padding: "14px", color: "#fff", fontSize: 13, lineHeight: 1.6, fontFamily: "inherit", resize: "none", boxSizing: "border-box" }}
+        />
+        <div style={{ fontSize: 11, color: T.mu, marginTop: 8 }}>
+          Mention brand names, cooking methods, portion sizes, or anything the photo might miss.
+        </div>
+      </div>
+
+      <div style={{ padding: "16px 20px 48px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <button
+          onClick={() => onAnalyze(text.trim())}
+          style={{ width: "100%", padding: "16px", borderRadius: 14, background: T.brand, border: "none", color: "#fff", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: "0.08em" }}
+        >
+          ANALYZE WITH NOTES
+        </button>
+        <button
+          onClick={onSkip}
+          style={{ width: "100%", padding: "13px", borderRadius: 14, background: "none", border: `1.5px solid ${T.bd}`, color: T.mu, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+        >
+          Skip notes, analyze photo only
+        </button>
+        <button onClick={onCancel} style={{ background: "none", border: "none", color: T.mu, fontSize: 12, cursor: "pointer", fontFamily: "inherit", paddingTop: 4 }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Analyzing Screen ──────────────────────────────────────────────────────────
 
 function AnalyzingScreen({ previewDataUrl, onCancel }) {
@@ -267,7 +321,7 @@ function AnalyzingScreen({ previewDataUrl, onCancel }) {
 
   useEffect(() => {
     const start = Date.now();
-    const total = 8000;
+    const total = 10000;
     const iv = setInterval(() => {
       const elapsed = Date.now() - start;
       setPct(Math.min(90, Math.round((elapsed / total) * 90)));
@@ -284,7 +338,7 @@ function AnalyzingScreen({ previewDataUrl, onCancel }) {
         </div>
       )}
       <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Analyzing your meal{dots}</div>
-      <div style={{ fontSize: 13, color: T.mu, marginBottom: 28 }}>Identifying foods and estimating macros</div>
+      <div style={{ fontSize: 13, color: T.mu, marginBottom: 28 }}>Breaking down ingredients and verifying macros</div>
       <div style={{ width: "100%", maxWidth: 280, height: 4, background: T.s2, borderRadius: 2, overflow: "hidden", marginBottom: 28 }}>
         <div style={{ height: "100%", width: `${pct}%`, background: T.brand, borderRadius: 2, transition: "width .1s linear" }} />
       </div>
@@ -299,34 +353,111 @@ const SCALE_OPTS = [0.5, 1, 1.5, 2];
 const SCALE_LABELS = { 0.5: "½×", 1: "1×", 1.5: "1½×", 2: "2×" };
 
 function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
-  const [scales, setScales] = useState(() =>
-    (analysis.items || []).reduce((acc, _, i) => ({ ...acc, [i]: 1 }), {})
-  );
-  const [removed, setRemoved] = useState({});
-
-  const items = (analysis.items || []).filter((_, i) => !removed[i]);
-
-  function scaledItem(item, idx) {
-    const s = scales[idx] ?? 1;
-    return {
+  const [items, setItems] = useState(() =>
+    (analysis.items || []).map(item => ({
       ...item,
-      calories: Math.round(item.calories * s),
-      protein: Math.round(item.protein * s * 10) / 10,
-      carbs: Math.round(item.carbs * s * 10) / 10,
-      fat: Math.round(item.fat * s * 10) / 10,
+      aiName: item.name,
+      scale: 1,
+      _removed: false,
+    }))
+  );
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", portion: "", calories: "", protein: "", carbs: "", fat: "" });
+
+  // item.calories/protein/etc. are always the original 1x values — just multiply by scale
+  function scaledValues(item, scale) {
+    return {
+      calories: Math.round(item.calories * scale),
+      protein:  Math.round(item.protein  * scale * 10) / 10,
+      carbs:    Math.round(item.carbs    * scale * 10) / 10,
+      fat:      Math.round(item.fat      * scale * 10) / 10,
     };
   }
 
-  const activeItems = (analysis.items || [])
-    .map((item, i) => removed[i] ? null : scaledItem(item, i))
-    .filter(Boolean);
+  const activeItems = items.filter(i => !i._removed);
 
-  const totals = activeItems.reduce((acc, item) => ({
-    calories: acc.calories + item.calories,
-    protein: acc.protein + item.protein,
-    carbs: acc.carbs + item.carbs,
-    fat: acc.fat + item.fat,
-  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const totals = activeItems.reduce((acc, item) => {
+    const v = scaledValues(item, item.scale);
+    return {
+      calories: acc.calories + v.calories,
+      protein:  acc.protein  + v.protein,
+      carbs:    acc.carbs    + v.carbs,
+      fat:      acc.fat      + v.fat,
+    };
+  }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+  function setScale(idx, scale) {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, scale } : item));
+  }
+
+  function removeItem(idx) {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, _removed: true } : item));
+  }
+
+  function undoRemove(idx) {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, _removed: false } : item));
+  }
+
+  function startEditName(idx, currentName) {
+    setEditingIdx(idx);
+    setEditName(currentName);
+  }
+
+  function commitEditName(idx) {
+    if (editName.trim()) {
+      setItems(prev => prev.map((item, i) => i === idx ? { ...item, name: editName.trim() } : item));
+    }
+    setEditingIdx(null);
+  }
+
+  function addIngredient() {
+    const f = addForm;
+    if (!f.name.trim() || !f.calories) return;
+    const newItem = {
+      name: f.name.trim(),
+      aiName: f.name.trim(),
+      portion: f.portion || "1 serving",
+      calories: parseInt(f.calories) || 0,
+      protein:  parseFloat(f.protein)  || 0,
+      carbs:    parseFloat(f.carbs)    || 0,
+      fat:      parseFloat(f.fat)      || 0,
+      source: "manual",
+      verified: false,
+      scale: 1,
+      _removed: false,
+    };
+    setItems(prev => [...prev, newItem]);
+    setAddForm({ name: "", portion: "", calories: "", protein: "", carbs: "", fat: "" });
+    setShowAdd(false);
+  }
+
+  function handleLog() {
+    const corrections = items
+      .filter(item => !item._removed && (item.name !== item.aiName || item.scale !== 1))
+      .map(item => ({
+        ai_identified: item.aiName,
+        user_corrected_to: item.name !== item.aiName ? item.name : null,
+        portion_adjustment: item.scale !== 1 ? item.scale : null,
+      }));
+
+    const loggableItems = activeItems.map(item => {
+      const v = scaledValues(item, item.scale);
+      return {
+        id: Date.now() + Math.random(),
+        food: item.name,
+        calories: v.calories,
+        protein:  v.protein,
+        carbs:    v.carbs,
+        fat:      v.fat,
+        method: "photo",
+        portion: item.portion,
+      };
+    });
+
+    onLog(loggableItems, totals, corrections);
+  }
 
   const confidenceColor = { high: "#4ade80", medium: "#fbbf24", low: T.mu }[analysis.confidence] || T.mu;
 
@@ -348,31 +479,57 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
         )}
       </div>
 
-      {/* Items list */}
       <div style={{ padding: "0 20px 12px" }}>
-        {(analysis.items || []).map((item, i) => {
-          if (removed[i]) return (
+        {/* Items list */}
+        {items.map((item, i) => {
+          if (item._removed) return (
             <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", opacity: 0.4 }}>
               <div style={{ fontSize: 13, textDecoration: "line-through", color: T.mu }}>{item.name}</div>
-              <button onClick={() => setRemoved(r => ({ ...r, [i]: false }))} style={{ background: "none", border: "none", color: T.brand, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Undo</button>
+              <button onClick={() => undoRemove(i)} style={{ background: "none", border: "none", color: T.brand, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Undo</button>
             </div>
           );
 
-          const scaled = scaledItem(item, i);
+          const v = scaledValues(item, item.scale);
+          const isEditing = editingIdx === i;
+
           return (
             <div key={i} style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{item.name}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div style={{ flex: 1, marginRight: 8 }}>
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      onBlur={() => commitEditName(i)}
+                      onKeyDown={e => { if (e.key === "Enter") commitEditName(i); if (e.key === "Escape") setEditingIdx(null); }}
+                      style={{ width: "100%", background: T.s2, border: `1px solid ${T.brand}`, borderRadius: 8, padding: "4px 8px", color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "inherit", boxSizing: "border-box" }}
+                    />
+                  ) : (
+                    <button onClick={() => startEditName(i, item.name)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", width: "100%" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{item.name}</div>
+                    </button>
+                  )}
                   <div style={{ fontSize: 11, color: T.mu, marginTop: 1 }}>{item.portion}</div>
+
+                  {/* Source badge */}
+                  <div style={{ marginTop: 4 }}>
+                    {item.source === "usda" ? (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: "#4ade80", background: "rgba(74,222,128,.12)", border: "1px solid rgba(74,222,128,.25)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>✓ DATABASE VERIFIED</span>
+                    ) : item.source === "manual" ? (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: T.mu, background: T.s2, borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>MANUAL ENTRY</span>
+                    ) : (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: "#fbbf24", background: "rgba(251,191,36,.1)", border: "1px solid rgba(251,191,36,.2)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>◎ AI ESTIMATE</span>
+                    )}
+                  </div>
                 </div>
-                <button onClick={() => setRemoved(r => ({ ...r, [i]: true }))} style={{ background: "none", border: "none", color: T.mu, cursor: "pointer", fontSize: 16, padding: "0 0 0 8px" }}>×</button>
+                <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: T.mu, cursor: "pointer", fontSize: 18, padding: "0 0 0 8px", lineHeight: 1 }}>×</button>
               </div>
 
               {/* Portion scale chips */}
               <div style={{ display: "flex", gap: 5, marginBottom: 10 }}>
                 {SCALE_OPTS.map(s => (
-                  <button key={s} onClick={() => setScales(sc => ({ ...sc, [i]: s }))} style={{ padding: "4px 10px", borderRadius: 20, border: `1.5px solid ${scales[i] === s ? T.brand : T.bd}`, background: scales[i] === s ? `${T.brand}18` : "none", color: scales[i] === s ? T.brand : T.mu, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <button key={s} onClick={() => setScale(i, s)} style={{ padding: "4px 10px", borderRadius: 20, border: `1.5px solid ${item.scale === s ? T.brand : T.bd}`, background: item.scale === s ? `${T.brand}18` : "none", color: item.scale === s ? T.brand : T.mu, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     {SCALE_LABELS[s]}
                   </button>
                 ))}
@@ -380,10 +537,10 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
 
               {/* Macros row */}
               <div style={{ display: "flex", gap: 10 }}>
-                {[["Cal", scaled.calories, "", "#fff"], ["P", scaled.protein, "g", T.prot], ["C", scaled.carbs, "g", T.carb], ["F", scaled.fat, "g", T.fat]].map(([l, v, u, c]) => (
+                {[["Cal", v.calories, "", "#fff"], ["P", v.protein, "g", T.prot], ["C", v.carbs, "g", T.carb], ["F", v.fat, "g", T.fat]].map(([l, val, u, c]) => (
                   <div key={l} style={{ textAlign: "center", flex: 1, background: T.s2, borderRadius: 8, padding: "6px 4px" }}>
                     <div style={{ fontSize: 9, color: T.mu, textTransform: "uppercase", letterSpacing: 1, marginBottom: 1 }}>{l}</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: c }}>{v}{u}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: c }}>{val}{u}</div>
                   </div>
                 ))}
               </div>
@@ -394,6 +551,30 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
             </div>
           );
         })}
+
+        {/* Add ingredient */}
+        {!showAdd ? (
+          <button onClick={() => setShowAdd(true)} style={{ width: "100%", padding: "12px", borderRadius: 12, border: `1.5px dashed ${T.bd}`, background: "none", color: T.mu, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            + Add missing ingredient
+          </button>
+        ) : (
+          <div style={{ background: T.s1, border: `1px solid ${T.brand}40`, borderRadius: 14, padding: "14px", marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.brand, marginBottom: 10, letterSpacing: "0.06em" }}>ADD INGREDIENT</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} placeholder="Food name *" style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", color: "#fff", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} />
+              <input value={addForm.portion} onChange={e => setAddForm(f => ({ ...f, portion: e.target.value }))} placeholder="Portion (e.g. 1 cup, 4 oz)" style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 10px", color: "#fff", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} />
+              <div style={{ display: "flex", gap: 6 }}>
+                {[["calories","Cal *"],["protein","Prot"],["carbs","Carbs"],["fat","Fat"]].map(([k, ph]) => (
+                  <input key={k} type="number" value={addForm[k]} onChange={e => setAddForm(f => ({ ...f, [k]: e.target.value }))} placeholder={ph} style={{ flex: 1, background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "8px 6px", color: "#fff", fontSize: 12, fontFamily: "inherit", textAlign: "center", minWidth: 0 }} />
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={addIngredient} style={{ flex: 1, padding: "10px", borderRadius: 10, background: T.brand, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Add</button>
+                <button onClick={() => { setShowAdd(false); setAddForm({ name: "", portion: "", calories: "", protein: "", carbs: "", fat: "" }); }} style={{ flex: 1, padding: "10px", borderRadius: 10, background: "none", border: `1px solid ${T.bd}`, color: T.mu, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Suggestions */}
         {analysis.suggestions && (
@@ -417,7 +598,7 @@ function ConfirmScreen({ analysis, previewDataUrl, onLog, onRetake, onClose }) {
 
         {/* Actions */}
         <button
-          onClick={() => onLog(activeItems, totals)}
+          onClick={handleLog}
           disabled={activeItems.length === 0}
           style={{ width: "100%", padding: "16px", borderRadius: 14, background: activeItems.length ? T.brand : T.bd, border: "none", color: "#fff", fontSize: 17, fontWeight: 800, cursor: activeItems.length ? "pointer" : "default", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: "0.08em", marginBottom: 10 }}
         >
@@ -452,9 +633,10 @@ function ErrorScreen({ message, onRetry, onClose }) {
 
 // ── Main PhotoFoodLogger ──────────────────────────────────────────────────────
 
-export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) {
+export default function PhotoFoodLogger({ user, profile, onLog, onClose }) {
   const tutorialDone = localStorage.getItem("cm_photo_tutorial") === "1";
   const [phase, setPhase] = useState(tutorialDone ? "camera" : "tutorial");
+  const [photoMode, setPhotoMode] = useState("photo");
   const [useFallback, setUseFallback] = useState(false);
   const [capturedBase64, setCapturedBase64] = useState(null);
   const [previewDataUrl, setPreviewDataUrl] = useState(null);
@@ -465,7 +647,6 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) 
   async function handleCapture(raw64, dataUrl) {
     abortRef.current = false;
     setPreviewDataUrl(dataUrl);
-    setPhase("analyzing");
 
     let resized;
     try {
@@ -475,11 +656,27 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) 
     }
     setCapturedBase64(resized);
 
+    if (photoMode === "photo+text") {
+      setPhase("notes");
+    } else {
+      await handleAnalyze("", resized);
+    }
+  }
+
+  async function handleAnalyze(description, base64Override) {
+    const b64 = base64Override || capturedBase64;
+    if (!b64) return;
+    abortRef.current = false;
+    setPhase("analyzing");
+
     try {
+      const body = { image: b64, mediaType: "image/jpeg" };
+      if (description) body.userDescription = description;
+
       const resp = await fetch(`${API_BASE}/api/food-photo`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-user-id": user?.id || "" },
-        body: JSON.stringify({ image: resized, mediaType: "image/jpeg" }),
+        body: JSON.stringify(body),
       });
 
       if (abortRef.current) return;
@@ -516,20 +713,24 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) 
     }
   }
 
-  async function handleLog(items, totals) {
+  async function handleLog(items, totals, corrections) {
     const photoUrl = user?.id ? await uploadPhoto(user.id, capturedBase64) : null;
     if (user?.id && !photoUrl) showToast("Items logged — photo thumbnail upload failed");
 
+    // Save corrections for future calibration
+    if (user?.id && corrections?.length) {
+      const rows = corrections
+        .filter(c => c.ai_identified && (c.user_corrected_to || c.portion_adjustment))
+        .map(c => ({ user_id: user.id, ...c }));
+      if (rows.length) {
+        sb.from("photo_log_corrections").insert(rows).catch(() => {});
+      }
+    }
+
     const entries = items.map(item => ({
-      id: Date.now() + Math.random(),
-      food: item.name,
-      calories: item.calories,
-      protein: item.protein,
-      carbs: item.carbs,
-      fat: item.fat,
+      ...item,
       method: "photo",
       photo_url: photoUrl,
-      portion: item.portion,
     }));
 
     onLog(entries);
@@ -555,6 +756,8 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) 
           onCapture={handleCapture}
           onClose={onClose}
           onFallback={() => setUseFallback(true)}
+          photoMode={photoMode}
+          setPhotoMode={setPhotoMode}
         />
       )}
 
@@ -562,6 +765,15 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose, log }) 
         <FilePicker
           onCapture={handleCapture}
           onClose={onClose}
+        />
+      )}
+
+      {phase === "notes" && (
+        <NotesScreen
+          previewDataUrl={previewDataUrl}
+          onAnalyze={(desc) => handleAnalyze(desc)}
+          onSkip={() => handleAnalyze("")}
+          onCancel={() => { abortRef.current = true; onClose(); }}
         />
       )}
 
