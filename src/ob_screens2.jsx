@@ -2898,7 +2898,7 @@ Rules:
         ))}
 
         {/* Today's session */}
-        <div style={{margin:"0 20px 14px",padding:"16px",background:deloadActive?"linear-gradient(135deg,#1a1508,var(--navy-card) 70%)":"linear-gradient(135deg, #2a0d05, var(--navy-card) 70%)",border:`1px solid ${deloadActive?"rgba(245,158,11,0.2)":"rgba(232,52,28,0.2)"}`,borderRadius:14}}>
+        <div className="hero-card" style={{margin:"0 20px 14px",padding:"16px",borderRadius:14,background:deloadActive?"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05) 40%,var(--navy-mid) 100%)":undefined,border:deloadActive?"1px solid rgba(245,158,11,0.2)":undefined}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div className="header-eyebrow">// Today's Session</div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>

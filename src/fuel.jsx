@@ -1597,10 +1597,10 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* MAIN CARD — ring + macros */}
             {/* BODY BUDGET or MACRO RING */}
             {useBudgetView?(
-              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
+              <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                   <div>
-                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>TODAY'S BODY BUDGET</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TODAY'S BODY BUDGET</div>
                     <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:24,fontWeight:900,lineHeight:1}}>{macros.calories.toLocaleString()} kcal</div>
                   </div>
                   <div style={{textAlign:"right"}}>
@@ -1650,8 +1650,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
               </div>
             ):(
-              <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.35)":T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${macros.isFlexDay?"#F59E0B":cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
+              <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px",border:macros.isFlexDay?"1px solid rgba(245,158,11,0.35)":undefined,background:macros.isFlexDay?"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05) 40%,var(--navy-mid) 100%)":undefined}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                   <div>
                     <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// {macros.isFlexDay?"Flex Day":(dayNutrition?.label||todayType+" day")}</div>

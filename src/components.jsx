@@ -311,10 +311,12 @@ export const GLOBAL_CSS = `
   @media(min-width:769px){.mob-only{display:none!important}}
   .page-enter{animation:page-fade 0.28s cubic-bezier(.2,.7,.3,1) forwards}
   .screen-header{padding:14px 20px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
-  .header-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:0.16em;color:var(--red);text-transform:uppercase;margin-bottom:6px}
+  .header-eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:0.16em;color:var(--red);text-transform:uppercase;margin-bottom:8px}
   .header-title{font-family:var(--condensed);font-style:italic;font-weight:900;font-size:34px;letter-spacing:-0.01em;text-transform:uppercase;line-height:0.92;color:var(--white)}
   .icon-btn{width:36px;height:36px;border-radius:10px;background:rgba(245,245,240,0.06);border:1px solid rgba(245,245,240,0.08);display:flex;align-items:center;justify-content:center;color:var(--white);cursor:pointer}
   .section-title{font-family:var(--condensed);font-weight:800;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--white-dim);margin:18px 20px 10px}
+  .hero-card{background:linear-gradient(135deg,rgba(232,52,28,0.18) 0%,rgba(232,52,28,0.08) 30%,var(--navy-mid) 100%);border:1px solid rgba(232,52,28,0.15);border-radius:16px;position:relative;overflow:hidden}
+  .hero-card::before{content:'';position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle at top right,rgba(232,52,28,0.12),transparent 70%);pointer-events:none}
   .coach-card{margin:0 20px 14px;padding:14px 16px;background:var(--navy-light);border-left:3px solid var(--red);border-radius:4px 14px 14px 4px}
   .coach-label{font-family:var(--mono);font-size:9px;letter-spacing:0.16em;color:var(--red);text-transform:uppercase;margin-bottom:6px}
   .coach-text{font-family:var(--body);font-size:13.5px;line-height:1.5;color:var(--white);font-style:italic}

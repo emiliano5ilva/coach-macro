@@ -2001,8 +2001,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {trainScreen==="today"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* TODAY HERO CARD */}
-            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-40,right:-40,width:180,height:180,borderRadius:"50%",background:`radial-gradient(circle,${cfg.color}08,transparent 70%)`,pointerEvents:"none"}}/>
+            <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                 <div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// {new Date().toLocaleDateString("en-US",{weekday:"long"})}</div>
@@ -2273,7 +2272,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   />
                 :<div>
                 {/* Header */}
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div className="hero-card" style={{padding:"18px 20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// ACTIVE SESSION</div>
                     <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
