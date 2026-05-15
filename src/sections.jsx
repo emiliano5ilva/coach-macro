@@ -2266,6 +2266,58 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{fontSize:11,color:T.mu,marginBottom:16}}>Tap any muscle to see weekly volume status</div>
               <MuscleMap dayFocus={dayFocus} isMobile={isMobile}/>
             </div>
+
+            {/* QUICK ACTIONS */}
+            <div>
+              <div className="header-eyebrow">// Quick Actions</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                {[
+                  ["Adapt", ()=>adaptLeft>0&&setShowAdapt(true),
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>,
+                    adaptLeft>0],
+                  ["Library", ()=>setTrainScreen("library"),
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+                    true],
+                  ["Builder", ()=>setTrainScreen("routine-builder"),
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.375 2.625a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>,
+                    true],
+                  ["Warmup", ()=>setTrainScreen("warmup-protocols"),
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>,
+                    true],
+                ].map(([label, action, icon, enabled])=>(
+                  <button key={label} onClick={action} style={{padding:"13px 5px 11px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,cursor:enabled?"pointer":"not-allowed",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:7,opacity:enabled?1:0.4}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.18)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)"}}>
+                      {icon}
+                    </div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>{label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* PROGRAM CARD */}
+            {(()=>{
+              const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+              const totalWeeks=progInfo?.weeks||12;
+              const progPct=Math.min(weekNum/totalWeeks,1);
+              const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
+              return(
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 18px"}}>
+                  <div className="header-eyebrow" style={{marginBottom:6}}>// Program</div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                    <div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{progName}</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.12em"}}>WEEK {weekNum}{totalWeeks?` OF ${totalWeeks}`:""} · {daysPerWeek}×/WK</div>
+                    </div>
+                    <button onClick={()=>setTrainScreen("plan")} style={{padding:"7px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:9,color:T.prot,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.1em",flexShrink:0}}>Switch →</button>
+                  </div>
+                  <div style={{height:5,background:"rgba(245,245,240,0.06)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${progPct*100}%`,background:`linear-gradient(90deg,var(--red),rgba(232,52,28,0.5))`,borderRadius:3,transition:"width 0.6s"}}/>
+                  </div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,marginTop:5,letterSpacing:"0.08em"}}>{Math.round(progPct*100)}% complete</div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
