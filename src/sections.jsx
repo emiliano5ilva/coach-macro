@@ -1822,7 +1822,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const ZONE_LABEL={1:"Zone 1 Recovery",2:"Zone 2 Aerobic",3:"Zone 3 Tempo",4:"Zone 4 Threshold",5:"Zone 5 VO₂ Max"};
 
   return (
-    <div style={{paddingBottom:isMobile?20:0}}>
+    <div className="page-enter" style={{paddingBottom:isMobile?20:0}}>
       {/* Adapt Now Modal */}
       {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)}/>}
 
@@ -1972,7 +1972,27 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {/* Toast */}
       {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(232,52,28,.35)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
 
-      {trainScreen!=="routine-builder"&&<div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto"}}>
+      {/* ── PAGE HEADER ── */}
+      {trainScreen!=="routine-builder"&&(
+        <div className="screen-header" style={{paddingTop:12}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="header-eyebrow">// {new Date().toLocaleDateString("en-US",{weekday:"long"})} · {cfg.label} Day</div>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:44,height:44,borderRadius:13,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.28)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="10" width="4" height="4" rx="1" fill="var(--red)"/>
+                  <rect x="18" y="10" width="4" height="4" rx="1" fill="var(--red)"/>
+                  <rect x="6" y="8" width="12" height="8" rx="2" fill="var(--red)" opacity="0.7"/>
+                  <rect x="10" y="11" width="4" height="2" rx="1" fill="var(--red)"/>
+                </svg>
+              </div>
+              <div className="header-title">Train</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {trainScreen!=="routine-builder"&&<div style={{display:"flex",gap:4,padding:isMobile?"4px 18px 0":"0 0 20px",overflowX:"auto"}}>
         {TRAIN_TABS.map(tab=>(
           <button key={tab.id} onClick={()=>setTrainScreen(tab.id)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"var(--mono)",background:trainScreen===tab.id?T.prot:"none",color:trainScreen===tab.id?"#fff":T.mu,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0}}>{tab.l}</button>
         ))}

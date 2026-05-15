@@ -1496,7 +1496,25 @@ Reply with ONLY a valid JSON object, no markdown:
   })();
 
   return (
-    <div style={{paddingBottom:isMobile?20:0}}>
+    <div className="page-enter" style={{paddingBottom:isMobile?20:0}}>
+      {/* ── PAGE HEADER ── */}
+      <div className="screen-header" style={{paddingTop:12}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div className="header-eyebrow">// {new Date().toLocaleDateString("en-US",{weekday:"long"})} · {macros.isFlexDay?"Flex Day":(cfg.label+" Day")}</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:44,height:44,borderRadius:13,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.28)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C8 2 4 6 4 10c0 6 8 12 8 12s8-6 8-12c0-4-4-8-8-8z" fill="var(--red)" opacity="0.8"/>
+                <path d="M12 6c0 0-2 2-2 4s2 4 2 4" stroke="rgba(245,245,240,0.5)" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
+              </svg>
+            </div>
+            <div className="header-title">Fuel</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:"0.1em"}}>{macros.calories.toLocaleString()} kcal</div>
+        </div>
+      </div>
       {/* Date navigator */}
       {setLogDate&&(
         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:0,padding:"10px 20px 4px"}}>
