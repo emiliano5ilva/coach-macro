@@ -872,12 +872,15 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   const [showCustomForm,setShowCustomForm]=useState(false);
   const [customFood,setCustomFood]=useState({name:"",brand:"",calories:"",protein:"",carbs:"",fat:"",serving_size:"100",serving_unit:"g"});
   const [myFoods,setMyFoods]=useState([]);
+  const [myFoodsLoading,setMyFoodsLoading]=useState(true);
+  const [myFoodsExpanded,setMyFoodsExpanded]=useState(false);
 
   useEffect(()=>{
     if(!user)return;
     getFrequentFoods(user.id).then(d=>setFrequentFoods(d||[]));
     getRecentFoods(user.id).then(d=>setRecentFoods(d||[]));
-    getCustomFoods(user.id).then(d=>setMyFoods(d||[]));
+    setMyFoodsLoading(true);
+    getCustomFoods(user.id).then(d=>{setMyFoods(d||[]);setMyFoodsLoading(false);});
   },[user]);
 
   useEffect(()=>{
@@ -1000,7 +1003,9 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   if(showCustomForm){
     return(
       <div style={{maxWidth:isMobile?"100%":500}}>
-        <button onClick={()=>setShowCustomForm(false)} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,padding:"0 0 16px",fontFamily:"inherit"}}>← Back to search</button>
+        <button onClick={()=>setShowCustomForm(false)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,padding:"0 0 16px",fontFamily:"inherit"}}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>Back to search
+        </button>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,marginBottom:16}}>CUSTOM FOOD</div>
         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:16,padding:"20px",marginBottom:16}}>
           {[["Food name","text","name","e.g. Homemade oats",true],["Brand (optional)","text","brand","e.g. My Kitchen",false],["Calories (kcal)","number","calories","0",true],["Protein (g)","number","protein","0",false],["Carbs (g)","number","carbs","0",false],["Fat (g)","number","fat","0",false],["Serving size","number","serving_size","100",false],["Serving unit","text","serving_unit","g",false]].map(([label,type,key,ph,req])=>(
@@ -1097,27 +1102,49 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
         <div style={{marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>My Foods</div>
-            <button onClick={()=>setShowCustomForm(true)} style={{background:"none",border:`1px solid ${T.prot}`,borderRadius:6,padding:"3px 10px",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ New</button>
+            <button onClick={()=>setShowCustomForm(true)} style={{display:"flex",alignItems:"center",gap:4,background:"none",border:`1px solid rgba(232,52,28,0.4)`,borderRadius:6,padding:"3px 10px",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              <svg width={10} height={10} viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={T.prot} strokeWidth={2.2} strokeLinecap="round"/></svg>New
+            </button>
           </div>
-          {myFoods.length===0?(
-            <div style={{textAlign:"center",padding:"28px 20px",background:`rgba(232,52,28,0.04)`,border:`1px dashed rgba(232,52,28,0.2)`,borderRadius:14}}>
-              <div style={{fontSize:28,marginBottom:8}}>🥗</div>
-              <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:4}}>No custom foods yet</div>
-              <div style={{fontSize:11,color:T.mu,marginBottom:14,lineHeight:1.6}}>Save foods you eat often with exact macros for instant re-use</div>
-              <button onClick={()=>setShowCustomForm(true)} style={{padding:"9px 20px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Create First Food →</button>
-            </div>
-          ):(
+          {myFoodsLoading?(
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
-              {myFoods.slice(0,6).map((food,i)=>(
-                <button key={i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:1}}>{food.name}</div>
-                    <div style={{fontSize:10,color:T.mu}}>{food.calories} kcal · <span style={{color:T.prot}}>P {food.protein}g</span> · <span style={{color:T.carb}}>C {food.carbs}g</span> · <span style={{color:T.fat}}>F {food.fat}g</span></div>
-                  </div>
-                  <div style={{color:T.prot,fontWeight:700,fontSize:18,lineHeight:1,flexShrink:0,marginLeft:10}}>+</div>
-                </button>
+              {[1,2].map(i=>(
+                <div key={i} style={{height:52,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,animation:"pulse 1.4s ease-in-out infinite"}}/>
               ))}
             </div>
+          ):myFoods.length===0?(
+            <div style={{textAlign:"center",padding:"32px 20px",background:"rgba(232,52,28,0.04)",border:"1px dashed rgba(232,52,28,0.2)",borderRadius:14}}>
+              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" style={{margin:"0 auto 10px",display:"block",opacity:.45}}>
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="#fff" strokeWidth={1.5} strokeLinecap="round"/>
+                <rect x="9" y="3" width="6" height="4" rx="1" stroke="#fff" strokeWidth={1.5}/>
+                <path d="M9 12h6M9 16h4" stroke={T.prot} strokeWidth={1.5} strokeLinecap="round"/>
+              </svg>
+              <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>No custom foods yet</div>
+              <div style={{fontSize:11,color:T.mu,marginBottom:16,lineHeight:1.65,maxWidth:240,margin:"0 auto 16px"}}>Save foods you eat often with exact macros for instant re-use</div>
+              <button onClick={()=>setShowCustomForm(true)} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 20px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.5} strokeLinecap="round"/></svg>
+                Create First Food
+              </button>
+            </div>
+          ):(
+            <>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {(myFoodsExpanded?myFoods:myFoods.slice(0,6)).map((food,i)=>(
+                  <button key={food.id||i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:13,marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{food.name}</div>
+                      <div style={{fontSize:10,color:T.mu}}>{food.calories} kcal · <span style={{color:T.prot}}>P {food.protein}g</span> · <span style={{color:T.carb}}>C {food.carbs}g</span> · <span style={{color:T.fat}}>F {food.fat}g</span></div>
+                    </div>
+                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{flexShrink:0,color:T.prot}}><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"/></svg>
+                  </button>
+                ))}
+              </div>
+              {myFoods.length>6&&(
+                <button onClick={()=>setMyFoodsExpanded(e=>!e)} style={{width:"100%",marginTop:6,padding:"8px",background:"none",border:"none",color:T.mu,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                  {myFoodsExpanded?`Show fewer`:`View all ${myFoods.length} foods`}
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
