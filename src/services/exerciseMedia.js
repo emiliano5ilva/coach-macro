@@ -109,6 +109,13 @@ function githubImageUrls(exerciseName) {
   };
 }
 
+// Synchronous — no fetch. Returns null when exercise has no known thumbnail.
+export function getThumbnailUrl(exerciseName) {
+  const folder = FREE_EXERCISE_DB_MAP[exerciseName];
+  if (!folder) return null;
+  return `${FREE_DB_BASE}/${folder}/0.jpg`;
+}
+
 async function fetchMetadataFromExerciseDB(exerciseName) {
   if (!RAPIDAPI_KEY) return null;
   try {

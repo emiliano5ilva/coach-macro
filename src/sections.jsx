@@ -18,6 +18,7 @@ import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, get
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
 import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
+import { getThumbnailUrl } from "./services/exerciseMedia.js";
 import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
@@ -2346,27 +2347,56 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                            <div style={{width:24,height:24,borderRadius:"50%",background:allDone?T.carb:T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>{allDone?"✓":ei+1}</div>
-                            {/* GIF thumb */}
-                            <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:54,height:54,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" style={{color:"rgba(245,245,240,0.4)"}}><polygon points="5,3 19,12 5,21" fill="currentColor"/></svg>
-                              <div style={{position:"absolute",bottom:3,right:3,background:"rgba(232,52,28,0.85)",borderRadius:4,padding:"1px 5px",fontSize:8,fontWeight:800,letterSpacing:".04em",color:"#fff",lineHeight:1.4}}>GIF</div>
+                            <div style={{width:24,height:24,borderRadius:"50%",background:allDone?T.carb:T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>
+                              {allDone
+                                ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#000" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                : ei+1}
                             </div>
+                            {/* GIF thumb — real image when available, play-icon fallback */}
+                            {(()=>{
+                              const thumbUrl = getThumbnailUrl(ex.name);
+                              return (
+                                <div
+                                  onClick={()=>openDetail(ex.name,ei)}
+                                  style={{position:"relative",width:54,height:54,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}
+                                >
+                                  {thumbUrl ? (
+                                    <img
+                                      src={thumbUrl}
+                                      alt={ex.name}
+                                      style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
+                                      onError={e=>{ e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
+                                    />
+                                  ) : null}
+                                  {/* Fallback play icon — shown when no thumb or img error */}
+                                  <div style={{position:"absolute",inset:0,display:thumbUrl?"none":"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:2}}>
+                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{opacity:.35}}><polygon points="5,3 19,12 5,21" fill="rgba(245,245,240,1)"/></svg>
+                                  </div>
+                                  {/* GIF badge */}
+                                  <div style={{position:"absolute",bottom:3,right:3,background:T.prot,borderRadius:4,padding:"1px 5px",fontSize:8,fontWeight:800,letterSpacing:".04em",color:"#fff",lineHeight:1.4,opacity:.9}}>GIF</div>
+                                </div>
+                              );
+                            })()}
                             <div
-                              style={{fontSize:16,fontWeight:700,flex:1,cursor:"pointer",userSelect:"none"}}
+                              style={{fontSize:16,fontWeight:700,flex:1,cursor:"pointer",userSelect:"none",minWidth:0}}
                               onPointerDown={()=>startLongPress(ex.name,ei)}
                               onPointerUp={cancelLongPress}
                               onPointerLeave={cancelLongPress}
                               onPointerCancel={cancelLongPress}
                             >
-                              {ex.name}
-                              {ex.tier&&<span style={{marginLeft:6,fontSize:9,fontWeight:700,background:ex.tier==="A"?`${T.prot}20`:ex.tier==="B"?`${T.carb}20`:"rgba(255,255,255,.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em",verticalAlign:"middle"}}>{ex.tier}</span>}
-                              {ex.priority&&<span style={{marginLeft:4,fontSize:9,fontWeight:700,background:"rgba(249,115,22,.15)",color:"#F97316",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",verticalAlign:"middle"}}>⭐ PRIORITY</span>}
-                              {ex.mobilitySubstituted&&<span style={{marginLeft:4,fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",verticalAlign:"middle"}}>♿ MODIFIED</span>}
+                              <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
+                              <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}>
+                                {ex.tier&&<span style={{fontSize:9,fontWeight:700,background:ex.tier==="A"?`${T.prot}20`:ex.tier==="B"?`${T.carb}20`:"rgba(255,255,255,.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>{ex.tier}</span>}
+                                {ex.priority&&<span style={{fontSize:9,fontWeight:700,background:"rgba(249,115,22,.15)",color:"#F97316",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",display:"inline-flex",alignItems:"center",gap:2}}><svg width={7} height={7} viewBox="0 0 24 24" fill="#F97316"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>PRIORITY</span>}
+                                {ex.mobilitySubstituted&&<span style={{fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>MODIFIED</span>}
+                              </div>
                             </div>
-                            <button onClick={()=>openDetail(ex.name,ei)} title="Exercise info" style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:15,lineHeight:1,color:"rgba(245,245,240,.4)",flexShrink:0}}>ⓘ</button>
-                            <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:15,lineHeight:1,flexShrink:0}}>{favorites.includes(ex.originalName||ex.name)?"❤️":"🤍"}</button>
-                            <button onClick={()=>setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",cursor:"pointer",padding:"2px 4px",fontSize:14,lineHeight:1,color:"rgba(245,245,240,.35)",flexShrink:0}}>🔄</button>
+                            <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:favorites.includes(ex.originalName||ex.name)?T.prot:"rgba(245,245,240,.3)"}}>
+                              <svg width={15} height={15} viewBox="0 0 24 24" fill={favorites.includes(ex.originalName||ex.name)?"currentColor":"none"} style={{stroke:"currentColor",strokeWidth:1.7}}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                            </button>
+                            <button onClick={()=>setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(245,245,240,.3)"}}>
+                              <svg width={15} height={15} viewBox="0 0 24 24" fill="none"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </button>
                           </div>
                           {ex.notes&&<div style={{fontSize:11,color:T.mu,marginLeft:32}}>{ex.notes}</div>}
                           {ex.mobilitySubstituted&&ex.originalName&&<div style={{fontSize:10,color:"#8B5CF6",marginLeft:32,marginTop:2}}>Substituted from {ex.originalName} due to mobility</div>}
