@@ -18,7 +18,7 @@ import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, get
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
 import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
-import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN } from "./utils/warmupProtocols.js";
+import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
@@ -1011,6 +1011,120 @@ function SetFlashOverlay({ flash }) {
   );
 }
 
+const PROTOCOL_TABS = [
+  { id: 'lower_body',  label: 'Lower Body' },
+  { id: 'upper_push',  label: 'Upper Push' },
+  { id: 'upper_pull',  label: 'Upper Pull' },
+  { id: 'full_body',   label: 'Full Body'  },
+  { id: 'running',     label: 'Running'    },
+  { id: 'hyrox',       label: 'Hyrox'      },
+];
+
+function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
+  const [tab, setTab] = useState('lower_body');
+  const [coolTab, setCoolTab] = useState('strength');
+  const moves = MOVEMENT_PREP[tab] || [];
+  const [expanded, setExpanded] = useState(null);
+
+  return (
+    <div style={{ maxWidth: isMobile ? '100%' : 540 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <button onClick={() => setTrainScreen('today')} style={{ background: 'none', border: 'none', color: 'rgba(245,245,240,.5)', fontSize: 22, cursor: 'pointer', padding: 0, lineHeight: 1 }}>←</button>
+        <div>
+          <div style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 28, letterSpacing: 1, lineHeight: 1 }}>WARM-UP PROTOCOLS</div>
+          <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', marginTop: 2 }}>Standard pre-session movement prep</div>
+        </div>
+      </div>
+
+      {/* General Warm-up */}
+      <div style={{ background: 'linear-gradient(135deg,rgba(232,52,28,.1),rgba(232,52,28,.04))', border: '1px solid rgba(232,52,28,.25)', borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: 'rgba(232,52,28,.8)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Step 1 — General Warm-Up · {GENERAL_WARMUP.duration}
+        </div>
+        <div style={{ fontSize: 11, color: 'rgba(245,245,240,.5)', marginBottom: 10 }}>{GENERAL_WARMUP.instructions}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+          {GENERAL_WARMUP.options.map((opt, i) => (
+            <div key={i} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{opt.name}</div>
+                <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)' }}>{opt.detail}</div>
+              </div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.7)', flexShrink: 0, marginLeft: 12 }}>{opt.duration}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', fontStyle: 'italic', lineHeight: 1.6, borderTop: '1px solid rgba(255,255,255,.06)', paddingTop: 10 }}>
+          🎯 {GENERAL_WARMUP.coachNote}
+        </div>
+      </div>
+
+      {/* Movement Prep tabs */}
+      <div style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: 'rgba(232,52,28,.8)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Step 2 — Movement Prep
+        </div>
+        {/* Tab selector */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          {PROTOCOL_TABS.map(pt => (
+            <button key={pt.id} onClick={() => { setTab(pt.id); setExpanded(null); }} style={{
+              padding: '5px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none',
+              background: tab === pt.id ? T.prot : 'rgba(255,255,255,.06)',
+              color: tab === pt.id ? '#fff' : 'rgba(245,245,240,.55)',
+              fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
+            }}>{pt.label}</button>
+          ))}
+        </div>
+        {/* Exercise list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {moves.map((ex, i) => (
+            <div key={i} onClick={() => setExpanded(expanded === i ? null : i)} style={{ background: 'rgba(255,255,255,.04)', border: `1px solid ${expanded === i ? 'rgba(232,52,28,.3)' : 'rgba(255,255,255,.07)'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 1 }}>{ex.name}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)' }}>{ex.sets}{ex.reps ? ` × ${ex.reps}` : ''}</div>
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.7)', marginLeft: 12 }}>{ex.duration}s</div>
+              </div>
+              {expanded === i && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.06)', fontSize: 12, color: 'rgba(245,245,240,.6)', lineHeight: 1.6 }}>{ex.detail}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Cool Down */}
+      <div style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: 'rgba(232,52,28,.8)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Cool-Down
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {['strength', 'running'].map(ct => (
+            <button key={ct} onClick={() => setCoolTab(ct)} style={{
+              padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none',
+              background: coolTab === ct ? T.prot : 'rgba(255,255,255,.06)',
+              color: coolTab === ct ? '#fff' : 'rgba(245,245,240,.55)',
+              fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
+            }}>{ct === 'strength' ? 'Strength' : 'Running'}</button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {(COOL_DOWN[coolTab] || []).map((ex, i) => (
+            <div key={i} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ex.name}</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.7)' }}>{ex.duration}</div>
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', marginTop: 4, lineHeight: 1.5 }}>{ex.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMobile }) {
   const liftExp = (wPrefs?.liftExp || profile?.liftExp || 'intermediate').toLowerCase();
   const isNovice   = liftExp.includes('begin') || liftExp.includes('new') || liftExp.includes('develop');
@@ -1333,7 +1447,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
 }
 
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
-  const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"routine-builder",l:"My Routines"},{id:"progress",l:"Progress"}];
+  const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"routine-builder",l:"My Routines"},{id:"warmup-protocols",l:"Protocols"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
 
@@ -2302,6 +2416,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
         {/* ── CUSTOM ROUTINE BUILDER ── */}
         {trainScreen==="routine-builder"&&<CustomRoutineBuilder user={user} setTrainScreen={setTrainScreen} onSaved={()=>{}} />}
+
+        {/* ── WARM-UP PROTOCOLS VIEWER ── */}
+        {trainScreen==="warmup-protocols"&&<WarmupProtocolsViewer isMobile={isMobile} setTrainScreen={setTrainScreen}/>}
 
         {/* ── PROGRESS ── */}
         {trainScreen==="progress"&&(
