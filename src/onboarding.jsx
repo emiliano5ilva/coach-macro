@@ -394,6 +394,55 @@ export const SPLITS_WITH_DAYS = {
 
 export const GVT_INFO = "German Volume Training — 10 sets × 10 reps of one compound lift per session. Brutal, proven hypertrophy method. Added as Week 4 of every month. Automatically swaps your main compound for 10×10 at 60% of your working weight.";
 
+function DomsTooltip() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{marginBottom:16}}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width:"100%", display:"flex", alignItems:"center", gap:8,
+          background:"rgba(232,52,28,0.05)",
+          border:"1px solid rgba(232,52,28,0.18)",
+          borderRadius: open ? "10px 10px 0 0" : 10,
+          padding:"10px 14px", cursor:"pointer", fontFamily:"inherit",
+          transition:"border-radius 0.2s",
+        }}
+      >
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>
+          <circle cx={12} cy={12} r={9} stroke={T.prot} strokeWidth={1.7}/>
+          <path d="M12 8v4" stroke={T.prot} strokeWidth={1.7} strokeLinecap="round"/>
+          <circle cx={12} cy={16} r={1} fill={T.prot}/>
+        </svg>
+        <span style={{flex:1, fontSize:12, fontWeight:700, color:T.prot, textAlign:"left", letterSpacing:"0.03em"}}>
+          What is DOMS?
+        </span>
+        <svg
+          width={14} height={14} viewBox="0 0 24 24" fill="none"
+          style={{flexShrink:0, transform: open ? "rotate(180deg)" : "none", transition:"transform 0.32s cubic-bezier(.2,.7,.3,1)"}}
+        >
+          <path d="M6 9l6 6 6-6" stroke={T.prot} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {open && (
+        <div style={{
+          background:"rgba(232,52,28,0.05)",
+          border:"1px solid rgba(232,52,28,0.18)",
+          borderTop:"none",
+          borderRadius:"0 0 10px 10px",
+          padding:"12px 14px",
+          animation:"fadeIn 0.22s ease",
+        }}>
+          <p style={{fontSize:12, color:"rgba(245,245,240,0.6)", lineHeight:1.7, margin:0}}>
+            <strong style={{color:"rgba(245,245,240,0.85)", fontWeight:600}}>Delayed Onset Muscle Soreness</strong> — the stiffness felt 24–48 hours after training. Normal DOMS is not inadequate recovery. Base your answer on how many days until you feel{" "}
+            <em style={{color:"rgba(245,245,240,0.85)"}}>ready</em> to train that muscle hard again — not just when the soreness fades.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TrainOnboarding({d, onComplete, onBack}) {
   const [sc,setSc]=useState(0);
   const [runSc,setRunSc]=useState(null); // null = not in run sub-flow; 0-7 = screens A-H
@@ -1111,10 +1160,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
             HOW QUICKLY<br/><span style={{color:T.prot}}>DO YOU RECOVER?</span>
           </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:10,lineHeight:1.65}}>This sets your training block length. Longer recovery means more time to peak before the next deload.</p>
-          <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.18)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:11,color:T.mu,lineHeight:1.65}}>
-            <span style={{color:T.prot,fontWeight:700}}>What is DOMS?</span> Delayed Onset Muscle Soreness — the stiffness felt 24–48 hrs after training. Normal DOMS is not the same as inadequate recovery. Base your answer on how many days until you feel <em>ready</em> to train that muscle hard again.
-          </div>
+          <p style={{fontSize:13,color:T.mu,marginBottom:14,lineHeight:1.65}}>This sets your training block length. Longer recovery means more time to peak before the next deload.</p>
+          <DomsTooltip />
 
           <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
             {[
