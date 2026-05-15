@@ -13,6 +13,7 @@ import { initDeepLinks } from "./services/deepLinks.js";
 import { initPushNotifications, scheduleTrialExpiryNotification } from "./services/notifications.js";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 import { PromoScreen, Paywall, UpgradeScreen } from "./sections.jsx";
+import { PrivacyPolicy, TermsOfService } from "./legal.jsx";
 
 // ── Splash Screen ─────────────────────────────────────────────────────────────
 function SplashScreen({onDone}) {
@@ -54,6 +55,29 @@ const GoogleSVG=()=>(
 );
 
 // ── Auth Screen ───────────────────────────────────────────────────────────────
+// DEBUG overlay — remove before production
+function DebugOverlay() {
+  const [lines,setLines]=useState([]);
+  useEffect(()=>{
+    const orig=window.__debugPush;
+    window.__debugPush=(msg)=>{
+      const line=`[${new Date().toISOString().slice(11,19)}] ${msg}`;
+      window.__debugLog=window.__debugLog||[];
+      window.__debugLog.push(line);
+      console.log('[DEBUG]',line);
+      setLines(prev=>[...prev,line].slice(-25));
+    };
+    setLines((window.__debugLog||[]).slice(-25));
+    return()=>{window.__debugPush=orig;};
+  },[]);
+  if(!lines.length)return null;
+  return(
+    <div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.92)",color:"#0f0",fontFamily:"monospace",fontSize:10,padding:"6px 8px",zIndex:99999,maxHeight:"40vh",overflowY:"auto",whiteSpace:"pre-wrap",wordBreak:"break-all"}}>
+      {lines.join('\n')}
+    </div>
+  );
+}
+
 function AuthScreen({onAuth, startView="welcome"}) {
   // view: welcome | signin | signup | forgot | forgot-sent | reset
   const [view,setView]=useState(startView);
@@ -65,27 +89,71 @@ function AuthScreen({onAuth, startView="welcome"}) {
   const [oauthLoading,setOauthLoading]=useState("");
   const [error,setError]=useState("");
   const [resetSent,setResetSent]=useState(false);
+  const [rawDebugError,setRawDebugError]=useState(""); // DEBUG — remove before production
+  const [termsAccepted,setTermsAccepted]=useState(false);
+  const [showLegalModal,setShowLegalModal]=useState(null); // null | "terms" | "privacy"
+
+  // DEBUG — remove before production
+  useEffect(()=>{
+    const dbg=window.__debugPush||((m)=>console.log('[AUTH]',m));
+    dbg(`AuthScreen mounted view=${startView}`);
+    try{
+      const inv=localStorage.getItem("coachMacroInvite");
+      dbg(`localStorage ok invite=${inv?"present":"none"}`);
+    }catch(e){dbg(`localStorage error: ${e.message}`);}
+  },[]);
+  useEffect(()=>{
+    const dbg=window.__debugPush||((m)=>console.log('[AUTH]',m));
+    dbg(`view changed to: ${view}`);
+  },[view]);
 
   async function handleEmailAuth(){
     if(view==="signup"&&!name.trim()){setError("Please enter your name.");return;}
+    if(view==="signup"&&!termsAccepted){setError("Please accept the Terms of Service and Privacy Policy.");return;}
     if(!email.trim()){setError("Please enter your email.");return;}
     if(password.length<8){setError("Password must be at least 8 characters.");return;}
     setLoading(true);setError("");
+    const dbg = window.__debugPush || ((m)=>console.log('[AUTH]',m));
+    // DEBUG LOG — remove before production
     try{
       if(view==="signup"){
+        dbg(`S1: signup started email=${email} pwdLen=${password.length}`);
+        if(!sb){dbg("CRASH: sb is null");setLoading(false);return;}
+        dbg("S2: sb exists");
+        dbg(`S3: url=${import.meta.env.VITE_SUPABASE_URL?"set":"MISSING"} key=${import.meta.env.VITE_SUPABASE_ANON_KEY?"set":"MISSING"}`);
+        dbg("S4: calling signUp...");
         const{data,error:e}=await sb.auth.signUp({email,password});
-        if(e)throw e;
-        if(!data?.user?.id)throw new Error("Sign up succeeded but no account was returned. Please try signing in.");
+        dbg(`S5: err=${e?.message||"none"} code=${e?.code||"none"} user=${data?.user?.id?"ok":"missing"} session=${data?.session?"yes":"no"}`);
+        if(e){dbg(`S6 AUTH ERROR: ${e.message} ${e.code||""}`);throw e;}
+        if(!data?.user?.id){dbg("S6: no user returned");throw new Error("Sign up succeeded but no account was returned. Please try signing in.");}
+        dbg(`S7: user created id=${data.user.id} confirmed=${!!data.user.email_confirmed_at}`);
         track(EVENTS.USER_SIGNUP,{method:"email"},data.user.id);
+        dbg("S8: going to verify-email");
         setView("verify-email");
       }else{
+        dbg(`S1: signIn email=${email} pwdLen=${password.length}`);
+        dbg(`S3: url=${import.meta.env.VITE_SUPABASE_URL?"set":"MISSING"}`);
+        dbg("S4: calling signInWithPassword...");
         const{data,error:e}=await sb.auth.signInWithPassword({email,password});
-        if(e)throw e;
+        dbg(`S5: err=${e?.message||"none"} user=${data?.user?.id||"missing"}`);
+        if(e){dbg(`S6 SIGN IN ERROR: ${e.message}`);throw e;}
         if(!data?.user?.id)throw new Error("Sign in succeeded but no session was returned. Please try again.");
         track(EVENTS.USER_LOGIN,{method:"email"},data.user.id);
+        dbg("S7: login success calling onAuth");
         onAuth(data.user,null);
       }
-    }catch(e){setError(getErrorMessage(e));}
+    }catch(e){
+      const info={
+        message:e?.message,code:e?.code,status:e?.status,
+        name:e?.name,hint:e?.hint,details:e?.details,
+        type:typeof e,stack:String(e?.stack||"").slice(0,300),
+        json:(()=>{try{return JSON.stringify(e);}catch{return "unstringifiable";}})(),
+      };
+      dbg(`SX: msg=${info.message} code=${info.code} status=${info.status} name=${info.name} type=${info.type}`);
+      console.error("[SIGNUP ERROR]",info);
+      setRawDebugError(`MSG: ${info.message||"(none)"}\nCODE: ${info.code||"—"} | STATUS: ${info.status||"—"} | NAME: ${info.name||"—"}\nTYPE: ${info.type}\nJSON: ${info.json?.slice(0,200)}\nSTACK: ${info.stack?.slice(0,200)}`);
+      setError(getErrorMessage(e));
+    }
     setLoading(false);
   }
 
@@ -269,8 +337,17 @@ function AuthScreen({onAuth, startView="welcome"}) {
   );
 
   return(
+    <>
     <div style={outer}>
       <style>{GLOBAL_CSS}</style>
+      <DebugOverlay/>
+      {/* DEBUG env + error display — remove before production */}
+      <div style={{position:"fixed",top:0,left:0,right:0,background:"rgba(0,0,0,0.85)",color:"#ff0",fontFamily:"monospace",fontSize:10,padding:"4px 8px",zIndex:99998,lineHeight:1.5}}>
+        URL:{import.meta.env.VITE_SUPABASE_URL?"✓":"✗MISSING"} KEY:{import.meta.env.VITE_SUPABASE_ANON_KEY?"✓":"✗MISSING"} sb:{typeof sb!=="undefined"?"✓":"✗"}
+      </div>
+      {rawDebugError&&<div style={{position:"fixed",top:20,left:0,right:0,background:"rgba(200,0,0,0.95)",color:"#fff",fontFamily:"monospace",fontSize:10,padding:"8px",zIndex:99997,whiteSpace:"pre-wrap",wordBreak:"break-all",maxHeight:"50vh",overflowY:"auto"}}>
+        {rawDebugError}
+      </div>}
       <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
         <button onClick={()=>{setView("welcome");setError("");}} style={{background:"none",border:"none",color:"var(--white-dim)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:32,display:"flex",alignItems:"center",gap:6,padding:0}}>
           <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
@@ -288,8 +365,21 @@ function AuthScreen({onAuth, startView="welcome"}) {
             <button onClick={()=>{setView("forgot");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Forgot password?</button>
           </div>
         )}
+        {view==="signup"&&(
+          <div onClick={()=>setTermsAccepted(v=>!v)} style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:16,cursor:"pointer",userSelect:"none"}}>
+            <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${termsAccepted?"var(--red)":"rgba(245,245,240,0.25)"}`,background:termsAccepted?"var(--red)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,transition:"all 0.15s"}}>
+              {termsAccepted&&<svg width={13} height={13} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            </div>
+            <div style={{fontSize:12,color:"rgba(245,245,240,0.55)",lineHeight:1.55,fontFamily:"var(--body)",paddingTop:2}}>
+              I agree to the{" "}
+              <span onClick={e=>{e.stopPropagation();setShowLegalModal("terms");}} style={{color:"var(--red)",textDecoration:"underline",cursor:"pointer"}}>Terms of Service</span>
+              {" "}and{" "}
+              <span onClick={e=>{e.stopPropagation();setShowLegalModal("privacy");}} style={{color:"var(--red)",textDecoration:"underline",cursor:"pointer"}}>Privacy Policy</span>
+            </div>
+          </div>
+        )}
         {error&&<ErrorMessage error={error} style={{marginBottom:16}}/>}
-        <button onClick={handleEmailAuth} disabled={loading||!!oauthLoading} style={{width:"100%",padding:"16px",background:loading?"rgba(245,245,240,0.1)":"var(--red)",color:loading?"var(--white-dim)":"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:loading?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:16}}>
+        <button onClick={handleEmailAuth} disabled={loading||!!oauthLoading||(view==="signup"&&!termsAccepted)} style={{width:"100%",padding:"16px",background:(loading||(view==="signup"&&!termsAccepted))?"rgba(245,245,240,0.1)":"var(--red)",color:(loading||(view==="signup"&&!termsAccepted))?"var(--white-dim)":"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:(loading||(view==="signup"&&!termsAccepted))?"default":"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:16,transition:"all 0.15s"}}>
           {loading?"...":(view==="signup"?"Create Account →":"Sign In →")}
         </button>
         <div style={{textAlign:"center",fontSize:11,color:"var(--white-faint)",fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>
@@ -298,8 +388,33 @@ function AuthScreen({onAuth, startView="welcome"}) {
             :<span>New here? <button onClick={()=>{setView("signup");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Create Account</button></span>
           }
         </div>
+        {/* DEBUG connection test — remove before production */}
+        <button onClick={async()=>{
+          const dbg=window.__debugPush||((m)=>console.log('[PING]',m));
+          dbg("ping: starting...");
+          try{
+            const r=await fetch("https://oxxihlwqukbakmnnavuy.supabase.co/rest/v1/",{headers:{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk"}});
+            dbg(`ping: HTTP ${r.status}`);
+          }catch(e){dbg(`ping: FETCH FAILED — ${e?.message} (${e?.name})`);}
+          try{
+            const{data,error}=await sb.from("profiles").select("id").limit(1);
+            dbg(`ping: profiles query err=${error?.message||"none"} rows=${data?.length??"-"}`);
+          }catch(e){dbg(`ping: DB FAILED — ${e?.message}`);}
+        }} style={{width:"100%",padding:"10px",marginTop:16,background:"rgba(96,165,250,0.15)",border:"1px solid rgba(96,165,250,0.4)",borderRadius:10,color:"#60a5fa",fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.08em",cursor:"pointer",textTransform:"uppercase"}}>
+          DEBUG: Test Supabase Connection
+        </button>
       </div>
     </div>
+    {showLegalModal&&(
+      <div style={{position:"fixed",inset:0,zIndex:99999,background:"#000",overflowY:"auto"}}>
+        <button onClick={()=>setShowLegalModal(null)} style={{position:"sticky",top:0,zIndex:1,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.9)",border:"none",borderBottom:"1px solid rgba(245,245,240,0.1)",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",padding:"14px 20px",width:"100%"}}>
+          <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+          Back
+        </button>
+        {showLegalModal==="terms"?<TermsOfService/>:<PrivacyPolicy/>}
+      </div>
+    )}
+    </>
   );
 }
 
@@ -419,7 +534,8 @@ export default function NativeApp() {
       recoveryCapacity:trainData.recoveryCapacity||"normal",musclePriorities:trainData.musclePriorities||[],
       trainingAge:trainData.trainingAge||"developing",blackoutDays:trainData.blackoutDays||[],
       mobilityLimitations:trainData.mobilityLimitations||[],stressLevel:trainData.stressLevel||"low",
-      sleepQuality:trainData.sleepQuality||"average",jobPhysicality:trainData.jobPhysicality||"desk",
+      sleepQuality:trainData.sleepQuality||({fair:"average",poor:"poor",good:"good",excellent:"excellent"}[profile?.sleepQ]||"average"),
+      jobPhysicality:trainData.jobPhysicality||({desk:"desk",mix:"light",feet:"moderate",physical:"heavy"}[profile?.job]||"desk"),
       cycleTracking:trainData.cycleTracking??null,hybridBias:trainData.hybridBias||"",
     };
     setSchedule(sch);setWPrefs(wp);setProfile(finalProf);setPhase("loading");

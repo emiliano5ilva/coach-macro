@@ -153,7 +153,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
     const startD=new Date(profile?.startDate||Date.now());
     const dayIdx=Math.max(0,Math.floor((Date.now()-startD.getTime())/86400000))%(daysPerWeek||1);
     let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp);
-    exs=applyEquipmentToWorkout(exs||[],wPrefs.equipment||"Full Gym");
+    exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     setGenExercises(exs.length?exs:[{name:"Session Ready",sets:3,reps:"8-12",weight:"",notes:"Start your session"}]);
     generateWorkout(type,split,runPlanLocal,hybridTemplate); // still call AI for notes in background
   }
@@ -1333,7 +1333,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
 }
 
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
-  const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"progress",l:"Progress"}];
+  const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"routine-builder",l:"My Routines"},{id:"progress",l:"Progress"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
 
@@ -1513,7 +1513,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   let todayProgObj=null;
   if(prescType==="lifting"&&todayType==="training"){
     let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp);
-    exs=applyEquipmentToWorkout(exs,wPrefs.equipment||"Full Gym");
+    exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     exs=exs.map(ex=>{const c=ex.originalName||ex.name;const sw=permanentSwaps[c];return{...ex,name:sw||ex.name,swappedFrom:sw?c:undefined,isFavorite:favorites.includes(c)};});
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
     todayPrescription=exs;
@@ -3026,10 +3026,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [delConfirm,setDelConfirm]=useState(false);
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
-  const [checkInWeight,setCheckInWeight]=useState("");
-  const [checkIns,setCheckIns]=useState([]);
-  const [saving,setSaving]=useState(false);
-  const [saved,setSaved]=useState(false);
+
   const [settingsSaved,setSettingsSaved]=useState(false);
   const [referralStats,setReferralStats]=useState({sent:0,clicked:0});
   const [refGenerating,setRefGenerating]=useState(false);
@@ -3048,13 +3045,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     }catch(e){console.error("[saveSettings] exception:",e);showToast("Couldn't save — check your connection","error");}
   }
 
-  // Load weight check-ins from Supabase
-  useEffect(()=>{
-    if(!user)return;
-    sb.from("weight_checkins").select("*").eq("user_id",user.id).order("checked_at",{ascending:true}).then(({data})=>{
-      if(data)setCheckIns(data);
-    });
-  },[user]);
 
   useEffect(()=>{
     if(!user)return;
@@ -3074,15 +3064,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     });
   },[user]);
 
-  async function saveCheckIn() {
-    if(!checkInWeight||!user)return;
-    setSaving(true);
-    const entry={user_id:user.id,weight:parseFloat(checkInWeight),unit:profile.wUnit||"lbs",checked_at:new Date().toISOString().split("T")[0]};
-    const {data}=await sb.from("weight_checkins").insert(entry).select().single();
-    if(data)setCheckIns(p=>[...p,data]);
-    setCheckInWeight("");setSaving(false);setSaved(true);
-    setTimeout(()=>setSaved(false),2000);
-  }
 
   async function deleteAccount() {
     if(!user||delInput.trim()!=="DELETE")return;
@@ -3138,31 +3119,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     setRefGenerating(false);
   }
 
-  // Build weight trend chart data
-  const startW=profile.startWeight||0;
-  const startDate=profile.startDate||new Date().toISOString().split("T")[0];
-  const rateMap={"−750":-750,"−500":-500,"−250":-250,"−125":-125,"0":0,"+125":125,"+250":250,"+500":500};
-  const dailyDelta=(rateMap[profile.goalRate]||0)/3500; // lbs per day
-  const allPoints=[];
-  // Projected line from start
-  const today=new Date();
-  const start=new Date(startDate);
-  const daysSinceStart=Math.max(0,Math.round((today-start)/(1000*60*60*24)));
-  for(let i=0;i<=Math.min(daysSinceStart+90,180);i++){
-    allPoints.push({day:i,projected:Math.round((startW+dailyDelta*i)*10)/10});
-  }
-  // Actual check-ins
-  const actualPoints=checkIns.map(c=>{
-    const d=Math.round((new Date(c.checked_at)-start)/(1000*60*60*24));
-    return{day:d,actual:c.weight};
-  });
-  // Chart dimensions
-  const CDAYS=Math.min(daysSinceStart+90,180);
-  const allWeights=[startW,...allPoints.map(p=>p.projected),...actualPoints.map(p=>p.actual)].filter(Boolean);
-  const minW=Math.min(...allWeights)-3;
-  const maxW=Math.max(...allWeights)+3;
-  const xScale=(d)=>(d/CDAYS)*100;
-  const yScale=(w)=>100-((w-minW)/(maxW-minW))*100;
   const refCount=profile?.referralCount||0;
   const isPro=!!profile?.is_pro;
   const refBadge=getReferralBadge(refCount);
@@ -3184,61 +3140,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
-
-        {/* Weight Trend Chart */}
-        <SectionCard title="Weight Progress" style={{gridColumn:isMobile?"1":"1 / -1"}}>
-          <div style={{marginBottom:12}}>
-            <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Log Today's Weight</div>
-            <div style={{display:"flex",gap:8}}>
-              <input value={checkInWeight} onChange={e=>setCheckInWeight(e.target.value)} type="number" placeholder={`e.g. ${startW}`} style={{flex:1,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"10px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
-              <div style={{fontSize:11,color:T.mu,alignSelf:"center"}}>{profile.wUnit||"lbs"}</div>
-              <button onClick={saveCheckIn} disabled={saving} style={{padding:"10px 18px",background:saving?T.s3:T.prot,color:saving?T.mu:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{saved?"✓ Saved":saving?"...":"Log"}</button>
-            </div>
-          </div>
-
-          {/* SVG Weight Trend Chart */}
-          <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginTop:8}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
-              <div>
-                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Start Weight</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#fff",lineHeight:1}}>{startW}<span style={{fontSize:13,color:T.mu,fontWeight:400}}> {profile.wUnit||"lbs"}</span></div>
-              </div>
-              {actualPoints.length>0&&<div>
-                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Current</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:T.carb,lineHeight:1}}>{actualPoints[actualPoints.length-1].actual}<span style={{fontSize:13,color:T.mu,fontWeight:400}}> {profile.wUnit||"lbs"}</span></div>
-              </div>}
-              <div>
-                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:3}}>Goal Rate</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.prot,lineHeight:1}}>{Object.keys(rateMap).find(k=>rateMap[k]===(parseFloat(profile.goalRate?.replace("−","-"))||0))||"Maintain"}</div>
-              </div>
-            </div>
-            <svg width="100%" height="140" viewBox="0 0 400 140" preserveAspectRatio="none" style={{overflow:"visible"}}>
-              <defs>
-                <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={T.prot} stopOpacity=".15"/><stop offset="100%" stopColor={T.prot} stopOpacity="0"/></linearGradient>
-                <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={T.carb} stopOpacity=".15"/><stop offset="100%" stopColor={T.carb} stopOpacity="0"/></linearGradient>
-              </defs>
-              {/* Grid lines */}
-              {[0,25,50,75,100].map(y=>(<line key={y} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} stroke="rgba(245,245,240,0.08)" strokeWidth="0.5"/>))}
-              {/* Today marker */}
-              <line x1={`${xScale(daysSinceStart)}%`} y1="0" x2={`${xScale(daysSinceStart)}%`} y2="100%" stroke={T.prot} strokeWidth="1" strokeDasharray="3,3" opacity="0.4"/>
-              <text x={`${xScale(daysSinceStart)}%`} y="8" fill={T.prot} fontSize="7" textAnchor="middle" opacity="0.7">TODAY</text>
-              {/* Projected line */}
-              {allPoints.length>1&&<>
-                <path d={`M ${allPoints.map(p=>`${xScale(p.day)*4},${yScale(p.projected)*1.4}`).join(" L ")}`} fill="none" stroke={T.prot} strokeWidth="1.5" strokeDasharray="5,3" opacity="0.5"/>
-              </>}
-              {/* Actual points */}
-              {actualPoints.length>1&&<path d={`M ${actualPoints.map(p=>`${xScale(p.day)*4},${yScale(p.actual)*1.4}`).join(" L ")}`} fill="none" stroke={T.carb} strokeWidth="2.5" strokeLinecap="round"/>}
-              {actualPoints.map((p,i)=>(<circle key={i} cx={`${xScale(p.day)*4}`} cy={`${yScale(p.actual)*1.4}`} r="4" fill={T.carb}/>))}
-              {/* Start point */}
-              <circle cx="0" cy={`${yScale(startW)*1.4}`} r="4" fill={T.prot} opacity="0.8"/>
-            </svg>
-            <div style={{display:"flex",gap:16,marginTop:8,flexWrap:"wrap"}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:2,background:T.prot,opacity:.6,borderTop:"2px dashed "+T.prot}}></div><span style={{fontSize:11,color:T.mu}}>Projected</span></div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:2,background:T.carb,borderRadius:1}}></div><span style={{fontSize:11,color:T.mu}}>Actual</span></div>
-              {actualPoints.length===0&&<span style={{fontSize:11,color:T.mu}}>Log your weight daily to see your actual trend vs projected</span>}
-            </div>
-          </div>
-        </SectionCard>
 
         <SectionCard title={`Workout Split${settingsSaved?" — ✓ Saved":""}`}>
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
