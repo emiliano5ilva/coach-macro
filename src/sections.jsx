@@ -2218,18 +2218,38 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* WEEK SCHEDULE */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",marginBottom:14}}>This Week</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
-                {WDAYS.map(day=>{
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5}}>
+                {WDAYS.map((day,idx)=>{
+                  const todayIdx=WDAYS.indexOf(todayKey);
                   const t=schedule[day];
-                  const c=DAY_CFG[t]||DAY_CFG.rest;
-                  const isT=day===todayKey;
+                  const isToday=day===todayKey;
+                  const isPast=idx<todayIdx;
+                  const isRest=!t||t==="rest";
                   const f=dayFocus[day];
+                  const label=isRest?"REST":(f?.slice(0,5)||(DAY_CFG[t]?.label?.slice(0,5)||"Rest"));
+                  // state styles
+                  const borderC=isToday?"var(--red)":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
+                  const bgC=isToday?"rgba(232,52,28,0.1)":isPast&&!isRest?"rgba(52,211,153,0.06)":isRest?"rgba(245,245,240,0.02)":T.s2;
+                  const dayColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":T.mu;
+                  const iconColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.45)";
+                  const iconBg=isToday?"rgba(232,52,28,0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)";
+                  // SVG icon by type
+                  const icon=(()=>{
+                    if(t==="run")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
+                    if(t==="cardio")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
+                    if(t==="hyrox")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
+                    if(isRest)return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
+                    // training — dumbbell
+                    return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
+                  })();
                   return(
-                    <div key={day} style={{background:isT?`${T.prot}12`:T.s2,border:`1.5px solid ${isT?T.prot:T.bd}`,borderRadius:12,padding:"10px 4px",textAlign:"center",transition:"all .2s"}}>
-                      <div style={{fontSize:9,fontWeight:700,color:isT?T.prot:T.mu,marginBottom:4,letterSpacing:1}}>{day}</div>
-                      <div style={{fontSize:18,marginBottom:4}}>{c.emoji}</div>
-                      <div style={{fontSize:8,color:isT?T.prot:T.dim,lineHeight:1.2}}>{f?.slice(0,6)||"Rest"}</div>
+                    <div key={day} style={{background:bgC,border:`1.5px solid ${borderC}`,borderRadius:11,padding:"9px 3px",textAlign:"center",transition:"all .2s"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,fontWeight:700,color:dayColor,marginBottom:5,letterSpacing:"0.08em"}}>{day.toUpperCase()}</div>
+                      <div style={{width:28,height:28,borderRadius:8,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 5px",color:iconColor}}>
+                        {icon}
+                      </div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:9,color:dayColor,lineHeight:1.1,fontWeight:700,letterSpacing:"0.02em",textTransform:"uppercase"}}>{label}</div>
                     </div>
                   );
                 })}
@@ -2556,7 +2576,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <span style={{background:c.bg,color:c.color,fontSize:9,fontWeight:700,letterSpacing:1,padding:"2px 8px",borderRadius:20,textTransform:"uppercase"}}>{f}</span>
                   </div>
                   <div style={{display:"flex",gap:4}}>
-                    {["training","cardio","run","hyrox","rest"].map(tp=>(<button key={tp} onClick={()=>setSchedule(s=>({...s,[day]:tp}))} style={{fontSize:13,padding:"4px 6px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.bd}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",cursor:"pointer"}}>{(DAY_CFG[tp]||DAY_CFG.rest).emoji}</button>))}
+                    {[["training","T"],["cardio","C"],["run","R"],["hyrox","H"],["rest","—"]].map(([tp,lbl])=>(<button key={tp} onClick={()=>setSchedule(s=>({...s,[day]:tp}))} style={{fontSize:10,fontWeight:700,fontFamily:"var(--mono)",padding:"4px 7px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.bd}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",color:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.mu,cursor:"pointer"}}>{lbl}</button>))}
                   </div>
                 </div>
               );})}
