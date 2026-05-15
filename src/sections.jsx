@@ -846,28 +846,53 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
   const ringColor = restTimer > 15 ? T.green : restTimer > 5 ? T.fat : "#EF4444";
 
   const badge = lls.isNewPR
-    ? { text: "🔥 PR pace", color: "#EF4444", bg: "rgba(239,68,68,0.12)" }
+    ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill="#EF4444"><path d="M12 2C9.5 2 8 4.5 8 7c0 2 1 3.5 2.5 4.5C9 13 8 15 8 17h8c0-2-1-4-2.5-5.5C15 10.5 16 9 16 7c0-2.5-1.5-5-4-5z"/><rect x="9" y="19" width="6" height="3" rx="1"/></svg>, text: "New PR", color: "#EF4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.25)" }
     : lls.prevBestWeight != null && parseFloat(lls.weight) >= lls.prevBestWeight
-      ? { text: "✓ On track", color: T.green, bg: "rgba(34,197,94,0.12)" }
+      ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke={T.green} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>, text: "On track", color: T.green, bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.22)" }
       : lls.prevBestWeight != null
-        ? { text: "Keep going", color: T.fat, bg: "rgba(245,158,11,0.12)" }
+        ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill="none"><circle cx={12} cy={12} r={9} stroke={T.fat} strokeWidth={2}/><path d="M12 8v4" stroke={T.fat} strokeWidth={2} strokeLinecap="round"/><circle cx={12} cy={16} r={1} fill={T.fat}/></svg>, text: "Below best", color: T.fat, bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.22)" }
         : null;
 
   const isLastSet = (lls.setIndex + 1) >= lls.totalSets;
+  const w = parseFloat(lls.weight) || 0;
+
   let nextLine = null;
   if (!isLastSet) {
     if (lls.hitAllReps && lls.suggestWeight) {
-      nextLine = { text: `↑ Try ${lls.suggestWeight} lbs next set`, color: T.green };
+      nextLine = {
+        icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M12 19V5m-7 7 7-7 7 7" stroke={T.green} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/></svg>,
+        text: `Try ${lls.suggestWeight} lbs next set`,
+        color: T.green,
+      };
     } else if (!lls.hitAllReps) {
-      nextLine = { text: `Stay at ${lls.weight} lbs`, color: T.fat };
+      nextLine = {
+        icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke={T.fat} strokeWidth={2.2} strokeLinecap="round"/></svg>,
+        text: `Hold at ${lls.weight} lbs`,
+        color: T.fat,
+      };
     } else {
-      nextLine = { text: `Next: ${lls.nextSetWeight || lls.weight} lbs × ${lls.nextSetReps || lls.targetReps} reps`, color: "rgba(245,245,240,0.55)" };
+      nextLine = {
+        icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="rgba(245,245,240,0.45)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>,
+        text: `Next: ${lls.nextSetWeight || lls.weight} lbs × ${lls.nextSetReps || lls.targetReps} reps`,
+        color: "rgba(245,245,240,0.5)",
+      };
     }
-  } else if (lls.hitAllReps && parseFloat(lls.weight) > 0) {
-    const w = parseFloat(lls.weight);
-    const bump = w >= 95 ? 5 : 2.5;
-    const next = Math.round((w + bump) / 2.5) * 2.5;
-    nextLine = { text: `Try ${next} lbs next session · same reps`, color: T.green };
+  } else if (w > 0) {
+    if (lls.hitAllReps) {
+      const bump = w >= 95 ? 5 : 2.5;
+      const next = Math.round((w + bump) / 2.5) * 2.5;
+      nextLine = {
+        icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M12 19V5m-7 7 7-7 7 7" stroke={T.green} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/></svg>,
+        text: `Try ${next} lbs next session · same reps`,
+        color: T.green,
+      };
+    } else {
+      nextLine = {
+        icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke={T.fat} strokeWidth={2.2} strokeLinecap="round"/></svg>,
+        text: `Hold ${lls.weight} lbs next session — build the reps first`,
+        color: T.fat,
+      };
+    }
   }
 
   return (
@@ -886,8 +911,8 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
             {lls.weight ? `${lls.weight} lbs × ` : ""}{lls.reps} reps
           </div>
           {badge && (
-            <div style={{display:"inline-flex",alignItems:"center",marginTop:8,padding:"4px 14px",borderRadius:20,background:badge.bg,border:`1px solid ${badge.color}30`,fontFamily:"var(--mono)",fontSize:11,color:badge.color,fontWeight:700,letterSpacing:"0.05em"}}>
-              {badge.text}
+            <div style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:8,padding:"4px 14px",borderRadius:20,background:badge.bg,border:`1px solid ${badge.border}`,fontFamily:"var(--mono)",fontSize:11,color:badge.color,fontWeight:700,letterSpacing:"0.05em"}}>
+              {badge.icon}{badge.text}
             </div>
           )}
         </div>
@@ -913,12 +938,13 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
             </div>
           </div>
           {nextLine && (
-            <div style={{marginTop:10,fontFamily:"var(--body)",fontSize:13,color:nextLine.color,textAlign:"center",lineHeight:1.4}}>
-              {nextLine.text}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:12,padding:"8px 16px",borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)"}}>
+              {nextLine.icon}
+              <span style={{fontFamily:"var(--body)",fontSize:13,color:nextLine.color,lineHeight:1.4}}>{nextLine.text}</span>
             </div>
           )}
           {isLastSet && !nextLine && (
-            <div style={{marginTop:10,fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>
+            <div style={{marginTop:12,fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",textAlign:"center"}}>
               Last set — great work
             </div>
           )}
