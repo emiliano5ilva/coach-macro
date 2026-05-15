@@ -1671,13 +1671,12 @@ Reply with ONLY a valid JSON object, no markdown:
               <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px",border:macros.isFlexDay?"1px solid rgba(245,158,11,0.35)":undefined,background:macros.isFlexDay?"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05) 40%,var(--navy-mid) 100%)":undefined}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
                   <div>
-                    <div className="header-eyebrow">// Today's Targets</div>
+                    <div className="header-eyebrow">{macros.isFlexDay?"// FLEX DAY · Enjoy the surplus":todayType==="rest"?"// REST DAY · Maintenance macros":"// TRAINING DAY · Higher carbs target"}</div>
                     <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:28,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>{macros.isFlexDay?"Flex Day":(dayNutrition?.label||todayType+" Day")}</div>
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
                     {earnedCals>0&&<div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"6px 14px",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.08em"}}>+{earnedCals} earned</div>}
                     {macros.isFlexDay&&<div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontFamily:"var(--mono)",fontSize:10,color:"var(--amber)",fontWeight:700,letterSpacing:"0.06em"}}>Flex Day</div>}
-                    <div style={{background:`${T.prot}12`,border:`1px solid ${T.prot}30`,borderRadius:20,padding:"6px 14px",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase"}}>{todayFocus}</div>
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:isMobile?16:32}}>
