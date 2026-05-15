@@ -822,11 +822,11 @@ export function MuscleMap({dayFocus, isMobile}) {
 
   const fillColor = (m) => {
     const s = getVolume(m);
-    if(selected===m) return "#E8185A";
+    if(selected===m) return T.prot;
     if(s===0) return "#4A6B8A";
     if(s<6)   return "#8B2252";
-    if(s<10)  return "#C0392B";
-    return "#E8185A";
+    if(s<10)  return T.prot;
+    return T.green;
   };
 
   const s = (m) => () => setSelected(selected===m?null:m);
@@ -840,10 +840,10 @@ export function MuscleMap({dayFocus, isMobile}) {
 
   const statusText = (m) => {
     const sets = getVolume(m);
-    if(sets===0) return {l:"Not trained",c:"#4A6080"};
-    if(sets<6)   return {l:`${sets} sets — needs more`,c:"#C0392B"};
-    if(sets<10)  return {l:`${sets} sets — building`,c:"#E8185A"};
-    return {l:`${sets} sets — optimal ✓`,c:"#00E676"};
+    if(sets===0) return {l:"Not trained this week",c:T.mu};
+    if(sets<6)   return {l:`${sets} sets — needs more volume`,c:T.prot};
+    if(sets<10)  return {l:`${sets} sets — building`,c:T.prot};
+    return {l:`${sets} sets — optimal ✓`,c:T.green};
   };
 
   return (
@@ -1069,17 +1069,18 @@ export function MuscleMap({dayFocus, isMobile}) {
         )}
 
         {selected&&(
-          <div style={{background:T.s2,border:`1px solid ${statusText(selected).c}30`,borderRadius:12,padding:"12px 16px",marginTop:12,textAlign:"center"}}>
-            <div style={{fontSize:15,fontWeight:700,color:"#fff",textTransform:"capitalize",marginBottom:4}}>{selected.replace("_"," ")}</div>
-            <div style={{fontSize:13,color:statusText(selected).c,fontWeight:600}}>{statusText(selected).l}</div>
+          <div style={{background:T.s2,border:`1px solid ${statusText(selected).c}35`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:T.mu,marginBottom:4}}>{selected.replace("_"," ")}</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#fff",marginBottom:4}}>{selected.replace("_"," ")}</div>
+            <div style={{fontSize:12,color:statusText(selected).c,fontWeight:600,fontFamily:"var(--mono)"}}>{statusText(selected).l}</div>
           </div>
         )}
-        {!selected&&<div style={{textAlign:"center",marginTop:8,fontSize:11,color:T.mu}}>Tap any muscle to see volume</div>}
+        {!selected&&<div style={{textAlign:"center",marginTop:8,fontSize:11,color:T.mu,fontFamily:"var(--mono)"}}>// TAP ANY MUSCLE</div>}
       </div>
 
       {/* Volume list */}
       <div>
-        <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:14}}>Weekly Volume</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",letterSpacing:"0.02em",color:"rgba(245,245,240,0.9)",marginBottom:14}}>Weekly Volume</div>
         <div style={{display:"flex",flexDirection:"column",gap:0}}>
           {[
             {m:"chest",l:"Chest"},{m:"shoulders",l:"Shoulders"},
@@ -1093,26 +1094,26 @@ export function MuscleMap({dayFocus, isMobile}) {
             const pct=Math.min(sets/20,1);
             const optimal=sets>=10&&sets<=20;
             const low=sets>0&&sets<10;
-            const c=optimal?"#E8185A":low?"#C0392B":sets===0?"#2A3A50":"#6B2D5E";
+            const c=optimal?T.green:low?T.prot:sets===0?"rgba(245,245,240,0.08)":"rgba(232,52,28,0.5)";
             const isSel=selected===m;
             return(
-              <div key={m} onClick={()=>setSelected(isSel?null:m)} style={{padding:"8px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`,cursor:"pointer",background:isSel?`${T.prot}06`:"transparent",paddingLeft:isSel?8:0,transition:"all .15s",borderRadius:isSel?6:0}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <span style={{fontSize:13,fontWeight:600,color:isSel?"#E8185A":"#ccc"}}>{l}</span>
+              <div key={m} onClick={()=>setSelected(isSel?null:m)} style={{padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`,cursor:"pointer",background:isSel?`${T.prot}08`:"transparent",paddingLeft:isSel?8:0,transition:"all .15s",borderRadius:isSel?6:0}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                  <span style={{fontSize:13,fontWeight:600,color:isSel?T.prot:"rgba(245,245,240,0.8)"}}>{l}</span>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    {optimal&&<span style={{fontSize:9,color:"#00E676",background:"rgba(0,230,118,.08)",borderRadius:6,padding:"1px 7px",fontWeight:700}}>✓</span>}
-                    <span style={{fontSize:12,fontWeight:700,color:sets===0?T.dim:c}}>{sets===0?"—":`${sets}`}<span style={{fontSize:9,color:T.mu}}>{sets>0?" sets":""}</span></span>
+                    {optimal&&<span style={{fontSize:9,color:T.green,background:`${T.green}12`,borderRadius:6,padding:"2px 7px",fontWeight:700,fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>✓ HIT</span>}
+                    <span style={{fontSize:12,fontWeight:700,color:sets===0?T.mu:c,fontFamily:"var(--mono)"}}>{sets===0?"—":`${sets}`}<span style={{fontSize:9,color:T.mu}}>{sets>0?" sets":""}</span></span>
                   </div>
                 </div>
-                <div style={{height:3,background:T.s3,borderRadius:2}}>
-                  <div style={{height:"100%",width:`${pct*100}%`,background:c,borderRadius:2,transition:"width .5s"}}/>
+                <div style={{height:5,background:"rgba(245,245,240,0.06)",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${pct*100}%`,background:sets===0?"transparent":`linear-gradient(90deg,${c},${c}88)`,borderRadius:3,transition:"width 0.6s cubic-bezier(.4,0,.2,1)"}}/>
                 </div>
               </div>
             );
           })}
         </div>
         <div style={{marginTop:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
-          {[{c:"#E8185A",l:"Optimal (10–20 sets)"},{c:"#C0392B",l:"Building (6–9)"},{c:"#6B2D5E",l:"Low (1–5)"},{c:"#2A3A50",l:"Not trained"}].map(({c,l})=>(
+          {[{c:T.green,l:"Optimal (10–20 sets)"},{c:T.prot,l:"Building (6–9)"},{c:"rgba(232,52,28,0.5)",l:"Low (1–5)"},{c:"rgba(245,245,240,0.12)",l:"Not trained"}].map(({c,l})=>(
             <div key={l} style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{width:8,height:8,borderRadius:2,background:c,flexShrink:0}}/>
               <span style={{fontSize:10,color:T.mu}}>{l}</span>
