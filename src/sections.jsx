@@ -2358,6 +2358,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               return(
                 <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                   <div className="header-eyebrow">// Muscle Recovery</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,letterSpacing:"0.02em",textTransform:"uppercase",marginBottom:14}}>Recovery Status</div>
                   <div style={{display:"flex",flexDirection:"column",gap:0}}>
                     {entries.map(({id,label,dAgo,pct},i)=>{
                       const c=barColor(pct);
