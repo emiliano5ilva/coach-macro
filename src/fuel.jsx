@@ -314,7 +314,7 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
 
         {/* Running totals */}
         {ingredients.length > 0 && (
-          <div style={{ marginTop: 14, background: "rgba(74,144,226,.07)", border: "1px solid rgba(74,144,226,.2)", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ marginTop: 14, background: "rgba(232,52,28,0.06)", border: "1px solid rgba(232,52,28,0.18)", borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: T.prot, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 10 }}>Per Serving ({servingsCount > 1 ? `1 of ${servingsCount}` : "1 serving"})</div>
             <div style={{ display: "flex", gap: 0, marginBottom: 10 }}>
               {[["Cal", perServing.calories, "", "#fff"], ["P", perServing.protein, "g", T.prot], ["C", perServing.carbs, "g", T.carb], ["F", perServing.fat, "g", T.fat]].map(([l, v, u, c]) => (
@@ -789,7 +789,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
   const lastFive = [...waterLogs].slice(-5).reverse();
 
   return (
-    <div style={{background:"linear-gradient(135deg,rgba(74,144,226,0.1),rgba(74,144,226,0.04))",border:"1px solid rgba(74,144,226,0.2)",borderRadius:16,padding:"16px 18px",marginBottom:12}}>
+    <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px",marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
         <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(74,144,226,0.9)",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
@@ -803,21 +803,21 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
       </div>
 
       {/* Progress bar */}
-      <div style={{height:4,background:"rgba(74,144,226,0.12)",borderRadius:2,overflow:"hidden",marginBottom:14}}>
+      <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden",marginBottom:14}}>
         <div style={{height:"100%",width:`${pct*100}%`,background:T.carb,borderRadius:2,transition:"width 0.4s ease"}}/>
       </div>
 
       {/* Quick-add buttons */}
       <div style={{display:"flex",gap:8,marginBottom:10}}>
-        <button onClick={()=>handleQuickAdd(bottleSize)} style={{flex:1,padding:"9px 0",background:"rgba(74,144,226,0.15)",border:"1px solid rgba(74,144,226,0.3)",borderRadius:10,color:T.carb,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+{bottleSize} oz</button>
-        <button onClick={()=>handleQuickAdd(8)} style={{flex:1,padding:"9px 0",background:"rgba(74,144,226,0.08)",border:"1px solid rgba(74,144,226,0.18)",borderRadius:10,color:"rgba(74,144,226,0.8)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+8 oz</button>
-        <button onClick={()=>setShowCustom(v=>!v)} style={{flex:1,padding:"9px 0",background:"none",border:"1px dashed rgba(74,144,226,0.25)",borderRadius:10,color:"rgba(74,144,226,0.6)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Custom</button>
+        <button onClick={()=>handleQuickAdd(bottleSize)} style={{flex:1,padding:"9px 0",background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:10,color:"var(--red)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+{bottleSize} oz</button>
+        <button onClick={()=>handleQuickAdd(8)} style={{flex:1,padding:"9px 0",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.18)",borderRadius:10,color:"rgba(232,52,28,0.8)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+8 oz</button>
+        <button onClick={()=>setShowCustom(v=>!v)} style={{flex:1,padding:"9px 0",background:"none",border:"1px dashed rgba(245,245,240,0.2)",borderRadius:10,color:"var(--white-dim)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Custom</button>
       </div>
 
       {showCustom&&(
         <div style={{display:"flex",gap:8,marginBottom:10}}>
           <input type="number" value={customOz} onChange={e=>setCustomOz(e.target.value)} placeholder="oz" min={1} max={128}
-            style={{flex:1,background:"rgba(74,144,226,0.08)",border:"1px solid rgba(74,144,226,0.25)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"'DM Mono',monospace",outline:"none"}}/>
+            style={{flex:1,background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"'DM Mono',monospace",outline:"none"}}/>
           <button onClick={handleCustom} style={{padding:"8px 18px",background:T.carb,border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
         </div>
       )}
@@ -827,7 +827,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
         <div style={{display:"flex",flexDirection:"column",gap:4}}>
           {lastFive.map(log=>(
             <div key={log.id} onPointerDown={()=>startPress(log.id)} onPointerUp={()=>endPress()} onPointerLeave={()=>endPress()}
-              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(74,144,226,0.06)",borderRadius:8,position:"relative"}}>
+              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(245,245,240,0.04)",borderRadius:8,position:"relative"}}>
               <div style={{fontSize:11,color:"rgba(245,245,240,0.5)",fontFamily:"'DM Mono',monospace"}}>
                 {new Date(log.logged_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
               </div>
@@ -1092,10 +1092,21 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,fastElapsed,fastPct,fastRemaining,eatOpen,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"fast",label:"Fasting"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
+
+  const [now,setNow]=useState(Date.now());
+  useEffect(()=>{
+    if(!fastActive)return;
+    const id=setInterval(()=>setNow(Date.now()),1000);
+    return()=>clearInterval(id);
+  },[fastActive]);
+  const fastElapsed=fastActive&&fastStart?(now-fastStart)/3600000:0;
+  const fastPct=Math.min(fastElapsed/fastHours,1);
+  const fastRemaining=fastActive?Math.max(0,(fastHours*3600000)-(now-fastStart)):fastHours*3600000;
+  const eatOpen=fastActive&&fastElapsed>=fastHours;
 
   // ── Weekend Flex Mode ─────────────────────────────────────────────────────
   const flexOn=wPrefs?.weekendFlexMode||false;
@@ -1684,7 +1695,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* NUTRITION PERIODIZATION */}
             {periodizationInfo&&(
-              <div style={{background:"rgba(74,144,226,0.08)",border:"1px solid rgba(74,144,226,0.25)",borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:14}}>
+              <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:14}}>
                 <div style={{flexShrink:0,fontSize:22,marginTop:2}}>📅</div>
                 <div style={{flex:1}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
@@ -1753,9 +1764,9 @@ Reply with ONLY a valid JSON object, no markdown:
                       {mn.omega3.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                   </div>
-                  <div style={{background:"rgba(74,144,226,.07)",border:"1px solid rgba(74,144,226,.2)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
-                    <span style={{fontSize:12,flexShrink:0}}>💙</span>
-                    <div><div style={{fontSize:11,color:"rgba(74,144,226,.9)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                  <div style={{background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
+                    <span style={{fontSize:12,flexShrink:0}}>ℹ️</span>
+                    <div><div style={{fontSize:11,color:"var(--white-dim)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"var(--red)",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </div>
               );
@@ -1809,8 +1820,8 @@ Reply with ONLY a valid JSON object, no markdown:
                     const dayIcon=isFlex?"🍕":schedType==="training"?"🏋️":(schedType==="cardio"||schedType==="run"||schedType==="hyrox")?"🏃":"😴";
                     return(
                       <button key={day} onClick={()=>setDayModal(day)}
-                        style={{background:isToday?"rgba(74,144,226,.12)":isFlex?"rgba(245,158,11,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(74,144,226,.5)":isFlex?"rgba(245,158,11,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
-                        <div style={{fontSize:9,fontWeight:700,color:isToday?T.carb:isFlex?"#F59E0B":"rgba(245,245,240,.4)",marginBottom:3,letterSpacing:1}}>{day}</div>
+                        style={{background:isToday?"rgba(232,52,28,.12)":isFlex?"rgba(245,158,11,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(232,52,28,.5)":isFlex?"rgba(245,158,11,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
+                        <div style={{fontSize:9,fontWeight:700,color:isToday?"var(--red)":isFlex?"#F59E0B":"rgba(245,245,240,.4)",marginBottom:3,letterSpacing:1}}>{day}</div>
                         <div style={{fontSize:14}}>{dayIcon}</div>
                       </button>
                     );
@@ -1832,15 +1843,15 @@ Reply with ONLY a valid JSON object, no markdown:
                       const isSelected=isFlex?flexDays.includes(dayModal):(!flexDays.includes(dayModal)&&(schedule?.[dayModal]||"rest")===type);
                       return(
                         <button key={type} onClick={()=>{if(type==="flex")toggleFlexDay(dayModal);else setDayTypeInSchedule(dayModal,type);setDayModal(null);}}
-                          style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,158,11,.15)":"rgba(74,144,226,.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,158,11,.5)":"rgba(74,144,226,.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                          style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,158,11,.15)":"rgba(232,52,28,.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,158,11,.5)":"rgba(232,52,28,.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
                           <div style={{fontSize:22,marginBottom:4}}>{emoji}</div>
-                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"#F59E0B":T.carb):"rgba(245,245,240,.5)"}}>{label}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"#F59E0B":"var(--red)"):"rgba(245,245,240,.5)"}}>{label}</div>
                         </button>
                       );
                     })}
                   </div>
                   <div style={{fontSize:12,color:"rgba(245,245,240,.35)",lineHeight:1.8,marginBottom:20}}>
-                    <span style={{color:"rgba(74,144,226,.8)"}}>Training</span> = higher carbs for workout fuel<br/>
+                    <span style={{color:"var(--red)"}}>Training</span> = higher carbs for workout fuel<br/>
                     <span style={{color:"rgba(245,245,240,.5)"}}>Rest</span> = standard lower calories<br/>
                     <span style={{color:"rgba(245,158,11,.8)"}}>Flex</span> = +{flexPct}% calories, protein stays fixed
                   </div>
@@ -1860,7 +1871,7 @@ Reply with ONLY a valid JSON object, no markdown:
             </div>
 
             {/* RESTAURANT AI CARD */}
-            <button onClick={()=>setFuelScreen("recs")} style={{width:"100%",background:"linear-gradient(135deg,rgba(74,144,226,0.12),rgba(74,144,226,0.04))",border:"1px solid rgba(74,144,226,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
+            <button onClick={()=>setFuelScreen("recs")} style={{width:"100%",background:"linear-gradient(135deg,rgba(232,52,28,0.18),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
               <div style={{fontSize:36,flexShrink:0}}>🍗</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Restaurant AI</div>
@@ -1900,7 +1911,7 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Today&apos;s Log</div>
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={addMealSlot} style={{background:"rgba(74,144,226,0.1)",border:"1px dashed rgba(74,144,226,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
+                  <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
                   <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
                 </div>
               </div>
@@ -2143,7 +2154,7 @@ Reply with ONLY a valid JSON object, no markdown:
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Save multi-ingredient recipes · log as a single tap</p>
 
             {/* AI recipe ideas button */}
-            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"linear-gradient(135deg,rgba(74,144,226,.1),rgba(74,144,226,.04))",border:"1px solid rgba(74,144,226,.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"linear-gradient(135deg,rgba(232,52,28,0.18),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
               <div style={{fontSize:24,flexShrink:0}}>🧠</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>AI Recipe Ideas</div>
@@ -2164,7 +2175,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* Smart save suggestion */}
             {recipeSuggestSlot&&(
-              <div style={{background:"rgba(74,144,226,.08)",border:"1px solid rgba(74,144,226,.25)",borderRadius:14,padding:"14px 16px",marginBottom:20}}>
+              <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"14px 16px",marginBottom:20}}>
                 <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>You often eat these together for {recipeSuggestSlot}:</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:12}}>
                   {log.filter(e=>(e.slot||"Lunch")===recipeSuggestSlot).slice(0,3).map(e=>e.food).join(" + ")}
@@ -2285,7 +2296,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
                 {/* CARBS */}
                 {prepPlan.carbs?.length>0&&(
-                  <div style={{background:T.s1,border:`1px solid rgba(74,144,226,0.2)`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🍚</span>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.carb,letterSpacing:.5}}>CARBS</div>
@@ -2355,7 +2366,7 @@ Reply with ONLY a valid JSON object, no markdown:
                         <button onClick={()=>{
                           const text=Object.entries(prepPlan.grocery).map(([cat,items])=>`${cat}:\n${items.map(i=>`  • ${i}`).join("\n")}`).join("\n\n");
                           navigator.clipboard?.writeText(text);
-                        }} style={{padding:"6px 12px",background:"rgba(74,144,226,0.1)",border:"1px solid rgba(74,144,226,0.3)",color:T.prot,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Copy</button>
+                        }} style={{padding:"6px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.3)",color:T.prot,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Copy</button>
                         <button onClick={()=>setGroceryOpen(o=>!o)} style={{padding:"6px 12px",background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{groceryOpen?"Hide ▲":"Show ▼"}</button>
                       </div>
                     </div>

@@ -1955,11 +1955,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                 </div>;
               })()}
+              {todayType==="training"&&!todayPrescription&&(
+                <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--white)",marginBottom:6}}>No Program Selected</div>
+                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
+                  <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
+                </div>
+              )}
               <div style={{display:"flex",gap:8,marginBottom:8}}>
-                {todayType==="training"&&todayPrescription
-                  ?<button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>▶ Start Workout →</button>
-                  :<button onClick={()=>setTrainScreen("builder")} style={{flex:1,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Build Workout →</button>
-                }
+                {todayType==="training"&&todayPrescription&&(
+                  <button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>▶ Start Session →</button>
+                )}
                 {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.carb}15`,color:T.carb,fontWeight:700,fontSize:14,border:`1px solid ${T.carb}40`,borderRadius:12,cursor:"pointer",fontFamily:"inherit"}}>▶ Resume Session</button>}
                 {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
                   <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{flexShrink:0,padding:"14px 12px",background:adaptLeft>0?"rgba(255,255,255,.05)":"rgba(255,255,255,.02)",color:adaptLeft>0?"rgba(245,245,240,.75)":"rgba(245,245,240,.25)",fontWeight:700,fontSize:13,border:`1px solid ${adaptLeft>0?"rgba(255,255,255,.12)":"rgba(255,255,255,.06)"}`,borderRadius:12,cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"inherit",whiteSpace:"nowrap"}}>

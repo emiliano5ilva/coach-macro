@@ -1,6 +1,6 @@
 // Chart colors — chart-exclusive palette (CHART_COLORS from theme.js).
 // Never conflict with macro colors (blue/green/amber) or brand red.
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { T } from "./components.jsx";
 import { sb } from "./client.js";
 

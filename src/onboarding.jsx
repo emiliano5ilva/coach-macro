@@ -9,12 +9,13 @@ export function FuelOnboarding({d, onComplete, onBack}) {
   const [data,setData]=useState({
     goal:"", goalWeight:"", goalTimeline:"", why:"", whyOther:"",
     dietary:[], mealFreq:"", fasting:"", alcohol:"", goalRate:"", macroExp:"",
+    waterMode:"calculate", waterCustomOz:"",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
   const next=()=>setSc(s=>s+1);
   const back=()=>sc===0?onBack():setSc(s=>s-1);
-  const SCREENS=8;
+  const SCREENS=9;
   const pct=Math.round((sc/SCREENS)*100);
   const rateMap={"−750":-750,"−500":-500,"−250":-250,"−125":-125,"0":0,"+125":125,"+250":250,"+500":500};
   const goalCals=(d.baseTDEE||2000)+(rateMap[data.goalRate]||0);
@@ -225,9 +226,46 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 5 — Calorie target / Rate */}
-        {sc===5&&data.goal!=="maintain"&&data.goal!=="recomp"&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 6</div>
+        {/* SCREEN 5 — Water goal */}
+        {sc===5&&(()=>{
+          const wLbs=d.wUnit==="kg"?(parseFloat(d.weight||70)*2.205):parseFloat(d.weight||160);
+          const calcOz=Math.round(wLbs*0.5);
+          const weightDisplay=d.wUnit==="kg"?`${parseFloat(d.weight||70)}kg`:`${parseFloat(d.weight||160)}lbs`;
+          return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>// STEP 5b of 9</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.88,marginBottom:16,color:"var(--white)",textTransform:"uppercase"}}>
+                Water<br/><span style={{color:"var(--red)"}}>Target.</span>
+              </div>
+              <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Your daily hydration goal. We'll track this in the Fuel tab.</p>
+              {/* Toggle */}
+              <div style={{display:"flex",gap:8,marginBottom:24}}>
+                <button onClick={()=>upd("waterMode","calculate")} style={{flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,textTransform:"uppercase",letterSpacing:1,background:data.waterMode==="calculate"?"var(--red)":"rgba(245,245,240,0.06)",color:data.waterMode==="calculate"?"#fff":"rgba(245,245,240,0.5)",border:data.waterMode==="calculate"?"none":"1px solid rgba(245,245,240,0.12)",transition:"all 0.2s"}}>Calculate</button>
+                <button onClick={()=>upd("waterMode","custom")} style={{flex:1,padding:"12px",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,textTransform:"uppercase",letterSpacing:1,background:data.waterMode==="custom"?"var(--red)":"rgba(245,245,240,0.06)",color:data.waterMode==="custom"?"#fff":"rgba(245,245,240,0.5)",border:data.waterMode==="custom"?"1px solid rgba(245,245,240,0.12)":"none",transition:"all 0.2s"}}>Custom</button>
+              </div>
+              {data.waterMode==="calculate"&&(
+                <div style={{textAlign:"center",padding:"20px 0 24px"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:64,lineHeight:1,color:"var(--white)",marginBottom:8}}>{calcOz} <span style={{fontSize:28}}>oz</span></div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)",letterSpacing:"0.12em"}}>Based on {weightDisplay} bodyweight</div>
+                </div>
+              )}
+              {data.waterMode==="custom"&&(
+                <div style={{marginBottom:24}}>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <input type="number" placeholder="e.g. 80" value={data.waterCustomOz} onChange={e=>upd("waterCustomOz",e.target.value)} min={20} max={300} style={{flex:1,background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.2)",borderRadius:12,padding:"14px 16px",color:"#fff",fontSize:22,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,outline:"none",textAlign:"center"}}/>
+                    <div style={{fontFamily:"var(--mono)",fontSize:14,color:"var(--white-dim)",padding:"0 8px"}}>{d.wUnit==="kg"?"ml":"oz"}</div>
+                  </div>
+                  {data.waterCustomOz&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--white-faint)",marginTop:8,textAlign:"center",letterSpacing:"0.1em"}}>Formula: {calcOz} oz — Your custom: {data.waterCustomOz} oz</div>}
+                </div>
+              )}
+              <PrimaryBtn onClick={next} label="Continue →" disabled={data.waterMode==="custom"&&!parseFloat(data.waterCustomOz)} style={{background:"var(--red)"}}/>
+            </div>
+          );
+        })()}
+
+        {/* SCREEN 6 — Calorie target / Rate */}
+        {sc===6&&data.goal!=="maintain"&&data.goal!=="recomp"&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 7</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
             YOUR CALORIE<br/><span style={{color:T.carb}}>RATE.</span>
           </div>
@@ -260,11 +298,11 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           </div>}
           <PrimaryBtn onClick={next} label="Continue →" disabled={!data.goalRate} style={{background:T.carb}}/>
         </div>}
-        {sc===5&&(data.goal==="maintain"||data.goal==="recomp")&&(()=>{setTimeout(next,100);return null;})()}
+        {sc===6&&(data.goal==="maintain"||data.goal==="recomp")&&(()=>{setTimeout(next,100);return null;})()}
 
-        {/* SCREEN 6 — Dietary preferences */}
-        {sc===6&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 7</div>
+        {/* SCREEN 7 — Dietary preferences */}
+        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 8</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             ANY DIETARY<br/><span style={{color:T.carb}}>NEEDS?</span>
           </div>
@@ -282,9 +320,9 @@ export function FuelOnboarding({d, onComplete, onBack}) {
           <PrimaryBtn onClick={next} label="Continue →" style={{background:T.carb}}/>
         </div>}
 
-        {/* SCREEN 7 — Meal frequency */}
-        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 8</div>
+        {/* SCREEN 8 — Meal frequency + fasting */}
+        {sc===8&&<div style={{animation:"fadeIn .25s ease"}}>
+          <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Fuel · Step 9</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             HOW OFTEN<br/><span style={{color:T.carb}}>DO YOU EAT?</span>
           </div>
@@ -313,7 +351,12 @@ export function FuelOnboarding({d, onComplete, onBack}) {
               </div>
             ))}
           </div>
-          <PrimaryBtn onClick={()=>onComplete({...data,goalCals:data.goal==="maintain"||data.goal==="recomp"?d.baseTDEE:goalCals})} label="Fuel Setup Done →" disabled={!data.goal||!data.mealFreq} style={{background:T.carb}}/>
+          <PrimaryBtn onClick={()=>{
+            const wLbs=d.wUnit==="kg"?(parseFloat(d.weight||70)*2.205):parseFloat(d.weight||160);
+            const calcOz=Math.round(wLbs*0.5);
+            const waterGoalOz=data.waterMode==="custom"&&parseFloat(data.waterCustomOz)>0?parseFloat(data.waterCustomOz):calcOz;
+            onComplete({...data,goalCals:data.goal==="maintain"||data.goal==="recomp"?d.baseTDEE:goalCals,waterGoalOz});
+          }} label="Fuel Setup Done →" disabled={!data.goal||!data.mealFreq} style={{background:T.carb}}/>
         </div>}
       </div>
     </div>
@@ -1223,31 +1266,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
             ))}
           </div>
 
-          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Sleep quality?</div>
-          <div style={{display:"flex",gap:8,marginBottom:20}}>
-            {[{v:"poor",e:"😴",l:"Poor"},{v:"average",e:"🙂",l:"Average"},{v:"good",e:"😊",l:"Good"},{v:"excellent",e:"🌟",l:"Excellent"}].map(o=>(
-              <div key={o.v} onClick={()=>upd("sleepQuality",o.v)} style={{flex:1,background:data.sleepQuality===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.sleepQuality===o.v?T.prot:T.bd}`,borderRadius:10,padding:"12px 6px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
-                <div style={{fontSize:22,marginBottom:4}}>{o.e}</div>
-                <div style={{fontSize:11,fontWeight:700,color:data.sleepQuality===o.v?T.prot:"#ccc"}}>{o.l}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>How physical is your job?</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
-            {[
-              {v:"desk",     l:"Mostly sitting — desk job"},
-              {v:"light",    l:"On my feet but not physical"},
-              {v:"moderate", l:"Moderately physical"},
-              {v:"heavy",    l:"Very physical — manual labor"},
-            ].map(o=>(
-              <div key={o.v} onClick={()=>upd("jobPhysicality",o.v)} style={{background:data.jobPhysicality===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.jobPhysicality===o.v?T.prot:T.bd}`,borderRadius:10,padding:"12px 16px",cursor:"pointer",transition:"all .2s",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:13,fontWeight:600,color:data.jobPhysicality===o.v?T.prot:"#ccc"}}>{o.l}</div>
-                {data.jobPhysicality===o.v&&<div style={{color:T.prot}}>✓</div>}
-              </div>
-            ))}
-          </div>
-          <PrimaryBtn onClick={next} label="Continue →" disabled={!data.stressLevel||!data.sleepQuality||!data.jobPhysicality}/>
+          <PrimaryBtn onClick={next} label="Continue →" disabled={!data.stressLevel}/>
         </div>}
 
         {/* SCREEN 16 — Female Health (skip if not female) */}

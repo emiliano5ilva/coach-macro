@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
@@ -1301,6 +1301,58 @@ function AppleHealthModal({onConnect, onDismiss}) {
   );
 }
 
+function WeeklyNutritionCalendar({weekMacros,todayKey}) {
+  const [expandedDay,setExpandedDay]=useState(null);
+  const calColors={heavy_lower:T.carb,heavy_upper:T.carb,hypertrophy:T.carb,long_run:T.green,tempo_run:T.green,easy_run:T.green,interval_run:T.green,hyrox_station:T.fat,hybrid:"#7E57C2",active_recovery:"#6B7280",rest:"#374151"};
+  const minCal=Math.min(...weekMacros.map(d=>d.calories));
+  const maxCal=Math.max(...weekMacros.map(d=>d.calories));
+  return(
+    <div style={{margin:"0 20px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>Weekly Nutrition Targets</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:12}}>
+        {weekMacros.map(d=>{
+          const isToday2=d.day===todayKey;
+          const c=calColors[d.dayType]||"#374151";
+          const barH=maxCal>minCal?Math.max(8,Math.round(((d.calories-minCal)/(maxCal-minCal))*48)+8):28;
+          return(
+            <button key={d.day} onClick={()=>setExpandedDay(expandedDay===d.day?null:d.day)}
+              style={{background:"none",border:`1.5px solid ${isToday2?c:"rgba(255,255,255,0.06)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
+              <div style={{fontSize:8,fontWeight:700,color:isToday2?c:"rgba(245,245,240,0.35)",marginBottom:4,letterSpacing:1,textTransform:"uppercase"}}>{d.day}</div>
+              <div style={{height:barH,background:isToday2?c:`${c}55`,borderRadius:3,margin:"0 2px 4px",minHeight:8}}/>
+              <div style={{fontSize:8,fontWeight:700,color:isToday2?"#fff":"rgba(245,245,240,0.5)",lineHeight:1}}>{Math.round(d.calories/100)*100}</div>
+              {isToday2&&<div style={{position:"absolute",top:2,right:2,width:5,height:5,borderRadius:"50%",background:c}}/>}
+            </button>
+          );
+        })}
+      </div>
+      {expandedDay&&(()=>{
+        const d=weekMacros.find(x=>x.day===expandedDay);
+        if(!d)return null;
+        const c=calColors[d.dayType]||"#374151";
+        return(
+          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div>
+                <div style={{fontSize:10,color:c,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{d.day} — {d.label}</div>
+                <div style={{fontSize:12,color:"rgba(245,245,240,0.7)",lineHeight:1.5}}>{d.keyInsight}</div>
+              </div>
+              <div style={{fontSize:18,fontWeight:900,color:"#fff",flexShrink:0}}>{d.calories.toLocaleString()}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}> kcal</span></div>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              {[["P",d.protein,"g","var(--red)"],["C",d.carbs,"g","var(--blue)"],["F",d.fat,"g","var(--amber)"]].map(([l,v,u,c2])=>(
+                <div key={l} style={{flex:1,background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{l}</div>
+                  <div style={{fontSize:16,fontWeight:800,color:c2}}>{v}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}>{u}</span></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("home"); // home | train | fuel | progress | settings
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -1326,7 +1378,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [fastActive,setFastActive]=useState(false);
   const [fastStart,setFastStart]=useState(null);
   const [fastCustomH,setFastCustomH]=useState(16);
-  const [now,setNow]=useState(Date.now());
+
   const [city,setCity]=useState(profile.city||"");
   const [workout,setWorkout]=useState(""); const [workoutLoading,setWorkoutLoading]=useState(false);
   const [dashboardLoaded,setDashboardLoaded]=useState(false);
@@ -1508,7 +1560,6 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     if(!activeWorkout&&!workoutSummary)setWorkoutStartTime(null);
   },[activeWorkout]);
 
-  useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(id);},[]);
 
   // ── Persist food log: single row per day, entries = full jsonb array ────────
   async function saveFoodLog(uid,entries){
@@ -1904,10 +1955,6 @@ Be specific and practical. Empathetic tone. No fluff.`,
 
   const fasting=FASTING_PROTOCOLS.find(p=>p.id===fastProto)||FASTING_PROTOCOLS[0];
   const fastHours=fastProto==="custom"?fastCustomH:fasting.fast;
-  const fastElapsed=fastActive&&fastStart?(now-fastStart)/3600000:0;
-  const fastPct=Math.min(fastElapsed/fastHours,1);
-  const fastRemaining=fastActive?Math.max(0,(fastHours*3600000)-(now-fastStart)):fastHours*3600000;
-  const eatOpen=fastActive&&fastElapsed>=fastHours;
 
   function getRestDuration(tier,repsStr,exRestSecs){
     const reps=parseInt(repsStr)||10;
@@ -3503,57 +3550,7 @@ Rules:
         })()}
 
         {/* ── WEEKLY NUTRITION CALENDAR ── */}
-        {(()=>{
-          const [expandedDay,setExpandedDay]=React.useState(null);
-          const calColors={heavy_lower:T.carb,heavy_upper:T.carb,hypertrophy:T.carb,long_run:T.green,tempo_run:T.green,easy_run:T.green,interval_run:T.green,hyrox_station:T.fat,hybrid:"#7E57C2",active_recovery:"#6B7280",rest:"#374151"};
-          const minCal=Math.min(...weekMacros.map(d=>d.calories));
-          const maxCal=Math.max(...weekMacros.map(d=>d.calories));
-          return(
-            <div style={{margin:"0 20px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>Weekly Nutrition Targets</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:12}}>
-                {weekMacros.map(d=>{
-                  const isToday2=d.day===todayKey;
-                  const c=calColors[d.dayType]||"#374151";
-                  const barH=maxCal>minCal?Math.max(8,Math.round(((d.calories-minCal)/(maxCal-minCal))*48)+8):28;
-                  return(
-                    <button key={d.day} onClick={()=>setExpandedDay(expandedDay===d.day?null:d.day)}
-                      style={{background:"none",border:`1.5px solid ${isToday2?c:"rgba(255,255,255,0.06)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
-                      <div style={{fontSize:8,fontWeight:700,color:isToday2?c:"rgba(245,245,240,0.35)",marginBottom:4,letterSpacing:1,textTransform:"uppercase"}}>{d.day}</div>
-                      <div style={{height:barH,background:isToday2?c:`${c}55`,borderRadius:3,margin:"0 2px 4px",minHeight:8}}/>
-                      <div style={{fontSize:8,fontWeight:700,color:isToday2?"#fff":"rgba(245,245,240,0.5)",lineHeight:1}}>{Math.round(d.calories/100)*100}</div>
-                      {isToday2&&<div style={{position:"absolute",top:2,right:2,width:5,height:5,borderRadius:"50%",background:c}}/>}
-                    </button>
-                  );
-                })}
-              </div>
-              {expandedDay&&(()=>{
-                const d=weekMacros.find(x=>x.day===expandedDay);
-                if(!d)return null;
-                const c=calColors[d.dayType]||"#374151";
-                return(
-                  <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                      <div>
-                        <div style={{fontSize:10,color:c,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{d.day} — {d.label}</div>
-                        <div style={{fontSize:12,color:"rgba(245,245,240,0.7)",lineHeight:1.5}}>{d.keyInsight}</div>
-                      </div>
-                      <div style={{fontSize:18,fontWeight:900,color:"#fff",flexShrink:0}}>{d.calories.toLocaleString()}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}> kcal</span></div>
-                    </div>
-                    <div style={{display:"flex",gap:10}}>
-                      {[["P",d.protein,"g","var(--red)"],["C",d.carbs,"g","var(--blue)"],["F",d.fat,"g","var(--amber)"]].map(([l,v,u,c2])=>(
-                        <div key={l} style={{flex:1,background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px",textAlign:"center"}}>
-                          <div style={{fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{l}</div>
-                          <div style={{fontSize:16,fontWeight:800,color:c2}}>{v}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}>{u}</span></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })()}
+        <WeeklyNutritionCalendar weekMacros={weekMacros} todayKey={todayKey} />
 
         {/* ── CHART STACK — ordered & filtered by settings ── */}
         {!workoutsLoaded
@@ -3562,7 +3559,7 @@ Rules:
             <ChartWrap key={key} chartKey={key}
               onHide={()=>saveChartSettings({...chartSettings,visible_charts:{...chartSettings.visible_charts,[key]:false}})}
               onExplain={()=>setExplainChartKey(key)}>
-              {renderChart(key)}
+              <ErrorBoundary>{renderChart(key)}</ErrorBoundary>
             </ChartWrap>
           ))
         }
@@ -3680,7 +3677,7 @@ Rules:
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="home"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={setTrainScreen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} fastElapsed={fastElapsed} fastPct={fastPct} fastRemaining={fastRemaining} eatOpen={eatOpen} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="settings"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></ErrorBoundary>}
