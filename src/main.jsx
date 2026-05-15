@@ -15,11 +15,7 @@ Sentry.init({
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary
-      onError={(error, componentStack) => {
-        console.error('BOUNDARY CAUGHT:', error.message);
-        console.error('STACK:', componentStack);
-      }}
-      fallback={<div style={{padding:40,color:'#fff',fontFamily:'sans-serif'}}>Something went wrong. Please reload the app.</div>}
+      fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'#050810',color:'#f5f5f0',fontFamily:'sans-serif',fontSize:15}}>Something went wrong. Please restart the app.</div>}
     >
       <App />
     </Sentry.ErrorBoundary>

@@ -121,7 +121,9 @@ export function Onboarding({onComplete, user, signupName}) {
               : <p style={{fontSize:13,color:T.mu,lineHeight:1.65,marginBottom:20}}>After setup, download the iOS app to connect Apple Health — real sleep, steps, and HRV will automatically personalize your targets.</p>
             }
             <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"24px",textAlign:"center",marginBottom:14}}>
-              <div style={{fontSize:44,marginBottom:8}}>🍎</div>
+              <div style={{width:64,height:64,borderRadius:18,background:"rgba(255,69,58,0.12)",border:"1px solid rgba(255,69,58,0.3)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
+                <svg width={32} height={32} viewBox="0 0 24 24" fill="none"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="#FF453A"/></svg>
+              </div>
               <div style={{fontSize:17,fontWeight:700,marginBottom:5}}>Apple Health</div>
               <p style={{fontSize:12,color:T.mu,marginBottom:18,lineHeight:1.6}}>Workouts · Steps · Sleep · Heart Rate</p>
               {isNative

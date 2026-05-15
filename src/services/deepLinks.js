@@ -1,13 +1,4 @@
-let CapApp = null;
-
-async function getCapApp() {
-  if (CapApp) return CapApp;
-  try {
-    const mod = await import('@capacitor/app');
-    CapApp = mod.App;
-  } catch {}
-  return CapApp;
-}
+import { App } from '@capacitor/app';
 
 const handlers = new Map();
 
@@ -16,17 +7,14 @@ export function onDeepLink(route, handler) {
 }
 
 export async function initDeepLinks() {
-  const cap = await getCapApp();
-  if (!cap) return;
-
-  cap.addListener('appUrlOpen', ({ url }) => {
+  App.addListener('appUrlOpen', ({ url }) => {
     handleDeepLink(url);
   });
 
   // Handle cold-start URL (app opened via deep link while closed)
   try {
-    const { url } = await cap.getLaunchUrl();
-    if (url) handleDeepLink(url);
+    const result = await App.getLaunchUrl();
+    if (result?.url) handleDeepLink(result.url);
   } catch {}
 }
 

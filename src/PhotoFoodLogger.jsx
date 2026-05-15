@@ -42,24 +42,58 @@ async function uploadPhoto(userId, base64) {
 
 // ── Tutorial ─────────────────────────────────────────────────────────────────
 
+const TUTORIAL_ILLUS = [
+  // Step 1 — Point & Shoot
+  <svg width={96} height={96} viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x={12} y={26} width={72} height={52} rx={10} fill="rgba(232,52,28,0.12)" stroke="rgba(232,52,28,0.5)" strokeWidth={2}/>
+    <rect x={36} y={14} width={24} height={14} rx={5} fill="rgba(232,52,28,0.2)" stroke="rgba(232,52,28,0.4)" strokeWidth={1.5}/>
+    <circle cx={48} cy={54} r={14} fill="none" stroke="rgba(232,52,28,0.6)" strokeWidth={2}/>
+    <circle cx={48} cy={54} r={8} fill="rgba(232,52,28,0.25)"/>
+    <circle cx={64} cy={36} r={4} fill="rgba(232,52,28,0.5)"/>
+  </svg>,
+  // Step 2 — AI Identifies Foods
+  <svg width={96} height={96} viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx={48} cy={42} r={22} fill="rgba(232,52,28,0.1)" stroke="rgba(232,52,28,0.45)" strokeWidth={2}/>
+    <path d="M40 38 L44 46 L52 34 L56 42 L60 38" stroke="rgba(232,52,28,0.8)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1={30} y1={68} x2={66} y2={68} stroke="rgba(232,52,28,0.3)" strokeWidth={1.5} strokeDasharray="4 3"/>
+    <rect x={28} y={72} width={16} height={6} rx={3} fill="rgba(232,52,28,0.2)"/>
+    <rect x={50} y={72} width={18} height={6} rx={3} fill="rgba(232,52,28,0.15)"/>
+  </svg>,
+  // Step 3 — Add Notes
+  <svg width={96} height={96} viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x={18} y={20} width={52} height={62} rx={8} fill="rgba(232,52,28,0.08)" stroke="rgba(232,52,28,0.35)" strokeWidth={2}/>
+    <line x1={28} y1={38} x2={60} y2={38} stroke="rgba(232,52,28,0.5)" strokeWidth={2} strokeLinecap="round"/>
+    <line x1={28} y1={50} x2={56} y2={50} stroke="rgba(232,52,28,0.35)" strokeWidth={1.5} strokeLinecap="round"/>
+    <line x1={28} y1={62} x2={46} y2={62} stroke="rgba(232,52,28,0.25)" strokeWidth={1.5} strokeLinecap="round"/>
+    <circle cx={74} cy={26} r={12} fill="rgba(232,52,28,0.9)"/>
+    <path d="M70 26 L73 29 L78 23" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>,
+  // Step 4 — Review & Edit
+  <svg width={96} height={96} viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x={14} y={24} width={68} height={50} rx={10} fill="rgba(232,52,28,0.08)" stroke="rgba(232,52,28,0.3)" strokeWidth={2}/>
+    <circle cx={48} cy={49} r={16} fill="rgba(232,52,28,0.15)" stroke="rgba(232,52,28,0.5)" strokeWidth={2}/>
+    <path d="M41 49 L46 54 L56 44" stroke="rgba(232,52,28,0.9)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>,
+];
+
 const TUTORIAL_STEPS = [
   {
-    icon: "📸",
+    illus: TUTORIAL_ILLUS[0],
     title: "Point & Shoot",
     body: "Take a photo of your full plate. Include everything you plan to eat.",
   },
   {
-    icon: "🧠",
+    illus: TUTORIAL_ILLUS[1],
     title: "AI Identifies Foods",
     body: "Claude scans your meal and breaks it into individual ingredients with estimated macros.",
   },
   {
-    icon: "📝",
+    illus: TUTORIAL_ILLUS[2],
     title: "Add Notes for Accuracy",
     body: 'Tap "Photo + Notes" to describe your meal — cooking method, brand, or portion size — for more precise results.',
   },
   {
-    icon: "✅",
+    illus: TUTORIAL_ILLUS[3],
     title: "Review & Edit",
     body: "Adjust portions, fix names, or add missing items. Then tap Log to add everything at once.",
   },
@@ -73,7 +107,7 @@ function Tutorial({ onDone }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.96)", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32 }}>
       <div style={{ maxWidth: 340, width: "100%", textAlign: "center" }}>
-        <div style={{ fontSize: 64, marginBottom: 24 }}>{s.icon}</div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", marginBottom: 24 }}>{s.illus}</div>
         <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "'Barlow Condensed',sans-serif", marginBottom: 12 }}>{s.title}</div>
         <div style={{ fontSize: 14, color: T.mu, lineHeight: 1.6, marginBottom: 40 }}>{s.body}</div>
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 32 }}>
