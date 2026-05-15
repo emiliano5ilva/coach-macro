@@ -59,6 +59,11 @@ export const CHART_REGISTRY = [
     description: "Scatter plot of your actual sleep hours vs your actual workout performance. Shows your personal optimal sleep window. Most people see their biggest gains between 7–8.5 hours.",
     whatToDo: "Find your sweet spot and protect it. Even 45 minutes less than your optimal reduces performance measurably.",
   },
+  {
+    key: "athlete_waveform", label: "Training Load Waveform", category: "overview", beginner: false,
+    description: "Shows your training intensity as a waveform over the last 12 weeks. Peaks show your hardest weeks; valleys show deload or rest. The shape reveals whether you're building smart progressive overload or training randomly.",
+    whatToDo: "Look for a gradual rising baseline with planned valleys every 4–5 weeks. That's the shape of long-term progress.",
+  },
 ];
 
 export const BEGINNER_CHARTS = ["flux_range","muscle_volume","weight_trend","macro_calendar","peak_performance","sleep_perf"];

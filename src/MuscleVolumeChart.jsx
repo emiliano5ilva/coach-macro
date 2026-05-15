@@ -100,6 +100,36 @@ function getExerciseMuscles(name) {
   return [base];
 }
 
+function getWeekStart(dateStr) {
+  const d = new Date(dateStr);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return d.toISOString().split("T")[0];
+}
+
+async function getVolumeByWeek(userId, numWeeks = 4) {
+  const startDate = new Date(Date.now() - numWeeks * 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const { data: logs } = await sb
+    .from("workout_logs")
+    .select("workout, date")
+    .eq("user_id", userId)
+    .gte("date", startDate);
+
+  const weekMap = {};
+  logs?.forEach(session => {
+    const wk = getWeekStart(session.date);
+    if (!weekMap[wk]) weekMap[wk] = {};
+    session.workout?.exercises?.forEach(ex => {
+      const muscles = getExerciseMuscles(ex.name);
+      const doneSets = ex.completedSets ??
+        (Array.isArray(ex.sets) ? ex.sets.filter(s => s.done).length : 0);
+      muscles.forEach(m => { weekMap[wk][m] = (weekMap[wk][m] || 0) + doneSets; });
+    });
+  });
+  // Return sorted weeks array
+  return Object.entries(weekMap).sort(([a],[b]) => a.localeCompare(b)).slice(-numWeeks);
+}
+
 async function getVolumePerMuscle(userId, days) {
   const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
     .toISOString().split("T")[0];
@@ -137,7 +167,7 @@ function Skeleton() {
 }
 
 // ── Expanded detail card ──────────────────────────────────────────────────────
-function DetailCard({ muscle, sets, mev, mav, mrv, zoneKey }) {
+function DetailCard({ muscle, sets, mev, mav, mrv, zoneKey, weeklyHistory = [] }) {
   const vc = VOLUME_COLORS[zoneKey];
   const plain = {
     under:   `You're below the Minimum Effective Volume for ${muscle.label}. Adding more sets each week will stimulate consistent growth without overloading recovery.`,
@@ -169,6 +199,25 @@ function DetailCard({ muscle, sets, mev, mav, mrv, zoneKey }) {
           </div>
         ))}
       </div>
+      {weeklyHistory.length >= 2 && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontFamily:"var(--mono)", fontSize:8, color:"rgba(245,245,240,0.3)", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:6 }}>4-Week Trend</div>
+          <div style={{ display:"flex", gap:4, alignItems:"flex-end", height:40 }}>
+            {weeklyHistory.map(({ wk, sets: ws }, i) => {
+              const maxW = Math.max(...weeklyHistory.map(w => w.sets), mev, 1);
+              const h = Math.max(2, Math.round((ws / maxW) * 36));
+              const z = getZone(ws, mev, mav, mrv);
+              return (
+                <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                  <div style={{ height:`${36-h}px` }}/>
+                  <div style={{ width:"100%", height:`${h}px`, background:VOLUME_COLORS[z].bar, borderRadius:"3px 3px 0 0", opacity:0.9 }}/>
+                  <div style={{ fontFamily:"var(--mono)", fontSize:7, color:"rgba(245,245,240,0.3)" }}>{wk.slice(5)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div style={{ fontSize:11, color:T.mu, lineHeight:1.6, borderTop:`1px solid rgba(255,255,255,0.06)`, paddingTop:8 }}>
         <span style={{ color:vc.label, fontWeight:700 }}>Tip: </span>{muscle.tip}
       </div>
@@ -177,7 +226,7 @@ function DetailCard({ muscle, sets, mev, mav, mrv, zoneKey }) {
 }
 
 // ── Single muscle bar row ─────────────────────────────────────────────────────
-function MuscleRow({ muscle, sets, showDetails, showLabels, expanded, onToggle, multiplier }) {
+function MuscleRow({ muscle, sets, showDetails, showLabels, expanded, onToggle, multiplier, weeklyHistory = [] }) {
   const mev = muscle.mev * multiplier;
   const mav = muscle.mav * multiplier;
   const mrv = muscle.mrv * multiplier;
@@ -277,7 +326,7 @@ function MuscleRow({ muscle, sets, showDetails, showLabels, expanded, onToggle, 
 
       {/* Expanded detail card */}
       {showDetails && expanded && (
-        <DetailCard muscle={muscle} sets={sets} mev={mev} mav={mav} mrv={mrv} zoneKey={zoneKey}/>
+        <DetailCard muscle={muscle} sets={sets} mev={mev} mav={mav} mrv={mrv} zoneKey={zoneKey} weeklyHistory={weeklyHistory}/>
       )}
     </div>
   );
@@ -290,6 +339,7 @@ export function MuscleVolumeChart({ userId }) {
   const [expanded, setExpanded] = useState(null);
   const [volume, setVolume] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [weeklyData, setWeeklyData] = useState([]); // [{wk, ...muscles}]
 
   const multiplier = period === "week" ? 1 : 4;
   const days = period === "week" ? 7 : 30;
@@ -297,9 +347,14 @@ export function MuscleVolumeChart({ userId }) {
   useEffect(() => {
     if (!userId) { setLoading(false); setVolume({}); return; }
     setLoading(true);
-    getVolumePerMuscle(userId, days)
-      .then(v => { setVolume(v); setLoading(false); })
-      .catch(() => { setVolume({}); setLoading(false); });
+    Promise.all([
+      getVolumePerMuscle(userId, days),
+      getVolumeByWeek(userId, 4),
+    ]).then(([v, wks]) => {
+      setVolume(v);
+      setWeeklyData(wks);
+      setLoading(false);
+    }).catch(() => { setVolume({}); setLoading(false); });
   }, [userId, days]);
 
   const hasAnyVolume = !!volume && MUSCLES.some(m => (volume[m.key] || 0) > 0);
@@ -465,6 +520,7 @@ export function MuscleVolumeChart({ userId }) {
                   expanded={expanded === m.key}
                   onToggle={() => setExpanded(expanded === m.key ? null : m.key)}
                   multiplier={multiplier}
+                  weeklyHistory={weeklyData.map(([wk, mv]) => ({ wk, sets: mv[m.key] || 0 }))}
                 />
               ))}
             </div>

@@ -2259,6 +2259,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                             <div style={{width:24,height:24,borderRadius:"50%",background:allDone?T.carb:T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>{allDone?"✓":ei+1}</div>
+                            {/* GIF thumb */}
+                            <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:54,height:54,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" style={{color:"rgba(245,245,240,0.4)"}}><polygon points="5,3 19,12 5,21" fill="currentColor"/></svg>
+                              <div style={{position:"absolute",bottom:3,right:3,background:"rgba(232,52,28,0.85)",borderRadius:4,padding:"1px 5px",fontSize:8,fontWeight:800,letterSpacing:".04em",color:"#fff",lineHeight:1.4}}>GIF</div>
+                            </div>
                             <div
                               style={{fontSize:16,fontWeight:700,flex:1,cursor:"pointer",userSelect:"none"}}
                               onPointerDown={()=>startLongPress(ex.name,ei)}

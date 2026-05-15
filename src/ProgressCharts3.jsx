@@ -863,3 +863,130 @@ export function SleepPerformanceChart({ userId }) {
     </ChartCard>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHART 10 — ATHLETE WAVEFORM (Training Load over 12 weeks)
+// ═══════════════════════════════════════════════════════════════════════════════
+const VH10 = 120;
+const P10 = { t:14, r:12, b:28, l:40 };
+
+function smoothPath(points, w, h) {
+  if (points.length < 2) return "";
+  const xs = points.map((_,i) => P10.l + (i / (points.length - 1)) * (w - P10.l - P10.r));
+  const max = Math.max(...points, 1);
+  const ys = points.map(v => P10.t + (1 - v / max) * h);
+  let d = `M ${xs[0]} ${ys[0]}`;
+  for (let i = 1; i < xs.length; i++) {
+    const cx = (xs[i-1] + xs[i]) / 2;
+    d += ` C ${cx},${ys[i-1]} ${cx},${ys[i]} ${xs[i]},${ys[i]}`;
+  }
+  return d;
+}
+
+function areaPath(points, w, h) {
+  const path = smoothPath(points, w, h);
+  if (!path) return "";
+  const xs = points.map((_,i) => P10.l + (i / (points.length - 1)) * (w - P10.l - P10.r));
+  return `${path} L ${xs[xs.length-1]},${P10.t + h} L ${xs[0]},${P10.t + h} Z`;
+}
+
+export function AthleteWaveformChart({ userId }) {
+  const [weeks, setWeeks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    const start = new Date(Date.now() - 84 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    sb.from("workout_logs").select("date,workout").eq("user_id", userId).gte("date", start)
+      .then(({ data }) => {
+        const buckets = {};
+        (data || []).forEach(row => {
+          const wk = getWeekKey(row.date);
+          let load = 0;
+          (row.workout?.exercises || []).forEach(ex => {
+            (ex.sets || []).filter(s => s.done).forEach(s => {
+              const w = parseFloat(s.weight) || 0;
+              const r = parseInt(s.reps) || 0;
+              load += w > 0 ? w * r : r * 5;
+            });
+          });
+          buckets[wk] = (buckets[wk] || 0) + load;
+        });
+        const sorted = Object.entries(buckets).sort(([a],[b]) => a.localeCompare(b));
+        setWeeks(sorted);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  }, [userId]);
+
+  function getWeekKey(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return d.toISOString().split("T")[0];
+  }
+
+  const loads = weeks.map(([,v]) => v);
+  const labels = weeks.map(([k]) => k.slice(5));
+  const maxLoad = Math.max(...loads, 1);
+  const W = 320, H = VH10 - P10.t - P10.b;
+  const path = smoothPath(loads, W, H);
+  const area = areaPath(loads, W, H);
+  const xs = loads.map((_,i) => P10.l + (i / Math.max(loads.length - 1, 1)) * (W - P10.l - P10.r));
+  const ys = loads.map(v => P10.t + (1 - v / maxLoad) * H);
+
+  const peakIdx = loads.indexOf(Math.max(...loads));
+  const interpY = H + P10.t;
+
+  const yTicks = [0, 0.5, 1].map(f => ({
+    y: P10.t + (1 - f) * H,
+    label: Math.round(maxLoad * f / 1000) + "k",
+  }));
+
+  return (
+    <ChartCard title="Training Load Waveform" subtitle="Weekly intensity over 12 weeks">
+      {loading ? <Skeleton h={VH10}/> : loads.length < 2 ? (
+        <div style={{textAlign:"center",padding:"24px 0",fontSize:12,color:T.mu}}>Log workouts to see your training waveform</div>
+      ) : (
+        <>
+          <svg width="100%" viewBox={`0 0 ${W} ${VH10}`} style={{overflow:"visible",display:"block"}}>
+            <defs>
+              <linearGradient id="wf-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#e8341c" stopOpacity="0.35"/>
+                <stop offset="100%" stopColor="#e8341c" stopOpacity="0.02"/>
+              </linearGradient>
+            </defs>
+            {/* Y grid */}
+            {yTicks.map(({y,label}) => (
+              <g key={label}>
+                <line x1={P10.l} y1={y} x2={W - P10.r} y2={y} stroke="rgba(245,245,240,0.05)" strokeWidth="1"/>
+                <text x={P10.l - 4} y={y + 3} textAnchor="end" fontSize="8" fill={T.mu}>{label}</text>
+              </g>
+            ))}
+            {/* Area fill */}
+            <path d={area} fill="url(#wf-grad)"/>
+            {/* Waveform line */}
+            <path d={path} fill="none" stroke="#e8341c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Peak marker */}
+            {loads.length > 0 && (
+              <>
+                <circle cx={xs[peakIdx]} cy={ys[peakIdx]} r="4" fill="#e8341c" stroke="#0a0f1c" strokeWidth="2"/>
+                <text x={xs[peakIdx]} y={ys[peakIdx] - 8} textAnchor="middle" fontSize="8" fill="#e8341c" fontWeight="700">PEAK</text>
+              </>
+            )}
+            {/* X axis labels (show ~4) */}
+            {labels.filter((_,i) => i % Math.ceil(labels.length / 4) === 0).map((l, i) => {
+              const idx = labels.findIndex(lbl => lbl === l);
+              return (
+                <text key={l} x={xs[idx] || 0} y={interpY + 14} textAnchor="middle" fontSize="8" fill={T.mu}>{l}</text>
+              );
+            })}
+          </svg>
+          <div style={{fontSize:11,color:T.mu,marginTop:4,lineHeight:1.5}}>
+            {weeks.length} weeks tracked · Peak at week of {weeks[peakIdx]?.[0]?.slice(5) || "—"}
+          </div>
+        </>
+      )}
+    </ChartCard>
+  );
+}

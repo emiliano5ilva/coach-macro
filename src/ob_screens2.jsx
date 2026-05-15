@@ -34,7 +34,7 @@ import { getAIErrorMessage } from "./utils/errors.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
 import { BodyCompositionVector, GoalProbabilityCone, BalanceCheck } from "./ProgressCharts2.jsx";
-import { NutritionPerformanceChart, WeightTrendChart, MacroCalendarHeatmap, SleepPerformanceChart } from "./ProgressCharts3.jsx";
+import { NutritionPerformanceChart, WeightTrendChart, MacroCalendarHeatmap, SleepPerformanceChart, AthleteWaveformChart } from "./ProgressCharts3.jsx";
 import ChartSettingsScreen, { CHART_REGISTRY, DEFAULT_SETTINGS as CHART_DEFAULT_SETTINGS, ChartWrap, ChartExplainModal } from "./screens/ChartSettings.jsx";
 import PhotoFoodLogger from "./PhotoFoodLogger.jsx";
 
@@ -3311,6 +3311,7 @@ Rules:
         case "macro_calendar":   return <MacroCalendarHeatmap userId={user?.id} profile={profile}/>;
         case "nutrition_perf":   return !hasWorkoutData?<ChartNoData icon="🥗" heading="Log food and workouts" sub="This chart correlates what you eat with how you train 48 hours later. It needs both data streams."/>:<NutritionPerformanceChart userId={user?.id} profile={profile} workoutLogsRaw={filteredLogs}/>;
         case "sleep_perf":       return <SleepPerformanceChart userId={user?.id}/>;
+        case "athlete_waveform": return <AthleteWaveformChart userId={user?.id}/>;
         default: return null;
       }
     }
