@@ -62,9 +62,9 @@ function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd,
             <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Serving size</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
               {smart.map((s, i) => (
-                <button key={i} onClick={() => { setPortionMode("smart"); setPortionGrams(s.grams); }} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${portionMode === "smart" && portionGrams === s.grams ? T.carb : T.bd}`, background: portionMode === "smart" && portionGrams === s.grams ? `${T.carb}15` : "none", color: portionMode === "smart" && portionGrams === s.grams ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{s.label}</button>
+                <button key={i} onClick={() => { setPortionMode("smart"); setPortionGrams(s.grams); }} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${portionMode === "smart" && portionGrams === s.grams ? T.prot : T.bd}`, background: portionMode === "smart" && portionGrams === s.grams ? `${T.prot}15` : "none", color: portionMode === "smart" && portionGrams === s.grams ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{s.label}</button>
               ))}
-              <button onClick={() => setPortionMode("custom")} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${portionMode === "custom" ? T.carb : T.bd}`, background: portionMode === "custom" ? `${T.carb}15` : "none", color: portionMode === "custom" ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Custom (g)</button>
+              <button onClick={() => setPortionMode("custom")} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${portionMode === "custom" ? T.prot : T.bd}`, background: portionMode === "custom" ? `${T.prot}15` : "none", color: portionMode === "custom" ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Custom (g)</button>
             </div>
             {portionMode === "custom" && <input type="number" value={customVal} onChange={e => setCustomVal(e.target.value)} placeholder="Enter grams" style={{ width: "100%", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: "#fff", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit", marginBottom: 12 }} />}
           </>
@@ -82,11 +82,11 @@ function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd,
           <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Log to meal</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {mealSlots.map((slot, i) => (
-              <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.carb : T.bd}`, background: activeSlotIdx === i ? `${T.carb}15` : "none", color: activeSlotIdx === i ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{slot}</button>
+              <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.prot : T.bd}`, background: activeSlotIdx === i ? `${T.prot}15` : "none", color: activeSlotIdx === i ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{slot}</button>
             ))}
           </div>
         </div>
-        <button onClick={() => onAdd(food, grams, mealSlots[activeSlotIdx] || "Lunch")} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1, textTransform: "uppercase" }}>Add to Log →</button>
+        <button onClick={() => onAdd(food, grams, mealSlots[activeSlotIdx] || "Lunch")} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1, textTransform: "uppercase" }}>Add to Log →</button>
       </div>
     </div>
   );
@@ -110,7 +110,7 @@ function RecipeLogSheet({ recipe, mealSlots, activeSlotIdx, setActiveSlotIdx, on
     <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.9)", backdropFilter: "blur(8px)", zIndex: 320, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
       <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }} onClick={e => e.stopPropagation()}>
         <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
-        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 22, fontWeight: 900, marginBottom: 2 }}>{recipe.name}</div>
+        <div style={{ fontFamily: "var(--condensed)", fontSize: 22, fontWeight: 900, marginBottom: 2 }}>{recipe.name}</div>
         {recipe.category && <div style={{ fontSize: 11, color: T.mu, marginBottom: 16 }}>{recipe.category}</div>}
 
         <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 10 }}>How many servings?</div>
@@ -132,11 +132,11 @@ function RecipeLogSheet({ recipe, mealSlots, activeSlotIdx, setActiveSlotIdx, on
         <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Log to meal</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
           {mealSlots.map((slot, i) => (
-            <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.carb : T.bd}`, background: activeSlotIdx === i ? `${T.carb}15` : "none", color: activeSlotIdx === i ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{slot}</button>
+            <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.prot : T.bd}`, background: activeSlotIdx === i ? `${T.prot}15` : "none", color: activeSlotIdx === i ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{slot}</button>
           ))}
         </div>
 
-        <button onClick={() => onLog(recipe, servings, mealSlots[activeSlotIdx] || "Lunch")} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1, textTransform: "uppercase" }}>Log {servings} Serving{servings !== 1 ? "s" : ""} →</button>
+        <button onClick={() => onLog(recipe, servings, mealSlots[activeSlotIdx] || "Lunch")} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1, textTransform: "uppercase" }}>Log {servings} Serving{servings !== 1 ? "s" : ""} →</button>
       </div>
     </div>
   );
@@ -240,7 +240,7 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
           <button onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults([]); }} style={{ background: "none", border: "none", color: T.mu, cursor: "pointer", padding: 4, lineHeight: 1, display:"flex", alignItems:"center" }}>
             <svg width={22} height={22} viewBox="0 0 22 22" fill="none"><path d="M14 17L8 11L14 5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
-          <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 18, fontWeight: 800 }}>Add Ingredient</div>
+          <div style={{ fontFamily: "var(--condensed)", fontSize: 18, fontWeight: 800 }}>Add Ingredient</div>
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <input
@@ -274,7 +274,7 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
         <button onClick={onBack} style={{ background: "none", border: "none", color: T.mu, cursor: "pointer", padding: 4, lineHeight: 1, display:"flex", alignItems:"center" }}>
           <svg width={22} height={22} viewBox="0 0 22 22" fill="none"><path d="M14 17L8 11L14 5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 24, fontWeight: 900 }}>{initRecipe ? "EDIT RECIPE" : "NEW RECIPE"}</div>
+        <div style={{ fontFamily: "var(--condensed)", fontSize: 24, fontWeight: 900 }}>{initRecipe ? "EDIT RECIPE" : "NEW RECIPE"}</div>
       </div>
 
       {/* Name */}
@@ -348,7 +348,7 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
         <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 10 }}>Category (optional)</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {RECIPE_CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => setCategory(category === cat ? "" : cat)} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${category === cat ? T.carb : T.bd}`, background: category === cat ? `${T.carb}15` : "none", color: category === cat ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{cat}</button>
+            <button key={cat} onClick={() => setCategory(category === cat ? "" : cat)} style={{ padding: "8px 14px", borderRadius: 20, border: `1.5px solid ${category === cat ? T.prot : T.bd}`, background: category === cat ? `${T.prot}15` : "none", color: category === cat ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{cat}</button>
           ))}
         </div>
       </div>
@@ -356,7 +356,7 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
       <button
         onClick={handleSave}
         disabled={saving || !name.trim() || ingredients.length === 0}
-        style={{ width: "100%", padding: "16px", background: !name.trim() || ingredients.length === 0 ? T.s2 : T.prot, color: !name.trim() || ingredients.length === 0 ? T.mu : "#fff", border: "none", borderRadius: 14, fontWeight: 800, fontSize: 16, cursor: !name.trim() || ingredients.length === 0 ? "not-allowed" : "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1, textTransform: "uppercase" }}
+        style={{ width: "100%", padding: "16px", background: !name.trim() || ingredients.length === 0 ? T.s2 : T.prot, color: !name.trim() || ingredients.length === 0 ? T.mu : "#fff", border: "none", borderRadius: 14, fontWeight: 800, fontSize: 16, cursor: !name.trim() || ingredients.length === 0 ? "not-allowed" : "pointer", fontFamily: "var(--condensed)", letterSpacing: 1, textTransform: "uppercase" }}
       >{saving ? "Saving…" : "Save Recipe →"}</button>
     </div>
   );
@@ -448,7 +448,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
         <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
           <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
           <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 6 }}>Voice Log Preview</div>
-          <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>"{voiceTranscript}"</div>
+          <div style={{ fontFamily: "var(--condensed)", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>"{voiceTranscript}"</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {voiceEntries.map((e, i) => (
               <div key={i} style={{ background: T.s2, borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -462,7 +462,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => { setVoiceState("idle"); setVoiceEntries([]); setVoiceTranscript(""); }} style={{ flex: 1, padding: "13px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 12, color: T.mu, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Redo</button>
-            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || "Lunch", true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1 }}>Log All →</button>
+            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || "Lunch", true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1 }}>Log All →</button>
           </div>
         </div>
       </div>
@@ -496,7 +496,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               </div>
             </div>
             <div style={{ height: 6, background: "rgba(255,255,255,.06)", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${calPct}%`, background: `linear-gradient(90deg,${T.prot},${T.carb})`, borderRadius: 3, transition: "width .4s" }} />
+              <div style={{ height: "100%", width: `${calPct}%`, background: `linear-gradient(90deg,var(--red),rgba(232,52,28,0.5))`, borderRadius: 3, transition: "width .4s" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 9, color: T.mu }}>
               <span>{totalToday} kcal eaten</span>
@@ -509,7 +509,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
             <button onClick={voiceState === "listening" ? stopVoice : startVoice} style={{ flex: 1, padding: "11px 8px", background: voiceState === "listening" ? "rgba(232,52,28,.15)" : T.s2, border: `1.5px solid ${voiceState === "listening" ? T.prot : T.bd}`, borderRadius: 10, color: voiceState === "listening" ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               {voiceState === "listening" ? "🔴 Listening..." : voiceState === "processing" ? "⏳ Processing..." : "🎤 Voice Log"}
             </button>
-            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(74,144,226,.1)" : T.s2, border: `1.5px solid ${scanMode ? T.carb : T.bd}`, borderRadius: 10, color: scanMode ? T.carb : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📷 Scan Barcode</button>
+            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(232,52,28,.08)" : T.s2, border: `1.5px solid ${scanMode ? T.prot : T.bd}`, borderRadius: 10, color: scanMode ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Scan Barcode</button>
           </div>
 
           {/* Barcode scanner */}
@@ -518,7 +518,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Barcode number</div>
               <div style={{ display: "flex", gap: 8 }}>
                 <input value={scanInput} onChange={e => setScanInput(e.target.value)} onKeyDown={e => e.key === "Enter" && lookupBarcode(scanInput)} placeholder="Enter or scan barcode number" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
-                <button onClick={() => lookupBarcode(scanInput)} disabled={scanLoading || !scanInput.trim()} style={{ padding: "10px 16px", background: T.carb, color: "#000", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{scanLoading ? "..." : "Look Up"}</button>
+                <button onClick={() => lookupBarcode(scanInput)} disabled={scanLoading || !scanInput.trim()} style={{ padding: "10px 16px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{scanLoading ? "..." : "Look Up"}</button>
               </div>
               {scanResult && (
                 <div style={{ marginTop: 10, padding: "12px", background: T.s1, borderRadius: 8 }}>
@@ -594,7 +594,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
           {tab === "quick" && (
             <div>
               <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-                {[["protein", "🥩 Protein", T.prot], ["carbs", "🍚 Carbs", T.carb], ["fat", "🥑 Fat", T.fat]].map(([k, l, c]) => (
+                {[["protein", "Protein", T.prot], ["carbs", "Carbs", T.carb], ["fat", "Fat", T.fat]].map(([k, l, c]) => (
                   <button key={k} onClick={() => setQuickCategory(quickCategory === k ? null : k)} style={{ flex: 1, padding: "10px 4px", background: quickCategory === k ? `${c}18` : "none", border: `1.5px solid ${quickCategory === k ? c : T.bd}`, borderRadius: 10, cursor: "pointer", color: quickCategory === k ? c : T.mu, fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{l}</button>
                 ))}
               </div>
@@ -633,7 +633,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                           <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
                           <div style={{ fontSize: 10, color: T.mu }}>{r.calories_per_serving} kcal · <span style={{ color: T.prot }}>P {r.protein_per_serving}g</span> · <span style={{ color: T.carb }}>C {r.carbs_per_serving}g</span> · <span style={{ color: T.fat }}>F {r.fat_per_serving}g</span> per serving</div>
                         </div>
-                        {r.category && <span style={{ fontSize: 9, background: `${T.carb}18`, color: T.carb, borderRadius: 5, padding: "2px 7px", flexShrink: 0, marginLeft: 8 }}>{r.category}</span>}
+                        {r.category && <span style={{ fontSize: 9, fontFamily: "var(--mono)", background: "rgba(245,245,240,.06)", color: "rgba(245,245,240,.4)", borderRadius: 5, padding: "2px 7px", flexShrink: 0, marginLeft: 8, letterSpacing: ".06em", textTransform: "uppercase" }}>{r.category}</span>}
                       </div>
                       <button onClick={() => setQlRecipeLogging(r)} style={{ width: "100%", padding: "10px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Log →</button>
                     </div>
@@ -797,20 +797,22 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
   return (
     <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px",marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(74,144,226,0.9)",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
+        <div style={{fontFamily:"var(--condensed)",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,color:T.carb,fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
       </div>
 
       {/* 8-drop visual */}
       <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:12}}>
         {Array.from({length:drops}).map((_,i)=>(
-          <div key={i} style={{fontSize:22,filter:i<filledDrops?"none":"grayscale(1) opacity(0.2)",transition:"filter 0.3s"}}>💧</div>
+          <div key={i} style={{width:16,height:20,transition:"opacity 0.3s",opacity:i<filledDrops?1:0.15}}>
+            <svg width="16" height="20" viewBox="0 0 16 20" fill={T.carb}><path d="M8 2C6 5 2 9 2 13a6 6 0 0012 0C14 9 10 5 8 2z"/></svg>
+          </div>
         ))}
       </div>
 
       {/* Progress bar */}
       <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden",marginBottom:14}}>
-        <div style={{height:"100%",width:`${pct*100}%`,background:T.carb,borderRadius:2,transition:"width 0.4s ease"}}/>
+        <div style={{height:"100%",width:`${pct*100}%`,background:`linear-gradient(90deg,${T.carb},rgba(96,165,250,.6))`,borderRadius:2,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
       </div>
 
       {/* Quick-add buttons */}
@@ -823,8 +825,8 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
       {showCustom&&(
         <div style={{display:"flex",gap:8,marginBottom:10}}>
           <input type="number" value={customOz} onChange={e=>setCustomOz(e.target.value)} placeholder="oz" min={1} max={128}
-            style={{flex:1,background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"'DM Mono',monospace",outline:"none"}}/>
-          <button onClick={handleCustom} style={{padding:"8px 18px",background:T.carb,border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
+            style={{flex:1,background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"var(--mono)",outline:"none"}}/>
+          <button onClick={handleCustom} style={{padding:"8px 18px",background:T.prot,border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
         </div>
       )}
 
@@ -834,14 +836,14 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
           {lastFive.map(log=>(
             <div key={log.id} onPointerDown={()=>startPress(log.id)} onPointerUp={()=>endPress()} onPointerLeave={()=>endPress()}
               style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(245,245,240,0.04)",borderRadius:8,position:"relative"}}>
-              <div style={{fontSize:11,color:"rgba(245,245,240,0.5)",fontFamily:"'DM Mono',monospace"}}>
+              <div style={{fontSize:11,color:"rgba(245,245,240,0.5)",fontFamily:"var(--mono)"}}>
                 {new Date(log.logged_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
               </div>
-              <div style={{fontSize:11,color:"rgba(74,144,226,0.9)",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>+{log.amount_oz} oz</div>
+              <div style={{fontSize:11,color:T.carb,fontWeight:700,fontFamily:"var(--mono)"}}>+{log.amount_oz} oz</div>
               {longPressId===log.id&&(
                 <div style={{position:"absolute",right:0,top:-2,zIndex:10,display:"flex",gap:6}}>
                   <button onClick={()=>{onDeleteWater(log.id);setLongPressId(null);}}
-                    style={{padding:"5px 10px",background:"#EF4444",border:"none",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+                    style={{padding:"5px 10px",background:T.prot,border:"none",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
                   <button onClick={()=>setLongPressId(null)}
                     style={{padding:"5px 10px",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:8,color:"rgba(245,245,240,0.5)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                 </div>
@@ -980,9 +982,9 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Serving size</div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:portionMode==="custom"?10:0}}>
               {smart.map((s,i)=>(
-                <button key={i} onClick={()=>{setPortionMode("smart");setPortionGrams(s.grams);}} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${portionMode==="smart"&&portionGrams===s.grams?T.carb:T.bd}`,background:portionMode==="smart"&&portionGrams===s.grams?`${T.carb}15`:"none",color:portionMode==="smart"&&portionGrams===s.grams?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s.label}</button>
+                <button key={i} onClick={()=>{setPortionMode("smart");setPortionGrams(s.grams);}} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${portionMode==="smart"&&portionGrams===s.grams?T.prot:T.bd}`,background:portionMode==="smart"&&portionGrams===s.grams?`${T.prot}15`:"none",color:portionMode==="smart"&&portionGrams===s.grams?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s.label}</button>
               ))}
-              <button onClick={()=>setPortionMode("custom")} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${portionMode==="custom"?T.carb:T.bd}`,background:portionMode==="custom"?`${T.carb}15`:"none",color:portionMode==="custom"?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Custom (g)</button>
+              <button onClick={()=>setPortionMode("custom")} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${portionMode==="custom"?T.prot:T.bd}`,background:portionMode==="custom"?`${T.prot}15`:"none",color:portionMode==="custom"?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Custom (g)</button>
             </div>
             {portionMode==="custom"&&<input type="number" value={customPortionInput} onChange={e=>setCustomPortionInput(e.target.value)} placeholder="Enter grams" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginTop:6,marginBottom:0}}/>}
           </>}
@@ -995,7 +997,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Log to meal</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {mealSlots.map((slot,i)=>(
-              <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.carb:T.bd}`,background:activeSlotIdx===i?`${T.carb}15`:"none",color:activeSlotIdx===i?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
+              <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.prot:T.bd}`,background:activeSlotIdx===i?`${T.prot}15`:"none",color:activeSlotIdx===i?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
             ))}
           </div>
         </div>
@@ -1010,7 +1012,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
         <button onClick={()=>setShowCustomForm(false)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,padding:"0 0 16px",fontFamily:"inherit"}}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>Back to search
         </button>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,marginBottom:16}}>CUSTOM FOOD</div>
+        <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,marginBottom:16}}>CUSTOM FOOD</div>
         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:16,padding:"20px",marginBottom:16}}>
           {[["Food name","text","name","e.g. Homemade oats",true],["Brand (optional)","text","brand","e.g. My Kitchen",false],["Calories (kcal)","number","calories","0",true],["Protein (g)","number","protein","0",false],["Carbs (g)","number","carbs","0",false],["Fat (g)","number","fat","0",false],["Serving size","number","serving_size","100",false],["Serving unit","text","serving_unit","g",false]].map(([label,type,key,ph,req])=>(
             <div key={key} style={{marginBottom:12}}>
@@ -1057,7 +1059,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       )}
       {!query&&recentFoods.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Recent</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Recent</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {recentFoods.slice(0,5).map((f,i)=>(
               <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit"}}>
@@ -1070,7 +1072,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       )}
       {!query&&frequentFoods.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Most Used</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Most Used</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {frequentFoods.slice(0,8).map((f,i)=>(
               <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"7px 13px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:20,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>{f.food_name}</button>
@@ -1080,9 +1082,9 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       )}
       {!query&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Quick Add</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Quick Add</div>
           <div style={{display:"flex",gap:6,marginBottom:quickCategory?10:0}}>
-            {[["protein","🥩 Protein",T.prot],["carbs","🍚 Carbs",T.carb],["fat","🥑 Fat",T.fat]].map(([k,l,c])=>(
+            {[["protein","Protein",T.prot],["carbs","Carbs",T.carb],["fat","Fat",T.fat]].map(([k,l,c])=>(
               <button key={k} onClick={()=>setQuickCategory(quickCategory===k?null:k)} style={{flex:1,padding:"10px 4px",background:quickCategory===k?`${c}18`:"none",border:`1.5px solid ${quickCategory===k?c:T.bd}`,borderRadius:10,cursor:"pointer",color:quickCategory===k?c:T.mu,fontSize:12,fontWeight:700,fontFamily:"inherit"}}>{l}</button>
             ))}
           </div>
@@ -1105,7 +1107,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       {!query&&(
         <div style={{marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>My Foods</div>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>My Foods</div>
             <button onClick={()=>setShowCustomForm(true)} style={{display:"flex",alignItems:"center",gap:4,background:"none",border:`1px solid rgba(232,52,28,0.4)`,borderRadius:6,padding:"3px 10px",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
               <svg width={10} height={10} viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={T.prot} strokeWidth={2.2} strokeLinecap="round"/></svg>New
             </button>
@@ -1144,7 +1146,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
                 ))}
               </div>
               {myFoods.length>6&&(
-                <button onClick={()=>setMyFoodsExpanded(e=>!e)} style={{width:"100%",marginTop:6,padding:"8px",background:"none",border:"none",color:T.mu,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                <button onClick={()=>setMyFoodsExpanded(e=>!e)} style={{width:"100%",marginTop:6,padding:"8px",background:"none",border:"none",color:T.mu,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"0.1em",textTransform:"uppercase"}}>
                   {myFoodsExpanded?`Show fewer`:`View all ${myFoods.length} foods`}
                 </button>
               )}
@@ -1581,6 +1583,17 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── HOME ── */}
         {fuelScreen==="home"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* VIEW TOGGLE — Macro Ring / Body Budget */}
+            <div style={{display:"flex",gap:2,background:"rgba(255,255,255,.04)",borderRadius:10,padding:2,alignSelf:"flex-start"}}>
+              {[["ring","Macro Ring"],["budget","Body Budget"]].map(([id,label])=>(
+                <button key={id} onClick={()=>{const wp={...wPrefs,fuelView:id};setWPrefs(wp);saveSettings(wp,null);}}
+                  style={{padding:"7px 16px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",transition:"all 0.15s",
+                  background:(id==="ring"?!useBudgetView:useBudgetView)?"var(--navy-light)":"transparent",
+                  color:(id==="ring"?!useBudgetView:useBudgetView)?"#fff":"rgba(245,245,240,.4)"}}>
+                  {label}
+                </button>
+              ))}
+            </div>
             {/* MAIN CARD — ring + macros */}
             {/* BODY BUDGET or MACRO RING */}
             {useBudgetView?(
@@ -1588,7 +1601,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                   <div>
                     <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>TODAY'S BODY BUDGET</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,lineHeight:1}}>🏦 {macros.calories.toLocaleString()} kcal</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:24,fontWeight:900,lineHeight:1}}>{macros.calories.toLocaleString()} kcal</div>
                   </div>
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:10,color:T.mu,letterSpacing:2,textTransform:"uppercase",marginBottom:2}}>Starting</div>
@@ -1598,9 +1611,9 @@ Reply with ONLY a valid JSON object, no markdown:
                 {/* Ledger */}
                 <div style={{display:"flex",flexDirection:"column",gap:1,marginBottom:14}}>
                   {todayActs.filter(a=>a.calories>0).map((a,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(0,201,167,0.07)",borderRadius:8,border:"1px solid rgba(0,201,167,0.15)"}}>
-                      <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>{a.icon||"🏃"} {a.title||a.type} earned</span>
-                      <span style={{fontSize:14,fontWeight:700,color:"#00C9A7"}}>+{a.calories} kcal</span>
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(52,211,153,0.07)",borderRadius:8,border:"1px solid rgba(52,211,153,0.15)"}}>
+                      <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>{a.title||a.type} earned</span>
+                      <span style={{fontSize:14,fontWeight:700,color:T.green}}>+{a.calories} kcal</span>
                     </div>
                   ))}
                   {log.length===0&&<div style={{padding:"12px",border:`1px dashed ${T.bd}`,borderRadius:8,textAlign:"center",color:T.mu,fontSize:12}}>No meals logged yet</div>}
@@ -1616,7 +1629,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
                   <div>
                     <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>Remaining</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:isMobile?40:48,fontWeight:900,color:remaining.calories<0?"#FF4D6D":T.prot,lineHeight:1}}>{remaining.calories.toLocaleString()}</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:isMobile?40:48,fontWeight:900,color:remaining.calories<0?T.prot:"#fff",lineHeight:1}}>{remaining.calories.toLocaleString()}</div>
                     <div style={{fontSize:11,color:T.mu,marginTop:2}}>kcal · {remaining.protein}g protein still needed</div>
                   </div>
                   <div style={{textAlign:"right"}}>
@@ -1641,20 +1654,20 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${macros.isFlexDay?"#F59E0B":cfg.color}10,transparent 70%)`,pointerEvents:"none"}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                   <div>
-                    <div style={{fontSize:10,color:macros.isFlexDay?"#F59E0B":(dayNutrition?.color||T.mu),fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{macros.isFlexDay?"Flex Day":(dayNutrition?.label||todayType+" day")}</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>Fuel {macros.isFlexDay?"🍕":cfg.emoji}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// {macros.isFlexDay?"Flex Day":(dayNutrition?.label||todayType+" day")}</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:28,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>Fuel</div>
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                    {earnedCals>0&&<div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>+{earnedCals} earned 🔥</div>}
-                    {macros.isFlexDay&&<div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontSize:11,color:"#F59E0B",fontWeight:700}}>🍕 Flex Day</div>}
-                    <div style={{background:`${cfg.color}12`,border:`1px solid ${cfg.color}30`,borderRadius:20,padding:"6px 14px",fontSize:11,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
+                    {earnedCals>0&&<div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"6px 14px",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.08em"}}>+{earnedCals} earned</div>}
+                    {macros.isFlexDay&&<div style={{background:"rgba(245,158,11,.15)",border:"1px solid rgba(245,158,11,.35)",borderRadius:20,padding:"6px 14px",fontFamily:"var(--mono)",fontSize:10,color:"var(--amber)",fontWeight:700,letterSpacing:"0.06em"}}>Flex Day</div>}
+                    <div style={{background:`${T.prot}12`,border:`1px solid ${T.prot}30`,borderRadius:20,padding:"6px 14px",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase"}}>{todayFocus}</div>
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:isMobile?16:32}}>
                   <div style={{position:"relative",flexShrink:0}}>
                     <MacroRing protein={consumed.protein} carbs={consumed.carbs} fat={consumed.fat} pTarget={macros.protein} cTarget={macros.carbs} fTarget={macros.fat} size={isMobile?150:180} sw={13}/>
                     <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center",pointerEvents:"none"}}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:isMobile?34:40,lineHeight:1,color:remaining.calories<0?"#FF4D6D":"#fff"}}>{remaining.calories}</div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:isMobile?34:40,lineHeight:1,color:remaining.calories<0?T.prot:"#fff"}}>{remaining.calories}</div>
                       <div style={{color:T.mu,fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginTop:2}}>kcal left</div>
                       <div style={{color:T.mu,fontSize:9,marginTop:3}}>{macros.calories} budget</div>
                     </div>
@@ -1664,7 +1677,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       {[["Budget",macros.calories,"#fff"],["Eaten",consumed.calories,cfg.color]].map(([l,v,c])=>(
                         <div key={l} style={{background:T.s2,borderRadius:12,padding:"10px 14px"}}>
                           <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{l}</div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
+                          <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
                           <div style={{fontSize:9,color:T.mu,marginTop:2}}>kcal</div>
                         </div>
                       ))}
@@ -1672,8 +1685,8 @@ Reply with ONLY a valid JSON object, no markdown:
                     <MacroBar label="Protein" consumed={consumed.protein} target={macros.protein} color={T.prot}/>
                     <MacroBar label="Carbs"   consumed={consumed.carbs}   target={macros.carbs}   color={T.carb}/>
                     <MacroBar label="Fat"     consumed={consumed.fat}     target={macros.fat}     color={T.fat}/>
-                    {macros.isFlexDay&&<div style={{marginTop:10,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>🍕 Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
-                    {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:10,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days 🍕</div>}
+                    {macros.isFlexDay&&<div style={{marginTop:10,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
+                    {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:10,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days</div>}
                   </div>
                 </div>
               </div>
@@ -1714,19 +1727,19 @@ Reply with ONLY a valid JSON object, no markdown:
                       <div style={{padding:"14px 0",borderBottom:`1px solid rgba(255,255,255,.05)`,display:"flex",flexDirection:"column",gap:10}}>
                         {dayNutrition.preFuel&&(
                           <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>⏰</span>
+                            <div style={{width:4,height:4,borderRadius:"50%",background:T.prot,flexShrink:0,marginTop:5}}/>
                             <div><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>Pre-Workout</div><div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{dayNutrition.preFuel}</div></div>
                           </div>
                         )}
                         {dayNutrition.duringFuel&&(
                           <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>🏃</span>
+                            <div style={{width:4,height:4,borderRadius:"50%",background:T.fat,flexShrink:0,marginTop:5}}/>
                             <div><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>During</div><div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{dayNutrition.duringFuel}</div></div>
                           </div>
                         )}
                         {dayNutrition.postFuel&&(
                           <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                            <span style={{fontSize:14,flexShrink:0,marginTop:1}}>✅</span>
+                            <div style={{width:4,height:4,borderRadius:"50%",background:T.green,flexShrink:0,marginTop:5}}/>
                             <div><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>Post-Workout</div><div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{dayNutrition.postFuel}</div></div>
                           </div>
                         )}
@@ -1740,7 +1753,7 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div style={{display:"flex",flexDirection:"column",gap:0}}>
                           {dayNutrition.timingSlots.map((slot,i)=>(
                             <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"8px 0",borderBottom:i<dayNutrition.timingSlots.length-1?"1px solid rgba(255,255,255,.04)":"none"}}>
-                              <div style={{width:60,flexShrink:0,fontFamily:"'DM Mono',monospace",fontSize:9,color:dayNutrition.color||T.prot,fontWeight:700,paddingTop:2}}>{slot.t}</div>
+                              <div style={{width:60,flexShrink:0,fontFamily:"var(--mono)",fontSize:9,color:dayNutrition.color||T.prot,fontWeight:700,paddingTop:2}}>{slot.t}</div>
                               <div style={{fontSize:12,color:"rgba(245,245,240,.7)",lineHeight:1.5}}>{slot.m}</div>
                             </div>
                           ))}
@@ -1762,16 +1775,18 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* NUTRITION PERIODIZATION */}
             {periodizationInfo&&(
-              <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:14}}>
-                <div style={{flexShrink:0,fontSize:22,marginTop:2}}>📅</div>
-                <div style={{flex:1}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                    <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>WEEK {periodizationInfo.cycleWeek} — {periodizationInfo.phase.toUpperCase()}</div>
-                    <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontFamily:"'DM Mono',monospace"}}>WEEKS {periodizationInfo.wks}</div>
+              <div style={{background:"linear-gradient(135deg, rgba(232,52,28,0.08), var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:16,padding:"14px 18px"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// Nutrition Periodization</div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:"var(--red)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Week {periodizationInfo.cycleWeek} — {periodizationInfo.phase}</div>
+                  <div style={{display:"flex",gap:3}}>
+                    {Array.from({length:8}).map((_,i)=>(
+                      <div key={i} style={{width:6,height:6,borderRadius:"50%",background:i<(periodizationInfo.cycleWeek||1)?"var(--red)":"rgba(245,245,240,0.12)",flexShrink:0}}/>
+                    ))}
                   </div>
-                  <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.5}}>{periodizationInfo.note}</div>
-                  <div style={{fontSize:11,color:"rgba(245,245,240,.4)",marginTop:4}}>Your nutrition cycles with your training.</div>
                 </div>
+                <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.55}}>{periodizationInfo.note}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,.35)",marginTop:6,letterSpacing:"0.1em"}}>WEEKS {periodizationInfo.wks}</div>
               </div>
             )}
 
@@ -1800,14 +1815,11 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* PCOS NUTRITION NOTE (Part 7) */}
             {(profile?.cycleCondition||[]).includes("pcos")&&(
-              <div style={{background:"rgba(139,92,246,.08)",border:"1.5px solid rgba(139,92,246,.25)",borderRadius:14,padding:"12px 16px",display:"flex",gap:12,alignItems:"flex-start"}}>
-                <div style={{fontSize:18,flexShrink:0}}>💜</div>
-                <div>
-                  <div style={{fontSize:10,color:"#8B5CF6",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>PCOS NUTRITION</div>
-                  <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:8}}>{PCOS_NOTE}</div>
-                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                    {PCOS_FOODS.map(f=><span key={f} style={{fontSize:10,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:5,padding:"2px 7px"}}>{f}</span>)}
-                  </div>
+              <div style={{background:"rgba(245,158,11,.06)",border:"1.5px solid rgba(245,158,11,.25)",borderRadius:14,padding:"12px 16px"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>// PCOS NUTRITION</div>
+                <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:8}}>{PCOS_NOTE}</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {PCOS_FOODS.map(f=><span key={f} style={{fontSize:10,fontWeight:700,background:"rgba(245,158,11,.12)",color:"var(--amber)",borderRadius:5,padding:"2px 7px"}}>{f}</span>)}
                 </div>
               </div>
             )}
@@ -1816,23 +1828,22 @@ Reply with ONLY a valid JSON object, no markdown:
             {(profile?.lifeStage==="perimenopause"||profile?.lifeStage==="menopause")&&(()=>{
               const mn=profile.lifeStage==="menopause"?MENO_NUTRITION:PERI_NUTRITION;
               return(
-                <div style={{background:"rgba(34,197,94,.07)",border:"1.5px solid rgba(34,197,94,.25)",borderRadius:14,padding:"14px 18px"}}>
-                  <div style={{fontSize:10,color:"#22C55E",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>
-                    {profile.lifeStage==="menopause"?"🦋 MENOPAUSE NUTRITION":"🌊 PERIMENOPAUSE NUTRITION"}
+                <div style={{background:"rgba(52,211,153,.06)",border:"1.5px solid rgba(52,211,153,.2)",borderRadius:14,padding:"14px 18px"}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>
+                    {profile.lifeStage==="menopause"?"// MENOPAUSE NUTRITION":"// PERIMENOPAUSE NUTRITION"}
                   </div>
                   <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:10}}>{mn.note}</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     <div>
-                      <div style={{fontSize:9,color:"#22C55E",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Calcium sources</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Calcium sources</div>
                       {mn.calcium.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                     <div>
-                      <div style={{fontSize:9,color:"#22C55E",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Omega-3 sources</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Omega-3 sources</div>
                       {mn.omega3.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                   </div>
                   <div style={{background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
-                    <span style={{fontSize:12,flexShrink:0}}>ℹ️</span>
                     <div><div style={{fontSize:11,color:"var(--white-dim)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"var(--red)",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </div>
@@ -1844,10 +1855,10 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
+                    <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
                     <div style={{fontSize:11,color:T.mu,marginTop:2}}>Based on your {new Date().toLocaleDateString("en-US",{weekday:"long"})} patterns</div>
                   </div>
-                  {memoryLoggedMsg&&<div style={{fontSize:11,color:T.carb,fontWeight:700}}>{memoryLoggedMsg}</div>}
+                  {memoryLoggedMsg&&<div style={{fontSize:11,color:T.green,fontWeight:700}}>{memoryLoggedMsg}</div>}
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).map(({count,data})=>(
@@ -1866,11 +1877,29 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             )}
 
+            {/* COACH SUGGESTS */}
+            {remaining.calories>200&&(
+              <div style={{background:"linear-gradient(135deg,rgba(232,52,28,0.12),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.3)",borderRadius:16,padding:"16px 18px"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Coach Suggests</div>
+                {bodySuggest
+                  ?(<div style={{fontStyle:"italic",fontSize:13,color:"rgba(245,245,240,.85)",lineHeight:1.65,marginBottom:12}}>"{bodySuggest}"</div>)
+                  :(<div style={{marginBottom:12}}>
+                      <div style={{fontSize:13,color:"rgba(245,245,240,.6)",lineHeight:1.55,marginBottom:8}}>You have {remaining.calories} kcal · {remaining.protein}g protein left. Get a smart suggestion for your next meal.</div>
+                      <button onClick={fetchBodySuggest} disabled={bodySuggestLoading} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.1em",padding:0}}>{bodySuggestLoading?"Getting suggestion...":"Get AI suggestion →"}</button>
+                    </div>)
+                }
+                <div style={{display:"flex",gap:8}}>
+                  {bodySuggest&&<button onClick={()=>setFuelScreen("log")} style={{flex:2,padding:"11px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:700,fontSize:13,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer"}}>Log It</button>}
+                  <button onClick={()=>setFuelScreen("recs")} style={{flex:1,padding:"11px",background:"none",color:"rgba(245,245,240,.5)",border:"1px solid rgba(245,245,240,.12)",borderRadius:10,fontFamily:"inherit",fontSize:12,cursor:"pointer"}}>Eating Out</button>
+                </div>
+              </div>
+            )}
+
             {/* WEEKEND FLEX MODE */}
             <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.3)":T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:flexOn?14:0}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:800,letterSpacing:"0.08em",color:flexOn?"#F59E0B":"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:flexOn?3:0}}>Weekend Flex 🍕</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:14,fontWeight:900,letterSpacing:"0.08em",color:flexOn?"var(--amber)":"rgba(245,245,240,0.65)",textTransform:"uppercase",marginBottom:flexOn?3:0}}>Weekend Flex</div>
                   {flexOn&&<div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Weekday deficit covers weekend. Protein stays fixed.</div>}
                 </div>
                 <div onClick={()=>saveFlexPrefs({...(wPrefs||{}),weekendFlexMode:!flexOn,flexDays:!flexOn?["Sat","Sun"]:flexDays,flexCalorieIncrease:flexPct})}
@@ -1884,12 +1913,13 @@ Reply with ONLY a valid JSON object, no markdown:
                     const isToday=day===todayKey;
                     const isFlex=flexDays.includes(day);
                     const schedType=schedule?.[day]||"rest";
-                    const dayIcon=isFlex?"🍕":schedType==="training"?"🏋️":(schedType==="cardio"||schedType==="run"||schedType==="hyrox")?"🏃":"😴";
+                    const dayColor=isToday?"var(--red)":isFlex?"var(--amber)":"rgba(245,245,240,.4)";
+                    const dayLabel=isFlex?"F":schedType==="training"?"T":(schedType==="cardio"||schedType==="run"||schedType==="hyrox")?"R":"—";
                     return(
                       <button key={day} onClick={()=>setDayModal(day)}
                         style={{background:isToday?"rgba(232,52,28,.12)":isFlex?"rgba(245,158,11,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(232,52,28,.5)":isFlex?"rgba(245,158,11,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
-                        <div style={{fontSize:9,fontWeight:700,color:isToday?"var(--red)":isFlex?"#F59E0B":"rgba(245,245,240,.4)",marginBottom:3,letterSpacing:1}}>{day}</div>
-                        <div style={{fontSize:14}}>{dayIcon}</div>
+                        <div style={{fontSize:9,fontWeight:700,color:dayColor,marginBottom:3,letterSpacing:1}}>{day}</div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:dayColor}}>{dayLabel}</div>
                       </button>
                     );
                   })}
@@ -1903,16 +1933,16 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
                   <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
                   <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>DAY SETTINGS</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,marginBottom:20}}>{DAY_NAMES[dayModal]||dayModal}</div>
+                  <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,marginBottom:20}}>{DAY_NAMES[dayModal]||dayModal}</div>
                   <div style={{display:"flex",gap:8,marginBottom:24}}>
-                    {[["🏋️","Training","training"],["😴","Rest","rest"],["🍕","Flex","flex"]].map(([emoji,label,type])=>{
+                    {[["T","Training","training"],["—","Rest","rest"],["F","Flex","flex"]].map(([abbr,label,type])=>{
                       const isFlex=type==="flex";
                       const isSelected=isFlex?flexDays.includes(dayModal):(!flexDays.includes(dayModal)&&(schedule?.[dayModal]||"rest")===type);
                       return(
                         <button key={type} onClick={()=>{if(type==="flex")toggleFlexDay(dayModal);else setDayTypeInSchedule(dayModal,type);setDayModal(null);}}
                           style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,158,11,.15)":"rgba(232,52,28,.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,158,11,.5)":"rgba(232,52,28,.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
-                          <div style={{fontSize:22,marginBottom:4}}>{emoji}</div>
-                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"#F59E0B":"var(--red)"):"rgba(245,245,240,.5)"}}>{label}</div>
+                          <div style={{fontFamily:"var(--mono)",fontSize:16,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--red)"):"rgba(245,245,240,.25)",marginBottom:4}}>{abbr}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--red)"):"rgba(245,245,240,.5)"}}>{label}</div>
                         </button>
                       );
                     })}
@@ -1929,34 +1959,33 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* QUICK ACTIONS */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-              {[["+ Food",()=>setShowQuickLog(true),T.prot,"⚡"],["Restaurants",()=>setFuelScreen("recs"),T.carb,"🍗"],["Recipes",()=>setFuelScreen("recipes"),T.fat,"👨‍🍳"],["Fasting",()=>setFuelScreen("fast"),"#7E57C2","⏱️"]].map(([l,fn,c,e])=>(
-                <button key={l} onClick={fn} style={{padding:"14px 6px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"inherit",textAlign:"center",transition:"all .15s"}}>
-                  <div style={{fontSize:20,marginBottom:4}}>{e}</div>
-                  <div style={{color:c,fontSize:10,fontWeight:700}}>{l}</div>
+              {[["+ Food",()=>setShowQuickLog(true),T.prot],["Restaurants",()=>setFuelScreen("recs"),T.prot],["Recipes",()=>setFuelScreen("recipes"),T.fat],["Fasting",()=>setFuelScreen("fast"),T.fat]].map(([l,fn,c])=>(
+                <button key={l} onClick={fn} style={{padding:"14px 6px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"var(--mono)",textAlign:"center",transition:"all .15s"}}>
+                  <div style={{color:c,fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>{l}</div>
                 </button>
               ))}
             </div>
 
             {/* RESTAURANT AI CARD */}
             <button onClick={()=>setFuelScreen("recs")} style={{width:"100%",background:"linear-gradient(135deg,rgba(232,52,28,0.18),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
-              <div style={{fontSize:36,flexShrink:0}}>🍗</div>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Restaurant AI</div>
-                <div style={{fontSize:12,color:T.mu,lineHeight:1.5}}>Find exact orders at nearby restaurants to hit your remaining macros</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// Restaurant AI</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",marginBottom:4}}>Order smart</div>
+                <div style={{fontSize:12,color:T.mu,lineHeight:1.5}}>Find exact orders to hit your remaining macros</div>
               </div>
-              <div style={{color:T.carb,flexShrink:0}}>
+              <div style={{color:T.prot,flexShrink:0}}>
                 <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
               </div>
             </button>
 
             {/* MEAL PREP CARD */}
-            <button onClick={()=>setFuelScreen("prep")} style={{width:"100%",background:"linear-gradient(135deg,rgba(126,87,194,0.12),rgba(126,87,194,0.04))",border:"1px solid rgba(126,87,194,0.25)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
-              <div style={{fontSize:36,flexShrink:0}}>🥡</div>
+            <button onClick={()=>setFuelScreen("prep")} style={{width:"100%",background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Meal Prep Planner</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// Meal Prep</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",marginBottom:4}}>Weekly Prep</div>
                 <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{prepPlan?"View your weekly prep plan · proteins, carbs, veggies + grocery list":"Generate your weekly meal prep plan based on your training schedule"}</div>
               </div>
-              <div style={{color:"#7E57C2",flexShrink:0}}>
+              <div style={{color:"var(--amber)",flexShrink:0}}>
                 <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
               </div>
             </button>
@@ -1976,14 +2005,14 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* FOOD LOG — grouped by meal slots */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Today&apos;s Log</div>
+                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)"}}>Today&apos;s Log</div>
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
-                  <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
+                  <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
+                  <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
                 </div>
               </div>
               {log.length===0
-                ?<EmptyState icon="🍽️" title="Nothing logged yet" subtitle="Describe a meal, scan a barcode, or use the restaurant finder" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
+                ?<EmptyState icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(245,245,240,.2)" strokeWidth="1.5"/><path d="M8 12h8M12 8v8" stroke="rgba(245,245,240,.3)" strokeWidth="1.5" strokeLinecap="round"/></svg>} title="Nothing logged yet" subtitle="Describe a meal, scan a barcode, or use the restaurant finder" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
                 :<div>
                   {mealSlots.map((slot,si)=>{
                     const slotItems=log.filter(e=>getEntrySlot(e)===slot);
@@ -1994,10 +2023,10 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                           {editingSlot===si
                             ?<input autoFocus defaultValue={slot} onBlur={e=>renameSlot(si,e.target.value||slot)} onKeyDown={e=>{if(e.key==="Enter")renameSlot(si,e.target.value||slot);if(e.key==="Escape")setEditingSlot(null);}} style={{background:"none",border:`1px solid ${T.prot}`,borderRadius:6,padding:"2px 8px",color:"#fff",fontSize:11,fontWeight:700,fontFamily:"inherit",outline:"none",width:120}}/>
-                            :<button onClick={()=>setEditingSlot(si)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:10,fontWeight:700,color:T.mu,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{slot} ✎</button>
+                            :<button onClick={()=>setEditingSlot(si)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:10,fontWeight:700,color:T.mu,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>{slot} ✎</button>
                           }
                           <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
-                          <div style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{slotCals} kcal</div>
+                          <div style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)"}}>{slotCals} kcal</div>
                           {mealSlots.length>1&&<button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>}
                         </div>
                         {slotItems.map((item,i)=>(
@@ -2024,14 +2053,14 @@ Reply with ONLY a valid JSON object, no markdown:
                                 </div>
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
-                                  <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"'DM Mono',monospace"}}>
+                                  <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"var(--mono)"}}>
                                     <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
                                   </div>
                                 </div>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                                 <div style={{textAlign:"right"}}>
-                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
+                                  <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
                                   <div style={{fontSize:9,color:T.mu}}>kcal</div>
                                 </div>
                                 <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
@@ -2047,7 +2076,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
                       <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
                       <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13}}>{item.calories} kcal</div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:13}}>{item.calories} kcal</div>
                         <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                       </div>
                     </div>
@@ -2060,7 +2089,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {userRecipes.length>0&&(
               <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>My Recipes</div>
+                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)"}}>My Recipes</div>
                   <button onClick={()=>setFuelScreen("recipes")} style={{background:"none",border:"none",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>See All →</button>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -2082,10 +2111,10 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── LOG FOOD ── */}
         {fuelScreen==="log"&&(
           <div style={{maxWidth:isMobile?"100%":600}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
+            <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
             <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Search 1M+ foods or describe your meal with AI</p>
             {onOpenPhotoLogger&&(
-              <button onClick={onOpenPhotoLogger} style={{width:"100%",padding:"14px",borderRadius:14,background:`${T.brand}18`,border:`1.5px solid ${T.brand}50`,color:T.brand,fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              <button onClick={onOpenPhotoLogger} style={{width:"100%",padding:"14px",borderRadius:14,background:`${T.brand}18`,border:`1.5px solid ${T.brand}50`,color:T.brand,fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                 📷 SNAP &amp; LOG — Point camera at your plate
               </button>
             )}
@@ -2098,10 +2127,10 @@ Reply with ONLY a valid JSON object, no markdown:
             {logMode!=="search"&&<>
               {/* Meal slot selector */}
               <div style={{marginBottom:14}}>
-                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Log to meal</div>
+                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Log to meal</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {mealSlots.map((slot,i)=>(
-                    <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.carb:T.bd}`,background:activeSlotIdx===i?`${T.carb}15`:"none",color:activeSlotIdx===i?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
+                    <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.prot:T.bd}`,background:activeSlotIdx===i?`${T.prot}15`:"none",color:activeSlotIdx===i?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
                   ))}
                   <button onClick={addMealSlot} style={{padding:"7px 14px",borderRadius:20,border:`1.5px dashed ${T.bd}`,background:"none",color:"rgba(245,245,240,0.3)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Meal</button>
                 </div>
@@ -2150,17 +2179,17 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── RESTAURANTS ── */}
         {fuelScreen==="recs"&&(
           <div style={{maxWidth:isMobile?"100%":700}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:4}}>NEARBY EATS 🍗</div>
+            <div style={{fontFamily:"var(--condensed)",fontSize:36,fontWeight:900,marginBottom:4}}>NEARBY EATS 🍗</div>
             <p style={{fontSize:13,color:T.mu,marginBottom:16}}>AI finds exact orders at real restaurants to hit your remaining macros</p>
 
             {/* Remaining macros strip */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
               <div>
-                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:4}}>Remaining today</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:4}}>Remaining today</div>
                 <div style={{display:"flex",gap:20}}>
                   {[["kcal",remaining.calories,"#fff"],["protein",`${remaining.protein}g`,T.prot],["carbs",`${remaining.carbs}g`,T.carb],["fat",`${remaining.fat}g`,T.fat]].map(([l,v,c])=>(
                     <div key={l}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,color:c,lineHeight:1}}>{v}</div>
                       <div style={{fontSize:9,color:T.mu,marginTop:2}}>{l}</div>
                     </div>
                   ))}
@@ -2170,7 +2199,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* City input */}
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Your City</div>
+              <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:7}}>Your City</div>
               <div style={{display:"flex",gap:8}}>
                 <input value={city} onChange={e=>setCity(e.target.value)} placeholder="e.g. Miami FL, Austin TX…" style={{flex:1,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
                 <button onClick={fetchRecs} disabled={recsLoading||!city.trim()} style={{padding:"12px 20px",background:recsLoading?T.s3:T.prot,color:recsLoading?T.mu:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:recsLoading?"default":"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
@@ -2215,8 +2244,8 @@ Reply with ONLY a valid JSON object, no markdown:
         {fuelScreen==="recipes"&&(
           <div style={{maxWidth:isMobile?"100%":700}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900}}>MY RECIPES</div>
-              <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
+              <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MY RECIPES</div>
+              <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
             </div>
             <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Save multi-ingredient recipes · log as a single tap</p>
 
@@ -2227,7 +2256,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>AI Recipe Ideas</div>
                 <div style={{fontSize:11,color:T.mu}}>Generate recipes for your remaining macros today</div>
               </div>
-              <div style={{color:T.carb,fontSize:11,fontWeight:700}}>{recipesLoading?"…":"Generate →"}</div>
+              <div style={{color:T.prot,fontSize:11,fontWeight:700}}>{recipesLoading?"…":"Generate →"}</div>
             </button>
 
             {/* AI result */}
@@ -2316,12 +2345,12 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div key={r.id} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                              <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                               <div style={{fontSize:11,color:T.mu}}>
                                 {ingCount} ingredient{ingCount!==1?"s":""}{totalGrams>0?` · ${totalGrams}g total`:""}
                               </div>
                             </div>
-                            {r.category&&<span style={{fontSize:9,background:`${T.carb}15`,color:T.carb,borderRadius:5,padding:"3px 8px",flexShrink:0,marginLeft:8,fontWeight:700}}>{r.category}</span>}
+                            {r.category&&<span style={{fontSize:9,background:"rgba(245,245,240,0.08)",color:"rgba(245,245,240,0.5)",borderRadius:5,padding:"3px 8px",flexShrink:0,marginLeft:8,fontWeight:700}}>{r.category}</span>}
                           </div>
                           {/* Macro bar */}
                           <div style={{height:5,borderRadius:3,overflow:"hidden",display:"flex",marginBottom:8,background:T.s3}}>
@@ -2337,7 +2366,7 @@ Reply with ONLY a valid JSON object, no markdown:
                           </div>
                           {daysSince!==null&&<div style={{fontSize:10,color:T.mu,marginBottom:12}}>Last made: {daysSince===0?"today":daysSince===1?"yesterday":`${daysSince}d ago`}</div>}
                           <div style={{display:"flex",gap:8}}>
-                            <button onClick={()=>setRecipeLogging(r)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.05em"}}>Log →</button>
+                            <button onClick={()=>setRecipeLogging(r)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.05em"}}>Log →</button>
                             <button onClick={()=>{setRecipeEditing(r);setShowRecipeBuilder(true);}} style={{padding:"11px 16px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
                             <button onClick={()=>setRecipeDeleteConfirm(r)} style={{padding:"11px",background:"none",border:`1px solid rgba(232,52,28,.3)`,borderRadius:10,color:"rgba(232,52,28,.6)",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
                               <svg width={14} height={14} viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -2357,7 +2386,7 @@ Reply with ONLY a valid JSON object, no markdown:
         {fuelScreen==="prep"&&(
           <div style={{maxWidth:isMobile?"100%":700}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900}}>MEAL PREP 🥡</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP 🥡</div>
               {prepPlan&&!prepLoading&&(
                 <button onClick={generatePrepPlan} style={{fontSize:11,color:"#7E57C2",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
               )}
@@ -2386,14 +2415,14 @@ Reply with ONLY a valid JSON object, no markdown:
 
                 {/* MEAL ASSIGNMENTS */}
                 <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:14}}>MEAL ASSIGNMENTS</div>
+                  <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:14}}>MEAL ASSIGNMENTS</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     {["training","rest"].map(type=>(
                       <div key={type} style={{background:T.s2,borderRadius:14,padding:"14px"}}>
-                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10,color:type==="training"?T.carb:"rgba(245,245,240,0.4)",fontFamily:"'DM Mono',monospace"}}>{type==="training"?"🏋️ TRAINING DAY":"😴 REST DAY"}</div>
+                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10,color:type==="training"?T.prot:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>{type==="training"?"// TRAINING DAY":"// REST DAY"}</div>
                         {Object.entries(prepPlan.mealAssignments?.[type]||{}).map(([meal,desc])=>(
                           <div key={meal} style={{marginBottom:8,paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                            <div style={{fontSize:9,color:type==="training"?"rgba(74,144,226,0.7)":"rgba(245,245,240,0.35)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:3}}>{meal}</div>
+                            <div style={{fontSize:9,color:type==="training"?"rgba(232,52,28,0.7)":"rgba(245,245,240,0.35)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:3}}>{meal}</div>
                             <div style={{fontSize:11,color:"rgba(245,245,240,0.75)",lineHeight:1.55}}>{desc}</div>
                           </div>
                         ))}
@@ -2407,14 +2436,14 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{background:T.s1,border:`1px solid rgba(232,52,28,0.2)`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🥩</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.prot,letterSpacing:.5}}>PROTEINS</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot,letterSpacing:.5}}>PROTEINS</div>
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       {prepPlan.proteins.map((item,i)=>(
                         <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                             <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:T.prot,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                            <div style={{fontSize:11,color:T.prot,fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
                           </div>
                           <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
                         </div>
@@ -2428,14 +2457,14 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🍚</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.carb,letterSpacing:.5}}>CARBS</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.carb,letterSpacing:.5}}>CARBS</div>
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       {prepPlan.carbs.map((item,i)=>(
                         <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                             <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:T.carb,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                            <div style={{fontSize:11,color:T.carb,fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
                           </div>
                           <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
                         </div>
@@ -2449,14 +2478,14 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{background:T.s1,border:"1px solid rgba(34,197,94,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🥦</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.green,letterSpacing:.5}}>VEGETABLES</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.green,letterSpacing:.5}}>VEGETABLES</div>
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       {prepPlan.vegetables.map((item,i)=>(
                         <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                             <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:T.green,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                            <div style={{fontSize:11,color:T.green,fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
                           </div>
                           <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
                         </div>
@@ -2470,14 +2499,14 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{background:T.s1,border:"1px solid rgba(126,87,194,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
                       <span style={{fontSize:20}}>🍎</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#7E57C2",letterSpacing:.5}}>SNACKS</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:"#7E57C2",letterSpacing:.5}}>SNACKS</div>
                     </div>
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       {prepPlan.snacks.map((item,i)=>(
                         <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                             <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:"#7E57C2",fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{item.amount}</div>
+                            <div style={{fontSize:11,color:"#7E57C2",fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
                           </div>
                           <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
                         </div>
@@ -2490,7 +2519,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 {prepPlan.grocery&&(
                   <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:groceryOpen?14:0}}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:.5}}>🛒 GROCERY LIST</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>🛒 GROCERY LIST</div>
                       <div style={{display:"flex",gap:8}}>
                         <button onClick={()=>{
                           const text=Object.entries(prepPlan.grocery).map(([cat,items])=>`${cat}:\n${items.map(i=>`  • ${i}`).join("\n")}`).join("\n\n");
@@ -2503,7 +2532,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       <div>
                         {Object.entries(prepPlan.grocery).map(([category,items])=>(
                           <div key={category} style={{marginBottom:16}}>
-                            <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>{category}</div>
+                            <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>{category}</div>
                             {(items||[]).map((item,i)=>{
                               const key=`${category}:${item}`;
                               const checked=groceryChecked.has(key);
@@ -2536,7 +2565,7 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── FASTING ── */}
         {fuelScreen==="fast"&&(
           <div style={{maxWidth:isMobile?"100%":560}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>FASTING</div>
+            <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>FASTING</div>
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Track your fasting window and eating schedule</p>
             <SectionCard title="Protocol">
               <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>
@@ -2544,7 +2573,7 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
               <div style={{fontSize:12,color:T.mu}}>{fastProto==="custom"?`${fastCustomH}h fast · ${24-fastCustomH}h eat`:FASTING_PROTOCOLS.find(p=>p.id===fastProto)?.desc}</div>
               {fastProto==="custom"&&<div style={{marginTop:12}}>
-                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:7}}>Fasting hours: {fastCustomH}h</div>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:7}}>Fasting hours: {fastCustomH}h</div>
                 <input type="range" min="12" max="23" value={fastCustomH} onChange={e=>{setFastCustomH(parseInt(e.target.value));hap();}} style={{width:"100%"}}/>
               </div>}
             </SectionCard>
@@ -2559,7 +2588,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {!fastActive?<PrimaryBtn onClick={()=>{setFastActive(true);setFastStart(Date.now());hap();}} label="Start Fasting →"/>
               :<div style={{display:"flex",gap:8}}>
                 <button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:1,padding:"14px",background:T.s2,color:T.red,fontWeight:700,fontSize:13,border:`1px solid ${T.red}30`,borderRadius:11,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>End Fast</button>
-                {eatOpen&&<button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:2,padding:"14px",background:T.green||T.green,color:"#000",fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Break Fast 🎉</button>}
+                {eatOpen&&<button onClick={()=>{setFastActive(false);setFastStart(null);}} style={{flex:2,padding:"14px",background:T.green||T.green,color:"#000",fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Break Fast 🎉</button>}
               </div>}
           </div>
         )}
