@@ -863,6 +863,11 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
     } else {
       nextLine = { text: `Next: ${lls.nextSetWeight || lls.weight} lbs × ${lls.nextSetReps || lls.targetReps} reps`, color: "rgba(245,245,240,0.55)" };
     }
+  } else if (lls.hitAllReps && parseFloat(lls.weight) > 0) {
+    const w = parseFloat(lls.weight);
+    const bump = w >= 95 ? 5 : 2.5;
+    const next = Math.round((w + bump) / 2.5) * 2.5;
+    nextLine = { text: `Try ${next} lbs next session · same reps`, color: T.green };
   }
 
   return (
@@ -912,7 +917,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
               {nextLine.text}
             </div>
           )}
-          {isLastSet && (
+          {isLastSet && !nextLine && (
             <div style={{marginTop:10,fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>
               Last set — great work
             </div>

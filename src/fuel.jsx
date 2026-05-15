@@ -13,7 +13,7 @@ import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITIO
 import {
   searchFoods, searchByBarcode, searchCustomFoods,
   saveFoodToHistory, getFrequentFoods, getRecentFoods,
-  saveCustomFood, getSmartServings, QUICK_FOODS,
+  saveCustomFood, getCustomFoods, getSmartServings, QUICK_FOODS,
   updateUsualPortion, getMealTemplates, saveMealTemplate, deleteMealTemplate, incrementTemplateUse,
   getUserRecipes, saveUserRecipe, updateUserRecipe, deleteUserRecipe, incrementRecipeUse,
   addWaterLog, deleteWaterLog,
@@ -869,11 +869,13 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   const [quickCategory,setQuickCategory]=useState(null);
   const [showCustomForm,setShowCustomForm]=useState(false);
   const [customFood,setCustomFood]=useState({name:"",brand:"",calories:"",protein:"",carbs:"",fat:"",serving_size:"100",serving_unit:"g"});
+  const [myFoods,setMyFoods]=useState([]);
 
   useEffect(()=>{
     if(!user)return;
     getFrequentFoods(user.id).then(d=>setFrequentFoods(d||[]));
     getRecentFoods(user.id).then(d=>setRecentFoods(d||[]));
+    getCustomFoods(user.id).then(d=>setMyFoods(d||[]));
   },[user]);
 
   useEffect(()=>{
@@ -945,6 +947,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
     if(!customFood.name||!customFood.calories)return;
     const food={id:`custom_${Date.now()}`,name:customFood.name,brand:customFood.brand,calories:parseFloat(customFood.calories)||0,protein:parseFloat(customFood.protein)||0,carbs:parseFloat(customFood.carbs)||0,fat:parseFloat(customFood.fat)||0,servingSize:parseFloat(customFood.serving_size)||100,servingUnit:customFood.serving_unit||"g",source:"custom"};
     if(user)await saveCustomFood(user.id,food).catch(()=>{});
+    if(user)getCustomFoods(user.id).then(d=>setMyFoods(d||[]));
     selectFood(food);
     setShowCustomForm(false);
   }
@@ -1087,7 +1090,35 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           )}
         </div>
       )}
-      <button onClick={()=>setShowCustomForm(true)} style={{width:"100%",padding:"11px",background:"none",border:`1px dashed ${T.bd}`,borderRadius:10,color:T.mu,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>+ Create Custom Food</button>
+      {/* My Foods */}
+      {!query&&(
+        <div style={{marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>My Foods</div>
+            <button onClick={()=>setShowCustomForm(true)} style={{background:"none",border:`1px solid ${T.prot}`,borderRadius:6,padding:"3px 10px",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ New</button>
+          </div>
+          {myFoods.length===0?(
+            <div style={{textAlign:"center",padding:"28px 20px",background:`rgba(232,52,28,0.04)`,border:`1px dashed rgba(232,52,28,0.2)`,borderRadius:14}}>
+              <div style={{fontSize:28,marginBottom:8}}>🥗</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:4}}>No custom foods yet</div>
+              <div style={{fontSize:11,color:T.mu,marginBottom:14,lineHeight:1.6}}>Save foods you eat often with exact macros for instant re-use</div>
+              <button onClick={()=>setShowCustomForm(true)} style={{padding:"9px 20px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Create First Food →</button>
+            </div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {myFoods.slice(0,6).map((food,i)=>(
+                <button key={i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:1}}>{food.name}</div>
+                    <div style={{fontSize:10,color:T.mu}}>{food.calories} kcal · <span style={{color:T.prot}}>P {food.protein}g</span> · <span style={{color:T.carb}}>C {food.carbs}g</span> · <span style={{color:T.fat}}>F {food.fat}g</span></div>
+                  </div>
+                  <div style={{color:T.prot,fontWeight:700,fontSize:18,lineHeight:1,flexShrink:0,marginLeft:10}}>+</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -718,11 +718,18 @@ function calcCoachScore({profile,consumed,macros,log,workoutLogsRaw,schedule,tod
 
 function ScoreRing({score}) {
   const R=72; const C=2*Math.PI*R;
-  const color=score>=85?T.green:score>=70?T.carb:score>=50?T.fat:"#EF4444";
+  const isElite=score>=90;
+  const color=isElite?"#FFD700":score>=85?T.green:score>=70?T.carb:score>=50?T.fat:"#EF4444";
   const displayScore=useCountUp(score,1200);
   return (
     <div style={{position:"relative",width:180,height:180,margin:"0 auto"}}>
-      <svg width={180} height={180} style={{transform:"rotate(-90deg)",display:"block"}}>
+      {isElite&&(
+        <>
+          <style>{`@keyframes score-ring-glow{0%,100%{opacity:.45}50%{opacity:1}}`}</style>
+          <div style={{position:"absolute",inset:0,borderRadius:"50%",boxShadow:"0 0 36px 10px rgba(255,215,0,0.35)",animation:"score-ring-glow 0.8s ease-in-out infinite",pointerEvents:"none"}}/>
+        </>
+      )}
+      <svg width={180} height={180} style={{transform:"rotate(-90deg)",display:"block",filter:isElite?"drop-shadow(0 0 8px rgba(255,215,0,0.6))":"none"}}>
         <circle cx={90} cy={90} r={R} stroke="rgba(255,255,255,0.06)" strokeWidth={14} fill="none"/>
         <circle cx={90} cy={90} r={R} stroke={color} strokeWidth={14} fill="none"
           strokeLinecap="round"
@@ -732,7 +739,7 @@ function ScoreRing({score}) {
         />
       </svg>
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:"#fff"}}>{displayScore}</div>
+        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:62,lineHeight:1,color:isElite?"#FFD700":"#fff"}}>{displayScore}</div>
         <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.18em",textTransform:"uppercase",marginTop:2}}>Coach Macro Score</div>
       </div>
     </div>
@@ -2729,41 +2736,45 @@ Rules:
           );
         })()}
 
-        {/* Morning Brief */}
-        {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
-          <div style={{margin:"0 20px 12px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",animation:"fade-in 0.4s"}}>
-            <div className="header-eyebrow">// Morning Brief</div>
-            {morningBriefLoading&&!morningBrief
-              ?<div style={{marginTop:8,display:"flex",flexDirection:"column",gap:8}}>{[0,1,2].map(i=><div key={i} className={`stagger-${i}`} style={{opacity:0,animation:"page-fade 0.3s ease forwards"}}><div className="skeleton" style={{height:13,width:i===2?"65%":"100%",borderRadius:4}}/></div>)}</div>
-              :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>
-                <style>{`@keyframes cm-blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-                {morningBrief}
-                {morningBriefLoading&&<span style={{display:"inline-block",width:2,height:"1em",background:"var(--red)",marginLeft:2,verticalAlign:"text-bottom",animation:"cm-blink 1s step-end infinite"}}/>}
+        {/* Morning Brief + Comeback Protocol — fixed-height slot prevents layout twitch */}
+        <div style={{margin:"0 20px 12px",minHeight:140,position:"relative"}}>
+          <div style={{opacity:(morningBrief||morningBriefLoading)&&!briefDismissed?1:0,transform:(morningBrief||morningBriefLoading)&&!briefDismissed?"scale(1)":"scale(0.98)",transition:"opacity 0.32s cubic-bezier(.2,.7,.3,1),transform 0.32s cubic-bezier(.2,.7,.3,1)",pointerEvents:(morningBrief||morningBriefLoading)&&!briefDismissed?"auto":"none",position:"absolute",inset:0}}>
+            {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
+              <div style={{padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",height:"100%",boxSizing:"border-box"}}>
+                <div className="header-eyebrow">// Morning Brief</div>
+                {morningBriefLoading&&!morningBrief
+                  ?<div style={{marginTop:8,display:"flex",flexDirection:"column",gap:8}}>{[0,1,2].map(i=><div key={i} className={`stagger-${i}`} style={{opacity:0,animation:"page-fade 0.3s ease forwards"}}><div className="skeleton" style={{height:13,width:i===2?"65%":"100%",borderRadius:4}}/></div>)}</div>
+                  :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>
+                    <style>{`@keyframes cm-blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+                    {morningBrief}
+                    {morningBriefLoading&&<span style={{display:"inline-block",width:2,height:"1em",background:"var(--red)",marginLeft:2,verticalAlign:"text-bottom",animation:"cm-blink 1s step-end infinite"}}/>}
+                  </div>
+                }
+                {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
+                  <FlagBtn responseText={morningBrief} feature="morning_brief" user={user}/>
+                  <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
+                </div>}
               </div>
-            }
-            {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
-              <FlagBtn responseText={morningBrief} feature="morning_brief" user={user}/>
-              <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
-            </div>}
+            )}
           </div>
-        )}
-
-        {/* Comeback Protocol */}
-        {showComebackProtocol&&(
-          <div style={{margin:"0 20px 12px",padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--amber)",textTransform:"uppercase",marginBottom:6}}>// {daysSinceWorkout} Days Out</div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginTop:0,textTransform:"uppercase",marginBottom:10}}>Welcome Back, {firstName}.</div>
-            {["Muscles recovered — full intensity ready","Macros reset to maintenance this week",`Program resumes: Week ${programWeek}, ${todayFocus}`].map((t,i)=>(
-              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:13,marginBottom:6}}>
-                <div style={{color:"var(--green)",marginTop:2}}>
-                  <svg width={16} height={16} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </div>
-                <div>{t}</div>
+          <div style={{opacity:showComebackProtocol?1:0,transform:showComebackProtocol?"scale(1)":"scale(0.98)",transition:"opacity 0.32s cubic-bezier(.2,.7,.3,1),transform 0.32s cubic-bezier(.2,.7,.3,1)",pointerEvents:showComebackProtocol?"auto":"none",position:"absolute",inset:0}}>
+            {showComebackProtocol&&(
+              <div style={{padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,height:"100%",boxSizing:"border-box"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--amber)",textTransform:"uppercase",marginBottom:6}}>// {daysSinceWorkout} Days Out</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginTop:0,textTransform:"uppercase",marginBottom:10}}>Welcome Back, {firstName}.</div>
+                {["Muscles recovered — full intensity ready","Macros reset to maintenance this week",`Program resumes: Week ${programWeek}, ${todayFocus}`].map((t,i)=>(
+                  <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:13,marginBottom:6}}>
+                    <div style={{color:"var(--green)",marginTop:2}}>
+                      <svg width={16} height={16} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                    <div>{t}</div>
+                  </div>
+                ))}
+                <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);setSection("train");}} style={{width:"100%",marginTop:12,padding:14,background:"var(--amber)",border:"none",borderRadius:12,color:"#0a0e1a",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Start Comeback Session →</button>
               </div>
-            ))}
-            <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);setSection("train");}} style={{width:"100%",marginTop:12,padding:14,background:"var(--amber)",border:"none",borderRadius:12,color:"#0a0e1a",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Start Comeback Session →</button>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Cycle Insight Card (Part 10) */}
         {profile?.sex==="female"&&profile?.cycleTracking&&(()=>{
@@ -2889,6 +2900,38 @@ Rules:
             Start Session
           </button>
         </div>
+
+        {/* ── PRESENT SECTION ── */}
+        <div style={{margin:"0 20px 8px"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+            <span>// PRESENT</span>
+            <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
+          </div>
+        </div>
+
+        {/* Compact Coach Score + macro ring row */}
+        {coachScore&&(
+          <div style={{margin:"0 20px 14px",display:"flex",gap:10}}>
+            <div onClick={()=>setSection("progress")} style={{flex:"0 0 auto",padding:"12px 14px",background:"var(--navy-card)",border:`1px solid ${coachScore.total>=90?"var(--red)":"var(--white-border)"}`,borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer",minWidth:88,boxShadow:coachScore.total>=90?"0 0 20px rgba(232,52,28,0.35)":"none",transition:"box-shadow 0.3s"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--white-faint)",textTransform:"uppercase"}}>Score</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:38,lineHeight:1,color:coachScore.total>=90?"#FFD700":coachScore.total>=85?"var(--green)":coachScore.total>=70?"var(--amber)":"var(--red)"}}>{coachScore.total}</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"var(--white-faint)",letterSpacing:"0.1em"}}>TAP TO EXPAND</div>
+            </div>
+            <div style={{flex:1,padding:"12px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,display:"flex",flexDirection:"column",gap:6,justifyContent:"center"}}>
+              {[["Recovery",coachScore.r],[" Nutrition",coachScore.n],["Training",coachScore.t],["Consistency",coachScore.c]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{l}</div>
+                  <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                    <div style={{width:48,height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${v}%`,background:v>=80?"var(--green)":v>=60?"var(--amber)":"var(--red)",borderRadius:2,transition:"width 0.6s"}}/>
+                    </div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",minWidth:20,textAlign:"right"}}>{v}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Dual rings */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"0 20px 14px"}}>

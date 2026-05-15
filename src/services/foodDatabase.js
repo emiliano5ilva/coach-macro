@@ -506,6 +506,35 @@ export const saveCustomFood = async (userId, food) => {
   }
 };
 
+export const getCustomFoods = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data } = await sb
+      .from("custom_foods")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return (data || []).map(f => ({
+      id: `custom_${f.id}`,
+      source: "custom",
+      name: f.name,
+      brand: f.brand,
+      servingSize: f.serving_size,
+      servingUnit: f.serving_unit,
+      calories: f.calories,
+      protein: f.protein,
+      carbs: f.carbs,
+      fat: f.fat,
+      fiber: f.fiber,
+      sugar: f.sugar,
+      sodium: f.sodium,
+    }));
+  } catch {
+    return [];
+  }
+};
+
 export const searchCustomFoods = async (userId, query) => {
   if (!userId) return [];
   try {

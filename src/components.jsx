@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 export const T = {
   bg:   "#050810",         // page background
   s1:   "#161e35",         // navyLight — raised cards, inputs, elevated elements
-  s2:   "#111827",         // navyCard  — standard card surface
+  s2:   "#0A0F1C",         // navyCard  — standard card surface
   s3:   "#0f1628",         // navyMid   — section bg variants
   bd:   "rgba(245,245,240,0.08)",  // border subtle
   mu:   "rgba(245,245,240,0.4)",   // text tertiary
@@ -228,7 +228,7 @@ export const GLOBAL_CSS = `
     --navy: #0a0e1a;
     --navy-mid: #0f1628;
     --navy-light: #161e35;
-    --navy-card: #111827;
+    --navy-card: #0A0F1C;
     --red: #e8341c;
     --red-dim: #c42d18;
     --green: #22c55e;
@@ -244,7 +244,7 @@ export const GLOBAL_CSS = `
     --gold: #FFD700;
     --gold-deep: #FFA000;
     --gold-bg: rgba(255,215,0,0.12);
-    --surface-1: #111827;
+    --surface-1: #0A0F1C;
     --surface-2: #0f1628;
     --surface-3: #161e35;
     --border-subtle: rgba(245,245,240,0.06);
@@ -555,15 +555,21 @@ export function InfoTip({title,content}) {
 export class ErrorBoundary extends React.Component {
   constructor(props){super(props);this.state={hasError:false,error:null};}
   static getDerivedStateFromError(error){return {hasError:true,error};}
-  componentDidCatch(error,info){console.error("[ErrorBoundary]",error,info);}
+  componentDidCatch(error,info){
+    console.error("[ErrorBoundary] CAUGHT:",error?.message);
+    console.error("[ErrorBoundary] STACK:",error?.stack);
+    console.error("[ErrorBoundary] COMPONENT:",info?.componentStack);
+    window.__debugPush?.(`EB: ${error?.message} | ${String(info?.componentStack||'').slice(0,120)}`);
+  }
   render(){
     if(this.state.hasError){
+      const e=this.state.error;
       return (
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,padding:"40px 24px",textAlign:"center"}}>
-          <div style={{fontSize:32}}>⚠️</div>
-          <div style={{fontSize:16,fontWeight:700,color:T.txt}}>Something went wrong</div>
-          <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",maxWidth:260}}>An unexpected error occurred. Your data is safe — tap below to reload this section.</div>
-          <button onClick={()=>this.setState({hasError:false,error:null})} style={{padding:"10px 24px",background:T.prot,border:"none",borderRadius:24,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Reload Section</button>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,padding:"24px",background:"#0a0a0a",minHeight:200}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#e8341c",fontFamily:"monospace"}}>COMPONENT CRASH</div>
+          <div style={{fontSize:12,color:"#f5f5f0",fontFamily:"monospace",wordBreak:"break-all"}}>{e?.message||"unknown error"}</div>
+          <div style={{fontSize:10,color:"rgba(245,245,240,0.5)",fontFamily:"monospace",whiteSpace:"pre-wrap",wordBreak:"break-all"}}>{String(e?.stack||"").slice(0,400)}</div>
+          <button onClick={()=>this.setState({hasError:false,error:null})} style={{padding:"8px 20px",background:T.prot,border:"none",borderRadius:20,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",marginTop:8}}>Retry</button>
         </div>
       );
     }
@@ -1119,6 +1125,7 @@ export function getTier(count) {
 }
 
 export function getReferralBadge(count) {
+  if(count>=10)return 'LEGEND';
   if(count>=5)return 'VERIFIED';
   if(count>=1)return 'VIP';
   return null;
@@ -1126,14 +1133,15 @@ export function getReferralBadge(count) {
 
 export function Badge({type}) {
   const styles={
-    PRO:{bg:'#2979FF',text:'PRO'},
-    VIP:{bg:'#FFD740',text:'VIP',textColor:'#000'},
-    VERIFIED:{bg:'#00E676',text:'VERIFIED ✓',textColor:'#000'}
+    PRO:{bg:'#2979FF',text:'PRO',border:'1px solid rgba(41,121,255,0.6)'},
+    VIP:{bg:'rgba(255,215,64,0.15)',text:'VIP',textColor:'#FFD740',border:'1px solid rgba(255,255,255,0.55)'},
+    VERIFIED:{bg:'rgba(0,230,118,0.12)',text:'VERIFIED ✓',textColor:'#00E676',border:'1px solid #2979FF'},
+    LEGEND:{bg:'rgba(255,215,0,0.12)',text:'LEGEND ★',textColor:'#FFD700',border:'1px solid #FFD700',shadow:'0 0 12px rgba(255,215,0,0.45)'},
   };
   const s=styles[type];
   if(!s)return null;
   return(
-    <span style={{background:s.bg,color:s.textColor||'#fff',fontSize:10,fontWeight:900,letterSpacing:1.5,padding:'3px 8px',borderRadius:6,marginLeft:6,fontFamily:"'Barlow Condensed',sans-serif",display:"inline-block"}}>{s.text}</span>
+    <span style={{background:s.bg,color:s.textColor||'#fff',fontSize:10,fontWeight:900,letterSpacing:1.5,padding:'3px 8px',borderRadius:6,marginLeft:6,fontFamily:"'Barlow Condensed',sans-serif",display:"inline-block",border:s.border||'none',boxShadow:s.shadow||'none'}}>{s.text}</span>
   );
 }
 

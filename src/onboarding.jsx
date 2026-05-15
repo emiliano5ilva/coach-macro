@@ -824,7 +824,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
             const sch=data.selectedDays;
             const isHybrid=data.trainType==="hybrid";
             const isRun=data.trainType==="running";
-            const dayColors={"training":{bg:`${T.carb}20`,border:T.carb,text:T.carb,label:"🏋️ Lift"},"cardio":{bg:`${T.prot}20`,border:T.prot,text:T.prot,label:"🏃 Run"},"rest":{bg:T.s2,border:T.bd,text:T.mu,label:"😴 Rest"}};
+            const dayColors={"training":{bg:`${T.prot}20`,border:T.prot,text:T.prot,label:"🏋️ Lift"},"cardio":{bg:`${T.fat}20`,border:T.fat,text:T.fat,label:"🏃 Run"},"rest":{bg:T.s2,border:T.bd,text:T.mu,label:"😴 Rest"}};
             const cycleDay=(day)=>{
               const cur=sch[day];
               let nextState;
@@ -852,8 +852,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                   })}
                 </div>
                 <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",gap:20}}>
-                  {isHybrid||!isRun?<div><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.carb}}>{liftCount}</span><span style={{fontSize:11,color:T.mu,marginLeft:4}}>lift days</span></div>:null}
-                  {isHybrid||isRun?<div><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.prot}}>{runCount}</span><span style={{fontSize:11,color:T.mu,marginLeft:4}}>run days</span></div>:null}
+                  {isHybrid||!isRun?<div><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.prot}}>{liftCount}</span><span style={{fontSize:11,color:T.mu,marginLeft:4}}>lift days</span></div>:null}
+                  {isHybrid||isRun?<div><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.fat}}>{runCount}</span><span style={{fontSize:11,color:T.mu,marginLeft:4}}>run days</span></div>:null}
                   <div style={{marginLeft:"auto",fontSize:11,color:T.mu}}>Target: {target} days</div>
                 </div>
               </>
@@ -1111,16 +1111,20 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
             HOW QUICKLY<br/><span style={{color:T.prot}}>DO YOU RECOVER?</span>
           </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This sets your training block length. Longer recovery means more time to peak before the next deload.</p>
+          <p style={{fontSize:13,color:T.mu,marginBottom:10,lineHeight:1.65}}>This sets your training block length. Longer recovery means more time to peak before the next deload.</p>
+          <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.18)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:11,color:T.mu,lineHeight:1.65}}>
+            <span style={{color:T.prot,fontWeight:700}}>What is DOMS?</span> Delayed Onset Muscle Soreness — the stiffness felt 24–48 hrs after training. Normal DOMS is not the same as inadequate recovery. Base your answer on how many days until you feel <em>ready</em> to train that muscle hard again.
+          </div>
+
           <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
             {[
-              {v:"fast",     e:"⚡",l:"Very Fast",     sub:"Rarely sore. Could train same muscle 2 days later easily.",        weeks:5},
-              {v:"normal",   e:"💪",l:"Normal",        sub:"Sore 1-2 days then feel recovered and ready.",                   weeks:6},
-              {v:"slow",     e:"🔄",l:"Slower",        sub:"Need 3-4 days to feel truly recovered from hard sessions.",      weeks:7},
-              {v:"very_slow",e:"🛌",l:"Very Slow",     sub:"Heavy sessions take 5+ days to fully recover from.",             weeks:8},
+              {v:"fast",     icon:<svg width={28} height={28} viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,l:"Very Fast",sub:"Rarely sore. Could train same muscle 2 days later easily.",weeks:5},
+              {v:"normal",   icon:<svg width={28} height={28} viewBox="0 0 24 24" fill="none"><path d="M12 2c0 6-6 8-6 13a6 6 0 0012 0c0-5-6-7-6-13z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,l:"Normal",sub:"Sore 1-2 days then feel recovered and ready.",weeks:6},
+              {v:"slow",     icon:<svg width={28} height={28} viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,l:"Slower",sub:"Need 3-4 days to feel truly recovered from hard sessions.",weeks:7},
+              {v:"very_slow",icon:<svg width={28} height={28} viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,l:"Very Slow",sub:"Heavy sessions take 5+ days to fully recover from.",weeks:8},
             ].map(o=>(
               <div key={o.v} onClick={()=>auto("recoveryCapacity",o.v)} style={{background:data.recoveryCapacity===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.recoveryCapacity===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
-                <div style={{fontSize:26,flexShrink:0}}>{o.e}</div>
+                <div style={{width:40,height:40,borderRadius:"50%",background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:data.recoveryCapacity===o.v?T.prot:"rgba(232,52,28,0.7)"}}>{o.icon}</div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14,fontWeight:700,color:data.recoveryCapacity===o.v?T.prot:"#fff"}}>{o.l}</div>
                   <div style={{fontSize:11,color:T.mu,marginTop:2,lineHeight:1.5}}>{o.sub}</div>
@@ -1189,30 +1193,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           </div>
         </div>}
 
-        {/* SCREEN 13 — Blackout Days */}
-        {sc===13&&<div style={{animation:"fadeIn .25s ease"}}>
-          <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · AIT · 4/8</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
-            ANY DAYS YOU<br/><span style={{color:T.prot}}>CANNOT TRAIN?</span>
-          </div>
-          <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We'll never schedule workouts on these days. Different from your rest days — these are fixed life commitments.</p>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
-            {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{
-              const sel=(data.blackoutDays||[]).includes(day);
-              return(
-                <div key={day} onClick={()=>upd("blackoutDays",sel?(data.blackoutDays||[]).filter(x=>x!==day):[...(data.blackoutDays||[]),day])} style={{background:sel?"rgba(239,68,68,.12)":T.s2,border:`2px solid ${sel?"rgba(239,68,68,.5)":T.bd}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",fontSize:14,fontWeight:700,color:sel?"#EF4444":"#ccc",transition:"all .2s",textAlign:"center",minWidth:52}}>
-                  {day}
-                  {sel&&<div style={{fontSize:10,marginTop:4}}>🚫</div>}
-                </div>
-              );
-            })}
-          </div>
-          {(data.blackoutDays||[]).length>0&&<div style={{background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#EF4444"}}>
-            Blocked: {(data.blackoutDays||[]).join(", ")} — workouts will never appear on these days.
-          </div>}
-          <PrimaryBtn onClick={next} label="Continue →"/>
-          <button onClick={()=>{upd("blackoutDays",[]);next();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,marginTop:6}}>No blocked days — fully flexible</button>
-        </div>}
+        {/* SCREEN 13 — Blackout Days (removed per audit: schedule tap-to-cycle IS the user's intent) */}
+        {sc===13&&(()=>{setTimeout(next,50);return null;})()}
 
         {/* SCREEN 14 — Mobility Check (skip for running-only users) */}
         {sc===14&&data.trainType==="running"&&(()=>{setTimeout(next,50);return null;})()}
