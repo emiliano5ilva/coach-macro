@@ -3106,9 +3106,78 @@ export function RacePredictor({profile,wPrefs,user,isMobile}){
   );
 }
 
+// ─── ATHLETE WAVE CHART ──────────────────────────────────────────────────────
+function AthleteWaveChart({waveData}){
+  if(!waveData||waveData.length<2)return null;
+  const W=300,H=72,pad=8,n=waveData.length;
+  const xStep=(W-pad*2)/(n-1);
+  const pts=key=>waveData.map((d,i)=>({
+    x:pad+i*xStep,
+    y:H-pad-(d[key]/100)*(H-pad*2),
+  }));
+  const areaPath=points=>{
+    const segs=points.map((p,i)=>{
+      if(i===0)return`M${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+      const cpx=((points[i-1].x+p.x)/2).toFixed(1);
+      return`C${cpx} ${points[i-1].y.toFixed(1)} ${cpx} ${p.y.toFixed(1)} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+    });
+    const last=points[n-1],first=points[0];
+    return segs.join(' ')+` L${last.x.toFixed(1)} ${H} L${first.x.toFixed(1)} ${H} Z`;
+  };
+  const linePath=points=>points.map((p,i)=>{
+    if(i===0)return`M${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+    const cpx=((points[i-1].x+p.x)/2).toFixed(1);
+    return`C${cpx} ${points[i-1].y.toFixed(1)} ${cpx} ${p.y.toFixed(1)} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+  }).join(' ');
+  const layers=[
+    {key:'recovery',   color:T.fat,  aOp:0.18,sOp:0.55},
+    {key:'consistency',color:T.green,aOp:0.20,sOp:0.60},
+    {key:'volume',     color:T.carb, aOp:0.22,sOp:0.65},
+    {key:'strength',   color:T.prot, aOp:0.28,sOp:0.80},
+  ];
+  const now=new Date();
+  const firstLabel=(()=>{const d=new Date(now);d.setDate(d.getDate()-d.getDay()-(n-1)*7);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});})();
+  const lastLabel=(()=>{const d=new Date(now);d.setDate(d.getDate()-d.getDay());return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});})();
+  return(
+    <div style={{marginTop:16,marginBottom:4}}>
+      <div style={{fontSize:10,color:'rgba(245,245,240,0.35)',letterSpacing:2,textTransform:'uppercase',fontFamily:"'DM Mono',monospace",marginBottom:8}}>TRAINING WAVE — 8 WEEKS</div>
+      <div style={{borderRadius:10,overflow:'hidden',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',display:'block'}}>
+          {[25,50,75].map(v=>{
+            const y=(H-pad-(v/100)*(H-pad*2)).toFixed(1);
+            return<line key={v} x1={pad} y1={y} x2={W-pad} y2={y} stroke="rgba(255,255,255,0.04)" strokeWidth={0.5}/>;
+          })}
+          {layers.map(({key,color,aOp,sOp})=>{
+            const p=pts(key);
+            return(
+              <g key={key}>
+                <path d={areaPath(p)} fill={color} fillOpacity={aOp}/>
+                <path d={linePath(p)} fill="none" stroke={color} strokeWidth={1.5} strokeOpacity={sOp}/>
+                <circle cx={p[n-1].x.toFixed(1)} cy={p[n-1].y.toFixed(1)} r={2.5} fill={color} fillOpacity={0.9}/>
+              </g>
+            );
+          })}
+        </svg>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'2px 8px 6px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.35)'}}>
+          <span>{firstLabel}</span><span>{lastLabel}</span>
+        </div>
+      </div>
+      <div style={{display:'flex',gap:12,marginTop:8,flexWrap:'wrap'}}>
+        {[{key:'strength',color:T.prot,label:'Strength'},{key:'volume',color:T.carb,label:'Volume'},{key:'consistency',color:T.green,label:'Consistency'},{key:'recovery',color:T.fat,label:'Recovery'}].map(({color,label})=>(
+          <div key={label} style={{display:'flex',alignItems:'center',gap:4}}>
+            <div style={{width:20,height:2,background:color,borderRadius:1}}/>
+            <span style={{fontSize:10,color:'rgba(245,245,240,0.5)',fontFamily:"'DM Mono',monospace"}}>{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── ATHLETE PASSPORT ────────────────────────────────────────────────────────
 export function AthletePassport({profile,wPrefs,user,isMobile}){
   const [stats,setStats]=useState(null);
+  const [waveData,setWaveData]=useState(null);
   const [sharing,setSharing]=useState(false);
   const passportRef=useRef(null);
 
@@ -3157,6 +3226,26 @@ export function AthletePassport({profile,wPrefs,user,isMobile}){
       const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
       const programs=Math.max(1,Math.floor(daysSince/84)+1);
       setStats({workouts,volume:Math.round(volume),longestStreak:longest,prsThisMonth:prsSet.size,programs});
+      // Build 8-week wave data
+      const now2=new Date();
+      const waveWeeks=[];
+      for(let i=7;i>=0;i--){
+        const ws=new Date(now2);ws.setDate(now2.getDate()-now2.getDay()-i*7);ws.setHours(0,0,0,0);
+        const we=new Date(ws);we.setDate(ws.getDate()+6);
+        const s0=ws.toISOString().slice(0,10),s1=we.toISOString().slice(0,10);
+        const wl=data.filter(r=>r.date>=s0&&r.date<=s1);
+        let wv=0,ws2=0;
+        wl.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0),r=parseInt(s.reps||0);if(w>0&&r>0)wv+=w*r;if(w>0)ws2=Math.max(ws2,w);});});});
+        waveWeeks.push({sessions:wl.length,volume:wv,strength:ws2});
+      }
+      const mxV=Math.max(...waveWeeks.map(w=>w.volume),1);
+      const mxS=Math.max(...waveWeeks.map(w=>w.strength),1);
+      setWaveData(waveWeeks.map(w=>({
+        strength:Math.min(100,(w.strength/mxS)*100),
+        volume:Math.min(100,(w.volume/mxV)*100),
+        consistency:Math.min(100,(w.sessions/5)*100),
+        recovery:Math.max(0,100-(w.sessions/7)*100),
+      })));
     });
   },[user]);
 
@@ -3217,6 +3306,7 @@ export function AthletePassport({profile,wPrefs,user,isMobile}){
             <span style={{fontSize:isMobile?20:24,fontWeight:900,color:"#fff",lineHeight:1}}>{v}</span>
           </div>
         )):<div style={{fontSize:12,color:T.mu,padding:"12px 0"}}>Loading stats...</div>}
+        <AthleteWaveChart waveData={waveData}/>
         <div style={{height:1,background:"rgba(245,245,240,0.1)",marginTop:16,marginBottom:14}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:2,textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>COACH MACRO ATHLETE</div>
