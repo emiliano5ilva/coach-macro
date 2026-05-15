@@ -1025,103 +1025,165 @@ const PROTOCOL_TABS = [
   { id: 'hyrox',       label: 'Hyrox'      },
 ];
 
+function fmtDuration(secs) {
+  if (!secs) return '';
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m} min`;
+}
+
 function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
   const [tab, setTab] = useState('lower_body');
   const [coolTab, setCoolTab] = useState('strength');
   const moves = MOVEMENT_PREP[tab] || [];
   const [expanded, setExpanded] = useState(null);
 
+  const moveTotalSecs = moves.reduce((s, m) => s + (m.duration || 30), 0);
+  const moveTotalMin = Math.ceil(moveTotalSecs / 60);
+
+  const EQUIP_LABELS = { pull_up_bar: 'Pull-up bar', cable_machine: 'Cable machine', rowing_machine: 'Rowing machine' };
+
   return (
     <div style={{ maxWidth: isMobile ? '100%' : 540 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <button onClick={() => setTrainScreen('today')} style={{ background: 'none', border: 'none', color: 'rgba(245,245,240,.5)', fontSize: 22, cursor: 'pointer', padding: 0, lineHeight: 1 }}>←</button>
-        <div>
-          <div style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 28, letterSpacing: 1, lineHeight: 1 }}>WARM-UP PROTOCOLS</div>
-          <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', marginTop: 2 }}>Standard pre-session movement prep</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <button
+          onClick={() => setTrainScreen('today')}
+          style={{ background: 'none', border: 'none', color: 'rgba(245,245,240,.45)', cursor: 'pointer', padding: '4px 2px', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+        >
+          <svg width={20} height={20} viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "var(--condensed)", fontWeight: 900, fontSize: 26, letterSpacing: 0.5, lineHeight: 1, textTransform: 'uppercase' }}>Warm-Up Protocols</div>
+          <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)', marginTop: 3 }}>Standard pre-session movement prep</div>
         </div>
       </div>
 
-      {/* General Warm-up */}
-      <div style={{ background: 'linear-gradient(135deg,rgba(232,52,28,.1),rgba(232,52,28,.04))', border: '1px solid rgba(232,52,28,.25)', borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
-        <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: 'rgba(232,52,28,.8)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 10 }}>
-          Step 1 — General Warm-Up · {GENERAL_WARMUP.duration}
+      {/* Step 1 — General Warm-Up */}
+      <div style={{ background: 'linear-gradient(135deg,rgba(232,52,28,.08),rgba(232,52,28,.03))', border: '1px solid rgba(232,52,28,.22)', borderRadius: 16, padding: '16px 18px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: T.prot, letterSpacing: '.18em', textTransform: 'uppercase', lineHeight: 1.4 }}>
+            Step 1<br/>General Warm-Up
+          </div>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(245,245,240,.35)', letterSpacing: '.06em' }}>{GENERAL_WARMUP.duration}</div>
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(245,245,240,.5)', marginBottom: 10 }}>{GENERAL_WARMUP.instructions}</div>
+        <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', marginBottom: 10 }}>{GENERAL_WARMUP.instructions}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
           {GENERAL_WARMUP.options.map((opt, i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
+            <div key={i} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{opt.name}</div>
-                <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)' }}>{opt.detail}</div>
+                <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)' }}>{opt.detail}</div>
               </div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.7)', flexShrink: 0, marginLeft: 12 }}>{opt.duration}</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.65)', flexShrink: 0 }}>{opt.duration}</div>
             </div>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', fontStyle: 'italic', lineHeight: 1.6, borderTop: '1px solid rgba(255,255,255,.06)', paddingTop: 10 }}>
-          🎯 {GENERAL_WARMUP.coachNote}
+        {/* Coach note */}
+        <div style={{ borderLeft: '2px solid rgba(232,52,28,.4)', paddingLeft: 12, fontSize: 11, color: 'rgba(245,245,240,.45)', fontStyle: 'italic', lineHeight: 1.65 }}>
+          {GENERAL_WARMUP.coachNote}
         </div>
       </div>
 
-      {/* Movement Prep tabs */}
-      <div style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
-        <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: 'rgba(232,52,28,.8)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 12 }}>
-          Step 2 — Movement Prep
+      {/* Step 2 — Movement Prep */}
+      <div style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 16, padding: '16px 18px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: T.prot, letterSpacing: '.18em', textTransform: 'uppercase', lineHeight: 1.4 }}>
+            Step 2<br/>Movement Prep
+          </div>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(245,245,240,.35)', letterSpacing: '.06em' }}>≈{moveTotalMin} min</div>
         </div>
         {/* Tab selector */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
           {PROTOCOL_TABS.map(pt => (
-            <button key={pt.id} onClick={() => { setTab(pt.id); setExpanded(null); }} style={{
-              padding: '5px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none',
-              background: tab === pt.id ? T.prot : 'rgba(255,255,255,.06)',
-              color: tab === pt.id ? '#fff' : 'rgba(245,245,240,.55)',
-              fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
-            }}>{pt.label}</button>
+            <button
+              key={pt.id}
+              onClick={() => { setTab(pt.id); setExpanded(null); }}
+              style={{
+                padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                border: `1.5px solid ${tab === pt.id ? T.prot : 'rgba(255,255,255,.1)'}`,
+                background: tab === pt.id ? `${T.prot}18` : 'none',
+                color: tab === pt.id ? T.prot : 'rgba(245,245,240,.5)',
+                fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
+                transition: 'all 0.2s',
+              }}
+            >{pt.label}</button>
           ))}
         </div>
         {/* Exercise list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {moves.map((ex, i) => (
-            <div key={i} onClick={() => setExpanded(expanded === i ? null : i)} style={{ background: 'rgba(255,255,255,.04)', border: `1px solid ${expanded === i ? 'rgba(232,52,28,.3)' : 'rgba(255,255,255,.07)'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 1 }}>{ex.name}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)' }}>{ex.sets}{ex.reps ? ` × ${ex.reps}` : ''}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {moves.map((ex, i) => {
+            const isOpen = expanded === i;
+            const setsReps = [ex.sets, ex.reps != null ? `× ${ex.reps}` : null].filter(Boolean).join(' ');
+            return (
+              <div
+                key={`${tab}-${i}`}
+                onClick={() => setExpanded(isOpen ? null : i)}
+                style={{
+                  background: isOpen ? 'rgba(232,52,28,.05)' : 'rgba(255,255,255,.03)',
+                  border: `1px solid ${isOpen ? 'rgba(232,52,28,.25)' : 'rgba(255,255,255,.07)'}`,
+                  borderRadius: 12, padding: '11px 14px', cursor: 'pointer',
+                  transition: 'border-color 0.2s, background 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ex.name}</span>
+                      {ex.requiresEquipment && (
+                        <span style={{ fontSize: 9, fontFamily: "var(--mono)", background: 'rgba(96,165,250,.12)', color: T.carb, borderRadius: 4, padding: '2px 6px', letterSpacing: '.06em', textTransform: 'uppercase', flexShrink: 0 }}>
+                          {EQUIP_LABELS[ex.requiresEquipment] || ex.requiresEquipment}
+                        </span>
+                      )}
+                    </div>
+                    {setsReps && <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)', marginTop: 2 }}>{setsReps}</div>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.6)' }}>{fmtDuration(ex.duration)}</div>
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.32s cubic-bezier(.2,.7,.3,1)', flexShrink: 0 }}>
+                      <path d="M6 9l6 6 6-6" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 </div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.7)', marginLeft: 12 }}>{ex.duration}s</div>
+                {isOpen && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.06)', fontSize: 12, color: 'rgba(245,245,240,.6)', lineHeight: 1.65 }}>
+                    {ex.detail}
+                  </div>
+                )}
               </div>
-              {expanded === i && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.06)', fontSize: 12, color: 'rgba(245,245,240,.6)', lineHeight: 1.6 }}>{ex.detail}</div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Cool Down */}
-      <div style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
-        <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: 'rgba(232,52,28,.8)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 12 }}>
-          Cool-Down
+      {/* Step 3 — Cool-Down */}
+      <div style={{ background: T.s1, border: `1px solid ${T.bd}`, borderRadius: 16, padding: '16px 18px', marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: T.prot, letterSpacing: '.18em', textTransform: 'uppercase', lineHeight: 1.4 }}>
+            Step 3<br/>Cool-Down
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['strength', 'running'].map(ct => (
+              <button key={ct} onClick={() => setCoolTab(ct)} style={{
+                padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                border: `1.5px solid ${coolTab === ct ? T.prot : 'rgba(255,255,255,.1)'}`,
+                background: coolTab === ct ? `${T.prot}18` : 'none',
+                color: coolTab === ct ? T.prot : 'rgba(245,245,240,.45)',
+                fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
+                transition: 'all 0.2s',
+              }}>{ct === 'strength' ? 'Strength' : 'Running'}</button>
+            ))}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          {['strength', 'running'].map(ct => (
-            <button key={ct} onClick={() => setCoolTab(ct)} style={{
-              padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none',
-              background: coolTab === ct ? T.prot : 'rgba(255,255,255,.06)',
-              color: coolTab === ct ? '#fff' : 'rgba(245,245,240,.55)',
-              fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
-            }}>{ct === 'strength' ? 'Strength' : 'Running'}</button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {(COOL_DOWN[coolTab] || []).map((ex, i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={`cd-${coolTab}-${i}`} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '11px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ex.name}</div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.7)' }}>{ex.duration}</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.6)', flexShrink: 0 }}>{ex.duration}</div>
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', marginTop: 4, lineHeight: 1.5 }}>{ex.detail}</div>
+              <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)', lineHeight: 1.6 }}>{ex.detail}</div>
             </div>
           ))}
         </div>
