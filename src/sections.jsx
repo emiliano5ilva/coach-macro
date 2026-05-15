@@ -174,7 +174,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 
   return (
     <div style={{maxWidth:isMobile?"100%":740}}>
-      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>LIFT SMARTER</div>
+      <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>LIFT SMARTER</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:24}}>Build an optimized training plan — every muscle covered, every session purposeful.</p>
 
       {/* Step indicator */}
@@ -191,7 +191,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
 
       {/* STEP 1 — Training Type */}
       {step==="type"&&<div>
-        <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif",marginBottom:16}}>What kind of training?</div>
+        <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)",marginBottom:16}}>What kind of training?</div>
         <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:12}}>
           {[
             {v:"lifting",e:"🏋️",l:"Lifting",d:"Strength training splits — build muscle and get stronger"},
@@ -214,7 +214,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="split"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your split</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your split</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {Object.entries(LIFTING_SPLITS).map(([key,s])=>(
@@ -243,7 +243,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="exercises"&&split&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("split")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{LIFTING_SPLITS[split]?.label}</div>
+          <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>{LIFTING_SPLITS[split]?.label}</div>
         </div>
         <div style={{background:`${T.carb}08`,border:`1px solid ${T.carb}25`,borderRadius:14,padding:"16px 20px",marginBottom:20}}>
           <div style={{fontSize:11,color:T.carb,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Muscles covered this week</div>
@@ -259,9 +259,9 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
           ))}
         </div>
         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px",marginBottom:20,fontSize:13,color:T.mu,lineHeight:1.7}}>
-          💡 <b style={{color:"#fff"}}>How progressive overload works:</b> Each session shows your last performance alongside the suggested increase. Hit 12+ reps → weight goes up next session. Miss → add a rep. Automatic, no math required.
+          <b style={{color:"#fff"}}>How progressive overload works:</b> Each session shows your last performance alongside the suggested increase. Hit 12+ reps → weight goes up next session. Miss → add a rep. Automatic, no math required.
         </div>
-        <button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>
+        <button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>
           Build Today's {todayFocus} Session →
         </button>
       </div>}
@@ -270,7 +270,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="run"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your run plan</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your run plan</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
           {Object.entries(RUN_PLANS_DETAIL).map(([key,p])=>(
@@ -288,14 +288,14 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
         </div>
         {runPlanLocal&&<>
           <div style={{marginBottom:16}}>
-            <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif",marginBottom:10}}>When's your long run?</div>
+            <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)",marginBottom:10}}>When's your long run?</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               {["Saturday","Sunday"].map(d=>(
                 <button key={d} onClick={()=>setLongRunDay(d)} style={{padding:"10px 20px",borderRadius:9,border:`1.5px solid ${longRunDay===d?T.carb:T.bd}`,background:longRunDay===d?`${T.carb}15`:T.s2,color:longRunDay===d?T.carb:T.mu,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{d}</button>
               ))}
             </div>
           </div>
-          <button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>
+          <button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>
             Build My {runPlanLocal} Plan →
           </button>
         </>}
@@ -305,7 +305,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="hybrid"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your hybrid template</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your hybrid template</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
           {Object.entries(HYBRID_TEMPLATES).map(([key,h])=>(
@@ -324,7 +324,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
             </div>
           ))}
         </div>
-        {hybridTemplate&&<button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>
+        {hybridTemplate&&<button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>
           Build My {hybridTemplate} Plan →
         </button>}
       </div>}
@@ -333,7 +333,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="glute"&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("type")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"'Barlow Condensed',sans-serif"}}>Choose your program</div>
+          <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)"}}>Choose your program</div>
         </div>
         <div style={{background:`rgba(255,153,0,.08)`,border:`1px solid rgba(255,153,0,.2)`,borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:12,color:"#ffb347",lineHeight:1.6}}>
           🍑 <b>Hip thrust progressive overload</b> is the #1 driver of glute growth. Add weight every time you hit the top rep range — that's the entire strategy.
@@ -362,7 +362,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
       {step==="glute-preview"&&split&&GLUTE_PROGRAMS[split]&&<div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
           <button onClick={()=>setStep("glute")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>← Back</button>
-          <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{split}</div>
+          <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>{split}</div>
         </div>
         {GLUTE_PROGRAMS[split].days.map(dayName=>(
           <div key={dayName} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,padding:"16px 20px",marginBottom:12}}>
@@ -380,7 +380,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
             </div>
           </div>
         ))}
-        <button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,marginTop:4}}>
+        <button onClick={handleGenerate} style={{width:"100%",padding:"15px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginTop:4}}>
           Build Today's Glute Session →
         </button>
       </div>}
@@ -393,7 +393,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
               <div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
+                <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
                 <div style={{fontSize:12,color:T.mu,marginTop:4}}>{split||runPlanLocal||hybridTemplate} · {wPrefs.equipment}</div>
               </div>
               <button onClick={()=>setStep(type==="lifting"?"exercises":type==="running"?"run":type==="glute"?"glute-preview":"hybrid")} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"8px 14px",color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>← Change</button>
@@ -418,15 +418,15 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
                         </div>
                         <div style={{display:"flex",gap:8}}>
                           <div style={{background:T.s2,borderRadius:8,padding:"6px 12px",textAlign:"center"}}>
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:T.carb,lineHeight:1}}>{ex.sets}</div>
+                            <div style={{fontFamily:"var(--condensed)",fontSize:20,fontWeight:900,color:T.carb,lineHeight:1}}>{ex.sets}</div>
                             <div style={{fontSize:8,color:T.mu}}>sets</div>
                           </div>
                           <div style={{background:T.s2,borderRadius:8,padding:"6px 12px",textAlign:"center"}}>
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff",lineHeight:1}}>{ex.reps}</div>
+                            <div style={{fontFamily:"var(--condensed)",fontSize:20,fontWeight:900,color:"#fff",lineHeight:1}}>{ex.reps}</div>
                             <div style={{fontSize:8,color:T.mu}}>reps</div>
                           </div>
                           {ex.weight&&<div style={{background:T.s2,borderRadius:8,padding:"6px 12px",textAlign:"center"}}>
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:T.prot,lineHeight:1}}>{ex.weight}</div>
+                            <div style={{fontFamily:"var(--condensed)",fontSize:20,fontWeight:900,color:T.prot,lineHeight:1}}>{ex.weight}</div>
                             <div style={{fontSize:8,color:T.mu}}>lbs</div>
                           </div>}
                         </div>
@@ -450,7 +450,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
                 {/* Actions */}
                 <div style={{display:"flex",gap:10}}>
                   <button onClick={handleGenerate} style={{flex:1,padding:"13px",background:T.s2,color:T.carb,fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:`1px solid ${T.carb}25`,borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Regenerate</button>
-                  <button onClick={handleStartSession} style={{flex:2,padding:"13px",background:T.prot,color:T.white,fontSize:15,fontWeight:700,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>▶ Start This Session →</button>
+                  <button onClick={handleStartSession} style={{flex:2,padding:"13px",background:T.prot,color:T.white,fontSize:15,fontWeight:700,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>▶ Start This Session →</button>
                 </div>
               </>
             }
@@ -498,28 +498,28 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
 
   const LIB_CSS=`
     .lib-wrap{padding:20px 0 40px;}
-    .lib-cat-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,245,240,.4);margin:28px 0 10px;}
+    .lib-cat-title{font-family:var(--condensed);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,245,240,.4);margin:28px 0 10px;}
     .lib-cat-title:first-child{margin-top:0;}
     .lib-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
-    .lib-card.lib-current{border-color:rgba(96,165,250,.4);background:rgba(96,165,250,.06);}
+    .lib-card.lib-current{border-color:rgba(232,52,28,.4);background:rgba(232,52,28,.06);}
     .lib-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
-    .lib-card-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.01em;}
+    .lib-card-name{font-family:var(--condensed);font-size:18px;font-weight:700;letter-spacing:.01em;}
     .lib-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
     .lib-badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:4px;background:rgba(255,255,255,.07);color:rgba(245,245,240,.55);}
     .lib-badge.beg{background:rgba(52,211,153,.12);color:#34D399;}
     .lib-badge.int{background:rgba(251,191,36,.12);color:#FBbF24;}
     .lib-badge.adv{background:rgba(248,113,113,.12);color:#F87171;}
     .lib-best{font-size:12px;color:rgba(245,245,240,.5);line-height:1.5;}
-    .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(96,165,250,.5);background:rgba(96,165,250,.1);color:#60a5fa;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
-    .lib-switch-btn:hover{background:rgba(96,165,250,.2);border-color:#60a5fa;}
-    .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:#60a5fa;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(96,165,250,.3);background:rgba(96,165,250,.06);}
+    .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,.5);background:rgba(232,52,28,.1);color:var(--red);cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
+    .lib-switch-btn:hover{background:rgba(232,52,28,.2);border-color:var(--red);}
+    .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--red);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,.3);background:rgba(232,52,28,.06);}
     .lib-soon{font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(245,245,240,.25);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);}
     .lib-modal-overlay{position:fixed;inset:0;background:rgba(6,13,26,.85);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
     .lib-modal{background:#0A1222;border:1px solid rgba(255,255,255,.1);border-radius:14px 14px 0 0;padding:28px 24px 36px;max-width:480px;width:100%;}
-    .lib-modal h3{margin:0 0 8px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:.02em;}
+    .lib-modal h3{margin:0 0 8px;font-family:var(--condensed);font-size:22px;font-weight:800;letter-spacing:.02em;}
     .lib-modal p{margin:0 0 24px;font-size:13px;color:rgba(245,245,240,.55);line-height:1.6;}
     .lib-modal-btns{display:flex;flex-direction:column;gap:10px;}
-    .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:#60a5fa;color:#fff;cursor:pointer;font-family:inherit;}
+    .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:var(--red);color:#fff;cursor:pointer;font-family:inherit;}
     .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
     .lib-fav-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.15);border-radius:9px;margin-bottom:6px;}
     .lib-fav-name{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px;}
@@ -637,18 +637,18 @@ const ADAPT_CATEGORIES = [
 const ADAPT_CSS = `
   .adapt-overlay{position:fixed;inset:0;background:rgba(6,13,26,.97);z-index:300;display:flex;flex-direction:column;overflow:hidden;}
   .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-  .adapt-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;letter-spacing:.04em;}
+  .adapt-title{font-family:var(--condensed);font-style:italic;font-size:24px;font-weight:900;letter-spacing:.04em;}
   .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .adapt-body{flex:1;overflow-y:auto;padding:20px;}
   .adapt-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
   .adapt-cat-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:6px;font-family:inherit;}
-  .adapt-cat-card.sel{border-color:rgba(96,165,250,.5);background:rgba(96,165,250,.08);}
+  .adapt-cat-card.sel{border-color:rgba(232,52,28,.5);background:rgba(232,52,28,.08);}
   .adapt-cat-card:hover{background:rgba(255,255,255,.07);}
   .adapt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
   .adapt-chip{padding:9px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(245,245,240,.65);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
-  .adapt-chip.sel{border-color:#60a5fa;background:rgba(96,165,250,.12);color:#60a5fa;}
+  .adapt-chip.sel{border-color:var(--red);background:rgba(232,52,28,.12);color:var(--red);}
   .adapt-footer{padding:16px 20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;}
-  .adapt-primary{width:100%;padding:15px;border:none;border-radius:12px;background:#60a5fa;color:#fff;font-size:15px;font-weight:700;letter-spacing:.05em;cursor:pointer;font-family:inherit;}
+  .adapt-primary{width:100%;padding:15px;border:none;border-radius:12px;background:var(--red);color:#fff;font-size:15px;font-weight:700;letter-spacing:.05em;cursor:pointer;font-family:inherit;}
   .adapt-primary:disabled{opacity:.35;cursor:not-allowed;}
   .adapt-secondary{width:100%;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:rgba(245,245,240,.5);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -736,8 +736,8 @@ Rules:
   if (screen === "loading") return (
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40}}>
-        <div style={{width:52,height:52,border:"3px solid rgba(96,165,250,.2)",borderTop:"3px solid #60a5fa",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900}}>ADAPTING SESSION</div>
+        <div style={{width:52,height:52,border:"3px solid rgba(232,52,28,.15)",borderTop:"3px solid var(--red)",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+        <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900}}>ADAPTING SESSION</div>
         <div style={{fontSize:13,color:"rgba(245,245,240,.45)",textAlign:"center",maxWidth:280}}>{selectedReason}</div>
       </div>
     </div>
@@ -754,8 +754,8 @@ Rules:
       </div>
       <div className="adapt-body" style={{animation:"slideUp .3s ease"}}>
         {result.session_note&&(
-          <div style={{background:"rgba(96,165,250,.08)",border:"1px solid rgba(96,165,250,.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
-            <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>SESSION NOTE</div>
+          <div style={{background:"rgba(232,52,28,.06)",border:"1px solid rgba(232,52,28,.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
+            <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>SESSION NOTE</div>
             <div style={{fontSize:13,color:"rgba(245,245,240,.85)",lineHeight:1.65}}>{result.session_note}</div>
           </div>
         )}
@@ -803,7 +803,7 @@ Rules:
         <button className="adapt-close" onClick={onClose}>✕</button>
       </div>
       <div className="adapt-body">
-        {err&&<div style={{background:"rgba(255,77,109,.1)",border:"1px solid rgba(255,77,109,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#FF4D6D"}}>{err}</div>}
+        {err&&<div style={{background:"rgba(255,77,109,.1)",border:"1px solid rgba(255,77,109,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:T.prot}}>{err}</div>}
         <div style={{fontSize:12,color:"rgba(245,245,240,.45)",marginBottom:18,lineHeight:1.7}}>What's happening today? We'll adapt your workout to match your situation.</div>
         <div className="adapt-cat-grid">
           {ADAPT_CATEGORIES.map(cat=>(
@@ -844,10 +844,10 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
   const total = lls.restSecs || 90;
   const pct = Math.max(0, Math.min(1, restTimer / total));
   const R = 64; const C = 2 * Math.PI * R;
-  const ringColor = restTimer > 15 ? T.green : restTimer > 5 ? T.fat : "#EF4444";
+  const ringColor = restTimer > 15 ? T.green : restTimer > 5 ? T.fat : T.prot;
 
   const badge = lls.isNewPR
-    ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill="#EF4444"><path d="M12 2C9.5 2 8 4.5 8 7c0 2 1 3.5 2.5 4.5C9 13 8 15 8 17h8c0-2-1-4-2.5-5.5C15 10.5 16 9 16 7c0-2.5-1.5-5-4-5z"/><rect x="9" y="19" width="6" height="3" rx="1"/></svg>, text: "New PR", color: "#EF4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.25)" }
+    ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill={T.prot}><path d="M12 2C9.5 2 8 4.5 8 7c0 2 1 3.5 2.5 4.5C9 13 8 15 8 17h8c0-2-1-4-2.5-5.5C15 10.5 16 9 16 7c0-2.5-1.5-5-4-5z"/><rect x="9" y="19" width="6" height="3" rx="1"/></svg>, text: "New PR", color: T.prot, bg: "rgba(232,52,28,0.1)", border: "rgba(232,52,28,0.25)" }
     : lls.prevBestWeight != null && parseFloat(lls.weight) >= lls.prevBestWeight
       ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke={T.green} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>, text: "On track", color: T.green, bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.22)" }
       : lls.prevBestWeight != null
@@ -991,7 +991,7 @@ function MomentumBar({ activeWorkout, history }) {
   if (completedSets === 0) return null;
 
   const label = score >= 90 ? "Elite session" : score >= 75 ? "Strong session" : score >= 60 ? "Solid session" : "Recovery session";
-  const barColor = score >= 90 ? T.green : score >= 75 ? T.carb : score >= 60 ? T.fat : "#EF4444";
+  const barColor = score >= 90 ? T.green : score >= 75 ? T.fat : score >= 60 ? T.fat : T.prot;
   return (
     <div style={{padding:"10px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:12,marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
@@ -1031,9 +1031,9 @@ function PrevSessionRow({ exerciseName, history }) {
 function SetFlashOverlay({ flash }) {
   if (!flash) return null;
   const cfg = {
-    pr:       { bg:"rgba(239,68,68,0.18)",  border:"#EF4444", icon:"🔥", title:"New PR!",                    color:"#EF4444" },
+    pr:       { bg:"rgba(232,52,28,0.18)",  border:T.prot, icon:"★",  title:"New PR!",                    color:T.prot },
     complete: { bg:"rgba(34,197,94,0.14)",  border:T.green, icon:"✓",  title:"Set complete",               color:T.green },
-    missed:   { bg:"rgba(245,158,11,0.14)",  border:T.fat, icon:"📝", title:`Missed ${flash.missedCount} rep${flash.missedCount===1?"":"s"}`, color:T.fat },
+    missed:   { bg:"rgba(245,158,11,0.14)",  border:T.fat, icon:"-",  title:`Missed ${flash.missedCount} rep${flash.missedCount===1?"":"s"}`, color:T.fat },
   }[flash.type] || { bg:"rgba(34,197,94,0.14)", border:T.green, icon:"✓", title:"Set complete", color:T.green };
   return (
     <div style={{position:"fixed",bottom:110,left:"50%",transform:"translateX(-50%)",zIndex:9500,background:cfg.bg,border:`1px solid ${cfg.border}50`,borderRadius:16,padding:"12px 22px",display:"flex",alignItems:"center",gap:10,backdropFilter:"blur(10px)",minWidth:180,justifyContent:"center",pointerEvents:"none"}}>
@@ -1159,7 +1159,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ex.name}</span>
                       {ex.requiresEquipment && (
-                        <span style={{ fontSize: 9, fontFamily: "var(--mono)", background: 'rgba(96,165,250,.12)', color: T.carb, borderRadius: 4, padding: '2px 6px', letterSpacing: '.06em', textTransform: 'uppercase', flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, fontFamily: "var(--mono)", background: 'rgba(232,52,28,.1)', color: T.prot, borderRadius: 4, padding: '2px 6px', letterSpacing: '.06em', textTransform: 'uppercase', flexShrink: 0 }}>
                           {EQUIP_LABELS[ex.requiresEquipment] || ex.requiresEquipment}
                         </span>
                       )}
@@ -1312,7 +1312,7 @@ function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMob
               ))}
             </div>
             <div style={{fontSize:11,color:'rgba(245,245,240,.5)',fontStyle:'italic',lineHeight:1.6,borderTop:'1px solid rgba(255,255,255,.06)',paddingTop:12}}>
-              🎯 {general?.coachNote}
+              {general?.coachNote}
             </div>
           </div>
           <button onClick={startMovementPhase} style={{width:'100%',padding:'15px',background:'var(--red)',border:'none',borderRadius:14,color:'#fff',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:"var(--condensed)",textTransform:'uppercase',letterSpacing:1,marginBottom:10}}>
@@ -1350,7 +1350,7 @@ function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMob
                         <div style={{fontSize:11,color:'rgba(245,245,240,.4)',marginTop:4}}>Time remaining</div>
                       </div>
                     ) : move?.duration ? (
-                      <button onClick={()=>{setTimerSec(move.duration);setTimerOn(true);}} style={{width:'100%',padding:'11px',background:'rgba(96,165,250,.1)',border:'1px solid rgba(96,165,250,.25)',borderRadius:10,color:'#60a5fa',fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:10}}>
+                      <button onClick={()=>{setTimerSec(move.duration);setTimerOn(true);}} style={{width:'100%',padding:'11px',background:'rgba(232,52,28,.08)',border:'1px solid rgba(232,52,28,.25)',borderRadius:10,color:T.prot,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:10}}>
                         Start {move.duration >= 60 ? `${Math.round(move.duration/60)} min` : `${move.duration}s`} timer
                       </button>
                     ) : null}
@@ -1382,8 +1382,8 @@ function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMob
           </div>
 
           {strides?.included && (
-            <div style={{background:'rgba(96,165,250,.07)',border:'1px solid rgba(96,165,250,.2)',borderRadius:12,padding:'12px 14px',marginBottom:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:'rgba(96,165,250,.8)',letterSpacing:'.16em',textTransform:'uppercase',marginBottom:6}}>Strides</div>
+            <div style={{background:'rgba(232,52,28,.05)',border:'1px solid rgba(232,52,28,.18)',borderRadius:12,padding:'12px 14px',marginBottom:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,letterSpacing:'.16em',textTransform:'uppercase',marginBottom:6}}>Strides</div>
               <div style={{fontSize:12,color:'rgba(245,245,240,.65)',lineHeight:1.6}}>{strides.detail}</div>
             </div>
           )}
@@ -1453,7 +1453,9 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   return (
     <div style={{animation:"fade-in 0.3s"}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
-        <div style={{fontSize:52,marginBottom:6}}>🔥</div>
+        <div style={{marginBottom:10,display:"flex",justifyContent:"center"}}>
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><path d="M12 2C10 6 6 8 6 12a6 6 0 0012 0c0-4-4-6-4-10z" fill={T.prot} opacity="0.9"/><path d="M12 8c-1 2-3 3.5-3 5.5a3 3 0 006 0c0-2-2-3.5-2-5.5z" fill="rgba(245,245,240,0.25)"/></svg>
+        </div>
         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--red)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Session Complete</div>
         <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:40,textTransform:"uppercase",lineHeight:.9}}>{summary.title}</div>
       </div>
@@ -1480,7 +1482,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
           {summary.prs.map((pr, i) => (
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:i<summary.prs.length-1?6:0}}>
               <span style={{fontSize:13,fontWeight:600}}>{pr.name}</span>
-              <span style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:18,color:"#EF4444"}}>{pr.weight} {wUnit} ← new PR</span>
+              <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:T.prot}}>{pr.weight} {wUnit} ← new PR</span>
             </div>
           ))}
         </div>
@@ -1503,8 +1505,8 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
         return (
           <div style={{marginBottom:16}}>
             {!showCoolDown ? (
-              <button onClick={()=>setShowCoolDown(true)} style={{width:"100%",padding:"13px",background:"rgba(0,201,167,0.08)",border:"1px solid rgba(0,201,167,0.25)",borderRadius:14,color:"#00C9A7",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>
-                🧘 View Cool-Down Protocol (5 min)
+              <button onClick={()=>setShowCoolDown(true)} style={{width:"100%",padding:"13px",background:"rgba(52,211,153,0.08)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:14,color:T.green,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",textTransform:"uppercase",letterSpacing:1}}>
+                View Cool-Down Protocol (5 min)
               </button>
             ) : (
               <div style={{background:"rgba(0,201,167,0.06)",border:"1px solid rgba(0,201,167,0.2)",borderRadius:14,padding:"16px 18px"}}>
@@ -1515,7 +1517,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {coolProtocol.map((step, i) => (
                     <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(255,255,255,.05)":"none"}}>
-                      <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(0,201,167,0.15)",border:"1px solid rgba(0,201,167,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#00C9A7",flexShrink:0,marginTop:1}}>{i+1}</div>
+                      <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
                       <div>
                         <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
                         <div style={{fontSize:11,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{step.detail}</div>
@@ -1816,7 +1818,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     }
   }
 
-  const ZONE_COLOR={1:"#aaa",2:"#00C9A7",3:"#4fc3f7",4:"#f5a623",5:"#FF4D6D"};
+  const ZONE_COLOR={1:"rgba(245,245,240,.35)",2:"var(--green)",3:"var(--blue)",4:"var(--amber)",5:"var(--red)"};
   const ZONE_LABEL={1:"Zone 1 Recovery",2:"Zone 2 Aerobic",3:"Zone 3 Tempo",4:"Zone 4 Threshold",5:"Zone 5 VO₂ Max"};
 
   return (
@@ -1838,9 +1840,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ?<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
                   {opts.map((opt,i)=>(
                     <button key={i} onClick={()=>setSelectedSwap(selectedSwap===opt.name?null:opt.name)}
-                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(96,165,250,.15)":"rgba(255,255,255,.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(96,165,250,.5)":"rgba(255,255,255,.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
+                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(232,52,28,.12)":"rgba(255,255,255,.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(232,52,28,.45)":"rgba(255,255,255,.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
                       <span style={{fontSize:14,fontWeight:600,color:"#fff"}}>{opt.name}</span>
-                      {selectedSwap===opt.name&&<span style={{fontSize:14,color:T.carb}}>✓</span>}
+                      {selectedSwap===opt.name&&<span style={{fontSize:14,color:T.prot}}>✓</span>}
                     </button>
                   ))}
                 </div>
@@ -1851,12 +1853,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Make permanent</div>
                   <div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Always replace this exercise in my plan</div>
                 </div>
-                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.carb:"rgba(255,255,255,.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.prot:"rgba(255,255,255,.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
                   <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:swapPermanent?19:3}}/>
                 </button>
               </div>
               <button onClick={()=>selectedSwap&&applySwap(swapModal.exerciseIdx,selectedSwap,swapPermanent,swapModal.originalName)} disabled={!selectedSwap}
-                style={{width:"100%",padding:15,background:selectedSwap?T.carb:"rgba(255,255,255,.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
+                style={{width:"100%",padding:15,background:selectedSwap?T.prot:"rgba(255,255,255,.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
                 Swap Exercise →
               </button>
               <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
@@ -1870,14 +1872,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.92)",backdropFilter:"blur(8px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
           <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
             <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"'DM Mono',monospace"}}>Pre-Session Check-In</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,marginBottom:20}}>How are you feeling?</div>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"var(--mono)"}}>Pre-Session Check-In</div>
+            <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,marginBottom:20}}>How are you feeling?</div>
             {/* Sleep */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Sleep last night</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                 {["4","5","6","7","8","9+"].map(v=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,sleep:v}))} style={{padding:"8px 14px",borderRadius:9,border:`1.5px solid ${rdAnswers.sleep===v?T.carb:T.bd}`,background:rdAnswers.sleep===v?`${T.carb}18`:T.s2,color:rdAnswers.sleep===v?T.carb:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{v}h</button>
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,sleep:v}))} style={{padding:"8px 14px",borderRadius:9,border:`1.5px solid ${rdAnswers.sleep===v?T.prot:T.bd}`,background:rdAnswers.sleep===v?`${T.prot}18`:T.s2,color:rdAnswers.sleep===v?T.prot:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{v}h</button>
                 ))}
               </div>
             </div>
@@ -1885,8 +1887,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Stress level</div>
               <div style={{display:"flex",gap:8}}>
-                {[["low","😌 Low"],["medium","😐 Medium"],["high","😤 High"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,stress:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.stress===v?T.carb:T.bd}`,background:rdAnswers.stress===v?`${T.carb}18`:T.s2,color:rdAnswers.stress===v?T.carb:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                {[["low","Low"],["medium","Medium"],["high","High"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,stress:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.stress===v?T.prot:T.bd}`,background:rdAnswers.stress===v?`${T.prot}18`:T.s2,color:rdAnswers.stress===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                 ))}
               </div>
             </div>
@@ -1894,8 +1896,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Energy</div>
               <div style={{display:"flex",gap:8}}>
-                {[["low","⚡ Low"],["normal","✅ Normal"],["high","🔥 High"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,energy:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.energy===v?T.carb:T.bd}`,background:rdAnswers.energy===v?`${T.carb}18`:T.s2,color:rdAnswers.energy===v?T.carb:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                {[["low","Low"],["normal","Normal"],["high","High"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,energy:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.energy===v?T.prot:T.bd}`,background:rdAnswers.energy===v?`${T.prot}18`:T.s2,color:rdAnswers.energy===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                 ))}
               </div>
             </div>
@@ -1903,7 +1905,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Any pain or discomfort?</div>
               <div style={{display:"flex",gap:8}}>
-                {[["none","😊 None"],["minor","😬 Minor"],["significant","😣 Significant"]].map(([v,l])=>(
+                {[["none","None"],["minor","Minor"],["significant","Significant"]].map(([v,l])=>(
                   <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))}
                     style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.painLevel===v?T.prot:T.bd}`,
                     background:rdAnswers.painLevel===v?`${T.prot}18`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",
@@ -1959,7 +1961,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               );
             })()}
             <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy}
-              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(255,255,255,.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
+              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(255,255,255,.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
               Start Session →
             </button>
             <button onClick={skipReadiness} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Skip Check-In</button>
@@ -1968,11 +1970,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       )}
 
       {/* Toast */}
-      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(96,165,250,.4)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
+      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(232,52,28,.35)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
 
       {trainScreen!=="routine-builder"&&<div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto"}}>
         {TRAIN_TABS.map(tab=>(
-          <button key={tab.id} onClick={()=>setTrainScreen(tab.id)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"inherit",background:trainScreen===tab.id?T.carb:"none",color:trainScreen===tab.id?"#000":T.mu,fontSize:13,fontWeight:600,whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0}}>{tab.l}</button>
+          <button key={tab.id} onClick={()=>setTrainScreen(tab.id)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"var(--mono)",background:trainScreen===tab.id?T.prot:"none",color:trainScreen===tab.id?"#fff":T.mu,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0}}>{tab.l}</button>
         ))}
       </div>}
 
@@ -1980,14 +1982,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
         {/* ── Resume Workout Prompt ── */}
         {resumePrompt&&!activeWorkout&&(
-          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
-            <div style={{fontSize:24,flexShrink:0}}>💪</div>
+          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
+            <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
+            </div>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>Unfinished session</div>
               <div style={{fontSize:11,color:"rgba(245,245,240,0.5)"}}>You left a workout in progress. Continue where you left off?</div>
             </div>
             <div style={{display:"flex",gap:8,flexShrink:0}}>
-              <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:T.carb,border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
+              <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:T.prot,border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
               <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{padding:"8px 10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Discard</button>
             </div>
           </div>
@@ -2001,41 +2005,43 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{position:"absolute",top:-40,right:-40,width:180,height:180,borderRadius:"50%",background:`radial-gradient(circle,${cfg.color}08,transparent 70%)`,pointerEvents:"none"}}/>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                 <div>
-                  <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{new Date().toLocaleDateString("en-US",{weekday:"long"})}</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,lineHeight:1}}>Train 💪</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// {new Date().toLocaleDateString("en-US",{weekday:"long"})}</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:32,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>Train</div>
                 </div>
-                <div style={{background:`${cfg.color}15`,border:`1px solid ${cfg.color}35`,borderRadius:20,padding:"6px 16px",fontSize:12,color:cfg.color,fontWeight:700}}>{cfg.emoji} {todayFocus}</div>
+                <div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"6px 16px",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{todayFocus}</div>
               </div>
-              <div style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.6}}>💡 {FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
+              <div style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.6}}>{FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
               {/* Pregnancy permanent safety banner */}
               {profile?.lifeStage==="pregnant"&&(
                 <>
-                  <div style={{background:"rgba(249,115,22,.08)",border:"1.5px solid rgba(249,115,22,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{fontSize:18,flexShrink:0}}>🤰</div>
+                  <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--amber)" strokeWidth="1.5"/><path d="M8 5v4M8 11v.5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                    </div>
                     <div>
-                      <div style={{fontSize:11,fontWeight:700,color:"#F97316",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
                       <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
                     </div>
                   </div>
-                  <div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <span style={{fontSize:13,flexShrink:0}}>💙</span>
-                    <div><div style={{fontSize:11,color:"rgba(96,165,250,.9)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                  <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </>
               )}
               {/* Postpartum phase banner */}
               {profile?.lifeStage==="postpartum"&&(()=>{const pp=getPostpartumPhase(profile.postpartumWeeks,profile.csection);return(
                 <>
-                  <div style={{background:"rgba(168,85,247,.08)",border:"1.5px solid rgba(168,85,247,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{fontSize:18,flexShrink:0}}>👶</div>
+                  <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="var(--amber)" strokeWidth="1.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                    </div>
                     <div>
-                      <div style={{fontSize:11,fontWeight:700,color:"#A855F7",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
                       <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{pp.desc}</div>
                     </div>
                   </div>
-                  <div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <span style={{fontSize:13,flexShrink:0}}>💙</span>
-                    <div><div style={{fontSize:11,color:"rgba(96,165,250,.9)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider — especially with C-section recovery.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                  <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider — especially with C-section recovery.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </>
               );})()}
@@ -2044,9 +2050,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
                 const highLaxity=cp&&(cp.phase==="follicular"||cp.phase==="ovulation");
                 return(
-                  <div style={{background:"rgba(236,72,153,.06)",border:"1px solid rgba(236,72,153,.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
-                    <div style={{fontSize:10,color:"#EC4899",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>🦵 ACL PREHAB · 5 MIN</div>
-                    {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:T.fat}}>⚠️ Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
+                  <div style={{background:"rgba(232,52,28,.06)",border:"1px solid rgba(232,52,28,.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
+                    <div style={{fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>ACL PREHAB · 5 MIN</div>
+                    {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:T.fat}}>Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
                     <div style={{display:"flex",flexDirection:"column",gap:6}}>
                       {ACL_PREHAB.map((ex,i)=>(
                         <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:T.s2,borderRadius:7}}>
@@ -2063,11 +2069,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 if(hc.length===0)return null;
                 return(
                   <div style={{background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.25)",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
-                    <div style={{fontSize:9,color:"#FBBF24",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>⚠️ SAFETY NOTES FOR YOUR SESSION</div>
+                    <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SAFETY NOTES FOR YOUR SESSION</div>
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:T.mu,lineHeight:1.55}}><span style={{color:"#FBBF24",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
+                      {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:T.mu,lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
                     </div>
-                    <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
+                    <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
                   </div>
                 );
               })()}
@@ -2075,8 +2081,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 const coachStyle=getCoachingStyle(wPrefs?.trainingAge);
                 return(
                 <div style={{marginBottom:14}}>
-                  <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>TODAY'S LIFT · {todayPrescription.length} EXERCISES</div>
-                  {coachStyle.progressNote&&<div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.18)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:T.carb}}>📋 {coachStyle.progressNote}</div>}
+                  <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:8}}>TODAY'S LIFT · {todayPrescription.length} EXERCISES</div>
+                  {coachStyle.progressNote&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:"rgba(245,245,240,.75)"}}>{coachStyle.progressNote}</div>}
                   <div style={{display:"flex",flexDirection:"column",gap:5}}>
                     {todayPrescription.slice(0,5).map((ex,i)=>(
                       <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:T.s2,borderRadius:9,border:`1px solid ${T.bd}`}}>
@@ -2109,7 +2115,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                   </div>
                   {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
-                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(96,165,250,.06)",border:"1px solid rgba(96,165,250,.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
                     <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
                       {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
@@ -2117,17 +2123,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       ))}
                     </div>
                   </div>}
-                  {preFuel&&<div style={{background:"rgba(255,215,64,.06)",border:"1px solid rgba(255,215,64,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                    <div style={{fontSize:9,color:T.fat,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>⚡ PRE-RUN FUEL</div>
+                  {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                    <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
                     <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{preFuel}</div>
                   </div>}
-                  {postFuel&&<div style={{background:"rgba(0,201,167,.06)",border:"1px solid rgba(0,201,167,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                    <div style={{fontSize:9,color:"#00C9A7",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>🔁 RECOVERY FUEL</div>
+                  {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                    <div style={{fontSize:9,color:T.green,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
                     <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{postFuel}</div>
                   </div>}
                   {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
-                    <div style={{background:`${T.carb}08`,borderRadius:9,padding:"10px 12px",border:`1px solid ${T.carb}20`}}>
-                      <div style={{fontSize:9,color:T.carb,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>🍽 NUTRITION BRIDGE</div>
+                    <div style={{background:"rgba(232,52,28,.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(232,52,28,.15)"}}>
+                      <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
                       <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
                     </div>
                   )}
@@ -2138,8 +2144,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 const lvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
                 const isNov=lvl==="beginner"||lvl==="novice";
                 const isAdv=lvl==="advanced"||lvl==="elite";
-                const badgeColor=isNov?"#34D399":isAdv?"#F87171":T.carb;
-                const badgeBg=isNov?"rgba(52,211,153,.1)":isAdv?"rgba(248,113,113,.1)":"rgba(96,165,250,.1)";
+                const badgeColor=isNov?"#34D399":isAdv?"#F87171":T.prot;
+                const badgeBg=isNov?"rgba(52,211,153,.1)":isAdv?"rgba(248,113,113,.1)":"rgba(232,52,28,.1)";
                 const badgeLabel=isNov?"Beginner Program":isAdv?"Advanced Program":"Intermediate Program";
                 if(!prescType||prescType!=="lifting"||!todayPrescription||!Array.isArray(todayPrescription))return null;
                 return(
@@ -2148,7 +2154,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <span style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:badgeColor}}>{badgeLabel}</span>
                       <div style={{fontSize:11,color:T.mu,marginTop:2}}>Exercises selected for your level. <span style={{color:T.mu,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setTrainScreen&&setTrainScreen("settings")}>Update in Settings.</span></div>
                     </div>
-                    <div style={{width:28,height:28,borderRadius:"50%",background:badgeBg,border:`1.5px solid ${badgeColor}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:14}}>{isNov?"🌱":isAdv?"🔥":"⚡"}</div>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:badgeBg,border:`1.5px solid ${badgeColor}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:badgeColor}}>{isNov?"N":isAdv?"A":"I"}</div>
                   </div>
                 );
               })()}
@@ -2167,14 +2173,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--white)",marginBottom:6}}>No Program Selected</div>
                   <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
-                  <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
+                  <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                 </div>
               )}
               <div style={{display:"flex",gap:8,marginBottom:8}}>
                 {todayType==="training"&&todayPrescription&&(
-                  <button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>▶ Start Session →</button>
+                  <button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>▶ Start Session →</button>
                 )}
-                {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.carb}15`,color:T.carb,fontWeight:700,fontSize:14,border:`1px solid ${T.carb}40`,borderRadius:12,cursor:"pointer",fontFamily:"inherit"}}>▶ Resume Session</button>}
+                {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.prot}15`,color:T.prot,fontWeight:700,fontSize:14,border:`1px solid ${T.prot}40`,borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:14,textTransform:"uppercase",letterSpacing:"0.08em"}}>Resume Session</button>}
                 {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
                   <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{flexShrink:0,padding:"14px 12px",background:adaptLeft>0?"rgba(255,255,255,.05)":"rgba(255,255,255,.02)",color:adaptLeft>0?"rgba(245,245,240,.75)":"rgba(245,245,240,.25)",fontWeight:700,fontSize:13,border:`1px solid ${adaptLeft>0?"rgba(255,255,255,.12)":"rgba(255,255,255,.06)"}`,borderRadius:12,cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"inherit",whiteSpace:"nowrap"}}>
                     🔄 Adapt
@@ -2193,7 +2199,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* WEEK SCHEDULE */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:14}}>This Week</div>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",marginBottom:14}}>This Week</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
                 {WDAYS.map(day=>{
                   const t=schedule[day];
@@ -2213,7 +2219,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* MUSCLE RECOVERY MAP */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif",marginBottom:4}}>Muscle Recovery Map</div>
+              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",marginBottom:4}}>Muscle Recovery Map</div>
               <div style={{fontSize:11,color:T.mu,marginBottom:16}}>Tap any muscle to see weekly volume status</div>
               <MuscleMap dayFocus={dayFocus} isMobile={isMobile}/>
             </div>
@@ -2253,9 +2259,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
                 <div style={{fontSize:48,marginBottom:16}}>💪</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:8}}>NO ACTIVE SESSION</div>
+                <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:8}}>NO ACTIVE SESSION</div>
                 <div style={{fontSize:14,color:T.mu,marginBottom:24,lineHeight:1.6}}>Go to Lift Smarter, build your workout, then tap "Start This Session" to begin tracking sets and reps here.</div>
-                <button onClick={()=>setTrainScreen("builder")} style={{padding:"14px 28px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Build a Workout →</button>
+                <button onClick={()=>setTrainScreen("builder")} style={{padding:"14px 28px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Build a Workout →</button>
               </div>
               : workoutSummary
                 ? <WorkoutSummaryScreen
@@ -2269,11 +2275,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {/* Header */}
                 <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"18px 20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
-                    <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>ACTIVE SESSION</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// ACTIVE SESSION</div>
+                    <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
                     <div style={{fontSize:11,color:T.mu,marginTop:4}}>{activeWorkout.exercises?.length||0} exercises · {activeWorkout.exercises?.reduce((a,e)=>a+(e.sets?.length||0),0)||0} total sets</div>
                   </div>
-                  <button onClick={finishWorkout} style={{padding:"12px 20px",background:T.prot,color:T.white,fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>✓ Finish</button>
+                  <button onClick={finishWorkout} style={{padding:"12px 20px",background:T.prot,color:T.white,fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>✓ Finish</button>
                 </div>
 
                 {/* Readiness banner */}
@@ -2292,15 +2298,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const p=sessionPrediction;
                   const isStrong=p.probability>=75;
                   const isSolid=p.probability>=50&&p.probability<75;
-                  const color=isStrong?T.green:isSolid?"#3b82f6":T.fat;
-                  const badge=isStrong?"🔥 STRONG DAY":isSolid?"💪 SOLID SESSION":"⚡ RECOVERY SESSION";
+                  const color=isStrong?T.green:isSolid?T.prot:T.fat;
+                  const badge=isStrong?"STRONG DAY":isSolid?"SOLID SESSION":"RECOVERY SESSION";
                   const sub=isStrong?"Conditions aligned — PR opportunity today":isSolid?"Good session likely — execute your plan":"Suboptimal conditions — focus on technique";
                   const factors=p.factors||[];
                   return(
                     <div style={{background:`${color}0d`,border:`1.5px solid ${color}30`,borderRadius:14,padding:"12px 16px",marginBottom:12}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                         <div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:15,color,letterSpacing:".06em",textTransform:"uppercase"}}>{badge} — {p.probability}% PR PROBABILITY</div>
+                          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:15,color,letterSpacing:".06em",textTransform:"uppercase"}}>{badge} — {p.probability}% PR PROBABILITY</div>
                           <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginTop:2}}>{sub}</div>
                         </div>
                       </div>
@@ -2309,7 +2315,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {factors.map((f,fi)=>(
                             <span key={fi} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
                               background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(255,255,255,.06)",
-                              color:f.ok?T.green:f.ok===false?"#ef4444":"rgba(245,245,240,.4)",
+                              color:f.ok?T.green:f.ok===false?T.prot:"rgba(245,245,240,.4)",
                               border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(255,255,255,.1)"}`}}>
                               {f.ok?"✓":f.ok===false?"✗":"—"} {f.label}
                             </span>
@@ -2322,12 +2328,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                 {/* Active workout ACWR risk banner */}
                 {acwrHighRisks?.length>0&&(
-                  <div style={{background:"rgba(239,68,68,0.08)",border:"1.5px solid rgba(239,68,68,0.25)",borderRadius:14,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                  <div style={{background:"rgba(232,52,28,0.08)",border:"1.5px solid rgba(232,52,28,0.25)",borderRadius:14,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
                     <div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:13,color:"#ef4444",letterSpacing:".06em",textTransform:"uppercase"}}>⚠️ {acwrHighRisks[0].region.replace("_"," ").toUpperCase()} RISK ELEVATED</div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:13,color:"var(--red)",letterSpacing:".06em",textTransform:"uppercase"}}>{acwrHighRisks[0].region.replace("_"," ").toUpperCase()} RISK ELEVATED</div>
                       <div style={{fontSize:11,color:"rgba(245,245,240,.5)",marginTop:2}}>Consider reducing sets by 1 for safety</div>
                     </div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#ef4444"}}>{acwrHighRisks[0].score}%</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:18,color:"var(--red)"}}>{acwrHighRisks[0].score}%</div>
                   </div>
                 )}
 
@@ -2403,7 +2409,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         </div>
                         {sugg&&<div style={{background:`${T.prot}10`,border:`1px solid ${T.prot}25`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
                           <div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}lbs × {sugg.reps}</div>
+                          <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}lbs × {sugg.reps}</div>
                           <div style={{fontSize:9,color:T.mu}}>{sugg.note}</div>
                         </div>}
                       </div>
@@ -2464,16 +2470,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           <div>
                             <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginBottom:6}}>Challenge level?</div>
                             <div style={{display:"flex",gap:6}}>
-                              {[["easy","😴 Easy"],["perfect","✅ Perfect"],["hard","🥵 Hard"]].map(([v,l])=>(
+                              {[["easy","Easy"],["perfect","Perfect"],["hard","Hard"]].map(([v,l])=>(
                                 <button key={v} onClick={()=>{const u={...activeWorkout};if(!u.exercises[ei].feedback)u.exercises[ei].feedback={};u.exercises[ei].feedback.challenge=v;setActiveWorkout({...u});}}
-                                  style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.challenge===v?T.carb:T.bd}`,background:ex.feedback?.challenge===v?`${T.carb}18`:T.s1,color:ex.feedback?.challenge===v?T.carb:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                                  style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.challenge===v?T.prot:T.bd}`,background:ex.feedback?.challenge===v?`${T.prot}18`:T.s1,color:ex.feedback?.challenge===v?T.prot:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                               ))}
                             </div>
                           </div>
                           {/* Coaching cue based on feedback */}
-                          {ex.feedback?.feel==="no"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,fontSize:11,color:"#EF4444"}}>💡 Mind-muscle tip: slow the eccentric, reduce weight 10%, focus on the squeeze at peak contraction.</div>}
-                          {ex.feedback?.feel==="yes"&&ex.feedback?.challenge==="easy"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(0,201,167,.08)",border:"1px solid rgba(0,201,167,.2)",borderRadius:8,fontSize:11,color:"#00C9A7"}}>📈 Add 2.5–5 lbs next session.</div>}
-                          {ex.feedback?.feel==="somewhat"&&ex.feedback?.challenge==="perfect"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(96,165,250,.08)",border:"1px solid rgba(96,165,250,.2)",borderRadius:8,fontSize:11,color:T.carb}}>🎯 Focus on the target muscle before each set. Try a 2-second pause at peak.</div>}
+                          {ex.feedback?.feel==="no"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(232,52,28,.06)",border:"1px solid rgba(232,52,28,.18)",borderRadius:8,fontSize:11,color:T.prot}}>Mind-muscle tip: slow the eccentric, reduce weight 10%, focus on the squeeze at peak contraction.</div>}
+                          {ex.feedback?.feel==="yes"&&ex.feedback?.challenge==="easy"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(52,211,153,.08)",border:"1px solid rgba(52,211,153,.2)",borderRadius:8,fontSize:11,color:T.green}}>Add 2.5–5 lbs next session.</div>}
+                          {ex.feedback?.feel==="somewhat"&&ex.feedback?.challenge==="perfect"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:8,fontSize:11,color:T.prot}}>Focus on the target muscle before each set. Try a 2-second pause at peak.</div>}
                         </div>
                       )}
                     </div>
@@ -2481,7 +2487,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 })}
 
                 {/* Finish */}
-                <button onClick={finishWorkout} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1,marginTop:8}}>✓ Finish Workout</button>
+                <button onClick={finishWorkout} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginTop:8}}>✓ Finish Workout</button>
               </div>
             }
           </div>
@@ -2505,19 +2511,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
             <SectionCard title="Training Mode">
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
-                {[["strength","🏋️ Strength"],["run","🏃 Running"],["hyrox","🔥 Hyrox"],["hybrid","⚡ Hybrid"]].map(([k,l])=>(
-                  <button key={k} onClick={()=>setPlanMode(k)} style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${planMode===k?T.carb:T.bd}`,background:planMode===k?`${T.carb}15`:T.s3,color:planMode===k?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+                {[["strength","Strength"],["run","Running"],["hyrox","Hyrox"],["hybrid","Hybrid"]].map(([k,l])=>(
+                  <button key={k} onClick={()=>setPlanMode(k)} style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${planMode===k?T.prot:T.bd}`,background:planMode===k?`${T.prot}15`:T.s3,color:planMode===k?T.prot:T.mu,fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
               {planMode==="hybrid"&&<div style={{borderTop:`1px solid ${T.bd}`,paddingTop:14}}>
-                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:10}}>Mix</div>
-                <Toggle on={hybridMix.strength} onChange={v=>setHybridMix(p=>({...p,strength:v}))} label="💪 Strength splits"/>
-                <Toggle on={hybridMix.run}      onChange={v=>setHybridMix(p=>({...p,run:v}))}      label="🏃 Running plan"/>
-                <Toggle on={hybridMix.hyrox}    onChange={v=>setHybridMix(p=>({...p,hyrox:v}))}    label="🔥 Hyrox blocks"/>
+                <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:10}}>Mix</div>
+                <Toggle on={hybridMix.strength} onChange={v=>setHybridMix(p=>({...p,strength:v}))} label="Strength splits"/>
+                <Toggle on={hybridMix.run}      onChange={v=>setHybridMix(p=>({...p,run:v}))}      label="Running plan"/>
+                <Toggle on={hybridMix.hyrox}    onChange={v=>setHybridMix(p=>({...p,hyrox:v}))}    label="Hyrox blocks"/>
               </div>}
               {planMode==="run"&&<div style={{borderTop:`1px solid ${T.bd}`,paddingTop:14}}>
-                {Object.entries(RUN_PLANS).map(([k,p])=>(<div key={k} onClick={()=>setRunPlan(k)} style={{background:runPlan===k?`${T.carb}15`:T.s3,border:`1.5px solid ${runPlan===k?T.carb:T.bd}`,borderRadius:10,padding:"11px 13px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between"}}>
-                  <div><div style={{fontSize:13,fontWeight:700,color:runPlan===k?T.carb:"#fff"}}>{k}</div><div style={{fontSize:11,color:T.mu,marginTop:2}}>{p.desc}</div></div>
+                {Object.entries(RUN_PLANS).map(([k,p])=>(<div key={k} onClick={()=>setRunPlan(k)} style={{background:runPlan===k?`${T.prot}15`:T.s3,border:`1.5px solid ${runPlan===k?T.prot:T.bd}`,borderRadius:10,padding:"11px 13px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between"}}>
+                  <div><div style={{fontSize:13,fontWeight:700,color:runPlan===k?T.prot:"#fff"}}>{k}</div><div style={{fontSize:11,color:T.mu,marginTop:2}}>{p.desc}</div></div>
                   {p.weeks>0&&<div style={{background:T.s2,borderRadius:7,padding:"3px 8px",fontSize:10,color:T.mu,fontWeight:700,alignSelf:"center"}}>{p.weeks}wk</div>}
                 </div>))}
               </div>}
@@ -2561,11 +2567,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                 <div>
                   <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Current Program</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,lineHeight:1}}>{wPrefs.splitType||"No program set"}</div>
+                  <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,lineHeight:1}}>{wPrefs.splitType||"No program set"}</div>
                   <div style={{fontSize:12,color:T.mu,marginTop:4}}>{wPrefs.equipment} · {profile?.liftExp||"Intermediate"}</div>
                 </div>
                 <div style={{background:`${T.fat}15`,border:`1px solid ${T.fat}30`,borderRadius:14,padding:"12px 18px",textAlign:"center",flexShrink:0}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:T.fat,lineHeight:1}}>
+                  <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,color:T.fat,lineHeight:1}}>
                     {Math.min(Math.floor((new Date()-new Date(profile?.startDate||Date.now()))/(7*24*60*60*1000))+1,12)}
                   </div>
                   <div style={{fontSize:9,color:T.mu,marginTop:2}}>of 12 weeks</div>
@@ -2590,7 +2596,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* PR Tracker */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Personal Records 🏆</div>
+                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)"}}>Personal Records 🏆</div>
                 <div style={{fontSize:11,color:T.mu}}>Updated every session</div>
               </div>
               {Object.keys(history).length===0
@@ -2598,7 +2604,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{fontSize:36,marginBottom:12}}>📈</div>
                   <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>No records yet</div>
                   <div style={{fontSize:12,color:T.dim,marginBottom:16}}>Build a workout and start logging sets — your PRs will appear here automatically</div>
-                  <button onClick={()=>setTrainScreen("builder")} style={{padding:"10px 24px",background:T.prot,color:T.white,fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>Build First Workout →</button>
+                  <button onClick={()=>setTrainScreen("builder")} style={{padding:"10px 24px",background:T.prot,color:T.white,fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Build First Workout →</button>
                 </div>
                 :<div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(3,1fr)",gap:10}}>
                   {Object.entries(history).slice(0,12).map(([key,sessions])=>{
@@ -2608,14 +2614,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     const prevMax=prev?Math.max(...prev.sets.map(s=>parseFloat(s.weight||0))):null;
                     const diff=prevMax?lastMax-prevMax:null;
                     const trend=diff?diff>0?"↑":diff<0?"↓":"→":null;
-                    const tc=trend==="↑"?T.carb:trend==="↓"?"#FF4D6D":T.mu;
+                    const tc=trend==="↑"?T.green:trend==="↓"?T.prot:T.mu;
                     return(
                       <div key={key} className="card-press" style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"14px 16px",position:"relative",overflow:"hidden"}}>
                         {trend==="↑"&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:T.carb,borderRadius:"14px 14px 0 0"}}/>}
                         <div style={{fontSize:11,fontWeight:600,color:"#bbb",textTransform:"capitalize",marginBottom:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{key.replace(/_/g," ")}</div>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
                           <div>
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:T.prot,lineHeight:1}}>{lastMax}</div>
+                            <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,color:T.prot,lineHeight:1}}>{lastMax}</div>
                             <div style={{fontSize:9,color:T.mu}}>lbs · best</div>
                           </div>
                           {trend&&<div style={{textAlign:"right"}}>
@@ -2637,10 +2643,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* Weight Trend */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"'Barlow Condensed',sans-serif"}}>Weight Trend 📊</div>
+                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)"}}>Weight Trend 📊</div>
                 <div style={{display:"flex",gap:8}}>
                   <div style={{fontSize:11,color:T.mu}}>Start: <b style={{color:"#fff"}}>{profile?.startWeight||"—"} {profile?.wUnit||"lbs"}</b></div>
-                  {profile?.goalWeight&&<div style={{fontSize:11,color:T.mu}}>Goal: <b style={{color:T.carb}}>{profile?.goalWeight} {profile?.wUnit||"lbs"}</b></div>}
+                  {profile?.goalWeight&&<div style={{fontSize:11,color:T.mu}}>Goal: <b style={{color:T.prot}}>{profile?.goalWeight} {profile?.wUnit||"lbs"}</b></div>}
                 </div>
               </div>
               <div style={{textAlign:"center",padding:"24px",border:`1px dashed ${T.bd}`,borderRadius:12,color:T.mu,fontSize:12}}>
@@ -2730,7 +2736,7 @@ export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
     return{dateStr,scheduleType,wLog,totalCals,totalProt,macros,calPct,protPct,isRestDay:scheduleType==="rest"};
   }
 
-  const COLOR={green:"#00C9A7",yellow:"#F59E0B",red:"#FF4D6D",rest:"rgba(245,245,240,.12)",future:"rgba(245,245,240,.04)"};
+  const COLOR={green:T.green,yellow:T.fat,red:T.prot,rest:"rgba(245,245,240,.12)",future:"rgba(245,245,240,.04)"};
   const LABEL={green:"Hit both",yellow:"Partial",red:"Missed",rest:"Rest",future:""};
 
   // Monthly stats
@@ -2750,7 +2756,7 @@ export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
         <div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,lineHeight:1}}>
+          <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,lineHeight:1}}>
             {today.toLocaleDateString("en-US",{month:"long",year:"numeric"}).toUpperCase()}
           </div>
           <div style={{fontSize:11,color:T.mu,marginTop:4}}>
@@ -2793,7 +2799,7 @@ export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
         const d=getDayData(selectedDay);
         const status=getDayStatus(selectedDay);
         const dateLabel=new Date(`${d.dateStr}T12:00:00`).toLocaleDateString("en-US",{month:"long",day:"numeric",weekday:"long"});
-        const COLOR_STATUS={green:T.carb,yellow:"#F59E0B",red:"#FF4D6D",rest:T.mu,future:T.mu};
+        const COLOR_STATUS={green:T.green,yellow:T.fat,red:T.prot,rest:T.mu,future:T.mu};
         return(
           <div style={{marginTop:14,background:T.s2,borderRadius:12,padding:"14px 16px",border:`1px solid rgba(245,245,240,.08)`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
@@ -2805,15 +2811,15 @@ export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
             ):(
               <>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                  <span style={{color:d.wLog?T.carb:"#FF4D6D",fontSize:13}}>{d.wLog?"✓":"✗"}</span>
+                  <span style={{color:d.wLog?T.green:T.prot,fontSize:13}}>{d.wLog?"✓":"✗"}</span>
                   <span style={{fontSize:12,color:"rgba(245,245,240,.8)"}}>Workout: {d.wLog?`${d.wLog.workout?.focus||"Completed"}`:status==="future"?"Upcoming":"Not logged"}</span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                  <span style={{color:d.calPct>=80&&d.calPct<=120?T.carb:"#FF4D6D",fontSize:13}}>{d.calPct>=80&&d.calPct<=120?"✓":"✗"}</span>
+                  <span style={{color:d.calPct>=80&&d.calPct<=120?T.green:T.prot,fontSize:13}}>{d.calPct>=80&&d.calPct<=120?"✓":"✗"}</span>
                   <span style={{fontSize:12,color:"rgba(245,245,240,.8)"}}>Nutrition: {d.totalCals} / {d.macros.calories} kcal ({d.calPct}%)</span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{color:d.protPct>=80?T.carb:"#FF4D6D",fontSize:13}}>{d.protPct>=80?"✓":"✗"}</span>
+                  <span style={{color:d.protPct>=80?T.green:T.prot,fontSize:13}}>{d.protPct>=80?"✓":"✗"}</span>
                   <span style={{fontSize:12,color:"rgba(245,245,240,.8)"}}>Protein: {d.totalProt} / {d.macros.protein}g ({d.protPct}%)</span>
                 </div>
               </>
@@ -2864,7 +2870,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
   if(daysSince<30){
     return(
       <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,marginBottom:8}}>YOUR TRAINING DNA</div>
+        <div style={{fontFamily:"var(--condensed)",fontSize:20,fontWeight:900,marginBottom:8}}>YOUR TRAINING DNA</div>
         <div style={{textAlign:"center",padding:"24px",color:T.mu}}>
           <div style={{fontSize:32,marginBottom:12}}>🧬</div>
           <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>Unlocks after 30 days</div>
@@ -2919,7 +2925,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
     "Nutrition Adherence":"Log food every day this week — even estimates count.",
   };
 
-  function barColor(score){return score>=75?"#00C9A7":score>=50?"#F59E0B":"#FF4D6D";}
+  function barColor(score){return score>=75?T.green:score>=50?T.fat:T.prot;}
 
   async function shareDNA(){
     if(!dnaRef.current)return;
@@ -2944,10 +2950,10 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
         <div style={{position:"absolute",display:"none"}}></div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
           <div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,letterSpacing:.5}}>TRAINING DNA</div>
+            <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,letterSpacing:.5}}>TRAINING DNA</div>
             <div style={{fontSize:12,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginTop:2}}>{athleteType}</div>
           </div>
-          <div style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace",textAlign:"right"}}>LAST 30 DAYS<br/>{totalSessions} sessions</div>
+          <div style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)",textAlign:"right"}}>LAST 30 DAYS<br/>{totalSessions} sessions</div>
         </div>
         {metrics.map(({label,score})=>(
           <div key={label} style={{marginBottom:12}}>
@@ -2961,12 +2967,12 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
           </div>
         ))}
         <div style={{marginTop:18,borderTop:"1px solid rgba(245,245,240,.08)",paddingTop:14,display:"flex",flexDirection:"column",gap:6}}>
-          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:"#00C9A7",fontWeight:700}}>Your strength:</span> {highest.label} ({highest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:"#FF4D6D",fontWeight:700}}>Your gap:</span> {lowest.label} ({lowest.score})</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:T.green,fontWeight:700}}>Your strength:</span> {highest.label} ({highest.score})</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:T.fat,fontWeight:700}}>Your gap:</span> {lowest.label} ({lowest.score})</div>
           <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:T.prot,fontWeight:700}}>Recommended:</span> {RECS[lowest.label]}</div>
         </div>
       </div>
-      <button onClick={shareDNA} disabled={sharing} style={{marginTop:10,width:"100%",padding:"13px",background:T.s3,border:`1px solid ${T.bd}`,color:"#fff",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",opacity:sharing?.6:1}}>
+      <button onClick={shareDNA} disabled={sharing} style={{marginTop:10,width:"100%",padding:"13px",background:T.s3,border:`1px solid ${T.bd}`,color:"#fff",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:1,textTransform:"uppercase",opacity:sharing?.6:1}}>
         {sharing?"Generating...":"Share DNA"}
       </button>
     </div>
@@ -3062,7 +3068,7 @@ export function RacePredictor({profile,wPrefs,user,isMobile}){
   return(
     <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,textTransform:"uppercase"}}>RACE PREDICTOR</div>
+        <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,textTransform:"uppercase"}}>RACE PREDICTOR</div>
         <div style={{background:`${T.carb}15`,border:`1px solid ${T.carb}30`,borderRadius:20,padding:"4px 12px",fontSize:11,color:T.carb,fontWeight:700}}>{readiness}% READY</div>
       </div>
       <div style={{fontSize:11,color:T.mu,marginBottom:18}}>Based on your last {runLogs.length} logged sessions · Week {weekNum} of training</div>
@@ -3070,7 +3076,7 @@ export function RacePredictor({profile,wPrefs,user,isMobile}){
       {isHyrox?(
         <div style={{background:T.s2,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
           <div style={{fontSize:10,color:T.fat,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>HYROX FINISH TIME</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:40,fontWeight:900,color:"#fff",lineHeight:1}}>{fmtTime(hyroxPred)}</div>
+          <div style={{fontFamily:"var(--condensed)",fontSize:40,fontWeight:900,color:"#fff",lineHeight:1}}>{fmtTime(hyroxPred)}</div>
           <div style={{fontSize:11,color:T.mu,marginTop:4}}>8 × 1km runs + station blocks + 10% fatigue buffer</div>
         </div>
       ):(
@@ -3081,7 +3087,7 @@ export function RacePredictor({profile,wPrefs,user,isMobile}){
           ].map(([l,v,note])=>(
             <div key={l} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
               <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>{l}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#fff",lineHeight:1}}>{v}</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,color:"#fff",lineHeight:1}}>{v}</div>
               {note&&<div style={{fontSize:9,color:note.includes("✓")?T.carb:T.fat,marginTop:4,fontWeight:700}}>{note}</div>}
             </div>
           ))}
@@ -3140,7 +3146,7 @@ function AthleteWaveChart({waveData}){
   const lastLabel=(()=>{const d=new Date(now);d.setDate(d.getDate()-d.getDay());return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});})();
   return(
     <div style={{marginTop:16,marginBottom:4}}>
-      <div style={{fontSize:10,color:'rgba(245,245,240,0.35)',letterSpacing:2,textTransform:'uppercase',fontFamily:"'DM Mono',monospace",marginBottom:8}}>TRAINING WAVE — 8 WEEKS</div>
+      <div style={{fontSize:10,color:'rgba(245,245,240,0.35)',letterSpacing:2,textTransform:'uppercase',fontFamily:"var(--mono)",marginBottom:8}}>TRAINING WAVE — 8 WEEKS</div>
       <div style={{borderRadius:10,overflow:'hidden',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',display:'block'}}>
           {[25,50,75].map(v=>{
@@ -3158,7 +3164,7 @@ function AthleteWaveChart({waveData}){
             );
           })}
         </svg>
-        <div style={{display:'flex',justifyContent:'space-between',padding:'2px 8px 6px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.35)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'2px 8px 6px',fontFamily:"var(--mono)",fontSize:9,color:'rgba(245,245,240,0.35)'}}>
           <span>{firstLabel}</span><span>{lastLabel}</span>
         </div>
       </div>
@@ -3166,7 +3172,7 @@ function AthleteWaveChart({waveData}){
         {[{key:'strength',color:T.prot,label:'Strength'},{key:'volume',color:T.carb,label:'Volume'},{key:'consistency',color:T.green,label:'Consistency'},{key:'recovery',color:T.fat,label:'Recovery'}].map(({color,label})=>(
           <div key={label} style={{display:'flex',alignItems:'center',gap:4}}>
             <div style={{width:20,height:2,background:color,borderRadius:1}}/>
-            <span style={{fontSize:10,color:'rgba(245,245,240,0.5)',fontFamily:"'DM Mono',monospace"}}>{label}</span>
+            <span style={{fontSize:10,color:'rgba(245,245,240,0.5)',fontFamily:"var(--mono)"}}>{label}</span>
           </div>
         ))}
       </div>
@@ -3280,9 +3286,9 @@ export function AthletePassport({profile,wPrefs,user,isMobile}){
 
   return(
     <div>
-      <div ref={passportRef} style={{background:"#060D1A",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:isMobile?"20px 18px":"28px 32px",fontFamily:"'Barlow Condensed',sans-serif",overflow:"hidden",position:"relative"}}>
+      <div ref={passportRef} style={{background:"#060D1A",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:isMobile?"20px 18px":"28px 32px",fontFamily:"var(--condensed)",overflow:"hidden",position:"relative"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${T.prot},${T.fat},${T.carb})`}}/>
-        <div style={{position:"absolute",bottom:44,right:isMobile?-8:-12,fontSize:isMobile?72:90,fontWeight:900,color:"rgba(245,245,240,0.04)",letterSpacing:-2,lineHeight:1,pointerEvents:"none",userSelect:"none",fontFamily:"'Barlow Condensed',sans-serif",zIndex:0}}>{watermarkText}</div>
+        <div style={{position:"absolute",bottom:44,right:isMobile?-8:-12,fontSize:isMobile?72:90,fontWeight:900,color:"rgba(245,245,240,0.04)",letterSpacing:-2,lineHeight:1,pointerEvents:"none",userSelect:"none",fontFamily:"var(--condensed)",zIndex:0}}>{watermarkText}</div>
         <div style={{marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative",zIndex:1}}>
           <div>
             <div style={{fontSize:isMobile?32:40,fontWeight:900,letterSpacing:1,color:"#fff",lineHeight:1}}>{firstName}</div>
@@ -3309,11 +3315,11 @@ export function AthletePassport({profile,wPrefs,user,isMobile}){
         <AthleteWaveChart waveData={waveData}/>
         <div style={{height:1,background:"rgba(245,245,240,0.1)",marginTop:16,marginBottom:14}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:2,textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>COACH MACRO ATHLETE</div>
-          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{memberSince.toUpperCase()}</div>
+          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:2,textTransform:"uppercase",fontFamily:"var(--mono)"}}>COACH MACRO ATHLETE</div>
+          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:1,fontFamily:"var(--mono)"}}>{memberSince.toUpperCase()}</div>
         </div>
       </div>
-      <button onClick={sharePassport} disabled={sharing||!stats} style={{marginTop:10,width:"100%",padding:"13px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase",opacity:sharing||!stats?0.6:1}}>
+      <button onClick={sharePassport} disabled={sharing||!stats} style={{marginTop:10,width:"100%",padding:"13px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:1,textTransform:"uppercase",opacity:sharing||!stats?0.6:1}}>
         {sharing?"Generating...":"Share Passport"}
       </button>
     </div>
@@ -3323,9 +3329,9 @@ export function AthletePassport({profile,wPrefs,user,isMobile}){
 export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAthlete,stravaActs,connectStrava,ahActs,garminActs,fitbitActs,importStatus,handleFile,fileRef,allActs,todayActs,earnedCals,isMobile}) {
   return (
     <div style={{paddingBottom:isMobile?20:0,padding:isMobile?"12px 18px":"0"}}>
-      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>CONNECT DEVICES</div>
+      <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>CONNECT DEVICES</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Burned calories automatically add to your Fuel budget</p>
-      {earnedCals>0&&<div style={{background:`${T.carb}12`,border:`1px solid ${T.carb}30`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>🔥 Earned Today</div><div style={{fontSize:12,color:T.mu,marginTop:2}}>{todayActs.map(a=>`${a.icon} ${a.title||a.type}`).join(" · ")}</div></div><div style={{color:T.carb,fontWeight:900,fontSize:22}}>+{earnedCals} kcal</div></div>}
+      {earnedCals>0&&<div style={{background:`${T.prot}12`,border:`1px solid ${T.prot}30`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase"}}>// Earned Today</div><div style={{fontSize:12,color:T.mu,marginTop:2}}>{todayActs.map(a=>`${a.title||a.type}`).join(" · ")}</div></div><div style={{color:T.prot,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22}}>+{earnedCals} kcal</div></div>}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:14}}>
         {/* Strava */}
         <SectionCard title="🟠 Strava — Live Sync">
@@ -3467,13 +3473,13 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
   return (
     <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?80:0}}>
-      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:4}}>SETTINGS</div>
+      <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>SETTINGS</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Your profile, program, and account</p>
       <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:14}}>
-        <div style={{width:46,height:46,borderRadius:23,background:`${T.prot}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:T.prot,fontFamily:"'Barlow Condensed',sans-serif",flexShrink:0}}>{(profile?.name||"A")[0].toUpperCase()}</div>
+        <div style={{width:46,height:46,borderRadius:23,background:`${T.prot}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:T.prot,fontFamily:"var(--condensed)",flexShrink:0}}>{(profile?.name||"A")[0].toUpperCase()}</div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:0}}>
-            <span style={{fontSize:18,fontWeight:900,fontFamily:"'Barlow Condensed',sans-serif",color:"#fff"}}>{profile?.name||"Athlete"}</span>
+            <span style={{fontSize:18,fontWeight:900,fontFamily:"var(--condensed)",color:"#fff"}}>{profile?.name||"Athlete"}</span>
             {isPro&&<Badge type="PRO"/>}
             {refBadge&&<Badge type={refBadge}/>}
           </div>
@@ -3515,7 +3521,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
         <SectionCard title="Athlete Modes">
           <Toggle on={wPrefs.isHybrid} onChange={v=>{const wp={...wPrefs,isHybrid:v};setWPrefs(wp);saveSettings(wp,null);}} label="🏃 Hybrid Athlete" sub="Adds structured run blocks to training days"/>
-          <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="🔥 Hyrox Mode" sub="Includes Hyrox station blocks"/>
+          <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="Hyrox Mode" sub="Includes Hyrox station blocks"/>
         </SectionCard>
 
         <SectionCard title="Macro Memory">
@@ -3542,9 +3548,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <SectionCard title="Joint Health Mode">
             <Toggle on={wPrefs.jointHealthMode!==false} onChange={v=>{const wp={...wPrefs,jointHealthMode:v};setWPrefs(wp);saveSettings(wp,null);}} label="Joint Health Mode" sub="Reduces volume, adds controlled tempo cues, removes failure training"/>
             <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Automatically applies safer exercise modifications for joint-protective training. Recommended for 65+ users.</div>
-            {wPrefs.jointHealthMode!==false&&<div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.2)",borderRadius:9,padding:"10px 12px",marginTop:10}}>
-              <div style={{fontSize:11,color:"rgba(96,165,250,.9)",lineHeight:1.6}}>Your sessions use 80% of standard volume with controlled tempo. For individual guidance, consult a physical therapist or exercise physiologist.</div>
-              <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a>
+            {wPrefs.jointHealthMode!==false&&<div style={{background:"rgba(52,211,153,.05)",border:"1px solid rgba(52,211,153,.18)",borderRadius:9,padding:"10px 12px",marginTop:10}}>
+              <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Your sessions use 80% of standard volume with controlled tempo. For individual guidance, consult a physical therapist or exercise physiologist.</div>
+              <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a>
             </div>}
           </SectionCard>
         )}
@@ -3616,7 +3622,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* Refer a Friend */}
         {profile.referralCode&&<SectionCard title="Refer a Friend">
           {(isPro||getReferralBadge(referralStats.clicked))&&<div style={{display:"flex",alignItems:"center",gap:4,marginBottom:12,flexWrap:"wrap"}}>
-            <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.12em"}}>EARNED:</span>
+            <span style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)",letterSpacing:"0.12em"}}>EARNED:</span>
             {isPro&&<Badge type="PRO"/>}
             {getReferralBadge(referralStats.clicked)&&<Badge type={getReferralBadge(referralStats.clicked)}/>}
           </div>}
@@ -3631,14 +3637,14 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           {referralStats.sent>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
             {[["Links Sent",referralStats.sent],["Clicked",referralStats.clicked],["Rate",referralStats.sent>0?Math.round(referralStats.clicked/referralStats.sent*100)+"%":"—"]].map(([l,v])=>(
               <div key={l} style={{background:T.s3,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.white,lineHeight:1}}>{v}</div>
-                <div style={{fontSize:9,color:T.mu,fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em",marginTop:3,textTransform:"uppercase"}}>{l}</div>
+                <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,color:T.white,lineHeight:1}}>{v}</div>
+                <div style={{fontSize:9,color:T.mu,fontFamily:"var(--mono)",letterSpacing:"0.1em",marginTop:3,textTransform:"uppercase"}}>{l}</div>
               </div>
             ))}
           </div>}
 
           {/* Share buttons */}
-          <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Share &amp; earn 2 weeks free</div>
+          <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:8}}>Share &amp; earn 2 weeks free</div>
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
             {[{icon:"📱",label:"Text Message",method:"sms"},{icon:"📋",label:refCopied?"✓ Copied!":"Copy Link",method:"copy"},{icon:"↗",label:"Share",method:"share"}].map(btn=>(
               <button key={btn.method} disabled={refGenerating} onClick={()=>doShare(btn.method)}
@@ -3658,8 +3664,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             return(
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Progress</div>
-                  <div style={{fontSize:11,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{cnt} click{cnt!==1?"s":""}</div>
+                  <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>Progress</div>
+                  <div style={{fontSize:11,color:T.mu,fontFamily:"var(--mono)"}}>{cnt} click{cnt!==1?"s":""}</div>
                 </div>
                 {nextM?(
                   <>
@@ -3688,7 +3694,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                     <div key={tb.badge} style={{background:T.s3,borderRadius:10,padding:"10px 12px",border:`1px solid ${borderColor}`,boxShadow:achieved&&tb.badge==="LEGEND"?"0 0 12px rgba(255,215,0,0.1)":"none",transition:"border-color 0.32s,box-shadow 0.32s"}}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                         <Badge type={tb.badge}/>
-                        <span style={{fontSize:10,color:T.mu,fontFamily:"'DM Mono',monospace"}}>{tb.minRef}+ clicks</span>
+                        <span style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)"}}>{tb.minRef}+ clicks</span>
                       </div>
                       {tb.rewards.map(r=>{
                         const unlocked=cnt>=r.minRef;
@@ -3704,7 +3710,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                             <span style={{fontSize:12,color:unlocked?T.white:T.mu,flex:1}}>
                               {r.l}
                               {unlocked
-                                ?<span style={{color:"#00E676",marginLeft:5,fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em"}}> UNLOCKED</span>
+                                ?<span style={{color:"#00E676",marginLeft:5,fontSize:9,fontWeight:700,fontFamily:"var(--mono)",letterSpacing:"0.1em"}}> UNLOCKED</span>
                                 :diff>0?<span style={{color:"rgba(245,245,240,0.3)",marginLeft:4,fontSize:10}}> · {diff} away</span>
                                 :null}
                             </span>
@@ -3771,12 +3777,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* AI Usage — only shown when ≥80% to avoid anxiety */}
         {aiUsage&&aiUsage.pct>=80&&(()=>{
           const daysLeft=(()=>{const d=new Date();d.setMonth(d.getMonth()+1,1);return Math.ceil((d-Date.now())/86400000);})();
-          const barColor=aiUsage.pct>=100?"#FF4D6D":aiUsage.pct>=95?T.red:T.carb;
+          const barColor=aiUsage.pct>=100?T.prot:aiUsage.pct>=95?T.fat:T.prot;
           return(
             <SectionCard title="AI Usage This Month">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <span style={{fontSize:11,color:barColor,fontFamily:"'DM Mono',monospace",letterSpacing:"0.12em"}}>{aiUsage.pct}% USED</span>
-                <span style={{fontSize:11,color:T.dim,fontFamily:"'DM Mono',monospace"}}>{aiUsage.used.toLocaleString()} / {aiUsage.budget.toLocaleString()} tokens</span>
+                <span style={{fontSize:11,color:barColor,fontFamily:"var(--mono)",letterSpacing:"0.12em"}}>{aiUsage.pct}% USED</span>
+                <span style={{fontSize:11,color:T.dim,fontFamily:"var(--mono)"}}>{aiUsage.used.toLocaleString()} / {aiUsage.budget.toLocaleString()} tokens</span>
               </div>
               <div style={{height:6,background:T.s3,borderRadius:3,overflow:"hidden",marginBottom:10}}>
                 <div style={{height:"100%",width:`${Math.min(aiUsage.pct,100)}%`,background:barColor,borderRadius:3,transition:"width .4s"}}/>
@@ -3815,9 +3821,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* Account Actions */}
         <SectionCard title="Account">
           <button onClick={onSignOut} style={{width:"100%",padding:"13px",background:T.s3,color:"#fff",border:`1px solid ${T.bd}`,borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>Sign Out</button>
-          {delStep===0&&<button onClick={()=>setDelStep(1)} style={{width:"100%",padding:"13px",background:"none",color:"#FF4D6D",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Delete Account</button>}
+          {delStep===0&&<button onClick={()=>setDelStep(1)} style={{width:"100%",padding:"13px",background:"none",color:T.prot,border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Delete Account</button>}
           {delStep===1&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px"}}>
-            <div style={{fontSize:13,color:"#FF4D6D",fontWeight:700,marginBottom:8}}>Delete your account?</div>
+            <div style={{fontSize:13,color:T.prot,fontWeight:700,marginBottom:8}}>Delete your account?</div>
             <div style={{fontSize:12,color:T.mu,marginBottom:6}}>This will permanently delete:</div>
             <ul style={{fontSize:12,color:T.mu,margin:"0 0 14px 0",paddingLeft:18,lineHeight:1.8}}>
               <li>Your profile and all settings</li>
@@ -3826,24 +3832,24 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               <li>Weight check-ins and body measurements</li>
               <li>Your subscription and billing records</li>
             </ul>
-            <div style={{fontSize:11,color:"#FF4D6D",marginBottom:14,fontWeight:600}}>This action cannot be undone.</div>
+            <div style={{fontSize:11,color:T.prot,marginBottom:14,fontWeight:600}}>This action cannot be undone.</div>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:T.s3,color:T.mu,border:`1px solid ${T.bd}`,borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"#FF4D6D",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>I understand, continue</button>
+              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>I understand, continue</button>
             </div>
           </div>}
           {delStep===2&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px"}}>
-            <div style={{fontSize:13,color:"#FF4D6D",fontWeight:700,marginBottom:8}}>Final confirmation</div>
+            <div style={{fontSize:13,color:T.prot,fontWeight:700,marginBottom:8}}>Final confirmation</div>
             <div style={{fontSize:12,color:T.mu,marginBottom:12}}>Type <strong style={{color:"#fff"}}>DELETE</strong> to permanently delete your account.</div>
             <input
               value={delInput}
               onChange={e=>setDelInput(e.target.value)}
               placeholder="Type DELETE here"
-              style={{width:"100%",padding:"10px 12px",background:T.s3,color:"#fff",border:`1px solid ${delInput==="DELETE"?"#FF4D6D":T.bd}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}
+              style={{width:"100%",padding:"10px 12px",background:T.s3,color:"#fff",border:`1px solid ${delInput==="DELETE"?T.prot:T.bd}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}
             />
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:T.s3,color:T.mu,border:`1px solid ${T.bd}`,borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"#FF4D6D":"rgba(255,77,109,.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit",transition:"background .2s"}}>{deleting?"Deleting...":"Delete Forever"}</button>
+              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?T.prot:"rgba(255,77,109,.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit",transition:"background .2s"}}>{deleting?"Deleting...":"Delete Forever"}</button>
             </div>
           </div>}
           {delStep===3&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px",textAlign:"center"}}>
@@ -3891,7 +3897,7 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
             <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
             <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
           </svg>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
+          <div style={{fontFamily:"var(--condensed)",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
             <div style={{color:'#fff'}}>COACH</div>
             <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:'#fff'}}>RO</span></div>
           </div>
@@ -3899,7 +3905,7 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
 
         {/* Headline */}
         <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:'uppercase',marginBottom:12}}>Final Step</div>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,fontStyle:'italic',lineHeight:.9,marginBottom:12}}>
+        <div style={{fontFamily:"var(--condensed)",fontSize:48,fontWeight:900,fontStyle:'italic',lineHeight:.9,marginBottom:12}}>
           GOT A CODE,<br/><span style={{color:T.prot}}>{profile?.name?.toUpperCase() || 'ATHLETE'}?</span>
         </div>
         <p style={{fontSize:15,color:'#888',lineHeight:1.7,marginBottom:36}}>
@@ -3969,13 +3975,13 @@ export function Paywall({profile}) {
             <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
             <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
           </svg>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
+          <div style={{fontFamily:"var(--condensed)",fontWeight:900,letterSpacing:3,fontSize:17,lineHeight:1.1}}>
             <div style={{color:'#fff'}}>COACH</div>
             <div><span style={{color:T.prot}}>M</span><span style={{color:T.carb}}>A</span><span style={{color:T.fat}}>C</span><span style={{color:'#fff'}}>RO</span></div>
           </div>
         </div>
 
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:44,fontWeight:900,fontStyle:'italic',lineHeight:.9,marginBottom:10}}>
+        <div style={{fontFamily:"var(--condensed)",fontSize:44,fontWeight:900,fontStyle:'italic',lineHeight:.9,marginBottom:10}}>
           YOUR PLAN IS READY.<br/><span style={{color:T.prot}}>UNLOCK IT.</span>
         </div>
         <p style={{fontSize:15,color:'#888',marginBottom:28,lineHeight:1.65}}>
@@ -3994,7 +4000,7 @@ export function Paywall({profile}) {
         {/* Price card */}
         <div style={{background:T.s1,border:`1.5px solid ${T.prot}`,borderRadius:16,padding:28,marginBottom:16,position:'relative'}}>
           {p.badge && <div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:T.prot,color:'#fff',fontSize:9,fontWeight:800,padding:'4px 14px',borderRadius:9,letterSpacing:1.5,whiteSpace:'nowrap'}}>{p.badge}</div>}
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:64,fontWeight:900,color:T.prot,lineHeight:1,letterSpacing:-1,marginBottom:4}}>
+          <div style={{fontFamily:"var(--condensed)",fontSize:64,fontWeight:900,color:T.prot,lineHeight:1,letterSpacing:-1,marginBottom:4}}>
             {p.price}<span style={{fontSize:22,fontWeight:400,color:T.mu}}>{p.per}</span>
           </div>
           <div style={{fontSize:13,color:T.mu,marginBottom:4}}>{p.sub}</div>
@@ -4054,13 +4060,13 @@ export function UpgradeScreen({ profile, onContinue }) {
             <rect x={19} y={5}  width={14} height={17} rx={3} fill={T.carb}/>
             <rect x={38} y={10} width={14} height={12} rx={3} fill={T.fat}/>
           </svg>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, letterSpacing:3, fontSize:17, lineHeight:1.1 }}>
+          <div style={{ fontFamily:"var(--condensed)", fontWeight:900, letterSpacing:3, fontSize:17, lineHeight:1.1 }}>
             <div style={{ color:'#fff' }}>COACH</div>
             <div><span style={{ color:T.prot }}>M</span><span style={{ color:T.carb }}>A</span><span style={{ color:T.fat }}>C</span><span style={{ color:'#fff' }}>RO</span></div>
           </div>
         </div>
 
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:44, fontWeight:900, fontStyle:'italic', lineHeight:.92, marginBottom:10 }}>
+        <div style={{ fontFamily:"var(--condensed)", fontSize:44, fontWeight:900, fontStyle:'italic', lineHeight:.92, marginBottom:10 }}>
           YOUR TRIAL<br/><span style={{ color:T.prot }}>HAS ENDED.</span>
         </div>
         <p style={{ fontSize:15, color:'#888', marginBottom:24, lineHeight:1.65 }}>
@@ -4101,7 +4107,7 @@ export function UpgradeScreen({ profile, onContinue }) {
             </div>
           )}
           <div style={{ display:'flex', alignItems:'baseline', gap:4, marginBottom:4 }}>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:56, fontWeight:900, color:T.prot, lineHeight:1, letterSpacing:-1 }}>{p.price}</div>
+            <div style={{ fontFamily:"var(--condensed)", fontSize:56, fontWeight:900, color:T.prot, lineHeight:1, letterSpacing:-1 }}>{p.price}</div>
             <div style={{ fontSize:18, color:T.mu }}>{p.per}</div>
           </div>
           <div style={{ fontSize:13, color:T.mu, marginBottom:20 }}>{p.sub}</div>
