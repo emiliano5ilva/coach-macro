@@ -385,17 +385,23 @@ export function MacroRing({protein,carbs,fat,pTarget,cTarget,fTarget,size=200,sw
 }
 
 export function MacroBar({label,consumed,target,color}) {
-  const pct=Math.min(consumed/target,1), rem=target-consumed;
+  const pct=Math.min(consumed/(target||1),1), rem=Math.max(0,target-consumed);
+  const pctInt=Math.round(pct*100);
   return (
-    <div style={{background:T.s2,borderRadius:14,padding:"13px 15px",marginBottom:8,border:`1px solid ${T.bd}`}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
-        <span style={{color,fontSize:10,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>{label}</span>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:T.white}}>{consumed}g <span style={{color:T.mu}}>/ {target}g</span></span>
+    <div style={{background:T.s2,borderRadius:14,padding:"12px 14px",marginBottom:8,border:`1px solid ${T.bd}`}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:8}}>
+        <div>
+          <div style={{color,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:3}}>{label}</div>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,lineHeight:1,color:pct>=1?color:"#fff"}}>{consumed}<span style={{fontSize:10,color:T.mu,fontWeight:400,fontStyle:"normal",marginLeft:2}}>g</span></div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,color:pct>=1?color:T.mu,fontWeight:700}}>{pct>=1?"✓ Hit":`${rem}g left`}</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",marginTop:2}}>of {target}g</div>
+        </div>
       </div>
-      <div style={{height:4,background:"rgba(245,245,240,0.08)",borderRadius:2,overflow:"hidden"}}>
-        <div style={{height:"100%",width:`${pct*100}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+      <div style={{height:5,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${pctInt}%`,background:`linear-gradient(90deg,${color},${color}99)`,borderRadius:3,transition:"width 0.5s cubic-bezier(.2,.7,.3,1)"}}/>
       </div>
-      <div style={{fontSize:10,color:T.mu,marginTop:4,fontFamily:"'DM Mono',monospace"}}>{rem>0?`${rem}g remaining`:"✓ Hit"}</div>
     </div>
   );
 }
