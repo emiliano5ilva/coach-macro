@@ -306,7 +306,9 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
                   <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ing.food_name}</div>
                   <div style={{ fontSize: 10, color: T.mu }}>{ing.amount}{ing.unit} · {ing.calories} kcal · <span style={{ color: T.prot }}>P {ing.protein}g</span></div>
                 </div>
-                <button onClick={() => setIngredients(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "rgba(245,245,240,.3)", cursor: "pointer", fontSize: 18, padding: "0 4px", lineHeight: 1 }}>🗑</button>
+                <button onClick={() => setIngredients(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "rgba(245,245,240,.3)", cursor: "pointer", padding: "4px", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
               </div>
             ))}
           </div>
@@ -1372,6 +1374,9 @@ Reply with ONLY a valid JSON object, no markdown:
   const [showRecipeBuilder,setShowRecipeBuilder]=useState(false);
   const [recipeEditing,setRecipeEditing]=useState(null);
   const [recipeLogging,setRecipeLogging]=useState(null);
+  const [recipeSearch,setRecipeSearch]=useState("");
+  const [recipeCatFilter,setRecipeCatFilter]=useState("All");
+  const [recipeDeleteConfirm,setRecipeDeleteConfirm]=useState(null);
 
   useEffect(()=>{
     if(!user)return;
@@ -2179,14 +2184,14 @@ Reply with ONLY a valid JSON object, no markdown:
         {fuelScreen==="recipes"&&(
           <div style={{maxWidth:isMobile?"100%":700}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900}}>MY RECIPES 🍳</div>
-              <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New Recipe</button>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900}}>MY RECIPES</div>
+              <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
             </div>
-            <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Save multi-ingredient recipes · log as a single tap</p>
+            <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Save multi-ingredient recipes · log as a single tap</p>
 
             {/* AI recipe ideas button */}
-            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"linear-gradient(135deg,rgba(232,52,28,0.18),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-              <div style={{fontSize:24,flexShrink:0}}>🧠</div>
+            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"linear-gradient(135deg,rgba(232,52,28,0.18),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke={T.prot} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/></svg>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>AI Recipe Ideas</div>
                 <div style={{fontSize:11,color:T.mu}}>Generate recipes for your remaining macros today</div>
@@ -2196,7 +2201,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* AI result */}
             {(recipes||recipesLoading)&&(
-              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",marginBottom:20}}>
+              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",marginBottom:16}}>
                 {recipesLoading
                   ?<div style={{padding:"8px 0"}}><AIContentSkeleton/></div>
                   :<><div style={{lineHeight:1.85,fontSize:13,color:"#ccc",whiteSpace:"pre-wrap"}}>{recipes}</div><div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><FlagBtn responseText={recipes} feature="recipes" user={user}/></div></>
@@ -2206,7 +2211,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* Smart save suggestion */}
             {recipeSuggestSlot&&(
-              <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"14px 16px",marginBottom:20}}>
+              <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"14px 16px",marginBottom:16}}>
                 <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>You often eat these together for {recipeSuggestSlot}:</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:12}}>
                   {log.filter(e=>(e.slot||"Lunch")===recipeSuggestSlot).slice(0,3).map(e=>e.food).join(" + ")}
@@ -2218,39 +2223,101 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             )}
 
+            {/* Delete confirm */}
+            {recipeDeleteConfirm&&(
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.8)",backdropFilter:"blur(6px)",zIndex:360,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+                <div style={{background:"#0A1222",border:"1px solid rgba(232,52,28,.35)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
+                  <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>Delete "{recipeDeleteConfirm.name}"?</div>
+                  <div style={{fontSize:12,color:T.mu,marginBottom:24,lineHeight:1.6}}>This recipe will be permanently removed.</div>
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>setRecipeDeleteConfirm(null)} style={{flex:1,padding:"13px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={()=>{handleDeleteRecipe(recipeDeleteConfirm.id);setRecipeDeleteConfirm(null);}} style={{flex:1,padding:"13px",background:"rgba(232,52,28,.15)",border:"1px solid rgba(232,52,28,.5)",borderRadius:10,color:T.prot,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Recipe list */}
             {userRecipes.length===0?(
               <div style={{textAlign:"center",padding:"56px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
-                <div style={{fontSize:52,marginBottom:14}}>🍳</div>
+                <svg width={48} height={48} viewBox="0 0 24 24" fill="none" style={{margin:"0 auto 14px",display:"block",opacity:.4}}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" stroke="#fff" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                 <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>No recipes yet</div>
                 <div style={{fontSize:12,color:T.mu,lineHeight:1.65,maxWidth:280,margin:"0 auto 24px"}}>Create your first recipe to log multiple foods in one tap</div>
                 <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"14px 28px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>+ Create Recipe</button>
               </div>
             ):(
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {userRecipes.map(r=>{
-                  const totalGrams=(r.ingredients||[]).reduce((s,i)=>s+(i.amount||0),0);
-                  const daysSince=r.last_used?Math.round((Date.now()-new Date(r.last_used))/864e5):null;
-                  return(
-                    <div key={r.id} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                          <div style={{fontSize:11,color:T.mu}}>1 serving{totalGrams>0?` (${totalGrams}g)`:""}</div>
-                        </div>
-                        {r.category&&<span style={{fontSize:9,background:`${T.carb}15`,color:T.carb,borderRadius:5,padding:"3px 8px",flexShrink:0,marginLeft:8}}>{r.category}</span>}
-                      </div>
-                      <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{r.calories_per_serving} kcal · <span style={{color:T.prot}}>{r.protein_per_serving}g protein</span> · <span style={{color:T.carb}}>{r.carbs_per_serving}g carbs</span> · <span style={{color:T.fat}}>{r.fat_per_serving}g fat</span></div>
-                      {daysSince!==null&&<div style={{fontSize:10,color:T.mu,marginBottom:12}}>Last made: {daysSince===0?"today":daysSince===1?"yesterday":`${daysSince} days ago`}</div>}
-                      <div style={{display:"flex",gap:8}}>
-                        <button onClick={()=>setRecipeLogging(r)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.05em"}}>Log →</button>
-                        <button onClick={()=>{setRecipeEditing(r);setShowRecipeBuilder(true);}} style={{padding:"11px 16px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
-                        <button onClick={()=>handleDeleteRecipe(r.id)} style={{padding:"11px 14px",background:"none",border:`1px solid rgba(232,52,28,.3)`,borderRadius:10,color:"rgba(232,52,28,.6)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
-                      </div>
+              <>
+                {/* Search + category filter */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"10px 14px"}}>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" style={{flexShrink:0,opacity:.4}}><circle cx={11} cy={11} r={8} stroke="#fff" strokeWidth={2}/><path d="m21 21-4.35-4.35" stroke="#fff" strokeWidth={2} strokeLinecap="round"/></svg>
+                  <input value={recipeSearch} onChange={e=>setRecipeSearch(e.target.value)} placeholder="Search recipes…" style={{flex:1,background:"none",border:"none",outline:"none",color:"#fff",fontSize:13,fontFamily:"inherit"}}/>
+                  {recipeSearch&&<button onClick={()=>setRecipeSearch("")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:16,padding:0,lineHeight:1}}>×</button>}
+                </div>
+                {(()=>{
+                  const cats=["All",...Array.from(new Set(userRecipes.map(r=>r.category).filter(Boolean)))];
+                  return cats.length>1&&(
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+                      {cats.map(c=>(
+                        <button key={c} onClick={()=>setRecipeCatFilter(c)} style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${recipeCatFilter===c?T.prot:T.bd}`,background:recipeCatFilter===c?`${T.prot}18`:"none",color:recipeCatFilter===c?T.prot:T.mu,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{c}</button>
+                      ))}
                     </div>
                   );
-                })}
-              </div>
+                })()}
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                  {(()=>{
+                    const filtered=userRecipes.filter(r=>{
+                      const matchSearch=!recipeSearch||r.name.toLowerCase().includes(recipeSearch.toLowerCase());
+                      const matchCat=recipeCatFilter==="All"||r.category===recipeCatFilter;
+                      return matchSearch&&matchCat;
+                    });
+                    if(filtered.length===0)return(
+                      <div style={{textAlign:"center",padding:"32px 20px",color:T.mu,fontSize:13}}>No recipes match your search</div>
+                    );
+                    return filtered.map(r=>{
+                      const ingCount=(r.ingredients||[]).length;
+                      const totalGrams=(r.ingredients||[]).reduce((s,i)=>s+(i.amount||0),0);
+                      const daysSince=r.last_used?Math.round((Date.now()-new Date(r.last_used))/864e5):null;
+                      const macroTotal=(r.protein_per_serving||0)*4+(r.carbs_per_serving||0)*4+(r.fat_per_serving||0)*9||1;
+                      const pPct=Math.round((r.protein_per_serving||0)*4/macroTotal*100);
+                      const cPct=Math.round((r.carbs_per_serving||0)*4/macroTotal*100);
+                      const fPct=Math.max(0,100-pPct-cPct);
+                      return(
+                        <div key={r.id} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                              <div style={{fontSize:11,color:T.mu}}>
+                                {ingCount} ingredient{ingCount!==1?"s":""}{totalGrams>0?` · ${totalGrams}g total`:""}
+                              </div>
+                            </div>
+                            {r.category&&<span style={{fontSize:9,background:`${T.carb}15`,color:T.carb,borderRadius:5,padding:"3px 8px",flexShrink:0,marginLeft:8,fontWeight:700}}>{r.category}</span>}
+                          </div>
+                          {/* Macro bar */}
+                          <div style={{height:5,borderRadius:3,overflow:"hidden",display:"flex",marginBottom:8,background:T.s3}}>
+                            <div style={{width:`${pPct}%`,background:T.prot,transition:"width 0.3s"}}/>
+                            <div style={{width:`${cPct}%`,background:T.carb,transition:"width 0.3s"}}/>
+                            <div style={{width:`${fPct}%`,background:T.fat,transition:"width 0.3s"}}/>
+                          </div>
+                          <div style={{display:"flex",gap:14,marginBottom:8}}>
+                            <div style={{fontSize:15,fontWeight:900}}>{r.calories_per_serving}<span style={{fontSize:10,color:T.mu,fontWeight:400}}> kcal</span></div>
+                            <div style={{fontSize:12,color:T.prot,fontWeight:700}}>{r.protein_per_serving}g P</div>
+                            <div style={{fontSize:12,color:T.carb,fontWeight:700}}>{r.carbs_per_serving}g C</div>
+                            <div style={{fontSize:12,color:T.fat,fontWeight:700}}>{r.fat_per_serving}g F</div>
+                          </div>
+                          {daysSince!==null&&<div style={{fontSize:10,color:T.mu,marginBottom:12}}>Last made: {daysSince===0?"today":daysSince===1?"yesterday":`${daysSince}d ago`}</div>}
+                          <div style={{display:"flex",gap:8}}>
+                            <button onClick={()=>setRecipeLogging(r)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.05em"}}>Log →</button>
+                            <button onClick={()=>{setRecipeEditing(r);setShowRecipeBuilder(true);}} style={{padding:"11px 16px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
+                            <button onClick={()=>setRecipeDeleteConfirm(r)} style={{padding:"11px",background:"none",border:`1px solid rgba(232,52,28,.3)`,borderRadius:10,color:"rgba(232,52,28,.6)",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <svg width={14} height={14} viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </>
             )}
           </div>
         )}
