@@ -1029,7 +1029,17 @@ async function fetchRunSessions(userId) {
 }
 
 function RunEmptyState() {
-  return <div style={{textAlign:"center",padding:"24px 0",fontSize:12,color:CC.neutral}}>Log running workouts to see this chart</div>;
+  return (
+    <div style={{textAlign:"center",padding:"24px 0"}}>
+      <svg width={36} height={36} viewBox="0 0 36 36" fill="none" style={{display:"block",margin:"0 auto 8px"}}>
+        <circle cx={22} cy={6} r={3} fill="rgba(245,245,240,0.25)"/>
+        <path d="M22 9L18 18L14 30" stroke="rgba(245,245,240,0.25)" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M18 18L24 28" stroke="rgba(245,245,240,0.25)" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M20 13L27 10M20 13L14 10" stroke="rgba(245,245,240,0.25)" strokeWidth={2} strokeLinecap="round"/>
+      </svg>
+      <div style={{fontSize:12,color:CC.neutral}}>Log running workouts to see this chart</div>
+    </div>
+  );
 }
 
 // ── Chart 11: Pace Over Time ──────────────────────────────────────────────────
@@ -1051,25 +1061,53 @@ export function RunPaceChart({ userId }) {
   const maxP = Math.max(...paces), minP = Math.min(...paces, maxP - 0.1);
   const xs = points.map((_,i) => PR.l + (i / (points.length-1)) * (PWR - PR.l - PR.r));
   const ys = points.map(p => PR.t + (1 - (maxP - p.pace) / (maxP - minP)) * PHR);
-  const lineD = points.length < 2 ? "" : `M ${xs[0]} ${ys[0]} ` + xs.slice(1).map((x,i) => `L ${x} ${ys[i+1]}`).join(" ");
+  const ptsXY = xs.map((x,i) => [x, ys[i]]);
+  const lineD = curvePath(ptsXY);
+  const areaD = lineD + ` L ${xs[xs.length-1]} ${PR.t+PHR} L ${xs[0]} ${PR.t+PHR} Z`;
 
   const fmt = m => `${Math.floor(m)}:${String(Math.round((m%1)*60)).padStart(2,"0")}`;
+  const avgPace = paces.reduce((a,b)=>a+b,0)/paces.length;
+  const half = Math.max(1, Math.floor(points.length/2));
+  const firstAvg = paces.slice(0,half).reduce((a,b)=>a+b,0)/half;
+  const lastAvg  = paces.slice(-half).reduce((a,b)=>a+b,0)/half;
+  const deltaSec = Math.round((firstAvg - lastAvg) * 60);
+  const improved = deltaSec > 0;
 
   return (
     <ChartCard title="Pace Over Time" subtitle="Estimated min/km per session">
       {loading ? <Skeleton h={VHR}/> : (
         <>
           <svg width="100%" viewBox={`0 0 ${PWR} ${VHR}`} style={{display:"block",overflow:"visible"}}>
+            <defs>
+              <linearGradient id="pace-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CC.optimal} stopOpacity="0.22"/>
+                <stop offset="100%" stopColor={CC.optimal} stopOpacity="0.02"/>
+              </linearGradient>
+            </defs>
             <line x1={PR.l} y1={PR.t} x2={PR.l} y2={PR.t+PHR} stroke="rgba(245,245,240,0.05)" strokeWidth="1"/>
             <line x1={PR.l} y1={PR.t+PHR} x2={PWR-PR.r} y2={PR.t+PHR} stroke="rgba(245,245,240,0.05)" strokeWidth="1"/>
+            <path d={areaD} fill="url(#pace-grad)"/>
             <path d={lineD} fill="none" stroke={CC.optimal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            {points.map((p,i) => <circle key={i} cx={xs[i]} cy={ys[i]} r="3" fill={CC.optimal} opacity="0.8"/>)}
+            {points.map((_,i) => <circle key={i} cx={xs[i]} cy={ys[i]} r="2.5" fill={CC.optimal} opacity="0.75"/>)}
             <text x={PR.l-4} y={PR.t+3} textAnchor="end" fontSize="8" fill={T.mu}>{fmt(minP)}</text>
             <text x={PR.l-4} y={PR.t+PHR+3} textAnchor="end" fontSize="8" fill={T.mu}>{fmt(maxP)}</text>
             <text x={xs[0]||0} y={VHR-2} textAnchor="middle" fontSize="8" fill={T.mu}>{points[0]?.date?.slice(5)}</text>
             <text x={xs[xs.length-1]||PWR-PR.r} y={VHR-2} textAnchor="end" fontSize="8" fill={T.mu}>{points[points.length-1]?.date?.slice(5)}</text>
           </svg>
-          <div style={{fontSize:11,color:T.mu,marginTop:4}}>{points.length} sessions · Avg {fmt(paces.reduce((a,b)=>a+b,0)/paces.length)} min/km</div>
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <div style={{flex:1,background:T.s2,borderRadius:8,padding:"8px 10px"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:CC.white,lineHeight:1}}>{fmt(avgPace)}</div>
+              <div style={{fontSize:10,color:T.mu,marginTop:2}}>Avg min/km</div>
+            </div>
+            {points.length >= 4 && (
+              <div style={{flex:1,background:T.s2,borderRadius:8,padding:"8px 10px"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:improved?CC.optimal:CC.caution,lineHeight:1}}>
+                  {improved?"-":"+"}{ Math.abs(deltaSec)}s
+                </div>
+                <div style={{fontSize:10,color:T.mu,marginTop:2}}>{improved?"Faster":"Slower"} vs start</div>
+              </div>
+            )}
+          </div>
         </>
       )}
     </ChartCard>
@@ -1096,18 +1134,19 @@ export function RunWeeklyMilesChart({ userId }) {
 
   const miles = weeks.map(([,v]) => v);
   const maxM = Math.max(...miles, 1);
+  const gap = 2;
   const barW = Math.max(8, Math.floor((PWR - PR.l - PR.r) / (miles.length + 0.5)));
-
-  const TEN_PCT_LINE = miles.length > 1
-    ? miles[miles.length - 2] * 1.1
-    : null;
+  const TEN_PCT_LINE = miles.length > 1 ? miles[miles.length - 2] * 1.1 : null;
+  const totalMiles = miles.reduce((a,b)=>a+b,0);
+  const avgMiles = miles.length ? totalMiles / miles.length : 0;
+  const peakMiles = Math.max(...miles, 0);
+  const lastIsOver = TEN_PCT_LINE != null && miles[miles.length-1] > TEN_PCT_LINE;
 
   return (
     <ChartCard title="Weekly Miles" subtitle="Estimated miles per week · 10% rule">
       {loading ? <Skeleton h={VHR}/> : miles.length < 2 ? <RunEmptyState/> : (
         <>
           <svg width="100%" viewBox={`0 0 ${PWR} ${VHR}`} style={{display:"block",overflow:"visible"}}>
-            {/* 10% rule line */}
             {TEN_PCT_LINE && (() => {
               const y = PR.t + (1 - TEN_PCT_LINE / maxM) * PHR;
               return y > PR.t && y < PR.t + PHR ? (
@@ -1118,22 +1157,36 @@ export function RunWeeklyMilesChart({ userId }) {
               ) : null;
             })()}
             {weeks.map(([wk, mi], i) => {
-              const x = PR.l + i * (barW + 2);
+              const x = PR.l + i * (barW + gap);
               const barH = Math.max(2, (mi / maxM) * PHR);
               const y = PR.t + PHR - barH;
               const isOver = TEN_PCT_LINE != null && i === weeks.length - 1 && mi > TEN_PCT_LINE;
+              const isLast = i === weeks.length - 1;
               return (
                 <g key={wk}>
-                  <rect x={x} y={y} width={barW} height={barH} rx="2" fill={isOver ? CC.danger : CC.brand} opacity="0.85"/>
-                  <text x={x + barW/2} y={VHR-2} textAnchor="middle" fontSize="7" fill={T.mu}>{wk.slice(5)}</text>
+                  <rect x={x} y={y} width={barW} height={barH} rx="2"
+                    fill={isOver ? CC.danger : isLast ? CC.brand : CC.brand} opacity={isLast ? 1 : 0.55}/>
+                  {i === 0 || i === weeks.length-1 ? (
+                    <text x={x + barW/2} y={VHR-2} textAnchor="middle" fontSize="7" fill={T.mu}>{wk.slice(5)}</text>
+                  ) : null}
                 </g>
               );
             })}
             <text x={PR.l-4} y={PR.t+3} textAnchor="end" fontSize="8" fill={T.mu}>{maxM.toFixed(0)}</text>
           </svg>
-          <div style={{fontSize:11,color:T.mu,marginTop:4}}>
-            {weeks.length} weeks · Total {miles.reduce((a,b)=>a+b,0).toFixed(0)} mi ·
-            <span style={{color:CC.caution}}> keep increases under 10%</span>
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <div style={{flex:1,background:T.s2,borderRadius:8,padding:"8px 10px"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:CC.white,lineHeight:1}}>{avgMiles.toFixed(1)}</div>
+              <div style={{fontSize:10,color:T.mu,marginTop:2}}>Avg mi/wk</div>
+            </div>
+            <div style={{flex:1,background:T.s2,borderRadius:8,padding:"8px 10px"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:CC.brand,lineHeight:1}}>{peakMiles.toFixed(1)}</div>
+              <div style={{fontSize:10,color:T.mu,marginTop:2}}>Peak week</div>
+            </div>
+            <div style={{flex:1,background:lastIsOver?CC.danBg:T.s2,borderRadius:8,padding:"8px 10px",border:lastIsOver?`1px solid ${CC.danger}40`:"none"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:lastIsOver?CC.danger:CC.white,lineHeight:1}}>{miles[miles.length-1]?.toFixed(1)}</div>
+              <div style={{fontSize:10,color:T.mu,marginTop:2}}>{lastIsOver?"Over 10% rule":"This week"}</div>
+            </div>
           </div>
         </>
       )}
@@ -1168,16 +1221,27 @@ export function RunTrainingLoadChart({ userId }) {
   const maxR = Math.max(...pts.map(p => p.ratio), 1.5);
   const xs = pts.map((_,i) => PR.l + (i / Math.max(pts.length-1,1)) * (PWR - PR.l - PR.r));
   const ys = pts.map(p => PR.t + (1 - p.ratio / maxR) * PHR);
+  const ptsXY = xs.map((x,i) => [x, ys[i]]);
+  const lineD = curvePath(ptsXY);
+  const areaD = lineD + ` L ${xs[xs.length-1]} ${PR.t+PHR} L ${xs[0]} ${PR.t+PHR} Z`;
 
   const safeY1 = PR.t + (1 - 0.8 / maxR) * PHR;
   const safeY2 = PR.t + (1 - 1.3 / maxR) * PHR;
+  const lastRatio = pts[pts.length-1]?.ratio ?? 0;
+  const ratioColor = lastRatio > 1.3 ? CC.danger : lastRatio < 0.8 ? CC.neutral : CC.optimal;
+  const ratioLabel = lastRatio > 1.3 ? "Overreaching" : lastRatio < 0.8 ? "Under-training" : "Optimal zone";
 
   return (
-    <ChartCard title="Run Training Load" subtitle="Acute:Chronic load ratio — 0.8–1.3 is the sweet spot">
+    <ChartCard title="Run Training Load" subtitle="Acute:Chronic ratio — sweet spot 0.8–1.3">
       {loading ? <Skeleton h={VHR}/> : pts.length < 2 ? <RunEmptyState/> : (
         <>
           <svg width="100%" viewBox={`0 0 ${PWR} ${VHR}`} style={{display:"block",overflow:"visible"}}>
-            {/* Safe zone band */}
+            <defs>
+              <linearGradient id="load-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CC.brand} stopOpacity="0.20"/>
+                <stop offset="100%" stopColor={CC.brand} stopOpacity="0.02"/>
+              </linearGradient>
+            </defs>
             {safeY2 > PR.t && safeY1 < PR.t + PHR && (
               <rect x={PR.l} y={Math.max(PR.t, safeY2)} width={PWR-PR.l-PR.r}
                 height={Math.min(PHR, safeY1 - safeY2)} fill="rgba(78,205,196,0.08)" rx="2"/>
@@ -1186,20 +1250,26 @@ export function RunTrainingLoadChart({ userId }) {
             <line x1={PR.l} y1={safeY2} x2={PWR-PR.r} y2={safeY2} stroke="rgba(78,205,196,0.3)" strokeWidth="1" strokeDasharray="4,3"/>
             <text x={PWR-PR.r+2} y={safeY1+3} fontSize="7" fill="rgba(78,205,196,0.6)">0.8</text>
             <text x={PWR-PR.r+2} y={safeY2+3} fontSize="7" fill="rgba(78,205,196,0.6)">1.3</text>
-            {/* Line */}
-            <path d={`M ${xs[0]} ${ys[0]} ` + xs.slice(1).map((x,i)=>`L ${x} ${ys[i+1]}`).join(" ")}
-              fill="none" stroke={CC.brand} strokeWidth="2" strokeLinecap="round"/>
+            <path d={areaD} fill="url(#load-grad)"/>
+            <path d={lineD} fill="none" stroke={CC.brand} strokeWidth="2" strokeLinecap="round"/>
             {pts.map((p,i) => (
-              <circle key={i} cx={xs[i]} cy={ys[i]} r="3"
+              <circle key={i} cx={xs[i]} cy={ys[i]} r="2.5"
                 fill={p.ratio > 1.3 ? CC.danger : p.ratio < 0.8 ? CC.neutral : CC.optimal} opacity="0.9"/>
             ))}
             <text x={xs[0]||0} y={VHR-2} textAnchor="middle" fontSize="8" fill={T.mu}>{pts[0]?.wk?.slice(5)}</text>
             <text x={xs[xs.length-1]||PWR-PR.r} y={VHR-2} textAnchor="end" fontSize="8" fill={T.mu}>{pts[pts.length-1]?.wk?.slice(5)}</text>
           </svg>
-          <div style={{fontSize:11,color:T.mu,marginTop:4}}>
-            Current ratio: <span style={{color:pts[pts.length-1]?.ratio > 1.3 ? CC.danger : CC.optimal, fontWeight:700}}>
-              {pts[pts.length-1]?.ratio.toFixed(2)}
-            </span> · sweet spot 0.8–1.3
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <div style={{flex:1,background:T.s2,borderRadius:8,padding:"8px 10px"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:ratioColor,lineHeight:1}}>
+                {lastRatio.toFixed(2)}
+              </div>
+              <div style={{fontSize:10,color:T.mu,marginTop:2}}>Current ratio</div>
+            </div>
+            <div style={{flex:2,background:T.s2,borderRadius:8,padding:"8px 10px",display:"flex",alignItems:"center"}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:ratioColor,marginRight:6,flexShrink:0}}/>
+              <span style={{fontSize:11,color:ratioColor,fontWeight:700}}>{ratioLabel}</span>
+            </div>
           </div>
         </>
       )}
