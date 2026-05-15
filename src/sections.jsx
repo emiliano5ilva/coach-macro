@@ -2198,94 +2198,36 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                 </div>
               )}
+              {/* Start Session + Resume row */}
               <div style={{display:"flex",gap:8,marginBottom:8}}>
                 {todayType==="training"&&todayPrescription&&(
                   <button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>▶ Start Session →</button>
                 )}
-                {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.prot}15`,color:T.prot,fontWeight:700,fontSize:14,border:`1px solid ${T.prot}40`,borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:14,textTransform:"uppercase",letterSpacing:"0.08em"}}>Resume Session</button>}
-                {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
-                  <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{flexShrink:0,padding:"14px 12px",background:adaptLeft>0?"rgba(255,255,255,.05)":"rgba(255,255,255,.02)",color:adaptLeft>0?"rgba(245,245,240,.75)":"rgba(245,245,240,.25)",fontWeight:700,fontSize:13,border:`1px solid ${adaptLeft>0?"rgba(255,255,255,.12)":"rgba(255,255,255,.06)"}`,borderRadius:12,cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-                    🔄 Adapt
-                  </button>
-                )}
+                {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.prot}15`,color:T.prot,fontWeight:700,fontSize:14,border:`1px solid ${T.prot}40`,borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",textTransform:"uppercase",letterSpacing:"0.08em"}}>Resume</button>}
               </div>
+              {/* ⚡ ADAPT NOW — ghost button, always visible */}
               {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
-                <div style={{fontSize:11,color:adaptLeft>0?T.mu:"rgba(245,245,240,.3)",textAlign:"center",marginTop:2}}>
-                  {adaptLeft>0
-                    ?`${adaptLeft} adaptation${adaptLeft===1?"":"s"} remaining this month`
-                    :`Adaptations reset in ${daysUntilReset} day${daysUntilReset===1?"":"s"}`
-                  }
-                </div>
+                <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{width:"100%",padding:"10px 16px",background:"transparent",border:`1px solid ${adaptLeft>0?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:12,color:adaptLeft>0?"var(--red)":"rgba(245,245,240,0.22)",cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all .15s"}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
+                  Adapt Now
+                  <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.08em",opacity:0.6}}>{adaptLeft>0?`· ${adaptLeft} left`:`· resets in ${daysUntilReset}d`}</span>
+                </button>
               )}
             </div>
 
-            {/* WEEK SCHEDULE */}
-            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5}}>
-                {WDAYS.map((day,idx)=>{
-                  const todayIdx=WDAYS.indexOf(todayKey);
-                  const t=schedule[day];
-                  const isToday=day===todayKey;
-                  const isPast=idx<todayIdx;
-                  const isRest=!t||t==="rest";
-                  const f=dayFocus[day];
-                  const label=isRest?"REST":(f?.slice(0,5)||(DAY_CFG[t]?.label?.slice(0,5)||"Rest"));
-                  // state styles
-                  const borderC=isToday?"var(--red)":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
-                  const bgC=isToday?"rgba(232,52,28,0.1)":isPast&&!isRest?"rgba(52,211,153,0.06)":isRest?"rgba(245,245,240,0.02)":T.s2;
-                  const dayColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":T.mu;
-                  const iconColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.45)";
-                  const iconBg=isToday?"rgba(232,52,28,0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)";
-                  // SVG icon by type
-                  const icon=(()=>{
-                    if(t==="run")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
-                    if(t==="cardio")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
-                    if(t==="hyrox")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
-                    if(isRest)return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
-                    // training — dumbbell
-                    return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
-                  })();
-                  return(
-                    <div key={day} style={{background:bgC,border:`1.5px solid ${borderC}`,borderRadius:11,padding:"9px 3px",textAlign:"center",transition:"all .2s"}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:8,fontWeight:700,color:dayColor,marginBottom:5,letterSpacing:"0.08em"}}>{day.toUpperCase()}</div>
-                      <div style={{width:28,height:28,borderRadius:8,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 5px",color:iconColor}}>
-                        {icon}
-                      </div>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:9,color:dayColor,lineHeight:1.1,fontWeight:700,letterSpacing:"0.02em",textTransform:"uppercase"}}>{label}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* MUSCLE RECOVERY MAP */}
-            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div className="header-eyebrow">// Muscle Recovery</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,letterSpacing:"0.02em",textTransform:"uppercase",marginBottom:4}}>Recovery Map</div>
-              <div style={{fontSize:11,color:T.mu,marginBottom:16}}>Tap any muscle to see weekly volume status</div>
-              <MuscleMap dayFocus={dayFocus} isMobile={isMobile}/>
-            </div>
-
-            {/* QUICK ACTIONS */}
+            {/* ── QUICK ACTIONS ── */}
             <div>
               <div className="header-eyebrow">// Quick Actions</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                 {[
-                  ["Adapt", ()=>adaptLeft>0&&setShowAdapt(true),
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>,
-                    adaptLeft>0],
                   ["Library", ()=>setTrainScreen("library"),
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
-                    true],
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>],
                   ["Builder", ()=>setTrainScreen("routine-builder"),
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.375 2.625a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>,
-                    true],
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.375 2.625a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>],
                   ["Warmup", ()=>setTrainScreen("warmup-protocols"),
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>,
-                    true],
-                ].map(([label, action, icon, enabled])=>(
-                  <button key={label} onClick={action} style={{padding:"13px 5px 11px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,cursor:enabled?"pointer":"not-allowed",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:7,opacity:enabled?1:0.4}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>],
+                ].map(([label, action, icon])=>(
+                  <button key={label} onClick={action} style={{padding:"13px 5px 11px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:7}}>
                     <div style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.18)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)"}}>
                       {icon}
                     </div>
@@ -2295,7 +2237,42 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </div>
             </div>
 
-            {/* PROGRAM CARD */}
+            {/* ── THIS WEEK ── */}
+            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+              <div className="header-eyebrow">// This Week</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5}}>
+                {WDAYS.map((day,idx)=>{
+                  const todayIdx=WDAYS.indexOf(todayKey);
+                  const t=schedule[day];
+                  const isToday=day===todayKey;
+                  const isPast=idx<todayIdx;
+                  const isRest=!t||t==="rest";
+                  const f=dayFocus[day];
+                  const label=isRest?"REST":(f?.slice(0,5)||(DAY_CFG[t]?.label?.slice(0,5)||"Rest"));
+                  const borderC=isToday?"var(--red)":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
+                  const bgC=isToday?"rgba(232,52,28,0.1)":isPast&&!isRest?"rgba(52,211,153,0.06)":isRest?"rgba(245,245,240,0.02)":T.s2;
+                  const dayColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":T.mu;
+                  const iconColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.45)";
+                  const iconBg=isToday?"rgba(232,52,28,0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)";
+                  const icon=(()=>{
+                    if(t==="run")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
+                    if(t==="cardio")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
+                    if(t==="hyrox")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
+                    if(isRest)return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
+                    return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
+                  })();
+                  return(
+                    <div key={day} style={{background:bgC,border:`1.5px solid ${borderC}`,borderRadius:11,padding:"9px 3px",textAlign:"center",transition:"all .2s"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,fontWeight:700,color:dayColor,marginBottom:5,letterSpacing:"0.08em"}}>{day.toUpperCase()}</div>
+                      <div style={{width:28,height:28,borderRadius:8,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 5px",color:iconColor}}>{icon}</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:9,color:dayColor,lineHeight:1.1,fontWeight:700,letterSpacing:"0.02em",textTransform:"uppercase"}}>{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── YOUR PROGRAM ── */}
             {(()=>{
               const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
               const totalWeeks=progInfo?.weeks||12;
@@ -2303,7 +2280,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
               return(
                 <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 18px"}}>
-                  <div className="header-eyebrow" style={{marginBottom:6}}>// Program</div>
+                  <div className="header-eyebrow" style={{marginBottom:6}}>// Your Program</div>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                     <div>
                       <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{progName}</div>
@@ -2315,6 +2292,165 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div style={{height:"100%",width:`${progPct*100}%`,background:`linear-gradient(90deg,var(--red),rgba(232,52,28,0.5))`,borderRadius:3,transition:"width 0.6s"}}/>
                   </div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,marginTop:5,letterSpacing:"0.08em"}}>{Math.round(progPct*100)}% complete</div>
+                </div>
+              );
+            })()}
+
+            {/* ── MUSCLE RECOVERY ── */}
+            {(()=>{
+              // Map focus names → muscle groups they stress
+              const FOCUS_MAP={
+                Push:["chest","shoulders","arms"],Pull:["back","arms"],Legs:["legs","core"],
+                Upper:["chest","back","shoulders","arms"],Lower:["legs","core"],
+                "Full Body":["chest","back","shoulders","arms","legs","core"],
+                "Chest+Triceps":["chest","arms"],"Back+Biceps":["back","arms"],
+                "Shoulders+Arms":["shoulders","arms"],"Arnold A":["chest","shoulders","arms"],
+                "Arnold B":["back","arms"],"Chest & Back":["chest","back"],
+                "Shoulders & Arms":["shoulders","arms"],
+                Chest:["chest"],Back:["back"],Arms:["arms"],Shoulders:["shoulders"],
+              };
+              const MUSCLES=[
+                {id:"chest",   label:"Chest"},
+                {id:"back",    label:"Back"},
+                {id:"shoulders",label:"Shoulders"},
+                {id:"arms",    label:"Arms"},
+                {id:"legs",    label:"Legs"},
+                {id:"core",    label:"Core"},
+              ];
+              // Compute days-since-last-trained for each muscle
+              // Walk back 14 days using todayKey + WDAYS cyclically
+              const WDAY_ORDER=["mon","tue","wed","thu","fri","sat","sun"];
+              const todayIdx=WDAY_ORDER.indexOf(todayKey);
+              const lastTrained={};
+              MUSCLES.forEach(({id})=>{lastTrained[id]=null;});
+              for(let dAgo=0;dAgo<=13;dAgo++){
+                const dIdx=((todayIdx-dAgo)+70)%7;
+                const day=WDAY_ORDER[dIdx];
+                const focus=dayFocus[day];
+                const muscles=focus?(FOCUS_MAP[focus]||[]):[];
+                muscles.forEach(m=>{if(lastTrained[m]===null)lastTrained[m]=dAgo;});
+              }
+              const recPct=(dAgo)=>{
+                if(dAgo===null)return 95;
+                if(dAgo===0)return 5;
+                if(dAgo===1)return 38;
+                if(dAgo===2)return 62;
+                if(dAgo===3)return 82;
+                if(dAgo===4)return 92;
+                return 96;
+              };
+              const barColor=(pct)=>{
+                if(pct<31)return"rgba(232,52,28,0.85)";
+                if(pct<71)return"rgba(245,158,11,0.85)";
+                return"rgba(34,197,94,0.85)";
+              };
+              const statusLabel=(pct)=>{
+                if(pct<31)return"Recovering";
+                if(pct<71)return"Building";
+                return"Ready";
+              };
+              // Footer insight
+              const entries=MUSCLES.map(({id,label})=>({id,label,dAgo:lastTrained[id],pct:recPct(lastTrained[id])}));
+              const mostFatigued=entries.reduce((a,b)=>a.pct<b.pct?a:b);
+              const mostReady=entries.reduce((a,b)=>a.pct>b.pct?a:b);
+              const timeAgo=(dAgo)=>dAgo===null?"never trained":dAgo===0?"today":dAgo===1?"yesterday":`${dAgo} days ago`;
+              const [selectedMuscle,setSelectedMuscle]=React.useState(null);
+              return(
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div className="header-eyebrow">// Muscle Recovery</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                    {entries.map(({id,label,dAgo,pct},i)=>{
+                      const c=barColor(pct);
+                      const isSel=selectedMuscle===id;
+                      return(
+                        <div key={id} onClick={()=>setSelectedMuscle(isSel?null:id)} style={{padding:"10px 0",borderBottom:i<entries.length-1?`1px solid rgba(245,245,240,0.05)`:"none",cursor:"pointer",background:isSel?`${T.prot}06`:"transparent",paddingLeft:isSel?6:0,transition:"all .15s",borderRadius:isSel?6:0}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                            <span style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:isSel?T.prot:"rgba(245,245,240,0.7)"}}>{label}</span>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontFamily:"var(--condensed)",fontSize:13,fontWeight:700,color:c}}>{statusLabel(pct)}</span>
+                              <span style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,color:c}}>{pct}%</span>
+                              {pct>=71&&<span style={{color:T.green,fontSize:11,lineHeight:1}}>✓</span>}
+                            </div>
+                          </div>
+                          <div style={{height:8,background:"rgba(245,245,240,0.08)",borderRadius:4,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${pct}%`,background:c,borderRadius:4,transition:`width 0.6s cubic-bezier(.2,.7,.3,1) ${i*0.05}s`,transformOrigin:"left"}}/>
+                          </div>
+                          {isSel&&(
+                            <div style={{marginTop:8,padding:"8px 10px",background:"rgba(245,245,240,0.04)",borderRadius:8,border:`1px solid rgba(245,245,240,0.08)`}}>
+                              <div style={{fontSize:11,color:T.mu,fontFamily:"var(--mono)"}}>Last trained: <span style={{color:"#fff",fontWeight:600}}>{timeAgo(dAgo)}</span></div>
+                              {pct<71&&<div style={{fontSize:11,color:T.mu,marginTop:4}}>Full recovery est. <span style={{color:T.fat,fontWeight:600}}>{dAgo===null?"unknown":`~${Math.max(0,3-dAgo)} more day${Math.max(0,3-dAgo)===1?"":"s"}`}</span></div>}
+                              {pct>=71&&<div style={{fontSize:11,color:T.green,marginTop:4,fontWeight:600}}>Ready to train — fire it up</div>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:3}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.1em"}}>Most fatigued: <span style={{color:"rgba(245,245,240,0.55)"}}>{mostFatigued.label}</span> (trained {timeAgo(mostFatigued.dAgo)})</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.1em"}}>Most ready: <span style={{color:T.green}}>{mostReady.label}</span> (last hit {timeAgo(mostReady.dAgo)})</div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RECENT PRs ── */}
+            {Object.keys(history||{}).length>0&&(()=>{
+              const prEntries=Object.entries(history)
+                .map(([key,sessions])=>{
+                  const last=sessions[sessions.length-1];
+                  const prev=sessions.length>1?sessions[sessions.length-2]:null;
+                  const lastMax=Math.max(...last.sets.map(s=>parseFloat(s.weight||0)));
+                  const prevMax=prev?Math.max(...prev.sets.map(s=>parseFloat(s.weight||0))):null;
+                  const improved=prevMax&&lastMax>prevMax;
+                  const lastDate=last.date||"";
+                  const daysAgo=lastDate?Math.floor((new Date()-new Date(lastDate+"T12:00:00"))/86400000):null;
+                  return{key,lastMax,improved,daysAgo,sessions:sessions.length};
+                })
+                .filter(e=>e.lastMax>0)
+                .sort((a,b)=>b.lastMax-a.lastMax)
+                .slice(0,4);
+              if(prEntries.length===0)return null;
+              const wUnit=profile?.wUnit||"lbs";
+              return(
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                    <div className="header-eyebrow" style={{marginBottom:0}}>// Recent PRs</div>
+                    <button onClick={()=>setTrainScreen("progress")} style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,background:"none",border:"none",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>All →</button>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    {prEntries.map(({key,lastMax,improved,daysAgo,sessions})=>(
+                      <div key={key} style={{background:T.s2,border:`1px solid ${improved?"rgba(34,197,94,0.2)":T.bd}`,borderRadius:12,padding:"12px 14px",position:"relative",overflow:"hidden"}}>
+                        {improved&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:T.green,borderRadius:"12px 12px 0 0"}}/>}
+                        <div style={{fontSize:11,fontWeight:600,color:"rgba(245,245,240,0.65)",textTransform:"capitalize",marginBottom:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{key.replace(/_/g," ")}</div>
+                        <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,color:T.prot,lineHeight:1}}>{lastMax}<span style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)",fontWeight:400,marginLeft:3}}>{wUnit}</span></div>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+                          {improved&&<span style={{fontSize:9,color:T.green,fontFamily:"var(--mono)",fontWeight:700,letterSpacing:"0.08em"}}>↑ NEW PR</span>}
+                          <span style={{fontSize:9,color:T.mu,fontFamily:"var(--mono)",marginLeft:"auto"}}>{daysAgo===0?"today":daysAgo===1?"yesterday":daysAgo!=null?`${daysAgo}d ago`:""}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── STREAK ── */}
+            {sessionCount>0&&(()=>{
+              const bestStreak=profile?.longestStreak||sessionCount;
+              const isPersonalBest=sessionCount>=bestStreak;
+              return(
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:16}}>
+                  <div style={{width:48,height:48,borderRadius:13,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 3z" stroke="var(--red)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="header-eyebrow" style={{marginBottom:4}}>// Streak</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,lineHeight:1}}>{sessionCount} <span style={{fontSize:13,fontWeight:600,fontStyle:"normal",color:T.mu}}>sessions logged</span></div>
+                    {isPersonalBest&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:"0.1em",marginTop:4}}>PERSONAL BEST ✓</div>}
+                    {!isPersonalBest&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.1em",marginTop:4}}>BEST: {bestStreak} SESSIONS</div>}
+                  </div>
+                  <button onClick={()=>setTrainScreen("progress")} style={{padding:"8px 12px",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.18)",borderRadius:9,color:T.prot,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.08em",flexShrink:0}}>Stats →</button>
                 </div>
               );
             })()}
