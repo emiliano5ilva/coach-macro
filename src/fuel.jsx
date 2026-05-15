@@ -237,7 +237,9 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "#060d1a", zIndex: 340, overflowY: "auto", padding: "20px 20px 48px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <button onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults([]); }} style={{ background: "none", border: "none", color: T.mu, fontSize: 22, cursor: "pointer", padding: 0, lineHeight: 1 }}>←</button>
+          <button onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults([]); }} style={{ background: "none", border: "none", color: T.mu, cursor: "pointer", padding: 4, lineHeight: 1, display:"flex", alignItems:"center" }}>
+            <svg width={22} height={22} viewBox="0 0 22 22" fill="none"><path d="M14 17L8 11L14 5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
           <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 18, fontWeight: 800 }}>Add Ingredient</div>
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -269,7 +271,9 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060d1a", zIndex: 330, overflowY: "auto", padding: "20px 20px 80px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: T.mu, fontSize: 22, cursor: "pointer", padding: 0, lineHeight: 1 }}>←</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: T.mu, cursor: "pointer", padding: 4, lineHeight: 1, display:"flex", alignItems:"center" }}>
+          <svg width={22} height={22} viewBox="0 0 22 22" fill="none"><path d="M14 17L8 11L14 5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
         <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 24, fontWeight: 900 }}>{initRecipe ? "EDIT RECIPE" : "NEW RECIPE"}</div>
       </div>
 
@@ -2321,9 +2325,9 @@ Reply with ONLY a valid JSON object, no markdown:
                           </div>
                           {/* Macro bar */}
                           <div style={{height:5,borderRadius:3,overflow:"hidden",display:"flex",marginBottom:8,background:T.s3}}>
-                            <div style={{width:`${pPct}%`,background:T.prot,transition:"width 0.3s"}}/>
-                            <div style={{width:`${cPct}%`,background:T.carb,transition:"width 0.3s"}}/>
-                            <div style={{width:`${fPct}%`,background:T.fat,transition:"width 0.3s"}}/>
+                            <div style={{width:`${pPct}%`,background:T.prot,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
+                            <div style={{width:`${cPct}%`,background:T.carb,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
+                            <div style={{width:`${fPct}%`,background:T.fat,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
                           </div>
                           <div style={{display:"flex",gap:14,marginBottom:8}}>
                             <div style={{fontSize:15,fontWeight:900}}>{r.calories_per_serving}<span style={{fontSize:10,color:T.mu,fontWeight:400}}> kcal</span></div>
