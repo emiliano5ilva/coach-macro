@@ -1978,10 +1978,22 @@ Reply with ONLY a valid JSON object, no markdown:
             <div style={{marginBottom:2}}>
               <div className="header-eyebrow">// Quick Log</div>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-              {[["+ Food",()=>setShowQuickLog(true),T.prot],["Restaurants",()=>setFuelScreen("recs"),T.prot],["Recipes",()=>setFuelScreen("recipes"),T.fat],["Fasting",()=>setFuelScreen("fast"),T.fat]].map(([l,fn,c])=>(
-                <button key={l} onClick={fn} style={{padding:"14px 6px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"var(--mono)",textAlign:"center",transition:"all .15s"}}>
-                  <div style={{color:c,fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>{l}</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+              {[
+                ["Food", ()=>setShowQuickLog(true),
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2s-2 2-2 5a2 2 0 004 0c0-3-2-5-2-5z"/><path d="M17 3v4a5 5 0 01-10 0V3"/><path d="M7 14v8m10-8v8"/></svg>],
+                ["Eat Out", ()=>setFuelScreen("recs"),
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="8" y1="2" x2="8" y2="22"/><path d="M6 2v6a2 2 0 004 0V2"/><line x1="16" y1="2" x2="16" y2="8"/><path d="M14 8a2 2 0 004 0"/><line x1="16" y1="8" x2="16" y2="22"/></svg>],
+                ["Recipes", ()=>setFuelScreen("recipes"),
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>],
+                ["Fast", ()=>setFuelScreen("fast"),
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12,6 12,12 15,15"/></svg>],
+              ].map(([label, action, icon])=>(
+                <button key={label} onClick={action} style={{padding:"14px 6px 12px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                  <div style={{width:40,height:40,borderRadius:12,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.18)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)"}}>
+                    {icon}
+                  </div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",lineHeight:1}}>{label}</div>
                 </button>
               ))}
             </div>
