@@ -26,7 +26,7 @@ const VOLUME_COLORS = {
     bar:    "#4ECDC4",
     label:  "#4ECDC4",
     bg:     "rgba(78,205,196,0.12)",
-    name:   "Just right ✓",
+    name:   "Just right",
   },
   warn: {
     zone:   "rgba(255,159,67,0.10)",
@@ -225,6 +225,21 @@ function DetailCard({ muscle, sets, mev, mav, mrv, zoneKey, weeklyHistory = [] }
   );
 }
 
+function TrendArrow({ weeklyHistory }) {
+  if (weeklyHistory.length < 2) return null;
+  const delta = weeklyHistory[weeklyHistory.length - 1].sets - weeklyHistory[weeklyHistory.length - 2].sets;
+  const color = delta > 0 ? VOLUME_COLORS.optimal.bar : delta < 0 ? VOLUME_COLORS.over.bar : "rgba(245,245,240,0.25)";
+  return (
+    <svg width={9} height={9} viewBox="0 0 9 9" fill="none" style={{flexShrink:0}}>
+      {delta > 0
+        ? <path d="M4.5 7.5V1.5M1.5 4.5L4.5 1.5L7.5 4.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+        : delta < 0
+        ? <path d="M4.5 1.5V7.5M1.5 4.5L4.5 7.5L7.5 4.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+        : <path d="M1.5 4.5H7.5" stroke={color} strokeWidth={1.5} strokeLinecap="round"/>}
+    </svg>
+  );
+}
+
 // ── Single muscle bar row ─────────────────────────────────────────────────────
 function MuscleRow({ muscle, sets, showDetails, showLabels, expanded, onToggle, multiplier, weeklyHistory = [] }) {
   const mev = muscle.mev * multiplier;
@@ -300,7 +315,7 @@ function MuscleRow({ muscle, sets, showDetails, showLabels, expanded, onToggle, 
               background: vc.bar,
               borderRadius:4, zIndex:3,
               boxShadow:`0 0 5px ${vc.bar}60`,
-              transition:"width 0.55s cubic-bezier(.4,0,.2,1)",
+              transition:"width 0.32s cubic-bezier(.2,.7,.3,1)",
             }}/>
           )}
         </div>
@@ -311,15 +326,20 @@ function MuscleRow({ muscle, sets, showDetails, showLabels, expanded, onToggle, 
             <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:5 }}>
               <span style={{ fontFamily:"var(--mono)", fontSize:12, fontWeight:700, color:vc.label }}>{sets}</span>
               <span style={{ fontFamily:"var(--mono)", fontSize:8, color:T.mu }}>sets</span>
-              <span style={{ color:T.mu, fontSize:11 }}>{expanded ? "▴" : "▾"}</span>
+              <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{flexShrink:0}}>
+                <path d={expanded?"M2 6.5L5 3.5L8 6.5":"M2 3.5L5 6.5L8 3.5"} stroke={T.mu} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
           ) : (
-            <span style={{
-              fontFamily:"var(--mono)", fontSize:9, color:vc.label,
-              letterSpacing:"0.06em", textTransform:"uppercase",
-            }}>
-              {vc.name}
-            </span>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:4 }}>
+              <span style={{
+                fontFamily:"var(--mono)", fontSize:9, color:vc.label,
+                letterSpacing:"0.06em", textTransform:"uppercase",
+              }}>
+                {vc.name}
+              </span>
+              <TrendArrow weeklyHistory={weeklyHistory}/>
+            </div>
           )}
         </div>
       </div>
@@ -455,7 +475,13 @@ export function MuscleVolumeChart({ userId }) {
         ) : !hasAnyVolume ? (
           /* ── Empty state ── */
           <div style={{ textAlign:"center", padding:"28px 0" }}>
-            <div style={{ fontSize:32, marginBottom:8 }}>🏋️</div>
+            <svg width={40} height={40} viewBox="0 0 24 24" fill="none" style={{marginBottom:8,display:"block",margin:"0 auto 10px"}}>
+              <rect x={2} y={10} width={4} height={4} rx={1.5} fill="rgba(245,245,240,0.25)"/>
+              <rect x={6} y={8} width={3} height={8} rx={1} fill="rgba(245,245,240,0.25)"/>
+              <rect x={9} y={11} width={6} height={2} rx={1} fill="rgba(245,245,240,0.25)"/>
+              <rect x={15} y={8} width={3} height={8} rx={1} fill="rgba(245,245,240,0.25)"/>
+              <rect x={18} y={10} width={4} height={4} rx={1.5} fill="rgba(245,245,240,0.25)"/>
+            </svg>
             <div style={{
               fontFamily:"var(--condensed)", fontSize:14, fontWeight:700,
               color:"rgba(245,245,240,0.4)", textTransform:"uppercase", letterSpacing:"0.06em",
@@ -481,7 +507,7 @@ export function MuscleVolumeChart({ userId }) {
               fontFamily:"var(--mono)", fontSize:11, color:"rgba(245,245,240,0.75)", lineHeight:1.5,
             }}>
               {allGood
-                ? <span style={{ color:"#00BCD4" }}>All muscle groups in optimal zone 🔥</span>
+                ? <span style={{ color:"#00BCD4" }}>All muscle groups in optimal zone</span>
                 : needMore.length > 0
                   ? `${needMore.length} muscle${needMore.length > 1 ? "s" : ""} need more work (${needMore.slice(0,3).map(m=>m.label).join(", ")})`
                   : `${zoneCounts.over} muscle${zoneCounts.over !== 1 ? "s" : ""} exceeding MRV — consider reducing volume`}
