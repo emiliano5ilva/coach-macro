@@ -500,7 +500,7 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
     .lib-cat-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,245,240,.4);margin:28px 0 10px;}
     .lib-cat-title:first-child{margin-top:0;}
     .lib-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
-    .lib-card.lib-current{border-color:rgba(74,144,226,.4);background:rgba(74,144,226,.06);}
+    .lib-card.lib-current{border-color:rgba(96,165,250,.4);background:rgba(96,165,250,.06);}
     .lib-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
     .lib-card-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.01em;}
     .lib-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
@@ -509,16 +509,16 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
     .lib-badge.int{background:rgba(251,191,36,.12);color:#FBbF24;}
     .lib-badge.adv{background:rgba(248,113,113,.12);color:#F87171;}
     .lib-best{font-size:12px;color:rgba(245,245,240,.5);line-height:1.5;}
-    .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(74,144,226,.5);background:rgba(74,144,226,.1);color:#4A90E2;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
-    .lib-switch-btn:hover{background:rgba(74,144,226,.2);border-color:#4A90E2;}
-    .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:#4A90E2;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(74,144,226,.3);background:rgba(74,144,226,.06);}
+    .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(96,165,250,.5);background:rgba(96,165,250,.1);color:#60a5fa;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
+    .lib-switch-btn:hover{background:rgba(96,165,250,.2);border-color:#60a5fa;}
+    .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:#60a5fa;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(96,165,250,.3);background:rgba(96,165,250,.06);}
     .lib-soon{font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(245,245,240,.25);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);}
     .lib-modal-overlay{position:fixed;inset:0;background:rgba(6,13,26,.85);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
     .lib-modal{background:#0A1222;border:1px solid rgba(255,255,255,.1);border-radius:14px 14px 0 0;padding:28px 24px 36px;max-width:480px;width:100%;}
     .lib-modal h3{margin:0 0 8px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:.02em;}
     .lib-modal p{margin:0 0 24px;font-size:13px;color:rgba(245,245,240,.55);line-height:1.6;}
     .lib-modal-btns{display:flex;flex-direction:column;gap:10px;}
-    .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:#4A90E2;color:#fff;cursor:pointer;font-family:inherit;}
+    .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:#60a5fa;color:#fff;cursor:pointer;font-family:inherit;}
     .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
     .lib-fav-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.15);border-radius:9px;margin-bottom:6px;}
     .lib-fav-name{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px;}
@@ -641,13 +641,13 @@ const ADAPT_CSS = `
   .adapt-body{flex:1;overflow-y:auto;padding:20px;}
   .adapt-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
   .adapt-cat-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:6px;font-family:inherit;}
-  .adapt-cat-card.sel{border-color:rgba(74,144,226,.5);background:rgba(74,144,226,.08);}
+  .adapt-cat-card.sel{border-color:rgba(96,165,250,.5);background:rgba(96,165,250,.08);}
   .adapt-cat-card:hover{background:rgba(255,255,255,.07);}
   .adapt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
   .adapt-chip{padding:9px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(245,245,240,.65);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
-  .adapt-chip.sel{border-color:#4A90E2;background:rgba(74,144,226,.12);color:#4A90E2;}
+  .adapt-chip.sel{border-color:#60a5fa;background:rgba(96,165,250,.12);color:#60a5fa;}
   .adapt-footer{padding:16px 20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;}
-  .adapt-primary{width:100%;padding:15px;border:none;border-radius:12px;background:#4A90E2;color:#fff;font-size:15px;font-weight:700;letter-spacing:.05em;cursor:pointer;font-family:inherit;}
+  .adapt-primary{width:100%;padding:15px;border:none;border-radius:12px;background:#60a5fa;color:#fff;font-size:15px;font-weight:700;letter-spacing:.05em;cursor:pointer;font-family:inherit;}
   .adapt-primary:disabled{opacity:.35;cursor:not-allowed;}
   .adapt-secondary{width:100%;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:rgba(245,245,240,.5);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -735,7 +735,7 @@ Rules:
   if (screen === "loading") return (
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40}}>
-        <div style={{width:52,height:52,border:"3px solid rgba(74,144,226,.2)",borderTop:"3px solid #4A90E2",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+        <div style={{width:52,height:52,border:"3px solid rgba(96,165,250,.2)",borderTop:"3px solid #60a5fa",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900}}>ADAPTING SESSION</div>
         <div style={{fontSize:13,color:"rgba(245,245,240,.45)",textAlign:"center",maxWidth:280}}>{selectedReason}</div>
       </div>
@@ -746,15 +746,15 @@ Rules:
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
-          <div style={{fontSize:10,color:"#4A90E2",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPTED SESSION</div>
+          <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPTED SESSION</div>
           <div className="adapt-title">YOUR ADAPTED SESSION</div>
         </div>
         <button className="adapt-close" onClick={onClose}>✕</button>
       </div>
       <div className="adapt-body" style={{animation:"slideUp .3s ease"}}>
         {result.session_note&&(
-          <div style={{background:"rgba(74,144,226,.08)",border:"1px solid rgba(74,144,226,.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
-            <div style={{fontSize:10,color:"#4A90E2",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>SESSION NOTE</div>
+          <div style={{background:"rgba(96,165,250,.08)",border:"1px solid rgba(96,165,250,.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
+            <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>SESSION NOTE</div>
             <div style={{fontSize:13,color:"rgba(245,245,240,.85)",lineHeight:1.65}}>{result.session_note}</div>
           </div>
         )}
@@ -796,7 +796,7 @@ Rules:
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
-          <div style={{fontSize:10,color:"#4A90E2",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPT NOW · {adaptationsLeft} OF 2 REMAINING</div>
+          <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPT NOW · {adaptationsLeft} OF 2 REMAINING</div>
           <div className="adapt-title">ADAPT YOUR SESSION</div>
         </div>
         <button className="adapt-close" onClick={onClose}>✕</button>
@@ -843,23 +843,23 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
   const total = lls.restSecs || 90;
   const pct = Math.max(0, Math.min(1, restTimer / total));
   const R = 64; const C = 2 * Math.PI * R;
-  const ringColor = restTimer > 15 ? "#00B894" : restTimer > 5 ? "#F5A623" : "#EF4444";
+  const ringColor = restTimer > 15 ? T.green : restTimer > 5 ? T.fat : "#EF4444";
 
   const badge = lls.isNewPR
     ? { text: "🔥 PR pace", color: "#EF4444", bg: "rgba(239,68,68,0.12)" }
     : lls.prevBestWeight != null && parseFloat(lls.weight) >= lls.prevBestWeight
-      ? { text: "✓ On track", color: "#00B894", bg: "rgba(0,184,148,0.12)" }
+      ? { text: "✓ On track", color: T.green, bg: "rgba(34,197,94,0.12)" }
       : lls.prevBestWeight != null
-        ? { text: "Keep going", color: "#F5A623", bg: "rgba(245,166,35,0.12)" }
+        ? { text: "Keep going", color: T.fat, bg: "rgba(245,158,11,0.12)" }
         : null;
 
   const isLastSet = (lls.setIndex + 1) >= lls.totalSets;
   let nextLine = null;
   if (!isLastSet) {
     if (lls.hitAllReps && lls.suggestWeight) {
-      nextLine = { text: `↑ Try ${lls.suggestWeight} lbs next set`, color: "#00B894" };
+      nextLine = { text: `↑ Try ${lls.suggestWeight} lbs next set`, color: T.green };
     } else if (!lls.hitAllReps) {
-      nextLine = { text: `Stay at ${lls.weight} lbs`, color: "#F5A623" };
+      nextLine = { text: `Stay at ${lls.weight} lbs`, color: T.fat };
     } else {
       nextLine = { text: `Next: ${lls.nextSetWeight || lls.weight} lbs × ${lls.nextSetReps || lls.targetReps} reps`, color: "rgba(245,245,240,0.55)" };
     }
@@ -959,7 +959,7 @@ function MomentumBar({ activeWorkout, history }) {
   if (completedSets === 0) return null;
 
   const label = score >= 90 ? "Elite session" : score >= 75 ? "Strong session" : score >= 60 ? "Solid session" : "Recovery session";
-  const barColor = score >= 90 ? "#00B894" : score >= 75 ? "#4A90E2" : score >= 60 ? "#F5A623" : "#EF4444";
+  const barColor = score >= 90 ? T.green : score >= 75 ? T.carb : score >= 60 ? T.fat : "#EF4444";
   return (
     <div style={{padding:"10px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:12,marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
@@ -1000,9 +1000,9 @@ function SetFlashOverlay({ flash }) {
   if (!flash) return null;
   const cfg = {
     pr:       { bg:"rgba(239,68,68,0.18)",  border:"#EF4444", icon:"🔥", title:"New PR!",                    color:"#EF4444" },
-    complete: { bg:"rgba(0,184,148,0.14)",  border:"#00B894", icon:"✓",  title:"Set complete",               color:"#00B894" },
-    missed:   { bg:"rgba(245,166,35,0.14)",  border:"#F5A623", icon:"📝", title:`Missed ${flash.missedCount} rep${flash.missedCount===1?"":"s"}`, color:"#F5A623" },
-  }[flash.type] || { bg:"rgba(0,184,148,0.14)", border:"#00B894", icon:"✓", title:"Set complete", color:"#00B894" };
+    complete: { bg:"rgba(34,197,94,0.14)",  border:T.green, icon:"✓",  title:"Set complete",               color:T.green },
+    missed:   { bg:"rgba(245,158,11,0.14)",  border:T.fat, icon:"📝", title:`Missed ${flash.missedCount} rep${flash.missedCount===1?"":"s"}`, color:T.fat },
+  }[flash.type] || { bg:"rgba(34,197,94,0.14)", border:T.green, icon:"✓", title:"Set complete", color:T.green };
   return (
     <div style={{position:"fixed",bottom:110,left:"50%",transform:"translateX(-50%)",zIndex:9500,background:cfg.bg,border:`1px solid ${cfg.border}50`,borderRadius:16,padding:"12px 22px",display:"flex",alignItems:"center",gap:10,backdropFilter:"blur(10px)",minWidth:180,justifyContent:"center",pointerEvents:"none"}}>
       <span style={{fontSize:18}}>{cfg.icon}</span>
@@ -1077,7 +1077,7 @@ function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMob
         <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:30,letterSpacing:1,marginBottom:4}}>WARM UP FIRST</div>
         <div style={{fontSize:12,color:'rgba(245,245,240,.5)'}}>~{totalDuration} minutes · Don't skip this</div>
         {isNovice&&(sessionCount||0)<30&&(
-          <div style={{marginTop:8,fontSize:11,color:'#F5A623',background:'rgba(245,166,35,.08)',border:'1px solid rgba(245,166,35,.2)',borderRadius:8,padding:'6px 12px',display:'inline-block'}}>
+          <div style={{marginTop:8,fontSize:11,color:'#f59e0b',background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:8,padding:'6px 12px',display:'inline-block'}}>
             Session {sessionCount||1} of 30 — skip unlocks at 30
           </div>
         )}
@@ -1142,7 +1142,7 @@ function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMob
                         <div style={{fontSize:11,color:'rgba(245,245,240,.4)',marginTop:4}}>Time remaining</div>
                       </div>
                     ) : move?.duration ? (
-                      <button onClick={()=>{setTimerSec(move.duration);setTimerOn(true);}} style={{width:'100%',padding:'11px',background:'rgba(74,144,226,.1)',border:'1px solid rgba(74,144,226,.25)',borderRadius:10,color:'#4A90E2',fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:10}}>
+                      <button onClick={()=>{setTimerSec(move.duration);setTimerOn(true);}} style={{width:'100%',padding:'11px',background:'rgba(96,165,250,.1)',border:'1px solid rgba(96,165,250,.25)',borderRadius:10,color:'#60a5fa',fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:10}}>
                         Start {move.duration >= 60 ? `${Math.round(move.duration/60)} min` : `${move.duration}s`} timer
                       </button>
                     ) : null}
@@ -1174,8 +1174,8 @@ function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMob
           </div>
 
           {strides?.included && (
-            <div style={{background:'rgba(74,144,226,.07)',border:'1px solid rgba(74,144,226,.2)',borderRadius:12,padding:'12px 14px',marginBottom:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:'rgba(74,144,226,.8)',letterSpacing:'.16em',textTransform:'uppercase',marginBottom:6}}>Strides</div>
+            <div style={{background:'rgba(96,165,250,.07)',border:'1px solid rgba(96,165,250,.2)',borderRadius:12,padding:'12px 14px',marginBottom:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:'rgba(96,165,250,.8)',letterSpacing:'.16em',textTransform:'uppercase',marginBottom:6}}>Strides</div>
               <div style={{fontSize:12,color:'rgba(245,245,240,.65)',lineHeight:1.6}}>{strides.detail}</div>
             </div>
           )}
@@ -1254,9 +1254,9 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
         {[
           ["Total Volume", `${(summary.totalVolume||0).toLocaleString()} ${wUnit}`, "var(--red)"],
-          ["Duration",     `${summary.duration} min`,                              "#4A90E2"],
-          ["Sets",         `${summary.completedSets}/${summary.totalSets}`,        "#00B894"],
-          ["Completion",   `${compPct}%`,                                          compPct===100?"#00B894":"#F5A623"],
+          ["Duration",     `${summary.duration} min`,                              T.carb],
+          ["Sets",         `${summary.completedSets}/${summary.totalSets}`,        T.green],
+          ["Completion",   `${compPct}%`,                                          compPct===100?T.green:T.fat],
         ].map(([label, val, color]) => (
           <div key={label} style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"14px 16px",textAlign:"center"}}>
             <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:26,color,lineHeight:1}}>{val}</div>
@@ -1630,9 +1630,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ?<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
                   {opts.map((opt,i)=>(
                     <button key={i} onClick={()=>setSelectedSwap(selectedSwap===opt.name?null:opt.name)}
-                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(74,144,226,.15)":"rgba(255,255,255,.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(74,144,226,.5)":"rgba(255,255,255,.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
+                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(96,165,250,.15)":"rgba(255,255,255,.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(96,165,250,.5)":"rgba(255,255,255,.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
                       <span style={{fontSize:14,fontWeight:600,color:"#fff"}}>{opt.name}</span>
-                      {selectedSwap===opt.name&&<span style={{fontSize:14,color:"#4A90E2"}}>✓</span>}
+                      {selectedSwap===opt.name&&<span style={{fontSize:14,color:T.carb}}>✓</span>}
                     </button>
                   ))}
                 </div>
@@ -1643,12 +1643,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Make permanent</div>
                   <div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Always replace this exercise in my plan</div>
                 </div>
-                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?"#4A90E2":"rgba(255,255,255,.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.carb:"rgba(255,255,255,.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
                   <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:swapPermanent?19:3}}/>
                 </button>
               </div>
               <button onClick={()=>selectedSwap&&applySwap(swapModal.exerciseIdx,selectedSwap,swapPermanent,swapModal.originalName)} disabled={!selectedSwap}
-                style={{width:"100%",padding:15,background:selectedSwap?"#4A90E2":"rgba(255,255,255,.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
+                style={{width:"100%",padding:15,background:selectedSwap?T.carb:"rgba(255,255,255,.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
                 Swap Exercise →
               </button>
               <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
@@ -1760,7 +1760,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       )}
 
       {/* Toast */}
-      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(74,144,226,.4)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
+      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(96,165,250,.4)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
 
       {trainScreen!=="routine-builder"&&<div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto"}}>
         {TRAIN_TABS.map(tab=>(
@@ -1772,14 +1772,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
         {/* ── Resume Workout Prompt ── */}
         {resumePrompt&&!activeWorkout&&(
-          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(74,144,226,0.08)",border:"1px solid rgba(74,144,226,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
+          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
             <div style={{fontSize:24,flexShrink:0}}>💪</div>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>Unfinished session</div>
               <div style={{fontSize:11,color:"rgba(245,245,240,0.5)"}}>You left a workout in progress. Continue where you left off?</div>
             </div>
             <div style={{display:"flex",gap:8,flexShrink:0}}>
-              <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:"#4A90E2",border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
+              <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:T.carb,border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
               <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{padding:"8px 10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Discard</button>
             </div>
           </div>
@@ -1809,9 +1809,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
                     </div>
                   </div>
-                  <div style={{background:"rgba(74,144,226,.07)",border:"1px solid rgba(74,144,226,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
                     <span style={{fontSize:13,flexShrink:0}}>💙</span>
-                    <div><div style={{fontSize:11,color:"rgba(74,144,226,.9)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#4A90E2",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                    <div><div style={{fontSize:11,color:"rgba(96,165,250,.9)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </>
               )}
@@ -1825,9 +1825,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{pp.desc}</div>
                     </div>
                   </div>
-                  <div style={{background:"rgba(74,144,226,.07)",border:"1px solid rgba(74,144,226,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.2)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
                     <span style={{fontSize:13,flexShrink:0}}>💙</span>
-                    <div><div style={{fontSize:11,color:"rgba(74,144,226,.9)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider — especially with C-section recovery.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#4A90E2",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                    <div><div style={{fontSize:11,color:"rgba(96,165,250,.9)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider — especially with C-section recovery.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </>
               );})()}
@@ -1838,7 +1838,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 return(
                   <div style={{background:"rgba(236,72,153,.06)",border:"1px solid rgba(236,72,153,.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
                     <div style={{fontSize:10,color:"#EC4899",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>🦵 ACL PREHAB · 5 MIN</div>
-                    {highLaxity&&<div style={{background:"rgba(245,166,35,.08)",border:"1px solid rgba(245,166,35,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:"#F5A623"}}>⚠️ Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
+                    {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:T.fat}}>⚠️ Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
                     <div style={{display:"flex",flexDirection:"column",gap:6}}>
                       {ACL_PREHAB.map((ex,i)=>(
                         <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:T.s2,borderRadius:7}}>
@@ -1859,7 +1859,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
                       {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:T.mu,lineHeight:1.55}}><span style={{color:"#FBBF24",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
                     </div>
-                    <a href="https://coach-macro.com/support" style={{fontSize:10,color:"#4A90E2",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
+                    <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
                   </div>
                 );
               })()}
@@ -1868,7 +1868,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 return(
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>TODAY'S LIFT · {todayPrescription.length} EXERCISES</div>
-                  {coachStyle.progressNote&&<div style={{background:"rgba(74,144,226,.07)",border:"1px solid rgba(74,144,226,.18)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:"#4A90E2"}}>📋 {coachStyle.progressNote}</div>}
+                  {coachStyle.progressNote&&<div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.18)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:T.carb}}>📋 {coachStyle.progressNote}</div>}
                   <div style={{display:"flex",flexDirection:"column",gap:5}}>
                     {todayPrescription.slice(0,5).map((ex,i)=>(
                       <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:T.s2,borderRadius:9,border:`1px solid ${T.bd}`}}>
@@ -1901,7 +1901,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                   </div>
                   {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
-                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(74,144,226,.06)",border:"1px solid rgba(74,144,226,.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(96,165,250,.06)",border:"1px solid rgba(96,165,250,.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
                     <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
                       {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
@@ -1930,8 +1930,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 const lvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
                 const isNov=lvl==="beginner"||lvl==="novice";
                 const isAdv=lvl==="advanced"||lvl==="elite";
-                const badgeColor=isNov?"#34D399":isAdv?"#F87171":"#4A90E2";
-                const badgeBg=isNov?"rgba(52,211,153,.1)":isAdv?"rgba(248,113,113,.1)":"rgba(74,144,226,.1)";
+                const badgeColor=isNov?"#34D399":isAdv?"#F87171":T.carb;
+                const badgeBg=isNov?"rgba(52,211,153,.1)":isAdv?"rgba(248,113,113,.1)":"rgba(96,165,250,.1)";
                 const badgeLabel=isNov?"Beginner Program":isAdv?"Advanced Program":"Intermediate Program";
                 if(!prescType||prescType!=="lifting"||!todayPrescription||!Array.isArray(todayPrescription))return null;
                 return(
@@ -2078,7 +2078,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const p=sessionPrediction;
                   const isStrong=p.probability>=75;
                   const isSolid=p.probability>=50&&p.probability<75;
-                  const color=isStrong?"#00B894":isSolid?"#3b82f6":"#F5A623";
+                  const color=isStrong?T.green:isSolid?"#3b82f6":T.fat;
                   const badge=isStrong?"🔥 STRONG DAY":isSolid?"💪 SOLID SESSION":"⚡ RECOVERY SESSION";
                   const sub=isStrong?"Conditions aligned — PR opportunity today":isSolid?"Good session likely — execute your plan":"Suboptimal conditions — focus on technique";
                   const factors=p.factors||[];
@@ -2094,9 +2094,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                           {factors.map((f,fi)=>(
                             <span key={fi} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
-                              background:f.ok?"rgba(0,184,148,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(255,255,255,.06)",
-                              color:f.ok?"#00B894":f.ok===false?"#ef4444":"rgba(245,245,240,.4)",
-                              border:`1px solid ${f.ok?"rgba(0,184,148,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(255,255,255,.1)"}`}}>
+                              background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(255,255,255,.06)",
+                              color:f.ok?T.green:f.ok===false?"#ef4444":"rgba(245,245,240,.4)",
+                              border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(255,255,255,.1)"}`}}>
                               {f.ok?"✓":f.ok===false?"✗":"—"} {f.label}
                             </span>
                           ))}
@@ -2225,7 +2225,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {/* Coaching cue based on feedback */}
                           {ex.feedback?.feel==="no"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,fontSize:11,color:"#EF4444"}}>💡 Mind-muscle tip: slow the eccentric, reduce weight 10%, focus on the squeeze at peak contraction.</div>}
                           {ex.feedback?.feel==="yes"&&ex.feedback?.challenge==="easy"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(0,201,167,.08)",border:"1px solid rgba(0,201,167,.2)",borderRadius:8,fontSize:11,color:"#00C9A7"}}>📈 Add 2.5–5 lbs next session.</div>}
-                          {ex.feedback?.feel==="somewhat"&&ex.feedback?.challenge==="perfect"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(74,144,226,.08)",border:"1px solid rgba(74,144,226,.2)",borderRadius:8,fontSize:11,color:"#4A90E2"}}>🎯 Focus on the target muscle before each set. Try a 2-second pause at peak.</div>}
+                          {ex.feedback?.feel==="somewhat"&&ex.feedback?.challenge==="perfect"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(96,165,250,.08)",border:"1px solid rgba(96,165,250,.2)",borderRadius:8,fontSize:11,color:T.carb}}>🎯 Focus on the target muscle before each set. Try a 2-second pause at peak.</div>}
                         </div>
                       )}
                     </div>
@@ -3256,7 +3256,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
             {[
               {v:"beginner",l:"Beginner",sub:"Less than 1 year — dumbbell-focused, lower volume",color:"#34D399"},
-              {v:"intermediate",l:"Intermediate",sub:"1–3 years — barbell compounds, moderate volume",color:"#4A90E2"},
+              {v:"intermediate",l:"Intermediate",sub:"1–3 years — barbell compounds, moderate volume",color:T.carb},
               {v:"advanced",l:"Advanced",sub:"3+ years — heavy loads, high volume, advanced techniques",color:"#F87171"},
             ].map(o=>{
               const cur=(wPrefs.liftExp||profile?.liftExp||"intermediate")===o.v;
@@ -3300,9 +3300,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <SectionCard title="Joint Health Mode">
             <Toggle on={wPrefs.jointHealthMode!==false} onChange={v=>{const wp={...wPrefs,jointHealthMode:v};setWPrefs(wp);saveSettings(wp,null);}} label="Joint Health Mode" sub="Reduces volume, adds controlled tempo cues, removes failure training"/>
             <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Automatically applies safer exercise modifications for joint-protective training. Recommended for 65+ users.</div>
-            {wPrefs.jointHealthMode!==false&&<div style={{background:"rgba(74,144,226,.07)",border:"1px solid rgba(74,144,226,.2)",borderRadius:9,padding:"10px 12px",marginTop:10}}>
-              <div style={{fontSize:11,color:"rgba(74,144,226,.9)",lineHeight:1.6}}>Your sessions use 80% of standard volume with controlled tempo. For individual guidance, consult a physical therapist or exercise physiologist.</div>
-              <a href="https://coach-macro.com/support" style={{fontSize:10,color:"#4A90E2",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a>
+            {wPrefs.jointHealthMode!==false&&<div style={{background:"rgba(96,165,250,.07)",border:"1px solid rgba(96,165,250,.2)",borderRadius:9,padding:"10px 12px",marginTop:10}}>
+              <div style={{fontSize:11,color:"rgba(96,165,250,.9)",lineHeight:1.6}}>Your sessions use 80% of standard volume with controlled tempo. For individual guidance, consult a physical therapist or exercise physiologist.</div>
+              <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.carb,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a>
             </div>}
           </SectionCard>
         )}
@@ -3474,9 +3474,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               </div>
             </div>
             <div style={{fontFamily:"var(--mono)",fontSize:10,padding:"4px 10px",borderRadius:6,
-              background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(0,184,148,0.12)":"rgba(245,245,240,0.06)",
-              color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#00B894":T.mu,
-              border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(0,184,148,0.3)":T.bd}`,
+              background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(245,245,240,0.06)",
+              color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?T.green:T.mu,
+              border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":T.bd}`,
               letterSpacing:"0.1em",textTransform:"uppercase"}}>
               {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
             </div>

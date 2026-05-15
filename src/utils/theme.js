@@ -13,8 +13,8 @@ export const PRIMARY_COLORS = {
 
   // Macros (displayed in macro ring, bars, food logs)
   protein:       "#e8341c",   // brand red doubles as protein color
-  carbs:         "#4A90E2",   // refined blue — carbs macro
-  fat:           "#F5A623",   // refined amber — fat macro
+  carbs:         "#60a5fa",   // design blue — carbs macro
+  fat:           "#f59e0b",   // design amber — fat macro
 
   // Recovery / wellness features
   recovery:      "#7E57C2",   // royal violet — sleep, HRV, recovery score
@@ -34,21 +34,21 @@ export const PRIMARY_COLORS = {
 
   // Surfaces (darkest = base, lightest = most elevated)
   surfaceBase:   "#050810",   // body background
-  surface1:      "#0A0F1C",   // cards on home dashboard
-  surface2:      "#131A2C",   // raised elements, active workout overlay
-  surface3:      "#1C2438",   // modals, bottom sheets, overlays
+  surface1:      "#111827",   // navyCard — standard cards
+  surface2:      "#0f1628",   // navyMid  — raised elements, section variants
+  surface3:      "#161e35",   // navyLight — modals, bottom sheets, elevated
 
   // Borders
-  borderSubtle:  "rgba(255,255,255,0.06)",
-  borderMedium:  "rgba(255,255,255,0.12)",
-  borderStrong:  "rgba(255,255,255,0.20)",
+  borderSubtle:  "rgba(245,245,240,0.06)",
+  borderMedium:  "rgba(245,245,240,0.12)",
+  borderStrong:  "rgba(245,245,240,0.20)",
   borderBrand:   "rgba(232,52,28,0.30)",
 
   // Status (reuses macro colors intentionally — same meaning in context)
-  success:       "#00B894",   // same as refined carbs green
-  warning:       "#F5A623",   // same as refined fat amber
-  error:         "#e8341c",   // same as brand red
-  info:          "#4A90E2",   // same as refined protein blue
+  success:       "#22c55e",   // design green
+  warning:       "#f59e0b",   // design amber
+  error:         "#e8341c",   // brand red
+  info:          "#60a5fa",   // design blue
 };
 
 // SECONDARY (CHART-ONLY) — Data visualization exclusively.

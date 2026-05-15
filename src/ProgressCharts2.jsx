@@ -245,7 +245,7 @@ export function BodyCompositionVector({ workoutLogsRaw = [], bodyweightLogs = []
 
               {/* Current position dot */}
               <circle cx={cx_curr} cy={cy_curr} r="6" fill={CC.white} stroke={T.bg} strokeWidth="1.5"/>
-              <circle cx={cx_curr} cy={cy_curr} r="3" fill={quad === "ideal" ? CC.optimal : quad === "bulk" ? "#4A90E2" : quad === "cutting" ? CC.caution : CC.danger}/>
+              <circle cx={cx_curr} cy={cy_curr} r="3" fill={quad === "ideal" ? CC.optimal : quad === "bulk" ? T.carb : quad === "cutting" ? CC.caution : CC.danger}/>
             </svg>
           </div>
         )}

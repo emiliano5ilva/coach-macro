@@ -99,7 +99,7 @@ export function ChartWrap({ chartKey, onHide, onExplain, children }) {
             style={{ position: "fixed", inset: 0, zIndex: 19 }} />
           <div style={{
             position: "absolute", top: 38, right: 20, zIndex: 20,
-            background: "#1C2438", border: "1px solid rgba(255,255,255,0.12)",
+            background: T.s1, border: "1px solid rgba(255,255,255,0.12)",
             borderRadius: 12, padding: "4px 0", minWidth: 168,
             boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
           }}>
@@ -149,7 +149,7 @@ export function ChartExplainModal({ chartKey, onClose }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "flex-end", background: "rgba(0,0,0,0.72)" }}
       onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: "100%", background: "#131A2C",
+        width: "100%", background: T.s3,
         borderRadius: "20px 20px 0 0", padding: "24px 20px 44px",
         maxHeight: "75vh", overflowY: "auto",
       }}>

@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 
 export const T = {
-  bg:   "#050810",         // KEEP
-  s1:   "#1C2438",         // surface level3 (modals/sheets)
-  s2:   "#0A0F1C",         // surface level1 (cards)
-  s3:   "#131A2C",         // surface level2 (raised elements)
+  bg:   "#050810",         // page background
+  s1:   "#161e35",         // navyLight — raised cards, inputs, elevated elements
+  s2:   "#111827",         // navyCard  — standard card surface
+  s3:   "#0f1628",         // navyMid   — section bg variants
   bd:   "rgba(245,245,240,0.08)",  // border subtle
   mu:   "rgba(245,245,240,0.4)",   // text tertiary
   dim:  "rgba(245,245,240,0.65)",  // text secondary
   prot: "#e8341c",         // brand red / protein
-  carb: "#4A90E2",         // refined blue
-  fat:  "#F5A623",         // refined amber
+  carb: "#60a5fa",         // design blue — carbs + training ring
+  fat:  "#f59e0b",         // design amber — fat + warnings
   red:  "#e8341c",         // brand red
   white:"#f5f5f0",
-  green:"#00B894",         // mint green
+  green:"#22c55e",         // design green — success, done states
   recovery: "#7E57C2",     // recovery/purple
   gold:     "#FFD700",     // achievement gold
   goldDeep: "#FFA000",     // achievement gold deep
@@ -226,14 +226,14 @@ export const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   :root {
     --navy: #0a0e1a;
-    --navy-mid: #131A2C;
-    --navy-light: #1C2438;
-    --navy-card: #0A0F1C;
+    --navy-mid: #0f1628;
+    --navy-light: #161e35;
+    --navy-card: #111827;
     --red: #e8341c;
     --red-dim: #c42d18;
-    --green: #00B894;
-    --blue: #4A90E2;
-    --amber: #F5A623;
+    --green: #22c55e;
+    --blue: #60a5fa;
+    --amber: #f59e0b;
     --white: #f5f5f0;
     --white-dim: rgba(245,245,240,0.65);
     --white-faint: rgba(245,245,240,0.4);
@@ -244,12 +244,12 @@ export const GLOBAL_CSS = `
     --gold: #FFD700;
     --gold-deep: #FFA000;
     --gold-bg: rgba(255,215,0,0.12);
-    --surface-1: #0A0F1C;
-    --surface-2: #131A2C;
-    --surface-3: #1C2438;
-    --border-subtle: rgba(255,255,255,0.06);
-    --border-medium: rgba(255,255,255,0.12);
-    --border-strong: rgba(255,255,255,0.20);
+    --surface-1: #111827;
+    --surface-2: #0f1628;
+    --surface-3: #161e35;
+    --border-subtle: rgba(245,245,240,0.06);
+    --border-medium: rgba(245,245,240,0.12);
+    --border-strong: rgba(245,245,240,0.20);
     --chart-optimal: #4ECDC4;
     --chart-caution: #FF9F43;
     --chart-danger: #FF5252;
@@ -262,7 +262,8 @@ export const GLOBAL_CSS = `
   html,body,#root{height:100%}
   button,a,[role=button]{min-height:44px;min-width:44px}
   @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
-  body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(74,144,226,0.06),transparent 50%)}
+  body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(96,165,250,0.06),transparent 50%)}
+  .grid-bg{background-image:linear-gradient(rgba(245,245,240,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,240,0.022) 1px,transparent 1px);background-size:32px 32px}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:rgba(245,245,240,0.12);border-radius:2px}

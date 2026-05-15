@@ -40,8 +40,8 @@ export function InjuryHistorySection({ injuryLogs, injuryRisks, onResolve, onLog
   return (
     <div style={{ margin: "0 20px 14px" }}>
       {/* Streak card */}
-      <div style={{ padding: "16px", background: "rgba(0,184,148,0.07)", border: "1.5px solid rgba(0,184,148,0.25)", borderRadius: 14, marginBottom: 12, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#00B894", lineHeight: 1 }}>{displayDays}</div>
+      <div style={{ padding: "16px", background: "rgba(34,197,94,0.07)", border: "1.5px solid rgba(34,197,94,0.25)", borderRadius: 14, marginBottom: 12, textAlign: "center" }}>
+        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: T.green, lineHeight: 1 }}>{displayDays}</div>
         <div style={{ fontSize: 11, color: "rgba(245,245,240,.5)", letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, marginTop: 4 }}>
           {freeDays !== null ? "INJURY FREE DAYS 🛡️" : "KEEP THE STREAK GOING 🛡️"}
         </div>
@@ -51,9 +51,9 @@ export function InjuryHistorySection({ injuryLogs, injuryRisks, onResolve, onLog
             const earned = displayDays >= days;
             return (
               <span key={days} style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: ".08em",
-                background: earned ? "rgba(0,184,148,.15)" : "rgba(255,255,255,.04)",
-                color: earned ? "#00B894" : "rgba(245,245,240,.2)",
-                border: `1px solid ${earned ? "rgba(0,184,148,.3)" : "rgba(255,255,255,.08)"}` }}>
+                background: earned ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.04)",
+                color: earned ? T.green : "rgba(245,245,240,.2)",
+                border: `1px solid ${earned ? "rgba(34,197,94,.3)" : "rgba(255,255,255,.08)"}` }}>
                 {earned ? "✓ " : ""}{label}
               </span>
             );
@@ -79,7 +79,7 @@ export function InjuryHistorySection({ injuryLogs, injuryRisks, onResolve, onLog
                       {sev >= 3 ? "HIGH" : sev >= 2 ? "MOD" : "MILD"}
                     </span>
                     {log.resolved_at && (
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "rgba(0,184,148,.12)", color: "#00B894", border: "1px solid rgba(0,184,148,.25)" }}>✓ Resolved</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "rgba(34,197,94,.12)", color: T.green, border: "1px solid rgba(34,197,94,.25)" }}>✓ Resolved</span>
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: T.mu }}>
@@ -87,7 +87,7 @@ export function InjuryHistorySection({ injuryLogs, injuryRisks, onResolve, onLog
                   </div>
                 </div>
                 {!log.resolved_at && (
-                  <button onClick={() => onResolve?.(log.id)} style={{ padding: "5px 10px", background: "rgba(0,184,148,.1)", border: "1px solid rgba(0,184,148,.25)", borderRadius: 7, color: "#00B894", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  <button onClick={() => onResolve?.(log.id)} style={{ padding: "5px 10px", background: "rgba(34,197,94,.1)", border: "1px solid rgba(34,197,94,.25)", borderRadius: 7, color: T.green, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                     Resolve
                   </button>
                 )}
@@ -155,7 +155,7 @@ export function InjuryRiskModal({ risk, region, onProtect, onOverride, onClose }
             ))}
             {recs.do.map((item, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: i < recs.do.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none" }}>
-                <span style={{ color: "#00B894", fontSize: 13, flexShrink: 0 }}>✓</span>
+                <span style={{ color: T.green, fontSize: 13, flexShrink: 0 }}>✓</span>
                 <span style={{ fontSize: 12, color: "rgba(245,245,240,.7)" }}>{item}</span>
               </div>
             ))}

@@ -18,7 +18,7 @@ const CC = {
   gold:     "#FFD700",
   goldBg:   "rgba(255,215,0,0.12)",
   white:    "#f5f5f0",
-  amber:    "#F5A623",
+  amber:    T.fat,
   protBg:   "rgba(74,144,226,0.20)",
   noData:   "#111827",
   loggedMissed: "rgba(74,144,226,0.28)",
@@ -648,8 +648,8 @@ export function MacroCalendarHeatmap({ userId, profile }) {
                   {[
                     {label:"Calories", val:Math.round(selectedEntries.reduce((s,e)=>s+(e.calories||0),0)), goal:goalCals, unit:"kcal", color:"var(--white)"},
                     {label:"Protein",  val:Math.round(selectedEntries.reduce((s,e)=>s+(e.protein||0),0)),  goal:goalProtein, unit:"g", color:"#e8341c"},
-                    {label:"Carbs",    val:Math.round(selectedEntries.reduce((s,e)=>s+(e.carbs||0),0)),    goal:Math.round(goalCals*0.4/4), unit:"g", color:"#4A90E2"},
-                    {label:"Fat",      val:Math.round(selectedEntries.reduce((s,e)=>s+(e.fat||0),0)),      goal:Math.round(goalCals*0.3/9), unit:"g", color:"#F5A623"},
+                    {label:"Carbs",    val:Math.round(selectedEntries.reduce((s,e)=>s+(e.carbs||0),0)),    goal:Math.round(goalCals*0.4/4), unit:"g", color:T.carb},
+                    {label:"Fat",      val:Math.round(selectedEntries.reduce((s,e)=>s+(e.fat||0),0)),      goal:Math.round(goalCals*0.3/9), unit:"g", color:T.fat},
                   ].map(({label,val,goal,unit,color})=>(
                     <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                       <span style={{fontSize:11,color:T.mu}}>{label}</span>
