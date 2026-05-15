@@ -1976,18 +1976,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {trainScreen!=="routine-builder"&&(
         <div className="screen-header" style={{paddingTop:12}}>
           <div style={{flex:1,minWidth:0}}>
-            <div className="header-eyebrow">// {new Date().toLocaleDateString("en-US",{weekday:"long"})} · {cfg.label} Day</div>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:44,height:44,borderRadius:13,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.28)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <rect x="2" y="10" width="4" height="4" rx="1" fill="var(--red)"/>
-                  <rect x="18" y="10" width="4" height="4" rx="1" fill="var(--red)"/>
-                  <rect x="6" y="8" width="12" height="8" rx="2" fill="var(--red)" opacity="0.7"/>
-                  <rect x="10" y="11" width="4" height="2" rx="1" fill="var(--red)"/>
-                </svg>
-              </div>
-              <div className="header-title">Train</div>
-            </div>
+            <div className="header-eyebrow">// {todayFocus||cfg.label} · Week {weekNum}</div>
+            <div className="header-title">Today's Session</div>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+            <button className="icon-btn" onClick={()=>setTrainScreen("library")}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            </button>
+            <button className="icon-btn" onClick={()=>setTrainScreen("plan")}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </button>
           </div>
         </div>
       )}
@@ -2021,18 +2019,34 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {trainScreen==="today"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* TODAY HERO CARD */}
-            <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px"}}>
-              <div className="header-eyebrow">// Today's Session</div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:32,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>{todayFocus}</div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}}>
-                  <div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"5px 12px",fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{cfg.label} Day</div>
-                  {Array.isArray(todayPrescription)&&todayPrescription.length>0&&(
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",letterSpacing:"0.08em"}}>{todayPrescription.length} exercises</div>
-                  )}
+            {(()=>{
+              const heroLvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+              const heroIsNov=heroLvl==="beginner"||heroLvl==="novice";
+              const heroIsAdv=heroLvl==="advanced"||heroLvl==="elite";
+              const heroLevelColor=heroIsNov?"var(--green)":heroIsAdv?"#F87171":"var(--blue)";
+              const heroLvlBadge=heroIsNov?"Beginner":heroIsAdv?"Advanced":"Intermediate";
+              const progLabel=wPrefs.splitType||(wPrefs.isHyrox?"Hyrox":wPrefs.isHybrid?"Hybrid":"My Program");
+              const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns";
+              const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
+              const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
+              const estMin=exCount>0?Math.round(exCount*9+12):0;
+              return(
+            <div style={{background:T.s2,border:"1px solid var(--white-border)",borderRadius:14,padding:16,borderLeft:"3px solid var(--red)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                <div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",marginBottom:6}}>// {progLabel}</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{todayFocus}</div>
+                  {prescType==="lifting"&&<div style={{marginTop:8}}><span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span></div>}
                 </div>
               </div>
-              <div style={{fontSize:12,color:T.mu,marginBottom:16,lineHeight:1.55}}>{FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
+              <div style={{display:"flex",gap:14,marginTop:14,fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)",letterSpacing:"0.06em"}}>
+                <div>{muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}</div>
+              </div>
+              {exCount>0&&(
+                <div style={{display:"flex",gap:18,marginTop:6,fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>
+                  <div>~{estMin} min</div><div>{exCount} exercises</div><div>Volume: {totalSets} sets</div>
+                </div>
+              )}
               {/* Pregnancy permanent safety banner */}
               {profile?.lifeStage==="pregnant"&&(
                 <>
@@ -2099,28 +2113,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                 );
               })()}
-              {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(()=>{
-                const coachStyle=getCoachingStyle(wPrefs?.trainingAge);
-                return(
-                <div style={{marginBottom:14}}>
-                  <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:8}}>TODAY'S LIFT · {todayPrescription.length} EXERCISES</div>
-                  {coachStyle.progressNote&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:"rgba(245,245,240,.75)"}}>{coachStyle.progressNote}</div>}
-                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                    {todayPrescription.slice(0,5).map((ex,i)=>(
-                      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:T.s2,borderRadius:9,border:`1px solid ${T.bd}`}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
-                          {ex.isFavorite&&<span style={{fontSize:10,flexShrink:0}}>❤️</span>}
-                          {ex.swappedFrom&&<span style={{fontSize:10,flexShrink:0,opacity:.7}}>🔄</span>}
-                        </div>
-                        <div style={{fontSize:11,color:T.mu,flexShrink:0,marginLeft:8}}>{ex.sets}×{ex.reps}</div>
-                      </div>
-                    ))}
-                    {todayPrescription.length>5&&<div style={{fontSize:11,color:T.mu,textAlign:"center",padding:"4px 0"}}>+{todayPrescription.length-5} more exercises</div>}
-                  </div>
-                </div>
-                );
-              })()}
               {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
                 const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
                 const preFuel=todayPrescription.preFuel;
@@ -2163,24 +2155,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 );
               })()}
               {(()=>{
-                const lvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
-                const isNov=lvl==="beginner"||lvl==="novice";
-                const isAdv=lvl==="advanced"||lvl==="elite";
-                const badgeColor=isNov?"#34D399":isAdv?"#F87171":T.prot;
-                const badgeBg=isNov?"rgba(52,211,153,.1)":isAdv?"rgba(248,113,113,.1)":"rgba(232,52,28,.1)";
-                const badgeLabel=isNov?"Beginner Program":isAdv?"Advanced Program":"Intermediate Program";
-                if(!prescType||prescType!=="lifting"||!todayPrescription||!Array.isArray(todayPrescription))return null;
-                return(
-                  <div style={{background:badgeBg,border:`1px solid ${badgeColor}30`,borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                    <div>
-                      <span style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:badgeColor}}>{badgeLabel}</span>
-                      <div style={{fontSize:11,color:T.mu,marginTop:2}}>Exercises selected for your level. <span style={{color:T.mu,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setTrainScreen&&setTrainScreen("settings")}>Update in Settings.</span></div>
-                    </div>
-                    <div style={{width:28,height:28,borderRadius:"50%",background:badgeBg,border:`1.5px solid ${badgeColor}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:badgeColor}}>{isNov?"N":isAdv?"A":"I"}</div>
-                  </div>
-                );
-              })()}
-              {(()=>{
                 const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
                 if(!cp)return null;
                 return <div style={{background:`${cp.color}12`,border:`1px solid ${cp.color}30`,borderRadius:10,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
@@ -2198,42 +2172,74 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                 </div>
               )}
-              {/* Start Session + Resume row */}
-              <div style={{display:"flex",gap:8,marginBottom:8}}>
-                {todayType==="training"&&todayPrescription&&(
-                  <button onClick={startFromProgram} style={{flex:2,padding:"14px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>▶ Start Session →</button>
-                )}
-                {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{flex:1,padding:"14px",background:`${T.prot}15`,color:T.prot,fontWeight:700,fontSize:14,border:`1px solid ${T.prot}40`,borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",fontStyle:"italic",textTransform:"uppercase",letterSpacing:"0.08em"}}>Resume</button>}
-              </div>
-              {/* ⚡ ADAPT NOW — ghost button, always visible */}
-              {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(
-                <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{width:"100%",padding:"10px 16px",background:"transparent",border:`1px solid ${adaptLeft>0?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:12,color:adaptLeft>0?"var(--red)":"rgba(245,245,240,0.22)",cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all .15s"}}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
-                  Adapt Now
-                  <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.08em",opacity:0.6}}>{adaptLeft>0?`· ${adaptLeft} left`:`· resets in ${daysUntilReset}d`}</span>
-                </button>
-              )}
+            </div>
+            );})()}
+
+            {/* ── ADAPT NOW + FAVORITES ── */}
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{flex:1,padding:"12px",background:"transparent",border:`1px solid ${adaptLeft>0?"var(--amber)":"rgba(245,245,240,0.08)"}`,borderRadius:12,color:adaptLeft>0?"var(--amber)":"rgba(245,245,240,0.3)",cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all .15s"}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
+                {adaptLeft>0?"Adapt Now":`Adapt · ${daysUntilReset}d`}
+              </button>
+              <button onClick={()=>setTrainScreen("library")} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid var(--white-border)",borderRadius:12,color:"var(--white-dim)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>♡ Favorites</button>
             </div>
 
-            {/* ── QUICK ACTIONS ── */}
-            <div>
-              <div className="header-eyebrow">// Quick Actions</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                {[
-                  ["Library", ()=>setTrainScreen("library"),
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>],
-                  ["Builder", ()=>setTrainScreen("routine-builder"),
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.375 2.625a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>],
-                  ["Warmup", ()=>setTrainScreen("warmup-protocols"),
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>],
-                ].map(([label, action, icon])=>(
-                  <button key={label} onClick={action} style={{padding:"13px 5px 11px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:7}}>
-                    <div style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.18)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)"}}>
-                      {icon}
+            {/* ── CUSTOM ROUTINE + BROWSE ── */}
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setTrainScreen("routine-builder")} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid var(--white-border)",borderRadius:12,color:"var(--white)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>+ Custom Routine</button>
+              <button onClick={()=>setTrainScreen("library")} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid var(--white-border)",borderRadius:12,color:"var(--white)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Browse Exercises</button>
+            </div>
+
+            {/* ── EXERCISE LIST ── */}
+            {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(()=>{
+              const coachStyle=getCoachingStyle(wPrefs?.trainingAge);
+              return(<>
+                <div className="section-title" style={{margin:"4px 0 10px"}}>Exercises</div>
+                {coachStyle.progressNote&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:"rgba(245,245,240,.75)"}}>{coachStyle.progressNote}</div>}
+                {todayPrescription.map((ex,i)=>(
+                  <div key={i} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"12px 14px",marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-faint)",width:18}}>{i+1}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{fontWeight:600,fontSize:14}}>{ex.name}</div>
+                        {ex.isFavorite&&<span style={{padding:"2px 7px",borderRadius:5,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.35)",fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",letterSpacing:"0.1em"}}>FAV</span>}
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.06em"}}>{ex.sets} × {ex.reps}</div>
                     </div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>{label}</div>
-                  </button>
+                    <button onClick={()=>setSwapModal({exerciseName:ex.name,exerciseIdx:i,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",color:"var(--white-dim)",padding:4,cursor:"pointer",opacity:0.6}}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+                    </button>
+                    <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",color:ex.isFavorite?"var(--red)":"var(--white-faint)",padding:4,cursor:"pointer"}}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill={ex.isFavorite?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                    </button>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--white-faint)",opacity:0.4}}><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
                 ))}
+              </>);
+            })()}
+
+            {/* ── START SESSION ── */}
+            {todayType==="training"&&todayPrescription&&(
+              <div>
+                <button onClick={startFromProgram} style={{width:"100%",padding:16,background:"var(--red)",border:"none",borderRadius:14,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  Start Session
+                </button>
+                {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1px solid ${T.prot}40`,borderRadius:12,color:T.prot,fontFamily:"var(--condensed)",fontWeight:700,fontSize:13,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Resume Session</button>}
+              </div>
+            )}
+
+            {/* ── 12-WEEK PLAN ── */}
+            <div>
+              <div className="section-title" style={{margin:"4px 0 10px"}}>12-Week Plan</div>
+              <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4}}>
+                {Array.from({length:12}).map((_,i)=>{
+                  const isCurrent=i===weekNum-1;
+                  const isPast=i<weekNum-1;
+                  return(
+                    <div key={i} style={{flexShrink:0,minWidth:32,padding:"6px 0",textAlign:"center",borderRadius:6,background:isCurrent?"var(--red)":isPast?"rgba(34,197,94,0.15)":"rgba(245,245,240,0.04)",border:"1px solid "+(isCurrent?"transparent":isPast?"rgba(34,197,94,0.3)":"var(--white-border)"),fontFamily:"var(--mono)",fontSize:10,color:isCurrent?"white":isPast?"var(--green)":"var(--white-dim)",letterSpacing:"0.06em"}}>W{i+1}</div>
+                  );
+                })}
               </div>
             </div>
 
