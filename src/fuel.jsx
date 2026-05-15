@@ -1669,10 +1669,10 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             ):(
               <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px",border:macros.isFlexDay?"1px solid rgba(245,158,11,0.35)":undefined,background:macros.isFlexDay?"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05) 40%,var(--navy-mid) 100%)":undefined}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
                   <div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// {macros.isFlexDay?"Flex Day":(dayNutrition?.label||todayType+" day")}</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:28,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>Fuel</div>
+                    <div className="header-eyebrow">// Today's Targets</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:28,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>{macros.isFlexDay?"Flex Day":(dayNutrition?.label||todayType+" Day")}</div>
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
                     {earnedCals>0&&<div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"6px 14px",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.08em"}}>+{earnedCals} earned</div>}
@@ -1975,6 +1975,9 @@ Reply with ONLY a valid JSON object, no markdown:
             )}
 
             {/* QUICK ACTIONS */}
+            <div style={{marginBottom:2}}>
+              <div className="header-eyebrow">// Quick Log</div>
+            </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
               {[["+ Food",()=>setShowQuickLog(true),T.prot],["Restaurants",()=>setFuelScreen("recs"),T.prot],["Recipes",()=>setFuelScreen("recipes"),T.fat],["Fasting",()=>setFuelScreen("fast"),T.fat]].map(([l,fn,c])=>(
                 <button key={l} onClick={fn} style={{padding:"14px 6px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"var(--mono)",textAlign:"center",transition:"all .15s"}}>
@@ -2009,6 +2012,8 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* WATER TRACKER */}
             {waterTarget>0&&(
+              <>
+              <div className="header-eyebrow">// Hydration</div>
               <WaterTracker
                 waterLogs={waterLogs||[]}
                 waterTarget={waterTarget}
@@ -2017,12 +2022,16 @@ Reply with ONLY a valid JSON object, no markdown:
                 bottleSize={profile?.water_bottle_size||16}
                 isMobile={isMobile}
               />
+              </>
             )}
 
             {/* FOOD LOG — grouped by meal slots */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)"}}>Today&apos;s Log</div>
+                <div>
+                  <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
+                </div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
                   <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>

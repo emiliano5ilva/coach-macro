@@ -2022,14 +2022,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* TODAY HERO CARD */}
             <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-                <div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// {new Date().toLocaleDateString("en-US",{weekday:"long"})}</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:32,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>Train</div>
+              <div className="header-eyebrow">// Today's Session</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:32,fontWeight:900,lineHeight:1,textTransform:"uppercase"}}>{todayFocus}</div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}}>
+                  <div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"5px 12px",fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{cfg.label} Day</div>
+                  {Array.isArray(todayPrescription)&&todayPrescription.length>0&&(
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",letterSpacing:"0.08em"}}>{todayPrescription.length} exercises</div>
+                  )}
                 </div>
-                <div style={{background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"6px 16px",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{todayFocus}</div>
               </div>
-              <div style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.6}}>{FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
+              <div style={{fontSize:12,color:T.mu,marginBottom:16,lineHeight:1.55}}>{FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns"}</div>
               {/* Pregnancy permanent safety banner */}
               {profile?.lifeStage==="pregnant"&&(
                 <>
@@ -2258,7 +2261,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* MUSCLE RECOVERY MAP */}
             <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",marginBottom:4}}>Muscle Recovery Map</div>
+              <div className="header-eyebrow">// Muscle Recovery</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,letterSpacing:"0.02em",textTransform:"uppercase",marginBottom:4}}>Recovery Map</div>
               <div style={{fontSize:11,color:T.mu,marginBottom:16}}>Tap any muscle to see weekly volume status</div>
               <MuscleMap dayFocus={dayFocus} isMobile={isMobile}/>
             </div>
