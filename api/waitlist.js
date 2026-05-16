@@ -7,10 +7,17 @@ import { checkRateLimit } from './middleware/rateLimit.js';
 import { withLogging } from './middleware/logger.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.FROM_EMAIL || 'team@coach-macro.com';
+const FROM = process.env.FROM_EMAIL || 'team@send.coach-macro.com';
+const REPLY_TO = process.env.REPLY_TO_EMAIL || 'team@coach-macro.com';
 
 async function sendEmail(to, subject, html) {
-  const { error } = await resend.emails.send({ from: `Coach Macro <${FROM}>`, to, subject, html });
+  const { error } = await resend.emails.send({
+    from: `Coach Macro <${FROM}>`,
+    reply_to: REPLY_TO,
+    to,
+    subject,
+    html,
+  });
   if (error) { console.error('[resend]', error); return false; }
   return true;
 }
