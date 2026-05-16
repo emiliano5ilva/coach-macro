@@ -972,8 +972,11 @@ function WaitlistSection() {
       <div className="lp-waitlist-inner">
         {submitted ? (
           <div style={{padding:'48px 32px',background:'rgba(255,255,255,0.02)',border:'1px solid var(--red-border-strong)',borderRadius:14,boxShadow:'0 0 60px rgba(232,52,28,0.2)'}}>
-            <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:48,color:'var(--white)',textTransform:'uppercase',lineHeight:0.95,marginBottom:12}}>You're in.</div>
-            <div style={{color:'var(--white-dim)',fontSize:15,lineHeight:1.6}}>Check your inbox{firstName?`, ${firstName}`:''}{'. '}Confirmation is on the way. We'll let you know the moment Coach Macro launches.</div>
+            <div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'0.16em',color:'var(--red)',textTransform:'uppercase',marginBottom:16}}>// CONFIRMED</div>
+            <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:'clamp(48px,6vw,72px)',color:'var(--white)',textTransform:'uppercase',lineHeight:0.95,marginBottom:16}}>
+              You're on the list{firstName?`, ${firstName}`:''}<span style={{color:'var(--red)'}}>.</span>
+            </div>
+            <div style={{color:'var(--white-dim)',fontSize:15,lineHeight:1.65}}>Check your inbox — a confirmation link is on its way. We'll reach out the moment Coach Macro launches.</div>
           </div>
         ) : (
           <>

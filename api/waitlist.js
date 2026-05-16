@@ -1,18 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
+import React from 'react';
+import { Resend } from 'resend';
+import { render } from '@react-email/render';
+import { WaitlistConfirmation } from '../emails/WaitlistConfirmation.jsx';
 import { checkRateLimit } from './middleware/rateLimit.js';
 import { withLogging } from './middleware/logger.js';
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = process.env.FROM_EMAIL || 'team@coach-macro.com';
+
 async function sendEmail(to, subject, html) {
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: 'Coach Macro <team@coach-macro.com>', to, subject, html }),
-  });
-  return r.ok;
+  const { error } = await resend.emails.send({ from: `Coach Macro <${FROM}>`, to, subject, html });
+  if (error) { console.error('[resend]', error); return false; }
+  return true;
 }
 
 function emailWrapper(content) {
@@ -91,35 +92,6 @@ function confirmationEmailHtml(firstName, confirmUrl) {
   `);
 }
 
-function thankYouEmailHtml(firstName) {
-  return emailWrapper(`
-    <h1 style="margin:0 0 16px;font-size:30px;font-weight:700;color:#F5F5F0;line-height:1.1;letter-spacing:-0.01em;">
-      You're in${firstName ? `, ${firstName}` : ''}.
-    </h1>
-    <p style="margin:0 0 20px;font-size:15px;font-weight:300;color:rgba(245,245,240,0.7);line-height:1.75;">
-      Your spot is secured. When Coach Macro launches, you'll be among the first to access it — with <strong style="color:#F5F5F0;font-weight:500;">30 days completely free</strong>.
-    </p>
-    <p style="margin:0 0 16px;font-size:15px;font-weight:300;color:rgba(245,245,240,0.7);line-height:1.75;">Here's what you've locked in:</p>
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
-      ${[
-        'Adaptive daily macros that update every time you train',
-        'Unified food + lifting tracker — one system, finally',
-        'AI restaurant scanner for eating out without guessing',
-        'Real-time TDEE that adjusts on rest vs. training days',
-        '30 days free at launch',
-      ].map(item => `
-      <tr>
-        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-          <span style="display:inline-block;width:16px;color:#2979FF;font-weight:700;font-size:14px;">&rarr;</span>
-          <span style="font-size:14px;font-weight:300;color:rgba(245,245,240,0.75);line-height:1.6;">${item}</span>
-        </td>
-      </tr>`).join('')}
-    </table>
-    <p style="margin:0;font-size:15px;font-weight:300;color:rgba(245,245,240,0.7);line-height:1.75;">
-      We'll reach out the moment the doors open. See you at launch.
-    </p>
-  `);
-}
 
 export default withLogging(async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -230,11 +202,8 @@ export default withLogging(async function handler(req, res) {
           .from('waitlist')
           .update({ confirmed: true, confirmed_at: new Date().toISOString() })
           .eq('confirm_token', token);
-        const emailOk = await sendEmail(
-          data.email,
-          "You're in. Your spot is secured.",
-          thankYouEmailHtml(data.first_name)
-        );
+        const html = render(React.createElement(WaitlistConfirmation, { firstName: data.first_name || '' }));
+        const emailOk = await sendEmail(data.email, "You're in.", html);
         if (!emailOk) console.error('[waitlist] thank-you email failed for:', data.email);
       }
 
