@@ -1542,8 +1542,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
-  const TRAIN_TABS=[{id:"today",l:"Today"},{id:"builder",l:"Lift Smarter"},{id:"active",l:"Active Session"},{id:"plan",l:"My Program"},{id:"library",l:"Library"},{id:"routine-builder",l:"My Routines"},{id:"warmup-protocols",l:"Protocols"},{id:"progress",l:"Progress"}];
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
 
@@ -1975,26 +1974,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {/* ── PAGE HEADER ── */}
       {trainScreen!=="routine-builder"&&(
         <div className="screen-header" style={{paddingTop:12}}>
-          <div style={{flex:1,minWidth:0}}>
-            <div className="header-eyebrow">// {todayFocus||cfg.label} · Week {weekNum}</div>
-            <div className="header-title">Today's Session</div>
-          </div>
-          <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-            <button className="icon-btn" onClick={()=>setTrainScreen("library")}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            </button>
-            <button className="icon-btn" onClick={()=>setTrainScreen("plan")}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            </button>
+          <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:10}}>
+            {trainScreen!=="today"&&trainScreen!=="active"&&(
+              <button onClick={()=>setTrainScreen("today")} style={{background:"none",border:"none",color:"var(--white-dim)",padding:"4px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:4,fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                Back
+              </button>
+            )}
+            <div>
+              <div className="header-eyebrow">// {todayFocus||cfg.label} · Week {weekNum}</div>
+              <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="routine-builder"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
+            </div>
           </div>
         </div>
       )}
-
-      {trainScreen!=="routine-builder"&&<div style={{display:"flex",gap:4,padding:isMobile?"4px 18px 0":"0 0 20px",overflowX:"auto"}}>
-        {TRAIN_TABS.map(tab=>(
-          <button key={tab.id} onClick={()=>setTrainScreen(tab.id)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",fontFamily:"var(--mono)",background:trainScreen===tab.id?T.prot:"none",color:trainScreen===tab.id?"#fff":T.mu,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0}}>{tab.l}</button>
-        ))}
-      </div>}
 
       <div style={{padding:trainScreen==="routine-builder"?0:isMobile?"12px 18px":"0"}}>
 
@@ -2302,6 +2295,27 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               );
             })()}
 
+            {/* ── QUICK ACCESS ── */}
+            <div>
+              <div className="header-eyebrow" style={{margin:"4px 0 10px"}}>// Quick Access</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {[
+                  {label:"My Program",sub:"Switch or view plan",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,screen:"plan"},
+                  {label:"Library",sub:"Browse all exercises",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,screen:"library"},
+                  {label:"My Routines",sub:"Custom workouts",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,screen:"routine-builder"},
+                  {label:"Protocols",sub:"Warm-up routines",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>,screen:"warmup-protocols"},
+                ].map(({label,sub,icon,screen})=>(
+                  <button key={screen} onClick={()=>setTrainScreen(screen)} style={{display:"flex",flexDirection:"column",gap:8,padding:"14px 16px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",textAlign:"left",transition:"border-color 0.15s"}}>
+                    <div style={{color:"var(--red)"}}>{icon}</div>
+                    <div>
+                      <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,color:"var(--white)",letterSpacing:"0.02em",textTransform:"uppercase"}}>{label}</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* ── MUSCLE RECOVERY ── */}
             {(()=>{
               // Map focus names → muscle groups they stress
@@ -2480,8 +2494,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── ACTIVE WORKOUT ── */}
-        {trainScreen==="active"&&(
-          <div style={{maxWidth:isMobile?"100%":680}}>
+        {trainScreen==="active"&&activeSessionOpen&&(
+          <div style={{position:"fixed",inset:0,zIndex:200,background:"var(--navy)",overflowY:"auto",paddingBottom:100,paddingTop:"max(env(safe-area-inset-top),0px)"}}>
+            <div style={{maxWidth:680,margin:"0 auto",padding:isMobile?"12px 18px 0":"20px 0 0"}}>
             {/* Set completion flash overlay */}
             <SetFlashOverlay flash={setFlash}/>
 
@@ -2735,6 +2750,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <button onClick={finishWorkout} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginTop:8}}>✓ Finish Workout</button>
               </div>
             }
+          </div>
           </div>
         )}
 
@@ -3718,9 +3734,10 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
   return (
     <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?80:0}}>
-      <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>SETTINGS</div>
-      <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Your profile, program, and account</p>
-      <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:14}}>
+      <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>ME</div>
+      <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Your athlete profile &amp; account</p>
+      <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
+      <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:14,marginTop:16}}>
         <div style={{width:46,height:46,borderRadius:23,background:`${T.prot}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:T.prot,fontFamily:"var(--condensed)",flexShrink:0}}>{(profile?.name||"A")[0].toUpperCase()}</div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:0}}>
