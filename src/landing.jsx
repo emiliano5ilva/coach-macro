@@ -976,7 +976,7 @@ function WaitlistSection() {
             <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:'clamp(48px,6vw,72px)',color:'var(--white)',textTransform:'uppercase',lineHeight:0.95,marginBottom:16}}>
               You're on the list{firstName?`, ${firstName}`:''}<span style={{color:'var(--red)'}}>.</span>
             </div>
-            <div style={{color:'var(--white-dim)',fontSize:15,lineHeight:1.65}}>Check your inbox — a confirmation link is on its way. We'll reach out the moment Coach Macro launches.</div>
+            <div style={{color:'var(--white-dim)',fontSize:15,lineHeight:1.65}}>You're on the list. Check your inbox — the email is on its way. We'll reach out the moment Coach Macro launches.</div>
           </div>
         ) : (
           <>
@@ -991,7 +991,7 @@ function WaitlistSection() {
               </button>
             </form>
             {error && <div className="lp-wl-err">{error}</div>}
-            <div className="lp-wl-fine">Confirmation email sent instantly. No spam. Ever.</div>
+            <div className="lp-wl-fine">Email sent instantly. No spam. Ever.</div>
           </>
         )}
       </div>

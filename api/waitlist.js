@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { randomUUID } from 'crypto';
 import React from 'react';
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
@@ -16,98 +15,20 @@ async function sendEmail(to, subject, html) {
   return true;
 }
 
-function emailWrapper(content) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Coach Macro</title>
-</head>
-<body style="margin:0;padding:0;background:#060D1A;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#060D1A;padding:48px 20px;">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#0A1222;border:1px solid rgba(255,255,255,0.07);">
-        <!-- HEADER -->
-        <tr>
-          <td style="padding:32px 40px 24px;border-bottom:1px solid rgba(255,255,255,0.06);">
-            <svg width="36" height="26" viewBox="0 0 36 26" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin-bottom:12px;">
-              <rect y="0" width="36" height="5" rx="2.5" fill="#2979FF"/>
-              <rect y="10.5" width="27" height="5" rx="2.5" fill="#2979FF"/>
-              <rect y="21" width="18" height="5" rx="2.5" fill="#2979FF"/>
-            </svg>
-            <span style="font-size:17px;font-weight:700;color:#F5F5F0;letter-spacing:0.06em;text-transform:uppercase;">COACH<span style="color:#2979FF;">MACRO</span></span>
-          </td>
-        </tr>
-        <!-- BODY -->
-        <tr>
-          <td style="padding:40px 40px 32px;">
-            ${content}
-          </td>
-        </tr>
-        <!-- FOOTER -->
-        <tr>
-          <td style="padding:20px 40px 28px;border-top:1px solid rgba(255,255,255,0.06);">
-            <p style="margin:0;font-size:11px;color:rgba(245,245,240,0.25);line-height:1.7;letter-spacing:0.03em;">
-              Coach Macro · team@coach-macro.com<br>
-              You're receiving this because you signed up at coach-macro.com.
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-function confirmationEmailHtml(firstName, confirmUrl) {
-  return emailWrapper(`
-    <h1 style="margin:0 0 16px;font-size:30px;font-weight:700;color:#F5F5F0;line-height:1.1;letter-spacing:-0.01em;">
-      Hey ${firstName ? firstName : 'there'} — confirm your spot.
-    </h1>
-    <p style="margin:0 0 20px;font-size:15px;font-weight:300;color:rgba(245,245,240,0.7);line-height:1.75;">
-      You're one click away from securing your place on the Coach Macro waitlist. When we launch, you'll get <strong style="color:#F5F5F0;font-weight:500;">30 days completely free</strong> — no credit card, no catch.
-    </p>
-    <p style="margin:0 0 28px;font-size:15px;font-weight:300;color:rgba(245,245,240,0.7);line-height:1.75;">
-      Click the button below to confirm your email and lock in your spot:
-    </p>
-    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
-      <tr>
-        <td style="background:#2979FF;">
-          <a href="${confirmUrl}" style="display:inline-block;padding:15px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.04em;">
-            Confirm My Spot &rarr;
-          </a>
-        </td>
-      </tr>
-    </table>
-    <p style="margin:0;font-size:12px;color:rgba(245,245,240,0.3);line-height:1.6;">
-      Or copy this link into your browser:<br>
-      <span style="color:rgba(41,121,255,0.7);word-break:break-all;">${confirmUrl}</span>
-    </p>
-    <hr style="margin:24px 0;border:none;border-top:1px solid rgba(255,255,255,0.06);">
-    <p style="margin:0;font-size:12px;color:rgba(245,245,240,0.3);line-height:1.6;">
-      Didn't sign up? You can safely ignore this email.
-    </p>
-  `);
-}
-
-
 export default withLogging(async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.method === 'POST') {
-    const rateCheck = await checkRateLimit(req, '/api/waitlist');
-    if (!rateCheck.allowed) {
-      return res.status(429).json({
-        error: 'Too many requests',
-        message: 'Too many sign-up attempts. Please wait before trying again.',
-        resetIn: Math.ceil(rateCheck.resetIn || 3600),
-      });
-    }
+  const rateCheck = await checkRateLimit(req, '/api/waitlist');
+  if (!rateCheck.allowed) {
+    return res.status(429).json({
+      error: 'Too many requests',
+      message: 'Too many sign-up attempts. Please wait before trying again.',
+      resetIn: Math.ceil(rateCheck.resetIn || 3600),
+    });
   }
 
   const supabase = createClient(
@@ -116,102 +37,48 @@ export default withLogging(async function handler(req, res) {
   );
 
   try {
-    const { action, email, firstName, token } = req.method === 'GET'
-      ? req.query
-      : req.body;
+    const { email, firstName } = req.body;
 
-    // ── JOIN WAITLIST ──────────────────────────────────────────────────────────
-    if (req.method === 'POST' || action === 'join') {
-      if (!email || !email.includes('@')) {
-        return res.status(400).json({ error: 'Valid email required' });
-      }
-
-      const normalizedEmail = email.toLowerCase().trim();
-      const newToken = randomUUID();
-
-      const { data: existing, error: existingError } = await supabase
-        .from('waitlist')
-        .select('id, confirmed')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
-
-      if (existingError) console.error('[waitlist] lookup error:', existingError.message);
-
-      if (existing?.confirmed) {
-        return res.status(200).json({ success: true });
-      }
-
-      if (existing) {
-        const { error: updateError } = await supabase
-          .from('waitlist')
-          .update({ first_name: firstName?.trim() || null, confirm_token: newToken })
-          .eq('email', normalizedEmail);
-        if (updateError) console.error('[waitlist] update error:', updateError.message);
-      } else {
-        const { error: insertError } = await supabase
-          .from('waitlist')
-          .insert({
-            email: normalizedEmail,
-            first_name: firstName?.trim() || null,
-            confirm_token: newToken,
-            confirmed: false,
-            created_at: new Date().toISOString(),
-          });
-        if (insertError) {
-          console.error('[waitlist] insert error:', insertError.message);
-          return res.status(500).json({ error: 'Could not save your email. Try again.' });
-        }
-      }
-
-      const proto = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers['x-forwarded-host'] || req.headers.host;
-      const confirmUrl = `${proto}://${host}/api/waitlist?token=${newToken}`;
-
-      const emailOk = await sendEmail(
-        normalizedEmail,
-        'Confirm your spot on the Coach Macro waitlist',
-        confirmationEmailHtml(firstName?.trim(), confirmUrl)
-      );
-      if (!emailOk) console.error('[waitlist] confirmation email failed for:', normalizedEmail);
-
-      return res.status(200).json({ success: true });
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email required' });
     }
 
-    // ── CONFIRM EMAIL (GET ?token=XXX) ─────────────────────────────────────────
-    if (req.method === 'GET') {
-      if (!token) {
-        res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
-        return res.status(302).end();
-      }
+    const normalizedEmail = email.toLowerCase().trim();
+    const name = firstName?.trim() || null;
 
-      const { data, error: lookupError } = await supabase
-        .from('waitlist')
-        .select('*')
-        .eq('confirm_token', token)
-        .maybeSingle();
+    // Already on the list — return success silently, no re-send
+    const { data: existing, error: lookupError } = await supabase
+      .from('waitlist')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
 
-      if (lookupError) console.error('[waitlist] confirm lookup error:', lookupError.message);
+    if (lookupError) console.error('[waitlist] lookup error:', lookupError.message);
+    if (existing) return res.status(200).json({ success: true });
 
-      if (!data) {
-        res.setHeader('Location', 'https://coach-macro.com?waitlist=invalid');
-        return res.status(302).end();
-      }
+    // Insert confirmed immediately
+    const now = new Date().toISOString();
+    const { error: insertError } = await supabase
+      .from('waitlist')
+      .insert({
+        email: normalizedEmail,
+        first_name: name,
+        confirmed: true,
+        confirmed_at: now,
+        created_at: now,
+      });
 
-      if (!data.confirmed) {
-        await supabase
-          .from('waitlist')
-          .update({ confirmed: true, confirmed_at: new Date().toISOString() })
-          .eq('confirm_token', token);
-        const html = render(React.createElement(WaitlistConfirmation, { firstName: data.first_name || '' }));
-        const emailOk = await sendEmail(data.email, "You're in.", html);
-        if (!emailOk) console.error('[waitlist] thank-you email failed for:', data.email);
-      }
-
-      res.setHeader('Location', 'https://coach-macro.com?waitlist=confirmed');
-      return res.status(302).end();
+    if (insertError) {
+      console.error('[waitlist] insert error:', insertError.message);
+      return res.status(500).json({ error: 'Could not save your email. Try again.' });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    // Send "You're in." immediately
+    const html = await render(React.createElement(WaitlistConfirmation, { firstName: name || '' }));
+    const emailOk = await sendEmail(normalizedEmail, "You're in.", html);
+    if (!emailOk) console.error('[waitlist] email failed for:', normalizedEmail);
+
+    return res.status(200).json({ success: true });
 
   } catch (err) {
     console.error('[waitlist] unhandled error:', err.message);
