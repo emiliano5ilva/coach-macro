@@ -3726,6 +3726,26 @@ Rules:
           <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
           <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
           <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+          {/* ── YOUR ANALYTICS STRIP ── */}
+          <div style={{margin:"0 0 4px"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",padding:"0 20px",marginBottom:10,fontWeight:500}}>// YOUR ANALYTICS</div>
+            <div style={{display:"flex",gap:12,overflowX:"auto",padding:"0 16px 4px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",msOverflowStyle:"none"}}>
+              {[
+                {tag:"Identity",   title:"Training DNA",       sub:"Your athlete profile breakdown"},
+                {tag:"Score",      title:"Coach Macro Score",   sub:"Daily performance index"},
+                {tag:"Predict",    title:"Race Predictor",      sub:"Projected race times from data"},
+                {tag:"Calendar",   title:"Performance Calendar",sub:"Monthly training heatmap"},
+              ].map(({tag,title,sub})=>(
+                <div key={title} style={{flexShrink:0,width:160,height:100,background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,padding:14,textAlign:"left",display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:500}}>{tag}</div>
+                  <div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",lineHeight:1.1,textTransform:"uppercase"}}>{title}</div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.4,marginTop:4}}>{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
         </>}
 
