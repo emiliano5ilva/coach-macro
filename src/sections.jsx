@@ -2304,17 +2304,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div className="header-eyebrow" style={{margin:"4px 0 10px"}}>// Quick Access</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 {[
-                  {label:"My Program",sub:"Switch or view plan",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,screen:"plan"},
-                  {label:"Library",sub:"Browse all exercises",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,screen:"library"},
-                  {label:"My Routines",sub:"Custom workouts",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,screen:"routine-builder"},
-                  {label:"Protocols",sub:"Warm-up routines",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>,screen:"warmup-protocols"},
-                ].map(({label,sub,icon,screen})=>(
-                  <button key={screen} onClick={()=>setTrainScreen(screen)} style={{display:"flex",flexDirection:"column",gap:8,padding:"14px 16px",background:T.s1,border:`1px solid ${T.bd}`,borderRadius:14,cursor:"pointer",textAlign:"left",transition:"border-color 0.15s"}}>
-                    <div style={{color:"var(--red)"}}>{icon}</div>
-                    <div>
-                      <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,color:"var(--white)",letterSpacing:"0.02em",textTransform:"uppercase"}}>{label}</div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
-                    </div>
+                  {eyebrow:"// YOUR PLAN",    label:"My Program",      sub:"Current training block",          screen:"plan"},
+                  {eyebrow:"// FULL DATABASE", label:"Exercise Library", sub:"79+ exercises with GIFs",          screen:"library"},
+                  {eyebrow:"// CUSTOM BUILDS", label:"My Routines",      sub:"Workouts you've built",            screen:"routine-builder"},
+                  {eyebrow:"// PREP RIGHT",    label:"Warm-Up",          sub:"Movement prep by muscle group",    screen:"warmup-protocols"},
+                ].map(({eyebrow,label,sub,screen})=>(
+                  <button key={screen} onClick={()=>setTrainScreen(screen)} style={{display:"flex",flexDirection:"column",gap:6,padding:"16px",background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,cursor:"pointer",textAlign:"left"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:500}}>{eyebrow}</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1.1,letterSpacing:"0.01em"}}>{label}</div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.4,marginTop:2}}>{sub}</div>
                   </button>
                 ))}
               </div>
