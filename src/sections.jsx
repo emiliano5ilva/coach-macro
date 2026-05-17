@@ -3145,13 +3145,74 @@ export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
   );
 }
 
+// ─── DNA RADAR CANVAS ────────────────────────────────────────────────────────
+function drawDNARadar(canvas,scores){
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth||280;
+  const H=290;
+  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#000000';ctx.fillRect(0,0,W,H);
+  const cx=W/2,cy=H/2;
+  const R=Math.min(W*0.30,H*0.30,100);
+  const AXES=['strength','endurance','power','consistency','nutrition','recovery'];
+  const LABELS=['STRENGTH','ENDURANCE','POWER','CONSISTENCY','NUTRITION','RECOVERY'];
+  const N=6;
+  const angle=i=>(i/N)*2*Math.PI-Math.PI/2;
+  const pt=(i,r)=>({x:cx+r*Math.cos(angle(i)),y:cy+r*Math.sin(angle(i))});
+  function hc(v){if(v>=80)return[232,52,28];if(v>=65)return[255,100,20];if(v>=50)return[254,160,32];if(v>=35)return[20,196,179];return[29,155,240];}
+  // Inner rings
+  [0.25,0.5,0.75].forEach(f=>{
+    ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R*f);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
+    ctx.closePath();ctx.strokeStyle='rgba(232,52,28,0.09)';ctx.lineWidth=0.5;ctx.stroke();
+  });
+  // Outer boundary
+  ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
+  ctx.closePath();ctx.strokeStyle='rgba(245,245,240,0.55)';ctx.lineWidth=1.2;ctx.stroke();
+  // Axis spokes
+  for(let i=0;i<N;i++){const p=pt(i,R);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(245,245,240,0.07)';ctx.lineWidth=0.5;ctx.stroke();}
+  // Heatmap sectors
+  for(let i=0;i<N;i++){
+    const a0=angle(i),a1=angle((i+1)%N);
+    const[r,g,b]=hc(scores[AXES[i]]||0);
+    const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+    grad.addColorStop(0,`rgba(${r},${g},${b},0)`);grad.addColorStop(0.45,`rgba(${r},${g},${b},0.07)`);grad.addColorStop(1,`rgba(${r},${g},${b},0.20)`);
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    for(let s=0;s<=8;s++){const a=a0+(a1-a0)*s/8;ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));}
+    ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  }
+  // Data polygon
+  const vals=AXES.map(k=>scores[k]||0);
+  ctx.beginPath();vals.forEach((v,i)=>{const p=pt(i,R*v/100);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});
+  ctx.closePath();ctx.strokeStyle='rgba(232,52,28,0.45)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='rgba(232,52,28,0.06)';ctx.fill();
+  // Data points
+  const maxV=Math.max(...vals);
+  vals.forEach((v,i)=>{
+    const p=pt(i,R*v/100);const[r,g,b]=hc(v);const isDom=v===maxV;
+    if(isDom){ctx.beginPath();ctx.arc(p.x,p.y,13,0,Math.PI*2);ctx.fillStyle='rgba(254,160,32,0.22)';ctx.fill();}
+    ctx.beginPath();ctx.arc(p.x,p.y,isDom?6:4,0,Math.PI*2);ctx.fillStyle=isDom?'#FEA020':`rgb(${r},${g},${b})`;ctx.fill();
+  });
+  // Labels
+  ctx.textBaseline='middle';
+  vals.forEach((v,i)=>{
+    const a=angle(i);
+    const lx=cx+(R+26)*Math.cos(a);const ly=cy+(R+26)*Math.sin(a);
+    const dx=Math.cos(a);
+    ctx.textAlign=Math.abs(dx)<0.25?'center':dx>0?'left':'right';
+    const[r,g,b]=hc(v);
+    ctx.font=`500 9px 'DM Mono',monospace`;ctx.fillStyle='rgba(245,245,240,0.38)';ctx.fillText(LABELS[i],lx,ly);
+    ctx.font=`bold 11px 'DM Mono',monospace`;ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillText(v,lx,ly+14);
+  });
+}
+
 // ─── TRAINING DNA ────────────────────────────────────────────────────────────
 export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
-  const [sessions,setSessions]=useState([]);
-  const [foodLogs,setFoodLogs]=useState([]);
-  const [loaded,setLoaded]=useState(false);
-  const dnaRef=useRef(null);
-  const [sharing,setSharing]=useState(false);
+  const [dnaData,setDnaData]=useState(null);
+  const radarRef=useRef(null);
 
   const startD=profile?.startDate?new Date(profile.startDate):new Date();
   const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
@@ -3161,14 +3222,38 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
     const cutStr=cutoff.toISOString().split("T")[0];
     Promise.all([
-      sb.from("workout_logs").select("*").eq("user_id",user.id).gte("date",cutStr).order("date",{ascending:false}),
-      sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutStr).order("date",{ascending:false}),
+      sb.from("workout_logs").select("*").eq("user_id",user.id).gte("date",cutStr),
+      sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutStr),
     ]).then(([{data:wl},{data:fl}])=>{
-      setSessions(wl||[]);setFoodLogs(fl||[]);setLoaded(true);
+      const sessions=wl||[];const foodLogs=fl||[];
+      const total=sessions.length;
+      const ss=sessions.filter(w=>!w.workout?.focus?.toLowerCase().includes("run")&&w.workout?.type!=="running").length;
+      const cs=total-ss;
+      const strength=Math.min(100,Math.round((ss/Math.max(1,total))*100*1.4));
+      const endurance=Math.min(100,Math.round((cs/Math.max(1,total))*100*2));
+      const vps=sessions.reduce((sum,w)=>{let v=0;(w.workout?.exercises||[]).forEach(ex=>(ex.sets||[]).forEach(s=>{const wt=parseFloat(s.weight||0),r=parseInt(s.reps||0);if(wt>0&&r>0)v+=wt*r;}));return sum+v;},0)/Math.max(1,total);
+      const power=Math.min(100,Math.round((vps/3000)*100));
+      const schDays=Object.values(schedule||{}).filter(v=>v==="training").length;
+      const exp=Math.max(1,schDays*4);
+      const consistency=Math.min(100,Math.round((total/exp)*100));
+      const nutrition=Math.min(100,Math.round((foodLogs.filter(f=>f.entries?.length>0).length/30)*100));
+      const recovery=Math.min(100,Math.max(0,Math.round(consistency*0.7+power*0.3)));
+      const scores={strength,endurance,power,consistency,nutrition,recovery};
+      const metrics=[
+        {label:"Strength",score:strength},{label:"Endurance",score:endurance},
+        {label:"Power",score:power},{label:"Consistency",score:consistency},
+        {label:"Nutrition",score:nutrition},{label:"Recovery",score:recovery},
+      ];
+      setDnaData({scores,metrics,total,highest:metrics.reduce((a,b)=>a.score>b.score?a:b),lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)});
     });
   },[user]);
 
-  if(!loaded)return null;
+  useEffect(()=>{
+    if(!dnaData||!radarRef.current)return;
+    drawDNARadar(radarRef.current,dnaData.scores);
+  },[dnaData]);
+
+  if(!dnaData)return null;
   if(daysSince<30){
     return(
       <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
@@ -3182,101 +3267,40 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
     );
   }
 
-  // Score calculations
-  const totalSessions=sessions.length;
-  const strengthSessions=sessions.filter(w=>!w.workout?.focus?.toLowerCase().includes("run")&&w.workout?.type!=="running").length;
-  const cardioSessions=sessions.length-strengthSessions;
-  const strengthBias=Math.min(100,Math.round((strengthSessions/Math.max(1,totalSessions))*100*1.4));
-  const enduranceBase=Math.min(100,Math.round((cardioSessions/Math.max(1,totalSessions))*100*2));
-  const volumePerSession=sessions.reduce((sum,w)=>{
-    let v=0;(w.workout?.exercises||[]).forEach(ex=>(ex.sets||[]).forEach(s=>{const wt=parseFloat(s.weight||0);const r=parseInt(s.reps||0);if(wt>0&&r>0)v+=wt*r;}));
-    return sum+v;
-  },0)/Math.max(1,totalSessions);
-  const powerOutput=Math.min(100,Math.round((volumePerSession/3000)*100));
-  const scheduledDays=Object.values(schedule||{}).filter(v=>v==="training").length;
-  const expectedSessions=scheduledDays*4;
-  const consistency=Math.min(100,Math.round((totalSessions/Math.max(1,expectedSessions))*100));
-  const daysWithFood=foodLogs.filter(f=>f.entries?.length>0).length;
-  const nutritionAdherence=Math.min(100,Math.round((daysWithFood/30)*100));
-  const recoveryEfficiency=Math.min(100,Math.max(0,Math.round(consistency*0.7+powerOutput*0.3)));
-
-  // Athlete type
-  const isIronDiscipline=consistency>85;
-  const isHybrid=strengthBias>60&&enduranceBase>60;
-  const isStrength=strengthBias>70&&enduranceBase<50;
-  const isEndurance=enduranceBase>70&&strengthBias<50;
-  const allLow=strengthBias<50&&enduranceBase<50&&powerOutput<50&&consistency<50;
-  const athleteType=allLow?"ATHLETE IN PROGRESS":isIronDiscipline?"IRON DISCIPLINE ATHLETE":isHybrid?"HYBRID ATHLETE":isStrength?"STRENGTH ATHLETE":isEndurance?"ENDURANCE ATHLETE":"BALANCED ATHLETE";
-
-  const metrics=[
-    {label:"Strength Bias",score:strengthBias},
-    {label:"Endurance Base",score:enduranceBase},
-    {label:"Power Output",score:powerOutput},
-    {label:"Recovery Efficiency",score:recoveryEfficiency},
-    {label:"Consistency",score:consistency},
-    {label:"Nutrition Adherence",score:nutritionAdherence},
-  ];
-  const highest=metrics.reduce((a,b)=>a.score>b.score?a:b);
-  const lowest=metrics.reduce((a,b)=>a.score<b.score?a:b);
+  function heatColor(v){return v>=80?"#e8341c":v>=65?"#ff6414":v>=50?"#FEA020":v>=35?"#14c4b3":"#1D9BF0";}
   const RECS={
-    "Strength Bias":"Add one more strength day per week to compound your gains.",
-    "Endurance Base":"Schedule a weekly long run to build your aerobic engine.",
-    "Power Output":"Prioritize heavy compound lifts — squat, deadlift, press.",
-    "Recovery Efficiency":"Build a deload week every 4th week to reset adaptation.",
+    "Strength":"Add one more strength day per week to compound your gains.",
+    "Endurance":"Schedule a weekly long run to build your aerobic engine.",
+    "Power":"Prioritize heavy compound lifts — squat, deadlift, press.",
     "Consistency":"Focus on showing up — frequency matters more than intensity.",
-    "Nutrition Adherence":"Log food every day this week — even estimates count.",
+    "Nutrition":"Log food every day this week — even estimates count.",
+    "Recovery":"Build a deload week every 4th week to reset adaptation.",
   };
 
-  function barColor(score){return score>=75?T.green:score>=50?T.fat:T.prot;}
-
-  async function shareDNA(){
-    if(!dnaRef.current)return;
-    setSharing(true);
-    try{
-      const html2canvas=(await import("html2canvas")).default;
-      const canvas=await html2canvas(dnaRef.current,{backgroundColor:"#060D1A",scale:2,useCORS:true,logging:false});
-      canvas.toBlob(async blob=>{
-        if(!blob)return;
-        const file=new File([blob],"training-dna.png",{type:"image/png"});
-        if(navigator.share&&navigator.canShare?.({files:[file]})){
-          await navigator.share({files:[file],title:"My Training DNA",text:"My Coach Macro Training DNA"});
-        }else{const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="training-dna.png";a.click();URL.revokeObjectURL(url);}
-      });
-    }catch(e){console.error("[shareDNA]",e);}
-    setSharing(false);
-  }
-
   return(
-    <div>
-      <div ref={dnaRef} style={{background:"#060D1A",border:"1px solid rgba(245,245,240,.1)",borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
-        <div style={{position:"absolute",display:"none"}}></div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-          <div>
-            <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,letterSpacing:.5}}>TRAINING DNA</div>
-            <div style={{fontSize:12,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginTop:2}}>{athleteType}</div>
-          </div>
-          <div style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)",textAlign:"right"}}>LAST 30 DAYS<br/>{totalSessions} sessions</div>
+    <div style={{background:"#000",border:"1px solid rgba(245,245,240,0.08)",borderRadius:20,padding:isMobile?"18px 16px":"24px 24px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+        <div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:500}}>// TRAINING DNA</div>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1}}>{getAthleteTitle(dnaData.scores)}</div>
         </div>
-        {metrics.map(({label,score})=>(
-          <div key={label} style={{marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontSize:12,color:"rgba(245,245,240,.7)"}}>{label}</span>
-              <span style={{fontSize:12,fontWeight:700,color:barColor(score)}}>{score}</span>
-            </div>
-            <div style={{height:6,background:"rgba(245,245,240,.08)",borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${score}%`,background:barColor(score),borderRadius:3,transition:"width 1s ease"}}/>
-            </div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 30 DAYS<br/>{dnaData.total} SESSIONS</div>
+      </div>
+      <canvas ref={radarRef} style={{width:"100%",display:"block",borderRadius:8}}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px 12px",marginTop:16}}>
+        {dnaData.metrics.map(({label,score})=>(
+          <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
+            <div style={{width:7,height:7,borderRadius:2,background:heatColor(score),flexShrink:0}}/>
+            <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}</span>
+            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:heatColor(score),marginLeft:"auto"}}>{score}</span>
           </div>
         ))}
-        <div style={{marginTop:18,borderTop:"1px solid rgba(245,245,240,.08)",paddingTop:14,display:"flex",flexDirection:"column",gap:6}}>
-          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:T.green,fontWeight:700}}>Your strength:</span> {highest.label} ({highest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:T.fat,fontWeight:700}}>Your gap:</span> {lowest.label} ({lowest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,.6)"}}><span style={{color:T.prot,fontWeight:700}}>Recommended:</span> {RECS[lowest.label]}</div>
-        </div>
       </div>
-      <button onClick={shareDNA} disabled={sharing} style={{marginTop:10,width:"100%",padding:"13px",background:T.s3,border:`1px solid ${T.bd}`,color:"#fff",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:1,textTransform:"uppercase",opacity:sharing?.6:1}}>
-        {sharing?"Generating...":"Share DNA"}
-      </button>
+      <div style={{marginTop:16,borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12,display:"flex",flexDirection:"column",gap:5}}>
+        <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strength:</span> {dnaData.highest.label} ({dnaData.highest.score})</div>
+        <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#FEA020",fontWeight:700}}>Gap:</span> {dnaData.lowest.label} ({dnaData.lowest.score})</div>
+        <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#e8341c",fontWeight:700}}>Tip:</span> {RECS[dnaData.lowest.label]}</div>
+      </div>
     </div>
   );
 }
@@ -3482,91 +3506,135 @@ function AthleteWaveChart({waveData}){
   );
 }
 
+// ─── PASSPORT HELPERS ────────────────────────────────────────────────────────
+const PASSPORT_STAT_DEFS=[
+  {id:'athlete_since',label:'Athlete Since',locked:true},
+  {id:'sessions',     label:'Sessions'},
+  {id:'weight_lifted',label:'Volume Lifted'},
+  {id:'top_pr',       label:'Top PR'},
+  {id:'streak',       label:'Best Streak'},
+  {id:'prs_month',    label:'PRs This Month'},
+  {id:'programs',     label:'Programs Done'},
+  {id:'rank',         label:'Rank'},
+];
+
+function getRank(w){
+  if(w>=200)return'ELITE';
+  if(w>=100)return'ADVANCED';
+  if(w>=50) return'ATHLETE';
+  if(w>=20) return'ROOKIE';
+  return'BEGINNER';
+}
+
+function getAthleteTitle(dna){
+  const{strength=0,endurance=0,power=0,consistency=0,nutrition=0,recovery=0}=dna;
+  if(consistency>85)         return'IRON DISCIPLINE ATHLETE';
+  if(strength>70&&endurance>60) return'HYBRID ATHLETE';
+  if(strength>70)            return'STRENGTH ATHLETE';
+  if(endurance>70)           return'ENDURANCE ATHLETE';
+  if(power>70)               return'POWER ATHLETE';
+  if(nutrition>80)           return'MACRO MASTER';
+  if(recovery>80)            return'RECOVERY KING';
+  return'BALANCED ATHLETE';
+}
+
 // ─── ATHLETE PASSPORT ────────────────────────────────────────────────────────
 export function AthletePassport({profile,wPrefs,user,isMobile}){
-  const [stats,setStats]=useState(null);
-  const [waveData,setWaveData]=useState(null);
+  const [rawStats,setRawStats]=useState(null);
+  const [dnaScores,setDnaScores]=useState(null);
   const [sharing,setSharing]=useState(false);
+  const [customizing,setCustomizing]=useState(false);
+  const [selectedStats,setSelectedStats]=useState(['sessions','weight_lifted','streak','top_pr','prs_month']);
   const passportRef=useRef(null);
+
+  const startD=profile?.startDate?new Date(profile.startDate):new Date();
+  const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
+  const memberSince=profile?.startDate?new Date(profile.startDate).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"—";
+  const firstName=(profile?.name||"ATHLETE").split(" ")[0].toUpperCase();
+  const refCount=profile?.referralCount||0;
+  const isPro=!!profile?.is_pro;
+  const refBadge=getReferralBadge(refCount);
+  const athleteTitle=dnaScores&&daysSince>=30?getAthleteTitle(dnaScores):null;
 
   useEffect(()=>{
     if(!user)return;
-    sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:true}).then(({data})=>{
-      if(!data||data.length===0){setStats({workouts:0,volume:0,longestStreak:0,prsThisMonth:0,programs:1});return;}
-      const workouts=data.length;
-      // total volume
-      let volume=0;
-      data.forEach(row=>{
-        (row.workout?.exercises||[]).forEach(ex=>{
-          (ex.sets||[]).forEach(s=>{
-            const w=parseFloat(s.weight||0);const r=parseInt(s.reps||0);
-            if(w>0&&r>0)volume+=w*r;
-          });
-        });
-      });
-      // longest streak
-      const dates=[...new Set(data.map(r=>r.date))].sort();
-      let longest=1,cur=1;
-      for(let i=1;i<dates.length;i++){
-        const diff=(new Date(dates[i])-new Date(dates[i-1]))/86400000;
-        if(diff===1){cur++;longest=Math.max(longest,cur);}
-        else cur=1;
-      }
-      // PRs this month
+    const saved=profile?.passport_stats;
+    if(saved&&Array.isArray(saved)&&saved.length>0)setSelectedStats(saved.filter(s=>s!=='athlete_since'));
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+    const cutStr=cutoff.toISOString().split("T")[0];
+    Promise.all([
+      sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:true}),
+      sb.from("workout_logs").select("*").eq("user_id",user.id).gte("date",cutStr),
+      sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutStr),
+    ]).then(([{data:all},{data:recent},{data:food}])=>{
+      const wl=all||[];
+      let volume=0,topPR=0;
+      wl.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0),r=parseInt(s.reps||0);if(w>0&&r>0)volume+=w*r;if(w>0)topPR=Math.max(topPR,w);});});});
+      const dates=[...new Set(wl.map(r=>r.date))].sort();
+      let longest=wl.length>0?1:0,cur=1;
+      for(let i=1;i<dates.length;i++){const diff=(new Date(dates[i])-new Date(dates[i-1]))/86400000;if(diff===1){cur++;longest=Math.max(longest,cur);}else cur=1;}
       const thisMonth=new Date().toISOString().slice(0,7);
-      const prevData=data.filter(r=>r.date<thisMonth+"-01");
-      const currData=data.filter(r=>r.date.startsWith(thisMonth));
+      const prevD=wl.filter(r=>r.date<thisMonth+"-01");
+      const currD=wl.filter(r=>r.date.startsWith(thisMonth));
       const prevMaxes={};
-      prevData.forEach(row=>{
-        (row.workout?.exercises||[]).forEach(ex=>{
-          const k=ex.name?.toLowerCase();if(!k)return;
-          (ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0)prevMaxes[k]=Math.max(prevMaxes[k]||0,w);});
-        });
-      });
+      prevD.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{const k=ex.name?.toLowerCase();if(!k)return;(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0)prevMaxes[k]=Math.max(prevMaxes[k]||0,w);});});});
       const prsSet=new Set();
-      currData.forEach(row=>{
-        (row.workout?.exercises||[]).forEach(ex=>{
-          const k=ex.name?.toLowerCase();if(!k)return;
-          (ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0&&w>(prevMaxes[k]||0))prsSet.add(k);});
-        });
-      });
-      const startD=profile?.startDate?new Date(profile.startDate):new Date();
-      const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
-      const programs=Math.max(1,Math.floor(daysSince/84)+1);
-      setStats({workouts,volume:Math.round(volume),longestStreak:longest,prsThisMonth:prsSet.size,programs});
-      // Build 8-week wave data
-      const now2=new Date();
-      const waveWeeks=[];
-      for(let i=7;i>=0;i--){
-        const ws=new Date(now2);ws.setDate(now2.getDate()-now2.getDay()-i*7);ws.setHours(0,0,0,0);
-        const we=new Date(ws);we.setDate(ws.getDate()+6);
-        const s0=ws.toISOString().slice(0,10),s1=we.toISOString().slice(0,10);
-        const wl=data.filter(r=>r.date>=s0&&r.date<=s1);
-        let wv=0,ws2=0;
-        wl.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0),r=parseInt(s.reps||0);if(w>0&&r>0)wv+=w*r;if(w>0)ws2=Math.max(ws2,w);});});});
-        waveWeeks.push({sessions:wl.length,volume:wv,strength:ws2});
+      currD.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{const k=ex.name?.toLowerCase();if(!k)return;(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0&&w>(prevMaxes[k]||0))prsSet.add(k);});});});
+      setRawStats({workouts:wl.length,volume:Math.round(volume),topPR:Math.round(topPR),longestStreak:longest,prsThisMonth:prsSet.size,programs:Math.max(1,Math.floor(daysSince/84)+1)});
+      if(daysSince>=30){
+        const rw=recent||[];const rf=food||[];
+        const total=rw.length;
+        const ss=rw.filter(w=>!w.workout?.focus?.toLowerCase().includes("run")&&w.workout?.type!=="running").length;
+        const strength=Math.min(100,Math.round((ss/Math.max(1,total))*100*1.4));
+        const endurance=Math.min(100,Math.round(((total-ss)/Math.max(1,total))*100*2));
+        const vps=rw.reduce((s,w)=>{let v=0;(w.workout?.exercises||[]).forEach(ex=>(ex.sets||[]).forEach(st=>{const wt=parseFloat(st.weight||0),r=parseInt(st.reps||0);if(wt>0&&r>0)v+=wt*r;}));return s+v;},0)/Math.max(1,total);
+        const power=Math.min(100,Math.round((vps/3000)*100));
+        const consistency=Math.min(100,Math.round((total/16)*100));
+        const nutrition=Math.min(100,Math.round((rf.filter(f=>f.entries?.length>0).length/30)*100));
+        const recovery=Math.min(100,Math.max(0,Math.round(consistency*0.7+power*0.3)));
+        setDnaScores({strength,endurance,power,consistency,nutrition,recovery});
       }
-      const mxV=Math.max(...waveWeeks.map(w=>w.volume),1);
-      const mxS=Math.max(...waveWeeks.map(w=>w.strength),1);
-      setWaveData(waveWeeks.map(w=>({
-        strength:Math.min(100,(w.strength/mxS)*100),
-        volume:Math.min(100,(w.volume/mxV)*100),
-        consistency:Math.min(100,(w.sessions/5)*100),
-        recovery:Math.max(0,100-(w.sessions/7)*100),
-      })));
     });
   },[user]);
+
+  function getStatValue(id){
+    if(!rawStats)return'—';
+    switch(id){
+      case'athlete_since':return memberSince.toUpperCase();
+      case'sessions':     return rawStats.workouts.toLocaleString();
+      case'weight_lifted':return rawStats.volume>0?`${rawStats.volume.toLocaleString()} lbs`:'0';
+      case'top_pr':       return rawStats.topPR>0?`${rawStats.topPR} lbs`:'—';
+      case'streak':       return `${rawStats.longestStreak} days`;
+      case'prs_month':    return String(rawStats.prsThisMonth);
+      case'programs':     return String(rawStats.programs);
+      case'rank':         return getRank(rawStats.workouts);
+      default:            return'—';
+    }
+  }
+
+  function getStatLabel(id){return(PASSPORT_STAT_DEFS.find(s=>s.id===id)||{label:id}).label;}
+
+  async function saveStats(ns){
+    setSelectedStats(ns);
+    if(user)await sb.from("profiles").update({passport_stats:ns}).eq("id",user.id);
+  }
+
+  function toggleStat(id){
+    if(id==='athlete_since')return;
+    if(selectedStats.includes(id)){saveStats(selectedStats.filter(s=>s!==id));}
+    else if(selectedStats.length<5){saveStats([...selectedStats,id]);}
+  }
 
   async function sharePassport(){
     if(!passportRef.current)return;
     setSharing(true);
     try{
       const html2canvas=(await import("html2canvas")).default;
-      const canvas=await html2canvas(passportRef.current,{backgroundColor:"#060D1A",scale:2,useCORS:true,logging:false});
+      const canvas=await html2canvas(passportRef.current,{backgroundColor:"#0a0e1a",scale:2,useCORS:true,logging:false});
       canvas.toBlob(async blob=>{
         if(!blob)return;
         const file=new File([blob],"athlete-passport.png",{type:"image/png"});
-        if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        if(navigator.share&&navigator.canShare?.({files:[file]})){
           await navigator.share({files:[file],title:"My Athlete Passport",text:"Check out my Coach Macro stats!"});
         }else{
           const url=URL.createObjectURL(blob);
@@ -3574,56 +3642,70 @@ export function AthletePassport({profile,wPrefs,user,isMobile}){
           URL.revokeObjectURL(url);
         }
       });
-    }catch(e){console.error("[sharePassport] error:",e);}
+    }catch(e){console.error("[sharePassport]",e);}
     setSharing(false);
   }
 
-  const memberSince=profile?.startDate?new Date(profile.startDate).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"—";
-  const athleteType=wPrefs.isHyrox&&wPrefs.isHybrid?"HYBRID ATHLETE":wPrefs.isHyrox?"HYROX ATHLETE":wPrefs.isHybrid?"HYBRID ATHLETE":(wPrefs.splitType||"").toLowerCase().includes("run")?"ENDURANCE ATHLETE":"STRENGTH ATHLETE";
-  const firstName=(profile?.name||"ATHLETE").split(" ")[0].toUpperCase();
-  const refCount=profile?.referralCount||0;
-  const isPro=!!profile?.is_pro;
-  const refBadge=getReferralBadge(refCount);
-  const watermarkText=refBadge||(isPro?"PRO":athleteType.split(" ")[0]);
+  const displayStats=['athlete_since',...selectedStats.filter(s=>s!=='athlete_since')];
 
   return(
     <div>
-      <div ref={passportRef} style={{background:"#060D1A",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:isMobile?"20px 18px":"28px 32px",fontFamily:"var(--condensed)",overflow:"hidden",position:"relative"}}>
-        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${T.prot},${T.fat},${T.carb})`}}/>
-        <div style={{position:"absolute",bottom:44,right:isMobile?-8:-12,fontSize:isMobile?72:90,fontWeight:900,color:"rgba(245,245,240,0.04)",letterSpacing:-2,lineHeight:1,pointerEvents:"none",userSelect:"none",fontFamily:"var(--condensed)",zIndex:0}}>{watermarkText}</div>
-        <div style={{marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative",zIndex:1}}>
-          <div>
-            <div style={{fontSize:isMobile?32:40,fontWeight:900,letterSpacing:1,color:"#fff",lineHeight:1}}>{firstName}</div>
-            <div style={{fontSize:12,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginTop:2}}>{athleteType}</div>
-          </div>
-          {(isPro||refBadge)&&<div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",paddingTop:4}}>
+      <div ref={passportRef} style={{background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.10)",borderRadius:16,padding:isMobile?"20px 18px":"24px 24px",position:"relative",overflow:"hidden",fontFamily:"var(--condensed)"}}>
+        <div style={{position:"absolute",bottom:-16,right:-6,fontSize:110,fontWeight:900,color:"rgba(245,245,240,0.03)",lineHeight:1,pointerEvents:"none",userSelect:"none",fontFamily:"var(--condensed)",fontStyle:"italic",zIndex:0,textTransform:"uppercase"}}>{firstName}</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:500,marginBottom:14,position:"relative",zIndex:1}}>// ATHLETE PASSPORT</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:athleteTitle?6:16,position:"relative",zIndex:1}}>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:isMobile?44:50,lineHeight:0.92,letterSpacing:"-0.02em",textTransform:"uppercase",color:"#f5f5f0"}}>{firstName}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:5,alignItems:"flex-end",paddingTop:4}}>
             {isPro&&<Badge type="PRO"/>}
             {refBadge&&<Badge type={refBadge}/>}
-          </div>}
-        </div>
-        <div style={{height:1,background:"rgba(245,245,240,0.1)",marginBottom:16}}/>
-        {stats?[
-          ["Programs completed",stats.programs],
-          ["Workouts logged",stats.workouts.toLocaleString()],
-          ["Volume lifted",stats.volume>0?stats.volume.toLocaleString()+" lbs":"Logging..."],
-          ["Longest streak",stats.longestStreak+" days"],
-          ["PRs this month",stats.prsThisMonth],
-        ].map(([l,v])=>(
-          <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-            <span style={{fontSize:13,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow',sans-serif"}}>{l}</span>
-            <span style={{fontSize:isMobile?20:24,fontWeight:900,color:"#fff",lineHeight:1}}>{v}</span>
           </div>
-        )):<div style={{fontSize:12,color:T.mu,padding:"12px 0"}}>Loading stats...</div>}
-        <AthleteWaveChart waveData={waveData}/>
-        <div style={{height:1,background:"rgba(245,245,240,0.1)",marginTop:16,marginBottom:14}}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:2,textTransform:"uppercase",fontFamily:"var(--mono)"}}>COACH MACRO ATHLETE</div>
-          <div style={{fontSize:10,color:"rgba(245,245,240,0.35)",letterSpacing:1,fontFamily:"var(--mono)"}}>{memberSince.toUpperCase()}</div>
+        </div>
+        {athleteTitle&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:16,position:"relative",zIndex:1}}>{athleteTitle}</div>}
+        <div style={{height:1,background:"rgba(245,245,240,0.08)",marginBottom:18,position:"relative",zIndex:1}}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px 20px",position:"relative",zIndex:1}}>
+          {displayStats.map(id=>(
+            <div key={id}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:3}}>{getStatLabel(id)}</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:1}}>{rawStats?getStatValue(id):'—'}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:1}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.12em",textTransform:"uppercase"}}>COACH MACRO</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.06em"}}>coach-macro.com</div>
         </div>
       </div>
-      <button onClick={sharePassport} disabled={sharing||!stats} style={{marginTop:10,width:"100%",padding:"13px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:1,textTransform:"uppercase",opacity:sharing||!stats?0.6:1}}>
-        {sharing?"Generating...":"Share Passport"}
-      </button>
+      <div style={{display:"flex",gap:10,marginTop:10}}>
+        <button onClick={sharePassport} disabled={sharing||!rawStats} style={{flex:1,padding:"13px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontWeight:900,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.06em",textTransform:"uppercase",opacity:sharing||!rawStats?0.6:1}}>
+          {sharing?"Generating...":"Share Passport"}
+        </button>
+        <button onClick={()=>setCustomizing(c=>!c)} style={{padding:"13px 14px",background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.10)",color:"rgba(245,245,240,0.65)",borderRadius:12,fontSize:11,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
+          {customizing?"✕ CLOSE":"⚙ CUSTOMIZE"}
+        </button>
+      </div>
+      {customizing&&(
+        <div style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,padding:"16px",marginTop:10}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8,fontWeight:500}}>// CUSTOMIZE PASSPORT STATS</div>
+          <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"'Barlow',sans-serif",marginBottom:14}}>Pick up to 5 stats. Athlete Since is always shown.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {PASSPORT_STAT_DEFS.map(({id,label,locked})=>{
+              const isSel=id==='athlete_since'||selectedStats.includes(id);
+              const isLk=!!locked;
+              const canAdd=!isSel&&selectedStats.length<5;
+              return(
+                <div key={id} onClick={()=>!isLk&&toggleStat(id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",borderRadius:8,background:isSel?"rgba(232,52,28,0.07)":"rgba(245,245,240,0.02)",border:`1px solid ${isSel?"rgba(232,52,28,0.22)":"rgba(245,245,240,0.06)"}`,cursor:isLk?"default":"pointer",opacity:!isSel&&!canAdd?0.35:1,transition:"all 0.15s"}}>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:isSel?"#f5f5f0":"rgba(245,245,240,0.5)"}}>
+                    {label}{isLk&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",marginLeft:7,letterSpacing:"0.10em"}}>LOCKED</span>}
+                  </div>
+                  <div style={{width:16,height:16,borderRadius:4,background:isSel?"#e8341c":"transparent",border:`1.5px solid ${isSel?"#e8341c":"rgba(245,245,240,0.18)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {isSel&&<span style={{color:"#fff",fontSize:9,lineHeight:1,fontWeight:700}}>✓</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
