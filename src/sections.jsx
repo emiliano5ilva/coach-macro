@@ -24,6 +24,7 @@ import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN, GENERAL_WARMUP, MOVEM
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
+import MuscleRecovery from "./components/MuscleRecovery.jsx";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -2341,7 +2342,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* ── MUSCLE RECOVERY ── */}
             {(()=>{
-              // Map focus names → muscle groups they stress
+              // Schedule-based: walk back 14 days to find last trained day per group
               const FOCUS_MAP={
                 Push:["chest","shoulders","arms"],Pull:["back","arms"],Legs:["legs","core"],
                 Upper:["chest","back","shoulders","arms"],Lower:["legs","core"],
@@ -2352,90 +2353,43 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 "Shoulders & Arms":["shoulders","arms"],
                 Chest:["chest"],Back:["back"],Arms:["arms"],Shoulders:["shoulders"],
               };
-              const MUSCLES=[
-                {id:"chest",   label:"Chest"},
-                {id:"back",    label:"Back"},
-                {id:"shoulders",label:"Shoulders"},
-                {id:"arms",    label:"Arms"},
-                {id:"legs",    label:"Legs"},
-                {id:"core",    label:"Core"},
-              ];
-              // Compute days-since-last-trained for each muscle
-              // Walk back 14 days using todayKey + WDAYS cyclically
               const WDAY_ORDER=["mon","tue","wed","thu","fri","sat","sun"];
               const todayIdx=WDAY_ORDER.indexOf(todayKey);
-              const lastTrained={};
-              MUSCLES.forEach(({id})=>{lastTrained[id]=null;});
+              const lastTrained={chest:null,back:null,shoulders:null,arms:null,legs:null,core:null};
               for(let dAgo=0;dAgo<=13;dAgo++){
-                const dIdx=((todayIdx-dAgo)+70)%7;
-                const day=WDAY_ORDER[dIdx];
-                const focus=dayFocus[day];
-                const muscles=focus?(FOCUS_MAP[focus]||[]):[];
+                const day=WDAY_ORDER[((todayIdx-dAgo)+70)%7];
+                const muscles=FOCUS_MAP[dayFocus[day]]||[];
                 muscles.forEach(m=>{if(lastTrained[m]===null)lastTrained[m]=dAgo;});
               }
-              const recPct=(dAgo)=>{
+              // Recovery %: 48-hour model (using existing realistic lookup)
+              const recPct=dAgo=>{
                 if(dAgo===null)return 95;
-                if(dAgo===0)return 5;
-                if(dAgo===1)return 38;
-                if(dAgo===2)return 62;
-                if(dAgo===3)return 82;
-                if(dAgo===4)return 92;
-                return 96;
+                if(dAgo===0)return 5;if(dAgo===1)return 38;if(dAgo===2)return 62;
+                if(dAgo===3)return 82;if(dAgo===4)return 92;return 96;
               };
-              const barColor=(pct)=>{
-                if(pct<31)return"rgba(232,52,28,0.85)";
-                if(pct<71)return"rgba(245,158,11,0.85)";
-                return"rgba(34,197,94,0.85)";
-              };
-              const statusLabel=(pct)=>{
-                if(pct<31)return"Recovering";
-                if(pct<71)return"Building";
-                return"Ready";
-              };
-              // Footer insight
-              const entries=MUSCLES.map(({id,label})=>({id,label,dAgo:lastTrained[id],pct:recPct(lastTrained[id])}));
-              const mostFatigued=entries.reduce((a,b)=>a.pct<b.pct?a:b);
-              const mostReady=entries.reduce((a,b)=>a.pct>b.pct?a:b);
-              const timeAgo=(dAgo)=>dAgo===null?"never trained":dAgo===0?"today":dAgo===1?"yesterday":`${dAgo} days ago`;
-              const [selectedMuscle,setSelectedMuscle]=React.useState(null);
-              return(
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                  <div className="header-eyebrow">// Muscle Recovery</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,letterSpacing:"0.02em",textTransform:"uppercase",marginBottom:14}}>Recovery Status</div>
-                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                    {entries.map(({id,label,dAgo,pct},i)=>{
-                      const c=barColor(pct);
-                      const isSel=selectedMuscle===id;
-                      return(
-                        <div key={id} onClick={()=>setSelectedMuscle(isSel?null:id)} style={{padding:"10px 0",borderBottom:i<entries.length-1?`1px solid rgba(245,245,240,0.05)`:"none",cursor:"pointer",background:isSel?`${T.prot}06`:"transparent",paddingLeft:isSel?6:0,transition:"all .15s",borderRadius:isSel?6:0}}>
-                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                            <span style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:isSel?T.prot:"rgba(245,245,240,0.7)"}}>{label}</span>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontFamily:"var(--condensed)",fontSize:13,fontWeight:700,color:c}}>{statusLabel(pct)}</span>
-                              <span style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,color:c}}>{pct}%</span>
-                              {pct>=71&&<span style={{color:T.green,fontSize:11,lineHeight:1}}>✓</span>}
-                            </div>
-                          </div>
-                          <div style={{height:8,background:"rgba(245,245,240,0.08)",borderRadius:4,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:`${pct}%`,background:c,borderRadius:4,transition:`width 0.6s cubic-bezier(.2,.7,.3,1) ${i*0.05}s`,transformOrigin:"left"}}/>
-                          </div>
-                          {isSel&&(
-                            <div style={{marginTop:8,padding:"8px 10px",background:"rgba(245,245,240,0.04)",borderRadius:8,border:`1px solid rgba(245,245,240,0.08)`}}>
-                              <div style={{fontSize:11,color:T.mu,fontFamily:"var(--mono)"}}>Last trained: <span style={{color:"#fff",fontWeight:600}}>{timeAgo(dAgo)}</span></div>
-                              {pct<71&&<div style={{fontSize:11,color:T.mu,marginTop:4}}>Full recovery est. <span style={{color:T.fat,fontWeight:600}}>{dAgo===null?"unknown":`~${Math.max(0,3-dAgo)} more day${Math.max(0,3-dAgo)===1?"":"s"}`}</span></div>}
-                              {pct>=71&&<div style={{fontSize:11,color:T.green,marginTop:4,fontWeight:600}}>Ready to train — fire it up</div>}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:3}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.1em"}}>Most fatigued: <span style={{color:"rgba(245,245,240,0.55)"}}>{mostFatigued.label}</span> (trained {timeAgo(mostFatigued.dAgo)})</div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.1em"}}>Most ready: <span style={{color:T.green}}>{mostReady.label}</span> (last hit {timeAgo(mostReady.dAgo)})</div>
-                  </div>
-                </div>
+              const recoveryData=Object.fromEntries(
+                Object.keys(lastTrained).map(g=>[g,{percent:recPct(lastTrained[g])}])
               );
+              // Optimization: count sets this week from history
+              const weekStart=new Date();weekStart.setDate(weekStart.getDate()-weekStart.getDay()+1);
+              const weekStartStr=weekStart.toISOString().split("T")[0];
+              const GROUP_MAP={chest:'chest',back:'back',shoulders:'shoulders',biceps:'arms',triceps:'arms',legs:'legs',glutes:'legs',calves:'legs',core:'core'};
+              const OPTIMAL={chest:[10,20],back:[10,20],shoulders:[12,20],arms:[12,20],core:[10,16],legs:[10,20]};
+              const weeklySets={chest:0,back:0,shoulders:0,arms:0,core:0,legs:0};
+              Object.entries(history||{}).forEach(([exKey,sessions])=>{
+                const exName=exKey.split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+                const rawGroup=EXERCISE_MUSCLE_GROUP[exName]||null;
+                const group=rawGroup?GROUP_MAP[rawGroup]:null;
+                if(!group)return;
+                sessions.forEach(sess=>{if((sess.date||'')>=weekStartStr)weeklySets[group]+=(sess.sets||[]).length;});
+              });
+              const optimizationData=Object.fromEntries(
+                Object.entries(weeklySets).map(([g,sets])=>{
+                  const[lo,hi]=OPTIMAL[g];
+                  return[g,{status:sets<lo?'UNDERTRAINED':sets>hi?'OVERLOADED':'OPTIMAL',sets}];
+                })
+              );
+              return <MuscleRecovery recoveryData={recoveryData} optimizationData={optimizationData}/>;
             })()}
 
             {/* ── RECENT PRs ── */}

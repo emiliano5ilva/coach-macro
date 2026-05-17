@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 360">
+  <!-- FRONT VIEW (left half) -->
+  <!-- Head -->
+  <ellipse cx="75" cy="26" rx="16" ry="19" fill="#1c1c1c"/>
+  <!-- Neck -->
+  <rect x="70" y="43" width="10" height="11" rx="2" fill="#1c1c1c"/>
+
+  <!-- Shoulders front -->
+  <g id="shoulders-f">
+    <ellipse cx="44" cy="62" rx="11" ry="14" fill="#2a2a2a"/>
+    <ellipse cx="106" cy="62" rx="11" ry="14" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Chest -->
+  <g id="chest">
+    <path d="M55 54 C48 54 44 60 45 68 C46 76 50 82 55 84 L68 87 L68 54 Z" fill="#2a2a2a"/>
+    <path d="M95 54 C102 54 106 60 105 68 C104 76 100 82 95 84 L82 87 L82 54 Z" fill="#2a2a2a"/>
+    <path d="M68 54 L75 52 L82 54 L82 88 L75 90 L68 88 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Biceps -->
+  <g id="biceps">
+    <path d="M34 78 C30 90 30 106 35 116 L43 116 C47 106 47 90 44 78 Z" fill="#2a2a2a"/>
+    <path d="M106 78 C110 90 110 106 115 116 L107 116 C103 106 103 90 106 78 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Forearms front -->
+  <g id="forearms-f">
+    <path d="M33 118 C29 132 30 150 34 162 L43 162 C45 150 45 132 43 118 Z" fill="#2a2a2a"/>
+    <path d="M107 118 C111 132 110 150 116 162 L107 162 C105 150 105 132 107 118 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Abs -->
+  <g id="abs">
+    <rect x="64" y="88" width="22" height="48" rx="4" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Hip flexors -->
+  <g id="hip-flexors">
+    <path d="M54 136 L64 134 L64 158 C60 158 54 154 53 148 Z" fill="#2a2a2a"/>
+    <path d="M96 136 L86 134 L86 158 C90 158 96 154 97 148 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Quads -->
+  <g id="quads">
+    <path d="M53 160 C47 180 47 212 52 240 L66 240 C66 212 68 180 64 160 Z" fill="#2a2a2a"/>
+    <path d="M97 160 C103 180 103 212 98 240 L84 240 C84 212 82 180 86 160 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Calves front -->
+  <g id="calves-f">
+    <path d="M51 242 C47 262 49 286 53 300 L65 300 C67 286 67 262 65 242 Z" fill="#2a2a2a"/>
+    <path d="M99 242 C103 262 101 286 97 300 L85 300 C83 286 83 262 85 242 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- FRONT label -->
+  <text x="75" y="336" text-anchor="middle" fill="rgba(245,245,240,0.22)" font-size="7" font-family="monospace" letter-spacing="3">FRONT</text>
+
+
+  <!-- BACK VIEW (right half, offset +150) -->
+  <!-- Head back -->
+  <ellipse cx="225" cy="26" rx="16" ry="19" fill="#1c1c1c"/>
+  <!-- Neck back -->
+  <rect x="220" y="43" width="10" height="11" rx="2" fill="#1c1c1c"/>
+
+  <!-- Traps -->
+  <g id="traps">
+    <path d="M204 52 C198 58 196 66 200 72 L212 73 L214 52 Z" fill="#2a2a2a"/>
+    <path d="M246 52 C252 58 254 66 250 72 L238 73 L236 52 Z" fill="#2a2a2a"/>
+    <path d="M214 50 L225 47 L236 50 L236 66 L225 63 L214 66 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Rear delts -->
+  <g id="rear-delts">
+    <ellipse cx="196" cy="70" rx="10" ry="12" fill="#2a2a2a"/>
+    <ellipse cx="254" cy="70" rx="10" ry="12" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Lats -->
+  <g id="lats">
+    <path d="M206 78 C198 96 200 122 208 138 L220 142 L220 76 Z" fill="#2a2a2a"/>
+    <path d="M244 78 C252 96 250 122 242 138 L230 142 L230 76 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Triceps -->
+  <g id="triceps">
+    <path d="M185 82 C181 94 181 110 186 120 L194 120 C198 110 198 94 195 82 Z" fill="#2a2a2a"/>
+    <path d="M265 82 C269 94 269 110 264 120 L256 120 C252 110 252 94 255 82 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Forearms back -->
+  <g id="forearms-b">
+    <path d="M184 122 C180 136 181 154 185 166 L194 166 C196 154 196 136 194 122 Z" fill="#2a2a2a"/>
+    <path d="M266 122 C270 136 269 154 265 166 L256 166 C254 154 254 136 256 122 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Lower back -->
+  <g id="lower-back">
+    <path d="M212 140 L225 138 L238 140 L238 162 L225 160 L212 162 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Glutes -->
+  <g id="glutes">
+    <path d="M205 164 C198 176 199 194 207 200 L220 200 L220 162 Z" fill="#2a2a2a"/>
+    <path d="M230 162 L230 200 L243 200 C251 194 252 176 245 164 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Hamstrings -->
+  <g id="hamstrings">
+    <path d="M205 202 C199 220 199 234 205 246 L219 246 C217 234 217 220 219 202 Z" fill="#2a2a2a"/>
+    <path d="M231 202 C233 220 233 234 231 246 L245 246 C251 234 251 220 245 202 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- Calves back -->
+  <g id="calves-b">
+    <path d="M204 248 C200 268 202 288 206 302 L218 302 C220 288 220 268 218 248 Z" fill="#2a2a2a"/>
+    <path d="M246 248 C250 268 248 288 244 302 L232 302 C230 288 230 268 232 248 Z" fill="#2a2a2a"/>
+  </g>
+
+  <!-- BACK label -->
+  <text x="225" y="336" text-anchor="middle" fill="rgba(245,245,240,0.22)" font-size="7" font-family="monospace" letter-spacing="3">BACK</text>
+</svg>
