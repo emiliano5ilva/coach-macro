@@ -3276,7 +3276,7 @@ Rules:
       } catch {}
       return { ...CHART_DEFAULT_SETTINGS, ...(profile?.chart_settings||{}) };
     });
-    const [chartCategory,    setChartCategory]    = useState("all");
+    const [chartCategory,    setChartCategory]    = useState("overview");
     const [chartSettingsOpen,setChartSettingsOpen] = useState(false);
     const [explainChartKey,  setExplainChartKey]   = useState(null);
 
@@ -3434,13 +3434,14 @@ Rules:
 
         {/* Category filter pills */}
         <div style={{display:"flex",gap:6,overflowX:"auto",padding:"0 20px 12px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-          {[{id:"all",label:"All"},{id:"overview",label:"Overview"},{id:"strength",label:"Strength"},{id:"nutrition",label:"Nutrition"},{id:"recovery",label:"Recovery"}].map(({id,label})=>(
+          {[{id:"overview",label:"Overview"},{id:"strength",label:"Strength"},{id:"nutrition",label:"Nutrition"},{id:"recovery",label:"Recovery"}].map(({id,label})=>(
             <button key={id} onClick={()=>setChartCategory(id)} style={{flexShrink:0,padding:"5px 14px",borderRadius:20,background:chartCategory===id?"var(--red)":"rgba(255,255,255,0.06)",border:chartCategory===id?"none":"1px solid rgba(255,255,255,0.10)",color:chartCategory===id?"white":"rgba(245,245,240,0.55)",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",lineHeight:1.4}}>
               {label}
             </button>
           ))}
         </div>
 
+        {chartCategory==="overview"&&<>
         {/* ── MILESTONE CELEBRATION ── */}
         {activeMilestone&&MILESTONE_COPY[activeMilestone.type]&&(()=>{
           const m=MILESTONE_COPY[activeMilestone.type];
@@ -3622,6 +3623,61 @@ Rules:
 
         {/* ── WEEKLY NUTRITION CALENDAR ── */}
         <WeeklyNutritionCalendar weekMacros={weekMacros} todayKey={todayKey} />
+        </>}
+
+        {/* ── STRENGTH TAB INTRO ── */}
+        {chartCategory==="strength"&&<>
+          <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>// THIS WEEK</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[
+                {k:"Training Streak",v:`${profile.streak||workoutLogsRaw.length}`,u:"sessions"},
+                {k:"Adherence",v:`${workoutLogsRaw.length>0?Math.min(94,Math.round(workoutLogsRaw.length/Math.max(1,programWeek)*25)):"—"}`,u:"%"},
+              ].map((s,i)=>(
+                <div key={i} style={{padding:"12px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.06)",borderRadius:12}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,0.45)",textTransform:"uppercase",marginBottom:6}}>{s.k}</div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:28,lineHeight:1}}>{s.v}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.45)"}}>{s.u}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>}
+
+        {/* ── NUTRITION TAB INTRO ── */}
+        {chartCategory==="nutrition"&&<WeeklyNutritionCalendar weekMacros={weekMacros} todayKey={todayKey} />}
+
+        {/* ── RECOVERY TAB INTRO ── */}
+        {chartCategory==="recovery"&&waterHistory.length>0&&(()=>{
+          const maxOz=Math.max(...waterHistory.map(d=>d.oz),waterTarget||80);
+          return(
+            <div style={{margin:"0 20px 14px",padding:"16px 18px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase"}}>Hydration — 7 Days</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#06B6D4"}}>Target: {waterTarget} oz</div>
+              </div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:6,height:60}}>
+                {waterHistory.map((entry,i)=>{
+                  const h=Math.max(4,Math.round((entry.oz/maxOz)*60));
+                  const pctOfTarget=entry.oz/Math.max(1,waterTarget);
+                  const c=pctOfTarget>=1?T.green:pctOfTarget>=0.75?"#06B6D4":pctOfTarget>=0.5?T.fat:"#EF4444";
+                  const dow=new Date(entry.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"}).slice(0,2);
+                  const isToday2=entry.date===todayStr;
+                  return(
+                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                      <div style={{width:"100%",height:h,background:c,borderRadius:3,border:isToday2?`1px solid ${c}`:"none",boxShadow:isToday2?`0 0 6px ${c}80`:"none"}}/>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",lineHeight:1}}>{Math.round(entry.oz)}</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:isToday2?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.2)",lineHeight:1}}>{dow}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {waterTarget>0&&<div style={{height:1,background:"rgba(6,182,212,0.2)",borderRadius:1,marginTop:4,position:"relative"}}><div style={{position:"absolute",right:0,top:-9,fontFamily:"var(--mono)",fontSize:7,color:"rgba(6,182,212,0.5)"}}>goal</div></div>}
+            </div>
+          );
+        })()}
 
         {/* ── CHART STACK — ordered & filtered by settings ── */}
         {!workoutsLoaded
@@ -3649,51 +3705,77 @@ Rules:
           <ChartExplainModal chartKey={explainChartKey} onClose={()=>setExplainChartKey(null)}/>
         )}
 
-        {/* ── INJURY HISTORY + ACWR RISKS ── */}
-        <InjuryHistorySection
-          injuryLogs={injuryLogs}
-          injuryRisks={acwrRisks}
-          onResolve={async(id)=>{
-            await resolveInjury(id).catch(()=>{});
-            setInjuryLogs(prev=>prev.map(l=>l.id===id?{...l,resolved_at:new Date().toISOString()}:l));
-          }}
-          onLogNew={()=>setShowPainLogModal(true)}
-        />
-
-        {/* ── PR PREDICTIONS ── */}
-        {(()=>{
-          const runActs = allActs.filter(a=>(a.type||"").toLowerCase().includes("run")&&parseFloat(a.distanceKm)>1);
-          return <PRPredictionCard predictions={prPredictions} runActs={runActs} wPrefs={wPrefs} wUnit={profile?.wUnit||"lbs"}/>;
-        })()}
-
-        {/* ── STATS GRID ── */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 14px"}}>
-          {[
-            {k:"Bodyweight",v:`${profile.weight||"—"}`,u:profile.wUnit||"kg"},
-            {k:"Training Streak",v:`${profile.streak||workoutLogsRaw.length}`,u:"sessions"},
-            {k:"Daily Target",v:`${macros.calories.toLocaleString()}`,u:"kcal"},
-            {k:"Adherence",v:`${workoutLogsRaw.length>0?Math.min(94,Math.round(workoutLogsRaw.length/Math.max(1,programWeek)*25)):"—"}`,u:"%"},
-          ].map((s,i)=>(
-            <div key={i} style={{padding:"12px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase",marginBottom:6}}>{s.k}</div>
-              <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:2}}>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:28,lineHeight:1}}>{s.v}</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)"}}>{s.u}</div>
+        {/* ── OVERVIEW TAB TAIL ── */}
+        {chartCategory==="overview"&&<>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 14px"}}>
+            {[
+              {k:"Bodyweight",v:`${profile.weight||"—"}`,u:profile.wUnit||"kg"},
+              {k:"Training Streak",v:`${profile.streak||workoutLogsRaw.length}`,u:"sessions"},
+              {k:"Daily Target",v:`${macros.calories.toLocaleString()}`,u:"kcal"},
+              {k:"Adherence",v:`${workoutLogsRaw.length>0?Math.min(94,Math.round(workoutLogsRaw.length/Math.max(1,programWeek)*25)):"—"}`,u:"%"},
+            ].map((s,i)=>(
+              <div key={i} style={{padding:"12px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase",marginBottom:6}}>{s.k}</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:2}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:28,lineHeight:1}}>{s.v}</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)"}}>{s.u}</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
+          <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+          <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+          {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
+        </>}
 
-        {/* ── WORKOUT HISTORY ── */}
-        {workoutLogsRaw.length>0&&<WorkoutHistorySection logs={workoutLogsRaw}/>}
+        {/* ── STRENGTH TAB TAIL ── */}
+        {chartCategory==="strength"&&<>
+          {workoutLogsRaw.length>0&&<WorkoutHistorySection logs={workoutLogsRaw}/>}
+          {(()=>{
+            const runActs=allActs.filter(a=>(a.type||"").toLowerCase().includes("run")&&parseFloat(a.distanceKm)>1);
+            return<PRPredictionCard predictions={prPredictions} runActs={runActs} wPrefs={wPrefs} wUnit={profile?.wUnit||"lbs"}/>;
+          })()}
+          <InjuryHistorySection
+            injuryLogs={injuryLogs}
+            injuryRisks={acwrRisks}
+            onResolve={async(id)=>{
+              await resolveInjury(id).catch(()=>{});
+              setInjuryLogs(prev=>prev.map(l=>l.id===id?{...l,resolved_at:new Date().toISOString()}:l));
+            }}
+            onLogNew={()=>setShowPainLogModal(true)}
+          />
+          <div style={{margin:"0 20px 14px",padding:"28px 20px",background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,textAlign:"center"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// SESSION FREQUENCY</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>COMING SOON.</div>
+          </div>
+          <div style={{margin:"0 20px 14px",padding:"28px 20px",background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,textAlign:"center"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// VOLUME TRACKER</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>COMING SOON.</div>
+          </div>
+        </>}
 
-        {/* ── BODYWEIGHT LOG ── */}
-        <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||"lbs"}/>
+        {/* ── NUTRITION TAB TAIL ── */}
+        {chartCategory==="nutrition"&&<>
+          <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||"lbs"}/>
+          <div style={{margin:"0 20px 14px",padding:"28px 20px",background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,textAlign:"center"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MACRO AVERAGES</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>COMING SOON.</div>
+          </div>
+        </>}
 
-        <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
-        <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
-        <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
-        {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
+        {/* ── RECOVERY TAB TAIL ── */}
+        {chartCategory==="recovery"&&<>
+          <div style={{margin:"0 20px 14px",padding:"28px 20px",background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,textAlign:"center"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// REST DAYS</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>COMING SOON.</div>
+          </div>
+          <div style={{margin:"0 20px 14px",padding:"28px 20px",background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,textAlign:"center"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// READINESS SCORE</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>COMING SOON.</div>
+          </div>
+        </>}
+
         <div style={{height:24}}/>
       </div>
     );

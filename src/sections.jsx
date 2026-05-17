@@ -3772,61 +3772,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       </div>
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
 
-        <SectionCard title={`Workout Split${settingsSaved?" — ✓ Saved":""}`}>
-          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-            {Object.keys(SPLIT_CYCLES).map(s=>(<button key={s} onClick={()=>{const wp={...wPrefs,splitType:s};setWPrefs(wp);saveSettings(wp,null);}} style={{padding:"9px 13px",minHeight:44,borderRadius:9,border:`1.5px solid ${wPrefs.splitType===s?T.carb:T.bd}`,background:wPrefs.splitType===s?`${T.carb}15`:T.s3,color:wPrefs.splitType===s?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s}</button>))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Equipment">
-          <div style={{display:"flex",gap:8}}>
-            {["Full Gym","Home Gym","Bodyweight Only"].map(e=>(<button key={e} onClick={()=>{const wp={...wPrefs,equipment:e};setWPrefs(wp);saveSettings(wp,null);}} style={{flex:1,padding:"11px 6px",minHeight:44,borderRadius:9,border:`1.5px solid ${wPrefs.equipment===e?T.carb:T.bd}`,background:wPrefs.equipment===e?`${T.carb}15`:T.s3,color:wPrefs.equipment===e?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{e}</button>))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Experience Level">
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
-            {[
-              {v:"beginner",l:"Beginner",sub:"Less than 1 year — dumbbell-focused, lower volume",color:"#34D399"},
-              {v:"intermediate",l:"Intermediate",sub:"1–3 years — barbell compounds, moderate volume",color:T.carb},
-              {v:"advanced",l:"Advanced",sub:"3+ years — heavy loads, high volume, advanced techniques",color:"#F87171"},
-            ].map(o=>{
-              const cur=(wPrefs.liftExp||profile?.liftExp||"intermediate")===o.v;
-              return(
-                <button key={o.v} onClick={()=>{const wp={...wPrefs,liftExp:o.v};setWPrefs(wp);saveSettings(wp,null);}} style={{textAlign:"left",padding:"13px 16px",minHeight:52,borderRadius:10,border:`1.5px solid ${cur?o.color:T.bd}`,background:cur?`${o.color}12`:T.s3,color:cur?o.color:T.mu,cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",gap:3}}>
-                  <span style={{fontSize:13,fontWeight:700,color:cur?o.color:"#fff"}}>{o.l}</span>
-                  <span style={{fontSize:11,color:T.mu}}>{o.sub}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div style={{fontSize:11,color:T.dim,lineHeight:1.6}}>Exercises will update on your next session.</div>
-        </SectionCard>
-
-        <SectionCard title="Athlete Modes">
-          <Toggle on={wPrefs.isHybrid} onChange={v=>{const wp={...wPrefs,isHybrid:v};setWPrefs(wp);saveSettings(wp,null);}} label="🏃 Hybrid Athlete" sub="Adds structured run blocks to training days"/>
-          <Toggle on={wPrefs.isHyrox}  onChange={v=>{const wp={...wPrefs,isHyrox:v};setWPrefs(wp);saveSettings(wp,null);}}  label="Hyrox Mode" sub="Includes Hyrox station blocks"/>
-        </SectionCard>
-
-        <SectionCard title="Macro Memory">
-          <Toggle on={wPrefs.macroMemory!==false} onChange={v=>{const wp={...wPrefs,macroMemory:v};setWPrefs(wp);saveSettings(wp,null);}} label="Macro Memory" sub="Pre-populates meals based on your weekly patterns"/>
-          <button onClick={()=>{const wp={...wPrefs,macroMemory:true,_macroMemoryReset:Date.now()};setWPrefs(wp);saveSettings(wp,null);}} style={{marginTop:10,width:"100%",padding:"10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Clear my patterns</button>
-        </SectionCard>
-
-        <SectionCard title="Fuel View">
-          <div style={{display:"flex",gap:8}}>
-            {[["ring","Macro Ring","📊"],["budget","Body Budget","🏦"]].map(([v,l,e])=>{
-              const active=(wPrefs.fuelView||"ring")===v;
-              return<button key={v} onClick={()=>{const wp={...wPrefs,fuelView:v};setWPrefs(wp);saveSettings(wp,null);}} style={{flex:1,padding:"11px 6px",minHeight:44,borderRadius:9,border:`1.5px solid ${active?T.prot:T.bd}`,background:active?`${T.prot}15`:T.s3,color:active?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{e} {l}</button>;
-            })}
-          </div>
-          <div style={{fontSize:11,color:T.dim,marginTop:8,lineHeight:1.6}}>Body Budget shows macros as a spending ledger with AI meal suggestions</div>
-        </SectionCard>
-
-        <SectionCard title="Nutrition Periodization">
-          <Toggle on={!!wPrefs.nutritionPeriodization} onChange={v=>{const wp={...wPrefs,nutritionPeriodization:v};setWPrefs(wp);saveSettings(wp,null);}} label="Nutrition Periodization" sub="Automatically cycles macros across 8-week phases"/>
-          <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Building (wk 1–3) → Deload (wk 4) → Performance (wk 5–7) → Mini Cut (wk 8)</div>
-        </SectionCard>
 
         {(profile?.is_older_adult||(()=>{const a=getAge(profile?.dobYear,profile?.dobMonth,profile?.dobDay);return a!==null&&a>=65;})())&&(
           <SectionCard title="Joint Health Mode">
@@ -3839,39 +3784,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </SectionCard>
         )}
 
-        <SectionCard title="Warm-Up Protocols">
-          <Toggle on={wPrefs.warmupEnabled!==false} onChange={v=>{const wp={...wPrefs,warmupEnabled:v};setWPrefs(wp);saveSettings(wp,null);}} label="Show warm-up before each session" sub="Movement prep + lift warm-up sets before every workout"/>
-          {wPrefs.warmupEnabled!==false&&(
-            <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:12}}>
-              <Toggle on={wPrefs.warmupGuided!==false} onChange={v=>{const wp={...wPrefs,warmupGuided:v};setWPrefs(wp);saveSettings(wp,null);}} label="Guided mode" sub="Shows one movement at a time with countdown timer"/>
-              <div>
-                <div style={{fontSize:10,color:T.dim,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>Show warm-up for</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {[['always','Always'],['heavy','Heavy sessions only'],['runs','Runs only'],['never','Never']].map(([v,l])=>(
-                    <button key={v} onClick={()=>{const wp={...wPrefs,warmupTiming:v};setWPrefs(wp);saveSettings(wp,null);}}
-                      style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${(wPrefs.warmupTiming||'always')===v?T.carb:T.bd}`,background:(wPrefs.warmupTiming||'always')===v?`${T.carb}15`:T.s3,color:(wPrefs.warmupTiming||'always')===v?T.carb:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Toggle on={!!wPrefs.skipGeneralWarmup} onChange={v=>{const wp={...wPrefs,skipGeneralWarmup:v};setWPrefs(wp);saveSettings(wp,null);}} label="Skip general cardio warm-up" sub="Advanced users: jump straight to movement prep + lift sets"/>
-            </div>
-          )}
-          <div style={{fontSize:11,color:T.mu,marginTop:12,lineHeight:1.6,background:"rgba(255,255,255,.03)",borderRadius:8,padding:"8px 10px"}}>
-            Novice users: skip option unlocks after 30 sessions. Warm-up sets always shown for barbell primary lifts regardless of setting.
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Morning Brief">
-          <Toggle on={wPrefs.morningBriefEnabled!==false} onChange={v=>{const wp={...wPrefs,morningBriefEnabled:v};setWPrefs(wp);saveSettings(wp,null);}} label="Enable Morning Brief" sub="Personalized daily coaching message before noon"/>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginTop:14}}>
-            <div style={{fontSize:12,color:T.mu,flex:1}}>Brief time</div>
-            <input type="time" value={wPrefs.morningBriefTime||"07:00"} onChange={e=>{const wp={...wPrefs,morningBriefTime:e.target.value};setWPrefs(wp);saveSettings(wp,null);}}
-              style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"8px 12px",color:"#fff",fontSize:13,outline:"none",fontFamily:"inherit",colorScheme:"dark"}}/>
-          </div>
-          <button onClick={onPreviewBrief} style={{marginTop:12,width:"100%",padding:"11px",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:9,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Preview Today's Brief</button>
-        </SectionCard>
 
         {(profile?.sex==="female"||wPrefs?.lastPeriodDate)&&(
           <SectionCard title="Cycle Tracking">
