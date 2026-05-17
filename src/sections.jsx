@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
@@ -1546,6 +1547,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
 
+  // ── End session confirmation ─────────────────────────────────────────────
+  const [endConfirm,setEndConfirm]=useState(false);
+
   // ── Exercise detail modal ────────────────────────────────────────────────
   const [detailModal,setDetailModal]=useState(null); // {exerciseName, exerciseIdx}
   const longPressTimer=useRef(null);
@@ -2494,9 +2498,27 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── ACTIVE WORKOUT ── */}
-        {trainScreen==="active"&&activeSessionOpen&&(
-          <div style={{position:"fixed",inset:0,zIndex:200,background:"var(--navy)",overflowY:"auto",paddingBottom:100,paddingTop:"max(env(safe-area-inset-top),0px)"}}>
-            <div style={{maxWidth:680,margin:"0 auto",padding:isMobile?"12px 18px 0":"20px 0 0"}}>
+        {trainScreen==="active"&&activeSessionOpen&&ReactDOM.createPortal(
+          <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:9999,backgroundColor:"#050810",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+            {/* End Session confirmation overlay */}
+            {endConfirm&&(
+              <div style={{position:"fixed",inset:0,zIndex:10001,background:"rgba(5,8,16,0.92)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+                <div style={{background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",marginBottom:10}}>End Session?</div>
+                  <div style={{fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.6,marginBottom:24}}>Your progress will be saved before closing.</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    <button onClick={()=>{setEndConfirm(false);finishWorkout();}} style={{padding:"14px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>End Session</button>
+                    <button onClick={()=>setEndConfirm(false)} style={{padding:"13px",background:"none",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Keep Going</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* End Session button — fixed top-left */}
+            <button onClick={()=>setEndConfirm(true)} style={{position:"fixed",top:"max(env(safe-area-inset-top),16px)",left:16,zIndex:10000,display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",padding:"8px 4px",color:"rgba(245,245,240,0.65)"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+              <span style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase"}}>End Session</span>
+            </button>
+            <div style={{maxWidth:680,margin:"0 auto",padding:isMobile?"60px 18px 100px":"60px 24px 100px"}}>
             {/* Set completion flash overlay */}
             <SetFlashOverlay flash={setFlash}/>
 
@@ -2752,7 +2774,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             }
           </div>
           </div>
-        )}
+        , document.body)}
 
         {/* ── Exercise detail modal ── */}
         {detailModal&&(
