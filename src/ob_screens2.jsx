@@ -38,6 +38,7 @@ import { NutritionPerformanceChart, WeightTrendChart, MacroCalendarHeatmap, Slee
 import ChartSettingsScreen, { CHART_REGISTRY, DEFAULT_SETTINGS as CHART_DEFAULT_SETTINGS, ChartWrap, ChartExplainModal } from "./screens/ChartSettings.jsx";
 import PhotoFoodLogger from "./PhotoFoodLogger.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
+import { recordWorkoutRecovery } from "./services/recoveryService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -2258,6 +2259,8 @@ Rules:
             date:new Date().toISOString().split("T")[0],
             workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData}
           });
+          recordWorkoutRecovery(user.id, setsLogged).catch(() => {});
+          window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
 
@@ -3357,22 +3360,6 @@ Rules:
       return{week:i+1,count,isCurrent:i===7};
     }),[workoutLogsRaw]);
 
-    const progressRecoveryData=useMemo(()=>{
-      const FM={Push:['chest','shoulders','arms'],Pull:['back','arms'],Legs:['legs'],Upper:['chest','back','shoulders','arms'],Lower:['legs','core'],'Full Body':['chest','back','shoulders','arms','legs','core'],Chest:['chest'],Back:['back'],Shoulders:['shoulders'],Arms:['arms'],Core:['core'],Glutes:['legs'],Hyrox:['legs','core'],Run:[],Cardio:[]};
-      const now=new Date();
-      const cutStr=new Date(now.getTime()-14*864e5).toISOString().split('T')[0];
-      const last={chest:null,back:null,shoulders:null,arms:null,legs:null,core:null};
-      (workoutLogsRaw||[]).filter(l=>l.date>=cutStr).forEach(log=>{
-        (FM[log.workout?.focus||'']||[]).forEach(g=>{if(g in last&&(last[g]===null||log.date>last[g]))last[g]=log.date;});
-      });
-      const rec={};
-      Object.keys(last).forEach(g=>{
-        if(!last[g]){rec[g]={percent:100};return;}
-        const h=(now-new Date(last[g]+'T12:00:00'))/3600000;
-        rec[g]={percent:Math.min(100,Math.round((h/48)*100))};
-      });
-      return rec;
-    },[workoutLogsRaw]);
 
     const restDaysThisWeek=Math.max(0,(new Date().getDay()||7)-workoutsThisWeek);
     const recoveryScore=useMemo(()=>{
@@ -3956,7 +3943,7 @@ Rules:
         {chartCategory==="recovery"&&<>
           {/* Muscle status body map */}
           <div style={{margin:"0 20px 14px"}}>
-            <MuscleRecovery recoveryData={progressRecoveryData} optimizationData={null}/>
+            <MuscleRecovery userId={user?.id}/>
           </div>
 
           {/* Rest days this week */}

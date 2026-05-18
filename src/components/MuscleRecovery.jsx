@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import bodyMapSvg from '../../public/body-map-thermal.svg?raw';
+import { useState, useEffect } from 'react';
+import BodyMap from './BodyMap';
+import { getRecoveryData, getOptimizationData } from '../services/recoveryService';
 
 const THERMAL = {
   hot:  '#FFE500',
@@ -71,38 +72,72 @@ function buildOptCoachText(data) {
   return '"Volume is well distributed across all groups. Stay the course."';
 }
 
-export default function MuscleRecovery({ recoveryData, optimizationData }) {
+export default function MuscleRecovery({ userId, recoveryData: propRecovery, optimizationData: propOptim }) {
   const [mode, setMode] = useState('recovery');
-  const svgRef = useRef(null);
+  const [localRecovery, setLocalRecovery] = useState(null);
+  const [localOptim, setLocalOptim]       = useState(null);
+  const [loading, setLoading]             = useState(false);
 
-  // Fix 2 — override any fixed width/height on the SVG element after inject
-  useEffect(() => {
-    const svg = svgRef.current?.querySelector('svg');
-    if (!svg) return;
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', 'auto');
-    svg.style.width   = '100%';
-    svg.style.height  = 'auto';
-    svg.style.display = 'block';
-  }, []);
+  async function fetchData(uid) {
+    setLoading(true);
+    try {
+      const [rec, opt] = await Promise.all([
+        getRecoveryData(uid).catch(() => null),
+        getOptimizationData(uid).catch(() => null),
+      ]);
+      if (rec) setLocalRecovery(rec);
+      if (opt) setLocalOptim(opt);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  // Fix 5 — apply thermal colors; bodyMapSvg is static so not a dep
   useEffect(() => {
-    if (!svgRef.current) return;
-    const svg = svgRef.current.querySelector('svg');
-    if (!svg) return;
+    if (!userId) return;
+    fetchData(userId);
+  }, [userId]);
+
+  // Refresh when a workout completes
+  useEffect(() => {
+    if (!userId) return;
+    const handler = async (e) => {
+      if (e.detail?.userId === userId) {
+        const rec = await getRecoveryData(userId).catch(() => null);
+        if (rec) setLocalRecovery(rec);
+        const opt = await getOptimizationData(userId).catch(() => null);
+        if (opt) setLocalOptim(opt);
+      }
+    };
+    window.addEventListener('workoutCompleted', handler);
+    return () => window.removeEventListener('workoutCompleted', handler);
+  }, [userId]);
+
+  // Refresh when app comes back to foreground
+  useEffect(() => {
+    if (!userId) return;
+    const handler = () => fetchData(userId);
+    window.addEventListener('focus', handler);
+    return () => window.removeEventListener('focus', handler);
+  }, [userId]);
+
+  const recoveryData     = userId ? localRecovery : propRecovery;
+  const optimizationData = userId ? localOptim    : propOptim;
+
+  function getColors() {
+    if (loading && !recoveryData) {
+      const dim = {};
+      Object.values(MUSCLE_MAP).flat().forEach(id => { dim[id] = 'rgba(245,245,240,0.06)'; });
+      return dim;
+    }
+    const colors = {};
     Object.entries(MUSCLE_MAP).forEach(([group, ids]) => {
       const color = mode === 'recovery'
         ? thermalColor(recoveryData?.[group]?.percent ?? null)
         : optColor(optimizationData?.[group]?.status);
-      ids.forEach(id => {
-        const el = svg.querySelector('#' + id);
-        if (!el) return;
-        el.setAttribute('fill', color);
-        el.querySelectorAll('path, ellipse, rect').forEach(p => p.setAttribute('fill', color));
-      });
+      ids.forEach(id => { colors[id] = color; });
     });
-  }, [mode, recoveryData, optimizationData]);
+    return colors;
+  }
 
   const getChips = () => {
     const data = mode === 'recovery'
@@ -128,15 +163,6 @@ export default function MuscleRecovery({ recoveryData, optimizationData }) {
 
   return (
     <div style={s.wrapper}>
-      {/* Fix 3 — CSS hard override for SVG sizing */}
-      <style>{`
-        #muscle-svg-wrap svg {
-          width: 100% !important;
-          height: auto !important;
-          display: block !important;
-        }
-      `}</style>
-
       {/* Mode tabs */}
       <div style={s.tabs}>
         {['recovery', 'optimization'].map(m => (
@@ -148,14 +174,9 @@ export default function MuscleRecovery({ recoveryData, optimizationData }) {
 
       <div style={s.eyebrow}>// Muscle status</div>
 
-      {/* Body map — Fix 1: raw import, no fetch */}
+      {/* Body map */}
       <div style={s.mapWrap}>
-        <div
-          id="muscle-svg-wrap"
-          ref={svgRef}
-          style={s.svgWrap}
-          dangerouslySetInnerHTML={{ __html: bodyMapSvg }}
-        />
+        <BodyMap colors={getColors()} />
         <div style={s.legend}>
           <span style={s.legendLabel}>cold · rested</span>
           <div style={s.legendBar} />
@@ -182,7 +203,6 @@ export default function MuscleRecovery({ recoveryData, optimizationData }) {
         <div style={s.coachLabel}>// Coach</div>
         <div style={s.coachText}>{coachText}</div>
       </div>
-
     </div>
   );
 }
@@ -230,10 +250,6 @@ const s = {
     borderRadius: 10,
     padding: 8,
     marginBottom: 14,
-  },
-  svgWrap: {
-    width: '100%',
-    overflow: 'hidden',
   },
   legend: {
     display: 'flex',

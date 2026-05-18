@@ -1626,76 +1626,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
 
-  // ── Muscle recovery state (real Supabase data) ───────────────────────────
-  const [recoveryData,setRecoveryData]=useState(null);
-  const [optimizationData,setOptimizationData]=useState(null);
-  useEffect(()=>{
-    if(!user?.id)return;
-    const FOCUS_MAP={
-      Push:["chest","shoulders","arms"],Pull:["back","arms"],Legs:["legs","core"],
-      Upper:["chest","back","shoulders","arms"],Lower:["legs","core"],
-      "Full Body":["chest","back","shoulders","arms","legs","core"],
-      "Chest+Triceps":["chest","arms"],"Back+Biceps":["back","arms"],
-      "Shoulders+Arms":["shoulders","arms"],"Arnold A":["chest","shoulders","arms"],
-      "Arnold B":["back","arms"],"Chest & Back":["chest","back"],
-      "Shoulders & Arms":["shoulders","arms"],
-      Chest:["chest"],Back:["back"],Arms:["arms"],Shoulders:["shoulders"],
-    };
-    const GROUP_MAP={chest:"chest",back:"back",shoulders:"shoulders",biceps:"arms",triceps:"arms",legs:"legs",glutes:"legs",calves:"legs",core:"core"};
-    const OPTIMAL={chest:[10,20],back:[10,20],shoulders:[12,20],arms:[12,20],core:[10,16],legs:[10,20]};
-    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-14);
-    const cutStr=cutoff.toISOString().split("T")[0];
-    sb.from("workout_logs").select("date,workout").eq("user_id",user.id).gte("date",cutStr).order("date",{ascending:false})
-      .then(({data,error})=>{
-        if(error){console.error("[recovery]",error);return;}
-        const logs=data||[];
-        const now=new Date();
-        // Find most recent date each muscle group was trained
-        const lastDate={chest:null,back:null,shoulders:null,arms:null,legs:null,core:null};
-        logs.forEach(log=>{
-          const focus=log.workout?.focus||"";
-          const groupsFromFocus=FOCUS_MAP[focus]||[];
-          // Also check exercise names
-          const groupsFromEx=[];
-          (log.workout?.exercises||[]).forEach(ex=>{
-            const raw=EXERCISE_MUSCLE_GROUP[ex.name||""]||null;
-            const g=raw?GROUP_MAP[raw]:null;
-            if(g&&!groupsFromEx.includes(g))groupsFromEx.push(g);
-          });
-          const allGroups=[...new Set([...groupsFromFocus,...groupsFromEx])];
-          allGroups.forEach(g=>{
-            if(!(g in lastDate))return;
-            if(lastDate[g]===null||log.date>lastDate[g])lastDate[g]=log.date;
-          });
-        });
-        // Recovery %: hours since last workout ÷ 48h, capped at 100
-        const rec={};
-        Object.keys(lastDate).forEach(g=>{
-          if(lastDate[g]===null){rec[g]={percent:100};return;}
-          const hoursAgo=(now-new Date(lastDate[g]+"T12:00:00"))/3600000;
-          rec[g]={percent:Math.min(100,Math.round((hoursAgo/48)*100))};
-        });
-        setRecoveryData(rec);
-        // Optimization: count sets this week from history
-        const weekStart=new Date();weekStart.setDate(weekStart.getDate()-weekStart.getDay()+1);
-        const weekStartStr=weekStart.toISOString().split("T")[0];
-        const weeklySets={chest:0,back:0,shoulders:0,arms:0,core:0,legs:0};
-        Object.entries(history||{}).forEach(([exKey,sessions])=>{
-          const exName=exKey.split("_").map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
-          const rawGroup=EXERCISE_MUSCLE_GROUP[exName]||null;
-          const group=rawGroup?GROUP_MAP[rawGroup]:null;
-          if(!group)return;
-          sessions.forEach(sess=>{if((sess.date||"")>=weekStartStr)weeklySets[group]+=(sess.sets||[]).length;});
-        });
-        const opt=Object.fromEntries(
-          Object.entries(weeklySets).map(([g,sets])=>{
-            const[lo,hi]=OPTIMAL[g];
-            return[g,{status:sets<lo?"UNDERTRAINED":sets>hi?"OVERLOADED":"OPTIMAL",sets}];
-          })
-        );
-        setOptimizationData(opt);
-      });
-  },[user?.id,history]);
 
   // ── End session confirmation ─────────────────────────────────────────────
   const [endConfirm,setEndConfirm]=useState(false);
@@ -2517,7 +2447,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </div>
 
             {/* ── MUSCLE RECOVERY ── */}
-            <MuscleRecovery recoveryData={recoveryData} optimizationData={optimizationData}/>
+            <MuscleRecovery userId={user?.id}/>
 
             {/* ── RECENT PRs ── */}
             {Object.keys(history||{}).length>0&&(()=>{
