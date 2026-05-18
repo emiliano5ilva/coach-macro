@@ -25,6 +25,7 @@ import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
+import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -1544,9 +1545,156 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   );
 }
 
+function MuscleChips({ name, sets, reps, sugg, history: h }) {
+  const md = getExerciseData(name);
+  const mono = { fontFamily:"'DM Mono','SF Mono',monospace" };
+
+  // Weight progression indicator
+  let weightEl = null;
+  if (sugg?.weight) {
+    const sessions = h?.[name.toLowerCase().replace(/ /g,'_')] || h?.[name] || null;
+    const lastW = sessions?.length ? Math.max(...(sessions[sessions.length-1].sets||[]).map(s=>parseFloat(s.weight||0))) : null;
+    const currW = parseFloat(sugg.weight);
+    const isUp = lastW && currW > lastW;
+    weightEl = (
+      <span style={{...mono, fontSize:11, color: isUp ? '#22c55e' : 'rgba(245,245,240,0.5)', marginLeft:'auto', flexShrink:0}}>
+        {sugg.weight}lbs{isUp ? ' ↑' : ''}
+      </span>
+    );
+  }
+
+  return (
+    <div style={{marginTop:4}}>
+      {/* Name row with optional weight */}
+      {weightEl && (
+        <div style={{display:'flex',alignItems:'center',marginBottom:3}}>
+          {weightEl}
+        </div>
+      )}
+
+      {md ? (
+        <>
+          {/* Primary chips */}
+          <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:3}}>
+            {md.primary.map(m => {
+              const col = getMuscleColor(m);
+              return (
+                <span key={m} style={{
+                  ...mono, fontSize:8, textTransform:'uppercase', letterSpacing:'0.08em',
+                  padding:'2px 8px', borderRadius:20,
+                  background: col + '1a', border:`1px solid ${col}33`, color: col,
+                }}>{m}</span>
+              );
+            })}
+          </div>
+
+          {/* Secondary + sets×reps */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
+            {md.secondary.length > 0 && (
+              <div style={{...mono, fontSize:8, color:'rgba(245,245,240,0.28)', letterSpacing:'0.06em', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                + {md.secondary.join(' · ')}
+              </div>
+            )}
+            {sets && reps && (
+              <div style={{...mono, fontSize:9, color:'rgba(245,245,240,0.38)', flexShrink:0, marginLeft:'auto'}}>
+                {sets}×{reps}
+              </div>
+            )}
+          </div>
+
+          {/* Coaching note */}
+          {md.note && (
+            <div style={{...mono, fontSize:8, fontStyle:'italic', color:'rgba(245,245,240,0.18)', marginTop:3}}>
+              {md.note}
+            </div>
+          )}
+        </>
+      ) : (
+        /* Graceful fallback — no map entry */
+        sets && reps && (
+          <div style={{...mono, fontSize:9, color:'rgba(245,245,240,0.38)', marginTop:2}}>
+            {sets}×{reps}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
+
+  // ── Muscle recovery state (real Supabase data) ───────────────────────────
+  const [recoveryData,setRecoveryData]=useState(null);
+  const [optimizationData,setOptimizationData]=useState(null);
+  useEffect(()=>{
+    if(!user?.id)return;
+    const FOCUS_MAP={
+      Push:["chest","shoulders","arms"],Pull:["back","arms"],Legs:["legs","core"],
+      Upper:["chest","back","shoulders","arms"],Lower:["legs","core"],
+      "Full Body":["chest","back","shoulders","arms","legs","core"],
+      "Chest+Triceps":["chest","arms"],"Back+Biceps":["back","arms"],
+      "Shoulders+Arms":["shoulders","arms"],"Arnold A":["chest","shoulders","arms"],
+      "Arnold B":["back","arms"],"Chest & Back":["chest","back"],
+      "Shoulders & Arms":["shoulders","arms"],
+      Chest:["chest"],Back:["back"],Arms:["arms"],Shoulders:["shoulders"],
+    };
+    const GROUP_MAP={chest:"chest",back:"back",shoulders:"shoulders",biceps:"arms",triceps:"arms",legs:"legs",glutes:"legs",calves:"legs",core:"core"};
+    const OPTIMAL={chest:[10,20],back:[10,20],shoulders:[12,20],arms:[12,20],core:[10,16],legs:[10,20]};
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-14);
+    const cutStr=cutoff.toISOString().split("T")[0];
+    sb.from("workout_logs").select("date,workout").eq("user_id",user.id).gte("date",cutStr).order("date",{ascending:false})
+      .then(({data,error})=>{
+        if(error){console.error("[recovery]",error);return;}
+        const logs=data||[];
+        const now=new Date();
+        // Find most recent date each muscle group was trained
+        const lastDate={chest:null,back:null,shoulders:null,arms:null,legs:null,core:null};
+        logs.forEach(log=>{
+          const focus=log.workout?.focus||"";
+          const groupsFromFocus=FOCUS_MAP[focus]||[];
+          // Also check exercise names
+          const groupsFromEx=[];
+          (log.workout?.exercises||[]).forEach(ex=>{
+            const raw=EXERCISE_MUSCLE_GROUP[ex.name||""]||null;
+            const g=raw?GROUP_MAP[raw]:null;
+            if(g&&!groupsFromEx.includes(g))groupsFromEx.push(g);
+          });
+          const allGroups=[...new Set([...groupsFromFocus,...groupsFromEx])];
+          allGroups.forEach(g=>{
+            if(!(g in lastDate))return;
+            if(lastDate[g]===null||log.date>lastDate[g])lastDate[g]=log.date;
+          });
+        });
+        // Recovery %: hours since last workout ÷ 48h, capped at 100
+        const rec={};
+        Object.keys(lastDate).forEach(g=>{
+          if(lastDate[g]===null){rec[g]={percent:100};return;}
+          const hoursAgo=(now-new Date(lastDate[g]+"T12:00:00"))/3600000;
+          rec[g]={percent:Math.min(100,Math.round((hoursAgo/48)*100))};
+        });
+        setRecoveryData(rec);
+        // Optimization: count sets this week from history
+        const weekStart=new Date();weekStart.setDate(weekStart.getDate()-weekStart.getDay()+1);
+        const weekStartStr=weekStart.toISOString().split("T")[0];
+        const weeklySets={chest:0,back:0,shoulders:0,arms:0,core:0,legs:0};
+        Object.entries(history||{}).forEach(([exKey,sessions])=>{
+          const exName=exKey.split("_").map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+          const rawGroup=EXERCISE_MUSCLE_GROUP[exName]||null;
+          const group=rawGroup?GROUP_MAP[rawGroup]:null;
+          if(!group)return;
+          sessions.forEach(sess=>{if((sess.date||"")>=weekStartStr)weeklySets[group]+=(sess.sets||[]).length;});
+        });
+        const opt=Object.fromEntries(
+          Object.entries(weeklySets).map(([g,sets])=>{
+            const[lo,hi]=OPTIMAL[g];
+            return[g,{status:sets<lo?"UNDERTRAINED":sets>hi?"OVERLOADED":"OPTIMAL",sets}];
+          })
+        );
+        setOptimizationData(opt);
+      });
+  },[user?.id,history]);
 
   // ── End session confirmation ─────────────────────────────────────────────
   const [endConfirm,setEndConfirm]=useState(false);
@@ -2194,25 +2342,30 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               return(<>
                 <div className="section-title" style={{margin:"4px 0 10px"}}>Exercises</div>
                 {coachStyle.progressNote&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:"rgba(245,245,240,.75)"}}>{coachStyle.progressNote}</div>}
-                {todayPrescription.map((ex,i)=>(
-                  <div key={i} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"12px 14px",marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-faint)",width:18}}>{i+1}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{fontWeight:600,fontSize:14}}>{ex.name}</div>
-                        {ex.isFavorite&&<span style={{padding:"2px 7px",borderRadius:5,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.35)",fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",letterSpacing:"0.1em"}}>FAV</span>}
+                {todayPrescription.map((ex,i)=>{
+                  const previewSugg=getSuggestion(ex.name);
+                  return(
+                  <div key={i} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"12px 14px",marginBottom:6}}>
+                    <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-faint)",width:18,paddingTop:2,flexShrink:0}}>{i+1}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{fontWeight:600,fontSize:14,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
+                          {ex.isFavorite&&<span style={{padding:"2px 7px",borderRadius:5,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.35)",fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",letterSpacing:"0.1em",flexShrink:0}}>FAV</span>}
+                        </div>
+                        <MuscleChips name={ex.name} sets={ex.sets} reps={ex.reps} sugg={previewSugg} history={history}/>
                       </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.06em"}}>{ex.sets} × {ex.reps}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0,paddingTop:2}}>
+                        <button onClick={()=>setSwapModal({exerciseName:ex.name,exerciseIdx:i,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",color:"var(--white-dim)",padding:4,cursor:"pointer",opacity:0.6}}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        </button>
+                        <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",color:ex.isFavorite?"var(--red)":"var(--white-faint)",padding:4,cursor:"pointer"}}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill={ex.isFavorite?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                        </button>
+                      </div>
                     </div>
-                    <button onClick={()=>setSwapModal({exerciseName:ex.name,exerciseIdx:i,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",color:"var(--white-dim)",padding:4,cursor:"pointer",opacity:0.6}}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
-                    </button>
-                    <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",color:ex.isFavorite?"var(--red)":"var(--white-faint)",padding:4,cursor:"pointer"}}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill={ex.isFavorite?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                    </button>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--white-faint)",opacity:0.4}}><path d="M9 18l6-6-6-6"/></svg>
                   </div>
-                ))}
+                );})}
               </>);
             })()}
 
@@ -2341,56 +2494,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </div>
 
             {/* ── MUSCLE RECOVERY ── */}
-            {(()=>{
-              // Schedule-based: walk back 14 days to find last trained day per group
-              const FOCUS_MAP={
-                Push:["chest","shoulders","arms"],Pull:["back","arms"],Legs:["legs","core"],
-                Upper:["chest","back","shoulders","arms"],Lower:["legs","core"],
-                "Full Body":["chest","back","shoulders","arms","legs","core"],
-                "Chest+Triceps":["chest","arms"],"Back+Biceps":["back","arms"],
-                "Shoulders+Arms":["shoulders","arms"],"Arnold A":["chest","shoulders","arms"],
-                "Arnold B":["back","arms"],"Chest & Back":["chest","back"],
-                "Shoulders & Arms":["shoulders","arms"],
-                Chest:["chest"],Back:["back"],Arms:["arms"],Shoulders:["shoulders"],
-              };
-              const WDAY_ORDER=["mon","tue","wed","thu","fri","sat","sun"];
-              const todayIdx=WDAY_ORDER.indexOf(todayKey);
-              const lastTrained={chest:null,back:null,shoulders:null,arms:null,legs:null,core:null};
-              for(let dAgo=0;dAgo<=13;dAgo++){
-                const day=WDAY_ORDER[((todayIdx-dAgo)+70)%7];
-                const muscles=FOCUS_MAP[dayFocus[day]]||[];
-                muscles.forEach(m=>{if(lastTrained[m]===null)lastTrained[m]=dAgo;});
-              }
-              // Recovery %: 48-hour model (using existing realistic lookup)
-              const recPct=dAgo=>{
-                if(dAgo===null)return 95;
-                if(dAgo===0)return 5;if(dAgo===1)return 38;if(dAgo===2)return 62;
-                if(dAgo===3)return 82;if(dAgo===4)return 92;return 96;
-              };
-              const recoveryData=Object.fromEntries(
-                Object.keys(lastTrained).map(g=>[g,{percent:recPct(lastTrained[g])}])
-              );
-              // Optimization: count sets this week from history
-              const weekStart=new Date();weekStart.setDate(weekStart.getDate()-weekStart.getDay()+1);
-              const weekStartStr=weekStart.toISOString().split("T")[0];
-              const GROUP_MAP={chest:'chest',back:'back',shoulders:'shoulders',biceps:'arms',triceps:'arms',legs:'legs',glutes:'legs',calves:'legs',core:'core'};
-              const OPTIMAL={chest:[10,20],back:[10,20],shoulders:[12,20],arms:[12,20],core:[10,16],legs:[10,20]};
-              const weeklySets={chest:0,back:0,shoulders:0,arms:0,core:0,legs:0};
-              Object.entries(history||{}).forEach(([exKey,sessions])=>{
-                const exName=exKey.split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-                const rawGroup=EXERCISE_MUSCLE_GROUP[exName]||null;
-                const group=rawGroup?GROUP_MAP[rawGroup]:null;
-                if(!group)return;
-                sessions.forEach(sess=>{if((sess.date||'')>=weekStartStr)weeklySets[group]+=(sess.sets||[]).length;});
-              });
-              const optimizationData=Object.fromEntries(
-                Object.entries(weeklySets).map(([g,sets])=>{
-                  const[lo,hi]=OPTIMAL[g];
-                  return[g,{status:sets<lo?'UNDERTRAINED':sets>hi?'OVERLOADED':'OPTIMAL',sets}];
-                })
-              );
-              return <MuscleRecovery recoveryData={recoveryData} optimizationData={optimizationData}/>;
-            })()}
+            <MuscleRecovery recoveryData={recoveryData} optimizationData={optimizationData}/>
 
             {/* ── RECENT PRs ── */}
             {Object.keys(history||{}).length>0&&(()=>{
@@ -2661,6 +2765,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           </div>
                           {ex.notes&&<div style={{fontSize:11,color:T.mu,marginLeft:32}}>{ex.notes}</div>}
                           {ex.mobilitySubstituted&&ex.originalName&&<div style={{fontSize:10,color:"#8B5CF6",marginLeft:32,marginTop:2}}>Substituted from {ex.originalName} due to mobility</div>}
+                          <div style={{marginLeft:32,marginTop:4}}>
+                            <MuscleChips name={ex.name} sugg={sugg} history={history}/>
+                          </div>
                         </div>
                         {sugg&&<div style={{background:`${T.prot}10`,border:`1px solid ${T.prot}25`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
                           <div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div>
