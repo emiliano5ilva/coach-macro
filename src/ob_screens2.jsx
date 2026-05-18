@@ -1880,7 +1880,9 @@ Be specific and practical. Empathetic tone. No fluff.`,
       const startD=profile?.startDate?new Date(profile.startDate):new Date();
       const weekNum=Math.floor(Math.max(0,(new Date()-startD)/86400000)/7)+1;
       const cMacros=getDayMacros(profile.goalCals,profile.goal,schedule[getTodayKey()]||"training",0);
-      const prompt=`You are a world-class personal trainer and nutritionist texting your athlete their morning briefing.\n\nAthlete data:\n- Name: ${profile.name}\n- Today: ${dayFocus[getTodayKey()]||"Training"} day — Week ${weekNum} of ${wPrefs.splitType||"training"}\n- Last session: ${lastSession}\n- Today's macros: ${cMacros.calories}kcal, ${cMacros.protein}g protein, ${cMacros.carbs}g carbs, ${cMacros.fat}g fat\n- Current streak: ${streak} days\n- Recent sleep: ${sleepAvg} hours average\n\nWrite a brief morning message (4-6 lines max) that:\n1. States today's training focus and one specific target\n2. Gives today's macro targets\n3. Suggests a first meal that fits the macros\n4. One motivational line based on their streak or recent performance\n\nWrite like a coach texting — direct, specific, no fluff. Not a formal notification. A real message from someone who knows them.`;
+      const goalNames={build_muscle:"Build Muscle (hypertrophy)",get_stronger:"Get Stronger (powerlifting)",lose_fat:"Lose Fat (metabolic)",recomp:"Body Recomposition",train_for_race:"Train for a Race (endurance)",get_faster:"Get Faster (power & athleticism)"};
+      const trainingGoalLine=profile?.primaryGoal?`- Training goal: ${goalNames[profile.primaryGoal]||profile.primaryGoal}`:"";
+      const prompt=`You are a world-class personal trainer and nutritionist texting your athlete their morning briefing.\n\nAthlete data:\n- Name: ${profile.name}\n- Today: ${dayFocus[getTodayKey()]||"Training"} day — Week ${weekNum} of ${wPrefs.splitType||"training"}\n- Last session: ${lastSession}\n- Today's macros: ${cMacros.calories}kcal, ${cMacros.protein}g protein, ${cMacros.carbs}g carbs, ${cMacros.fat}g fat\n- Current streak: ${streak} days\n- Recent sleep: ${sleepAvg} hours average\n${trainingGoalLine}\n\nWrite a brief morning message (4-6 lines max) that:\n1. States today's training focus and one specific target aligned to their goal\n2. Gives today's macro targets\n3. Suggests a first meal that fits the macros\n4. One motivational line based on their streak or recent performance\n\nWrite like a coach texting — direct, specific, no fluff. Not a formal notification. A real message from someone who knows them.`;
       try{
         await streamAI(prompt,400,"morning_brief",
           (partial)=>{setMorningBrief(partial);},
@@ -1987,9 +1989,12 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const fasting=FASTING_PROTOCOLS.find(p=>p.id===fastProto)||FASTING_PROTOCOLS[0];
   const fastHours=fastProto==="custom"?fastCustomH:fasting.fast;
 
-  function getRestDuration(tier,repsStr,exRestSecs){
+  function getRestDuration(tier,repsStr,exRestSecs,exRestReason){
     const reps=parseInt(repsStr)||10;
-    if(exRestSecs&&exRestSecs!==90&&exRestSecs!==120)return{secs:exRestSecs,reason:`${Math.round(exRestSecs/60)} min rest`};
+    if(exRestSecs){
+      const reason=exRestReason||`${exRestSecs>=60?Math.round(exRestSecs/60)+" min":""+exRestSecs+"s"} rest`;
+      return{secs:exRestSecs,reason};
+    }
     if(tier==="A"&&reps<=5)return{secs:180,reason:"3 min rest — heavy compound"};
     if(tier==="A"&&reps<=12)return{secs:120,reason:"2 min rest — compound work"};
     if(tier==="B"&&reps<=8)return{secs:120,reason:"2 min rest — secondary compound"};
@@ -2150,7 +2155,7 @@ Rules:
   function logSet(ei,si,reps,weight){
     setActiveWorkout(prev=>{if(!prev)return prev;const u={...prev};u.exercises=prev.exercises.map((ex,i)=>i!==ei?ex:{...ex,sets:ex.sets.map((s,j)=>j!==si?s:{...s,reps,weight,done:true})});return u;});
     const ex=activeWorkout?.exercises[ei];
-    const{secs,reason}=getRestDuration(ex?.tier,reps,ex?.restSecs);
+    const{secs,reason}=getRestDuration(ex?.tier,reps,ex?.restSecs,ex?.restReason);
 
     // History lookup for PR detection
     const k=(ex?.name||"").toLowerCase().replace(/\s+/g,"_");

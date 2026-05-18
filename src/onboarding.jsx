@@ -797,21 +797,16 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>What are you actually training for? This determines your program recommendation.</p>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {[
-              {v:"build_muscle",  e:"💪",l:"Build Muscle",     sub:"Hypertrophy focused training for maximum size"},
-              {v:"get_stronger",  e:"🏋️",l:"Get Stronger",     sub:"Powerlifting and powerbuilding for maximum strength"},
-              {v:"lose_fat",      e:"🔥",l:"Lose Fat",         sub:"Metabolic training, circuits, and HIIT for fat loss"},
-              {v:"athleticism",   e:"⚡",l:"Improve Athleticism",sub:"Functional and hybrid training for performance"},
-              {v:"race",          e:"🏃",l:"Train for a Race", sub:"Running, Hyrox, and endurance programming"},
-              {v:"recomp",        e:"🎯",l:"Body Recomposition",sub:"Build muscle and lose fat simultaneously"},
-              {v:"general",       e:"🌟",l:"General Fitness",  sub:"Feel better, move better, live better"},
+              {v:"build_muscle",   l:"BUILD MUSCLE",      sub:"Hypertrophy-focused training to maximize size and definition."},
+              {v:"get_stronger",   l:"GET STRONGER",      sub:"Powerlifting and powerbuilding to move heavier weight every week."},
+              {v:"lose_fat",       l:"LOSE FAT",          sub:"Metabolic circuits and HIIT to burn fat while keeping your muscle."},
+              {v:"recomp",         l:"RECOMP",            sub:"Build muscle and lose fat at the same time with smart periodization."},
+              {v:"train_for_race", l:"TRAIN FOR A RACE",  sub:"Structured endurance and strength work to hit your race-day goal."},
+              {v:"get_faster",     l:"GET FASTER",        sub:"Explosive power, athleticism, and speed for sport performance."},
             ].map(o=>(
-              <div key={o.v} onClick={()=>auto("primaryGoal",o.v)} style={{background:data.primaryGoal===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.primaryGoal===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:16}}>
-                <div style={{fontSize:24,flexShrink:0,width:32,textAlign:"center"}}>{o.e}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:15,fontWeight:700,color:data.primaryGoal===o.v?T.prot:"#fff"}}>{o.l}</div>
-                  <div style={{fontSize:12,color:T.mu,marginTop:2,lineHeight:1.4}}>{o.sub}</div>
-                </div>
-                {data.primaryGoal===o.v&&<div style={{color:T.prot,fontSize:16,flexShrink:0}}>✓</div>}
+              <div key={o.v} onClick={()=>auto("primaryGoal",o.v)} style={{background:data.primaryGoal===o.v?"rgba(232,52,28,0.08)":"rgba(245,245,240,0.04)",border:`1.5px solid ${data.primaryGoal===o.v?"#e8341c":"rgba(245,245,240,0.07)"}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#fff",marginBottom:4}}>{o.l}</div>
+                <div style={{fontSize:14,color:"rgba(245,245,240,0.65)",lineHeight:1.5}}>{o.sub}</div>
               </div>
             ))}
           </div>

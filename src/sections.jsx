@@ -26,6 +26,7 @@ import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
+import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -1920,18 +1921,31 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const baseSetCount=style.sets?.min||3;
       const weightMod=readiness?.config?.weightMod||1.0;
       const volMod=readiness?.config?.volumeMod||1.0;
-      exercises=todayPrescription.map(ex=>({
-        name:ex.name,notes:ex.notes||"",
-        originalName:ex.originalName||ex.name,
-        isFavorite:ex.isFavorite,
-        swappedFrom:ex.swappedFrom,
-        tier:ex.tier,
-        priority:isPriorityExercise(ex.name,wPrefs?.musclePriorities||[]),
-        sets:Array.from({length:Math.max(1,Math.round((Number(ex.sets)||baseSetCount)*volMod))},()=>({
-          weight:applyWeightMod(ex.weight||"",weightMod),
-          reps:String(ex.reps||10),done:false
-        })),
-      }));
+      const trainingGoal=profile?.primaryGoal||wPrefs?.primaryGoal;
+      const skillLevel=wPrefs?.liftExp||profile?.liftExp||"beginner";
+      const goalLabel=trainingGoal?getGoalLabel(trainingGoal):null;
+      const goalCtx=trainingGoal?getGoalContext(trainingGoal):null;
+      exercises=todayPrescription.map(ex=>{
+        const rx=trainingGoal?getPrescription(trainingGoal,skillLevel,ex.name):null;
+        const setCount=rx?Math.max(1,Math.round(rx.sets*volMod)):Math.max(1,Math.round((Number(ex.sets)||baseSetCount)*volMod));
+        const repsVal=rx?rx.reps:String(ex.reps||10);
+        const restSecs=rx?rx.restSeconds:(ex.restSecs||120);
+        const restReason=goalLabel?`${goalLabel} · ${Math.round(restSecs/60*10)/10} min rest`:null;
+        return {
+          name:ex.name,notes:ex.notes||"",
+          originalName:ex.originalName||ex.name,
+          isFavorite:ex.isFavorite,
+          swappedFrom:ex.swappedFrom,
+          tier:ex.tier,
+          restSecs,
+          restReason,
+          priority:isPriorityExercise(ex.name,wPrefs?.musclePriorities||[]),
+          sets:Array.from({length:setCount},()=>({
+            weight:applyWeightMod(ex.weight||"",weightMod),
+            reps:repsVal,done:false
+          })),
+        };
+      });
       exercises=applyMobilitySubstitutions(exercises,wPrefs?.mobilityLimitations||[]);
       exercises=lifeStageModifier(exercises,profile);
       const userAge=getAge(profile?.dobYear,profile?.dobMonth,profile?.dobDay);
@@ -2182,7 +2196,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",marginBottom:6}}>// {progLabel}</div>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{todayFocus}</div>
-                  {prescType==="lifting"&&<div style={{marginTop:8}}><span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span></div>}
+                  {prescType==="lifting"&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span>
+                    {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span style={{padding:"4px 9px",borderRadius:6,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:"#e8341c",textTransform:"uppercase"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
+                  </div>}
                 </div>
               </div>
               <div style={{display:"flex",gap:14,marginTop:14,fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)",letterSpacing:"0.06em"}}>
@@ -2372,6 +2389,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* ── START SESSION ── */}
             {todayType==="training"&&todayPrescription&&(
               <div>
+                {prescType==="lifting"&&(profile?.primaryGoal||wPrefs?.primaryGoal)&&(()=>{
+                  const g=profile?.primaryGoal||wPrefs?.primaryGoal;
+                  const lbl=getGoalLabel(g);
+                  const ctx=getGoalContext(g);
+                  return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",textAlign:"center",marginBottom:10}}>// {lbl} · {ctx}</div>);
+                })()}
                 <button onClick={startFromProgram} style={{width:"100%",padding:16,background:"var(--red)",border:"none",borderRadius:14,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                   Start Session
