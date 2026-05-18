@@ -31,6 +31,7 @@ import { FlagBtn } from "./FlagBtn.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import { completeReferral } from "./services/referralService.js";
 import { getMorningBrief } from "./services/morningBriefService.js";
+import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
@@ -2773,6 +2774,20 @@ Rules:
                 <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:isReduce?"#EF4444":T.green}}>{isReduce?"Reduce Intensity Today":"Peak Recovery — Push Hard"}</div>
                 <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>{adj.reason}</div>
               </div>
+            </div>
+          );
+        })()}
+
+        {/* Trial expiry banner — shows 3 days before trial ends */}
+        {trialExpiringSoon(profile)&&(()=>{
+          const days=trialDaysRemaining(profile);
+          return(
+            <div style={{margin:"0 20px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(232,52,28,0.15) 0%,rgba(232,52,28,0.05) 100%)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div>
+                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:4}}>// TRIAL ENDING</div>
+                <div style={{fontSize:13,color:"#f5f5f0"}}>Your free trial ends in {days} day{days===1?"":"s"}.</div>
+              </div>
+              <button onClick={()=>window.dispatchEvent(new CustomEvent("cm:subscription-required"))} style={{background:"#e8341c",border:"none",borderRadius:8,padding:"7px 12px",fontFamily:"var(--mono)",fontSize:9,color:"#fff",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0,marginLeft:12}}>UPGRADE →</button>
             </div>
           );
         })()}

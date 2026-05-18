@@ -32,6 +32,8 @@ import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
 import { getReferralData, getReferrals, REFERRAL_TIERS } from "./services/referralService.js";
+import { getAdaptLimit, trialDaysRemaining, trialExpiringSoon, isExpired, getSubscriptionLabel } from "./utils/subscription.js";
+import { purchaseMonthly, purchaseAnnual, restorePurchases } from "./services/purchaseService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -821,7 +823,9 @@ Rules:
     </div>
   );
 
-  const isFree=!profile?.is_pro&&!["pro","plus","ultra"].includes((profile?.subscriptionTier||"").toLowerCase());
+  const _tier=profile?.subscription_tier||'trial';
+  const isPaidPlan=_tier==='monthly'||_tier==='annual';
+  const trialDays=_tier==='trial'?trialDaysRemaining(profile):null;
   const resetDisplayDate=adaptResetDate?new Date(new Date(adaptResetDate+"T00:00:00").getTime()+30*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"}):null;
 
   if(adaptationsLeft===0)return(
@@ -835,16 +839,16 @@ Rules:
       </div>
       <div className="adapt-body" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",gap:16,paddingTop:40}}>
         <div style={{fontSize:40,marginBottom:4}}>⚡</div>
-        {isFree?(
-          <>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED<br/>YOUR 2 FREE<br/>ADAPTATIONS.</div>
-            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>Upgrade to Pro for 10 adaptations per month — plus AI meal logging, recipe generator, and more.</div>
-            <button onClick={()=>{onClose();showToast("Go to Me → Subscription to upgrade to Pro.","info",{duration:5000});}} style={{padding:"14px 28px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:15,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",marginTop:4}}>Upgrade → Pro</button>
-          </>
-        ):(
+        {isPaidPlan?(
           <>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED ALL<br/>{adaptLimit} ADAPTATIONS<br/>THIS MONTH.</div>
             <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>{resetDisplayDate?`Your quota resets on ${resetDisplayDate}.`:"Your quota resets in the next billing cycle."}</div>
+          </>
+        ):(
+          <>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED ALL<br/>{adaptLimit}<br/>ADAPTATIONS.</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>Upgrade to Pro for 10 adaptations per month — plus AI meal logging, recipe generator, and more.</div>
+            <button onClick={()=>{onClose();window.dispatchEvent(new CustomEvent("cm:subscription-required"));}} style={{padding:"14px 28px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:15,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",marginTop:4}}>Upgrade → Pro</button>
           </>
         )}
       </div>
@@ -858,7 +862,8 @@ Rules:
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
-          <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPT NOW · {adaptationsLeft} OF {adaptLimit} REMAINING</div>
+          <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:2}}>ADAPT NOW · {adaptationsLeft} OF {adaptLimit} REMAINING</div>
+          {trialDays!==null&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>TRIAL · {trialDays} DAY{trialDays===1?"":"S"} LEFT</div>}
           <div className="adapt-title">ADAPT YOUR SESSION</div>
         </div>
         <button className="adapt-close" onClick={onClose}>✕</button>
@@ -1597,8 +1602,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [adaptToast,setAdaptToast]=useState("");
   const [localAdaptUsed,setLocalAdaptUsed]=useState(null);
 
-  const ADAPT_LIMITS={free:2,pro:10,plus:10,ultra:10};
-  const adaptLimit=ADAPT_LIMITS[(profile?.subscriptionTier||"").toLowerCase()]||(profile?.is_pro?ADAPT_LIMITS.pro:ADAPT_LIMITS.free);
+  const adaptLimit=getAdaptLimit(profile);
   const adaptResetDate=profile?.adaptations_reset_date;
   const daysSinceReset=adaptResetDate?Math.floor((Date.now()-new Date(adaptResetDate))/86400000):31;
   const needsAdaptReset=daysSinceReset>30;
@@ -1627,7 +1631,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const newUsed=adaptUsed+1;
     setLocalAdaptUsed(newUsed);
     const _adaptRemaining=Math.max(0,adaptLimit-newUsed);
-    setAdaptToast(`Adapted session loaded. ${_adaptRemaining} adaptation${_adaptRemaining===1?"":"s"} remaining this month.`);
+    const _tier=profile?.subscription_tier||'trial';
+    const _toast=_adaptRemaining>0
+      ?`Session adapted. ${_adaptRemaining} of ${adaptLimit} adaptations remaining this month.`
+      :_tier==='expired'
+        ?`Upgrade to Pro to unlock Adapt Now.`
+        :`You have used all ${adaptLimit} adaptations this month.`;
+    setAdaptToast(_toast);
     setTimeout(()=>setAdaptToast(""),4500);
     try{
       const {data:{user}}=await sb.auth.getUser();
@@ -3769,6 +3779,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   }
 
   const isPro=!!profile?.is_pro;
+  const [showPlansModal,setShowPlansModal]=useState(false);
+  const [purchaseLoading,setPurchaseLoading]=useState(null);
+  const subTier=profile?.subscription_tier||'trial';
+  const subLabel=getSubscriptionLabel(profile);
+  const subIsPaid=subTier==='monthly'||subTier==='annual';
 
   const GOAL_LABELS={build_muscle:"Build Muscle",get_stronger:"Get Stronger",lose_fat:"Lose Fat",recomp:"Body Recomp",train_for_race:"Train for Race",get_faster:"Get Faster"};
   const SKILL_LABELS={none:"Beginner",beginner:"Beginner",intermediate:"Intermediate",advanced:"Advanced"};
@@ -3842,12 +3857,64 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={eyebrowStyle}>// Subscription</div>
       <div style={cardStyle}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Current Plan</span>
-          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:isPro?"#34d399":"rgba(245,245,240,0.4)",padding:"3px 10px",borderRadius:6,background:isPro?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.06)",border:`1px solid ${isPro?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`}}>{isPro?"Pro":"Free Trial"}</span>
+          <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Plan</span>
+          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"#e8341c":"rgba(245,245,240,0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`}}>{subLabel}</span>
         </div>
-        <MeRow label={isPro?"Manage Subscription":"Upgrade to Pro"} onPress={()=>showToast("Opening subscription manager...","info")} value=""/>
-        <MeRow label="Restore Purchases" isLast onPress={()=>showToast("Checking purchases...","info")} value=""/>
+        {subIsPaid?(
+          <>
+            {profile?.subscription_started_at&&<div style={{padding:"10px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",fontSize:12,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>Active since {new Date(profile.subscription_started_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+            <MeRow label="Manage Subscription" onPress={()=>showToast("Manage via App Store → Subscriptions.","info",{duration:4000})} value=""/>
+            <div style={{padding:"8px 16px",fontSize:10,color:"rgba(245,245,240,0.25)",fontFamily:"var(--mono)",letterSpacing:"0.06em",borderBottom:"1px solid rgba(245,245,240,0.04)"}}>Manage or cancel via the App Store settings.</div>
+          </>
+        ):(
+          <div style={{margin:"12px 16px",padding:"16px",background:"rgba(232,52,28,0.05)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:12}}>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$9.99 / month</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$79.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700}}>SAVE 33%</span></div></div>
+            </div>
+            <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--red)",border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
+          </div>
+        )}
+        <MeRow label="Restore Purchases" isLast onPress={async()=>{
+          showToast("Checking purchases...","info");
+          const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+          if(!u)return;
+          const tier=await restorePurchases(u.id);
+          if(tier)showToast(`Restored: ${tier==="monthly"?"Pro Monthly":"Pro Annual"} active.`,"success");
+          else showToast("No active purchases found.","info");
+        }} value=""/>
       </div>
+
+      {/* Plans modal — sheet */}
+      {showPlansModal&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
+            <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
+            {[{id:"monthly",label:"MONTHLY",price:"$9.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"ANNUAL",price:"$79.99",per:"/year · $6.67/mo",badge:"BEST VALUE",saving:"Save 33% vs monthly",gradient:true}].map(plan=>(
+              <div key={plan.id} onClick={async()=>{
+                if(purchaseLoading)return;
+                setPurchaseLoading(plan.id);
+                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+                if(!u){setPurchaseLoading(null);return;}
+                const ok=plan.id==="monthly"?await purchaseMonthly(u.id):await purchaseAnnual(u.id);
+                setPurchaseLoading(null);
+                if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
+                else showToast("Purchase failed. Try again.","error");
+              }} style={{background:plan.gradient?"linear-gradient(135deg,#111827 0%,#1a0f0f 100%)":"#111827",border:`1px solid ${plan.gradient?"#e8341c":"rgba(245,245,240,0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"#e8341c",borderRadius:20,padding:"3px 10px",fontFamily:"var(--mono)",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:plan.gradient?"#e8341c":"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:4}}>{plan.label}</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"var(--mono)",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(245,245,240,0.4)"}}> {plan.per}</span></div>
+                {plan.saving&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
+                {purchaseLoading===plan.id&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:6}}>Processing...</div>}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── ACCOUNT ── */}
       <div style={eyebrowStyle}>// Account</div>
@@ -4210,6 +4277,89 @@ export function UpgradeScreen({ profile, onContinue }) {
         <div style={{ fontSize:12, color:T.mu, textAlign:'center' }}>
           Secure checkout · Cancel anytime
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── EXPIRED PAYWALL (full-screen, shows when trial ends + not subscribed) ─────
+export function ExpiredPaywall({ profile, onSubscribed }) {
+  const [loading, setLoading] = useState(null);
+  const firstName = (profile?.name || '').split(' ')[0] || 'Athlete';
+
+  async function doPurchase(type) {
+    if (loading) return;
+    setLoading(type);
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { setLoading(null); return; }
+      const ok = type === 'monthly' ? await purchaseMonthly(user.id) : await purchaseAnnual(user.id);
+      if (ok) onSubscribed?.();
+      else showToast('Purchase failed. Try again.', 'error');
+    } catch { showToast('Purchase failed. Try again.', 'error'); }
+    setLoading(null);
+  }
+
+  async function doRestore() {
+    setLoading('restore');
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { setLoading(null); return; }
+      const tier = await restorePurchases(user.id);
+      if (tier) onSubscribed?.();
+      else showToast('No active purchases found.', 'info');
+    } catch { showToast('Restore failed. Try again.', 'error'); }
+    setLoading(null);
+  }
+
+  return (
+    <div style={{ minHeight:'100vh', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px 20px', position:'relative', overflow:'hidden' }}>
+      <div style={{ position:'absolute', top:'20%', left:'50%', transform:'translateX(-50%)', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(232,52,28,0.12) 0%, transparent 70%)', pointerEvents:'none' }}/>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{ width:'100%', maxWidth:420, position:'relative', zIndex:1 }}>
+
+        <div style={{ fontFamily:'var(--mono)', fontSize:24, fontWeight:700, color:'#e8341c', letterSpacing:'0.1em', marginBottom:32, lineHeight:1.1 }}>COACH<br/>MACRO</div>
+
+        <div style={{ fontFamily:'var(--condensed)', fontStyle:'italic', fontWeight:900, fontSize:36, lineHeight:1, marginBottom:12 }}>
+          YOUR TRIAL HAS ENDED<span style={{ color:'#e8341c' }}>.</span>
+        </div>
+        <div style={{ fontSize:15, color:'rgba(245,245,240,0.6)', lineHeight:1.5, marginBottom:24 }}>
+          You have had 14 days to experience Coach Macro. Subscribe to keep your data, programs, and progress.
+        </div>
+
+        <div style={{ marginBottom:24 }}>
+          {['All your workout history', 'Your training programs', 'Personal records', 'Muscle recovery data'].map(item => (
+            <div key={item} style={{ display:'flex', gap:10, alignItems:'center', marginBottom:10 }}>
+              <span style={{ fontFamily:'var(--mono)', fontSize:10, color:'#22c55e', fontWeight:700 }}>✓</span>
+              <span style={{ fontSize:14, color:'#f5f5f0' }}>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Monthly card */}
+        <div style={{ background:'#111827', border:'1px solid rgba(245,245,240,0.1)', borderRadius:14, padding:16, marginBottom:10 }}>
+          <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'rgba(245,245,240,0.4)', textTransform:'uppercase', marginBottom:4 }}>MONTHLY</div>
+          <div style={{ fontFamily:'var(--condensed)', fontStyle:'italic', fontWeight:900, fontSize:32, lineHeight:1 }}>$9.99<span style={{ fontFamily:'var(--mono)', fontSize:11, fontStyle:'normal', fontWeight:400, color:'rgba(245,245,240,0.4)' }}> / month</span></div>
+        </div>
+
+        {/* Annual card */}
+        <div style={{ background:'linear-gradient(135deg,#111827 0%,#1a0f0f 100%)', border:'1px solid #e8341c', borderRadius:14, padding:16, marginBottom:24, position:'relative' }}>
+          <div style={{ position:'absolute', top:-10, right:16, background:'#e8341c', borderRadius:20, padding:'3px 10px', fontFamily:'var(--mono)', fontSize:8, color:'#fff', fontWeight:700 }}>BEST VALUE</div>
+          <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'#e8341c', textTransform:'uppercase', marginBottom:4 }}>ANNUAL</div>
+          <div style={{ fontFamily:'var(--condensed)', fontStyle:'italic', fontWeight:900, fontSize:32, lineHeight:1 }}>$79.99<span style={{ fontFamily:'var(--mono)', fontSize:11, fontStyle:'normal', fontWeight:400, color:'rgba(245,245,240,0.4)' }}> / year · $6.67/month</span></div>
+          <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'#22c55e', marginTop:4 }}>Save 33% vs monthly</div>
+        </div>
+
+        <button onClick={() => doPurchase('monthly')} disabled={!!loading} style={{ width:'100%', padding:14, background:'rgba(232,52,28,0.12)', border:'1px solid rgba(232,52,28,0.3)', borderRadius:12, color:'#e8341c', fontFamily:'var(--mono)', fontWeight:700, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', cursor:'pointer', marginBottom:8, opacity:loading?0.6:1 }}>
+          {loading==='monthly'?'PROCESSING…':'START MONTHLY — $9.99/MO'}
+        </button>
+        <button onClick={() => doPurchase('annual')} disabled={!!loading} style={{ width:'100%', padding:14, background:'#e8341c', border:'none', borderRadius:12, color:'#fff', fontFamily:'var(--mono)', fontWeight:700, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', cursor:'pointer', marginBottom:16, opacity:loading?0.6:1 }}>
+          {loading==='annual'?'PROCESSING…':'START ANNUAL — $79.99/YR'}
+        </button>
+
+        <button onClick={doRestore} disabled={!!loading} style={{ display:'block', width:'100%', background:'none', border:'none', textAlign:'center', fontFamily:'var(--mono)', fontSize:9, color:'rgba(245,245,240,0.35)', cursor:'pointer', letterSpacing:'0.06em' }}>
+          {loading==='restore'?'Checking…':'Restore purchases'}
+        </button>
       </div>
     </div>
   );

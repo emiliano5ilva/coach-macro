@@ -12,7 +12,9 @@ import { track, EVENTS, setAnalyticsEnabled } from "./services/analytics.js";
 import { initDeepLinks } from "./services/deepLinks.js";
 import { initPushNotifications, scheduleTrialExpiryNotification } from "./services/notifications.js";
 import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
-import { PromoScreen, Paywall, UpgradeScreen } from "./sections.jsx";
+import { PromoScreen, Paywall, UpgradeScreen, ExpiredPaywall } from "./sections.jsx";
+import { isExpired } from "./utils/subscription.js";
+import { checkEntitlements } from "./services/purchaseService.js";
 import { PrivacyPolicy, TermsOfService } from "./legal.jsx";
 
 // ── Splash Screen ─────────────────────────────────────────────────────────────
@@ -435,13 +437,31 @@ export default function NativeApp() {
     try{
       const{data,error}=await sb.from("profiles").select("*").eq("id",uid).maybeSingle();
       if(error||!data){setPhase("onboarding");return;}
-      if(data.profile_data)setProfile({...data.profile_data,referralCount:data.referral_count||0});
-      if(data.schedule)setSchedule(data.schedule);
-      if(data.wprefs)setWPrefs(data.wprefs);
-      setAnalyticsEnabled(data.analytics_enabled!==false);
-      initPushNotifications(uid);
-      if(data.profile_data?.trialEndsAt)scheduleTrialExpiryNotification(data.profile_data.trialEndsAt);
-      setPhase("app");
+      if(data.profile_data){
+        const trialEnd=data.trial_ends_at||data.profile_data.trialEndsAt;
+        // Derive subscription_tier from DB column; fall back to date-based check
+        let tier=data.subscription_tier||'trial';
+        if(tier==='trial'&&trialEnd&&new Date(trialEnd)<=new Date())tier='expired';
+        setProfile({
+          ...data.profile_data,
+          referralCount:data.referral_count||0,
+          subscription_tier:tier,
+          trial_ends_at:trialEnd||null,
+          trial_started_at:data.trial_started_at||data.profile_data.trialStartAt||null,
+          subscription_started_at:data.subscription_started_at||null,
+        });
+        // Sync entitlements on load (non-blocking)
+        checkEntitlements(uid).catch(()=>{});
+        if(trialEnd)scheduleTrialExpiryNotification(trialEnd);
+        const expired=tier==='expired';
+        if(data.schedule)setSchedule(data.schedule);
+        if(data.wprefs)setWPrefs(data.wprefs);
+        setAnalyticsEnabled(data.analytics_enabled!==false);
+        initPushNotifications(uid);
+        setPhase(expired?"expired":"app");
+      }else{
+        setPhase("onboarding");
+      }
     }catch(e){console.error("[loadProfile]",e);setPhase("onboarding");}
   }
 
@@ -664,6 +684,11 @@ export default function NativeApp() {
   if(phase==="promo")return<PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
   if(phase==="paywall")return<Paywall profile={profile}/>;
   if(phase==="upgrade"){track(EVENTS.UPGRADE_VIEWED,{},user?.id);return<UpgradeScreen profile={profile} onContinue={()=>setPhase("app")}/>;}
+  if(phase==="expired")return<ExpiredPaywall profile={profile} onSubscribed={async()=>{
+    // Reload profile to pick up new subscription_tier from DB
+    if(user)await loadProfile(user.id);
+    else setPhase("app");
+  }}/>;
 
   return<App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user}/>;
 }
