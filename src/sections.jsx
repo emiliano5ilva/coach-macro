@@ -2368,56 +2368,154 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </div>
 
             {/* ── TODAY'S SESSION ── */}
-            {todayType==="training"&&todayPrescription&&(()=>{
-              const g=profile?.primaryGoal||wPrefs?.primaryGoal;
-              const lbl=g?getGoalLabel(g):null;
-              const exArr=Array.isArray(todayPrescription)?todayPrescription:null;
-              const estMins=exArr?Math.round(exArr.length*7):null;
-              const coachStyle=getCoachingStyle(wPrefs?.trainingAge);
-              const workoutObj=prescType==="lifting"?getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp):null;
-              const sessionName=workoutObj?.dayName||workoutObj?.splitName||(wPrefs.splitType||"Today's Workout");
+            {(()=>{
+              const isRestDay=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
+              const isTraining=todayType==="training"&&Array.isArray(todayPrescription)&&todayPrescription.length>0;
+
+              if(isRestDay){
+                return(
+                  <>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// today</div>
+                    <div style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.05)",borderRadius:14,padding:16,marginBottom:12}}>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,color:"#f5f5f0",lineHeight:1,marginBottom:8}}>REST DAY<span style={{color:"#e8341c"}}>.</span></div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:13,color:"rgba(245,245,240,0.4)",lineHeight:1.5}}>Your body grows when you rest. Come back tomorrow.</div>
+                    </div>
+                  </>
+                );
+              }
+
+              if(!isTraining)return null;
+
+              const goal=profile?.primaryGoal||wPrefs?.primaryGoal;
+              const skillLevel=(wPrefs?.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+              const wUnit=profile?.wUnit||"lbs";
+              const workoutObj=prescType==="lifting"?getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,skillLevel):null;
+              const rawDayName=workoutObj?.dayName||"";
+
+              const SESSION_NAMES={
+                "Push":"PUSH","Push Day":"PUSH","Push A":"PUSH","Push B":"PUSH",
+                "Pull":"PULL","Pull Day":"PULL","Pull A":"PULL","Pull B":"PULL",
+                "Legs":"LEGS","Legs Day":"LEGS","Legs A":"LEGS","Legs B":"LEGS",
+                "Upper":"UPPER","Upper Body":"UPPER","Upper A":"UPPER","Upper B":"UPPER",
+                "Lower":"LOWER","Lower Body":"LOWER","Lower A":"LOWER","Lower B":"LOWER",
+                "Run":"RUN","Running":"RUN","Run Day":"RUN",
+                "Full Body":"FULL BODY","Full Body A":"FULL BODY","Full Body B":"FULL BODY",
+                "WOD":"WORKOUT","Hyrox":"WORKOUT","HIIT":"WORKOUT",
+              };
+              const sessionLabel=SESSION_NAMES[rawDayName]||(rawDayName?rawDayName.toUpperCase():"WORKOUT");
+
+              const GOAL_LABEL_MAP={build_muscle:"HYPERTROPHY",get_stronger:"STRENGTH",lose_fat:"METABOLIC",recomp:"RECOMP",get_faster:"POWER",train_for_race:"ENDURANCE"};
+              const GOAL_CTX_LINE={
+                build_muscle:"// HYPERTROPHY · Controlled tempo · 90s rest",
+                get_stronger:"// STRENGTH · Max load · 3 min rest",
+                lose_fat:"// METABOLIC · High reps · 45s rest",
+                recomp:"// RECOMP · Moderate load · 75s rest",
+                get_faster:"// POWER · Explosive · 2 min rest",
+                train_for_race:"// ENDURANCE · Pace-based · See plan",
+              };
+              const goalLabel=GOAL_LABEL_MAP[goal]||"TRAINING";
+              const goalCtxLine=GOAL_CTX_LINE[goal]||"// TRAINING · Stay consistent";
+
+              const exArr=todayPrescription;
+              const estMins=Math.round(exArr.length*12/5)*5||30;
+
+              const firstPrescEx=exArr[0]?getPrescription(goal,skillLevel,exArr[0].name):null;
+              const headerSxR=firstPrescEx?`${firstPrescEx.sets} × ${firstPrescEx.reps}`:null;
+
+              function getWeightDisplay(name){
+                const k=name.toLowerCase().replace(/\s+/g,"_");
+                const sessions=history?.[k]||history?.[name]||null;
+                if(!sessions?.length)return{text:"Start light",color:"rgba(245,245,240,0.35)"};
+                const last=sessions[sessions.length-1];
+                const prev=sessions.length>1?sessions[sessions.length-2]:null;
+                const lastMax=Math.max(0,...(last.sets||[]).map(s=>parseFloat(s.weight||0)));
+                const prevMax=prev?Math.max(0,...(prev.sets||[]).map(s=>parseFloat(s.weight||0))):null;
+                if(!lastMax)return{text:"Start light",color:"rgba(245,245,240,0.35)"};
+                const isUp=prevMax&&lastMax>prevMax;
+                return{text:`${lastMax}${wUnit}${isUp?" ↑":""}`,color:isUp?"#22c55e":"rgba(245,245,240,0.55)"};
+              }
+
+              const visibleExs=exArr.slice(0,5);
+              const hiddenCount=Math.max(0,exArr.length-5);
+
               return(
-                <div style={{background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>
-                    // W{weekNum} · D{dayIndex+1}{estMins?` · ${estMins} MIN`:""}{lbl?` · ${lbl}`:""}
-                  </div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1,marginBottom:14}}>
-                    {sessionName}<span style={{color:"#e8341c"}}>.</span>
-                  </div>
-                  {exArr&&coachStyle.progressNote&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"8px 12px",marginBottom:10,fontSize:11,color:"rgba(245,245,240,.75)"}}>{coachStyle.progressNote}</div>}
-                  {exArr&&exArr.map((ex,i)=>{
-                    const previewSugg=getSuggestion(ex.name);
-                    return(
-                      <div key={i} style={{background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.06)",borderRadius:12,padding:"10px 12px",marginBottom:6}}>
-                        <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.2)",width:16,paddingTop:2,flexShrink:0}}>{i+1}</div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
-                              <div style={{fontWeight:600,fontSize:13,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#f5f5f0"}}>{ex.name}</div>
-                              {ex.isFavorite&&<span style={{padding:"2px 6px",borderRadius:4,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.35)",fontFamily:"var(--mono)",fontSize:8,color:"var(--amber)",letterSpacing:"0.1em",flexShrink:0}}>FAV</span>}
-                            </div>
-                            <MuscleChips name={ex.name} sets={ex.sets} reps={ex.reps} sugg={previewSugg} history={history}/>
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0,paddingTop:2}}>
-                            <button onClick={()=>setSwapModal({exerciseName:ex.name,exerciseIdx:i,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",color:"var(--white-dim)",padding:4,cursor:"pointer",opacity:0.6}}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
-                            </button>
-                            <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",color:ex.isFavorite?"var(--red)":"var(--white-faint)",padding:4,cursor:"pointer"}}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill={ex.isFavorite?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                            </button>
-                          </div>
+                <>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// today</div>
+                  <div style={{background:"#111827",borderRadius:14,padding:16,border:"1px solid rgba(245,245,240,0.07)",marginBottom:12}}>
+                    {/* Header row */}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                      <div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.32)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>
+                          // W{weekNum} · D{dayIndex+1} · {estMins} MIN
+                        </div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,textTransform:"uppercase",color:"#f5f5f0",lineHeight:0.92}}>
+                          {sessionLabel}<span style={{color:"#e8341c"}}>.</span>
                         </div>
                       </div>
-                    );
-                  })}
-                  <div style={{marginTop:12}}>
-                    <button onClick={startFromProgram} style={{width:"100%",padding:15,background:"#e8341c",border:"none",borderRadius:13,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                      Start Session →
-                    </button>
-                    {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{width:"100%",marginTop:8,padding:"12px",background:"transparent",border:`1px solid ${T.prot}40`,borderRadius:12,color:T.prot,fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Resume Session</button>}
+                      {goal&&(
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{goalLabel}</div>
+                          {headerSxR&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",marginTop:2}}>{headerSxR}</div>}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Exercise list */}
+                    {visibleExs.map((ex,i)=>{
+                      const muscleData=getExerciseData(ex.name);
+                      const wDisplay=getWeightDisplay(ex.name);
+                      const prescData=getPrescription(goal,skillLevel,ex.name);
+                      const sxr=prescData?`${prescData.sets} × ${prescData.reps}`:(ex.sets&&ex.reps?`${ex.sets} × ${ex.reps}`:null);
+                      const isLast=i===visibleExs.length-1&&hiddenCount===0;
+                      return(
+                        <div key={i} style={{padding:"10px 0",borderBottom:isLast?"none":"1px solid rgba(245,245,240,0.05)"}}>
+                          {/* Top: name + weight */}
+                          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:muscleData?.primary?.length?4:0}}>
+                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:15,color:"#f5f5f0",lineHeight:1.1,flex:1,minWidth:0}}>{ex.name}</div>
+                            <div style={{fontFamily:"var(--mono)",fontSize:11,color:wDisplay.color,flexShrink:0,lineHeight:1.2}}>{wDisplay.text}</div>
+                          </div>
+                          {/* Middle: primary muscle chips */}
+                          {muscleData?.primary?.length>0&&(
+                            <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:4}}>
+                              {muscleData.primary.map(muscle=>{
+                                const c=getMuscleColor(muscle);
+                                return(
+                                  <span key={muscle} style={{display:"inline-flex",borderRadius:20,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap",background:`${c}1A`,border:`1px solid ${c}40`,color:c}}>{muscle}</span>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {/* Bottom: secondary + note + sets×reps */}
+                          {(muscleData?.secondary?.length>0||muscleData?.note||sxr)&&(
+                            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:8}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                {muscleData?.secondary?.length>0&&(
+                                  <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.28)",marginBottom:muscleData.note?1:0}}>+ {muscleData.secondary.join(' · ')}</div>
+                                )}
+                                {muscleData?.note&&(
+                                  <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.18)",fontStyle:"italic"}}>{muscleData.note}</div>
+                                )}
+                              </div>
+                              {sxr&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.38)",letterSpacing:"0.06em",flexShrink:0,marginLeft:8}}>{sxr}</div>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* + more */}
+                    {hiddenCount>0&&(
+                      <div style={{paddingTop:10,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.30)",letterSpacing:"0.1em",textTransform:"uppercase"}}>+ {hiddenCount} more exercise{hiddenCount>1?"s":""}</div>
+                    )}
+
+                    {/* Goal context line */}
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.32)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:14,marginBottom:12}}>{goalCtxLine}</div>
+
+                    {/* Start button */}
+                    <button onClick={startFromProgram} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:10,padding:14,color:"#ffffff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
+                    {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{width:"100%",marginTop:8,padding:"12px",background:"transparent",border:`1px solid ${T.prot}40`,borderRadius:10,color:T.prot,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Resume Session</button>}
                   </div>
-                </div>
+                </>
               );
             })()}
 
