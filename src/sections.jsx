@@ -3782,16 +3782,19 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
 
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
 export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury}) {
-  const [delStep,setDelStep]=useState(0); // 0=idle 1=warning 2=confirm 3=deleting
-  const [delConfirm,setDelConfirm]=useState(false);
+  const [delStep,setDelStep]=useState(0);
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
-
-  const [settingsSaved,setSettingsSaved]=useState(false);
   const [referralStats,setReferralStats]=useState({sent:0,clicked:0});
   const [refGenerating,setRefGenerating]=useState(false);
   const [refCopied,setRefCopied]=useState(false);
-  const [aiUsage,setAiUsage]=useState(null);
+  const [editModal,setEditModal]=useState(null);
+  const [editValue,setEditValue]=useState("");
+  const [localName,setLocalName]=useState(profile?.name||"");
+  const [localWeight,setLocalWeight]=useState(String(profile?.weight||""));
+  const [localHeight,setLocalHeight]=useState(String(profile?.height||""));
+  const [showGoalSelector,setShowGoalSelector]=useState(false);
+  const [showSkillSelector,setShowSkillSelector]=useState(false);
 
   async function saveSettings(newWPrefs,newSchedule){
     if(!user)return;
@@ -3801,10 +3804,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {onConflict:"id"}
       );
       if(error){console.error("[saveSettings] error:",error.message);showToast("Couldn't save — check your connection","error");}
-      else{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2000);showToast("Preferences saved","success");}
+      else{showToast("Preferences saved","success");}
     }catch(e){console.error("[saveSettings] exception:",e);showToast("Couldn't save — check your connection","error");}
   }
-
 
   useEffect(()=>{
     if(!user)return;
@@ -3813,16 +3815,14 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     });
   },[user]);
 
-  useEffect(()=>{
+  async function saveProfileField(field,value){
     if(!user)return;
-    const thisMonth=new Date().toISOString().slice(0,7);
-    sb.from("token_usage").select("tokens_used").eq("user_id",user.id).eq("month",thisMonth).maybeSingle().then(({data})=>{
-      const budget=80000;
-      const used=data?.tokens_used||0;
-      const pct=Math.round((used/budget)*100);
-      setAiUsage({used,budget,pct});
-    });
-  },[user]);
+    try{
+      const{error}=await sb.from("profiles").upsert({id:user.id,[field]:value},{onConflict:"id"});
+      if(!error)showToast("Saved","success");
+      else showToast("Couldn't save","error");
+    }catch{showToast("Couldn't save","error");}
+  }
 
 
   async function deleteAccount() {
@@ -3882,310 +3882,249 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const refCount=profile?.referralCount||0;
   const isPro=!!profile?.is_pro;
   const refBadge=getReferralBadge(refCount);
-  const tier=getTier(refCount);
+
+  const GOAL_LABELS={build_muscle:"Build Muscle",get_stronger:"Get Stronger",lose_fat:"Lose Fat",recomp:"Body Recomp",train_for_race:"Train for Race",get_faster:"Get Faster"};
+  const SKILL_LABELS={none:"Beginner",beginner:"Beginner",intermediate:"Intermediate",advanced:"Advanced"};
+  const currentGoal=wPrefs?.primaryGoal||profile?.primaryGoal;
+  const currentSkill=wPrefs?.liftExp||profile?.liftExp||"beginner";
+  const wUnit=profile?.wUnit||"lbs";
+
+  const eyebrowStyle={fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,marginTop:24};
+  const cardStyle={background:"#111827",borderRadius:12,border:"1px solid rgba(245,245,240,0.07)",overflow:"hidden"};
+  function MeRow({label:lbl,value:val,onPress,isLast,isDestructive,noChevron,rightEl}){
+    return(
+      <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
+        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"#e8341c":"#f5f5f0"}}>{lbl}</span>
+        {rightEl||(!isDestructive&&(
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            {val&&<span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:"rgba(245,245,240,0.40)"}}>{val}</span>}
+            {!noChevron&&onPress&&<span style={{color:"rgba(245,245,240,0.25)",fontSize:18,lineHeight:1}}>›</span>}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?80:0}}>
-      <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>ME</div>
-      <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Your athlete profile &amp; account</p>
+    <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?100:0}}>
+      {/* ── ATHLETE PASSPORT ── */}
       <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
-      <div style={{background:T.s1,borderRadius:18,border:`1px solid ${T.bd}`,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:14,marginTop:16}}>
-        <div style={{width:46,height:46,borderRadius:23,background:`${T.prot}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:T.prot,fontFamily:"var(--condensed)",flexShrink:0}}>{(profile?.name||"A")[0].toUpperCase()}</div>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:0}}>
-            <span style={{fontSize:18,fontWeight:900,fontFamily:"var(--condensed)",color:"#fff"}}>{profile?.name||"Athlete"}</span>
-            {isPro&&<Badge type="PRO"/>}
-            {refBadge&&<Badge type={refBadge}/>}
-          </div>
-          <div style={{fontSize:12,color:T.mu,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user?.email||""}</div>
-        </div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
+      {/* ── REFER A FRIEND ── */}
+      {profile?.referralCode&&(<>
+        <div style={eyebrowStyle}>// Refer a Friend</div>
+        <div style={cardStyle}>
 
 
-        {(profile?.is_older_adult||(()=>{const a=getAge(profile?.dobYear,profile?.dobMonth,profile?.dobDay);return a!==null&&a>=65;})())&&(
-          <SectionCard title="Joint Health Mode">
-            <Toggle on={wPrefs.jointHealthMode!==false} onChange={v=>{const wp={...wPrefs,jointHealthMode:v};setWPrefs(wp);saveSettings(wp,null);}} label="Joint Health Mode" sub="Reduces volume, adds controlled tempo cues, removes failure training"/>
-            <div style={{fontSize:12,color:T.mu,marginTop:10,lineHeight:1.6}}>Automatically applies safer exercise modifications for joint-protective training. Recommended for 65+ users.</div>
-            {wPrefs.jointHealthMode!==false&&<div style={{background:"rgba(52,211,153,.05)",border:"1px solid rgba(52,211,153,.18)",borderRadius:9,padding:"10px 12px",marginTop:10}}>
-              <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Your sessions use 80% of standard volume with controlled tempo. For individual guidance, consult a physical therapist or exercise physiologist.</div>
-              <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a>
-            </div>}
-          </SectionCard>
-        )}
-
-
-        {(profile?.sex==="female"||wPrefs?.lastPeriodDate)&&(
-          <SectionCard title="Cycle Tracking">
-            {(()=>{
-              const cp=getCyclePhase(wPrefs?.lastPeriodDate);
-              return(
-                <div>
-                  <div style={{fontSize:12,color:T.mu,marginBottom:14,lineHeight:1.65}}>Track your cycle for personalized workout adaptations. We'll pre-select the right option when you tap "Adapt Now."</div>
-                  {cp&&<div style={{background:`${cp.color}10`,border:`1px solid ${cp.color}25`,borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:18}}>{cp.label.split(" ")[0]}</span>
-                    <div>
-                      <div style={{fontSize:12,fontWeight:700,color:cp.color}}>{cp.label}</div>
-                      <div style={{fontSize:10,color:T.mu,marginTop:2}}>Cycle day {Math.floor((Date.now()-new Date(wPrefs.lastPeriodDate))/86400000)%28+1} of ~28</div>
-                    </div>
-                  </div>}
-                  <div style={{fontSize:10,color:T.dim,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>Last Period Start Date</div>
-                  <input type="date" value={wPrefs?.lastPeriodDate||""} onChange={e=>{const wp={...wPrefs,lastPeriodDate:e.target.value};setWPrefs(wp);saveSettings(wp,null);}}
-                    style={{width:"100%",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:9,padding:"11px 14px",color:"#fff",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",colorScheme:"dark"}}/>
-                  <div style={{fontSize:11,color:T.dim,marginTop:8,lineHeight:1.6}}>Used only to calculate your current phase. Never shared.</div>
-                </div>
-              );
-            })()}
-          </SectionCard>
-        )}
-
-        <SectionCard title="Your Profile">
-          <div style={{display:"flex",flexDirection:"column",gap:0}}>
-            {[["Name",profile.name],["Goal",profile.goal],["Daily Target",`${profile.goalCals} kcal`],["Base TDEE",`${profile.baseTDEE} kcal`],["Start Weight",`${profile.startWeight||"—"} ${profile.wUnit||"lbs"}`],["Start Date",profile.startDate||"—"]].map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}><span style={{fontSize:13,color:T.mu,fontFamily:"'Barlow',sans-serif"}}>{l}</span><span style={{fontSize:13,fontWeight:600}}>{v}</span></div>))}
-          </div>
-        </SectionCard>
-
-        {/* Refer a Friend */}
-        {profile.referralCode&&<SectionCard title="Refer a Friend">
-          {(isPro||getReferralBadge(referralStats.clicked))&&<div style={{display:"flex",alignItems:"center",gap:4,marginBottom:12,flexWrap:"wrap"}}>
-            <span style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)",letterSpacing:"0.12em"}}>EARNED:</span>
+          {/* badges earned */}
+          {(isPro||getReferralBadge(referralStats.clicked))&&<div style={{display:"flex",alignItems:"center",gap:4,padding:"12px 16px 0",flexWrap:"wrap"}}>
+            <span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",letterSpacing:"0.12em"}}>EARNED:</span>
             {isPro&&<Badge type="PRO"/>}
             {getReferralBadge(referralStats.clicked)&&<Badge type={getReferralBadge(referralStats.clicked)}/>}
           </div>}
-
-          {referralStats.sent===0&&<div style={{textAlign:"center",padding:"20px 8px 16px",border:`1px dashed ${T.bd}`,borderRadius:14,marginBottom:14}}>
-            <div style={{marginBottom:10,display:"flex",justifyContent:"center"}}><svg width={36} height={36} viewBox="0 0 24 24" fill="none"><rect x="3" y="8" width="18" height="13" rx="2" stroke={T.prot} strokeWidth={1.5}/><path d="M12 8v13M3 12h18" stroke={T.prot} strokeWidth={1.5} strokeLinecap="round"/><path d="M12 8s-2-3-4-3a2 2 0 0 0 0 4c2 0 4-1 4-1zM12 8s2-3 4-3a2 2 0 0 1 0 4c-2 0-4-1-4-1z" stroke={T.prot} strokeWidth={1.5} strokeLinecap="round"/></svg></div>
-            <div style={{fontSize:15,fontWeight:700,color:T.txt,marginBottom:6}}>Invite friends, earn free time</div>
-            <div style={{fontSize:12,color:T.dim,lineHeight:1.6,marginBottom:4}}>Share your link — every person who clicks earns you 2 weeks free. Unlock custom icons, themes, and VERIFIED status.</div>
+          {referralStats.sent===0&&<div style={{textAlign:"center",padding:"20px 16px 16px"}}>
+            <div style={{marginBottom:10,display:"flex",justifyContent:"center"}}><svg width={36} height={36} viewBox="0 0 24 24" fill="none"><rect x="3" y="8" width="18" height="13" rx="2" stroke="#e8341c" strokeWidth={1.5}/><path d="M12 8v13M3 12h18" stroke="#e8341c" strokeWidth={1.5} strokeLinecap="round"/><path d="M12 8s-2-3-4-3a2 2 0 0 0 0 4c2 0 4-1 4-1zM12 8s2-3 4-3a2 2 0 0 1 0 4c-2 0-4-1-4-1z" stroke="#e8341c" strokeWidth={1.5} strokeLinecap="round"/></svg></div>
+            <div style={{fontSize:15,fontWeight:700,color:"#f5f5f0",marginBottom:6}}>Invite friends, earn free time</div>
+            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>Every person who clicks earns you 2 weeks free. Unlock icons, themes, and VERIFIED status.</div>
           </div>}
-
-          {/* Stats row — only show once links have been sent */}
-          {referralStats.sent>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+          {referralStats.sent>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,padding:"12px 16px"}}>
             {[["Links Sent",referralStats.sent],["Clicked",referralStats.clicked],["Rate",referralStats.sent>0?Math.round(referralStats.clicked/referralStats.sent*100)+"%":"—"]].map(([l,v])=>(
-              <div key={l} style={{background:T.s3,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
-                <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,color:T.white,lineHeight:1}}>{v}</div>
-                <div style={{fontSize:9,color:T.mu,fontFamily:"var(--mono)",letterSpacing:"0.1em",marginTop:3,textTransform:"uppercase"}}>{l}</div>
+              <div key={l} style={{background:"rgba(245,245,240,0.04)",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,color:"#f5f5f0",lineHeight:1}}>{v}</div>
+                <div style={{fontSize:9,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",letterSpacing:"0.1em",marginTop:3,textTransform:"uppercase"}}>{l}</div>
               </div>
             ))}
           </div>}
-
-          {/* Share buttons */}
-          <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:8}}>Share &amp; earn 2 weeks free</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            {[{icon:"📱",label:"Text Message",method:"sms"},{icon:"📋",label:refCopied?"✓ Copied!":"Copy Link",method:"copy"},{icon:"↗",label:"Share",method:"share"}].map(btn=>(
-              <button key={btn.method} disabled={refGenerating} onClick={()=>doShare(btn.method)}
-                style={{width:"100%",padding:"12px 16px",minHeight:44,background:T.s3,border:`1px solid ${btn.method==="copy"&&refCopied?T.green:T.bd}`,borderRadius:10,color:btn.method==="copy"&&refCopied?T.green:T.white,fontWeight:700,fontSize:14,cursor:refGenerating?"default":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10,transition:"border-color 0.2s,color 0.2s",opacity:refGenerating?0.6:1}}>
-                <span style={{fontSize:18}}>{btn.icon}</span>
-                <span style={{flex:1,textAlign:"left"}}>{btn.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Progress */}
-          {(()=>{
-            const cnt=referralStats.clicked;
-            const t=getTier(cnt);
-            const milestones=[1,3,5,10];
-            const nextM=milestones.find(m=>m>cnt);
-            return(
-              <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <div style={{fontSize:10,color:T.dim,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>Progress</div>
-                  <div style={{fontSize:11,color:T.mu,fontFamily:"var(--mono)"}}>{cnt} click{cnt!==1?"s":""}</div>
+          <div style={{padding:"0 16px 16px"}}>
+            <div style={{fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:8}}>Share &amp; earn 2 weeks free</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+              {[{icon:"📱",label:"Text Message",method:"sms"},{icon:"📋",label:refCopied?"✓ Copied!":"Copy Link",method:"copy"},{icon:"↗",label:"Share",method:"share"}].map(btn=>(
+                <button key={btn.method} disabled={refGenerating} onClick={()=>doShare(btn.method)}
+                  style={{width:"100%",padding:"12px 16px",minHeight:44,background:"rgba(245,245,240,0.04)",border:`1px solid ${btn.method==="copy"&&refCopied?"rgba(52,211,153,0.5)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:btn.method==="copy"&&refCopied?"#34d399":"#f5f5f0",fontWeight:700,fontSize:14,cursor:refGenerating?"default":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10,opacity:refGenerating?0.6:1}}>
+                  <span style={{fontSize:18}}>{btn.icon}</span><span style={{flex:1,textAlign:"left"}}>{btn.label}</span>
+                </button>
+              ))}
+            </div>
+            {(()=>{
+              const cnt=referralStats.clicked;
+              const milestones=[1,3,5,10];
+              const nextM=milestones.find(m=>m>cnt);
+              return(
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>Progress</div>
+                    <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>{cnt} click{cnt!==1?"s":""}</div>
+                  </div>
+                  {nextM&&<div style={{height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,marginBottom:12,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min((cnt/nextM)*100,100)}%`,background:cnt>=5?"#00E676":cnt>=1?"#FFD740":"#e8341c",borderRadius:2,transition:"width 0.5s"}}/></div>}
+                  <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                    {[{badge:"VIP",minRef:1,rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},{badge:"VERIFIED",minRef:5,rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:8}]},{badge:"LEGEND",minRef:10,rewards:[{l:"Priority support",minRef:10},{l:"Early feature access",minRef:10}]}].map(tb=>{
+                      const achieved=cnt>=tb.minRef;
+                      const bc=achieved?tb.badge==="LEGEND"?"rgba(255,215,0,0.3)":tb.badge==="VERIFIED"?"rgba(0,230,118,0.25)":"rgba(255,215,64,0.25)":"rgba(245,245,240,0.05)";
+                      return(
+                        <div key={tb.badge} style={{background:"rgba(245,245,240,0.03)",borderRadius:10,padding:"10px 12px",border:`1px solid ${bc}`}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><Badge type={tb.badge}/><span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>{tb.minRef}+ clicks</span></div>
+                          {tb.rewards.map(r=>{
+                            const unlocked=cnt>=r.minRef;
+                            return(<div key={r.l} style={{display:"flex",alignItems:"center",gap:8,marginTop:5}}>
+                              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>{unlocked?<path d="M5 13l4 4L19 7" stroke="#00E676" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>:<><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7} strokeLinecap="round"/></>}</svg>
+                              <span style={{fontSize:12,color:unlocked?"#f5f5f0":"rgba(245,245,240,0.4)",flex:1}}>{r.l}{unlocked&&<span style={{color:"#00E676",marginLeft:5,fontSize:9,fontWeight:700,fontFamily:"var(--mono)",letterSpacing:"0.1em"}}> UNLOCKED</span>}</span>
+                            </div>);
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                {nextM?(
-                  <>
-                    <div style={{height:4,background:T.s3,borderRadius:2,marginBottom:8,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${Math.min((cnt/nextM)*100,100)}%`,background:cnt>=5?"#00E676":cnt>=1?"#FFD740":T.prot,borderRadius:2,transition:"width 0.5s"}}/>
-                    </div>
-                    <div style={{fontSize:12,color:T.mu,marginBottom:12,lineHeight:1.5}}>
-                      {t===0&&"1 person needs to click to unlock VIP status + custom icons"}
-                      {t===1&&`${3-cnt} more click${3-cnt!==1?"s":""} to unlock accent colors`}
-                      {t===2&&`${5-cnt} more click${5-cnt!==1?"s":""} to unlock VERIFIED status + themes`}
-                      {t===3&&`${10-cnt} more click${10-cnt!==1?"s":""} to unlock dashboard customization`}
-                    </div>
-                  </>
-                ):<div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#FFD700",fontWeight:700,marginBottom:12}}><svg width={14} height={14} viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>LEGEND status — all perks unlocked</div>}
-                <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                  {[
-                    {badge:"VIP",    minRef:1,  rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},
-                    {badge:"VERIFIED",minRef:5, rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:8}]},
-                    {badge:"LEGEND", minRef:10, rewards:[{l:"Priority support",minRef:10},{l:"Early feature access",minRef:10}]},
-                  ].map(tb=>{
-                    const achieved=cnt>=tb.minRef;
-                    const borderColor=achieved
-                      ?tb.badge==="LEGEND"?"rgba(255,215,0,0.3)":tb.badge==="VERIFIED"?"rgba(0,230,118,0.25)":"rgba(255,215,64,0.25)"
-                      :"rgba(245,245,240,0.05)";
-                    return(
-                    <div key={tb.badge} style={{background:T.s3,borderRadius:10,padding:"10px 12px",border:`1px solid ${borderColor}`,boxShadow:achieved&&tb.badge==="LEGEND"?"0 0 12px rgba(255,215,0,0.1)":"none",transition:"border-color 0.32s,box-shadow 0.32s"}}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                        <Badge type={tb.badge}/>
-                        <span style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)"}}>{tb.minRef}+ clicks</span>
-                      </div>
-                      {tb.rewards.map(r=>{
-                        const unlocked=cnt>=r.minRef;
-                        const diff=r.minRef-cnt;
-                        return(
-                          <div key={r.l} style={{display:"flex",alignItems:"center",gap:8,marginTop:5}}>
-                            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>
-                              {unlocked
-                                ?<path d="M5 13l4 4L19 7" stroke="#00E676" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
-                                :<><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7} strokeLinecap="round"/></>
-                              }
-                            </svg>
-                            <span style={{fontSize:12,color:unlocked?T.white:T.mu,flex:1}}>
-                              {r.l}
-                              {unlocked
-                                ?<span style={{color:"#00E676",marginLeft:5,fontSize:9,fontWeight:700,fontFamily:"var(--mono)",letterSpacing:"0.1em"}}> UNLOCKED</span>
-                                :diff>0?<span style={{color:"rgba(245,245,240,0.3)",marginLeft:4,fontSize:10}}> · {diff} away</span>
-                                :null}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-        </SectionCard>}
-
-        {/* Connected Apps */}
-        <SectionCard title="🔗 Connected Apps">
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:`1px solid ${T.bd}`}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:36,height:36,borderRadius:10,background:"rgba(255,69,58,0.12)",border:"1px solid rgba(255,69,58,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>❤️</div>
-              <div>
-                <div style={{fontWeight:700,fontSize:13}}>Apple Health</div>
-                <div style={{fontSize:11,color:T.mu,marginTop:1}}>Sleep · HRV · Steps · Workouts</div>
-              </div>
-            </div>
-            <div style={{fontFamily:"var(--mono)",fontSize:10,padding:"4px 10px",borderRadius:6,
-              background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(245,245,240,0.06)",
-              color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?T.green:T.mu,
-              border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":T.bd}`,
-              letterSpacing:"0.1em",textTransform:"uppercase"}}>
-              {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
-            </div>
+              );
+            })()}
           </div>
-          <div style={{paddingTop:10,fontSize:11,color:T.mu,lineHeight:1.6}}>
-            Coach Macro uses Apple Health to personalize your recovery score, calorie targets, and training intensity using real biometric data.
-          </div>
-        </SectionCard>
+        </div>
+      </>)}
 
-        {/* Calendar Integration */}
-        <SectionCard title="🗓️ Calendar Integration">
-          <CalendarSettingsPanel
-            connected={calendarConnected||false}
-            onConnect={onCalendarConnect||(() =>{})}
-            onDisconnect={onCalendarDisconnect||(() =>{})}
-            prefs={wPrefs?.calendarPrefs||{}}
-            onPrefsChange={async(key,val)=>{
-              const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};
-              setWPrefs(next);
-              if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}
-            }}
-          />
-        </SectionCard>
 
-        {/* Injury & Pain Log */}
-        <SectionCard title="🩹 Injury & Pain Log">
-          <div style={{fontSize:12,color:T.mu,lineHeight:1.6,marginBottom:12}}>
-            Log current or past injuries to improve your injury risk predictions and training recommendations.
-          </div>
-          <button onClick={()=>onLogInjury&&onLogInjury()} style={{width:"100%",padding:"12px",background:`${T.prot}15`,border:`1px solid ${T.prot}30`,borderRadius:12,color:T.prot,fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:".08em",textTransform:"uppercase",cursor:"pointer"}}>
-            Log Injury / Pain →
-          </button>
-        </SectionCard>
-
-        {/* AI Usage — only shown when ≥80% to avoid anxiety */}
-        {aiUsage&&aiUsage.pct>=80&&(()=>{
-          const daysLeft=(()=>{const d=new Date();d.setMonth(d.getMonth()+1,1);return Math.ceil((d-Date.now())/86400000);})();
-          const barColor=aiUsage.pct>=100?T.prot:aiUsage.pct>=95?T.fat:T.prot;
-          return(
-            <SectionCard title="AI Usage This Month">
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <span style={{fontSize:11,color:barColor,fontFamily:"var(--mono)",letterSpacing:"0.12em"}}>{aiUsage.pct}% USED</span>
-                <span style={{fontSize:11,color:T.dim,fontFamily:"var(--mono)"}}>{aiUsage.used.toLocaleString()} / {aiUsage.budget.toLocaleString()} tokens</span>
-              </div>
-              <div style={{height:6,background:T.s3,borderRadius:3,overflow:"hidden",marginBottom:10}}>
-                <div style={{height:"100%",width:`${Math.min(aiUsage.pct,100)}%`,background:barColor,borderRadius:3,transition:"width .4s"}}/>
-              </div>
-              {aiUsage.pct>=100
-                ?<div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:9,padding:"10px 12px"}}>
-                  <div style={{fontSize:12,color:T.red,fontWeight:700,marginBottom:4}}>Monthly limit reached</div>
-                  <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>AI features resume on the 1st. Resets in {daysLeft} day{daysLeft!==1?"s":""}.</div>
-                </div>
-                :aiUsage.pct>=95
-                  ?<div style={{fontSize:12,color:T.red,lineHeight:1.6}}>Almost at your monthly AI limit — resets in {daysLeft} day{daysLeft!==1?"s":""}.</div>
-                  :<div style={{fontSize:12,color:T.mu,lineHeight:1.6}}>Resets in {daysLeft} day{daysLeft!==1?"s":""}.</div>
-              }
-            </SectionCard>
-          );
-        })()}
-
-        {/* Privacy */}
-        <SectionCard title="Privacy">
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0"}}>
-            <div>
-              <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:2}}>Usage Analytics</div>
-              <div style={{fontSize:12,color:T.mu,lineHeight:1.5}}>Share anonymous feature usage to help improve Coach Macro. No personal data is collected.</div>
-            </div>
-            <Toggle
-              value={profile?.analytics_enabled !== false}
-              onChange={async (v)=>{
-                if(!user)return;
-                setAnalyticsEnabled(v);
-                await sb.from("profiles").upsert({id:user.id,analytics_enabled:v},{onConflict:"id"});
-              }}
-            />
-          </div>
-        </SectionCard>
-
-        {/* Account Actions */}
-        <SectionCard title="Account">
-          <button onClick={onSignOut} style={{width:"100%",padding:"13px",background:T.s3,color:"#fff",border:`1px solid ${T.bd}`,borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>Sign Out</button>
-          {delStep===0&&<button onClick={()=>setDelStep(1)} style={{width:"100%",padding:"13px",background:"none",color:T.prot,border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Delete Account</button>}
-          {delStep===1&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px"}}>
-            <div style={{fontSize:13,color:T.prot,fontWeight:700,marginBottom:8}}>Delete your account?</div>
-            <div style={{fontSize:12,color:T.mu,marginBottom:6}}>This will permanently delete:</div>
-            <ul style={{fontSize:12,color:T.mu,margin:"0 0 14px 0",paddingLeft:18,lineHeight:1.8}}>
-              <li>Your profile and all settings</li>
-              <li>All food logs and nutrition history</li>
-              <li>All workout logs and progress data</li>
-              <li>Weight check-ins and body measurements</li>
-              <li>Your subscription and billing records</li>
-            </ul>
-            <div style={{fontSize:11,color:T.prot,marginBottom:14,fontWeight:600}}>This action cannot be undone.</div>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:T.s3,color:T.mu,border:`1px solid ${T.bd}`,borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>I understand, continue</button>
-            </div>
-          </div>}
-          {delStep===2&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px"}}>
-            <div style={{fontSize:13,color:T.prot,fontWeight:700,marginBottom:8}}>Final confirmation</div>
-            <div style={{fontSize:12,color:T.mu,marginBottom:12}}>Type <strong style={{color:"#fff"}}>DELETE</strong> to permanently delete your account.</div>
-            <input
-              value={delInput}
-              onChange={e=>setDelInput(e.target.value)}
-              placeholder="Type DELETE here"
-              style={{width:"100%",padding:"10px 12px",background:T.s3,color:"#fff",border:`1px solid ${delInput==="DELETE"?T.prot:T.bd}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}
-            />
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:T.s3,color:T.mu,border:`1px solid ${T.bd}`,borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?T.prot:"rgba(255,77,109,.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit",transition:"background .2s"}}>{deleting?"Deleting...":"Delete Forever"}</button>
-            </div>
-          </div>}
-          {delStep===3&&<div style={{background:"rgba(255,77,109,.06)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,padding:"16px",textAlign:"center"}}>
-            <div style={{fontSize:13,color:T.mu}}>Deleting your account...</div>
-          </div>}
-        </SectionCard>
+      {/* ── PROFILE ── */}
+      <div style={eyebrowStyle}>// Profile</div>
+      <div style={cardStyle}>
+        <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
+        <MeRow label="Goal" value={GOAL_LABELS[currentGoal]||"—"} onPress={()=>setShowGoalSelector(true)}/>
+        <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
+        <MeRow label="Weight" value={localWeight?(localWeight+" "+wUnit):"—"} onPress={()=>{setEditModal("weight");setEditValue(localWeight);}}/>
+        <MeRow label="Height" value={localHeight?(localHeight+" cm"):"—"} onPress={()=>{setEditModal("height");setEditValue(localHeight);}} isLast/>
       </div>
+
+      {/* ── PREFERENCES ── */}
+      <div style={eyebrowStyle}>// Preferences</div>
+      <div style={cardStyle}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"rgba(255,69,58,0.12)",border:"1px solid rgba(255,69,58,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>❤️</div>
+            <div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:1}}>Sleep · HRV · Steps</div>
+            </div>
+          </div>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,padding:"4px 10px",borderRadius:6,background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(245,245,240,0.06)",color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#34d399":"rgba(245,245,240,0.4)",border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":"rgba(245,245,240,0.08)"}`,letterSpacing:"0.1em",textTransform:"uppercase"}}>
+            {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
+          </div>
+        </div>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
+          <CalendarSettingsPanel connected={calendarConnected||false} onConnect={onCalendarConnect||(() =>{})} onDisconnect={onCalendarDisconnect||(() =>{})} prefs={wPrefs?.calendarPrefs||{}} onPrefsChange={async(key,val)=>{const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};setWPrefs(next);if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}}}/>
+        </div>
+        <MeRow label="Units" noChevron rightEl={
+          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(245,245,240,0.12)"}}>
+            {["lbs","kg"].map(u=>(
+              <button key={u} onClick={()=>{const wp={...wPrefs,wUnit:u};setWPrefs(wp);saveSettings(wp,null);}} style={{padding:"6px 14px",background:wUnit===u?"#e8341c":"transparent",color:wUnit===u?"#fff":"rgba(245,245,240,0.4)",border:"none",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.08em"}}>{u}</button>
+            ))}
+          </div>
+        }/>
+        <MeRow label="Notifications" isLast noChevron rightEl={<Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>}/>
+      </div>
+
+      {/* ── SUBSCRIPTION ── */}
+      <div style={eyebrowStyle}>// Subscription</div>
+      <div style={cardStyle}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Current Plan</span>
+          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:isPro?"#34d399":"rgba(245,245,240,0.4)",padding:"3px 10px",borderRadius:6,background:isPro?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.06)",border:`1px solid ${isPro?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`}}>{isPro?"Pro":"Free Trial"}</span>
+        </div>
+        <MeRow label={isPro?"Manage Subscription":"Upgrade to Pro"} onPress={()=>showToast("Opening subscription manager...","info")} value=""/>
+        <MeRow label="Restore Purchases" isLast onPress={()=>showToast("Checking purchases...","info")} value=""/>
+      </div>
+
+      {/* ── ACCOUNT ── */}
+      <div style={eyebrowStyle}>// Account</div>
+      <div style={cardStyle}>
+        <MeRow label="Help & Support" onPress={()=>window.open("https://coach-macro.com/support","_blank")} value=""/>
+        <MeRow label="Privacy Policy" onPress={()=>window.open("https://coach-macro.com/privacy","_blank")} value=""/>
+        <MeRow label="Terms of Service" onPress={()=>window.open("https://coach-macro.com/terms","_blank")} value=""/>
+        <MeRow label="Delete Account" isDestructive onPress={()=>setDelStep(delStep===0?1:0)}/>
+        <MeRow label="Sign Out" isDestructive isLast onPress={onSignOut}/>
+      </div>
+
+      {/* Delete confirmation */}
+      {delStep>0&&(
+        <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:12,padding:16,marginTop:8}}>
+          {delStep===1&&<>
+            <div style={{fontSize:13,color:"#e8341c",fontWeight:700,marginBottom:8}}>Delete your account?</div>
+            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
+            <div style={{fontSize:11,color:"#e8341c",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"#e8341c",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
+            </div>
+          </>}
+          {delStep===2&&<>
+            <div style={{fontSize:13,color:"#e8341c",fontWeight:700,marginBottom:8}}>Final confirmation</div>
+            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:12}}>Type <strong style={{color:"#f5f5f0"}}>DELETE</strong> to permanently delete your account.</div>
+            <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(245,245,240,0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"#e8341c":"rgba(245,245,240,0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"#e8341c":"rgba(232,52,28,0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
+            </div>
+          </>}
+          {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(245,245,240,0.5)"}}>Deleting your account...</div>}
+        </div>
+      )}
+
+      {/* ── EDIT FIELD MODAL ── */}
+      {editModal&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setEditModal(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#111827",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
+            <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type={editModal==="name"?"text":"number"} placeholder={editModal==="name"?"Your name":editModal==="weight"?`Weight in ${wUnit}`:"Height in cm"}
+              style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setEditModal(null)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={async()=>{
+                const v=editValue.trim();if(!v){setEditModal(null);return;}
+                if(editModal==="name"){setLocalName(v);await saveProfileField("name",v);}
+                else if(editModal==="weight"){setLocalWeight(v);await saveProfileField("weight",v);}
+                else if(editModal==="height"){setLocalHeight(v);await saveProfileField("height",v);}
+                setEditModal(null);
+              }} style={{flex:1,padding:14,background:"#e8341c",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── GOAL SELECTOR MODAL ── */}
+      {showGoalSelector&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowGoalSelector(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#111827",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {Object.entries(GOAL_LABELS).map(([key,label])=>(
+                <button key={key} onClick={async()=>{const wp={...wPrefs,primaryGoal:key};setWPrefs(wp);await saveSettings(wp,null);setShowGoalSelector(false);}} style={{padding:"14px 16px",background:currentGoal===key?"rgba(232,52,28,0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentGoal===key?"rgba(232,52,28,0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentGoal===key?"#e8341c":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentGoal===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  {label}{currentGoal===key&&<span>✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── SKILL SELECTOR MODAL ── */}
+      {showSkillSelector&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowSkillSelector(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#111827",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[{key:"beginner",label:"Beginner",sub:"Under 1 year"},{key:"intermediate",label:"Intermediate",sub:"1–4 years"},{key:"advanced",label:"Advanced",sub:"4+ years"}].map(({key,label,sub})=>(
+                <button key={key} onClick={async()=>{const wp={...wPrefs,liftExp:key};setWPrefs(wp);await saveSettings(wp,null);setShowSkillSelector(false);}} style={{padding:"14px 16px",background:currentSkill===key?"rgba(232,52,28,0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentSkill===key?"rgba(232,52,28,0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentSkill===key?"#e8341c":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentSkill===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div><div>{label}</div><div style={{fontSize:12,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div></div>
+                  {currentSkill===key&&<span>✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
+
 
 // ─── PROMO CODES ──────────────────────────────────────────────────────────────
 export const PROMOS = {
