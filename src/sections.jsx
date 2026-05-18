@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS,
@@ -2987,7 +2988,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {trainScreen==="progress"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:isMobile?"100%":740}}>
             <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
-            <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
+            <AthletePassport user={user}/>
             {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
             <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
 
@@ -3666,175 +3667,8 @@ function getAthleteTitle(dna){
 }
 
 // ─── ATHLETE PASSPORT ────────────────────────────────────────────────────────
-export function AthletePassport({profile,wPrefs,user,isMobile}){
-  const [rawStats,setRawStats]=useState(null);
-  const [dnaScores,setDnaScores]=useState(null);
-  const [sharing,setSharing]=useState(false);
-  const [customizing,setCustomizing]=useState(false);
-  const [selectedStats,setSelectedStats]=useState(['sessions','weight_lifted','streak','top_pr','prs_month']);
-  const passportRef=useRef(null);
-
-  const startD=profile?.startDate?new Date(profile.startDate):new Date();
-  const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
-  const memberSince=profile?.startDate?new Date(profile.startDate).toLocaleDateString("en-US",{month:"short",year:"numeric"}):"—";
-  const firstName=(profile?.name||"ATHLETE").split(" ")[0].toUpperCase();
-  const refCount=profile?.referralCount||0;
-  const isPro=!!profile?.is_pro;
-  const refBadge=getReferralBadge(refCount);
-  const athleteTitle=dnaScores&&daysSince>=30?getAthleteTitle(dnaScores):null;
-
-  useEffect(()=>{
-    if(!user)return;
-    const saved=profile?.passport_stats;
-    if(saved&&Array.isArray(saved)&&saved.length>0)setSelectedStats(saved.filter(s=>s!=='athlete_since'));
-    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
-    const cutStr=cutoff.toISOString().split("T")[0];
-    Promise.all([
-      sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:true}),
-      sb.from("workout_logs").select("*").eq("user_id",user.id).gte("date",cutStr),
-      sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutStr),
-    ]).then(([{data:all},{data:recent},{data:food}])=>{
-      const wl=all||[];
-      let volume=0,topPR=0;
-      wl.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0),r=parseInt(s.reps||0);if(w>0&&r>0)volume+=w*r;if(w>0)topPR=Math.max(topPR,w);});});});
-      const dates=[...new Set(wl.map(r=>r.date))].sort();
-      let longest=wl.length>0?1:0,cur=1;
-      for(let i=1;i<dates.length;i++){const diff=(new Date(dates[i])-new Date(dates[i-1]))/86400000;if(diff===1){cur++;longest=Math.max(longest,cur);}else cur=1;}
-      const thisMonth=new Date().toISOString().slice(0,7);
-      const prevD=wl.filter(r=>r.date<thisMonth+"-01");
-      const currD=wl.filter(r=>r.date.startsWith(thisMonth));
-      const prevMaxes={};
-      prevD.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{const k=ex.name?.toLowerCase();if(!k)return;(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0)prevMaxes[k]=Math.max(prevMaxes[k]||0,w);});});});
-      const prsSet=new Set();
-      currD.forEach(row=>{(row.workout?.exercises||[]).forEach(ex=>{const k=ex.name?.toLowerCase();if(!k)return;(ex.sets||[]).forEach(s=>{const w=parseFloat(s.weight||0);if(w>0&&w>(prevMaxes[k]||0))prsSet.add(k);});});});
-      setRawStats({workouts:wl.length,volume:Math.round(volume),topPR:Math.round(topPR),longestStreak:longest,prsThisMonth:prsSet.size,programs:Math.max(1,Math.floor(daysSince/84)+1)});
-      if(daysSince>=30){
-        const rw=recent||[];const rf=food||[];
-        const total=rw.length;
-        const ss=rw.filter(w=>!w.workout?.focus?.toLowerCase().includes("run")&&w.workout?.type!=="running").length;
-        const strength=Math.min(100,Math.round((ss/Math.max(1,total))*100*1.4));
-        const endurance=Math.min(100,Math.round(((total-ss)/Math.max(1,total))*100*2));
-        const vps=rw.reduce((s,w)=>{let v=0;(w.workout?.exercises||[]).forEach(ex=>(ex.sets||[]).forEach(st=>{const wt=parseFloat(st.weight||0),r=parseInt(st.reps||0);if(wt>0&&r>0)v+=wt*r;}));return s+v;},0)/Math.max(1,total);
-        const power=Math.min(100,Math.round((vps/3000)*100));
-        const consistency=Math.min(100,Math.round((total/16)*100));
-        const nutrition=Math.min(100,Math.round((rf.filter(f=>f.entries?.length>0).length/30)*100));
-        const recovery=Math.min(100,Math.max(0,Math.round(consistency*0.7+power*0.3)));
-        setDnaScores({strength,endurance,power,consistency,nutrition,recovery});
-      }
-    });
-  },[user]);
-
-  function getStatValue(id){
-    if(!rawStats)return'—';
-    switch(id){
-      case'athlete_since':return memberSince.toUpperCase();
-      case'sessions':     return rawStats.workouts.toLocaleString();
-      case'weight_lifted':return rawStats.volume>0?`${rawStats.volume.toLocaleString()} lbs`:'0';
-      case'top_pr':       return rawStats.topPR>0?`${rawStats.topPR} lbs`:'—';
-      case'streak':       return `${rawStats.longestStreak} days`;
-      case'prs_month':    return String(rawStats.prsThisMonth);
-      case'programs':     return String(rawStats.programs);
-      case'rank':         return getRank(rawStats.workouts);
-      default:            return'—';
-    }
-  }
-
-  function getStatLabel(id){return(PASSPORT_STAT_DEFS.find(s=>s.id===id)||{label:id}).label;}
-
-  async function saveStats(ns){
-    setSelectedStats(ns);
-    if(user)await sb.from("profiles").update({passport_stats:ns}).eq("id",user.id);
-  }
-
-  function toggleStat(id){
-    if(id==='athlete_since')return;
-    if(selectedStats.includes(id)){saveStats(selectedStats.filter(s=>s!==id));}
-    else if(selectedStats.length<5){saveStats([...selectedStats,id]);}
-  }
-
-  async function sharePassport(){
-    if(!passportRef.current)return;
-    setSharing(true);
-    try{
-      const html2canvas=(await import("html2canvas")).default;
-      const canvas=await html2canvas(passportRef.current,{backgroundColor:"#0a0e1a",scale:2,useCORS:true,logging:false});
-      canvas.toBlob(async blob=>{
-        if(!blob)return;
-        const file=new File([blob],"athlete-passport.png",{type:"image/png"});
-        if(navigator.share&&navigator.canShare?.({files:[file]})){
-          await navigator.share({files:[file],title:"My Athlete Passport",text:"Check out my Coach Macro stats!"});
-        }else{
-          const url=URL.createObjectURL(blob);
-          const a=document.createElement("a");a.href=url;a.download="athlete-passport.png";a.click();
-          URL.revokeObjectURL(url);
-        }
-      });
-    }catch(e){console.error("[sharePassport]",e);}
-    setSharing(false);
-  }
-
-  const displayStats=['athlete_since',...selectedStats.filter(s=>s!=='athlete_since')];
-
-  return(
-    <div>
-      <div ref={passportRef} style={{background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.10)",borderRadius:16,padding:isMobile?"20px 18px":"24px 24px",position:"relative",overflow:"hidden",fontFamily:"var(--condensed)"}}>
-        <div style={{position:"absolute",bottom:-16,right:-6,fontSize:110,fontWeight:900,color:"rgba(245,245,240,0.03)",lineHeight:1,pointerEvents:"none",userSelect:"none",fontFamily:"var(--condensed)",fontStyle:"italic",zIndex:0,textTransform:"uppercase"}}>{firstName}</div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:500,marginBottom:14,position:"relative",zIndex:1}}>// ATHLETE PASSPORT</div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:athleteTitle?6:16,position:"relative",zIndex:1}}>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:isMobile?44:50,lineHeight:0.92,letterSpacing:"-0.02em",textTransform:"uppercase",color:"#f5f5f0"}}>{firstName}</div>
-          <div style={{display:"flex",flexDirection:"column",gap:5,alignItems:"flex-end",paddingTop:4}}>
-            {isPro&&<Badge type="PRO"/>}
-            {refBadge&&<Badge type={refBadge}/>}
-          </div>
-        </div>
-        {athleteTitle&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:16,position:"relative",zIndex:1}}>{athleteTitle}</div>}
-        <div style={{height:1,background:"rgba(245,245,240,0.08)",marginBottom:18,position:"relative",zIndex:1}}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px 20px",position:"relative",zIndex:1}}>
-          {displayStats.map(id=>(
-            <div key={id}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:3}}>{getStatLabel(id)}</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:1}}>{rawStats?getStatValue(id):'—'}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:1}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.12em",textTransform:"uppercase"}}>COACH MACRO</div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.06em"}}>coach-macro.com</div>
-        </div>
-      </div>
-      <div style={{display:"flex",gap:10,marginTop:10}}>
-        <button onClick={sharePassport} disabled={sharing||!rawStats} style={{flex:1,padding:"13px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontWeight:900,fontSize:14,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.06em",textTransform:"uppercase",opacity:sharing||!rawStats?0.6:1}}>
-          {sharing?"Generating...":"Share Passport"}
-        </button>
-        <button onClick={()=>setCustomizing(c=>!c)} style={{padding:"13px 14px",background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.10)",color:"rgba(245,245,240,0.65)",borderRadius:12,fontSize:11,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
-          {customizing?"✕ CLOSE":"⚙ CUSTOMIZE"}
-        </button>
-      </div>
-      {customizing&&(
-        <div style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,padding:"16px",marginTop:10}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8,fontWeight:500}}>// CUSTOMIZE PASSPORT STATS</div>
-          <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"'Barlow',sans-serif",marginBottom:14}}>Pick up to 5 stats. Athlete Since is always shown.</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {PASSPORT_STAT_DEFS.map(({id,label,locked})=>{
-              const isSel=id==='athlete_since'||selectedStats.includes(id);
-              const isLk=!!locked;
-              const canAdd=!isSel&&selectedStats.length<5;
-              return(
-                <div key={id} onClick={()=>!isLk&&toggleStat(id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",borderRadius:8,background:isSel?"rgba(232,52,28,0.07)":"rgba(245,245,240,0.02)",border:`1px solid ${isSel?"rgba(232,52,28,0.22)":"rgba(245,245,240,0.06)"}`,cursor:isLk?"default":"pointer",opacity:!isSel&&!canAdd?0.35:1,transition:"all 0.15s"}}>
-                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:isSel?"#f5f5f0":"rgba(245,245,240,0.5)"}}>
-                    {label}{isLk&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",marginLeft:7,letterSpacing:"0.10em"}}>LOCKED</span>}
-                  </div>
-                  <div style={{width:16,height:16,borderRadius:4,background:isSel?"#e8341c":"transparent",border:`1.5px solid ${isSel?"#e8341c":"rgba(245,245,240,0.18)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    {isSel&&<span style={{color:"#fff",fontSize:9,lineHeight:1,fontWeight:700}}>✓</span>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+export function AthletePassport({user}){
+  return <AthletePassportComponent userId={user?.id}/>;
 }
 
 export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAthlete,stravaActs,connectStrava,ahActs,garminActs,fitbitActs,importStatus,handleFile,fileRef,allActs,todayActs,earnedCals,isMobile}) {
@@ -4006,7 +3840,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   return (
     <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?100:0}}>
       {/* ── ATHLETE PASSPORT ── */}
-      <AthletePassport profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>
+      <AthletePassport user={user}/>
       {/* ── REFER A FRIEND ── */}
       {profile?.referralCode&&(<>
         <div style={eyebrowStyle}>// Refer a Friend</div>
