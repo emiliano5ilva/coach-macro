@@ -664,7 +664,7 @@ const ADAPT_CSS = `
   @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 `;
 
-function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptationsLeft, adaptationsUsed, onUseAdapted, onClose}) {
+function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptationsLeft, adaptationsUsed, adaptLimit, adaptResetDate, onUseAdapted, onClose}) {
   const [screen, setScreen] = useState("categories");
   const [category, setCategory] = useState(null);
   const [subOption, setSubOption] = useState(null);
@@ -687,11 +687,28 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
     try {
       const adaptHealthItems=[...(profile?.conditions||[]).filter(c=>c!=="none"),...(wPrefs?.injuries||[]).filter(Boolean)];
       const adaptHealthCtx=adaptHealthItems.length>0?`\nKnown conditions/injuries: ${adaptHealthItems.join(", ")} — factor into all exercise selections.`:"";
+
+      const GOAL_DESCRIPTIONS={build_muscle:"building muscle mass",get_stronger:"increasing strength",lose_fat:"losing body fat",recomp:"body recomposition",train_for_race:"race preparation",get_faster:"speed and power"};
+      const goalDescription=GOAL_DESCRIPTIONS[profile?.goal]||(profile?.goal||"general fitness");
+
+      let recoveryContext="No recovery data available";
+      try{
+        const{data:{user:authUser}}=await sb.auth.getUser();
+        if(authUser){
+          const{data:recoveryData}=await sb.from("muscle_recovery").select("muscle_group,recovery_percent").eq("user_id",authUser.id);
+          if(recoveryData?.length>0)recoveryContext=recoveryData.map(r=>`${r.muscle_group}: ${r.recovery_percent}% recovered`).join(", ");
+        }
+      }catch{/* non-blocking */}
+
       const prompt = `You are an expert personal trainer and coach.
 
 Current program: ${wPrefs.splitType||"General"} — ${wPrefs.liftExp||"intermediate"} level
+Training goal: ${goalDescription}
 Today's session: ${todayFocus}
 User situation: ${selectedReason}${adaptHealthCtx}
+
+Current muscle recovery state:
+${recoveryContext}
 
 Current planned exercises:
 ${JSON.stringify((todayExercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps,notes:e.notes})), null, 2)}
@@ -716,7 +733,9 @@ Rules:
 - Menstrual phase: reduce volume 30%, remove heavy compound lifts, keep lighter accessory work.
 - Follicular/ovulation: keep or increase intensity — good time for PRs.
 - Time constraints: keep only the primary compound movements, cut accessories to fit the time.
-- Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.`;
+- Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.
+- Recovery aware: if a muscle group being trained today is below 50% recovered, reduce its exercises by 1 set and add a note about incomplete recovery.
+- Goal aligned: adaptations must keep the session aligned with the user's training goal — a fat loss user should keep rest periods short, a strength user should keep heavy compounds even when adapting.`;
 
       let adaptText = '';
       const timeout = new Promise((_,rej) => setTimeout(() => rej(new Error("Adaptation timed out. Try again.")), 25000));
@@ -802,11 +821,44 @@ Rules:
     </div>
   );
 
+  const isFree=!profile?.is_pro&&!["pro","plus","ultra"].includes((profile?.subscriptionTier||"").toLowerCase());
+  const resetDisplayDate=adaptResetDate?new Date(new Date(adaptResetDate+"T00:00:00").getTime()+30*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"}):null;
+
+  if(adaptationsLeft===0)return(
+    <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
+      <div className="adapt-header">
+        <div>
+          <div style={{fontSize:10,color:"rgba(245,245,240,.35)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPT NOW · LIMIT REACHED</div>
+          <div className="adapt-title">ADAPT YOUR SESSION</div>
+        </div>
+        <button className="adapt-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="adapt-body" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",gap:16,paddingTop:40}}>
+        <div style={{fontSize:40,marginBottom:4}}>⚡</div>
+        {isFree?(
+          <>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED<br/>YOUR 2 FREE<br/>ADAPTATIONS.</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>Upgrade to Pro for 10 adaptations per month — plus AI meal logging, recipe generator, and more.</div>
+            <button onClick={()=>{onClose();showToast("Go to Me → Subscription to upgrade to Pro.","info",{duration:5000});}} style={{padding:"14px 28px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:15,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",marginTop:4}}>Upgrade → Pro</button>
+          </>
+        ):(
+          <>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED ALL<br/>{adaptLimit} ADAPTATIONS<br/>THIS MONTH.</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>{resetDisplayDate?`Your quota resets on ${resetDisplayDate}.`:"Your quota resets in the next billing cycle."}</div>
+          </>
+        )}
+      </div>
+      <div className="adapt-footer">
+        <button className="adapt-secondary" onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
-          <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPT NOW · {adaptationsLeft} OF 2 REMAINING</div>
+          <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>ADAPT NOW · {adaptationsLeft} OF {adaptLimit} REMAINING</div>
           <div className="adapt-title">ADAPT YOUR SESSION</div>
         </div>
         <button className="adapt-close" onClick={onClose}>✕</button>
@@ -1545,11 +1597,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [adaptToast,setAdaptToast]=useState("");
   const [localAdaptUsed,setLocalAdaptUsed]=useState(null);
 
+  const ADAPT_LIMITS={free:2,pro:10,plus:10,ultra:10};
+  const adaptLimit=ADAPT_LIMITS[(profile?.subscriptionTier||"").toLowerCase()]||(profile?.is_pro?ADAPT_LIMITS.pro:ADAPT_LIMITS.free);
   const adaptResetDate=profile?.adaptations_reset_date;
   const daysSinceReset=adaptResetDate?Math.floor((Date.now()-new Date(adaptResetDate))/86400000):31;
   const needsAdaptReset=daysSinceReset>30;
   const adaptUsed=localAdaptUsed!==null?localAdaptUsed:(needsAdaptReset?0:(profile?.adaptations_used||0));
-  const adaptLeft=Math.max(0,2-adaptUsed);
+  const adaptLeft=Math.max(0,adaptLimit-adaptUsed);
   const daysUntilReset=needsAdaptReset?0:Math.max(0,30-daysSinceReset);
 
   useEffect(()=>{
@@ -1572,7 +1626,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     setShowAdapt(false);
     const newUsed=adaptUsed+1;
     setLocalAdaptUsed(newUsed);
-    setAdaptToast(`Adapted session loaded. ${Math.max(0,2-newUsed)} adaptation${2-newUsed===1?"":"s"} remaining this month.`);
+    const _adaptRemaining=Math.max(0,adaptLimit-newUsed);
+    setAdaptToast(`Adapted session loaded. ${_adaptRemaining} adaptation${_adaptRemaining===1?"":"s"} remaining this month.`);
     setTimeout(()=>setAdaptToast(""),4500);
     try{
       const {data:{user}}=await sb.auth.getUser();
@@ -1728,7 +1783,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   return (
     <div className="page-enter" style={{paddingBottom:isMobile?20:0}}>
       {/* Adapt Now Modal */}
-      {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)}/>}
+      {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} adaptLimit={adaptLimit} adaptResetDate={adaptResetDate} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)}/>}
 
       {/* Swap Exercise Modal */}
       {swapModal&&(()=>{
