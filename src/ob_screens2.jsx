@@ -30,6 +30,7 @@ import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import { completeReferral } from "./services/referralService.js";
+import { getMorningBrief } from "./services/morningBriefService.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
@@ -1454,6 +1455,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [toasts,setToasts]=useState([]);
   const [morningBrief,setMorningBrief]=useState(null);
   const [morningBriefLoading,setMorningBriefLoading]=useState(false);
+  const [morningBriefError,setMorningBriefError]=useState(null);
   const [briefDismissed,setBriefDismissed]=useState(()=>localStorage.getItem("brief_dismissed")===new Date().toISOString().split("T")[0]);
   const [briefTrigger,setBriefTrigger]=useState(0);
 
@@ -1866,41 +1868,41 @@ Be specific and practical. Empathetic tone. No fluff.`,
     const hour=new Date().getHours();
     if(briefTrigger===0&&hour>=12)return;
     if(briefTrigger===0&&briefDismissed)return;
-    const cachedDate=localStorage.getItem("brief_date");
-    const cachedBrief=localStorage.getItem("brief_content");
-    if(briefTrigger===0&&cachedDate===todayDate&&cachedBrief){setMorningBrief(cachedBrief);return;}
-    setMorningBriefLoading(true);setMorningBrief(null);
-    (async()=>{
-      const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
-      const{data:fLogs}=await sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutoff.toISOString().split("T")[0]).order("date",{ascending:false});
-      let streak=0;
-      const chk=new Date();chk.setDate(chk.getDate()-1);
-      const foodDates=new Set((fLogs||[]).filter(f=>f.entries?.length>0).map(f=>f.date));
-      while(foodDates.has(chk.toISOString().split("T")[0])){streak++;chk.setDate(chk.getDate()-1);}
-      if(foodDates.has(todayDate))streak++;
-      const{data:wLog}=await sb.from("workout_logs").select("date,workout").eq("user_id",user.id).order("date",{ascending:false}).limit(1).maybeSingle();
-      const lastSession=wLog?`${wLog.workout?.focus||"Workout"} on ${new Date(wLog.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"long"})}`:"No recent session logged";
-      const sleepMap={u5:4.5,"5-6":5.5,"6-7":6.5,"7-8":7.5,"8+":8.5};
-      const sleepAvg=sleepMap[profile?.sleep]||7;
-      const startD=profile?.startDate?new Date(profile.startDate):new Date();
-      const weekNum=Math.floor(Math.max(0,(new Date()-startD)/86400000)/7)+1;
-      const cMacros=getDayMacros(profile.goalCals,profile.goal,schedule[getTodayKey()]||"training",0);
-      const goalNames={build_muscle:"Build Muscle (hypertrophy)",get_stronger:"Get Stronger (powerlifting)",lose_fat:"Lose Fat (metabolic)",recomp:"Body Recomposition",train_for_race:"Train for a Race (endurance)",get_faster:"Get Faster (power & athleticism)"};
-      const trainingGoalLine=profile?.primaryGoal?`- Training goal: ${goalNames[profile.primaryGoal]||profile.primaryGoal}`:"";
-      const prompt=`You are a world-class personal trainer and nutritionist texting your athlete their morning briefing.\n\nAthlete data:\n- Name: ${profile.name}\n- Today: ${dayFocus[getTodayKey()]||"Training"} day — Week ${weekNum} of ${wPrefs.splitType||"training"}\n- Last session: ${lastSession}\n- Today's macros: ${cMacros.calories}kcal, ${cMacros.protein}g protein, ${cMacros.carbs}g carbs, ${cMacros.fat}g fat\n- Current streak: ${streak} days\n- Recent sleep: ${sleepAvg} hours average\n${trainingGoalLine}\n\nWrite a brief morning message (4-6 lines max) that:\n1. States today's training focus and one specific target aligned to their goal\n2. Gives today's macro targets\n3. Suggests a first meal that fits the macros\n4. One motivational line based on their streak or recent performance\n\nWrite like a coach texting — direct, specific, no fluff. Not a formal notification. A real message from someone who knows them.`;
-      try{
-        await streamAI(prompt,400,"morning_brief",
-          (partial)=>{setMorningBrief(partial);},
-          (full)=>{setMorningBrief(full);localStorage.setItem("brief_date",todayDate);localStorage.setItem("brief_content",full);setMorningBriefLoading(false);if(user)track(EVENTS.AI_MORNING_BRIEF,{chars:full.length},user.id);}
-        );
-      }catch(e){console.error("[morningBrief] error:",e);const m=getAIErrorMessage(e);if(m)setMorningBrief("⚠️ "+m);setMorningBriefLoading(false);}
-    })();
+    setMorningBriefLoading(true);setMorningBrief(null);setMorningBriefError(null);
+    getMorningBrief(user.id)
+      .then(content=>{
+        setMorningBrief(content);
+        setMorningBriefLoading(false);
+        track(EVENTS.AI_MORNING_BRIEF,{cached:true},user.id);
+      })
+      .catch(e=>{
+        console.error("[morningBrief] error:",e);
+        setMorningBriefError(getAIErrorMessage(e)||"Brief unavailable — check back tomorrow.");
+        setMorningBriefLoading(false);
+      });
   },[user,wPrefs.morningBriefEnabled,briefTrigger]);
+
+  // midnight refresh — invalidate brief at next midnight
+  useEffect(()=>{
+    const now=new Date();
+    const midnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,5);
+    const ms=midnight-now;
+    const t=setTimeout(()=>{
+      localStorage.removeItem("brief_date");
+      localStorage.removeItem("brief_content");
+      setBriefDismissed(false);
+      setBriefTrigger(n=>n+1);
+    },ms);
+    return()=>clearTimeout(t);
+  },[]);
 
   function previewMorningBrief(){
     localStorage.removeItem("brief_dismissed");
     setBriefDismissed(false);
     setMorningBrief(null);
+    setMorningBriefError(null);
+    // clear DB cache so a fresh brief is generated
+    if(user)sb.from("morning_briefs").delete().eq("user_id",user.id).eq("brief_date",new Date().toISOString().split("T")[0]).then(()=>{});
     setBriefTrigger(t=>t+1);
     setSection("fuel");
   }
@@ -2777,20 +2779,54 @@ Rules:
 
         {/* Morning Brief + Comeback Protocol — fixed-height slot prevents layout twitch */}
         <div style={{margin:"0 20px 12px",minHeight:140,position:"relative"}}>
-          <div style={{opacity:(morningBrief||morningBriefLoading)&&!briefDismissed?1:0,transform:(morningBrief||morningBriefLoading)&&!briefDismissed?"scale(1)":"scale(0.98)",transition:"opacity 0.32s cubic-bezier(.2,.7,.3,1),transform 0.32s cubic-bezier(.2,.7,.3,1)",pointerEvents:(morningBrief||morningBriefLoading)&&!briefDismissed?"auto":"none",position:"absolute",inset:0}}>
-            {(morningBrief||morningBriefLoading)&&!briefDismissed&&(
-              <div style={{padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",height:"100%",boxSizing:"border-box"}}>
-                <div className="header-eyebrow">// Morning Brief</div>
-                {morningBriefLoading&&!morningBrief
-                  ?<div style={{marginTop:8,display:"flex",flexDirection:"column",gap:8}}>{[0,1,2].map(i=><div key={i} className={`stagger-${i}`} style={{opacity:0,animation:"page-fade 0.3s ease forwards"}}><div className="skeleton" style={{height:13,width:i===2?"65%":"100%",borderRadius:4}}/></div>)}</div>
-                  :<div style={{fontSize:13.5,lineHeight:1.55,marginTop:8,fontStyle:"italic"}}>
-                    <style>{`@keyframes cm-blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-                    {morningBrief}
-                    {morningBriefLoading&&<span style={{display:"inline-block",width:2,height:"1em",background:"var(--red)",marginLeft:2,verticalAlign:"text-bottom",animation:"cm-blink 1s step-end infinite"}}/>}
+          <div style={{opacity:(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed?1:0,transform:(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed?"scale(1)":"scale(0.98)",transition:"opacity 0.32s cubic-bezier(.2,.7,.3,1),transform 0.32s cubic-bezier(.2,.7,.3,1)",pointerEvents:(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed?"auto":"none",position:"absolute",inset:0}}>
+            {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
+              <div style={{padding:"16px",background:"linear-gradient(135deg,#0d1420,#0a0e1a)",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
+                    {new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
                   </div>
+                </div>
+                {morningBriefLoading
+                  ?<div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    {[1,0.85,0.7,0.55].map((w,i)=><div key={i} className="skeleton" style={{height:12,width:`${w*100}%`,borderRadius:3,animationDelay:`${i*80}ms`}}/>)}
+                  </div>
+                  :morningBriefError
+                    ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>{morningBriefError}</div>
+                    :morningBrief&&(()=>{
+                      const b=morningBrief;
+                      return(
+                        <div>
+                          {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
+                          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                            {b.yesterday&&(
+                              <div>
+                                <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div>
+                                <div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div>
+                              </div>
+                            )}
+                            <div style={{height:1,background:"rgba(245,245,240,0.06)"}}/>
+                            {b.today&&(
+                              <div>
+                                <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div>
+                                <div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div>
+                              </div>
+                            )}
+                            {b.coach_says&&(
+                              <div style={{padding:"8px 10px",background:"rgba(232,52,28,0.08)",borderRadius:6,borderLeft:"2px solid rgba(232,52,28,0.4)"}}>
+                                <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div>
+                                <div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div>
+                              </div>
+                            )}
+                          </div>
+                          {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
+                        </div>
+                      );
+                    })()
                 }
-                {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10}}>
-                  <FlagBtn responseText={morningBrief} feature="morning_brief" user={user}/>
+                {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
+                  <FlagBtn responseText={morningBrief?JSON.stringify(morningBrief):""} feature="morning_brief" user={user}/>
                   <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
                 </div>}
               </div>
