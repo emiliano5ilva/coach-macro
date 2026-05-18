@@ -5,7 +5,100 @@ import { T, GLOBAL_CSS, WDAYS, MONTHS_A, DAYS_A, YEARS_A, FT_A, IN_A, CM_A, LBS_
   SectionCard, Spinner, Logo, CC, calcTDEE, autoFocus, useCountUp } from "./components.jsx";
 import { ChoiceScreens, TDEEReveal, GoalScreen } from "./ob_screens2.jsx";
 import { getAge } from "./utils/safety.js";
+import { validateReferralCode, applyReferralCode } from "./services/referralService.js";
 
+// ─── REFERRAL CODE SCREEN ─────────────────────────────────────────────────────
+function ReferralCodeScreen({ user, next, upd }) {
+  const [code, setCode] = useState('');
+  const [validating, setValidating] = useState(false);
+  const [validity, setValidity] = useState(null); // null | true | false
+  const [applying, setApplying] = useState(false);
+
+  useEffect(() => {
+    if (code.length !== 8) { setValidity(null); return; }
+    setValidating(true);
+    validateReferralCode(code).then(ok => {
+      setValidity(ok);
+      setValidating(false);
+    });
+  }, [code]);
+
+  async function handleApply() {
+    if (!validity || applying) return;
+    setApplying(true);
+    if (user?.id) {
+      await applyReferralCode(user.id, code);
+    }
+    upd('referralCodeToApply', code);
+    next();
+  }
+
+  const borderColor = validity === true ? '#22c55e' : validity === false ? '#e8341c' : 'rgba(245,245,240,0.12)';
+
+  return (
+    <div style={{ padding: '40px 24px' }}>
+      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: '#e8341c', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>// REFERRAL CODE</div>
+      <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: 'italic', fontWeight: 900, fontSize: 28, color: '#f5f5f0', marginBottom: 8, lineHeight: 1 }}>GOT A CODE?</div>
+      <div style={{ fontSize: 14, color: 'rgba(245,245,240,0.5)', lineHeight: 1.5, marginBottom: 28 }}>
+        Enter a friend's referral code to get started together.
+      </div>
+
+      <input
+        value={code}
+        onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8))}
+        placeholder="e.g. CMXK9F2A"
+        maxLength={8}
+        style={{
+          width: '100%', boxSizing: 'border-box',
+          background: 'rgba(245,245,240,0.05)',
+          border: `1px solid ${borderColor}`,
+          borderRadius: 10, padding: '14px 16px',
+          fontFamily: "'DM Mono',monospace", fontSize: 14,
+          color: '#f5f5f0', letterSpacing: '0.1em',
+          textTransform: 'uppercase', outline: 'none',
+          transition: 'border-color 0.2s',
+          marginBottom: 6,
+        }}
+      />
+      {code.length === 8 && !validating && (
+        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: validity ? '#22c55e' : '#e8341c', marginBottom: 20, letterSpacing: '0.1em' }}>
+          {validity ? '✓ Valid code' : 'Code not found'}
+        </div>
+      )}
+      {(code.length < 8 || validating) && <div style={{ marginBottom: 20 }} />}
+
+      <button
+        onClick={handleApply}
+        disabled={!validity || applying}
+        style={{
+          width: '100%', padding: '16px',
+          background: validity ? '#e8341c' : 'rgba(232,52,28,0.15)',
+          border: 'none', borderRadius: 10,
+          color: validity ? '#fff' : 'rgba(245,245,240,0.3)',
+          fontFamily: "'DM Mono',monospace", fontWeight: 700,
+          fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase',
+          cursor: validity ? 'pointer' : 'not-allowed',
+          marginBottom: 12, transition: 'all 0.2s',
+        }}
+      >
+        {applying ? 'APPLYING…' : 'APPLY CODE →'}
+      </button>
+
+      <button
+        onClick={next}
+        style={{
+          width: '100%', padding: '12px',
+          background: 'transparent', border: 'none',
+          fontFamily: "'DM Mono',monospace", fontSize: 10,
+          color: 'rgba(245,245,240,0.4)', cursor: 'pointer',
+          letterSpacing: '0.1em',
+        }}
+      >
+        Skip
+      </button>
+    </div>
+  );
+}
 
 export function Onboarding({onComplete, user, signupName}) {
   const [sc,setSc]=useState(0);
@@ -23,7 +116,7 @@ export function Onboarding({onComplete, user, signupName}) {
   const upd=(k,v)=>setD(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(next,260);};
   const tdee=calcTDEE(d);
-  const animTDEE=useCountUp(sc===24?tdee.total:0);
+  const animTDEE=useCountUp(sc===25?tdee.total:0);
   const SKIP20=d.sex!=="female";
   const next=()=>setSc(s=>{const n=s+1;if(n===20&&SKIP20)return 21;return n;});
   const back=()=>{
@@ -394,11 +487,14 @@ export function Onboarding({onComplete, user, signupName}) {
           <PrimaryBtn onClick={next} label="Continue →" style={{marginTop:16}}/>
         </div>}
 
-        {/* Screens 6-22 */}
+        {/* Screens 6-23 */}
         {femSc===null&&sc>=6&&sc<=23&&<ChoiceScreens sc={sc} d={d} upd={upd} auto={auto} next={next} tdee={tdee} FactCard={FactCard} MiniBar={MiniBar}/>}
 
-        {/* Screen 23: TDEE reveal */}
-        {sc===24&&<TDEEReveal tdee={tdee} animTDEE={animTDEE} d={d} chatReply={chatReply} setCR={setCR} next={()=>onComplete(d,tdee)}/>}
+        {/* Screen 24: Referral code */}
+        {sc===24&&<ReferralCodeScreen user={user} next={next} upd={upd}/>}
+
+        {/* Screen 25: TDEE reveal */}
+        {sc===25&&<TDEEReveal tdee={tdee} animTDEE={animTDEE} d={d} chatReply={chatReply} setCR={setCR} next={()=>onComplete(d,tdee)}/>}
       </div>
     </div>
   );

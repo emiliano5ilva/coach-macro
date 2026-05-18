@@ -31,6 +31,7 @@ import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
+import { getReferralData, getReferrals, REFERRAL_TIERS } from "./services/referralService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -3498,14 +3499,168 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
   );
 }
 
+// ─── REFER A FRIEND CARD ─────────────────────────────────────────────────────
+function ReferAFriendCard({ user, eyebrowStyle }) {
+  const [refData, setRefData] = useState(null);
+  const [referrals, setReferrals] = useState([]);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getReferralData(user.id).then(d => { if (d) setRefData(d); });
+    getReferrals(user.id).then(list => setReferrals(list));
+  }, [user?.id]);
+
+  const referralCode = refData?.referral_code || '';
+  const referralCount = refData?.referral_count || 0;
+  const tier = refData?.referral_tier || 0;
+  const tierDef = REFERRAL_TIERS[tier] || REFERRAL_TIERS[0];
+  const tierColor = tierDef.color;
+  const nextTierDef = tier < 3 ? REFERRAL_TIERS[tier + 1] : null;
+
+  const progressPct = nextTierDef
+    ? Math.min(1, (referralCount - tierDef.min) / (nextTierDef.min - tierDef.min)) * 100
+    : 100;
+
+  async function copyCode() {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {}
+  }
+
+  async function shareCode() {
+    if (!referralCode || sharing) return;
+    setSharing(true);
+    const text = `Use my referral code ${referralCode} to get started on Coach Macro — the app that connects your training and nutrition. Download at coach-macro.com`;
+    const url = `https://coach-macro.com/join?ref=${referralCode}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Join me on Coach Macro', text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        showToast('Link copied!', 'success', { duration: 2000 });
+      }
+    } catch {}
+    setSharing(false);
+  }
+
+  if (!referralCode) return null;
+
+  return (
+    <>
+      <div style={eyebrowStyle}>// Refer a Friend</div>
+      <div style={{
+        background: '#111827', borderRadius: 14, padding: 16,
+        border: '1px solid rgba(245,245,240,0.07)',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Gradient */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, transparent 60%, rgba(232,52,28,0.04) 100%)', pointerEvents: 'none' }} />
+
+        {/* Code label */}
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+          Your referral code
+        </div>
+
+        {/* Code row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,245,240,0.04)', border: '1px solid rgba(245,245,240,0.1)', borderRadius: 10, padding: '12px 16px', marginBottom: 14 }}>
+          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 24, color: '#f5f5f0', flex: 1, letterSpacing: '0.08em' }}>
+            {referralCode}
+          </div>
+          <button onClick={copyCode} style={{ background: 'rgba(232,52,28,0.12)', border: '1px solid rgba(232,52,28,0.3)', borderRadius: 8, padding: '6px 12px', fontFamily: 'var(--mono)', fontSize: 9, color: '#e8341c', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
+            {codeCopied ? 'COPIED ✓' : 'COPY'}
+          </button>
+        </div>
+
+        {/* Share button */}
+        <button onClick={shareCode} disabled={sharing} style={{ width: '100%', background: '#e8341c', border: 'none', borderRadius: 10, padding: 13, color: '#fff', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: sharing ? 0.7 : 1 }}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx={18} cy={5} r={3}/><circle cx={6} cy={12} r={3}/><circle cx={18} cy={19} r={3}/><line x1={8.59} y1={13.51} x2={15.42} y2={17.49}/><line x1={15.41} y1={6.51} x2={8.59} y2={10.49}/></svg>
+          SHARE YOUR CODE
+        </button>
+
+        {/* Tier progress */}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(245,245,240,0.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>Current tier</div>
+              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: tierColor }}>
+                {tier === 0 ? 'NO TIER YET.' : `${tierDef.name}.`}
+              </div>
+            </div>
+            <div style={{ background: 'rgba(232,52,28,0.1)', border: '1px solid rgba(232,52,28,0.25)', borderRadius: 20, padding: '3px 10px', fontFamily: 'var(--mono)', fontSize: 9, color: '#e8341c' }}>
+              {referralCount} referral{referralCount !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          {tier < 3 && nextTierDef && (
+            <>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginBottom: 6 }}>
+                {nextTierDef.min - referralCount} more to reach {nextTierDef.name}
+              </div>
+              <div style={{ background: 'rgba(245,245,240,0.06)', borderRadius: 4, height: 4, overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ height: '100%', width: `${progressPct}%`, background: tierColor, borderRadius: 4, transition: 'width 0.5s' }} />
+              </div>
+            </>
+          )}
+          {tier >= 3 && (
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: '#FFD740', marginBottom: 12 }}>
+              Maximum tier reached. You are a Coach Macro legend.
+            </div>
+          )}
+
+          {/* Perks */}
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: '#e8341c', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Your perks</div>
+          {tier === 0 ? (
+            <>
+              {REFERRAL_TIERS[1].perks.map(p => (
+                <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7} strokeLinecap="round"/></svg>
+                  <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: 'rgba(245,245,240,0.35)' }}>{p}</span>
+                </div>
+              ))}
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)', marginTop: 6 }}>Refer 1 friend to unlock</div>
+            </>
+          ) : (
+            tierDef.perks.map(p => (
+              <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
+                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>{p}</span>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Referral list */}
+        {referrals.length > 0 && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(245,245,240,0.06)' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>// Referred members</div>
+            {referrals.map((r, i) => (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < referrals.length - 1 ? '1px solid rgba(245,245,240,0.05)' : 'none' }}>
+                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>
+                  {r.referred_name || 'Anonymous'}
+                </span>
+                {r.status === 'completed'
+                  ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#22c55e' }}>JOINED ✓</span>
+                  : <span style={{ background: 'rgba(254,160,32,0.1)', border: '1px solid rgba(254,160,32,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#FEA020' }}>PENDING</span>
+                }
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
 export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury}) {
   const [delStep,setDelStep]=useState(0);
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
-  const [referralStats,setReferralStats]=useState({sent:0,clicked:0});
-  const [refGenerating,setRefGenerating]=useState(false);
-  const [refCopied,setRefCopied]=useState(false);
   const [editModal,setEditModal]=useState(null);
   const [editValue,setEditValue]=useState("");
   const [localName,setLocalName]=useState(profile?.name||"");
@@ -3526,12 +3681,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     }catch(e){console.error("[saveSettings] exception:",e);showToast("Couldn't save — check your connection","error");}
   }
 
-  useEffect(()=>{
-    if(!user)return;
-    sb.from("referrals").select("clicked").eq("referrer_id",user.id).then(({data})=>{
-      if(data)setReferralStats({sent:data.length,clicked:data.filter(r=>r.clicked).length});
-    });
-  },[user]);
 
   async function saveProfileField(field,value){
     if(!user)return;
@@ -3564,42 +3713,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
     await sb.auth.signOut();
   }
 
-  async function doShare(method) {
-    if(!profile?.referralCode||!user)return;
-    setRefGenerating(true);
-    try{
-      const token=crypto.randomUUID();
-      const {error}=await sb.from('referrals').insert({referrer_id:user.id,token});
-      if(error)throw error;
-      const link=`https://coach-macro.com/r/${profile.referralCode}/${token}`;
-      const msg=`Hey! I use Coach Macro for my nutrition and training — it's the only app that connects both.\nHere's 2 weeks free on me:\n${link}`;
-      if(method==='sms'){
-        window.location.href=`sms:?body=${encodeURIComponent(msg)}`;
-      }else if(method==='copy'){
-        await navigator.clipboard.writeText(link);
-        setRefCopied(true);
-        setTimeout(()=>setRefCopied(false),2000);
-        showToast("Link copied! 🔗","success",{duration:2000});
-      }else if(method==='share'){
-        if(navigator.share){
-          await navigator.share({title:'Coach Macro — 2 Weeks Free',text:msg});
-        }else{
-          await navigator.clipboard.writeText(link);
-          setRefCopied(true);
-          setTimeout(()=>setRefCopied(false),2000);
-          showToast("Link copied! 🔗","success",{duration:2000});
-        }
-      }
-      // Refresh stats
-      const {data}=await sb.from('referrals').select('clicked').eq('referrer_id',user.id);
-      if(data)setReferralStats({sent:data.length,clicked:data.filter(r=>r.clicked).length});
-    }catch(e){console.error('[doShare]',e);}
-    setRefGenerating(false);
-  }
-
-  const refCount=profile?.referralCount||0;
   const isPro=!!profile?.is_pro;
-  const refBadge=getReferralBadge(refCount);
 
   const GOAL_LABELS={build_muscle:"Build Muscle",get_stronger:"Get Stronger",lose_fat:"Lose Fat",recomp:"Body Recomp",train_for_race:"Train for Race",get_faster:"Get Faster"};
   const SKILL_LABELS={none:"Beginner",beginner:"Beginner",intermediate:"Intermediate",advanced:"Advanced"};
@@ -3628,75 +3742,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── ATHLETE PASSPORT ── */}
       <AthletePassport user={user}/>
       {/* ── REFER A FRIEND ── */}
-      {profile?.referralCode&&(<>
-        <div style={eyebrowStyle}>// Refer a Friend</div>
-        <div style={cardStyle}>
-
-
-          {/* badges earned */}
-          {(isPro||getReferralBadge(referralStats.clicked))&&<div style={{display:"flex",alignItems:"center",gap:4,padding:"12px 16px 0",flexWrap:"wrap"}}>
-            <span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",letterSpacing:"0.12em"}}>EARNED:</span>
-            {isPro&&<Badge type="PRO"/>}
-            {getReferralBadge(referralStats.clicked)&&<Badge type={getReferralBadge(referralStats.clicked)}/>}
-          </div>}
-          {referralStats.sent===0&&<div style={{textAlign:"center",padding:"20px 16px 16px"}}>
-            <div style={{marginBottom:10,display:"flex",justifyContent:"center"}}><svg width={36} height={36} viewBox="0 0 24 24" fill="none"><rect x="3" y="8" width="18" height="13" rx="2" stroke="#e8341c" strokeWidth={1.5}/><path d="M12 8v13M3 12h18" stroke="#e8341c" strokeWidth={1.5} strokeLinecap="round"/><path d="M12 8s-2-3-4-3a2 2 0 0 0 0 4c2 0 4-1 4-1zM12 8s2-3 4-3a2 2 0 0 1 0 4c-2 0-4-1-4-1z" stroke="#e8341c" strokeWidth={1.5} strokeLinecap="round"/></svg></div>
-            <div style={{fontSize:15,fontWeight:700,color:"#f5f5f0",marginBottom:6}}>Invite friends, earn free time</div>
-            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>Every person who clicks earns you 2 weeks free. Unlock icons, themes, and VERIFIED status.</div>
-          </div>}
-          {referralStats.sent>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,padding:"12px 16px"}}>
-            {[["Links Sent",referralStats.sent],["Clicked",referralStats.clicked],["Rate",referralStats.sent>0?Math.round(referralStats.clicked/referralStats.sent*100)+"%":"—"]].map(([l,v])=>(
-              <div key={l} style={{background:"rgba(245,245,240,0.04)",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
-                <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,color:"#f5f5f0",lineHeight:1}}>{v}</div>
-                <div style={{fontSize:9,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",letterSpacing:"0.1em",marginTop:3,textTransform:"uppercase"}}>{l}</div>
-              </div>
-            ))}
-          </div>}
-          <div style={{padding:"0 16px 16px"}}>
-            <div style={{fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)",marginBottom:8}}>Share &amp; earn 2 weeks free</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-              {[{icon:"📱",label:"Text Message",method:"sms"},{icon:"📋",label:refCopied?"✓ Copied!":"Copy Link",method:"copy"},{icon:"↗",label:"Share",method:"share"}].map(btn=>(
-                <button key={btn.method} disabled={refGenerating} onClick={()=>doShare(btn.method)}
-                  style={{width:"100%",padding:"12px 16px",minHeight:44,background:"rgba(245,245,240,0.04)",border:`1px solid ${btn.method==="copy"&&refCopied?"rgba(52,211,153,0.5)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:btn.method==="copy"&&refCopied?"#34d399":"#f5f5f0",fontWeight:700,fontSize:14,cursor:refGenerating?"default":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10,opacity:refGenerating?0.6:1}}>
-                  <span style={{fontSize:18}}>{btn.icon}</span><span style={{flex:1,textAlign:"left"}}>{btn.label}</span>
-                </button>
-              ))}
-            </div>
-            {(()=>{
-              const cnt=referralStats.clicked;
-              const milestones=[1,3,5,10];
-              const nextM=milestones.find(m=>m>cnt);
-              return(
-                <div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                    <div style={{fontSize:10,color:"rgba(245,245,240,0.3)",letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>Progress</div>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>{cnt} click{cnt!==1?"s":""}</div>
-                  </div>
-                  {nextM&&<div style={{height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,marginBottom:12,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min((cnt/nextM)*100,100)}%`,background:cnt>=5?"#00E676":cnt>=1?"#FFD740":"#e8341c",borderRadius:2,transition:"width 0.5s"}}/></div>}
-                  <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                    {[{badge:"VIP",minRef:1,rewards:[{l:"Custom app icons",minRef:1},{l:"Accent color themes",minRef:3}]},{badge:"VERIFIED",minRef:5,rewards:[{l:"Background themes",minRef:5},{l:"Dashboard customization",minRef:8}]},{badge:"LEGEND",minRef:10,rewards:[{l:"Priority support",minRef:10},{l:"Early feature access",minRef:10}]}].map(tb=>{
-                      const achieved=cnt>=tb.minRef;
-                      const bc=achieved?tb.badge==="LEGEND"?"rgba(255,215,0,0.3)":tb.badge==="VERIFIED"?"rgba(0,230,118,0.25)":"rgba(255,215,64,0.25)":"rgba(245,245,240,0.05)";
-                      return(
-                        <div key={tb.badge} style={{background:"rgba(245,245,240,0.03)",borderRadius:10,padding:"10px 12px",border:`1px solid ${bc}`}}>
-                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><Badge type={tb.badge}/><span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>{tb.minRef}+ clicks</span></div>
-                          {tb.rewards.map(r=>{
-                            const unlocked=cnt>=r.minRef;
-                            return(<div key={r.l} style={{display:"flex",alignItems:"center",gap:8,marginTop:5}}>
-                              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>{unlocked?<path d="M5 13l4 4L19 7" stroke="#00E676" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>:<><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7} strokeLinecap="round"/></>}</svg>
-                              <span style={{fontSize:12,color:unlocked?"#f5f5f0":"rgba(245,245,240,0.4)",flex:1}}>{r.l}{unlocked&&<span style={{color:"#00E676",marginLeft:5,fontSize:9,fontWeight:700,fontFamily:"var(--mono)",letterSpacing:"0.1em"}}> UNLOCKED</span>}</span>
-                            </div>);
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      </>)}
+      <ReferAFriendCard user={user} eyebrowStyle={eyebrowStyle} />
 
 
       {/* ── PROFILE ── */}

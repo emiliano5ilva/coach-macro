@@ -280,9 +280,12 @@ function Toggle({ on, onChange }) {
 // ── Badge ─────────────────────────────────────────────────────────────────────
 function PassportBadge({ type }) {
   const defs = {
-    PRO: { bg: '#FEA020', color: '#000', label: 'PRO' },
+    PRO:    { bg: '#FEA020', color: '#000', label: 'PRO' },
     VERIFIED: { bg: '#1D9BF0', color: '#fff', label: 'VERIFIED ✓' },
-    VIP: { bg: '#FFD740', color: '#000', label: 'VIP' },
+    VIP:    { bg: '#FFD740', color: '#000', label: 'VIP' },
+    BRONZE: { bg: '#CD7F32', color: '#000', label: 'BRONZE' },
+    SILVER: { bg: '#C0C0C0', color: '#000', label: 'SILVER' },
+    GOLD:   { bg: '#FFD740', color: '#000', label: 'GOLD' },
   };
   const d = defs[type];
   if (!d) return null;
@@ -332,8 +335,8 @@ export default function AthletePassport({ userId }) {
   const tier = (profileData.subscriptionTier || '').toLowerCase();
   const isPro = !!profileData.is_pro || ['pro', 'plus', 'ultra'].includes(tier);
   const isVerified = workoutCount >= 1;
-  const referralCount = profile?.referral_count || 0;
-  const isVip = !!profileData.isVip || referralCount >= 10;
+  const referralTier = profile?.referral_tier || 0;
+  const isVip = !!profileData.isVip || referralTier >= 3;
 
   // ── Load data on mount ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -342,7 +345,7 @@ export default function AthletePassport({ userId }) {
 
     async function load() {
       const [{ data: prof }, { count: wCount }] = await Promise.all([
-        sb.from('profiles').select('profile_data, referral_count, passport_stats, created_at').eq('id', userId).single(),
+        sb.from('profiles').select('profile_data, referral_count, referral_tier, passport_stats, created_at').eq('id', userId).single(),
         sb.from('workout_logs').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       ]);
 
@@ -484,8 +487,11 @@ export default function AthletePassport({ userId }) {
   const badges = [
     isPro && 'PRO',
     isVerified && 'VERIFIED',
+    referralTier >= 1 && 'BRONZE',
+    referralTier >= 2 && 'SILVER',
+    referralTier >= 3 && 'GOLD',
     isVip && 'VIP',
-  ].filter(Boolean);
+  ].filter(Boolean).slice(0, 4);
 
   const displayStats = selectedStats.slice(0, 5);
 

@@ -29,6 +29,7 @@ import { ScheduleAlertCard, TravelNutritionCard, CalendarConnectPrompt } from ".
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
+import { completeReferral } from "./services/referralService.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
@@ -2263,6 +2264,9 @@ Rules:
           });
           recordWorkoutRecovery(user.id, setsLogged).catch(() => {});
           window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
+          // Complete referral on first session
+          const { count: sessionCount } = await sb.from('workout_logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+          if (sessionCount === 1) completeReferral(user.id).catch(() => {});
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
 
