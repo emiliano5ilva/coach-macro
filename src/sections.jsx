@@ -21,7 +21,8 @@ import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieF
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
 import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
 import { getThumbnailUrl } from "./services/exerciseMedia.js";
-import { getWarmupForWorkout, getRunningWarmup, COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
+import { COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
+import WarmupScreen from "./components/WarmupScreen.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
@@ -1225,217 +1226,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
   );
 }
 
-function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMobile }) {
-  const liftExp = (wPrefs?.liftExp || profile?.liftExp || 'intermediate').toLowerCase();
-  const isNovice   = liftExp.includes('begin') || liftExp.includes('new') || liftExp.includes('develop');
-  const isAdvanced = liftExp.includes('advanc') || liftExp.includes('elite') || liftExp.includes('compet');
-  const canSkip    = !isNovice || (sessionCount || 0) >= 30;
-  const guided     = wPrefs?.warmupGuided !== false;
-
-  const [phase, setPhase]           = useState(() => isAdvanced && wPrefs?.skipGeneralWarmup ? 'movement' : 'general');
-  const [guidedIdx, setGuidedIdx]   = useState(0);
-  const [timerSec, setTimerSec]     = useState(0);
-  const [timerOn, setTimerOn]       = useState(false);
-  const [skipWarn, setSkipWarn]     = useState(false);
-  const [expanded, setExpanded]     = useState(null);
-
-  const { general, movementPrep=[], liftWarmups={}, totalDuration, strides } = warmupData || {};
-  const liftEntries = Object.entries(liftWarmups);
-  const allMoves = isAdvanced ? movementPrep.slice(0, 3) : movementPrep;
-  const hasLifts  = liftEntries.length > 0;
-
-  useEffect(() => {
-    if (!timerOn || timerSec <= 0) return;
-    const id = setInterval(() => setTimerSec(s => { if (s <= 1) { setTimerOn(false); return 0; } return s - 1; }), 1000);
-    return () => clearInterval(id);
-  }, [timerOn, timerSec]);
-
-  function nextGuided() {
-    setTimerOn(false);
-    if (guidedIdx < allMoves.length - 1) {
-      setGuidedIdx(i => i + 1);
-      const next = allMoves[guidedIdx + 1];
-      if (next?.duration) { setTimerSec(next.duration); setTimerOn(true); }
-    } else {
-      if (hasLifts) setPhase('lifts');
-      else onDone();
-    }
-  }
-
-  function startMovementPhase() {
-    setPhase('movement');
-    if (guided && allMoves[0]?.duration) { setTimerSec(allMoves[0].duration); setTimerOn(true); }
-  }
-
-  const pad = n => String(Math.floor(n)).padStart(2, '0');
-  const min = Math.floor(timerSec / 60), sec = timerSec % 60;
-
-  if (skipWarn) return (
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
-      <div style={{fontSize:48,marginBottom:16}}>⚠️</div>
-      <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,marginBottom:10}}>COLD MUSCLES ARE INJURY-PRONE</div>
-      <div style={{fontSize:14,color:'rgba(245,245,240,.6)',lineHeight:1.7,maxWidth:320,marginBottom:32}}>
-        {isNovice
-          ? 'Beginners who skip warm-ups are 3× more likely to get injured in their first 3 months. This is your most important habit to build.'
-          : 'Even experienced lifters pull muscles training cold. 5 minutes now prevents weeks of recovery.'}
-      </div>
-      <button onClick={onDone} style={{width:'100%',maxWidth:320,padding:'15px',background:'rgba(239,68,68,.12)',border:'1px solid rgba(239,68,68,.4)',borderRadius:14,color:'#EF4444',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:"var(--condensed)",textTransform:'uppercase',letterSpacing:1,marginBottom:12}}>Skip anyway →</button>
-      <button onClick={()=>setSkipWarn(false)} style={{width:'100%',maxWidth:320,padding:'14px',background:'var(--red)',border:'none',borderRadius:14,color:'#fff',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:"var(--condensed)",textTransform:'uppercase',letterSpacing:1}}>Do the warm-up</button>
-    </div>
-  );
-
-  return (
-    <div style={{padding:isMobile?'16px 18px':'0',maxWidth:480}}>
-      {/* Header */}
-      <div style={{textAlign:'center',padding:'20px 0 16px'}}>
-        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:30,letterSpacing:1,marginBottom:4}}>WARM UP FIRST</div>
-        <div style={{fontSize:12,color:'rgba(245,245,240,.5)'}}>~{totalDuration} minutes · Don't skip this</div>
-        {isNovice&&(sessionCount||0)<30&&(
-          <div style={{marginTop:8,fontSize:11,color:'#f59e0b',background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:8,padding:'6px 12px',display:'inline-block'}}>
-            Session {sessionCount||1} of 30 — skip unlocks at 30
-          </div>
-        )}
-        {isAdvanced&&(
-          <div style={{marginTop:8,fontSize:11,color:'rgba(245,245,240,.35)'}}>Condensed warm-up for your experience level</div>
-        )}
-      </div>
-
-      {/* PHASE: GENERAL */}
-      {phase === 'general' && (
-        <div>
-          <div style={{background:'linear-gradient(135deg,rgba(232,52,28,.1),rgba(232,52,28,.04))',border:'1px solid rgba(232,52,28,.25)',borderRadius:16,padding:'18px 20px',marginBottom:14}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,color:'rgba(232,52,28,.8)',letterSpacing:'.18em',textTransform:'uppercase',marginBottom:12}}>Get Your Heart Rate Up</div>
-            <div style={{fontSize:11,color:'rgba(245,245,240,.5)',marginBottom:14}}>{general?.instructions}</div>
-            <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:14}}>
-              {(general?.options||[]).map((opt,i) => (
-                <div key={i} style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:10,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:2}}>{opt.name}</div>
-                    <div style={{fontSize:11,color:'rgba(245,245,240,.5)'}}>{opt.detail}</div>
-                  </div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:10,color:'rgba(232,52,28,.8)',flexShrink:0,marginLeft:12}}>{opt.duration}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{fontSize:11,color:'rgba(245,245,240,.5)',fontStyle:'italic',lineHeight:1.6,borderTop:'1px solid rgba(255,255,255,.06)',paddingTop:12}}>
-              {general?.coachNote}
-            </div>
-          </div>
-          <button onClick={startMovementPhase} style={{width:'100%',padding:'15px',background:'var(--red)',border:'none',borderRadius:14,color:'#fff',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:"var(--condensed)",textTransform:'uppercase',letterSpacing:1,marginBottom:10}}>
-            Start Movement Prep →
-          </button>
-          <button onClick={startMovementPhase} style={{width:'100%',padding:'12px',background:'none',border:'1px solid rgba(255,255,255,.1)',borderRadius:14,color:'rgba(245,245,240,.4)',fontWeight:600,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
-            Skip — I'm already warm
-          </button>
-        </div>
-      )}
-
-      {/* PHASE: MOVEMENT PREP */}
-      {phase === 'movement' && (
-        <div>
-          <div style={{background:'var(--navy-card)',border:'1px solid var(--white-border)',borderRadius:16,padding:'18px 20px',marginBottom:14}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:'rgba(245,245,240,.35)',letterSpacing:'.18em',textTransform:'uppercase'}}>Movement Prep</div>
-              {guided&&<div style={{display:'flex',gap:4}}>{allMoves.map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:'50%',background:i<=guidedIdx?'var(--red)':'rgba(255,255,255,.15)'}}/>)}</div>}
-            </div>
-
-            {guided ? (
-              // Guided: one at a time
-              (() => {
-                const move = allMoves[guidedIdx];
-                return (
-                  <div>
-                    <div style={{textAlign:'center',marginBottom:16}}>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,marginBottom:6}}>{move?.name}</div>
-                      <div style={{fontSize:12,color:'rgba(245,245,240,.5)',marginBottom:4}}>{move?.sets}{move?.reps ? ` · ${move.reps} reps` : ''}</div>
-                      <div style={{fontSize:12,color:'rgba(245,245,240,.65)',lineHeight:1.6,maxWidth:280,margin:'0 auto'}}>{move?.detail}</div>
-                    </div>
-                    {timerOn ? (
-                      <div style={{textAlign:'center',padding:'20px 0'}}>
-                        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:52,color:'var(--red)',lineHeight:1}}>{pad(min)}:{pad(sec)}</div>
-                        <div style={{fontSize:11,color:'rgba(245,245,240,.4)',marginTop:4}}>Time remaining</div>
-                      </div>
-                    ) : move?.duration ? (
-                      <button onClick={()=>{setTimerSec(move.duration);setTimerOn(true);}} style={{width:'100%',padding:'11px',background:'rgba(232,52,28,.08)',border:'1px solid rgba(232,52,28,.25)',borderRadius:10,color:T.prot,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:10}}>
-                        Start {move.duration >= 60 ? `${Math.round(move.duration/60)} min` : `${move.duration}s`} timer
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })()
-            ) : (
-              // List mode: all movements
-              <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                {allMoves.map((move, i) => (
-                  <div key={i}>
-                    <button onClick={() => setExpanded(expanded === i ? null : i)}
-                      style={{width:'100%',background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:10,padding:'12px 14px',textAlign:'left',cursor:'pointer',fontFamily:'inherit',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>{move.name}</div>
-                        <div style={{fontSize:11,color:'rgba(245,245,240,.45)',marginTop:2}}>{move.sets}{move.reps ? ` · ${move.reps} reps` : ''}</div>
-                      </div>
-                      <div style={{color:'rgba(245,245,240,.3)',fontSize:16}}>{expanded===i?'▲':'▼'}</div>
-                    </button>
-                    {expanded===i&&(
-                      <div style={{background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.06)',borderTop:'none',borderRadius:'0 0 10px 10px',padding:'10px 14px',fontSize:12,color:'rgba(245,245,240,.6)',lineHeight:1.6}}>
-                        {move.detail}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {strides?.included && (
-            <div style={{background:'rgba(232,52,28,.05)',border:'1px solid rgba(232,52,28,.18)',borderRadius:12,padding:'12px 14px',marginBottom:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,letterSpacing:'.16em',textTransform:'uppercase',marginBottom:6}}>Strides</div>
-              <div style={{fontSize:12,color:'rgba(245,245,240,.65)',lineHeight:1.6}}>{strides.detail}</div>
-            </div>
-          )}
-
-          <button onClick={() => { if (guided) nextGuided(); else { if (hasLifts) setPhase('lifts'); else onDone(); } }}
-            style={{width:'100%',padding:'15px',background:'var(--red)',border:'none',borderRadius:14,color:'#fff',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:"var(--condensed)",textTransform:'uppercase',letterSpacing:1,marginBottom:10}}>
-            {guided ? (guidedIdx < allMoves.length - 1 ? 'Next Movement →' : hasLifts ? 'Warm-Up Sets →' : 'Done — Start Workout →') : (hasLifts ? 'Warm-Up Sets →' : 'Done — Start Workout →')}
-          </button>
-
-          {canSkip&&<button onClick={()=>setSkipWarn(true)} style={{width:'100%',padding:'11px',background:'none',border:'none',color:'rgba(245,245,240,.25)',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>Skip warm-up</button>}
-        </div>
-      )}
-
-      {/* PHASE: LIFT WARM-UP SETS */}
-      {phase === 'lifts' && liftEntries.length > 0 && (
-        <div>
-          {liftEntries.map(([liftName, sets]) => (
-            <div key={liftName} style={{background:'var(--navy-card)',border:'1px solid var(--white-border)',borderRadius:16,padding:'18px 20px',marginBottom:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:'rgba(245,245,240,.35)',letterSpacing:'.18em',textTransform:'uppercase',marginBottom:12}}>
-                Warm-Up Sets — {liftName}
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:14}}>
-                {sets.map((s, i) => (
-                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:10}}>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>{s.weight === 0 ? 'Bodyweight' : `${s.weight} ${profile?.wUnit || 'lbs'}`} × {s.reps} reps</div>
-                      <div style={{fontSize:11,color:'rgba(245,245,240,.45)',marginTop:2}}>{s.note}</div>
-                    </div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:'rgba(245,245,240,.3)'}}>{Math.round((s.weight||0) / (parseFloat(sets[sets.length-1]?.weight)||135) * 100) || '—'}%</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{fontSize:11,color:'rgba(245,245,240,.4)',fontStyle:'italic',borderTop:'1px solid rgba(255,255,255,.05)',paddingTop:10}}>
-                These don't count toward your working sets. Log them here or just do them.
-              </div>
-            </div>
-          ))}
-          <button onClick={onDone} style={{width:'100%',padding:'15px',background:'var(--red)',border:'none',borderRadius:14,color:'#fff',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:"var(--condensed)",textTransform:'uppercase',letterSpacing:1,marginBottom:10}}>
-            Done with Warm-Up — Start Workout →
-          </button>
-          {canSkip&&<button onClick={()=>setSkipWarn(true)} style={{width:'100%',padding:'11px',background:'none',border:'none',color:'rgba(245,245,240,.25)',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>Skip warm-up</button>}
-        </div>
-      )}
-    </div>
-  );
-}
+// WarmupScreen is now imported from ./components/WarmupScreen.jsx
 
 function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogMore }) {
   const [coachNote, setCoachNote] = useState(null);
@@ -1721,6 +1512,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   // ── Warm-up state ────────────────────────────────────────────────────────
   const [warmupData,setWarmupData]=useState(null);
+  const [warmupSessionType,setWarmupSessionType]=useState('push');
+  const [warmupSkillLevel,setWarmupSkillLevel]=useState('beginner');
 
   // ── Pre-session readiness (AIT Part 2) ──────────────────────────────────
   const [showReadiness,setShowReadiness]=useState(false);
@@ -1906,10 +1699,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       (wuTiming === 'runs'  && prescType === 'running')
     );
     if (showWu) {
-      const wuData = prescType === 'running'
-        ? getRunningWarmup(todayPrescription?.runType || todayPrescription?.type || 'easy')
-        : getWarmupForWorkout({exercises}, profile, wPrefs?.equipment || 'Full Gym');
-      setWarmupData(wuData);
+      const focusLower = (todayFocus || '').toLowerCase();
+      const wuType = prescType === 'running' ? 'run'
+        : prescType === 'hyrox' || prescType === 'hybrid-hyrox' ? 'hyrox'
+        : focusLower.includes('push') ? 'push'
+        : focusLower.includes('pull') ? 'pull'
+        : focusLower.includes('leg') ? 'legs'
+        : focusLower.includes('upper') ? 'upper'
+        : focusLower.includes('lower') ? 'lower'
+        : 'push';
+      const liftExp = (wPrefs?.liftExp || profile?.liftExp || 'beginner').toLowerCase();
+      const wuLevel = liftExp.includes('advanc') || liftExp.includes('elite') || liftExp.includes('compet') ? 'advanced'
+        : liftExp.includes('inter') || liftExp.includes('moderate') ? 'intermediate'
+        : 'beginner';
+      setWarmupSessionType(wuType);
+      setWarmupSkillLevel(wuLevel);
       setTrainScreen("warmup");
     } else {
       setTrainScreen("active");
@@ -2631,14 +2435,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {trainScreen==="builder"&&<WorkoutBuilder profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} generateWorkout={generateWorkout} startStructured={startStructured} workout={workout} workoutLoading={workoutLoading} isMobile={isMobile} todayFocus={todayFocus} schedule={schedule} setActiveWorkout={setActiveWorkout} setTrainScreen={setTrainScreen}/>}
 
         {/* ── WARM-UP SCREEN ── */}
-        {trainScreen==="warmup"&&warmupData&&(
+        {trainScreen==="warmup"&&(
           <WarmupScreen
-            warmupData={warmupData}
-            wPrefs={wPrefs}
-            profile={profile}
-            sessionCount={sessionCount||0}
-            onDone={()=>setTrainScreen("active")}
-            isMobile={isMobile}
+            sessionType={warmupSessionType||'push'}
+            skillLevel={warmupSkillLevel||'beginner'}
+            onStart={()=>setTrainScreen("active")}
+            onSkip={()=>setTrainScreen("active")}
           />
         )}
 
