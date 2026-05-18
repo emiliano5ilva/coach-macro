@@ -23,6 +23,7 @@ import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
 import { getThumbnailUrl } from "./services/exerciseMedia.js";
 import { COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
 import WarmupScreen from "./components/WarmupScreen.jsx";
+import FeatureStrip from "./components/FeatureStrip.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
@@ -2173,6 +2174,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </div>
             </div>
 
+            {/* ── FEATURE STRIP ── */}
+            <FeatureStrip
+              tab="train"
+              onNavigate={(screen) => setTrainScreen(screen)}
+              onAdapt={() => setShowAdapt(true)}
+            />
+
             {/* ── TODAY'S SESSION ── */}
             {(()=>{
               const isRestDay=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
@@ -2324,27 +2332,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </>
               );
             })()}
-
-            {/* ── POWERED BY COACH MACRO STRIP ── */}
-            <div style={{margin:"0 -20px"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",padding:"0 20px",marginBottom:10,fontWeight:500}}>// POWERED BY COACH MACRO</div>
-              <div style={{display:"flex",gap:12,overflowX:"auto",padding:"0 16px 4px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",msOverflowStyle:"none"}}>
-                {[
-                  {tag:"Adapt AI",   title:"Adapt Now",        sub:"Real-time session adjustments",   action:()=>adaptLeft>0&&setShowAdapt(true)},
-                  {tag:"Programs",   title:"Program Library",   sub:"Find your next training plan",    action:()=>setTrainScreen("plan")},
-                  {tag:"Database",   title:"Exercise Library",  sub:"79+ exercises with GIFs",         action:()=>setTrainScreen("library")},
-                  {tag:"Prep",       title:"Warm-Up Protocols", sub:"Movement prep by muscle group",   action:()=>setTrainScreen("warmup-protocols")},
-                ].map(({tag,title,sub,action})=>(
-                  <button key={title} onClick={action} style={{flexShrink:0,width:160,height:100,background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,padding:14,textAlign:"left",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"space-between",fontFamily:"inherit"}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:500}}>{tag}</div>
-                    <div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",lineHeight:1.1,textTransform:"uppercase"}}>{title}</div>
-                      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.4,marginTop:4}}>{sub}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* ── QUICK ACCESS ── */}
             <div>

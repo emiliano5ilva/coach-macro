@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import FeatureStrip from "./components/FeatureStrip.jsx";
 import BarcodeScanner from "./BarcodeScanner.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
@@ -1602,25 +1603,12 @@ Reply with ONLY a valid JSON object, no markdown:
         {fuelScreen==="home"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* ── POWERED BY COACH MACRO STRIP ── */}
-            <div style={{margin:"0 -20px"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",padding:"0 20px",marginBottom:10,fontWeight:500}}>// POWERED BY COACH MACRO</div>
-              <div style={{display:"flex",gap:12,overflowX:"auto",padding:"0 16px 4px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",msOverflowStyle:"none"}}>
-                {[
-                  {tag:"AI Search",    title:"Restaurant AI",   sub:"Find orders that hit your macros",  action:()=>setFuelScreen("recs")},
-                  {tag:"Camera",       title:"Snap & Log",       sub:"Log meals from a photo",            action:()=>{}},
-                  {tag:"Patterns",     title:"Macro Memory",     sub:"Meals auto-filled from your habits",action:()=>{}},
-                  {tag:"Tracker",      title:"Body Budget",      sub:"Daily macro ledger view",           action:()=>{}},
-                ].map(({tag,title,sub,action})=>(
-                  <button key={title} onClick={action} style={{flexShrink:0,width:160,height:100,background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,padding:14,textAlign:"left",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"space-between",fontFamily:"inherit"}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:500}}>{tag}</div>
-                    <div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",lineHeight:1.1,textTransform:"uppercase"}}>{title}</div>
-                      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.4,marginTop:4}}>{sub}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <FeatureStrip
+              tab="fuel"
+              onNavigate={(screen) => setFuelScreen(screen)}
+              onPhoto={() => onOpenPhotoLogger?.()}
+              onBarcode={() => { setFuelScreen("log"); setLogMode("barcode"); }}
+            />
             {/* VIEW TOGGLE — Macro Ring / Body Budget */}
             <div style={{display:"flex",gap:2,background:"rgba(255,255,255,.04)",borderRadius:10,padding:2,alignSelf:"flex-start"}}>
               {[["ring","Macro Ring"],["budget","Body Budget"]].map(([id,label])=>(

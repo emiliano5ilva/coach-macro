@@ -28,6 +28,7 @@ import { analyzeScheduleForTraining, buildHotelWorkout } from "./services/calend
 import { ScheduleAlertCard, TravelNutritionCard, CalendarConnectPrompt } from "./LifeAwareTraining.jsx";
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
+import FeatureStrip from "./components/FeatureStrip.jsx";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
@@ -3549,6 +3550,11 @@ Rules:
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Feature Strip */}
+            <div style={{padding:"0 16px",marginBottom:14}}>
+              <FeatureStrip tab="progress" onProgressTab={(t) => setActiveTab(t)} />
             </div>
 
             {/* This Week Rings */}
