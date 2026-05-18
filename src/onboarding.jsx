@@ -797,12 +797,12 @@ export function TrainOnboarding({d, onComplete, onBack}) {
           <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>What are you actually training for? This determines your program recommendation.</p>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {[
-              {v:"build_muscle",   l:"BUILD MUSCLE",      sub:"Hypertrophy-focused training to maximize size and definition."},
-              {v:"get_stronger",   l:"GET STRONGER",      sub:"Powerlifting and powerbuilding to move heavier weight every week."},
-              {v:"lose_fat",       l:"LOSE FAT",          sub:"Metabolic circuits and HIIT to burn fat while keeping your muscle."},
-              {v:"recomp",         l:"RECOMP",            sub:"Build muscle and lose fat at the same time with smart periodization."},
-              {v:"train_for_race", l:"TRAIN FOR A RACE",  sub:"Structured endurance and strength work to hit your race-day goal."},
-              {v:"get_faster",     l:"GET FASTER",        sub:"Explosive power, athleticism, and speed for sport performance."},
+              {v:"build_muscle",   l:"BUILD MUSCLE",          sub:"You want to look bigger and more muscular. More volume, controlled tempo, moderate weight."},
+              {v:"get_stronger",   l:"GET STRONGER",          sub:"You want your lifts to go up. Heavier weight, lower reps, longer rest between sets."},
+              {v:"lose_fat",       l:"LOSE FAT",              sub:"Burn more calories, keep the muscle you have. Higher reps, shorter rest, more total work."},
+              {v:"recomp",         l:"BODY RECOMPOSITION",    sub:"Build muscle and lose fat at the same time. Best for people with some training history."},
+              {v:"train_for_race", l:"TRAIN FOR A RACE",      sub:"Running or Hyrox focused. Unlocks pace-based training plans built around your race date."},
+              {v:"get_faster",     l:"GET FASTER",            sub:"Speed, power, and explosiveness. Sprint intervals, plyometrics, and power training."},
             ].map(o=>(
               <div key={o.v} onClick={()=>auto("primaryGoal",o.v)} style={{background:data.primaryGoal===o.v?"rgba(232,52,28,0.08)":"rgba(245,245,240,0.04)",border:`1.5px solid ${data.primaryGoal===o.v?"#e8341c":"rgba(245,245,240,0.07)"}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s"}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#fff",marginBottom:4}}>{o.l}</div>

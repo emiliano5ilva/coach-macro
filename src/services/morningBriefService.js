@@ -3,12 +3,16 @@ import { sb, ai } from '../client';
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
     .from('profiles')
-    .select('profile_data, wprefs')
+    .select('profile_data, wprefs, first_name, goal, skill_level')
     .eq('id', userId)
     .maybeSingle();
 
   const p = row?.profile_data || {};
   const wp = row?.wprefs || {};
+  // Prefer dedicated columns over JSONB fallbacks
+  const firstName = row?.first_name || p.name || 'Athlete';
+  const goalVal   = row?.goal || (p.goal || '').toLowerCase() || 'build_muscle';
+  const skillLvl  = row?.skill_level || p.liftExp || 'intermediate';
 
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const todayKey = days[new Date().getDay()];
@@ -46,7 +50,7 @@ export async function gatherBriefContext(userId) {
     : null;
 
   const goalCals = p.goalCals || 2200;
-  const goal = p.goal || 'build_muscle';
+  const goal = goalVal;
   const protPct = goal === 'lose_fat' ? 0.35 : 0.30;
   const carbPct = goal === 'lose_fat' ? 0.30 : 0.45;
   const protG = Math.round((goalCals * protPct) / 4);
@@ -59,7 +63,7 @@ export async function gatherBriefContext(userId) {
   const goalNames = { build_muscle:'Build Muscle', get_stronger:'Get Stronger', lose_fat:'Lose Fat', recomp:'Body Recomposition', train_for_race:'Train for a Race', get_faster:'Get Faster' };
 
   return {
-    name: p.name || 'Athlete',
+    name: firstName,
     primaryGoal: goalNames[p.primaryGoal || goal] || (p.primaryGoal || goal),
     todayFocus,
     todayType,
@@ -72,7 +76,7 @@ export async function gatherBriefContext(userId) {
     streak,
     sleepAvg: sleepMap[p.sleep] || 7,
     yesterdayNutrition: yNutrition,
-    liftExp: p.liftExp || 'intermediate',
+    liftExp: skillLvl,
   };
 }
 

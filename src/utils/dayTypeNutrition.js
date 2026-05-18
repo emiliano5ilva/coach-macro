@@ -1,4 +1,5 @@
 import { getCyclePhase } from './ait.js';
+import { getGoal } from './profile.js';
 
 export const DAY_TYPES = {
   HEAVY_LOWER:     'heavy_lower',
@@ -79,13 +80,14 @@ function applyGoalAdjustment(dayType, baseCals, rawCalories, goal) {
     [DAY_TYPES.HYBRID_LIFT_RUN]:baseCals + 150,
   };
   const softCaps = {
-    Cut:      baseCals + 150,
-    Recomp:   baseCals + 200,
-    Maintain: baseCals + 350,
-    Bulk:     baseCals + 500,
+    cut:      baseCals + 150,
+    recomp:   baseCals + 200,
+    maintain: baseCals + 350,
+    bulk:     baseCals + 500,
   };
   const floor = hardFloors[dayType] || 0;
-  const cap   = softCaps[goal] || baseCals + 350;
+  const normGoal = (goal || '').toLowerCase().replace(/\s+/g, '_');
+  const cap   = softCaps[normGoal] || baseCals + 350;
   // Floor always beats cap — a runner in a cut still needs fuel
   return Math.max(floor, Math.min(rawCalories, cap));
 }
@@ -362,7 +364,7 @@ export function getDayTypeNutrition(baseCals, bodyweightKg, dayType, profile = {
   }
 
   const adj  = ADJUSTMENTS[dayType] || ADJUSTMENTS[DAY_TYPES.REST];
-  const goal = profile.goal || 'Maintain';
+  const goal = getGoal(profile) || 'maintain';
 
   const baseProtein = Math.max(120, Math.round(bodyweightKg * 2.2 * adj.proteinMultiplier));
   const rawCalories = baseCals + adj.calOffset;

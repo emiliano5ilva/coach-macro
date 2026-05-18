@@ -458,7 +458,7 @@ export function Onboarding({onComplete, user, signupName}) {
         {femSc===null&&sc===4&&<div style={{animation:"fadeIn 0.25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 4</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:12}}>Your height.</div>
-          <UnitToggle opts={[{val:"ft",label:"ft & in"},{val:"cm",label:"cm"}]} val={d.hUnit} onChange={v=>upd("hUnit",v)}/>
+          <UnitToggle opts={[{val:"ft",label:"ft & in"},{val:"cm",label:"cm"}]} val={d.hUnit} onChange={v=>{upd("hUnit",v);upd("wUnit",v==="cm"?"kg":"lbs");}}/>
           {d.hUnit==="ft"?(<div style={{display:"flex",gap:16}}>
             <div style={{flex:1,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Feet</div><Rolodex items={FT_A} sel={d.hFt} onChange={v=>upd("hFt",v)}/></div>
             <div style={{flex:1,textAlign:"center"}}><div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:7}}>Inches</div><Rolodex items={IN_A} sel={d.hIn} onChange={v=>upd("hIn",v)}/></div>
@@ -472,7 +472,7 @@ export function Onboarding({onComplete, user, signupName}) {
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Step 5</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Current weight.</div>
           <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Your weight right now — not a goal weight. Be honest. The equation only works with real numbers.</p>
-          <UnitToggle opts={[{val:"lbs",label:"lbs"},{val:"kg",label:"kg"}]} val={d.wUnit} onChange={v=>upd("wUnit",v)}/>
+          <UnitToggle opts={[{val:"lbs",label:"lbs"},{val:"kg",label:"kg"}]} val={d.wUnit} onChange={v=>{upd("wUnit",v);upd("hUnit",v==="kg"?"cm":"ft");}}/>
           <div style={{maxWidth:160,margin:"0 auto",textAlign:"center"}}>
             <Rolodex items={d.wUnit==="lbs"?LBS_A:KG_A} sel={d.weight} onChange={v=>upd("weight",v)}/>
           </div>

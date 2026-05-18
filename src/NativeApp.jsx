@@ -444,6 +444,18 @@ export default function NativeApp() {
         if(tier==='trial'&&trialEnd&&new Date(trialEnd)<=new Date())tier='expired';
         setProfile({
           ...data.profile_data,
+          // Dedicated columns override JSONB where they exist
+          ...(data.first_name   && {name:data.first_name, first_name:data.first_name}),
+          ...(data.goal         && {goal:data.goal}),
+          ...(data.skill_level  && {liftExp:data.skill_level, skill_level:data.skill_level}),
+          ...(data.weight_kg    && {weight_kg:data.weight_kg}),
+          ...(data.goal_weight_kg && {goal_weight_kg:data.goal_weight_kg}),
+          ...(data.height_cm    && {height_cm:data.height_cm}),
+          ...(data.units        && {units:data.units, wUnit:data.units==='metric'?'kg':'lbs', hUnit:data.units==='metric'?'cm':'ft'}),
+          ...(data.equipment    && {equipment:data.equipment}),
+          ...(data.calorie_target && {calorie_target:data.calorie_target}),
+          ...(data.protein_g    && {protein_g:data.protein_g}),
+          ...(data.current_program && {current_program:data.current_program}),
           referralCount:data.referral_count||0,
           subscription_tier:tier,
           trial_ends_at:trialEnd||null,
@@ -467,9 +479,33 @@ export default function NativeApp() {
 
   async function saveProfile(uid,prof,sch,wp){
     try{
+      const _heightCm = prof.hUnit==='cm'
+        ? parseFloat(prof.hCm)||null
+        : ((parseFloat(prof.hFt||0)*30.48)+(parseFloat(prof.hIn||0)*2.54))||null;
+      const _weightKg = prof.wUnit==='lbs'
+        ? (parseFloat(prof.weight)*0.453592)||null
+        : parseFloat(prof.weight)||null;
+      const _goalWtKg = prof.goalWeight
+        ? (prof.wUnit==='lbs'
+            ? parseFloat(prof.goalWeight)*0.453592
+            : parseFloat(prof.goalWeight))||null
+        : null;
       const{error}=await sb.from("profiles").upsert({
         id:uid,profile_data:prof,schedule:sch,wprefs:wp,
         referral_code:prof.referralCode||null,
+        trial_started_at:prof.trialStartAt||null,
+        trial_ends_at:prof.trialEndsAt||null,
+        subscription_tier:'trial',
+        first_name:prof.name||null,
+        goal:(prof.goal||'').toLowerCase().replace(/\s+/g,'_')||null,
+        skill_level:(prof.liftExp||'').toLowerCase()||null,
+        weight_kg:_weightKg,
+        goal_weight_kg:_goalWtKg,
+        height_cm:_heightCm,
+        units:prof.wUnit==='kg'?'metric':'imperial',
+        equipment:wp.equipment||null,
+        current_program:wp.splitType||null,
+        program_start_date:new Date().toISOString().split('T')[0],
         updated_at:new Date().toISOString(),
       },{onConflict:"id"}).select();
       if(error)throw error;

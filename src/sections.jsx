@@ -3789,7 +3789,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const SKILL_LABELS={none:"Beginner",beginner:"Beginner",intermediate:"Intermediate",advanced:"Advanced"};
   const currentGoal=wPrefs?.primaryGoal||profile?.primaryGoal;
   const currentSkill=wPrefs?.liftExp||profile?.liftExp||"beginner";
-  const wUnit=profile?.wUnit||"lbs";
+  const wUnit=wPrefs?.wUnit||profile?.wUnit||"lbs";
 
   const eyebrowStyle={fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,marginTop:24};
   const cardStyle={background:"#111827",borderRadius:12,border:"1px solid rgba(245,245,240,0.07)",overflow:"hidden"};
@@ -3846,7 +3846,13 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         <MeRow label="Units" noChevron rightEl={
           <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(245,245,240,0.12)"}}>
             {["lbs","kg"].map(u=>(
-              <button key={u} onClick={()=>{const wp={...wPrefs,wUnit:u};setWPrefs(wp);saveSettings(wp,null);}} style={{padding:"6px 14px",background:wUnit===u?"#e8341c":"transparent",color:wUnit===u?"#fff":"rgba(245,245,240,0.4)",border:"none",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.08em"}}>{u}</button>
+              <button key={u} onClick={async()=>{
+                const hU=u==="kg"?"cm":"ft";
+                const wp={...wPrefs,wUnit:u,hUnit:hU};
+                setWPrefs(wp);
+                await saveSettings(wp,null);
+                if(user)sb.from("profiles").upsert({id:user.id,units:u==="kg"?"metric":"imperial"},{onConflict:"id"}).then(()=>{});
+              }} style={{padding:"6px 14px",background:wUnit===u?"#e8341c":"transparent",color:wUnit===u?"#fff":"rgba(245,245,240,0.4)",border:"none",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.08em"}}>{u}</button>
             ))}
           </div>
         }/>

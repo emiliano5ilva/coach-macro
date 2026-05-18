@@ -1,10 +1,11 @@
 import { sb } from "../client.js";
 import { ai } from "../client.js";
+import { getGoal } from "../utils/profile.js";
 
 // ── Plateau detection ─────────────────────────────────────────────────────────
 export async function detectMetabolicAdaptation(userId, profile) {
   // Only check for cut goals
-  if (!profile?.goal || !["cut"].includes(profile.goal)) return null;
+  if (getGoal(profile) !== 'cut') return null;
   const goalCals = profile?.goalCals;
   if (!goalCals) return null;
 
@@ -73,7 +74,7 @@ export async function detectMetabolicAdaptation(userId, profile) {
       weightChangeLastThreeWeeks: parseFloat(weightChange.toFixed(1)),
       adherence: Math.round(calorieAdherence * 100),
       wUnit: profile?.wUnit || "lbs",
-      goal: profile.goal,
+      goal: getGoal(profile),
     };
   } catch (e) {
     console.error("[detectMetabolicAdaptation]", e);
@@ -105,7 +106,7 @@ export async function generateAdaptationProtocol(plateauData, profile) {
     `A user of Coach Macro fitness app has hit a metabolic adaptation plateau.
 
 Their data:
-- Goal: ${profile.goal} (fat loss)
+- Goal: ${getGoal(profile)} (fat loss)
 - Current calories: ${plateauData.currentCalories}/day
 - Weeks at this calorie level: ${plateauData.weeksOnSameCalories}
 - Weight change last 6 weeks: ${plateauData.weightChangeLastThreeWeeks} ${wUnit}
