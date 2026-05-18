@@ -2283,74 +2283,61 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <button onClick={()=>setTrainScreen("library")} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid var(--white-border)",borderRadius:12,color:"var(--white)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Browse Exercises</button>
             </div>
 
-            {/* ── EXERCISE LIST ── */}
-            {todayType==="training"&&todayPrescription&&Array.isArray(todayPrescription)&&(()=>{
-              const coachStyle=getCoachingStyle(wPrefs?.trainingAge);
-              return(<>
-                <div className="section-title" style={{margin:"4px 0 10px"}}>Exercises</div>
-                {coachStyle.progressNote&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"8px 12px",marginBottom:8,fontSize:11,color:"rgba(245,245,240,.75)"}}>{coachStyle.progressNote}</div>}
-                {todayPrescription.map((ex,i)=>{
-                  const previewSugg=getSuggestion(ex.name);
-                  return(
-                  <div key={i} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"12px 14px",marginBottom:6}}>
-                    <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white-faint)",width:18,paddingTop:2,flexShrink:0}}>{i+1}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{fontWeight:600,fontSize:14,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
-                          {ex.isFavorite&&<span style={{padding:"2px 7px",borderRadius:5,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.35)",fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",letterSpacing:"0.1em",flexShrink:0}}>FAV</span>}
-                        </div>
-                        <MuscleChips name={ex.name} sets={ex.sets} reps={ex.reps} sugg={previewSugg} history={history}/>
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0,paddingTop:2}}>
-                        <button onClick={()=>setSwapModal({exerciseName:ex.name,exerciseIdx:i,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",color:"var(--white-dim)",padding:4,cursor:"pointer",opacity:0.6}}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
-                        </button>
-                        <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",color:ex.isFavorite?"var(--red)":"var(--white-faint)",padding:4,cursor:"pointer"}}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill={ex.isFavorite?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                        </button>
-                      </div>
+            {/* ── YOUR PROGRAM ── */}
+            {(()=>{
+              const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+              const totalWeeks=progInfo?.weeks||12;
+              const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
+              const progPct=Math.min(weekNum/totalWeeks,1);
+              const phases=(()=>{
+                if(totalWeeks>=16)return[{name:"BASE",start:1,end:4},{name:"BUILD",start:5,end:8},{name:"INTENSITY",start:9,end:12},{name:"RACE PREP",start:13,end:totalWeeks}];
+                if(totalWeeks>=12)return[{name:"FOUNDATION",start:1,end:4},{name:"BUILD",start:5,end:8},{name:"PEAK",start:9,end:totalWeeks}];
+                const t=Math.ceil(totalWeeks/3);
+                return[{name:"FOUNDATION",start:1,end:t},{name:"BUILD",start:t+1,end:2*t},{name:"PEAK",start:2*t+1,end:totalWeeks}];
+              })();
+              const currentPhase=phases.find(p=>weekNum>=p.start&&weekNum<=p.end)||phases[phases.length-1];
+              return(
+                <div style={{background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16,position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(232,52,28,0.04)",pointerEvents:"none"}}/>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,position:"relative"}}>
+                    <div>
+                      <div className="header-eyebrow" style={{marginBottom:4}}>// Your Program</div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",lineHeight:1,color:"#f5f5f0"}}>{progName}<span style={{color:"#e8341c"}}>.</span></div>
                     </div>
+                    <button onClick={()=>setTrainScreen("plan")} style={{padding:"7px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:9,color:"#e8341c",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.1em",flexShrink:0}}>Switch →</button>
                   </div>
-                );})}
-              </>);
+                  <div style={{display:"flex",gap:8,marginBottom:12}}>
+                    {[{label:"WEEK",value:`${weekNum}/${totalWeeks}`},{label:"DAYS/WK",value:`${daysPerWeek}×`},{label:"PHASE",value:currentPhase.name}].map(({label,value})=>(
+                      <div key={label} style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                        <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:13,color:"#f5f5f0",textTransform:"uppercase"}}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{height:2,background:"rgba(245,245,240,0.06)",borderRadius:1,overflow:"hidden",marginBottom:4}}>
+                    <div style={{height:"100%",width:`${progPct*100}%`,background:"#e8341c",borderRadius:1,transition:"width 0.6s"}}/>
+                  </div>
+                  <div style={{display:"flex",marginBottom:12}}>
+                    {phases.map(p=>{
+                      const phasePct=((p.end-p.start+1)/totalWeeks)*100;
+                      const isCurrent=p===currentPhase;
+                      return(<div key={p.name} style={{flex:`0 0 ${phasePct}%`,textAlign:"center"}}><div style={{fontFamily:"var(--mono)",fontSize:7,letterSpacing:"0.08em",textTransform:"uppercase",color:isCurrent?"#e8341c":"rgba(245,245,240,0.2)"}}>{p.name}</div></div>);
+                    })}
+                  </div>
+                  <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none"}}>
+                    {Array.from({length:totalWeeks}).map((_,i)=>{
+                      const w=i+1;const isCurrent=w===weekNum;const isPast=w<weekNum;
+                      return(<div key={w} style={{flexShrink:0,minWidth:28,padding:"5px 0",textAlign:"center",borderRadius:5,background:isCurrent?"#e8341c":isPast?"rgba(52,211,153,0.12)":"rgba(245,245,240,0.04)",border:`1px solid ${isCurrent?"transparent":isPast?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`,fontFamily:"var(--mono)",fontSize:9,color:isCurrent?"#fff":isPast?"#34d399":"rgba(245,245,240,0.4)",letterSpacing:"0.04em"}}>W{w}</div>);
+                    })}
+                  </div>
+                </div>
+              );
             })()}
 
-            {/* ── START SESSION ── */}
-            {todayType==="training"&&todayPrescription&&(
-              <div>
-                {prescType==="lifting"&&(profile?.primaryGoal||wPrefs?.primaryGoal)&&(()=>{
-                  const g=profile?.primaryGoal||wPrefs?.primaryGoal;
-                  const lbl=getGoalLabel(g);
-                  const ctx=getGoalContext(g);
-                  return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",textAlign:"center",marginBottom:10}}>// {lbl} · {ctx}</div>);
-                })()}
-                <button onClick={startFromProgram} style={{width:"100%",padding:16,background:"var(--red)",border:"none",borderRadius:14,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                  Start Session
-                </button>
-                {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1px solid ${T.prot}40`,borderRadius:12,color:T.prot,fontFamily:"var(--condensed)",fontWeight:700,fontSize:13,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Resume Session</button>}
-              </div>
-            )}
-
-            {/* ── 12-WEEK PLAN ── */}
-            <div>
-              <div className="section-title" style={{margin:"4px 0 10px"}}>12-Week Plan</div>
-              <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4}}>
-                {Array.from({length:12}).map((_,i)=>{
-                  const isCurrent=i===weekNum-1;
-                  const isPast=i<weekNum-1;
-                  return(
-                    <div key={i} style={{flexShrink:0,minWidth:32,padding:"6px 0",textAlign:"center",borderRadius:6,background:isCurrent?"var(--red)":isPast?"rgba(34,197,94,0.15)":"rgba(245,245,240,0.04)",border:"1px solid "+(isCurrent?"transparent":isPast?"rgba(34,197,94,0.3)":"var(--white-border)"),fontFamily:"var(--mono)",fontSize:10,color:isCurrent?"white":isPast?"var(--green)":"var(--white-dim)",letterSpacing:"0.06em"}}>W{i+1}</div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* ── THIS WEEK ── */}
-            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div className="header-eyebrow">// This Week</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5}}>
+            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
+              <div className="header-eyebrow" style={{marginBottom:12}}>// This Week</div>
+              <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none",WebkitOverflowScrolling:"touch"}}>
                 {WDAYS.map((day,idx)=>{
                   const todayIdx=WDAYS.indexOf(todayKey);
                   const t=schedule[day];
@@ -2358,29 +2345,81 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const isPast=idx<todayIdx;
                   const isRest=!t||t==="rest";
                   const f=dayFocus[day];
-                  const label=isRest?"REST":(f?.slice(0,5)||(DAY_CFG[t]?.label?.slice(0,5)||"Rest"));
-                  const borderC=isToday?"var(--red)":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
-                  const bgC=isToday?"rgba(232,52,28,0.1)":isPast&&!isRest?"rgba(52,211,153,0.06)":isRest?"rgba(245,245,240,0.02)":T.s2;
-                  const dayColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":T.mu;
-                  const iconColor=isToday?"var(--red)":isPast&&!isRest?"var(--green)":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.45)";
-                  const iconBg=isToday?"rgba(232,52,28,0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)";
+                  const label=isRest?"REST":(f?.slice(0,6)||(DAY_CFG[t]?.label?.slice(0,6)||"Train"));
+                  const borderC=isToday?"#e8341c":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
+                  const bgC=isToday?"rgba(232,52,28,0.08)":isPast&&!isRest?"rgba(52,211,153,0.05)":"rgba(245,245,240,0.02)";
+                  const textC=isToday?"#e8341c":isPast&&!isRest?"#34d399":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.55)";
                   const icon=(()=>{
-                    if(t==="run")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
-                    if(t==="cardio")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
-                    if(t==="hyrox")return(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
-                    if(isRest)return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
-                    return(<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
+                    if(t==="run")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
+                    if(t==="cardio")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
+                    if(t==="hyrox")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
+                    if(isRest)return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
+                    return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
                   })();
                   return(
-                    <div key={day} style={{background:bgC,border:`1.5px solid ${borderC}`,borderRadius:11,padding:"9px 3px",textAlign:"center",transition:"all .2s"}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:8,fontWeight:700,color:dayColor,marginBottom:5,letterSpacing:"0.08em"}}>{day.toUpperCase()}</div>
-                      <div style={{width:28,height:28,borderRadius:8,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 5px",color:iconColor}}>{icon}</div>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:9,color:dayColor,lineHeight:1.1,fontWeight:700,letterSpacing:"0.02em",textTransform:"uppercase"}}>{label}</div>
+                    <div key={day} style={{flexShrink:0,width:42,display:"flex",flexDirection:"column",alignItems:"center",gap:5,background:bgC,border:`1.5px solid ${borderC}`,borderRadius:10,padding:"9px 4px"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:7,fontWeight:700,color:textC,letterSpacing:"0.1em"}}>{day.toUpperCase()}</div>
+                      <div style={{width:22,height:22,borderRadius:6,background:isToday?"rgba(232,52,28,0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)",display:"flex",alignItems:"center",justifyContent:"center",color:textC}}>{icon}</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:8,fontWeight:700,textTransform:"uppercase",color:textC,lineHeight:1.1,textAlign:"center"}}>{label}</div>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* ── TODAY'S SESSION ── */}
+            {todayType==="training"&&todayPrescription&&(()=>{
+              const g=profile?.primaryGoal||wPrefs?.primaryGoal;
+              const lbl=g?getGoalLabel(g):null;
+              const exArr=Array.isArray(todayPrescription)?todayPrescription:null;
+              const estMins=exArr?Math.round(exArr.length*7):null;
+              const coachStyle=getCoachingStyle(wPrefs?.trainingAge);
+              const workoutObj=prescType==="lifting"?getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp):null;
+              const sessionName=workoutObj?.dayName||workoutObj?.splitName||(wPrefs.splitType||"Today's Workout");
+              return(
+                <div style={{background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>
+                    // W{weekNum} · D{dayIndex+1}{estMins?` · ${estMins} MIN`:""}{lbl?` · ${lbl}`:""}
+                  </div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1,marginBottom:14}}>
+                    {sessionName}<span style={{color:"#e8341c"}}>.</span>
+                  </div>
+                  {exArr&&coachStyle.progressNote&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"8px 12px",marginBottom:10,fontSize:11,color:"rgba(245,245,240,.75)"}}>{coachStyle.progressNote}</div>}
+                  {exArr&&exArr.map((ex,i)=>{
+                    const previewSugg=getSuggestion(ex.name);
+                    return(
+                      <div key={i} style={{background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.06)",borderRadius:12,padding:"10px 12px",marginBottom:6}}>
+                        <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.2)",width:16,paddingTop:2,flexShrink:0}}>{i+1}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                              <div style={{fontWeight:600,fontSize:13,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#f5f5f0"}}>{ex.name}</div>
+                              {ex.isFavorite&&<span style={{padding:"2px 6px",borderRadius:4,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.35)",fontFamily:"var(--mono)",fontSize:8,color:"var(--amber)",letterSpacing:"0.1em",flexShrink:0}}>FAV</span>}
+                            </div>
+                            <MuscleChips name={ex.name} sets={ex.sets} reps={ex.reps} sugg={previewSugg} history={history}/>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0,paddingTop:2}}>
+                            <button onClick={()=>setSwapModal({exerciseName:ex.name,exerciseIdx:i,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",color:"var(--white-dim)",padding:4,cursor:"pointer",opacity:0.6}}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+                            </button>
+                            <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",color:ex.isFavorite?"var(--red)":"var(--white-faint)",padding:4,cursor:"pointer"}}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill={ex.isFavorite?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{marginTop:12}}>
+                    <button onClick={startFromProgram} style={{width:"100%",padding:15,background:"#e8341c",border:"none",borderRadius:13,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                      Start Session →
+                    </button>
+                    {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{width:"100%",marginTop:8,padding:"12px",background:"transparent",border:`1px solid ${T.prot}40`,borderRadius:12,color:T.prot,fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Resume Session</button>}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── POWERED BY COACH MACRO STRIP ── */}
             <div style={{margin:"0 -20px"}}>
@@ -2402,30 +2441,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
-
-            {/* ── YOUR PROGRAM ── */}
-            {(()=>{
-              const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
-              const totalWeeks=progInfo?.weeks||12;
-              const progPct=Math.min(weekNum/totalWeeks,1);
-              const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
-              return(
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 18px"}}>
-                  <div className="header-eyebrow" style={{marginBottom:6}}>// Your Program</div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                    <div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{progName}</div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.12em"}}>WEEK {weekNum}{totalWeeks?` OF ${totalWeeks}`:""} · {daysPerWeek}×/WK</div>
-                    </div>
-                    <button onClick={()=>setTrainScreen("plan")} style={{padding:"7px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:9,color:T.prot,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.1em",flexShrink:0}}>Switch →</button>
-                  </div>
-                  <div style={{height:5,background:"rgba(245,245,240,0.06)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${progPct*100}%`,background:`linear-gradient(90deg,var(--red),rgba(232,52,28,0.5))`,borderRadius:3,transition:"width 0.6s"}}/>
-                  </div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,marginTop:5,letterSpacing:"0.08em"}}>{Math.round(progPct*100)}% complete</div>
-                </div>
-              );
-            })()}
 
             {/* ── QUICK ACCESS ── */}
             <div>
