@@ -844,7 +844,7 @@ Rules:
 
 const _p2 = n => String(Math.max(0, Math.floor(n))).padStart(2, "0");
 
-function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, onAdjust }) {
+function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, onAdjust, wUnit = 'lbs' }) {
   if (!restActive || !lls) return null;
   const total = lls.restSecs || 90;
   const pct = Math.max(0, Math.min(1, restTimer / total));
@@ -867,19 +867,19 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
     if (lls.hitAllReps && lls.suggestWeight) {
       nextLine = {
         icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M12 19V5m-7 7 7-7 7 7" stroke={T.green} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/></svg>,
-        text: `Try ${lls.suggestWeight} lbs next set`,
+        text: `Try ${lls.suggestWeight} ${wUnit} next set`,
         color: T.green,
       };
     } else if (!lls.hitAllReps) {
       nextLine = {
         icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke={T.fat} strokeWidth={2.2} strokeLinecap="round"/></svg>,
-        text: `Hold at ${lls.weight} lbs`,
+        text: `Hold at ${lls.weight} ${wUnit}`,
         color: T.fat,
       };
     } else {
       nextLine = {
         icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="rgba(245,245,240,0.45)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>,
-        text: `Next: ${lls.nextSetWeight || lls.weight} lbs × ${lls.nextSetReps || lls.targetReps} reps`,
+        text: `Next: ${lls.nextSetWeight || lls.weight} ${wUnit} × ${lls.nextSetReps || lls.targetReps} reps`,
         color: "rgba(245,245,240,0.5)",
       };
     }
@@ -889,13 +889,13 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
       const next = Math.round((w + bump) / 2.5) * 2.5;
       nextLine = {
         icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M12 19V5m-7 7 7-7 7 7" stroke={T.green} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/></svg>,
-        text: `Try ${next} lbs next session · same reps`,
+        text: `Try ${next} ${wUnit} next session · same reps`,
         color: T.green,
       };
     } else {
       nextLine = {
         icon: <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke={T.fat} strokeWidth={2.2} strokeLinecap="round"/></svg>,
-        text: `Hold ${lls.weight} lbs next session — build the reps first`,
+        text: `Hold ${lls.weight} ${wUnit} next session — build the reps first`,
         color: T.fat,
       };
     }
@@ -914,7 +914,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
             Set {lls.setIndex + 1} of {lls.totalSets} complete
           </div>
           <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:30,textTransform:"uppercase",lineHeight:1,color:"#fff"}}>
-            {lls.weight ? `${lls.weight} lbs × ` : ""}{lls.reps} reps
+            {lls.weight ? `${lls.weight} ${wUnit} × ` : ""}{lls.reps} reps
           </div>
           {badge && (
             <div style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:8,padding:"4px 14px",borderRadius:20,background:badge.bg,border:`1px solid ${badge.border}`,fontFamily:"var(--mono)",fontSize:11,color:badge.color,fontWeight:700,letterSpacing:"0.05em"}}>
@@ -1010,7 +1010,7 @@ function MomentumBar({ activeWorkout, history }) {
   );
 }
 
-function PrevSessionRow({ exerciseName, history }) {
+function PrevSessionRow({ exerciseName, history, wUnit = 'lbs' }) {
   const k = (exerciseName||"").toLowerCase().replace(/\s+/g, "_");
   const prev = history?.[k];
   if (!prev?.length) return (
@@ -1026,7 +1026,7 @@ function PrevSessionRow({ exerciseName, history }) {
     <div style={{marginBottom:10,padding:"6px 10px",background:"rgba(245,245,240,0.03)",borderRadius:8,border:"1px solid rgba(245,245,240,0.06)"}}>
       <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>Last session</div>
       <div style={{fontSize:12,color:"rgba(245,245,240,0.5)"}}>
-        {maxW > 0 ? `${maxW} lbs × ` : ""}{reps} reps × {sets.length} sets
+        {maxW > 0 ? `${maxW} ${wUnit} × ` : ""}{reps} reps × {sets.length} sets
         <span style={{color:"rgba(245,245,240,0.28)",marginLeft:8}}>— {dateStr}</span>
       </div>
     </div>
@@ -1414,7 +1414,7 @@ function WarmupScreen({ warmupData, wPrefs, profile, sessionCount, onDone, isMob
                 {sets.map((s, i) => (
                   <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:10}}>
                     <div>
-                      <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>{s.weight === 0 ? 'Bodyweight' : `${s.weight} lbs`} × {s.reps} reps</div>
+                      <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>{s.weight === 0 ? 'Bodyweight' : `${s.weight} ${profile?.wUnit || 'lbs'}`} × {s.reps} reps</div>
                       <div style={{fontSize:11,color:'rgba(245,245,240,.45)',marginTop:2}}>{s.note}</div>
                     </div>
                     <div style={{fontFamily:"var(--mono)",fontSize:10,color:'rgba(245,245,240,.3)'}}>{Math.round((s.weight||0) / (parseFloat(sets[sets.length-1]?.weight)||135) * 100) || '—'}%</div>
@@ -2673,6 +2673,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               lastLoggedSet={lastLoggedSet}
               onSkip={skipRest}
               onAdjust={adjustRest}
+              wUnit={profile?.wUnit || 'lbs'}
             />
 
             {!activeWorkout
@@ -2838,7 +2839,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         </div>
                         {sugg&&<div style={{background:`${T.prot}10`,border:`1px solid ${T.prot}25`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
                           <div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div>
-                          <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}lbs × {sugg.reps}</div>
+                          <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}{profile?.wUnit || 'lbs'} × {sugg.reps}</div>
                           <div style={{fontSize:9,color:T.mu}}>{sugg.note}</div>
                         </div>}
                       </div>
@@ -2849,7 +2850,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       </div>
 
                       {/* Previous session reference */}
-                      <PrevSessionRow exerciseName={ex.name} history={history}/>
+                      <PrevSessionRow exerciseName={ex.name} history={history} wUnit={profile?.wUnit || 'lbs'}/>
 
                       {/* Set headers */}
                       <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8}}>
@@ -2864,7 +2865,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           <div style={{fontSize:13,color:s.done?T.carb:T.mu,fontWeight:700,textAlign:"center"}}>#{si+1}</div>
                           <input
                             defaultValue={s.weight||sugg?.weight||""}
-                            placeholder="lbs"
+                            placeholder={profile?.wUnit || 'lbs'}
                             style={{background:s.done?`${T.carb}12`:T.s2,border:`1.5px solid ${s.done?T.carb:T.bd}`,borderRadius:9,padding:"10px",color:s.done?T.carb:"#fff",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}}
                             onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}}
                           />

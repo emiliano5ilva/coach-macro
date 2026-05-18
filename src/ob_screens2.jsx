@@ -18,6 +18,7 @@ import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorieFreeMode } from "./utils/female.js";
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
+import { displayDistance, distanceLabel } from "./utils/units.js";
 import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
 import { calculatePRProbability, generateWeeklyForecast, calculateGoalTrajectories, calcNutritionAdherence7d, trackPredictionOutcome } from "./services/predictionEngine.js";
 import { detectMetabolicAdaptation, generateAdaptationProtocol, buildProtocolPhases, saveDetectedAdaptation, getActiveAdaptation, dismissAdaptation, startProtocol as startMetabolicProtocol, completeProtocol, getProtocolProgress } from "./services/metabolicAdaptation.js";
@@ -2208,7 +2209,7 @@ Rules:
     hap();
     if(isNewPR){
       hapPR();
-      showToast(`🔥 New PR — ${weight}lbs on ${ex?.name||"this exercise"}!`, "pr", {duration:5000});
+      showToast(`🔥 New PR — ${weight}${profile?.wUnit||"lbs"} on ${ex?.name||"this exercise"}!`, "pr", {duration:5000});
     }
 
     // Persist workout state for resume
@@ -3157,7 +3158,7 @@ Rules:
                         <div style={{fontSize:12,fontWeight:600,color:"rgba(245,245,240,0.75)",marginBottom:4}}>{ex.name}</div>
                         <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                           {(ex.sets||[]).filter(s=>s.done||s.weight).map((s,k)=>(
-                            <div key={k} style={{fontSize:10,color:"rgba(245,245,240,0.45)",background:"rgba(245,245,240,0.06)",borderRadius:4,padding:"2px 7px"}}>{s.weight||0}lbs × {s.reps||0}</div>
+                            <div key={k} style={{fontSize:10,color:"rgba(245,245,240,0.45)",background:"rgba(245,245,240,0.06)",borderRadius:4,padding:"2px 7px"}}>{s.weight||0}{profile?.wUnit||"lbs"} × {s.reps||0}</div>
                           ))}
                         </div>
                       </div>
@@ -3441,10 +3442,10 @@ Rules:
     } else if(isRunnerMode){
       twRings=[
         {pct:Math.min(100,runActsThisWeek.length/targetSessions*100),value:runActsThisWeek.length,label:"Runs",color:"#e8341c"},
-        {pct:Math.min(100,runDistKm/50*100),value:runDistKm.toFixed(1),label:"km run",color:"#22c55e"},
+        {pct:Math.min(100,runDistKm/50*100),value:displayDistance(runDistKm, profile?.wUnit||'lbs'),label:`${distanceLabel(profile?.wUnit||'lbs')} run`,color:"#22c55e"},
         {pct:Math.min(100,runTimeMins/300*100),value:runTimeMins>=60?`${Math.floor(runTimeMins/60)}h`:`${runTimeMins}m`,label:"Time",color:"#60a5fa"},
       ];
-      twInsight=runActsThisWeek.length>0?`${runActsThisWeek.length} run${runActsThisWeek.length>1?'s':''} · ${runDistKm.toFixed(1)} km · ${runTimeMins} min this week`:"No runs logged yet this week.";
+      twInsight=runActsThisWeek.length>0?`${runActsThisWeek.length} run${runActsThisWeek.length>1?'s':''} · ${displayDistance(runDistKm, profile?.wUnit||'lbs')} · ${runTimeMins} min this week`:"No runs logged yet this week.";
     } else {
       twRings=[
         {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Sessions",color:"#e8341c"},

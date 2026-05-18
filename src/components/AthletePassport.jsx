@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { sb } from "../supabase.js";
+import { displayWeightCompact, displayWeight, displayDistance, runDistanceStatLabel, weightLabel } from "../utils/units.js";
 
 // ── Athlete Title System ──────────────────────────────────────────────────────
 const ATHLETE_TITLES = {
@@ -18,11 +19,6 @@ function getAthleteTitle(dna) {
 }
 
 // ── Format Helpers ────────────────────────────────────────────────────────────
-function formatVolume(lbs) {
-  if (lbs >= 1000000) return `${(lbs / 1000000).toFixed(1)}M`;
-  if (lbs >= 1000) return `${(lbs / 1000).toFixed(1)}K`;
-  return lbs.toFixed(0);
-}
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -35,9 +31,9 @@ const AVAILABLE_STATS = [
   // ── STRENGTH ────────────────────────────────────────────────────────────────
   {
     id: 'total_volume',
-    label: 'Total lbs lifted',
+    label: 'Total lifted',
     group: 'STRENGTH',
-    query: async (userId) => {
+    query: async (userId, wUnit) => {
       const { data } = await sb
         .from('workout_logs')
         .select('workout')
@@ -51,14 +47,14 @@ const AVAILABLE_STATS = [
           });
         });
       });
-      return formatVolume(total) + ' lbs';
+      return displayWeightCompact(total, wUnit);
     },
   },
   {
     id: 'top_pr',
     label: 'Top PR',
     group: 'STRENGTH',
-    query: async (userId) => {
+    query: async (userId, wUnit) => {
       const { data } = await sb
         .from('workout_logs')
         .select('workout')
@@ -72,7 +68,7 @@ const AVAILABLE_STATS = [
           });
         });
       });
-      return topPR > 0 ? `${topPR} lbs` : null;
+      return topPR > 0 ? displayWeight(topPR, wUnit) : null;
     },
   },
   {
@@ -126,14 +122,14 @@ const AVAILABLE_STATS = [
   // ── RUNNING ──────────────────────────────────────────────────────────────────
   {
     id: 'total_distance',
-    label: 'Total km run',
+    label: 'Total run',
     group: 'RUNNING',
-    query: async (userId) => {
+    query: async (userId, wUnit) => {
       try {
         const { data, error } = await sb.from('run_logs').select('distance_km').eq('user_id', userId);
         if (error) return null;
         const total = (data || []).reduce((sum, r) => sum + (r.distance_km || 0), 0);
-        return `${total.toFixed(0)} km`;
+        return displayDistance(total, wUnit);
       } catch { return null; }
     },
   },
@@ -319,6 +315,7 @@ export default function AthletePassport({ userId }) {
 
   // ── Derived values ──────────────────────────────────────────────────────────
   const profileData = profile?.profile_data || {};
+  const wUnit = profileData.wUnit || 'lbs';
   const startD = profileData.startDate ? new Date(profileData.startDate) : (profile?.created_at ? new Date(profile.created_at) : new Date());
   const daysSince = Math.max(0, Math.floor((new Date() - startD) / 86400000));
   const memberSince = startD.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
@@ -407,7 +404,7 @@ export default function AthletePassport({ userId }) {
       statsToLoad.map(id => {
         const def = AVAILABLE_STATS.find(s => s.id === id);
         if (!def) return Promise.resolve([id, null]);
-        return def.query(userId).then(v => [id, v]).catch(() => [id, null]);
+        return def.query(userId, wUnit).then(v => [id, v]).catch(() => [id, null]);
       })
     ).then(results => {
       if (cancelled) return;
@@ -418,7 +415,7 @@ export default function AthletePassport({ userId }) {
     });
 
     return () => { cancelled = true; };
-  }, [userId, selectedStats.join(',')]);
+  }, [userId, selectedStats.join(','), wUnit]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   async function saveStats(ns) {
@@ -616,7 +613,11 @@ export default function AthletePassport({ userId }) {
                 key={id}
                 id={id}
                 value={statValues[id]}
-                label={def?.label || id}
+                label={
+                  id === 'total_distance' ? runDistanceStatLabel(wUnit) :
+                  id === 'total_volume' ? `Total ${weightLabel(wUnit)} lifted` :
+                  def?.label || id
+                }
               />
             );
           })}
