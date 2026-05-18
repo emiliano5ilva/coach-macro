@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { sb } from "../supabase.js";
 import { displayWeightCompact, displayWeight, displayDistance, runDistanceStatLabel, weightLabel } from "../utils/units.js";
+import { calculateTrainingDNA, getDominantDimension } from "../services/trainingDnaService.js";
 
 // ── Athlete Title System ──────────────────────────────────────────────────────
 const ATHLETE_TITLES = {
@@ -340,15 +341,9 @@ export default function AthletePassport({ userId }) {
     let cancelled = false;
 
     async function load() {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 30);
-      const cutStr = cutoff.toISOString().split('T')[0];
-
-      const [{ data: prof }, { count: wCount }, { data: recentWl }, { data: recentFood }] = await Promise.all([
+      const [{ data: prof }, { count: wCount }] = await Promise.all([
         sb.from('profiles').select('profile_data, referral_count, passport_stats, created_at').eq('id', userId).single(),
         sb.from('workout_logs').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-        sb.from('workout_logs').select('workout, date').eq('user_id', userId).gte('date', cutStr),
-        sb.from('food_logs').select('date, entries').eq('user_id', userId).gte('date', cutStr),
       ]);
 
       if (cancelled) return;
@@ -363,30 +358,9 @@ export default function AthletePassport({ userId }) {
         setSelectedStats(saved.filter(id => validIds.has(id)).slice(0, 5));
       }
 
-      // Calculate DNA scores (last 30 days)
-      if ((wCount || 0) > 0) {
-        const wl = recentWl || [];
-        const fl = recentFood || [];
-        const total = wl.length;
-        if (total > 0 || wCount >= 30) {
-          const ss = wl.filter(w => !w.workout?.focus?.toLowerCase().includes('run') && w.workout?.type !== 'running').length;
-          const strength = Math.min(100, Math.round((ss / Math.max(1, total)) * 100 * 1.4));
-          const endurance = Math.min(100, Math.round(((total - ss) / Math.max(1, total)) * 100 * 2));
-          const vps = wl.reduce((s, w) => {
-            let v = 0;
-            (w.workout?.exercises || []).forEach(ex => (ex.sets || []).forEach(st => {
-              const wt = parseFloat(st.weight || 0), r = parseInt(st.reps || 0);
-              if (wt > 0 && r > 0) v += wt * r;
-            }));
-            return s + v;
-          }, 0) / Math.max(1, total);
-          const power = Math.min(100, Math.round((vps / 3000) * 100));
-          const consistency = Math.min(100, Math.round((total / 16) * 100));
-          const nutrition = Math.min(100, Math.round((fl.filter(f => (f.entries || []).length > 0).length / 30) * 100));
-          const recovery = Math.min(100, Math.max(0, Math.round(consistency * 0.7 + power * 0.3)));
-          setDnaScores({ strength, endurance, power, consistency, nutrition, recovery });
-        }
-      }
+      // Calculate DNA scores via shared service
+      const dna = await calculateTrainingDNA(userId);
+      if (!cancelled) setDnaScores(dna);
     }
 
     load();

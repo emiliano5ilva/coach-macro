@@ -28,6 +28,7 @@ import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
+import { calculateTrainingDNA } from "./services/trainingDnaService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -3348,41 +3349,25 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
 
   useEffect(()=>{
     if(!user)return;
-    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
-    const cutStr=cutoff.toISOString().split("T")[0];
-    Promise.all([
-      sb.from("workout_logs").select("*").eq("user_id",user.id).gte("date",cutStr),
-      sb.from("food_logs").select("date,entries").eq("user_id",user.id).gte("date",cutStr),
-    ]).then(([{data:wl},{data:fl}])=>{
-      const sessions=wl||[];const foodLogs=fl||[];
-      const total=sessions.length;
-      const ss=sessions.filter(w=>!w.workout?.focus?.toLowerCase().includes("run")&&w.workout?.type!=="running").length;
-      const cs=total-ss;
-      const strength=Math.min(100,Math.round((ss/Math.max(1,total))*100*1.4));
-      const endurance=Math.min(100,Math.round((cs/Math.max(1,total))*100*2));
-      const vps=sessions.reduce((sum,w)=>{let v=0;(w.workout?.exercises||[]).forEach(ex=>(ex.sets||[]).forEach(s=>{const wt=parseFloat(s.weight||0),r=parseInt(s.reps||0);if(wt>0&&r>0)v+=wt*r;}));return sum+v;},0)/Math.max(1,total);
-      const power=Math.min(100,Math.round((vps/3000)*100));
-      const schDays=Object.values(schedule||{}).filter(v=>v==="training").length;
-      const exp=Math.max(1,schDays*4);
-      const consistency=Math.min(100,Math.round((total/exp)*100));
-      const nutrition=Math.min(100,Math.round((foodLogs.filter(f=>f.entries?.length>0).length/30)*100));
-      const recovery=Math.min(100,Math.max(0,Math.round(consistency*0.7+power*0.3)));
-      const scores={strength,endurance,power,consistency,nutrition,recovery};
+    calculateTrainingDNA(user.id).then(result=>{
+      const scores={
+        strength:result.strength,endurance:result.endurance,power:result.power,
+        consistency:result.consistency,nutrition:result.nutrition,recovery:result.recovery,
+      };
       const metrics=[
-        {label:"Strength",score:strength},{label:"Endurance",score:endurance},
-        {label:"Power",score:power},{label:"Consistency",score:consistency},
-        {label:"Nutrition",score:nutrition},{label:"Recovery",score:recovery},
+        {label:"Strength",score:result.strength},{label:"Endurance",score:result.endurance},
+        {label:"Power",score:result.power},{label:"Consistency",score:result.consistency},
+        {label:"Nutrition",score:result.nutrition},{label:"Recovery",score:result.recovery},
       ];
-      setDnaData({scores,metrics,total,highest:metrics.reduce((a,b)=>a.score>b.score?a:b),lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)});
-    });
-  },[user]);
+      setDnaData({scores,metrics,total:result._meta?.sessions||0,highest:metrics.reduce((a,b)=>a.score>b.score?a:b),lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)});
+    }).catch(()=>{});
+  },[user?.id]);
 
   useEffect(()=>{
-    if(!dnaData||!radarRef.current)return;
-    drawDNARadar(radarRef.current,dnaData.scores);
+    if(!radarRef.current)return;
+    drawDNARadar(radarRef.current,dnaData?.scores||{strength:0,endurance:0,power:0,consistency:0,nutrition:0,recovery:0});
   },[dnaData]);
 
-  if(!dnaData)return null;
   if(daysSince<30){
     return(
       <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
@@ -3406,30 +3391,41 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
     "Recovery":"Build a deload week every 4th week to reset adaptation.",
   };
 
+  const DEFAULT_METRICS=[
+    {label:"Strength",score:0},{label:"Endurance",score:0},{label:"Power",score:0},
+    {label:"Consistency",score:0},{label:"Nutrition",score:0},{label:"Recovery",score:0},
+  ];
+  const scores=dnaData?.scores||{strength:0,endurance:0,power:0,consistency:0,nutrition:0,recovery:0};
+  const metrics=dnaData?.metrics||DEFAULT_METRICS;
+  const highest=dnaData?.highest||DEFAULT_METRICS[0];
+  const lowest=dnaData?.lowest||DEFAULT_METRICS[0];
+
   return(
     <div style={{background:"#000",border:"1px solid rgba(245,245,240,0.08)",borderRadius:20,padding:isMobile?"18px 16px":"24px 24px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
         <div>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:500}}>// TRAINING DNA</div>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1}}>{getAthleteTitle(dnaData.scores)}</div>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 30 DAYS<br/>{dnaData.total} SESSIONS</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
       </div>
       <canvas ref={radarRef} style={{width:"100%",display:"block",borderRadius:8}}/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px 12px",marginTop:16}}>
-        {dnaData.metrics.map(({label,score})=>(
+        {metrics.map(({label,score})=>(
           <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
             <div style={{width:7,height:7,borderRadius:2,background:heatColor(score),flexShrink:0}}/>
             <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}</span>
-            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:heatColor(score),marginLeft:"auto"}}>{score}</span>
+            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:heatColor(score),marginLeft:"auto"}}>{dnaData?score:"—"}</span>
           </div>
         ))}
       </div>
-      <div style={{marginTop:16,borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12,display:"flex",flexDirection:"column",gap:5}}>
-        <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strength:</span> {dnaData.highest.label} ({dnaData.highest.score})</div>
-        <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#FEA020",fontWeight:700}}>Gap:</span> {dnaData.lowest.label} ({dnaData.lowest.score})</div>
-        <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#e8341c",fontWeight:700}}>Tip:</span> {RECS[dnaData.lowest.label]}</div>
-      </div>
+      {dnaData&&(
+        <div style={{marginTop:16,borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12,display:"flex",flexDirection:"column",gap:5}}>
+          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strength:</span> {highest.label} ({highest.score})</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#FEA020",fontWeight:700}}>Gap:</span> {lowest.label} ({lowest.score})</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#e8341c",fontWeight:700}}>Tip:</span> {RECS[lowest.label]}</div>
+        </div>
+      )}
     </div>
   );
 }
