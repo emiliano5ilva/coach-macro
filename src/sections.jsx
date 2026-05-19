@@ -637,8 +637,104 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
 }
 
 // ─── ADAPT NOW HELPERS ────────────────────────────────────────────────────────
+const PAIN_LOCATIONS = [
+  {id:'shoulder',label:'SHOULDER'},{id:'chest',label:'CHEST'},{id:'back',label:'BACK'},
+  {id:'elbow',label:'ELBOW'},{id:'wrist',label:'WRIST'},{id:'hip',label:'HIP'},
+  {id:'knee',label:'KNEE'},{id:'ankle',label:'ANKLE'},{id:'lower_back',label:'LOWER BACK'},
+  {id:'neck',label:'NECK'},{id:'quad',label:'QUAD'},{id:'hamstring',label:'HAMSTRING'},
+];
+
+const INJURY_CONFLICT_MAP = {
+  shoulder:['push','upper','pull'],chest:['push','upper'],back:['pull','upper'],
+  elbow:['push','pull','upper'],wrist:['push','pull','upper'],hip:['legs','lower'],
+  knee:['legs','lower'],quad:['legs','lower'],hamstring:['legs','lower'],
+  lower_back:['legs','lower','pull'],neck:['pull','upper'],ankle:['legs','lower'],
+};
+
+const FORM_COACHING = {
+  shoulder:{
+    bench_press:{
+      likely_cause:"Elbow flare past 90 degrees creates anterior shoulder impingement.",
+      fix:["Tuck elbows to 45-75 degrees — not flared out wide.","Retract your shoulder blades before unracking the bar.","Think about 'bending the bar' to engage lats and protect the shoulder.","Reduce weight by 30% and rebuild the pattern."],
+      avoid:["Wide grip bench","Dips until pain-free","Behind-neck pressing"],
+    },
+    overhead_press:{
+      likely_cause:"Shoulder impingement from insufficient thoracic mobility or internal rotation.",
+      fix:["Grip slightly wider than shoulder width — not too narrow.","Press in a slight forward arc not straight up.","Add thoracic extensions over a foam roller before pressing.","Try a dumbbell variation — more forgiving on the joint."],
+      avoid:["Behind-neck press","Upright rows","Lateral raises with internal rotation"],
+    },
+    pull_up:{
+      likely_cause:"Shoulder not packed at the bottom of the movement.",
+      fix:["Dead hang first — feel your shoulder blades pull apart.","Before pulling: depress and retract the scapula slightly.","Lead with the chest not the chin.","Reduce range if pain occurs at full extension."],
+      avoid:["Kipping pull-ups","Behind-neck pull-downs"],
+    },
+  },
+  knee:{
+    squat:{
+      likely_cause:"Knee tracking issue — valgus collapse (caving in) or anterior knee stress from forward lean.",
+      fix:["Check: knee should track over second toe throughout.","If knees cave: glutes aren't firing. Do 2 sets clamshells before squatting.","If pain is front of knee: reduce forward lean, push hips back more at the start.","Reduce weight 30% and focus on knee tracking before adding load back."],
+      avoid:["Full depth until pain-free","Leg press with feet low on the platform"],
+    },
+    lunges:{
+      likely_cause:"Front knee tracking past toes or lateral instability.",
+      fix:["Take a longer stride — front shin should be vertical or close to it.","Drive through the heel of the front foot.","If lateral pain: single leg work is exposing a hip weakness — add lateral band walks."],
+      avoid:["Decline lunges","High-step lunges"],
+    },
+  },
+  lower_back:{
+    deadlift:{
+      likely_cause:"Lumbar flexion under load (rounding) or hips shooting up faster than shoulders.",
+      fix:["STOP immediately. Lower back sharp pain on deadlift is a serious warning sign.","Film from the side. Your hips and shoulders must rise at exactly the same rate.","If hips shoot up first you are good-morning-ing the weight — dangerous pattern.","Reduce weight 40% and focus on maintaining neutral spine throughout the entire rep.","Romanian deadlift with light weight to rebuild the hip hinge pattern."],
+      avoid:["ANY loaded spinal flexion","Sit-ups or crunches","Good mornings"],
+      escalate:true,
+    },
+    squat:{
+      likely_cause:"Butt wink (lumbar flexion at the bottom) or anterior pelvic tilt.",
+      fix:["Check your squat depth — only go as deep as you can maintain neutral spine.","Hip flexor tightness causes butt wink — add hip flexor stretches to every warm-up.","Box squat to a safe depth to rebuild the pattern.","Reduce weight significantly and treat this as a technique session."],
+      avoid:["Below parallel until mobility improves","High bar squat if low bar feels better"],
+    },
+  },
+  elbow:{
+    bicep_curl:{
+      likely_cause:"Medial epicondylitis (golfer's elbow) from supination under load.",
+      fix:["Switch to hammer curls — neutral grip reduces medial elbow stress.","Reduce weight and slow the eccentric to 3 seconds.","Avoid full supination at the top until pain-free."],
+      avoid:["Barbell curls","Reverse curls","Wrist curls"],
+    },
+    tricep_extension:{
+      likely_cause:"Lateral epicondylitis (tennis elbow) or olecranon impingement.",
+      fix:["Switch to pushdown with rope attachment — less elbow stress than bar.","Keep slight bend at the bottom — do not fully lock out.","Reduce weight 30%."],
+      avoid:["Skull crushers","Overhead tricep extension","Full lockout on any press"],
+    },
+  },
+};
+
+function affectsToday(painLocation, todayFocus) {
+  const conflicts = INJURY_CONFLICT_MAP[painLocation] || [];
+  const focus = (todayFocus || '').toLowerCase();
+  return conflicts.some(c => focus.includes(c));
+}
+
+function findRescheduleDay(schedule, todayKey) {
+  const ORDER = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayIdx = ORDER.indexOf(todayKey);
+  for (let i = todayIdx + 1; i < ORDER.length; i++) {
+    if ((schedule[ORDER[i]] || 'rest') === 'rest') return ORDER[i];
+  }
+  return null;
+}
+
+function findExerciseCoaching(exerciseName, location) {
+  const map = FORM_COACHING[location];
+  if (!map) return null;
+  const n = exerciseName.toLowerCase();
+  for (const [key, data] of Object.entries(map)) {
+    if (n.includes(key.replace(/_/g,' ')) || n.includes(key)) return {exercise: exerciseName, ...data};
+  }
+  return null;
+}
+
 const ADAPT_CATEGORIES = [
-  {id:"injury",   emoji:"🤕", label:"Injury / Pain",       options:["Upper body injury","Lower body injury","Back pain","Hamstring strain","Knee pain","Other injury"]},
+  {id:"injury",   emoji:"🤕", label:"Injury / Pain",       options:[]},
   {id:"travel",   emoji:"✈️", label:"Traveling / No Gym",   options:["Hotel gym only","Dumbbells only","Bodyweight only","Resistance bands only"]},
   {id:"recovery", emoji:"😴", label:"Recovery & Wellness",  options:["Poor sleep (under 5 hrs)","Feeling sick","High stress","Feeling great — increase intensity"]},
   {id:"female",   emoji:"🩸", label:"Female Health",        options:["Menstrual phase (reduce intensity)","Follicular phase (increase intensity)","Ovulation (peak day)","Luteal phase (maintain)"]},
@@ -668,13 +764,18 @@ const ADAPT_CSS = `
   @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 `;
 
-function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptationsLeft, adaptationsUsed, adaptLimit, adaptResetDate, onUseAdapted, onClose}) {
+function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptationsLeft, adaptationsUsed, adaptLimit, adaptResetDate, onUseAdapted, onClose, user, schedule, setSchedule, todayKey}) {
   const [screen, setScreen] = useState("categories");
   const [category, setCategory] = useState(null);
   const [subOption, setSubOption] = useState(null);
   const [customText, setCustomText] = useState("");
   const [result, setResult] = useState(null);
   const [err, setErr] = useState(null);
+  const [painLocation, setPainLocation] = useState(null);
+  const [injurySeverity, setInjurySeverity] = useState(null);
+  const [injuryLevel, setInjuryLevel] = useState(null);
+  const [rescheduled, setRescheduled] = useState(null);
+  const [formCoachingCards, setFormCoachingCards] = useState([]);
 
   const selectedCat = ADAPT_CATEGORIES.find(c => c.id === category);
   const cyclePhase = getCyclePhase(wPrefs?.lastPeriodDate || profile?.lastPeriodDate);
@@ -685,16 +786,13 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
     if (category === "female" && cyclePhase && !subOption) setSubOption(cyclePhase.adaptOption);
   }, [category]);
 
-  async function runAdapt() {
-    if (!canAdapt) return;
+  async function doRunAdapt(level, location, rescheduleInfo) {
     setScreen("loading"); setErr(null);
     try {
       const adaptHealthItems=[...(profile?.conditions||[]).filter(c=>c!=="none"),...(wPrefs?.injuries||[]).filter(Boolean)];
       const adaptHealthCtx=adaptHealthItems.length>0?`\nKnown conditions/injuries: ${adaptHealthItems.join(", ")} — factor into all exercise selections.`:"";
-
       const GOAL_DESCRIPTIONS={build_muscle:"building muscle mass",get_stronger:"increasing strength",lose_fat:"losing body fat",recomp:"body recomposition",train_for_race:"race preparation",get_faster:"speed and power"};
       const goalDescription=GOAL_DESCRIPTIONS[profile?.goal]||(profile?.goal||"general fitness");
-
       let recoveryContext="No recovery data available";
       try{
         const{data:{user:authUser}}=await sb.auth.getUser();
@@ -704,57 +802,23 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         }
       }catch{/* non-blocking */}
 
-      const prompt = `You are an expert personal trainer and coach.
+      const injuryCtx = (level && location) ? `\nINJURY DETAILS:\n  Pain location: ${location}\n  Severity level: ${level} (1=mild, 2=moderate, 3=sharp)\n  Conflicts with today's session: ${affectsToday(location, todayFocus)}\n${level===1?`  LEVEL 1 RULES:\n  - Keep all exercises but reduce load 15-20% on exercises loading ${location}\n  - Replace barbell with cable or dumbbell alternatives for affected area\n  - Add 2 mobility warm-up exercises for ${location} at session start\n  - Keep same rep ranges — do NOT remove exercises entirely`:level===2?`  LEVEL 2 RULES:\n  - REMOVE ALL exercises that directly load ${location}\n  - Replace with exercises for muscle groups NOT affected by ${location}\n  - Keep same total sets and duration — just different muscles\n  - Add a session note that the original ${todayFocus} session has been rescheduled${rescheduleInfo?.day?` to ${rescheduleInfo.day} this week`:''}`:` LEVEL 3 RULES:\n  - REMOVE ALL exercises loading ${location} and surrounding muscles\n  - Replace with safest possible alternatives far from affected area\n  - Reduce overall session intensity by 40%\n  - Add a detailed recovery coaching note`}` : '';
 
-Current program: ${wPrefs.splitType||"General"} — ${wPrefs.liftExp||"intermediate"} level
-Training goal: ${goalDescription}
-Today's session: ${todayFocus}
-User situation: ${selectedReason}${adaptHealthCtx}
+      const situationText = (level && location) ? `Injury — ${location.replace(/_/g,' ')} pain (level ${level}/3)` : selectedReason;
 
-Current muscle recovery state:
-${recoveryContext}
-
-Current planned exercises:
-${JSON.stringify((todayExercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps,notes:e.notes})), null, 2)}
-
-Please adapt this session for the user's situation. Return ONLY a valid JSON object with no extra text:
-{
-  "changes": [
-    { "type": "removed", "exercise": "name", "reason": "why" },
-    { "type": "replaced", "original": "name", "replacement": "name", "reason": "why" },
-    { "type": "modified", "exercise": "name", "change": "what changed", "reason": "why" }
-  ],
-  "adapted_exercises": [
-    { "name": "exercise name", "sets": 3, "reps": "10-12", "notes": "coaching note", "weight": "", "done": false }
-  ],
-  "session_note": "One sentence summary of the adaptation"
-}
-
-Rules:
-- Injury: remove dangerous movements, suggest safer alternatives that work around the injury.
-- Travel/no gym: convert all barbell movements to dumbbell or bodyweight alternatives.
-- Poor recovery/sick: reduce sets by 30-40%, reduce intensity, focus on movement quality.
-- Menstrual phase: reduce volume 30%, remove heavy compound lifts, keep lighter accessory work.
-- Follicular/ovulation: keep or increase intensity — good time for PRs.
-- Time constraints: keep only the primary compound movements, cut accessories to fit the time.
-- Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.
-- Recovery aware: if a muscle group being trained today is below 50% recovered, reduce its exercises by 1 set and add a note about incomplete recovery.
-- Goal aligned: adaptations must keep the session aligned with the user's training goal — a fat loss user should keep rest periods short, a strength user should keep heavy compounds even when adapting.`;
+      const prompt = `You are an expert personal trainer and coach.\n\nCurrent program: ${wPrefs.splitType||"General"} — ${wPrefs.liftExp||"intermediate"} level\nTraining goal: ${goalDescription}\nToday's session: ${todayFocus}\nUser situation: ${situationText}${adaptHealthCtx}${injuryCtx}\n\nCurrent muscle recovery state:\n${recoveryContext}\n\nCurrent planned exercises:\n${JSON.stringify((todayExercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps,notes:e.notes})), null, 2)}\n\nPlease adapt this session for the user's situation. Return ONLY a valid JSON object with no extra text:\n{\n  "changes": [\n    { "type": "removed", "exercise": "name", "reason": "why" },\n    { "type": "replaced", "original": "name", "replacement": "name", "reason": "why" },\n    { "type": "modified", "exercise": "name", "change": "what changed", "reason": "why" }\n  ],\n  "adapted_exercises": [\n    { "name": "exercise name", "sets": 3, "reps": "10-12", "notes": "coaching note", "weight": "", "done": false }\n  ],\n  "session_note": "One sentence summary of the adaptation"\n}\n\nRules:\n- Injury: remove dangerous movements, suggest safer alternatives that work around the injury.\n- Travel/no gym: convert all barbell movements to dumbbell or bodyweight alternatives.\n- Poor recovery/sick: reduce sets by 30-40%, reduce intensity, focus on movement quality.\n- Menstrual phase: reduce volume 30%, remove heavy compound lifts, keep lighter accessory work.\n- Follicular/ovulation: keep or increase intensity — good time for PRs.\n- Time constraints: keep only the primary compound movements, cut accessories to fit the time.\n- Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.\n- Recovery aware: if a muscle group being trained today is below 50% recovered, reduce its exercises by 1 set and add a note about incomplete recovery.\n- Goal aligned: adaptations must keep the session aligned with the user's training goal — a fat loss user should keep rest periods short, a strength user should keep heavy compounds even when adapting.`;
 
       let adaptText = '';
       const timeout = new Promise((_,rej) => setTimeout(() => rej(new Error("Adaptation timed out. Try again.")), 25000));
       await Promise.race([
-        streamAI(prompt, 2000, "adapt_now",
-          () => {},
-          (text) => { adaptText = text; }
-        ),
+        streamAI(prompt, 2000, "adapt_now", () => {}, (text) => { adaptText = text; }),
         timeout,
       ]);
       const m = adaptText.match(/\{[\s\S]*\}/);
       if (!m) throw new Error("AI returned an unexpected response. Try again.");
       const parsed = JSON.parse(m[0]);
       if (!parsed.adapted_exercises?.length) throw new Error("No exercises in adapted plan. Try again.");
-      track(EVENTS.AI_ADAPT_NOW,{reason:selectedReason,changes:parsed.changes?.length,exercises:parsed.adapted_exercises.length});
+      track(EVENTS.AI_ADAPT_NOW,{reason:situationText,changes:parsed.changes?.length,exercises:parsed.adapted_exercises.length});
       setResult(parsed); setScreen("results");
     } catch(e) {
       trackError(e,"adapt_now");
@@ -763,7 +827,159 @@ Rules:
     }
   }
 
+  async function runAdapt() {
+    if (!canAdapt) return;
+    await doRunAdapt(null, null, null);
+  }
+
+  function handleInjuryLocationSelect(loc) {
+    setPainLocation(loc);
+    setScreen('injury-severity');
+  }
+
+  async function handleSeveritySelect(sev) {
+    setInjurySeverity(sev);
+    const conflicts = affectsToday(painLocation, todayFocus);
+    const level = sev === 'sharp' ? 3 : (sev === 'moderate' && conflicts) ? 2 : 1;
+    setInjuryLevel(level);
+    if (level === 3) {
+      const cards = (todayExercises || []).flatMap(ex => {
+        const c = findExerciseCoaching(ex.name, painLocation);
+        return c ? [c] : [];
+      });
+      setFormCoachingCards(cards);
+      setScreen('form-coaching');
+    } else {
+      let rescheduleInfo = null;
+      if (level === 2) {
+        const rDay = findRescheduleDay(schedule || {}, todayKey || 'Mon');
+        if (rDay && user) {
+          const updatedSch = {...(schedule || {}), [rDay]: schedule?.[todayKey] || 'training'};
+          setSchedule?.(updatedSch);
+          sb.from("profiles").upsert({id: user.id, schedule: updatedSch}, {onConflict: "id"}).catch(() => {});
+          rescheduleInfo = {day: rDay};
+          setRescheduled(rescheduleInfo);
+        }
+      }
+      await doRunAdapt(level, painLocation, rescheduleInfo);
+    }
+  }
+
   const ICONS = {removed:"❌", replaced:"🔄", modified:"📉"};
+
+  if (screen === 'injury-location') return (
+    <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
+      <div className="adapt-header">
+        <div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// WHERE DOES IT HURT?</div>
+          <div className="adapt-title" style={{fontSize:22}}>SHOW US WHERE<span style={{color:"#e8341c"}}>.</span></div>
+        </div>
+        <button className="adapt-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="adapt-body">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+          {PAIN_LOCATIONS.map(loc=>(
+            <button key={loc.id} onClick={()=>handleInjuryLocationSelect(loc.id)}
+              style={{background:painLocation===loc.id?"rgba(232,52,28,0.1)":"rgba(245,245,240,0.04)",border:`1px solid ${painLocation===loc.id?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:10,padding:"10px",textAlign:"center",cursor:"pointer",fontFamily:"var(--mono)",fontSize:9,color:painLocation===loc.id?"#e8341c":"#f5f5f0",fontWeight:700,letterSpacing:"0.06em",transition:"all .15s"}}>
+              {loc.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="adapt-footer">
+        <button className="adapt-secondary" onClick={()=>setScreen("categories")}>← Back</button>
+      </div>
+    </div>
+  );
+
+  if (screen === 'injury-severity') return (
+    <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
+      <div className="adapt-header">
+        <div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// HOW BAD IS IT?</div>
+          <div className="adapt-title" style={{fontSize:22}}>RATE THE PAIN<span style={{color:"#e8341c"}}>.</span></div>
+        </div>
+        <button className="adapt-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="adapt-body" style={{display:"flex",flexDirection:"column",gap:10}}>
+        {[
+          {id:'mild',rating:'1-4',headline:'MILD — A BIT SORE.',sub:"Dull ache or stiffness. Doesn't stop movement.",accent:"#22c55e",bg:"rgba(34,197,94,0.06)",border:"rgba(34,197,94,0.2)"},
+          {id:'moderate',rating:'5-7',headline:'MODERATE — IT HURTS.',sub:"Noticeable pain that affects how you move.",accent:"#FEA020",bg:"rgba(254,160,32,0.06)",border:"rgba(254,160,32,0.2)"},
+          {id:'sharp',rating:'8-10',headline:'SHARP — DURING REPS.',sub:"Pain during the movement itself. Something is wrong.",accent:"#e8341c",bg:"rgba(232,52,28,0.06)",border:"rgba(232,52,28,0.2)"},
+        ].map(s=>(
+          <button key={s.id} onClick={()=>handleSeveritySelect(s.id)}
+            style={{background:s.bg,border:`1px solid ${s.border}`,borderRadius:12,padding:14,cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"all .15s"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,color:s.accent,fontWeight:700,marginBottom:4}}>{s.rating}</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>{s.headline}</div>
+            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{s.sub}</div>
+          </button>
+        ))}
+      </div>
+      <div className="adapt-footer">
+        <button className="adapt-secondary" onClick={()=>setScreen("injury-location")}>← Back</button>
+      </div>
+    </div>
+  );
+
+  if (screen === 'form-coaching') return (
+    <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
+      <div className="adapt-header">
+        <div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FORM COACHING</div>
+          <div className="adapt-title">STOP. LET'S FIX THIS<span style={{color:"#e8341c"}}>.</span></div>
+        </div>
+        <button className="adapt-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="adapt-body">
+        <div style={{fontFamily:"var(--body)",fontSize:14,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:20}}>Sharp pain during reps is your body telling you something needs to change.</div>
+        {formCoachingCards.length > 0 ? formCoachingCards.map((card,ci)=>(
+          <div key={ci} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:16,marginBottom:10}}>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:12}}>{card.exercise}<span style={{color:"#e8341c"}}>.</span></div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// LIKELY CAUSE</div>
+            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:14}}>{card.likely_cause}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT TO DO</div>
+            {(card.fix||[]).map((step,si)=>(
+              <div key={si} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}>
+                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(232,52,28,0.8)",fontWeight:700,flexShrink:0,lineHeight:1.5}}>{String(si+1).padStart(2,'0')}</span>
+                <span style={{fontFamily:"var(--body)",fontSize:13,color:"#f5f5f0",lineHeight:1.5}}>{step}</span>
+              </div>
+            ))}
+            {card.avoid?.length>0&&<>
+              <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4,marginTop:12}}>// AVOID TODAY</div>
+              {card.avoid.map((a,ai)=>(
+                <div key={ai} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:4}}>
+                  <span style={{color:"#e8341c",fontSize:12,flexShrink:0}}>✕</span>
+                  <span style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)"}}>{a}</span>
+                </div>
+              ))}
+            </>}
+          </div>
+        )) : (
+          <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:16,marginBottom:10}}>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:8}}>{(painLocation||'').replace(/_/g,' ').toUpperCase()} PAIN</div>
+            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>Sharp {(painLocation||'').replace(/_/g,' ')} pain detected. The adapted session will remove all exercises loading this area and replace them with safe alternatives. Stop any exercise that worsens the pain.</div>
+          </div>
+        )}
+        <div style={{background:"rgba(254,160,32,0.06)",border:"1px solid rgba(254,160,32,0.2)",borderRadius:10,padding:12,marginTop:4}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>This is technique guidance only. If you experience sharp or persistent pain stop training and consult a medical professional before your next session.</div>
+        </div>
+      </div>
+      <div className="adapt-footer">
+        <button className="adapt-primary" onClick={async()=>{
+          let rescheduleInfo = null;
+          const rDay = findRescheduleDay(schedule||{}, todayKey||'Mon');
+          if (rDay && user) {
+            const updatedSch = {...(schedule||{}), [rDay]: schedule?.[todayKey]||'training'};
+            setSchedule?.(updatedSch);
+            sb.from("profiles").upsert({id:user.id,schedule:updatedSch},{onConflict:"id"}).catch(()=>{});
+            rescheduleInfo = {day: rDay};
+            setRescheduled(rescheduleInfo);
+          }
+          await doRunAdapt(3, painLocation, rescheduleInfo);
+        }}>GOT IT — ADAPT SESSION →</button>
+      </div>
+    </div>
+  );
 
   if (screen === "loading") return (
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
@@ -789,6 +1005,12 @@ Rules:
           <div style={{background:"rgba(232,52,28,.06)",border:"1px solid rgba(232,52,28,.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
             <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>SESSION NOTE</div>
             <div style={{fontSize:13,color:"rgba(245,245,240,.85)",lineHeight:1.65}}>{result.session_note}</div>
+          </div>
+        )}
+        {rescheduled?.day && (
+          <div style={{background:"rgba(254,160,32,0.06)",border:"1px solid rgba(254,160,32,0.2)",borderRadius:12,padding:"12px 16px",marginBottom:16}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// RESCHEDULED</div>
+            <div style={{fontFamily:"var(--body)",fontSize:14,color:"#f5f5f0"}}>{todayFocus} moved to <strong>{rescheduled.day}</strong> this week.</div>
           </div>
         )}
         {result.changes?.length>0&&(
@@ -875,7 +1097,11 @@ Rules:
         <div style={{fontSize:12,color:"rgba(245,245,240,.45)",marginBottom:18,lineHeight:1.7}}>What's happening today? We'll adapt your workout to match your situation.</div>
         <div className="adapt-cat-grid">
           {ADAPT_CATEGORIES.map(cat=>(
-            <button key={cat.id} className={`adapt-cat-card${category===cat.id?" sel":""}`} onClick={()=>{setCategory(cat.id);setSubOption(null);}}>
+            <button key={cat.id} className={`adapt-cat-card${category===cat.id?" sel":""}`} onClick={()=>{
+              setCategory(cat.id);
+              setSubOption(null);
+              if (cat.id === 'injury') setScreen('injury-location');
+            }}>
               <span style={{fontSize:24,lineHeight:1}}>{cat.emoji}</span>
               <span style={{fontSize:13,fontWeight:700,color:"#fff",lineHeight:1.2}}>{cat.label}</span>
             </button>
@@ -2418,7 +2644,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   return (
     <div className="page-enter" style={{paddingBottom:isMobile?20:0}}>
       {/* Adapt Now Modal */}
-      {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} adaptLimit={adaptLimit} adaptResetDate={adaptResetDate} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)}/>}
+      {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} adaptLimit={adaptLimit} adaptResetDate={adaptResetDate} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)} user={user} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey}/>}
 
       {/* Swap Exercise Modal */}
       {swapModal&&(()=>{
