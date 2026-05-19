@@ -1153,7 +1153,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,nearbyRestaurants=[],citySearchError=""}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -1217,6 +1217,18 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [showSkipPrompt,setShowSkipPrompt]=useState(false);
   const [skipPromptTarget,setSkipPromptTarget]=useState(null);
   const [tooltipSlot,setTooltipSlot]=useState(null);
+  const [justSkipped,setJustSkipped]=useState([]);
+  const [showUndoToast,setShowUndoToast]=useState(false);
+  const [undoProgress,setUndoProgress]=useState(100);
+  const undoTimerRef=useRef(null);
+
+  useEffect(()=>{
+    console.log('mealFreq:',profile?.mealFreq,profile?.profile_data?.mealFreq,profile?.wprefs?.mealFreq);
+    const freq=profile?.mealFreq||profile?.wprefs?.mealFreq;
+    if(freq)setMealSlots(getSlotsForFreq(freq));
+  },[profile?.mealFreq]);
+
+  useEffect(()=>()=>{if(undoTimerRef.current)clearTimeout(undoTimerRef.current);},[]);
 
   function getEntrySlot(entry){
     if(typeof entry.slot==='number') return entry.slot;
@@ -1596,12 +1608,18 @@ Reply with ONLY a valid JSON object, no markdown:
         const btnLabel=missingSlots.length===1?`SKIP MEAL ${missingSlots[0]} →`:`SKIP ${missingSlots.length} MEALS →`;
         async function confirmSkip(){
           const newSkipped=[...(skippedSlots||[]),...missingSlots];
+          setJustSkipped([...missingSlots]);
           if(onSkipSlots)await onSkipSlots(newSkipped);
           const idx=mealSlots.indexOf(targetSlot);
           setActiveSlotIdx(idx>=0?idx:0);
           setShowSkipPrompt(false);
           setSkipPromptTarget(null);
           if(oql)setShowQuickLog(true);
+          setShowUndoToast(true);
+          setUndoProgress(100);
+          setTimeout(()=>setUndoProgress(0),50);
+          if(undoTimerRef.current)clearTimeout(undoTimerRef.current);
+          undoTimerRef.current=setTimeout(()=>{setShowUndoToast(false);setJustSkipped([]);},5000);
         }
         return(
           <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,0.92)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>{setShowSkipPrompt(false);setSkipPromptTarget(null);}}>
@@ -1623,6 +1641,24 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         );
       })()}
+      {/* Undo skip toast */}
+      {showUndoToast&&justSkipped.length>0&&(
+        <div style={{position:"fixed",bottom:100,left:16,right:16,background:"#111827",border:"1px solid rgba(232,52,28,0.3)",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:9999,overflow:"hidden"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#f5f5f0"}}>
+            {justSkipped.length===1?`Meal ${justSkipped[0]} skipped.`:`${justSkipped.length} meals skipped.`}
+          </div>
+          <button onClick={async()=>{
+            clearTimeout(undoTimerRef.current);
+            setShowUndoToast(false);
+            const restored=(skippedSlots||[]).filter(s=>!justSkipped.includes(s));
+            if(onSkipSlots)await onSkipSlots(restored);
+            setJustSkipped([]);
+          }} style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.4)",borderRadius:6,padding:"5px 12px",fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",flexShrink:0,marginLeft:12}}>UNDO</button>
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:"rgba(232,52,28,0.2)"}}>
+            <div style={{background:"#e8341c",height:"100%",width:`${undoProgress}%`,transition:"width 5s linear"}}/>
+          </div>
+        </div>
+      )}
       {/* Quick Log Sheet */}
       {showQuickLog&&(
         <QuickLogSheet
@@ -2346,6 +2382,35 @@ Reply with ONLY a valid JSON object, no markdown:
                 </button>
               </div>
             </div>
+
+            {/* Places API error */}
+            {citySearchError&&!recsLoading&&(
+              <div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:12,padding:"14px 16px",marginBottom:14,fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.6)"}}>
+                {citySearchError}
+              </div>
+            )}
+
+            {/* Nearby restaurant cards */}
+            {nearbyRestaurants.length>0&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>
+                  // {nearbyRestaurants.length} RESTAURANTS NEARBY
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {nearbyRestaurants.slice(0,8).map((r,i)=>(
+                    <div key={i} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:14,fontWeight:700,color:"#f5f5f0",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.06em"}}>{r.vicinity||""}</div>
+                      </div>
+                      {r.rating&&(
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",flexShrink:0}}>{r.rating}★</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Loading spinner — only before first text arrives */}
             {recsLoading&&!recs&&<div style={{padding:"16px 0",color:T.mu}}>

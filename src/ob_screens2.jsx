@@ -38,6 +38,7 @@ import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
+import { geocodeCity, getNearbyRestaurants } from "./services/locationService.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
@@ -1414,6 +1415,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [barcodeLoading,setBarcodeLoading]=useState(false);
   const [quickFields,setQF]=useState({name:"",calories:"",protein:"",carbs:"",fat:""});
   const [recs,setRecs]=useState(""); const [recsLoading,setRecsLoading]=useState(false);
+  const [nearbyRestaurants,setNearbyRestaurants]=useState([]);
+  const [citySearchError,setCitySearchError]=useState("");
   const [recipes,setRecipes]=useState(""); const [recipesLoading,setRecipesLoading]=useState(false);
   const [fastProto,setFastProto]=useState(profile?.fasting && profile.fasting!=="no" ? profile.fasting : "16:8");
   const [fastActive,setFastActive]=useState(false);
@@ -2099,7 +2102,16 @@ Be specific and practical. Empathetic tone. No fluff.`,
   function logEntry(entry){const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
 
   async function fetchRecs(){
-    if(recsLoading||!city.trim())return;setRecsLoading(true);setRecs("");
+    if(recsLoading||!city.trim())return;
+    console.log('Places key:',import.meta.env.VITE_GOOGLE_PLACES_KEY?'SET':'MISSING');
+    setRecsLoading(true);setRecs("");setNearbyRestaurants([]);setCitySearchError("");
+    // Try Places API geocode + nearby search
+    try{
+      const coords=await geocodeCity(city.trim());
+      if(!coords){setCitySearchError("City not found. Try a different search.");setRecsLoading(false);return;}
+      const places=await getNearbyRestaurants(coords.lat,coords.lng);
+      if(places.length>0)setNearbyRestaurants(places);
+    }catch(placesErr){console.warn("[fetchRecs] Places API unavailable:",placesErr);}
     const dietaryCtx=(profile?.dietary||[]).filter(d=>d!=="none");
     const slots=getSlotsForFreq(profile?.mealFreq||"3");
     const lSlots=getLoggedSlots(log);
@@ -2828,88 +2840,84 @@ Rules:
           );
         })()}
 
-        {/* Morning Brief + Comeback Protocol — fixed-height slot prevents layout twitch */}
-        <div style={{margin:"0 20px 12px",minHeight:140,position:"relative"}}>
-          <div style={{opacity:(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed?1:0,transform:(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed?"scale(1)":"scale(0.98)",transition:"opacity 0.32s cubic-bezier(.2,.7,.3,1),transform 0.32s cubic-bezier(.2,.7,.3,1)",pointerEvents:(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed?"auto":"none",position:"absolute",inset:0}}>
-            {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
-              <div style={{padding:"16px",background:"linear-gradient(135deg,#0d1420,#0a0e1a)",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
-                    {new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
-                  </div>
+        {/* Morning Brief + Comeback Protocol */}
+        <div style={{margin:"0 20px 12px"}}>
+          {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
+            <div style={{padding:"16px",background:"linear-gradient(135deg,#0d1420,#0a0e1a)",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
+                  {new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
                 </div>
-                {morningBriefLoading
-                  ?<div style={{display:"flex",flexDirection:"column",gap:9}}>
-                    {[1,0.85,0.7,0.55].map((w,i)=><div key={i} className="skeleton" style={{height:12,width:`${w*100}%`,borderRadius:3,animationDelay:`${i*80}ms`}}/>)}
-                  </div>
-                  :morningBriefError
-                    ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>{morningBriefError}</div>
-                    :morningBrief&&(()=>{
-                      const b=morningBrief;
-                      return(
-                        <div>
-                          {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
-                          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                            {b.yesterday&&(
-                              <div>
-                                <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div>
-                                <div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div>
-                              </div>
-                            )}
-                            <div style={{height:1,background:"rgba(245,245,240,0.06)"}}/>
-                            {b.today&&(
-                              <div>
-                                <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div>
-                                <div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div>
-                              </div>
-                            )}
-                            {b.coach_says&&(
-                              <div style={{padding:"8px 10px",background:"rgba(232,52,28,0.08)",borderRadius:6,borderLeft:"2px solid rgba(232,52,28,0.4)"}}>
-                                <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div>
-                                <div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div>
-                              </div>
-                            )}
-                          </div>
-                          {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
-                          {showCheckin&&!checkinDone&&(
-                            <SorenessCheckIn
-                              userId={user?.id}
-                              onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}}
-                              onSkip={()=>setShowCheckin(false)}
-                            />
+              </div>
+              {morningBriefLoading
+                ?<div style={{display:"flex",flexDirection:"column",gap:9}}>
+                  {[1,0.85,0.7,0.55].map((w,i)=><div key={i} className="skeleton" style={{height:12,width:`${w*100}%`,borderRadius:3,animationDelay:`${i*80}ms`}}/>)}
+                </div>
+                :morningBriefError
+                  ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>{morningBriefError}</div>
+                  :morningBrief&&(()=>{
+                    const b=morningBrief;
+                    return(
+                      <div>
+                        {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
+                        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                          {b.yesterday&&(
+                            <div>
+                              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div>
+                              <div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div>
+                            </div>
                           )}
-                          {checkinDone&&sorenessData&&(
-                            <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
+                          <div style={{height:1,background:"rgba(245,245,240,0.06)"}}/>
+                          {b.today&&(
+                            <div>
+                              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div>
+                              <div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div>
+                            </div>
+                          )}
+                          {b.coach_says&&(
+                            <div style={{padding:"8px 10px",background:"rgba(232,52,28,0.08)",borderRadius:6,borderLeft:"2px solid rgba(232,52,28,0.4)"}}>
+                              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div>
+                              <div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div>
+                            </div>
                           )}
                         </div>
-                      );
-                    })()
-                }
-                {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
-                  <FlagBtn responseText={morningBrief?JSON.stringify(morningBrief):""} feature="morning_brief" user={user}/>
-                  <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
-                </div>}
-              </div>
-            )}
-          </div>
-          <div style={{opacity:showComebackProtocol?1:0,transform:showComebackProtocol?"scale(1)":"scale(0.98)",transition:"opacity 0.32s cubic-bezier(.2,.7,.3,1),transform 0.32s cubic-bezier(.2,.7,.3,1)",pointerEvents:showComebackProtocol?"auto":"none",position:"absolute",inset:0}}>
-            {showComebackProtocol&&(
-              <div style={{padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,height:"100%",boxSizing:"border-box"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--amber)",textTransform:"uppercase",marginBottom:6}}>// {daysSinceWorkout} Days Out</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginTop:0,textTransform:"uppercase",marginBottom:10}}>Welcome Back, {firstName}.</div>
-                {["Muscles recovered — full intensity ready","Macros reset to maintenance this week",`Program resumes: Week ${programWeek}, ${todayFocus}`].map((t,i)=>(
-                  <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:13,marginBottom:6}}>
-                    <div style={{color:"var(--green)",marginTop:2}}>
-                      <svg width={16} height={16} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </div>
-                    <div>{t}</div>
+                        {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
+                        {showCheckin&&!checkinDone&&(
+                          <SorenessCheckIn
+                            userId={user?.id}
+                            onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}}
+                            onSkip={()=>setShowCheckin(false)}
+                          />
+                        )}
+                        {checkinDone&&sorenessData&&(
+                          <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
+                        )}
+                      </div>
+                    );
+                  })()
+              }
+              {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
+                <FlagBtn responseText={morningBrief?JSON.stringify(morningBrief):""} feature="morning_brief" user={user}/>
+                <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
+              </div>}
+            </div>
+          )}
+          {showComebackProtocol&&(
+            <div style={{padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,boxSizing:"border-box"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--amber)",textTransform:"uppercase",marginBottom:6}}>// {daysSinceWorkout} Days Out</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginTop:0,textTransform:"uppercase",marginBottom:10}}>Welcome Back, {firstName}.</div>
+              {["Muscles recovered — full intensity ready","Macros reset to maintenance this week",`Program resumes: Week ${programWeek}, ${todayFocus}`].map((t,i)=>(
+                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:13,marginBottom:6}}>
+                  <div style={{color:"var(--green)",marginTop:2}}>
+                    <svg width={16} height={16} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
-                ))}
-                <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);setSection("train");}} style={{width:"100%",marginTop:12,padding:14,background:"var(--amber)",border:"none",borderRadius:12,color:"#0a0e1a",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Start Comeback Session →</button>
-              </div>
-            )}
-          </div>
+                  <div>{t}</div>
+                </div>
+              ))}
+              <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);setSection("train");}} style={{width:"100%",marginTop:12,padding:14,background:"var(--amber)",border:"none",borderRadius:12,color:"#0a0e1a",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Start Comeback Session →</button>
+            </div>
+          )}
         </div>
 
         {/* Cycle Insight Card (Part 10) */}
@@ -4069,7 +4077,7 @@ Rules:
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} nearbyRestaurants={nearbyRestaurants} citySearchError={citySearchError}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></ErrorBoundary>}
