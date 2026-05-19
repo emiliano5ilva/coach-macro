@@ -1562,6 +1562,14 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   },[]);
 
   useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const stravaParam=params.get("strava");
+    if(stravaParam==="connected"){showToast("Strava connected! Last 30 days synced.","success",{duration:4000});history.replaceState({},"",window.location.pathname);}
+    else if(stravaParam==="denied"){showToast("Strava connection cancelled.","info");history.replaceState({},"",window.location.pathname);}
+    else if(stravaParam==="error"){showToast("Strava connection failed. Try again.","error");history.replaceState({},"",window.location.pathname);}
+  },[]);
+
+  useEffect(()=>{
     const isNative=typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()===true;
     async function loadHealth(){
       if(!isNative) return; // Apple Health is iOS only — never prompt on web

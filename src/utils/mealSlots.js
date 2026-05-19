@@ -18,13 +18,36 @@ export function normaliseSlotToNumber(slot, slots) {
   return 1;
 }
 
-export function getSlotTargets(calorieTarget, slots, skippedSlots = [], loggedSlots = []) {
+export function getOverageThreshold(goal) {
+  const thresholds = {
+    lose_fat:       1.02,
+    recomp:         1.02,
+    maintain:       1.05,
+    build_muscle:   1.08,
+    get_stronger:   1.08,
+    train_for_race: 1.08,
+    get_faster:     1.08,
+  };
+  return thresholds[goal] || 1.05;
+}
+
+export function calculateOverage(slotTarget, actualCalories, goal) {
+  const threshold = getOverageThreshold(goal);
+  const maxAllowed = slotTarget * threshold;
+  if (actualCalories <= maxAllowed) return 0;
+  return Math.round(actualCalories - slotTarget);
+}
+
+export function getSlotTargets(calorieTarget, slots, skippedSlots = [], loggedSlots = [], overages = {}) {
   const basePerSlot = calorieTarget / slots.length;
-  const freedCalories = skippedSlots.length * basePerSlot;
+  const freedFromSkips = skippedSlots.length * basePerSlot;
+  const totalOverage = Object.values(overages).reduce((sum, v) => sum + v, 0);
   const remainingSlots = slots.filter(
     s => !skippedSlots.includes(s) && !loggedSlots.includes(s)
   );
-  const extraPerSlot = remainingSlots.length > 0 ? freedCalories / remainingSlots.length : 0;
+  const netAdjustment = remainingSlots.length > 0
+    ? (freedFromSkips - totalOverage) / remainingSlots.length
+    : 0;
   const targets = {};
   slots.forEach(slot => {
     if (skippedSlots.includes(slot)) {
@@ -32,7 +55,7 @@ export function getSlotTargets(calorieTarget, slots, skippedSlots = [], loggedSl
     } else if (loggedSlots.includes(slot)) {
       targets[slot] = Math.round(basePerSlot);
     } else {
-      targets[slot] = Math.round(basePerSlot + extraPerSlot);
+      targets[slot] = Math.max(Math.round(basePerSlot + netAdjustment), 100);
     }
   });
   return targets;

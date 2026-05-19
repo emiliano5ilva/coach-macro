@@ -3755,6 +3755,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [localHeight,setLocalHeight]=useState(String(profile?.height||""));
   const [showGoalSelector,setShowGoalSelector]=useState(false);
   const [showSkillSelector,setShowSkillSelector]=useState(false);
+  const [stravaConnected,setStravaConnected]=useState(false);
+  const [stravaLoading,setStravaLoading]=useState(false);
+  const [stravaAthlete,setStravaAthlete]=useState(null);
+
+  useEffect(()=>{
+    if(!user?.id)return;
+    sb.from('connected_apps').select('athlete_name,connected_at').eq('user_id',user.id).eq('provider','strava').maybeSingle().then(({data})=>{
+      if(data){setStravaConnected(true);setStravaAthlete(data);}
+    });
+  },[user?.id]);
 
   async function saveSettings(newWPrefs,newSchedule){
     if(!user)return;
@@ -3943,6 +3953,83 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         </div>,
         document.body
       )}
+
+      {/* ── CONNECTED APPS ── */}
+      <div style={eyebrowStyle}>// Connected Apps</div>
+      <div style={cardStyle}>
+        {/* Strava */}
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+            </div>
+            <div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Strava</div>
+              {stravaConnected&&stravaAthlete?.athlete_name&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>{stravaAthlete.athlete_name}</div>}
+              {!stravaConnected&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
+            </div>
+          </div>
+          {stravaConnected?(
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:6,padding:"3px 8px"}}>CONNECTED</span>
+              <button onClick={async()=>{
+                if(!confirm("Disconnect Strava?"))return;
+                await sb.from('connected_apps').delete().eq('user_id',user.id).eq('provider','strava');
+                setStravaConnected(false);setStravaAthlete(null);
+                showToast("Strava disconnected","info");
+              }} style={{background:"transparent",border:"1px solid rgba(245,245,240,0.12)",borderRadius:6,color:"rgba(245,245,240,0.4)",fontSize:11,padding:"4px 10px",cursor:"pointer",fontFamily:"var(--mono)"}}>Disconnect</button>
+            </div>
+          ):(
+            <button onClick={async()=>{
+              if(!user?.id)return;
+              setStravaLoading(true);
+              const base=import.meta.env.VITE_API_BASE_URL||"";
+              window.location.href=`${base}/api/strava/auth?userId=${user.id}`;
+            }} disabled={stravaLoading} style={{background:"#FC4C02",border:"none",borderRadius:8,color:"#fff",fontFamily:"var(--mono)",fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer",letterSpacing:"0.06em"}}>
+              {stravaLoading?"CONNECTING…":"CONNECT"}
+            </button>
+          )}
+        </div>
+        {/* Apple Health */}
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#ff6b6b,#ee0979)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+            </div>
+            <div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Import workouts from Health app</div>
+            </div>
+          </div>
+          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:6,padding:"3px 8px"}}>iOS ONLY</span>
+        </div>
+        {/* WHOOP */}
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"#000",border:"1px solid rgba(245,245,240,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="16" height="10" viewBox="0 0 40 24" fill="#fff"><text x="0" y="18" fontSize="18" fontWeight="900" fontFamily="sans-serif">W</text></svg>
+            </div>
+            <div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>WHOOP</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Recovery & strain data</div>
+            </div>
+          </div>
+          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
+        </div>
+        {/* Garmin */}
+        <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"#005f9e",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+            </div>
+            <div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Garmin</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Workouts & health metrics</div>
+            </div>
+          </div>
+          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
+        </div>
+      </div>
 
       {/* ── ACCOUNT ── */}
       <div style={eyebrowStyle}>// Account</div>

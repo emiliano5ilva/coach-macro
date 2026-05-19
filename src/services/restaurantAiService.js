@@ -1,36 +1,125 @@
-import { streamAI } from '../client.js';
+import { ai, aiWithVision } from '../client.js';
 
-export function buildUserContext(profile, remaining) {
+const KNOWN_CHAINS = [
+  "mcdonald","burger king","wendy","taco bell","subway","chipotle","chick-fil-a",
+  "starbucks","dunkin","panera","panda express","kfc","popeyes","sonic","dairy queen",
+  "five guys","in-n-out","shake shack","whataburger","jack in the box","arby","hardee",
+  "carl's jr","wingstop","raising cane","zaxby","bojangles","culver","chili","applebee",
+  "olive garden","outback","red lobster","texas roadhouse","longhorn","cheesecake factory",
+  "buffalo wild wings","ihop","denny","waffle house","jersey mike","jimmy john","firehouse",
+  "potbelly","sweetgreen","qdoba","moe's","el pollo loco","del taco","noodles","pei wei",
+  "p.f. chang","red robin","first watch","corner bakery","einstein","tropical smoothie",
+  "jamba","smoothie king","freshii","just salad","jason's deli","mcalister",
+];
+
+function isKnownChain(name) {
+  const lower = name.toLowerCase();
+  return KNOWN_CHAINS.some(chain => lower.includes(chain));
+}
+
+const JSON_FORMAT = `{
+  "best_order": {
+    "item": "exact item name",
+    "customisation": "modifications or null",
+    "reason": "one sentence why this fits the meal target",
+    "estimated_macros": {
+      "calories": 0,
+      "protein_g": 0,
+      "carbs_g": 0,
+      "fat_g": 0,
+      "sodium_mg": 0,
+      "sugar_g": 0
+    },
+    "protein_coverage_pct": 0,
+    "warnings": [
+      {
+        "nutrient": "sodium",
+        "message": "1,840mg — 80% of daily limit in one meal",
+        "fix": "Ask for no sour cream to reduce by ~300mg"
+      }
+    ]
+  },
+  "backup_options": [
+    { "item": "exact item name", "customisation": null, "reason": "one sentence" },
+    { "item": "exact item name", "customisation": null, "reason": "one sentence" }
+  ],
+  "avoid": [
+    { "item": "exact item name", "reason": "specific macro problem" }
+  ],
+  "coach_note": "one punchy sentence tying training to the recommendation"
+}`;
+
+export function buildUserContext(profile, slotTargets, currentSlot, totalMeals, trainedToday, sessionType) {
   return {
     goal: profile?.goal || 'maintenance',
     dietary: (profile?.dietary || []).filter(d => d !== 'none'),
-    remaining,
+    currentMealSlot: currentSlot || 1,
+    totalMeals: totalMeals || 3,
+    currentMealCalorieTarget: slotTargets?.calories || 500,
+    mealProteinTarget: slotTargets?.protein || 40,
+    mealCarbTarget: slotTargets?.carbs || 50,
+    mealFatTarget: slotTargets?.fat || 20,
+    trainedToday: trainedToday || false,
+    sessionType: sessionType || null,
   };
 }
 
-export async function getRestaurantRecs(restaurantName, cuisineTypes, userContext, onChunk) {
-  const { goal, dietary, remaining } = userContext;
+function buildRestaurantPrompt(restaurantName, userContext) {
+  const { goal, dietary, currentMealSlot, totalMeals, currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget, trainedToday, sessionType } = userContext;
   const dietStr = dietary.length > 0 ? `\nDIETARY RESTRICTIONS (strictly avoid): ${dietary.join(', ')}.` : '';
-  const cuisineStr = cuisineTypes.filter(t => !['point_of_interest','establishment','food'].includes(t)).slice(0,3).join(', ');
-  const prompt = `You are a precision nutrition coach. The user is ordering at ${restaurantName}${cuisineStr ? ` (${cuisineStr})` : ''}.
+  const isChain = isKnownChain(restaurantName);
+  return `You are the Coach Macro nutrition AI. Recommend exactly what to order at ${restaurantName}.
 
-Remaining macros for this meal: ${remaining.calories} kcal · ${remaining.protein}g protein · ${remaining.carbs}g carbs · ${remaining.fat}g fat
-Goal: ${goal}${dietStr}
+MEAL CONTEXT:
+- This is Meal ${currentMealSlot} of ${totalMeals} today
+- Calorie target for THIS meal: ${currentMealCalorieTarget} kcal
+- Protein target: ${mealProteinTarget}g
+- Carb target: ${mealCarbTarget}g
+- Fat target: ${mealFatTarget}g
+- Training goal: ${goal}
+- Trained today: ${trainedToday}
+- Session type: ${sessionType || 'none'}${dietStr}
 
-Reply in exactly this format — no other text:
+RESTAURANT: ${restaurantName}
+${isChain ? 'Known chain — use exact menu knowledge and suggest specific modifications (e.g. "ask for half rice", "no cheese", "sauce on the side", "grilled not fried").' : 'Independent restaurant — suggest general preparation modifications only, not specific portion requests.'}
 
-// ORDER THIS — best option
-[Specific menu item with exact customizations. Macros: X kcal / Xg protein / Xg carbs / Xg fat]
+FLAG WARNINGS IF:
+- Calories > ${Math.round(currentMealCalorieTarget * 1.1)} (110% of meal target)
+- Protein < ${Math.round(mealProteinTarget * 0.8)}g (below 80% of target)
+- Carbs > ${Math.round(mealCarbTarget * 1.1)}g (110% of target)
+- Fat > ${Math.round(mealFatTarget * 1.1)}g (110% of target)
+- Sodium > 1000mg
+- Sugar > 20g
 
-// ALSO GOOD — 2 backups
-[Option 2 with customizations. Macros: X kcal / Xg protein / Xg carbs / Xg fat]
-[Option 3 with customizations. Macros: X kcal / Xg protein / Xg carbs / Xg fat]
+RULES: Optimise for protein first. Stay within 110% of all targets. Never recommend alcohol. Be specific with exact item names.
 
-// SKIP THESE — what to avoid
-[1-2 specific items to avoid and the macro reason why]
+RESPOND IN THIS EXACT JSON FORMAT. Nothing before or after the JSON:
+${JSON_FORMAT}`;
+}
 
-// COACH NOTE
-[One sharp sentence of advice for this meal]`;
+export async function getRestaurantRecs(restaurantName, _cuisineTypes, userContext) {
+  const prompt = buildRestaurantPrompt(restaurantName, userContext);
+  const text = await ai(prompt, 900, 'restaurant_pick');
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
 
-  await streamAI(prompt, 600, 'restaurant_pick', () => {}, onChunk);
+export async function getMenuScanRecs(base64Image, mediaType, userContext) {
+  const { goal, dietary, currentMealSlot, totalMeals, currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget, trainedToday } = userContext;
+  const dietStr = dietary.length > 0 ? `\nDIETARY RESTRICTIONS (strictly avoid): ${dietary.join(', ')}.` : '';
+  const textPrompt = `This is a restaurant menu. The user needs to order Meal ${currentMealSlot} of ${totalMeals} today.
+
+Meal targets: ${currentMealCalorieTarget} kcal · ${mealProteinTarget}g protein · ${mealCarbTarget}g carbs · ${mealFatTarget}g fat
+Goal: ${goal} · Trained today: ${trainedToday}${dietStr}
+
+Read the menu and recommend what to order. Apply the same warning thresholds: calories >110%, protein <80%, carbs/fat >110%, sodium >1000mg, sugar >20g.
+
+If no menu is visible in the image, return this exact JSON with coach_note set to "No menu detected. Try photographing the menu directly with good lighting." and leave item fields as "Unknown".
+
+RESPOND IN THIS EXACT JSON FORMAT. Nothing before or after the JSON:
+${JSON_FORMAT}`;
+
+  const text = await aiWithVision(base64Image, mediaType, textPrompt, 900, 'menu_scan');
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
 }

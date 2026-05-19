@@ -2,12 +2,14 @@ export { sb } from "./supabase.js";
 import { sb } from "./supabase.js";
 import { safetyCheck } from "./utils/safety.js";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 export async function streamAI(prompt, max = 900, feature = "default", onChunk, onComplete) {
   const { data: { session } } = await sb.auth.getSession();
   const headers = { "Content-Type": "application/json" };
   if (session?.user?.id) headers["x-user-id"] = session.user.id;
 
-  const response = await fetch("/api/claude", {
+  const response = await fetch(`${API_BASE}/api/claude`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -64,7 +66,7 @@ export async function ai(prompt, max = 900, feature = "default") {
   });
   const headers = { "Content-Type": "application/json" };
   if (session?.user?.id) headers["x-user-id"] = session.user.id;
-  const response = await fetch("/api/claude", {
+  const response = await fetch(`${API_BASE}/api/claude`, {
     method: "POST",
     headers,
     body,
@@ -83,4 +85,34 @@ export async function ai(prompt, max = 900, feature = "default") {
   const result = d.content?.[0]?.text || "";
   if (!result) console.warn("[ai] empty text in response:", text.slice(0, 200));
   return safetyCheck(result);
+}
+
+export async function aiWithVision(base64Image, mediaType, textPrompt, max = 900, feature = "default") {
+  const { data: { session } } = await sb.auth.getSession();
+  const headers = { "Content-Type": "application/json" };
+  if (session?.user?.id) headers["x-user-id"] = session.user.id;
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: max,
+    feature,
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
+        { type: "text", text: textPrompt },
+      ],
+    }],
+  });
+  const response = await fetch(`${API_BASE}/api/claude`, { method: "POST", headers, body });
+  const text = await response.text();
+  const d = JSON.parse(text);
+  if (response.status === 402) {
+    window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));
+    throw new Error(d.message || "Subscription required");
+  }
+  if (!response.ok || d.type === "error") {
+    const msg = d.error?.message || d.error || JSON.stringify(d);
+    throw new Error(msg);
+  }
+  return d.content?.[0]?.text || "";
 }

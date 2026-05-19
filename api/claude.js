@@ -16,6 +16,8 @@ LANGUAGE: Never say "no pain no gain", "push through the pain", or "pain is weak
 // Max tokens per request per feature
 const TOKEN_LIMITS = {
   restaurant_ai:   { input: 800, output: 600 },
+  restaurant_pick: { input: 1200, output: 900 },
+  menu_scan:       { input: 8000, output: 900 },
   adapt_now:       { input: 600, output: 500 },
   morning_brief:   { input: 400, output: 250 },
   meal_suggestion: { input: 300, output: 200 },
@@ -27,6 +29,8 @@ const TOKEN_LIMITS = {
 // Anti-abuse hourly limits per feature — real users never hit these
 const FEATURE_HOURLY_LIMITS = {
   restaurant_ai:   10,
+  restaurant_pick: 20,
+  menu_scan:       5,
   adapt_now:       5,
   morning_brief:   3,
   food_suggestion: 30,
