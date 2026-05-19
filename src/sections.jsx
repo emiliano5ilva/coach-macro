@@ -1019,11 +1019,8 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
           )}
         </div>
 
-        {/* Controls */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1.4fr 1fr",gap:10}}>
-          <button onClick={() => onAdjust(-30)} style={{padding:"13px 0",background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:16,cursor:"pointer",letterSpacing:"0.04em"}}>−30s</button>
-          <button onClick={onSkip} style={{padding:"13px 0",background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>Skip Rest</button>
-          <button onClick={() => onAdjust(30)} style={{padding:"13px 0",background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:16,cursor:"pointer",letterSpacing:"0.04em"}}>+30s</button>
+        <div style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",padding:"12px 0"}}>
+          Rest. Next set ready in {_p2(Math.floor(restTimer/60))}:{_p2(restTimer%60)}.
         </div>
       </div>
     </div>
@@ -1580,6 +1577,50 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [warmupSessionType,setWarmupSessionType]=useState('push');
   const [warmupSkillLevel,setWarmupSkillLevel]=useState('beginner');
 
+  const [sessionMode,setSessionMode]=useState(null);
+  const [editingSet,setEditingSet]=useState(null);
+  const [sessionPRs,setSessionPRs]=useState({});
+  const [runElapsed,setRunElapsed]=useState(0);
+  const [runDistance,setRunDistance]=useState(0);
+  const [runCoords,setRunCoords]=useState([]);
+  const [runLaps,setRunLaps]=useState([]);
+  const [runCurrentPace,setRunCurrentPace]=useState('--:--');
+  const [runAvgPace,setRunAvgPace]=useState('--:--');
+  const [runCalories,setRunCalories]=useState(0);
+  const [runGpsError,setRunGpsError]=useState(false);
+  const [runManualDist,setRunManualDist]=useState('');
+  const [runEffort,setRunEffort]=useState(null);
+  const [runSummary,setRunSummary]=useState(null);
+  const runTimerRef=useRef(null);
+  const gpsWatchRef=useRef(null);
+  const [hyroxType,setHyroxType]=useState(null);
+  const [hyroxTotalElapsed,setHyroxTotalElapsed]=useState(0);
+  const [hyroxSegElapsed,setHyroxSegElapsed]=useState(0);
+  const [hyroxCurrentSeg,setHyroxCurrentSeg]=useState(0);
+  const [hyroxSegTimes,setHyroxSegTimes]=useState([]);
+  const [hyroxWodStations,setHyroxWodStations]=useState([]);
+  const [hyroxWodRounds,setHyroxWodRounds]=useState(3);
+  const [hyroxWodCurStation,setHyroxWodCurStation]=useState(0);
+  const [hyroxWodCurRound,setHyroxWodCurRound]=useState(0);
+  const [hyroxSummary,setHyroxSummary]=useState(null);
+  const hyroxTotalTimerRef=useRef(null);
+  const hyroxSegTimerRef=useRef(null);
+
+  useEffect(()=>{
+    if(lastLoggedSet?.isNewPR&&lastLoggedSet?.exerciseName){
+      setSessionPRs(p=>({...p,[lastLoggedSet.exerciseName]:{weight:lastLoggedSet.weight,reps:lastLoggedSet.reps}}));
+    }
+  },[lastLoggedSet]);
+
+  useEffect(()=>{
+    return()=>{
+      clearInterval(runTimerRef.current);
+      if(gpsWatchRef.current!=null)navigator.geolocation.clearWatch(gpsWatchRef.current);
+      clearInterval(hyroxTotalTimerRef.current);
+      clearInterval(hyroxSegTimerRef.current);
+    };
+  },[]);
+
   // ── Pre-session readiness (AIT Part 2) ──────────────────────────────────
   const [showReadiness,setShowReadiness]=useState(false);
   const [sessionReadiness,setSessionReadiness]=useState(null);
@@ -1805,12 +1846,523 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       setWarmupSkillLevel(wuLevel);
       setTrainScreen("warmup");
     } else {
+      setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);
       setTrainScreen("active");
     }
   }
 
   const ZONE_COLOR={1:"rgba(245,245,240,.35)",2:"var(--green)",3:"var(--blue)",4:"var(--amber)",5:"var(--red)"};
   const ZONE_LABEL={1:"Zone 1 Recovery",2:"Zone 2 Aerobic",3:"Zone 3 Tempo",4:"Zone 4 Threshold",5:"Zone 5 VO₂ Max"};
+
+  function editSet(ei,si,reps,weight){
+    setActiveWorkout(prev=>{
+      if(!prev)return prev;
+      const u={...prev};
+      u.exercises=prev.exercises.map((ex,i)=>i!==ei?ex:{
+        ...ex,sets:ex.sets.map((s,j)=>j!==si?s:{...s,reps,weight,done:true})
+      });
+      return u;
+    });
+    const ex=activeWorkout?.exercises[ei];
+    if(!ex)return;
+    const k=(ex.name||"").toLowerCase().replace(/\s+/g,"_");
+    const prevHistory=history[k];
+    const prevLast=prevHistory?.[prevHistory.length-1];
+    const prevBestWeight=prevLast?Math.max(...prevLast.sets.map(s=>parseFloat(s.weight)||0)):null;
+    const isNewPR=prevBestWeight!=null&&parseFloat(weight)>prevBestWeight;
+    if(isNewPR){
+      setSessionPRs(p=>({...p,[ex.name]:{weight,reps}}));
+      showToast(`🔥 New PR — ${weight}${profile?.wUnit||"lbs"} on ${ex.name}!`,"pr",{duration:5000});
+    } else {
+      setSessionPRs(p=>{const u={...p};delete u[ex.name];return u;});
+    }
+  }
+
+  function haversineKm(lat1,lon1,lat2,lon2){
+    const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+    const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+  function fmtPace(distKm,elapsedSec){
+    if(distKm<0.01||elapsedSec<5)return'--:--';
+    const spk=elapsedSec/distKm;
+    return `${Math.floor(spk/60)}:${String(Math.round(spk%60)).padStart(2,'0')}`;
+  }
+  function fmtTime(sec){
+    const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+    if(h>0)return `${h}:${_p2(m)}:${_p2(s)}`;
+    return `${_p2(m)}:${_p2(s)}`;
+  }
+
+  function startGPSRun(){
+    setSessionMode('run-gps');
+    setRunElapsed(0);setRunDistance(0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
+    runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
+    if(navigator.geolocation){
+      gpsWatchRef.current=navigator.geolocation.watchPosition(
+        pos=>{
+          const {latitude:lat,longitude:lon,altitude}=pos.coords;
+          setRunCoords(prev=>{
+            if(prev.length>0){
+              const last=prev[prev.length-1];
+              const d=haversineKm(last.lat,last.lon,lat,lon);
+              if(d>0.003){
+                setRunDistance(pd=>{
+                  setRunElapsed(pe=>{
+                    setRunCurrentPace(fmtPace(pd+d>0.01?(pd+d):0.001,pe));
+                    setRunAvgPace(fmtPace(pd+d,pe));
+                    return pe;
+                  });
+                  return pd+d;
+                });
+              }
+            }
+            return [...prev,{lat,lon,alt:altitude||0,ts:Date.now()}];
+          });
+        },
+        _err=>{setRunGpsError(true);},
+        {enableHighAccuracy:true,maximumAge:1000,timeout:5000}
+      );
+    } else {
+      setRunGpsError(true);
+    }
+  }
+
+  function startManualRun(){
+    setSessionMode('run-manual');
+    setRunElapsed(0);
+    runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
+  }
+
+  function stopManualRunAndShowForm(){
+    clearInterval(runTimerRef.current);
+    setSessionMode('run-manual-finish');
+  }
+
+  function finishGPSRun(){
+    clearInterval(runTimerRef.current);
+    if(gpsWatchRef.current!=null)navigator.geolocation.clearWatch(gpsWatchRef.current);
+    const elapsed=runElapsed;
+    const dist=runDistance;
+    const avgPace=fmtPace(dist,elapsed);
+    const cals=Math.round(elapsed/60*8.5);
+    setRunSummary({mode:'gps',elapsed,distance:dist,avgPace,calories:cals,laps:runLaps,gpsError:runGpsError});
+    setSessionMode('run-summary');
+    if(user){
+      sb.from('workout_logs').insert({
+        user_id:user.id,
+        date:new Date().toISOString().split('T')[0],
+        type:'run',
+        duration_min:Math.round(elapsed/60),
+        distance_m:Math.round(dist*1000),
+        calories:cals,
+        workout:{focus:todayFocus,type:'run',mode:'gps',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,laps:runLaps,coords:runCoords.filter((_,i)=>i%5===0)}
+      }).catch(()=>{});
+    }
+  }
+
+  function finishManualRun(){
+    clearInterval(runTimerRef.current);
+    const elapsed=runElapsed;
+    const dist=parseFloat(runManualDist)||0;
+    const avgPace=fmtPace(dist,elapsed);
+    const cals=Math.round(elapsed/60*8.5);
+    setRunSummary({mode:'manual',elapsed,distance:dist,avgPace,calories:cals,effort:runEffort,laps:[]});
+    setSessionMode('run-summary');
+    if(user&&elapsed>0){
+      sb.from('workout_logs').insert({
+        user_id:user.id,
+        date:new Date().toISOString().split('T')[0],
+        type:'run',
+        duration_min:Math.round(elapsed/60),
+        distance_m:dist>0?Math.round(dist*1000):null,
+        calories:cals,
+        workout:{focus:todayFocus,type:'run',mode:'manual',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,effort:runEffort}
+      }).catch(()=>{});
+    }
+  }
+
+  const HYROX_RACE_SEGS=[];
+  for(let i=0;i<8;i++){
+    HYROX_RACE_SEGS.push({type:'run',index:i,label:`RUN ${i+1}`,target:'1km'});
+    HYROX_RACE_SEGS.push({type:'station',index:i,...HYROX_STATIONS[i]});
+  }
+
+  function startHyroxTotalTimer(){
+    hyroxTotalTimerRef.current=setInterval(()=>setHyroxTotalElapsed(p=>p+1),1000);
+  }
+  function startHyroxSegTimer(){
+    clearInterval(hyroxSegTimerRef.current);
+    setHyroxSegElapsed(0);
+    hyroxSegTimerRef.current=setInterval(()=>setHyroxSegElapsed(p=>p+1),1000);
+  }
+  function stopAllHyroxTimers(){
+    clearInterval(hyroxTotalTimerRef.current);
+    clearInterval(hyroxSegTimerRef.current);
+  }
+
+  function startRaceSim(){
+    setHyroxType('race_sim');
+    setHyroxCurrentSeg(0);
+    setHyroxSegTimes([]);
+    setHyroxTotalElapsed(0);
+    setHyroxSegElapsed(0);
+    setSessionMode('hyrox-sim');
+    startHyroxTotalTimer();
+    startHyroxSegTimer();
+  }
+
+  function completeHyroxSegment(){
+    const seg=HYROX_RACE_SEGS[hyroxCurrentSeg];
+    const segTime=hyroxSegElapsed;
+    setHyroxSegTimes(p=>[...p,{...seg,elapsed:segTime}]);
+    if(hyroxCurrentSeg>=HYROX_RACE_SEGS.length-1){
+      stopAllHyroxTimers();
+      const allTimes=[...hyroxSegTimes,{...seg,elapsed:segTime}];
+      setHyroxSummary({type:'race_sim',totalElapsed:hyroxTotalElapsed,segments:allTimes});
+      setSessionMode('hyrox-summary');
+      saveHyroxSession('race_sim',hyroxTotalElapsed,allTimes);
+    } else {
+      setHyroxCurrentSeg(p=>p+1);
+      startHyroxSegTimer();
+    }
+  }
+
+  function startWOD(){
+    const weakStations=(wPrefs?.hyroxWeakStations||profile?.hyrox_weak_stations||[]).slice(0,4);
+    const stations=weakStations.length>0?weakStations:['SkiErg','Row','Wall Balls','Burpee Broad Jump'];
+    const stationObjs=stations.map(name=>HYROX_STATIONS.find(s=>s.name===name)||{name,distance:'',tip:''}).filter(Boolean);
+    setHyroxWodStations(stationObjs);
+    setHyroxWodCurStation(0);
+    setHyroxWodCurRound(0);
+    setHyroxTotalElapsed(0);
+    setHyroxSegElapsed(0);
+    setHyroxSegTimes([]);
+    setSessionMode('hyrox-wod');
+    startHyroxTotalTimer();
+    startHyroxSegTimer();
+  }
+
+  function completeWODStation(){
+    const st=hyroxWodStations[hyroxWodCurStation];
+    const segTime=hyroxSegElapsed;
+    setHyroxSegTimes(p=>[...p,{...st,round:hyroxWodCurRound+1,elapsed:segTime}]);
+    const nextStation=hyroxWodCurStation+1;
+    if(nextStation>=hyroxWodStations.length){
+      const nextRound=hyroxWodCurRound+1;
+      if(nextRound>=hyroxWodRounds){
+        stopAllHyroxTimers();
+        const allTimes=[...hyroxSegTimes,{...st,round:hyroxWodCurRound+1,elapsed:segTime}];
+        setHyroxSummary({type:'station_wod',totalElapsed:hyroxTotalElapsed,segments:allTimes,rounds:hyroxWodRounds});
+        setSessionMode('hyrox-summary');
+        saveHyroxSession('station_wod',hyroxTotalElapsed,allTimes);
+      } else {
+        setHyroxWodCurRound(nextRound);
+        setHyroxWodCurStation(0);
+        startHyroxSegTimer();
+      }
+    } else {
+      setHyroxWodCurStation(nextStation);
+      startHyroxSegTimer();
+    }
+  }
+
+  function saveHyroxSession(mode,totalSec,segments){
+    if(!user)return;
+    const station_times={};
+    segments.forEach(seg=>{
+      const key=seg.type==='run'?`Run${seg.index+1}`:seg.name;
+      station_times[key]=seg.elapsed;
+    });
+    sb.from('workout_logs').insert({
+      user_id:user.id,
+      date:new Date().toISOString().split('T')[0],
+      type:'hyrox',
+      duration_min:Math.round(totalSec/60),
+      workout:{
+        focus:todayFocus,type:'hyrox',session_mode:mode,
+        station_times,total_time:totalSec,
+        stations_completed:segments.filter(s=>s.type==='station').length
+      }
+    }).catch(()=>{});
+  }
+
+  function renderRunPicker(){
+    const todayRun=todayPrescription;
+    const headline=(todayRun?.label||todayRun?.type||'RUN').toUpperCase();
+    const target=todayRun?.duration?`TARGET: ${todayRun.duration} min`:todayRun?.distance?`TARGET: ${todayRun.distance} km`:'';
+    return(
+      <div style={{padding:"24px 0"}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S RUN</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:16,textTransform:"uppercase"}}>
+          {headline}<span style={{color:"#e8341c"}}>.</span>
+        </div>
+        {target&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
+        <div onClick={startGPSRun} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
+          <div style={{background:"rgba(232,52,28,0.1)",borderRadius:10,padding:12,flexShrink:0}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          </div>
+          <div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:4}}>TRACK WITH GPS.</div>
+            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Live pace, distance, and route tracking using your phone GPS.</div>
+          </div>
+        </div>
+        <div onClick={startManualRun} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
+          <div style={{background:"rgba(245,245,240,0.06)",borderRadius:10,padding:12,flexShrink:0}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:4}}>LOG MANUALLY.</div>
+            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>For treadmill or when you track with another device. Enter distance and time at the end.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderGPSRunScreen(){
+    return(
+      <div style={{textAlign:"center",paddingTop:20,position:"relative"}}>
+        <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(232,52,28,0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
+        {runGpsError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(232,52,28,0.7)",marginBottom:12,padding:"6px 12px",background:"rgba(232,52,28,0.08)",borderRadius:8}}>GPS unavailable — tracking time only</div>}
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:64,color:"#f5f5f0",lineHeight:1,marginBottom:16,fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
+        <div style={{display:"flex",justifyContent:"center",gap:32,marginBottom:32}}>
+          <div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0"}}>{runCurrentPace}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /km</div>
+          </div>
+          <div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#e8341c"}}>{runDistance.toFixed(2)}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>km</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:28}}>
+          {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:Math.round(runElapsed/60*8.5)},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
+            <div key={l} style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",color:"#f5f5f0",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>LAP</button>
+          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderManualRunScreen(){
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",lineHeight:1,marginBottom:8,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textAlign:"center",marginBottom:32}}>ELAPSED TIME</div>
+        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+      </div>
+    );
+  }
+
+  function renderManualRunFinishScreen(){
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"#e8341c"}}>?</span></div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE (km)</div>
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={runManualDist}
+            onChange={e=>setRunManualDist(e.target.value)}
+            style={{width:"100%",boxSizing:"border-box",background:"#0d0d0d",border:"1.5px solid rgba(232,52,28,0.3)",borderRadius:12,padding:"16px",color:"#f5f5f0",fontSize:24,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,outline:"none",textAlign:"center"}}
+          />
+        </div>
+        <div style={{marginBottom:24}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>EFFORT LEVEL</div>
+          <div style={{display:"flex",gap:8}}>
+            {[{v:1,l:"Easy"},{v:2,l:"Moderate"},{v:3,l:"Hard"},{v:4,l:"Max"}].map(({v,l})=>(
+              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(232,52,28,0.15)":"#0d0d0d",border:`1.5px solid ${runEffort===v?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:runEffort===v?"#e8341c":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase"}}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:16,textAlign:"center"}}>Time: {fmtTime(runElapsed)}</div>
+        <button onClick={finishManualRun} style={{width:"100%",padding:"16px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE RUN →</button>
+      </div>
+    );
+  }
+
+  function renderRunSummary(){
+    if(!runSummary)return null;
+    const {elapsed,distance,avgPace,calories,laps}=runSummary;
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// RUN COMPLETE</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:24}}>
+          NICE WORK<span style={{color:"#e8341c"}}>.</span>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
+          {[
+            {l:"DISTANCE",v:distance>0?`${distance.toFixed(2)} km`:"—"},
+            {l:"TIME",v:fmtTime(elapsed)},
+            {l:"AVG PACE",v:avgPace},
+            {l:"CALORIES",v:`${calories} kcal`}
+          ].map(({l,v})=>(
+            <div key={l} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,padding:"16px",textAlign:"center"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{l}</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        {laps?.length>0&&<>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.16em",marginBottom:8}}>// Splits</div>
+          {laps.map((lap,i)=>{
+            const lapTime=i===0?lap.time:lap.time-laps[i-1].time;
+            const avgLapTime=elapsed/Math.max(laps.length,1);
+            const isFaster=lapTime<avgLapTime;
+            return(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
+                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>KM {i+1}</span>
+                <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:isFaster?"#22c55e":"#e8341c"}}>{fmtTime(lapTime)}</span>
+              </div>
+            );
+          })}
+        </>}
+        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+      </div>
+    );
+  }
+
+  function renderHyroxPicker(){
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// HYROX SESSION</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:24}}>
+          WHAT TYPE OF<br/><span style={{color:"#FC4C02"}}>SESSION?</span>
+        </div>
+        {[
+          {e:"🏁",l:"RACE SIMULATION.",sub:"Full race · All 8 stations · Race distances · 60-90 min",fn:startRaceSim},
+          {e:"⚡",l:"STATION WOD.",sub:`Coach picks your weakest stations · Multiple rounds · 20-40 min`,fn:()=>{setHyroxType('station_wod');startWOD();}},
+          {e:"🏃",l:"RUN INTERVALS.",sub:"Race-pace running · Builds the 8km running fitness most Hyrox athletes neglect",fn:()=>{setSessionMode('run-picker');}},
+        ].map((o,i)=>(
+          <div key={i} onClick={o.fn} style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.12)",borderRadius:14,padding:"18px",marginBottom:10,cursor:"pointer",display:"flex",gap:16,alignItems:"flex-start"}}>
+            <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
+            <div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>{o.l}</div>
+              <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{o.sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderHyroxRaceSim(){
+    const seg=HYROX_RACE_SEGS[hyroxCurrentSeg]||HYROX_RACE_SEGS[0];
+    const isRun=seg.type==='run';
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// RACE SIMULATION</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1,color:"#f5f5f0",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>total time</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:2}}>segment</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:isRun?"#22c55e":"#FC4C02"}}>{hyroxCurrentSeg+1}/16</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:4,marginBottom:20,alignItems:"center"}}>
+          {HYROX_STATIONS.map((_,i)=>{
+            const stationSegIdx=i*2+1;
+            const done=stationSegIdx<hyroxCurrentSeg;
+            const current=stationSegIdx===hyroxCurrentSeg;
+            const isRunCurrent=stationSegIdx-1===hyroxCurrentSeg;
+            return(
+              <div key={i} style={{flex:1,textAlign:"center"}}>
+                <div style={{width:"100%",height:6,borderRadius:3,background:done?"#22c55e":current||isRunCurrent?"#FC4C02":"rgba(245,245,240,0.1)",transition:"background 0.3s"}}/>
+                <div style={{fontFamily:"var(--mono)",fontSize:6,color:done?"#22c55e":current?"#FC4C02":"rgba(245,245,240,0.2)",marginTop:2,textTransform:"uppercase"}}>{i+1}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{background:isRun?"rgba(34,197,94,0.06)":"#0d0d0d",border:`1px solid ${isRun?"rgba(34,197,94,0.2)":"rgba(252,76,2,0.2)"}`,borderRadius:14,padding:18,marginBottom:20}}>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#f5f5f0",marginBottom:4}}>
+            {isRun?"1KM RUN.":(seg.name||"STATION")+"."}<span style={{color:isRun?"#22c55e":"#FC4C02"}}>.</span>
+          </div>
+          {!isRun&&<div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:18,color:"rgba(245,245,240,0.6)",marginBottom:8}}>{seg.distance||seg.reps||""}</div>}
+          {isRun&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:8}}>RECOVER AND PACE.</div>}
+          {!isRun&&seg.tip&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{seg.tip}</div>}
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:isRun?"#22c55e":"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
+          <button onClick={completeHyroxSegment} style={{width:"100%",padding:"16px",background:isRun?"#22c55e":"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>
+            {isRun?"COMPLETE RUN →":"COMPLETE STATION →"}
+          </button>
+        </div>
+        {hyroxSegTimes.length>0&&<div style={{marginBottom:16}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>// Completed</div>
+          {hyroxSegTimes.slice(-3).map((s,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
+              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",textTransform:"uppercase"}}>{s.type==='run'?`Run ${s.index+1}`:s.name}</span>
+              <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:s.type==='run'?"#22c55e":"#f5f5f0"}}>{fmtTime(s.elapsed)}</span>
+            </div>
+          ))}
+        </div>}
+      </div>
+    );
+  }
+
+  function renderHyroxWOD(){
+    const st=hyroxWodStations[hyroxWodCurStation];
+    if(!st)return null;
+    const totalSteps=hyroxWodRounds*hyroxWodStations.length;
+    const doneSteps=hyroxWodCurRound*hyroxWodStations.length+hyroxWodCurStation;
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// STATION WOD</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0"}}>{fmtTime(hyroxTotalElapsed)}</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)"}}>ROUND {hyroxWodCurRound+1} of {hyroxWodRounds}</div>
+        </div>
+        <div style={{height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
+          <div style={{height:"100%",background:"#FC4C02",width:`${(doneSteps/totalSteps)*100}%`,transition:"width 0.4s"}}/>
+        </div>
+        <div style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.2)",borderRadius:14,padding:18,marginBottom:20}}>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#f5f5f0",marginBottom:4}}>{(st.name||"").toUpperCase()}<span style={{color:"#FC4C02"}}>.</span></div>
+          {(st.distance||st.reps)&&<div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:18,color:"rgba(245,245,240,0.6)",marginBottom:8}}>{st.distance||st.reps}</div>}
+          {st.tip&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{st.tip}</div>}
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
+          <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>COMPLETE STATION →</button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderHyroxSummary(){
+    if(!hyroxSummary)return null;
+    const {type,totalElapsed,segments}=hyroxSummary;
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// SESSION COMPLETE</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:20}}>
+          DONE<span style={{color:"#FC4C02"}}>.</span>
+        </div>
+        <div style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.08)",borderRadius:12,padding:16,marginBottom:16,textAlign:"center"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>TOTAL TIME</div>
+          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0"}}>{fmtTime(totalElapsed)}</div>
+        </div>
+        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>// Segment Splits</div>
+        {segments.map((s,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
+            <span style={{fontFamily:"var(--mono)",fontSize:9,color:s.type==='run'?"rgba(34,197,94,0.7)":"rgba(245,245,240,0.55)",textTransform:"uppercase"}}>{s.type==='run'?`Run ${s.index+1}`:s.round!=null?`${s.name||""} R${s.round}`:(s.name||"")}</span>
+            <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:s.type==='run'?"#22c55e":"#f5f5f0"}}>{fmtTime(s.elapsed)}</span>
+          </div>
+        ))}
+        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+      </div>
+    );
+  }
 
   return (
     <div className="page-enter" style={{paddingBottom:isMobile?20:0}}>
@@ -2530,8 +3082,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             sessionType={warmupSessionType||'push'}
             skillLevel={warmupSkillLevel||'beginner'}
             soreness={todaySoreness}
-            onStart={()=>setTrainScreen("active")}
-            onSkip={()=>setTrainScreen("active")}
+            onStart={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
+            onSkip={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
           />
         )}
 
@@ -2570,7 +3122,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               wUnit={profile?.wUnit || 'lbs'}
             />
 
-            {!activeWorkout
+            {sessionMode==='run-picker'&&renderRunPicker()}
+            {sessionMode==='run-gps'&&renderGPSRunScreen()}
+            {sessionMode==='run-manual'&&renderManualRunScreen()}
+            {sessionMode==='run-manual-finish'&&renderManualRunFinishScreen()}
+            {sessionMode==='run-summary'&&renderRunSummary()}
+            {sessionMode==='hyrox-picker'&&renderHyroxPicker()}
+            {sessionMode==='hyrox-sim'&&renderHyroxRaceSim()}
+            {sessionMode==='hyrox-wod'&&renderHyroxWOD()}
+            {sessionMode==='hyrox-summary'&&renderHyroxSummary()}
+            {!sessionMode&&(!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
                 <div style={{fontSize:48,marginBottom:16}}>💪</div>
                 <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:8}}>NO ACTIVE SESSION</div>
@@ -2667,14 +3228,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const doneSets=(ex.sets||[]).filter(s=>s.done).length;
                   const totalSets=(ex.sets||[]).length;
                   const allDone=doneSets===totalSets&&totalSets>0;
+                  const nextSetIdx=(ex.sets||[]).findIndex(s=>!s.done);
                   return(
-                    <div key={ei} style={{background:T.s1,border:`1px solid ${allDone?T.carb:T.bd}`,borderRadius:18,padding:"18px 20px",marginBottom:12,position:"relative",overflow:"hidden",transition:"border-color .3s"}}>
-                      {allDone&&<div style={{position:"absolute",top:0,left:0,right:0,height:3,background:T.carb,borderRadius:"18px 18px 0 0"}}/>}
+                    <div key={ei} style={{background:"#0d0d0d",border:`1px solid ${allDone?"rgba(34,197,94,0.3)":"rgba(232,52,28,0.08)"}`,borderRadius:18,padding:"18px 20px",marginBottom:12,position:"relative",overflow:"hidden",transition:"border-color .3s"}}>
+                      {allDone&&<div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"#22c55e",borderRadius:"18px 18px 0 0"}}/>}
                       {/* Exercise header */}
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                            <div style={{width:24,height:24,borderRadius:"50%",background:allDone?T.carb:T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>
+                            <div style={{width:24,height:24,borderRadius:"50%",background:allDone?"#22c55e":T.s3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:allDone?"#000":T.mu,flexShrink:0}}>
                               {allDone
                                 ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#000" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 : ei+1}
@@ -2740,7 +3302,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                       {/* Progress bar */}
                       <div style={{height:3,background:T.s3,borderRadius:2,marginBottom:12,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:T.carb,borderRadius:2,transition:"width .4s"}}/>
+                        <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:allDone?"#22c55e":"#e8341c",borderRadius:2,transition:"background 0.4s, width .4s"}}/>
                       </div>
 
                       {/* Previous session reference */}
@@ -2754,26 +3316,45 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       </div>
 
                       {/* Sets */}
-                      {(ex.sets||[]).map((s,si)=>(
+                      {(ex.sets||[]).map((s,si)=>{
+                        const isActiveSt=!s.done&&si===nextSetIdx;
+                        const isEditing=editingSet?.ei===ei&&editingSet?.si===si;
+                        return(
                         <div key={si} style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8,alignItems:"center"}}>
-                          <div style={{fontSize:13,color:s.done?T.carb:T.mu,fontWeight:700,textAlign:"center"}}>#{si+1}</div>
+                          <div style={{fontSize:13,color:s.done?"#22c55e":isActiveSt?"#f5f5f0":T.mu,fontWeight:700,textAlign:"center"}}>#{si+1}</div>
                           <input
                             defaultValue={s.weight||sugg?.weight||""}
                             placeholder={profile?.wUnit || 'lbs'}
-                            style={{background:s.done?`${T.carb}12`:T.s2,border:`1.5px solid ${s.done?T.carb:T.bd}`,borderRadius:9,padding:"10px",color:s.done?T.carb:"#fff",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}}
+                            style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}}
                             onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}}
+                            onFocus={s.done?()=>setEditingSet({ei,si}):undefined}
                           />
                           <input
                             defaultValue={s.reps||sugg?.reps||10}
-                            style={{background:s.done?`${T.carb}12`:T.s2,border:`1.5px solid ${s.done?T.carb:T.bd}`,borderRadius:9,padding:"10px",color:s.done?T.carb:"#fff",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}}
+                            style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}}
                             onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}}
+                            onFocus={s.done?()=>setEditingSet({ei,si}):undefined}
                           />
                           <button
-                            onClick={()=>{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);}}
-                            style={{padding:"10px 0",background:s.done?T.carb:T.s3,color:s.done?"#000":"#fff",border:`1.5px solid ${s.done?T.carb:T.bd}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}
-                          >{s.done?"✓":"Log"}</button>
+                            onClick={()=>{
+                              if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}
+                              else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);}
+                            }}
+                            style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"#0d0d0d",color:s.done&&!isEditing?"#000":"#fff",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}
+                          >{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
                         </div>
-                      ))}
+                        );
+                      })}
+
+                      {sessionPRs[ex.name]&&(
+                        <div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:8,padding:"8px 12px",display:"flex",gap:8,alignItems:"center",marginTop:6,marginBottom:4}}>
+                          <span style={{fontSize:14,flexShrink:0}}>🔥</span>
+                          <div>
+                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:"#e8341c"}}>NEW PR.</div>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{sessionPRs[ex.name].weight} {profile?.wUnit||"lbs"} × {sessionPRs[ex.name].reps} reps</div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Add set */}
                       <button onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets=[...u.exercises[ei].sets,{reps:u.exercises[ei].sets[0]?.reps||10,weight:u.exercises[ei].sets[0]?.weight||"",done:false}];setActiveWorkout(u);}} style={{width:"100%",fontSize:11,color:T.mu,background:"none",border:`1px dashed ${T.bd}`,borderRadius:8,padding:"8px",cursor:"pointer",fontFamily:"inherit",marginTop:4}}>+ Add Set</button>
@@ -2813,7 +3394,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {/* Finish */}
                 <button onClick={finishWorkout} style={{width:"100%",padding:"16px",background:T.prot,color:T.white,fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginTop:8}}>✓ Finish Workout</button>
               </div>
-            }
+            )}
           </div>
           </div>
         , document.body)}
