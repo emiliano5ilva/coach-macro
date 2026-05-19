@@ -21,6 +21,7 @@ import {
 } from "./services/foodDatabase.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { getSlotsForFreq, getSlotLabel, normaliseSlotToNumber, getSlotTargets, getMissingSlots, getLoggedSlots } from './utils/mealSlots.js';
+import { buildUserContext, getRestaurantRecs } from './services/restaurantAiService.js';
 
 function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd, onClose }) {
   const smart = getSmartServings(food?.name || "");
@@ -1256,6 +1257,20 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(openQuickLog)setShowQuickLog(true);
   }
 
+  // ── Restaurant pick ──────────────────────────────────────────────────────────
+  const [selectedRestaurant,setSelectedRestaurant]=useState(null);
+  const [restaurantRecs,setRestaurantRecs]=useState('');
+  const [restaurantRecsLoading,setRestaurantRecsLoading]=useState(false);
+
+  async function handleRestaurantTap(r){
+    setSelectedRestaurant(r);
+    setRestaurantRecs('');
+    setRestaurantRecsLoading(true);
+    const ctx=buildUserContext(profile,remaining);
+    await getRestaurantRecs(r.name,r.types||[],ctx,(text)=>setRestaurantRecs(text));
+    setRestaurantRecsLoading(false);
+  }
+
   // ── Day Type Nutrition ────────────────────────────────────────────────────────
   const [showNutritionReasoning,setShowNutritionReasoning]=useState(false);
   const WDAYS_ORDER=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -2397,18 +2412,47 @@ Reply with ONLY a valid JSON object, no markdown:
                   // {nearbyRestaurants.length} RESTAURANTS NEARBY
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {nearbyRestaurants.slice(0,8).map((r,i)=>(
-                    <div key={i} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:14,fontWeight:700,color:"#f5f5f0",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.06em"}}>{r.vicinity||""}</div>
+                  {nearbyRestaurants.slice(0,8).map((r,i)=>{
+                    const isSelected=selectedRestaurant?.place_id===r.place_id;
+                    return(
+                      <div key={i} onClick={()=>handleRestaurantTap(r)} style={{background:isSelected?`${T.prot}12`:T.s1,border:`1px solid ${isSelected?T.prot:T.bd}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"all 0.15s"}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:14,fontWeight:700,color:"#f5f5f0",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.06em"}}>{r.vicinity||""}</div>
+                        </div>
+                        {r.rating&&(
+                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",flexShrink:0}}>{r.rating}★</div>
+                        )}
+                        <div style={{color:T.prot,fontSize:12,flexShrink:0}}>→</div>
                       </div>
-                      {r.rating&&(
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",flexShrink:0}}>{r.rating}★</div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+              </div>
+            )}
+
+            {/* Restaurant pick panel */}
+            {selectedRestaurant&&(
+              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:16,marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:T.prot,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>// ORDER AT</div>
+                    <div style={{fontSize:15,fontWeight:700,color:"#f5f5f0"}}>{selectedRestaurant.name}</div>
+                  </div>
+                  <button onClick={()=>{setSelectedRestaurant(null);setRestaurantRecs('');}} style={{background:"transparent",border:`1px solid ${T.bd}`,borderRadius:8,padding:"5px 10px",fontFamily:"var(--mono)",fontSize:9,color:T.mu,cursor:"pointer",letterSpacing:"0.08em",textTransform:"uppercase"}}>✕ CLOSE</button>
+                </div>
+                {restaurantRecsLoading&&!restaurantRecs&&(
+                  <div>
+                    <AIContentSkeleton/>
+                    <div style={{fontSize:11,color:T.dim,textAlign:"center",marginTop:8,fontFamily:"var(--mono)"}}>Checking your macros…</div>
+                  </div>
+                )}
+                {restaurantRecs&&(
+                  <div style={{lineHeight:1.85,fontSize:13,color:"#ccc",whiteSpace:"pre-wrap"}}>
+                    {restaurantRecs}
+                    {restaurantRecsLoading&&<span style={{display:"inline-block",width:2,height:"1em",background:T.prot,marginLeft:2,verticalAlign:"text-bottom",animation:"cm-blink 1s step-end infinite"}}/>}
+                  </div>
+                )}
               </div>
             )}
 
