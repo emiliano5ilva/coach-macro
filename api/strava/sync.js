@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const sb = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
-);
+const SUPABASE_URL = 'https://oxxihlwqukbakmnnavuy.supabase.co';
+function sb() { return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY); }
 
 async function refreshIfNeeded(userId) {
-  const { data } = await sb
+  const { data } = await sb()
     .from('connected_apps')
     .select('access_token,refresh_token,expires_at')
     .eq('user_id', userId)
@@ -27,7 +25,7 @@ async function refreshIfNeeded(userId) {
     });
     if (!r.ok) return null;
     const t = await r.json();
-    await sb.from('connected_apps').update({
+    await sb().from('connected_apps').update({
       access_token: t.access_token,
       refresh_token: t.refresh_token,
       expires_at: new Date(t.expires_at * 1000).toISOString(),
@@ -77,7 +75,7 @@ export default async function handler(req, res) {
   }));
 
   if (rows.length > 0) {
-    await sb.from('workout_logs').upsert(rows, { onConflict: 'user_id,strava_activity_id' }).throwOnError().catch(() => {});
+    await sb().from('workout_logs').upsert(rows, { onConflict: 'user_id,strava_activity_id' }).throwOnError().catch(() => {});
   }
 
   res.json({ synced: rows.length });

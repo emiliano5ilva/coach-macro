@@ -1,9 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const sb = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
-);
+const SUPABASE_URL = 'https://oxxihlwqukbakmnnavuy.supabase.co';
+function sb() { return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY); }
 
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 
@@ -54,7 +52,7 @@ export default async function handler(req, res) {
   }
   const token = await tokenRes.json();
 
-  await sb.from('connected_apps').upsert({
+  await sb().from('connected_apps').upsert({
     user_id: userId,
     provider: 'strava',
     access_token: token.access_token,
@@ -82,7 +80,7 @@ export default async function handler(req, res) {
       ...activityToWorkoutLog(a),
     }));
     if (rows.length > 0) {
-      await sb.from('workout_logs').upsert(rows, { onConflict: 'user_id,strava_activity_id' }).throwOnError().catch(() => {});
+      await sb().from('workout_logs').upsert(rows, { onConflict: 'user_id,strava_activity_id' }).throwOnError().catch(() => {});
     }
   }
 

@@ -1,14 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-const sb = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
-);
+const SUPABASE_URL = 'https://oxxihlwqukbakmnnavuy.supabase.co';
+function sb() { return createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY); }
 
 const VERIFY_TOKEN = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN || 'coach_macro_strava_hook';
 
 async function getAccessToken(userId) {
-  const { data } = await sb
+  const { data } = await sb()
     .from('connected_apps')
     .select('access_token,refresh_token,expires_at')
     .eq('user_id', userId)
@@ -29,7 +27,7 @@ async function getAccessToken(userId) {
     });
     if (!r.ok) return null;
     const t = await r.json();
-    await sb.from('connected_apps').update({
+    await sb().from('connected_apps').update({
       access_token: t.access_token,
       refresh_token: t.refresh_token,
       expires_at: new Date(t.expires_at * 1000).toISOString(),
@@ -58,7 +56,7 @@ export default async function handler(req, res) {
   }
 
   // Find which user owns this Strava athlete
-  const { data: app } = await sb
+  const { data: app } = await sb()
     .from('connected_apps')
     .select('user_id,access_token,refresh_token,expires_at')
     .eq('provider', 'strava')
@@ -82,7 +80,7 @@ export default async function handler(req, res) {
     Hike: 'hike', VirtualRide: 'cycle', VirtualRun: 'run',
   };
 
-  await sb.from('workout_logs').upsert({
+  await sb().from('workout_logs').upsert({
     user_id: app.user_id,
     logged_at: a.start_date_local?.split('T')[0],
     type: typeMap[a.type] || 'other',
