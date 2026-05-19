@@ -26,6 +26,7 @@ import { MetabolicAdaptationBanner, MetabolicAdaptationModal, MetabolicResetProg
 import { requestCalendarAccess, checkCalendarAuthorized, getUpcomingEvents } from "./services/calendarService.js";
 import { analyzeScheduleForTraining, buildHotelWorkout } from "./services/calendarAnalysis.js";
 import { ScheduleAlertCard, TravelNutritionCard, CalendarConnectPrompt } from "./LifeAwareTraining.jsx";
+import { saveMealToMemory } from "./services/macroMemoryService.js";
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
@@ -38,7 +39,6 @@ import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
 import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
-import { geocodeCity, getNearbyRestaurants } from "./services/locationService.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
@@ -1406,6 +1406,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
 
   const [log,setLog]=useState([]);
   const [skippedSlots,setSkippedSlots]=useState([]);
+  const [slotOverages,setSlotOverages]=useState({});
   const [foodInput,setFoodInput]=useState("");
   const [logging,setLogging]=useState(false);
   const [logMsg,setLogMsg]=useState("");
@@ -1415,8 +1416,6 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [barcodeLoading,setBarcodeLoading]=useState(false);
   const [quickFields,setQF]=useState({name:"",calories:"",protein:"",carbs:"",fat:""});
   const [recs,setRecs]=useState(""); const [recsLoading,setRecsLoading]=useState(false);
-  const [nearbyRestaurants,setNearbyRestaurants]=useState([]);
-  const [citySearchError,setCitySearchError]=useState("");
   const [recipes,setRecipes]=useState(""); const [recipesLoading,setRecipesLoading]=useState(false);
   const [fastProto,setFastProto]=useState(profile?.fasting && profile.fasting!=="no" ? profile.fasting : "16:8");
   const [fastActive,setFastActive]=useState(false);
@@ -1458,6 +1457,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [trainScreen,setTrainScreen]=useState("today"); // today | workout | active | plan | progress | settings
   const [activeSessionOpen,setActiveSessionOpen]=useState(false);
   const [fuelScreen,setFuelScreen]=useState("home");    // home | log | recs | recipes | fast
+  const [progressTab,setProgressTab]=useState("overview");
+  const [fuelResetSignal,setFuelResetSignal]=useState(0);
   const [showPhotoLogger,setShowPhotoLogger]=useState(false);
   const [workoutSavedMsg,setWorkoutSavedMsg]=useState("");
   const [toasts,setToasts]=useState([]);
@@ -1514,8 +1515,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     hap?.();
     const today=new Date().toISOString().split("T")[0];
     await Promise.allSettled([
-      sb.from("food_logs").select("entries,skipped_slots").eq("user_id",user.id).eq("date",logDate).maybeSingle()
-        .then(({data})=>{if(data?.entries)setLog(data.entries);setSkippedSlots(data?.skipped_slots||[]);}),
+      sb.from("food_logs").select("entries,skipped_slots,slot_overages").eq("user_id",user.id).eq("date",logDate).maybeSingle()
+        .then(({data})=>{if(data?.entries)setLog(data.entries);setSkippedSlots(data?.skipped_slots||[]);setSlotOverages(data?.slot_overages||{});}),
       getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[])),
       getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[])),
       sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50)
@@ -1617,6 +1618,17 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const {error}=await sb.from("food_logs")
       .upsert({user_id:uid,date:today,entries},{onConflict:"user_id,date"});
     if(error)console.error("[saveFoodLog] error:",error.message,error.code);
+    // Sync per-slot aggregates to macro_memory (fire and forget)
+    const slotGroups={};
+    entries.forEach(e=>{
+      const s=typeof e.slot==="number"?e.slot:1;
+      if(!slotGroups[s])slotGroups[s]=[];
+      slotGroups[s].push(e);
+    });
+    const sType=schedule?.[todayKey]||null;
+    Object.entries(slotGroups).forEach(([slot,slotEntries])=>{
+      saveMealToMemory(uid,today,parseInt(slot),slotEntries,sType).catch(()=>{});
+    });
   }
 
   async function saveSkippedSlots(newSkipped){
@@ -1624,6 +1636,13 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     setSkippedSlots(newSkipped);
     const today=new Date().toISOString().split("T")[0];
     await sb.from("food_logs").upsert({user_id:user.id,date:today,skipped_slots:newSkipped},{onConflict:"user_id,date"});
+  }
+
+  async function saveSlotOverages(newOverages){
+    if(!user)return;
+    setSlotOverages(newOverages);
+    const today=new Date().toISOString().split("T")[0];
+    await sb.from("food_logs").upsert({user_id:user.id,date:today,slot_overages:newOverages},{onConflict:"user_id,date"});
   }
 
   function handlePhotoLog(entries){
@@ -1642,9 +1661,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   useEffect(()=>{
     if(!user)return;
     setLog([]);
-    sb.from("food_logs").select("entries,skipped_slots").eq("user_id",user.id).eq("date",logDate).maybeSingle().then(({data})=>{
+    sb.from("food_logs").select("entries,skipped_slots,slot_overages").eq("user_id",user.id).eq("date",logDate).maybeSingle().then(({data})=>{
       if(data?.entries)setLog(data.entries);
       setSkippedSlots(data?.skipped_slots||[]);
+      setSlotOverages(data?.slot_overages||{});
     });
   },[user,logDate]);
 
@@ -2103,13 +2123,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
 
   async function fetchRecs(){
     if(recsLoading||!city.trim())return;
-    setRecsLoading(true);setRecs("");setNearbyRestaurants([]);setCitySearchError("");
-    try{
-      const coords=await geocodeCity(city.trim());
-      if(!coords){setCitySearchError("City not found. Try a different search.");setRecsLoading(false);return;}
-      const places=await getNearbyRestaurants(coords.lat,coords.lng);
-      if(places.length>0)setNearbyRestaurants(places);
-    }catch(placesErr){console.warn("[fetchRecs] Places API unavailable:",placesErr);}
+    setRecsLoading(true);setRecs("");
     const dietaryCtx=(profile?.dietary||[]).filter(d=>d!=="none");
     const slots=getSlotsForFreq(profile?.mealFreq||"3");
     const lSlots=getLoggedSlots(log);
@@ -2605,6 +2619,37 @@ Rules:
   function parseCSV(text,platform){try{const lines=text.trim().split("\n").filter(Boolean);if(lines.length<2)return[];const pr=l=>{const c=[];let cur="",q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur="";}else cur+=ch;}c.push(cur.trim());return c;};const h=pr(lines[0]);const gi=n=>h.findIndex(x=>x.toLowerCase().includes(n.toLowerCase()));const iT=gi("type")||gi("activity"),iD=gi("date"),iDist=gi("distance"),iC=gi("calorie"),iDur=gi("duration");return lines.slice(1).map((l,i)=>{const c=pr(l);const t=c[iT]||"Workout";return{id:`${platform}-${i}`,type:t,icon:t.toLowerCase().includes("run")?"🏃":t.toLowerCase().includes("cycl")?"🚴":"💪",date:c[iD]||"",durationMin:Math.round(parseFloat(c[iDur]||0)),distanceKm:parseFloat(c[iDist]||0).toFixed(2),calories:Math.round(parseFloat(c[iC]||0)),source:platform==="garmin"?"Garmin":"Fitbit",sourceIcon:platform==="garmin"?"⌚":"💜"};}).filter(a=>a.date&&a.calories>0).reverse();}catch{return[];}}
 
   const connCount=[stravaStatus==="connected",ahActs.length>0,garminActs.length>0,fitbitActs.length>0].filter(Boolean).length;
+
+  // ── Tab navigation helpers ──────────────────────────────────────────────────
+  function scrollToTop(){
+    appScreenRef.current?.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  function resetTabToRoot(tabId){
+    switch(tabId){
+      case "fuel":
+        setFuelScreen("home");
+        setFuelResetSignal(s=>s+1);
+        break;
+      case "train":
+        if(trainScreen!=="active")setTrainScreen("today");
+        break;
+      case "progress":
+        setProgressTab("overview");
+        break;
+      default: break;
+    }
+  }
+
+  function handleTabPress(tabId){
+    if(section===tabId){
+      resetTabToRoot(tabId);
+      scrollToTop();
+    }else{
+      setSection(tabId);
+      setTimeout(scrollToTop,50);
+    }
+  }
 
   // ── LAYOUT ─────────────────────────────────────────────────────────────────
   const NAV_ITEMS = [
@@ -3385,7 +3430,8 @@ Rules:
 
   function ProgressSection() {
     const sc = coachScore;
-    const [activeTab, setActiveTab] = useState('overview');
+    const activeTab = progressTab;
+    const setActiveTab = setProgressTab;
     const [progFoodLogs, setProgFoodLogs] = useState([]);
 
     useEffect(()=>{
@@ -4075,14 +4121,14 @@ Rules:
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} nearbyRestaurants={nearbyRestaurants} citySearchError={citySearchError}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></ErrorBoundary>}
       </div>
       <div className="app-tab-bar">
         {NAV_ITEMS.map(item=>(
-          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}`} onClick={()=>setSection(item.id)}>
+          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}`} onClick={()=>handleTabPress(item.id)}>
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <TabIcon name={item.icon} size={22}/>
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:T.fat,border:"2px solid var(--navy)"}}/>}
