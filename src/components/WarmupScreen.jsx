@@ -22,9 +22,30 @@ const SESSION_LABEL = {
   hyrox: 'HYROX SESSION',
 };
 
-export default function WarmupScreen({ sessionType = 'push', skillLevel = 'beginner', onStart, onSkip }) {
-  const exercises = getWarmupProtocol(sessionType, skillLevel);
+const MOBILITY_FOR_MUSCLE = {
+  'Quads':      { name:'Quad Stretch',                  sets:1, reps:'40 sec each', notes:'Pull heel to glute — hold and breathe through it', type:'mobility' },
+  'Hamstrings': { name:'Standing Hamstring Stretch',    sets:1, reps:'40 sec each', notes:'Hinge forward, soft knee — feel the pull not the pain', type:'mobility' },
+  'Glutes':     { name:'Pigeon Stretch',                sets:1, reps:'40 sec each', notes:'Hip opens fully — breathe into the tight spots', type:'mobility' },
+  'Calves':     { name:'Calf Stretch',                  sets:1, reps:'30 sec each', notes:'Straight leg then bent leg — hits both calf muscles', type:'mobility' },
+  'Chest':      { name:'Doorframe Chest Stretch',       sets:1, reps:'30 sec each', notes:'Elbow at 90 degrees — rotate away slowly', type:'mobility' },
+  'Back':       { name:'Cat-Cow Stretch',               sets:2, reps:'10',          notes:'Slow and controlled — full range each direction', type:'mobility' },
+  'Shoulders':  { name:'Cross-Body Shoulder Stretch',   sets:1, reps:'30 sec each', notes:'Pull across chest — keep shoulder down', type:'mobility' },
+  'Arms':       { name:'Bicep Wall Stretch',            sets:1, reps:'30 sec each', notes:'Palm on wall, rotate away — feel the bicep lengthen', type:'mobility' },
+  'Core':       { name:'Cobra Stretch',                 sets:2, reps:'20 sec',      notes:'Press up slowly — decompress the spine', type:'mobility' },
+};
+
+export default function WarmupScreen({ sessionType = 'push', skillLevel = 'beginner', soreness = null, onStart, onSkip }) {
+  const protocol = getWarmupProtocol(sessionType, skillLevel);
+  const baseExercises = Array.isArray(protocol) ? protocol : (protocol?.exercises || []);
   const sessionLabel = SESSION_LABEL[sessionType] || `${sessionType.toUpperCase()} SESSION`;
+
+  const mobilityAddons = (soreness?.soreness_score >= 4)
+    ? (soreness.sore_muscles || []).map(m => MOBILITY_FOR_MUSCLE[m]).filter(Boolean)
+    : [];
+  const exercises = [...mobilityAddons, ...baseExercises];
+  const sorenessNote = mobilityAddons.length > 0
+    ? `Soreness detected in ${soreness.sore_muscles.join(', ')}. Extra mobility added.`
+    : null;
 
   const totalMins = exercises.reduce((sum, ex) => {
     const s = parseInt(ex.sets || 1);
@@ -69,6 +90,11 @@ export default function WarmupScreen({ sessionType = 'push', skillLevel = 'begin
             {exercises.length} EXERCISES
           </span>
         </div>
+        {sorenessNote && (
+          <div style={{ fontSize: 11, fontFamily:"'DM Mono',monospace", color: '#666', fontStyle:'italic', marginBottom: 8, lineHeight:1.4 }}>
+            {sorenessNote}
+          </div>
+        )}
         <div style={{ fontSize: 13, color: '#555', marginBottom: 28 }}>
           Complete this warm-up to prime your body and reduce injury risk.
         </div>

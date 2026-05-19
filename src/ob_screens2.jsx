@@ -31,6 +31,8 @@ import { FlagBtn } from "./FlagBtn.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import { completeReferral } from "./services/referralService.js";
 import { getMorningBrief } from "./services/morningBriefService.js";
+import SorenessCheckIn, { SorenesSummary } from "./components/SorenessCheckIn.jsx";
+import { trainedYesterday, alreadyLoggedToday, getTodaySoreness } from "./services/sorenessService.js";
 import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
@@ -1454,11 +1456,15 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [showPhotoLogger,setShowPhotoLogger]=useState(false);
   const [workoutSavedMsg,setWorkoutSavedMsg]=useState("");
   const [toasts,setToasts]=useState([]);
-  const [morningBrief,setMorningBrief]=useState(null);
+  const BRIEF_FALLBACK={greeting:"Good morning.",yesterday:"Yesterday is done — today is what matters.",today:"Show up, do the work, trust the process.",coach_says:"Focus on form over everything else today.",sign_off:"Let's go."};
+  const [morningBrief,setMorningBrief]=useState(BRIEF_FALLBACK);
   const [morningBriefLoading,setMorningBriefLoading]=useState(false);
   const [morningBriefError,setMorningBriefError]=useState(null);
   const [briefDismissed,setBriefDismissed]=useState(()=>localStorage.getItem("brief_dismissed")===new Date().toISOString().split("T")[0]);
   const [briefTrigger,setBriefTrigger]=useState(0);
+  const [showCheckin,setShowCheckin]=useState(false);
+  const [sorenessData,setSorenessData]=useState(null);
+  const [checkinDone,setCheckinDone]=useState(false);
 
   // ── Biological Algorithm ───────────────────────────────────────────────────
   const [bioInsights,setBioInsights]=useState({});
@@ -1865,11 +1871,8 @@ Be specific and practical. Empathetic tone. No fluff.`,
   // ── Morning Brief ───────────────────────────────────────────────────────────
   useEffect(()=>{
     if(!user||wPrefs.morningBriefEnabled===false)return;
-    const todayDate=new Date().toISOString().split("T")[0];
-    const hour=new Date().getHours();
-    if(briefTrigger===0&&hour>=12)return;
     if(briefTrigger===0&&briefDismissed)return;
-    setMorningBriefLoading(true);setMorningBrief(null);setMorningBriefError(null);
+    setMorningBriefLoading(true);setMorningBriefError(null);
     getMorningBrief(user.id)
       .then(content=>{
         setMorningBrief(content);
@@ -1878,10 +1881,24 @@ Be specific and practical. Empathetic tone. No fluff.`,
       })
       .catch(e=>{
         console.error("[morningBrief] error:",e);
-        setMorningBriefError(getAIErrorMessage(e)||"Brief unavailable — check back tomorrow.");
         setMorningBriefLoading(false);
       });
   },[user,wPrefs.morningBriefEnabled,briefTrigger]);
+
+  // Soreness check-in — show if user trained yesterday and hasn't logged today
+  useEffect(()=>{
+    if(!user?.id)return;
+    (async()=>{
+      try{
+        const [trained,logged]=await Promise.all([trainedYesterday(user.id),alreadyLoggedToday(user.id)]);
+        if(trained&&!logged){setShowCheckin(true);}
+        if(logged){
+          const data=await getTodaySoreness(user.id);
+          if(data){setSorenessData(data);setCheckinDone(true);}
+        }
+      }catch(e){console.error("[soreness check]",e);}
+    })();
+  },[user?.id]);
 
   // midnight refresh — invalidate brief at next midnight
   useEffect(()=>{
@@ -1900,7 +1917,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
   function previewMorningBrief(){
     localStorage.removeItem("brief_dismissed");
     setBriefDismissed(false);
-    setMorningBrief(null);
+    setMorningBrief(BRIEF_FALLBACK);
     setMorningBriefError(null);
     // clear DB cache so a fresh brief is generated
     if(user)sb.from("morning_briefs").delete().eq("user_id",user.id).eq("brief_date",new Date().toISOString().split("T")[0]).then(()=>{});
@@ -2836,6 +2853,16 @@ Rules:
                             )}
                           </div>
                           {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
+                          {showCheckin&&!checkinDone&&(
+                            <SorenessCheckIn
+                              userId={user?.id}
+                              onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}}
+                              onSkip={()=>setShowCheckin(false)}
+                            />
+                          )}
+                          {checkinDone&&sorenessData&&(
+                            <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
+                          )}
                         </div>
                       );
                     })()

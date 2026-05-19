@@ -112,6 +112,17 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
     return () => window.removeEventListener('workoutCompleted', handler);
   }, [userId]);
 
+  // Refresh when soreness is logged
+  useEffect(() => {
+    if (!userId) return;
+    const handler = async () => {
+      const rec = await getRecoveryData(userId).catch(() => null);
+      if (rec) setLocalRecovery(rec);
+    };
+    window.addEventListener('sorenessLogged', handler);
+    return () => window.removeEventListener('sorenessLogged', handler);
+  }, [userId]);
+
   // Refresh when app comes back to foreground
   useEffect(() => {
     if (!userId) return;

@@ -34,6 +34,7 @@ import { calculateTrainingDNA } from "./services/trainingDnaService.js";
 import { getReferralData, getReferrals, REFERRAL_TIERS } from "./services/referralService.js";
 import { getAdaptLimit, trialDaysRemaining, trialExpiringSoon, isExpired, getSubscriptionLabel } from "./utils/subscription.js";
 import { purchaseMonthly, purchaseAnnual, restorePurchases } from "./services/purchaseService.js";
+import { getTodaySoreness } from "./services/sorenessService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -1477,7 +1478,11 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
-
+  const [todaySoreness,setTodaySoreness]=useState(null);
+  useEffect(()=>{
+    if(!user?.id)return;
+    getTodaySoreness(user.id).then(s=>setTodaySoreness(s)).catch(()=>{});
+  },[user?.id]);
 
   // ── End session confirmation ─────────────────────────────────────────────
   const [endConfirm,setEndConfirm]=useState(false);
@@ -1674,6 +1679,18 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const _sl=wPrefs.sessionLength||60;
     const _exCap=_sl<=30?3:_sl<=45?4:_sl<=60?5:_sl<=75?6:_sl<=90?7:exs.length;
     exs=exs.slice(0,_exCap);
+    if(todaySoreness?.soreness_score>=4){
+      const _CHIP_TO_GRP={Quads:'legs',Hamstrings:'legs',Glutes:'legs',Calves:'legs',Chest:'chest',Back:'back',Shoulders:'shoulders',Arms:'arms',Core:'core'};
+      const _NORM={chest:'chest',back:'back',shoulders:'shoulders',arms:'arms',core:'core',legs:'legs',glutes:'legs',calves:'legs'};
+      const _soreGrps=new Set((todaySoreness.sore_muscles||[]).map(m=>_CHIP_TO_GRP[m]).filter(Boolean));
+      const _reduction=todaySoreness.soreness_score>=7?2:1;
+      exs=exs.map(ex=>{
+        const _grp=_NORM[EXERCISE_MUSCLE_GROUP[ex.name]||''];
+        if(!_grp||!_soreGrps.has(_grp))return ex;
+        const _newSets=Math.max(1,Number(ex.sets||3)-_reduction);
+        return{...ex,sets:_newSets,notes:(ex.notes?ex.notes+' — sets reduced for recovery':'Sets reduced for recovery')};
+      });
+    }
     todayPrescription=exs;
   }else if(prescType==="running"){
     todayProgObj=RUNNING_PROGRAMS[wPrefs.runPlan||"Couch to 5K"];
@@ -2496,6 +2513,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <WarmupScreen
             sessionType={warmupSessionType||'push'}
             skillLevel={warmupSkillLevel||'beginner'}
+            soreness={todaySoreness}
             onStart={()=>setTrainScreen("active")}
             onSkip={()=>setTrainScreen("active")}
           />
