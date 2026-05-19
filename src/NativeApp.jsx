@@ -490,6 +490,17 @@ export default function NativeApp() {
             ? parseFloat(prof.goalWeight)*0.453592
             : parseFloat(prof.goalWeight))||null
         : null;
+      function minSecToInterval(min,sec){
+        if(!min)return null;
+        const total=parseInt(min||0)*60+parseInt(sec||0);
+        const h=Math.floor(total/3600),m=Math.floor((total%3600)/60),s=total%60;
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+      const hyroxPhase=(()=>{
+        if(!wp.hyroxRaceDate)return null;
+        const w=Math.ceil((new Date(wp.hyroxRaceDate)-new Date())/(7*86400000));
+        return w<=3?"taper":w<=8?"peak":w<=12?"race_prep":w<=16?"strength":"base";
+      })();
       const{error}=await sb.from("profiles").upsert({
         id:uid,profile_data:prof,schedule:sch,wprefs:wp,
         referral_code:prof.referralCode||null,
@@ -507,6 +518,14 @@ export default function NativeApp() {
         current_program:wp.splitType||null,
         program_start_date:new Date().toISOString().split('T')[0],
         updated_at:new Date().toISOString(),
+        hyrox_race_date:wp.hyroxRaceDate||null,
+        hyrox_category:wp.hyroxCategory||null,
+        hyrox_experience:wp.hyroxExp||null,
+        hyrox_weak_stations:wp.hyroxWeakStations?.length?wp.hyroxWeakStations:null,
+        hyrox_equipment:wp.hyroxEquipment?[wp.hyroxEquipment]:null,
+        hyrox_current_phase:hyroxPhase,
+        hyrox_target_time:minSecToInterval(wp.hyroxTargetTimeMin,wp.hyroxTargetTimeSec),
+        hyrox_previous_time:minSecToInterval(wp.hyroxPrevTimeMin,wp.hyroxPrevTimeSec),
       },{onConflict:"id"}).select();
       if(error)throw error;
       return true;
@@ -593,6 +612,11 @@ export default function NativeApp() {
       sleepQuality:trainData.sleepQuality||({fair:"average",poor:"poor",good:"good",excellent:"excellent"}[profile?.sleepQ]||"average"),
       jobPhysicality:trainData.jobPhysicality||({desk:"desk",mix:"light",feet:"moderate",physical:"heavy"}[profile?.job]||"desk"),
       cycleTracking:trainData.cycleTracking??null,hybridBias:trainData.hybridBias||"",
+      hyroxExp:trainData.hyroxExp||"",hyroxCategory:trainData.hyroxCategory||"",
+      hyroxRaceDate:trainData.hyroxRaceDate||"",hyroxWeakStations:trainData.hyroxWeakStations||[],
+      hyroxEquipment:trainData.hyroxEquipment||"",hyroxFitnessLevel:trainData.hyroxFitnessLevel||"",
+      hyroxTargetTimeMin:trainData.hyroxTargetTimeMin||"",hyroxTargetTimeSec:trainData.hyroxTargetTimeSec||"",
+      hyroxPrevTimeMin:trainData.hyroxPrevTimeMin||"",hyroxPrevTimeSec:trainData.hyroxPrevTimeSec||"",
     };
     setSchedule(sch);setWPrefs(wp);setProfile(finalProf);setPhase("loading");
     if(!user){setSaveErr("Not logged in. Please sign in again.");return;}

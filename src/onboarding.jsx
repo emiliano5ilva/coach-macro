@@ -446,6 +446,8 @@ function DomsTooltip() {
 export function TrainOnboarding({d, onComplete, onBack}) {
   const [sc,setSc]=useState(0);
   const [runSc,setRunSc]=useState(null); // null = not in run sub-flow; 0-7 = screens A-H
+  const [hyroxSc,setHyroxSc]=useState(null); // null = inactive; 0-7 = screens A-H
+  const [hyroxPath,setHyroxPath]=useState([]); // history for back nav
   const [data,setData]=useState({
     freq:"", trainType:"lifting", split:"", equipment:"Full Gym",
     sessionLength:60, weakPoints:[], injuries:[], longRunDay:"Sunday",
@@ -460,6 +462,10 @@ export function TrainOnboarding({d, onComplete, onBack}) {
     blackoutDays:[], mobilityLimitations:[],
     stressLevel:"", sleepQuality:"", jobPhysicality:"",
     cycleTracking:null, hybridBias:"",
+    // hyrox-specific fields
+    hyroxExp:"", hyroxCategory:"", hyroxPrevTimeMin:"", hyroxPrevTimeSec:"",
+    hyroxWeakStations:[], hyroxRaceDate:"", hyroxTargetTimeMin:"", hyroxTargetTimeSec:"",
+    hyroxEquipment:[], hyroxFitnessLevel:"",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
@@ -515,7 +521,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
         {sc>0&&<button onClick={back} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:18,padding:"0 0 16px",fontFamily:"inherit"}}>← Back</button>}
 
         {/* SCREEN 0 — Training Type */}
-        {sc===0&&runSc===null&&<div style={{animation:"fadeIn .3s ease"}}>
+        {sc===0&&runSc===null&&hyroxSc===null&&<div style={{animation:"fadeIn .3s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 1</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             WHAT'S YOUR<br/><span style={{color:T.prot}}>TRAINING FOCUS?</span>
@@ -531,6 +537,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 upd("trainType",o.v);
                 setTimeout(()=>{
                   if(o.v==="running"||o.v==="hybrid") setRunSc(0);
+                  else if(o.v==="hyrox"){setHyroxPath([]);setHyroxSc(0);}
                   else setSc(s=>s+1);
                 },260);
               }} style={{background:data.trainType===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.trainType===o.v?T.prot:T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:16}}>
@@ -783,6 +790,286 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 </div>
                 <PrimaryBtn onClick={rDone} label="Build My Run Program →"/>
                 <p style={{fontSize:11,color:T.mu,textAlign:"center",marginTop:12,lineHeight:1.6}}>Your paces will auto-calibrate after every tempo and interval session.</p>
+              </div>}
+            </div>
+          );
+        })()}
+
+        {/* ─── HYROX SUB-FLOW (Screens A–H) ─────────────────────────────── */}
+        {hyroxSc!==null&&(()=>{
+          const STATIONS=["SkiErg","Sled Push","Sled Pull","Burpee Broad Jump","Rowing","Farmers Carry","Sandbag Lunges","Wall Balls"];
+          const EQUIPMENT_OPTS=["SkiErg","Sled","Rowing Machine","Ski Erg","Ski Erg","Farmers Carry Handles","Sandbags","Wall Balls","All Gym Equipment","Outdoor Track","Treadmill"];
+          const EQUIP_OPTS=[
+            {v:"full_gym",l:"Full Gym + Sled",sub:"All station equipment available"},
+            {v:"gym_no_sled",l:"Gym — No Sled",sub:"Most equipment but no sled"},
+            {v:"home",l:"Home / Basic Gym",sub:"Limited — we'll adapt exercises"},
+            {v:"hyrox_facility",l:"HYROX Facility",sub:"Purpose-built facility with all equipment"},
+          ];
+          function hNext(sc) {
+            const exp=data.hyroxExp;
+            if(sc===0){
+              if(exp==="experienced"||exp==="experienced_no_time") return 1;
+              if(exp==="first_race") return 3;
+              return 4; // training_only
+            }
+            if(sc===1) return 2;
+            if(sc===2) return 4; // skip screen 3 (first_race only)
+            if(sc===3) return 4;
+            if(sc===4){
+              if(exp==="training_only"||!data.hyroxRaceDate) return 6;
+              return 5;
+            }
+            if(sc===5) return 6;
+            if(sc===6) return data.hyroxCategory?8:7;
+            if(sc===7) return 8;
+            return 8;
+          }
+          function hAdvance(){
+            const next=hNext(hyroxSc);
+            setHyroxPath(p=>[...p,hyroxSc]);
+            if(next>=8){
+              upd("primaryGoal","train_for_race");
+              setHyroxSc(null);
+              setSc(2);
+            } else {
+              setHyroxSc(next);
+            }
+          }
+          function hAutoAdvance(key,val){
+            upd(key,val);
+            setTimeout(hAdvance,260);
+          }
+          function hBack(){
+            if(hyroxPath.length===0){setHyroxSc(null);return;}
+            const prev=hyroxPath[hyroxPath.length-1];
+            setHyroxPath(p=>p.slice(0,-1));
+            setHyroxSc(prev);
+          }
+          const hyroxSubTotal=8;
+          const hyroxPct=Math.round(((hyroxSc+1)/hyroxSubTotal)*100);
+
+          const msPerWeek=7*24*60*60*1000;
+          const weeksToRace=data.hyroxRaceDate?Math.ceil((new Date(data.hyroxRaceDate)-new Date())/msPerWeek):null;
+          const phaseLabel=weeksToRace===null?null:weeksToRace<=3?"TAPER":weeksToRace<=8?"PEAK":weeksToRace<=12?"RACE PREP":weeksToRace<=16?"STATION STRENGTH":"BASE FITNESS";
+          const phaseColor=weeksToRace===null?T.prot:weeksToRace<=3?"#FF6B35":weeksToRace<=8?"#FF3B30":weeksToRace<=12?"#FF9500":weeksToRace<=16?"#AF52DE":"#34C759";
+
+          return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Hyrox Setup · {hyroxSc+1}/{hyroxSubTotal}</div>
+                  <div style={{height:3,background:T.s3,borderRadius:2,overflow:"hidden"}}>
+                    <div style={{height:"100%",background:"#FC4C02",width:`${hyroxPct}%`,transition:"width .5s ease"}}/>
+                  </div>
+                </div>
+              </div>
+              <button onClick={hBack} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:18,padding:"0 0 16px",fontFamily:"inherit"}}>← Back</button>
+
+              {/* Screen A — Experience */}
+              {hyroxSc===0&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · A</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR HYROX<br/><span style={{color:"#FC4C02"}}>EXPERIENCE.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This determines your phase, periodisation, and whether we know your baseline station times.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {[
+                    {v:"experienced",e:"🏆",l:"I've raced Hyrox",sub:"I have a finish time and know my weak stations"},
+                    {v:"experienced_no_time",e:"🎽",l:"I've trained Hyrox — no race yet",sub:"I know the stations but haven't raced"},
+                    {v:"first_race",e:"🔥",l:"Training for my first race",sub:"New to Hyrox, have a race booked"},
+                    {v:"training_only",e:"💪",l:"Hyrox-style training — no race",sub:"I just want the training methodology"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>hAutoAdvance("hyroxExp",o.v)} style={{background:data.hyroxExp===o.v?`#FC4C0210`:T.s2,border:`1.5px solid ${data.hyroxExp===o.v?"#FC4C02":T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:16}}>
+                      <div style={{fontSize:26,flexShrink:0}}>{o.e}</div>
+                      <div><div style={{fontSize:15,fontWeight:700,color:data.hyroxExp===o.v?"#FC4C02":"#fff"}}>{o.l}</div><div style={{fontSize:12,color:T.mu,marginTop:3,lineHeight:1.5}}>{o.sub}</div></div>
+                      {data.hyroxExp===o.v&&<div style={{marginLeft:"auto",color:"#FC4C02"}}>✓</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>}
+
+              {/* Screen B — Previous time + category */}
+              {hyroxSc===1&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · B</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR BEST<br/><span style={{color:"#FC4C02"}}>HYROX TIME.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This sets your baseline for time prediction and tracks your improvement over time.</p>
+                {data.hyroxExp==="experienced"&&<>
+                  <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
+                    <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>Previous Hyrox time</div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
+                      <div style={{textAlign:"center"}}>
+                        <input value={data.hyroxPrevTimeMin} onChange={e=>upd("hyroxPrevTimeMin",e.target.value.replace(/\D/g,"").slice(0,2))} placeholder="75" maxLength={2} style={{width:72,background:T.s1,border:`2px solid #FC4C0240`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                        <div style={{fontSize:10,color:T.mu,marginTop:4}}>min</div>
+                      </div>
+                      <div style={{fontSize:36,fontWeight:700,color:T.mu,paddingBottom:20}}>:</div>
+                      <div style={{textAlign:"center"}}>
+                        <input value={data.hyroxPrevTimeSec} onChange={e=>upd("hyroxPrevTimeSec",e.target.value.replace(/\D/g,"").slice(0,2))} placeholder="30" maxLength={2} style={{width:72,background:T.s1,border:`2px solid #FC4C0240`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                        <div style={{fontSize:10,color:T.mu,marginTop:4}}>sec</div>
+                      </div>
+                    </div>
+                  </div>
+                </>}
+                <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:10,marginTop:4}}>Which category do you race?</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                  {[
+                    {v:"open",l:"Open",sub:"No qualifying time needed — most common"},
+                    {v:"elite_men",l:"Elite Men",sub:"Sub 1:00 finish time required"},
+                    {v:"elite_women",l:"Elite Women",sub:"Sub 1:10 finish time required"},
+                    {v:"pro_men",l:"Pro Men",sub:"Invitation only — top 3%"},
+                    {v:"pro_women",l:"Pro Women",sub:"Invitation only — top 3%"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>upd("hyroxCategory",o.v)} style={{background:data.hyroxCategory===o.v?`#FC4C0210`:T.s2,border:`1.5px solid ${data.hyroxCategory===o.v?"#FC4C02":T.bd}`,borderRadius:12,padding:"13px 16px",cursor:"pointer",transition:"all .2s",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:data.hyroxCategory===o.v?"#FC4C02":"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
+                      </div>
+                      {data.hyroxCategory===o.v&&<div style={{color:"#FC4C02"}}>✓</div>}
+                    </div>
+                  ))}
+                </div>
+                <PrimaryBtn onClick={hAdvance} label="Continue →" disabled={!data.hyroxCategory}/>
+                {data.hyroxExp==="experienced_no_time"&&<button onClick={hAdvance} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,marginTop:4}}>Skip — no previous time</button>}
+              </div>}
+
+              {/* Screen C — Weak stations (experienced) */}
+              {hyroxSc===2&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · C</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR WEAK<br/><span style={{color:"#FC4C02"}}>STATIONS.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Select the stations where you lose the most time. We'll weight your training here.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+                  {STATIONS.map(s=>{
+                    const sel=data.hyroxWeakStations.includes(s);
+                    return(
+                      <div key={s} onClick={()=>upd("hyroxWeakStations",sel?data.hyroxWeakStations.filter(x=>x!==s):[...data.hyroxWeakStations,s])} style={{background:sel?`#FC4C0210`:T.s2,border:`1.5px solid ${sel?"#FC4C02":T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <span style={{fontSize:14,fontWeight:700,color:sel?"#FC4C02":"#fff"}}>{s}</span>
+                        <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${sel?"#FC4C02":T.mu}`,background:sel?"#FC4C02":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",flexShrink:0}}>{sel?"✓":""}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <PrimaryBtn onClick={hAdvance} label="Continue →"/>
+                <button onClick={hAdvance} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,marginTop:4}}>No specific weak spots — skip</button>
+              </div>}
+
+              {/* Screen D — Fitness check (first_race) */}
+              {hyroxSc===3&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · D</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR FITNESS<br/><span style={{color:"#FC4C02"}}>BASELINE.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Hyrox combines strength and cardio — tell us your background so we build from the right starting point.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                  {[
+                    {v:"gym_only",e:"🏋️",l:"Mostly gym — not much cardio",sub:"Strong base, need to build aerobic engine"},
+                    {v:"cardio_only",e:"🏃",l:"Mostly cardio — not much lifting",sub:"Good engine, need to build station strength"},
+                    {v:"balanced",e:"⚡",l:"Good mix of both",sub:"Solid foundation, just need race-specific training"},
+                    {v:"beginner",e:"🌱",l:"Fairly new to training",sub:"We'll build your base before race-specific work"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>hAutoAdvance("hyroxFitnessLevel",o.v)} style={{background:data.hyroxFitnessLevel===o.v?`#FC4C0210`:T.s2,border:`1.5px solid ${data.hyroxFitnessLevel===o.v?"#FC4C02":T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                      <div style={{fontSize:26,flexShrink:0}}>{o.e}</div>
+                      <div><div style={{fontSize:14,fontWeight:700,color:data.hyroxFitnessLevel===o.v?"#FC4C02":"#fff"}}>{o.l}</div><div style={{fontSize:11,color:T.mu,marginTop:2,lineHeight:1.5}}>{o.sub}</div></div>
+                    </div>
+                  ))}
+                </div>
+              </div>}
+
+              {/* Screen E — Race date */}
+              {hyroxSc===4&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · E</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR RACE<br/><span style={{color:"#FC4C02"}}>DATE.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>We build your plan backward from race day — tapering, peaking, and loading all flow from here.</p>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
+                  <input type="date" value={data.hyroxRaceDate} onChange={e=>upd("hyroxRaceDate",e.target.value)} style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:20,fontWeight:600,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                {data.hyroxRaceDate&&weeksToRace!==null&&<div style={{background:`${phaseColor}12`,border:`1px solid ${phaseColor}40`,borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>Training Phase</div>
+                    <div style={{fontSize:15,fontWeight:700,color:phaseColor}}>{phaseLabel}</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:22,fontWeight:900,color:"#fff"}}>{weeksToRace}w</div>
+                    <div style={{fontSize:10,color:T.mu}}>until race</div>
+                  </div>
+                </div>}
+                <PrimaryBtn onClick={hAdvance} label="Continue →" disabled={!data.hyroxRaceDate} style={{marginBottom:8}}/>
+                {data.hyroxExp==="training_only"&&<button onClick={()=>{upd("hyroxRaceDate","");hAdvance();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>No race planned — skip</button>}
+              </div>}
+
+              {/* Screen F — Target time */}
+              {hyroxSc===5&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · F</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  TARGET<br/><span style={{color:"#FC4C02"}}>FINISH TIME.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Your goal time shapes your weekly intensity targets and race-day pacing strategy.</p>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
+                  <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>Target time (H:MM:SS)</div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
+                    <div style={{textAlign:"center"}}>
+                      <input value={data.hyroxTargetTimeMin} onChange={e=>upd("hyroxTargetTimeMin",e.target.value.replace(/\D/g,"").slice(0,3))} placeholder="75" maxLength={3} style={{width:72,background:T.s1,border:`2px solid #FC4C0240`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                      <div style={{fontSize:10,color:T.mu,marginTop:4}}>min</div>
+                    </div>
+                    <div style={{fontSize:36,fontWeight:700,color:T.mu,paddingBottom:20}}>:</div>
+                    <div style={{textAlign:"center"}}>
+                      <input value={data.hyroxTargetTimeSec} onChange={e=>upd("hyroxTargetTimeSec",e.target.value.replace(/\D/g,"").slice(0,2))} placeholder="00" maxLength={2} style={{width:72,background:T.s1,border:`2px solid #FC4C0240`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                      <div style={{fontSize:10,color:T.mu,marginTop:4}}>sec</div>
+                    </div>
+                  </div>
+                </div>
+                <PrimaryBtn onClick={hAdvance} label="Continue →" disabled={!data.hyroxTargetTimeMin} style={{marginBottom:8}}/>
+                <button onClick={()=>{upd("hyroxTargetTimeMin","");upd("hyroxTargetTimeSec","");hAdvance();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>No specific time goal — skip</button>
+              </div>}
+
+              {/* Screen G — Equipment */}
+              {hyroxSc===6&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · G</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  GYM<br/><span style={{color:"#FC4C02"}}>SETUP.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>What equipment do you have access to? We'll adapt station substitutions for what you've got.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                  {EQUIP_OPTS.map(o=>(
+                    <div key={o.v} onClick={()=>hAutoAdvance("hyroxEquipment",o.v)} style={{background:data.hyroxEquipment===o.v?`#FC4C0210`:T.s2,border:`1.5px solid ${data.hyroxEquipment===o.v?"#FC4C02":T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:15,fontWeight:700,color:data.hyroxEquipment===o.v?"#FC4C02":"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:12,color:T.mu,marginTop:3}}>{o.sub}</div>
+                      </div>
+                      {data.hyroxEquipment===o.v&&<div style={{color:"#FC4C02"}}>✓</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>}
+
+              {/* Screen H — Category (if not set in Screen B) */}
+              {hyroxSc===7&&<div>
+                <div style={{fontSize:11,color:"#FC4C02",fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Hyrox Setup · H</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR RACE<br/><span style={{color:"#FC4C02"}}>CATEGORY.</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>This determines your benchmark times and leaderboard comparisons.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                  {[
+                    {v:"open",l:"Open",sub:"No qualifying time needed — most common"},
+                    {v:"elite_men",l:"Elite Men",sub:"Sub 1:00 finish time"},
+                    {v:"elite_women",l:"Elite Women",sub:"Sub 1:10 finish time"},
+                    {v:"pro_men",l:"Pro Men",sub:"Top 3% — invitation only"},
+                    {v:"pro_women",l:"Pro Women",sub:"Top 3% — invitation only"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>hAutoAdvance("hyroxCategory",o.v)} style={{background:data.hyroxCategory===o.v?`#FC4C0210`:T.s2,border:`1.5px solid ${data.hyroxCategory===o.v?"#FC4C02":T.bd}`,borderRadius:12,padding:"13px 16px",cursor:"pointer",transition:"all .2s",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:data.hyroxCategory===o.v?"#FC4C02":"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
+                      </div>
+                      {data.hyroxCategory===o.v&&<div style={{color:"#FC4C02"}}>✓</div>}
+                    </div>
+                  ))}
+                </div>
               </div>}
             </div>
           );

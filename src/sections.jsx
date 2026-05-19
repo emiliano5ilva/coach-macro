@@ -14,6 +14,7 @@ import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
+import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle } from "./utils/ait.js";
@@ -2183,13 +2184,22 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const totalWeeks=progInfo?.weeks||12;
               const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
               const progPct=Math.min(weekNum/totalWeeks,1);
+              const hyroxRaceDate=wPrefs?.hyroxRaceDate||profile?.hyrox_race_date;
+              const hyroxPhaseData=wPrefs?.isHyrox&&hyroxRaceDate?getHyroxPhase(hyroxRaceDate):null;
               const phases=(()=>{
+                if(wPrefs?.isHyrox)return[
+                  {name:"BASE FITNESS",start:1,end:Math.ceil(totalWeeks*0.25)},
+                  {name:"STN STRENGTH",start:Math.ceil(totalWeeks*0.25)+1,end:Math.ceil(totalWeeks*0.5)},
+                  {name:"RACE PREP",start:Math.ceil(totalWeeks*0.5)+1,end:Math.ceil(totalWeeks*0.75)},
+                  {name:"PEAK",start:Math.ceil(totalWeeks*0.75)+1,end:totalWeeks-1},
+                  {name:"TAPER",start:totalWeeks,end:totalWeeks},
+                ];
                 if(totalWeeks>=16)return[{name:"BASE",start:1,end:4},{name:"BUILD",start:5,end:8},{name:"INTENSITY",start:9,end:12},{name:"RACE PREP",start:13,end:totalWeeks}];
                 if(totalWeeks>=12)return[{name:"FOUNDATION",start:1,end:4},{name:"BUILD",start:5,end:8},{name:"PEAK",start:9,end:totalWeeks}];
                 const t=Math.ceil(totalWeeks/3);
                 return[{name:"FOUNDATION",start:1,end:t},{name:"BUILD",start:t+1,end:2*t},{name:"PEAK",start:2*t+1,end:totalWeeks}];
               })();
-              const currentPhase=phases.find(p=>weekNum>=p.start&&weekNum<=p.end)||phases[phases.length-1];
+              const currentPhase=hyroxPhaseData?{name:hyroxPhaseData.label}:(phases.find(p=>weekNum>=p.start&&weekNum<=p.end)||phases[phases.length-1]);
               return(
                 <div style={{background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16,position:"relative",overflow:"hidden"}}>
                   <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(232,52,28,0.04)",pointerEvents:"none"}}/>
@@ -2197,6 +2207,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div>
                       <div className="header-eyebrow" style={{marginBottom:4}}>// Your Program</div>
                       <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",lineHeight:1,color:"#f5f5f0"}}>{progName}<span style={{color:"#e8341c"}}>.</span></div>
+                      {hyroxPhaseData&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+                        <div style={{background:`${hyroxPhaseData.color}18`,border:`1px solid ${hyroxPhaseData.color}50`,borderRadius:6,padding:"2px 8px"}}>
+                          <span style={{fontFamily:"var(--mono)",fontSize:8,fontWeight:700,color:hyroxPhaseData.color,textTransform:"uppercase",letterSpacing:"0.1em"}}>{hyroxPhaseData.label}</span>
+                        </div>
+                        <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{hyroxPhaseData.weeksUntilRace}w to race</span>
+                      </div>}
                     </div>
                     <button onClick={()=>setTrainScreen("plan")} style={{padding:"7px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:9,color:"#e8341c",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.1em",flexShrink:0}}>Switch →</button>
                   </div>

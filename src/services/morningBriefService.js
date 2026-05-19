@@ -1,9 +1,10 @@
 import { sb, ai } from '../client';
+import { getHyroxPhase } from './hyroxPeriodisationService.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
     .from('profiles')
-    .select('profile_data, wprefs, first_name, goal, skill_level')
+    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations')
     .eq('id', userId)
     .maybeSingle();
 
@@ -62,6 +63,10 @@ export async function gatherBriefContext(userId) {
 
   const goalNames = { build_muscle:'Build Muscle', get_stronger:'Get Stronger', lose_fat:'Lose Fat', recomp:'Body Recomposition', train_for_race:'Train for a Race', get_faster:'Get Faster' };
 
+  const isHyrox = !!(wp.isHyrox || row?.hyrox_race_date);
+  const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
+  const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
+
   return {
     name: firstName,
     primaryGoal: goalNames[p.primaryGoal || goal] || (p.primaryGoal || goal),
@@ -77,6 +82,12 @@ export async function gatherBriefContext(userId) {
     sleepAvg: sleepMap[p.sleep] || 7,
     yesterdayNutrition: yNutrition,
     liftExp: skillLvl,
+    isHyrox,
+    hyroxPhase: hyroxPhase?.label || null,
+    weeksToRace: hyroxPhase?.weeksUntilRace || null,
+    hyroxRaceDate,
+    hyroxCategory: wp.hyroxCategory || row?.hyrox_category || null,
+    hyroxWeakStations: wp.hyroxWeakStations || row?.hyrox_weak_stations || [],
   };
 }
 
@@ -84,6 +95,10 @@ export async function generateBriefContent(ctx) {
   const yNote = ctx.yesterdayNutrition
     ? `Yesterday: ${ctx.yesterdayNutrition.calories} kcal logged, ${ctx.yesterdayNutrition.protein}g protein.`
     : 'No nutrition logged yesterday.';
+
+  const hyroxBlock = ctx.isHyrox && ctx.hyroxPhase
+    ? `- HYROX: ${ctx.weeksToRace}w to race | Phase: ${ctx.hyroxPhase}${ctx.hyroxWeakStations?.length ? ` | Weak stations: ${ctx.hyroxWeakStations.join(', ')}` : ''}${ctx.hyroxCategory ? ` | Category: ${ctx.hyroxCategory}` : ''}`
+    : '';
 
   const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.
 
@@ -95,7 +110,7 @@ Context:
 - Today's targets: ${ctx.macros.calories} kcal | ${ctx.macros.protein}g protein | ${ctx.macros.carbs}g carbs | ${ctx.macros.fat}g fat
 - Logging streak: ${ctx.streak} days
 - Sleep: ${ctx.sleepAvg}h avg
-- ${yNote}
+- ${yNote}${hyroxBlock ? `\n- ${hyroxBlock}` : ''}
 
 Return ONLY valid JSON:
 {
