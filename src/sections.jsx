@@ -966,7 +966,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
 
   return (
     <div style={{position:"fixed",inset:0,zIndex:8000,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div style={{width:"100%",maxWidth:480,background:"#0b1120",borderRadius:"22px 22px 0 0",padding:"0 24px 44px",border:"1px solid rgba(245,245,240,0.08)"}}>
+      <div style={{width:"100%",maxWidth:480,background:"#0b1120",borderRadius:"22px 22px 0 0",padding:"0 24px 44px",border:"1px solid rgba(232,52,28,0.08)"}}>
         <div style={{height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{width:36,height:4,borderRadius:2,background:"rgba(245,245,240,0.12)"}}/>
         </div>
@@ -1580,6 +1580,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [sessionMode,setSessionMode]=useState(null);
   const [editingSet,setEditingSet]=useState(null);
   const [sessionPRs,setSessionPRs]=useState({});
+  const [editHintDismissed,setEditHintDismissed]=useState(false);
+  const [hyroxWeaknessStation,setHyroxWeaknessStation]=useState(null);
   const [runElapsed,setRunElapsed]=useState(0);
   const [runDistance,setRunDistance]=useState(0);
   const [runCoords,setRunCoords]=useState([]);
@@ -2244,6 +2246,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {[
           {e:"🏁",l:"RACE SIMULATION.",sub:"Full race · All 8 stations · Race distances · 60-90 min",fn:startRaceSim},
           {e:"⚡",l:"STATION WOD.",sub:`Coach picks your weakest stations · Multiple rounds · 20-40 min`,fn:()=>{setHyroxType('station_wod');startWOD();}},
+          {e:"🎯",l:"WEAKNESS FOCUS.",sub:"Single station deep work · Intervals · Build the station costing you time",fn:()=>{setHyroxWeaknessStation(null);setSessionMode('hyrox-weakness-picker');}},
           {e:"🏃",l:"RUN INTERVALS.",sub:"Race-pace running · Builds the 8km running fitness most Hyrox athletes neglect",fn:()=>{setSessionMode('run-picker');}},
         ].map((o,i)=>(
           <div key={i} onClick={o.fn} style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.12)",borderRadius:14,padding:"18px",marginBottom:10,cursor:"pointer",display:"flex",gap:16,alignItems:"flex-start"}}>
@@ -2335,6 +2338,54 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
           <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>COMPLETE STATION →</button>
         </div>
+      </div>
+    );
+  }
+
+  function renderHyroxWeaknessPicker(){
+    return(
+      <div style={{paddingTop:20}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// WEAKNESS FOCUS</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:6}}>
+          PICK YOUR<br/><span style={{color:"#FC4C02"}}>STATION.</span>
+        </div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:20,lineHeight:1.5}}>Single station · 5 rounds · Build the weakness costing you time</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+          {HYROX_STATIONS.map((st,i)=>{
+            const sel=hyroxWeaknessStation===st.name;
+            return(
+              <div key={i} onClick={()=>setHyroxWeaknessStation(st.name)} style={{background:sel?"rgba(252,76,2,0.12)":"#0d0d0d",border:`1px solid ${sel?"rgba(252,76,2,0.4)":"rgba(252,76,2,0.1)"}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .2s"}}>
+                <div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0"}}>{st.name}</div>
+                  {st.distance&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,textTransform:"uppercase"}}>{st.distance}</div>}
+                </div>
+                {sel&&<div style={{width:20,height:20,borderRadius:"50%",background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <svg width={10} height={10} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>}
+              </div>
+            );
+          })}
+        </div>
+        <button
+          onClick={()=>{
+            if(!hyroxWeaknessStation)return;
+            const st=HYROX_STATIONS.find(s=>s.name===hyroxWeaknessStation);
+            if(!st)return;
+            setHyroxWodStations([st]);
+            setHyroxWodRounds(5);
+            setHyroxWodCurStation(0);
+            setHyroxWodCurRound(0);
+            setHyroxTotalElapsed(0);
+            setHyroxSegElapsed(0);
+            setHyroxSegTimes([]);
+            setHyroxType('weakness_focus');
+            setSessionMode('hyrox-wod');
+            startHyroxTotalTimer();
+            startHyroxSegTimer();
+          }}
+          disabled={!hyroxWeaknessStation}
+          style={{width:"100%",padding:"16px",background:hyroxWeaknessStation?"#FC4C02":"rgba(245,245,240,0.08)",border:"none",borderRadius:12,color:hyroxWeaknessStation?"#fff":"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:hyroxWeaknessStation?"pointer":"not-allowed",transition:"all .2s"}}
+        >START FOCUS SESSION →</button>
       </div>
     );
   }
@@ -3130,6 +3181,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {sessionMode==='hyrox-picker'&&renderHyroxPicker()}
             {sessionMode==='hyrox-sim'&&renderHyroxRaceSim()}
             {sessionMode==='hyrox-wod'&&renderHyroxWOD()}
+            {sessionMode==='hyrox-weakness-picker'&&renderHyroxWeaknessPicker()}
             {sessionMode==='hyrox-summary'&&renderHyroxSummary()}
             {!sessionMode&&(!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
@@ -3316,35 +3368,46 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       </div>
 
                       {/* Sets */}
-                      {(ex.sets||[]).map((s,si)=>{
+                      {(()=>{
+                        let _firstDoneMarked=false;
+                        return(ex.sets||[]).map((s,si)=>{
                         const isActiveSt=!s.done&&si===nextSetIdx;
                         const isEditing=editingSet?.ei===ei&&editingSet?.si===si;
+                        const showHint=s.done&&!_firstDoneMarked&&!editHintDismissed;
+                        if(s.done)_firstDoneMarked=true;
                         return(
-                        <div key={si} style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8,alignItems:"center"}}>
+                        <div key={si}>
+                          {showHint&&<div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,marginLeft:44}}>
+                            <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.3)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.06em"}}>tap to edit</span>
+                          </div>}
+                          <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8,alignItems:"center"}}>
                           <div style={{fontSize:13,color:s.done?"#22c55e":isActiveSt?"#f5f5f0":T.mu,fontWeight:700,textAlign:"center"}}>#{si+1}</div>
                           <input
                             defaultValue={s.weight||sugg?.weight||""}
                             placeholder={profile?.wUnit || 'lbs'}
                             style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}}
                             onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}}
-                            onFocus={s.done?()=>setEditingSet({ei,si}):undefined}
+                            onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}
                           />
                           <input
                             defaultValue={s.reps||sugg?.reps||10}
                             style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}}
                             onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}}
-                            onFocus={s.done?()=>setEditingSet({ei,si}):undefined}
+                            onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}
                           />
                           <button
                             onClick={()=>{
                               if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}
                               else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);}
                             }}
-                            style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"#0d0d0d",color:s.done&&!isEditing?"#000":"#fff",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}
+                            style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"#0d0d0d",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(245,245,240,0.5)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}
                           >{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
+                          </div>
                         </div>
                         );
-                      })}
+                      });
+                      })()}
 
                       {sessionPRs[ex.name]&&(
                         <div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:8,padding:"8px 12px",display:"flex",gap:8,alignItems:"center",marginTop:6,marginBottom:4}}>
