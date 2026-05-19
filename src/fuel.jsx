@@ -20,13 +20,7 @@ import {
   addWaterLog, deleteWaterLog,
 } from "./services/foodDatabase.js";
 import { getAIErrorMessage } from "./utils/errors.js";
-
-const MEAL_SLOT_DEFS = {
-  "2":  ["Breakfast","Dinner"],
-  "4":  ["Breakfast","Lunch","Dinner","Snack"],
-  "5":  ["Breakfast","Lunch","Snack","Dinner","Evening Snack"],
-  "6+": ["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening"],
-};
+import { getSlotsForFreq, getSlotLabel, normaliseSlotToNumber, getSlotTargets, getMissingSlots, getLoggedSlots } from './utils/mealSlots.js';
 
 function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd, onClose }) {
   const smart = getSmartServings(food?.name || "");
@@ -83,11 +77,11 @@ function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd,
           <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Log to meal</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {mealSlots.map((slot, i) => (
-              <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.prot : T.bd}`, background: activeSlotIdx === i ? `${T.prot}15` : "none", color: activeSlotIdx === i ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{slot}</button>
+              <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.prot : T.bd}`, background: activeSlotIdx === i ? `${T.prot}15` : "none", color: activeSlotIdx === i ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{getSlotLabel(slot)}</button>
             ))}
           </div>
         </div>
-        <button onClick={() => onAdd(food, grams, mealSlots[activeSlotIdx] || "Lunch")} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1, textTransform: "uppercase" }}>Add to Log →</button>
+        <button onClick={() => onAdd(food, grams, mealSlots[activeSlotIdx] || 1)} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1, textTransform: "uppercase" }}>Add to Log →</button>
       </div>
     </div>
   );
@@ -133,11 +127,11 @@ function RecipeLogSheet({ recipe, mealSlots, activeSlotIdx, setActiveSlotIdx, on
         <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Log to meal</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
           {mealSlots.map((slot, i) => (
-            <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.prot : T.bd}`, background: activeSlotIdx === i ? `${T.prot}15` : "none", color: activeSlotIdx === i ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{slot}</button>
+            <button key={slot} onClick={() => setActiveSlotIdx(i)} style={{ padding: "7px 14px", borderRadius: 20, border: `1.5px solid ${activeSlotIdx === i ? T.prot : T.bd}`, background: activeSlotIdx === i ? `${T.prot}15` : "none", color: activeSlotIdx === i ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{getSlotLabel(slot)}</button>
           ))}
         </div>
 
-        <button onClick={() => onLog(recipe, servings, mealSlots[activeSlotIdx] || "Lunch")} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1, textTransform: "uppercase" }}>Log {servings} Serving{servings !== 1 ? "s" : ""} →</button>
+        <button onClick={() => onLog(recipe, servings, mealSlots[activeSlotIdx] || 1)} style={{ width: "100%", padding: "15px", background: T.prot, color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1, textTransform: "uppercase" }}>Log {servings} Serving{servings !== 1 ? "s" : ""} →</button>
       </div>
     </div>
   );
@@ -401,7 +395,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
     rec.onend = async () => {
       setVoiceState("processing");
       try {
-        const slot = mealSlots[activeSlotIdx] || "Lunch";
+        const slot = mealSlots[activeSlotIdx] || 1;
         const resp = await ai(
           `Parse this meal description into JSON entries. Reply ONLY with a JSON array, no markdown. Each entry: {"food":"name","calories":N,"protein":N,"carbs":N,"fat":N}. Meal: "${voiceTranscript || rec._lastTranscript}"`,
           300
@@ -463,7 +457,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => { setVoiceState("idle"); setVoiceEntries([]); setVoiceTranscript(""); }} style={{ flex: 1, padding: "13px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 12, color: T.mu, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Redo</button>
-            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || "Lunch", true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1 }}>Log All →</button>
+            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || 1, true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1 }}>Log All →</button>
           </div>
         </div>
       </div>
@@ -607,7 +601,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                         <div style={{ fontSize: 13, fontWeight: 700 }}>{food.name}</div>
                         <div style={{ fontSize: 10, color: T.mu }}>{food.calories} kcal · P {food.protein}g · C {food.carbs}g · F {food.fat}g</div>
                       </div>
-                      <button onClick={() => { onLog(food, null, mealSlots[activeSlotIdx] || "Lunch", true); }} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
+                      <button onClick={() => { onLog(food, null, mealSlots[activeSlotIdx] || 1, true); }} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
                     </div>
                   ))}
                 </div>
@@ -744,7 +738,7 @@ function FoodContextMenu({item, slot, mealSlots, onDelete, onCopySlot, onClose})
         </div>
         {mealSlots.filter(s=>s!==slot).map(s=>(
           <button key={s} onClick={()=>onCopySlot(s)} style={{width:"100%",padding:"14px 20px",background:"none",border:"none",color:"#fff",fontSize:14,fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"inherit",borderTop:`1px solid ${T.bd}`}}>
-            Copy to {s}
+            Copy to {getSlotLabel(s)}
           </button>
         ))}
         <button onClick={()=>{onDelete();onClose();}} style={{width:"100%",padding:"14px 20px",background:"none",border:"none",color:"#EF4444",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"left",fontFamily:"inherit",borderTop:`1px solid ${T.bd}`}}>
@@ -934,7 +928,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       id:Date.now(),
       food:selectedFood.name+(selectedFood.brand?` (${selectedFood.brand})`:""),
       ...m,grams,
-      slot:mealSlots[activeSlotIdx]||"Lunch",
+      slot:mealSlots[activeSlotIdx]||1,
       source:selectedFood.source||"usda",
     };
     logEntry(entry);
@@ -949,7 +943,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   }
 
   function addQuickFood(food){
-    const entry={id:Date.now(),food:food.name,calories:food.calories,protein:food.protein,carbs:food.carbs,fat:food.fat,slot:mealSlots[activeSlotIdx]||"Lunch",source:"quick"};
+    const entry={id:Date.now(),food:food.name,calories:food.calories,protein:food.protein,carbs:food.carbs,fat:food.fat,slot:mealSlots[activeSlotIdx]||1,source:"quick"};
     logEntry(entry);
     setToast(`${food.name} added!`);
     setTimeout(()=>setToast(""),2500);
@@ -998,7 +992,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Log to meal</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {mealSlots.map((slot,i)=>(
-              <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.prot:T.bd}`,background:activeSlotIdx===i?`${T.prot}15`:"none",color:activeSlotIdx===i?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
+              <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.prot:T.bd}`,background:activeSlotIdx===i?`${T.prot}15`:"none",color:activeSlotIdx===i?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{getSlotLabel(slot)}</button>
             ))}
           </div>
         </div>
@@ -1159,7 +1153,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recs",label:"Restaurants"},{id:"recipes",label:"Recipes"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -1218,13 +1212,15 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const useBudgetView=wPrefs?.fuelView==="budget";
 
   // ── Meal Slots ─────────────────────────────────────────────────────────────
-  const [mealSlots,setMealSlots]=useState(()=>MEAL_SLOT_DEFS[profile?.mealFreq]||["Breakfast","Lunch","Dinner","Snack"]);
-  const [slotAssignments,setSlotAssignments]=useState({});
-  const [editingSlot,setEditingSlot]=useState(null);
+  const [mealSlots,setMealSlots]=useState(()=>getSlotsForFreq(profile?.mealFreq));
   const [activeSlotIdx,setActiveSlotIdx]=useState(0);
+  const [showSkipPrompt,setShowSkipPrompt]=useState(false);
+  const [skipPromptTarget,setSkipPromptTarget]=useState(null);
+  const [tooltipSlot,setTooltipSlot]=useState(null);
 
   function getEntrySlot(entry){
-    if(slotAssignments[entry.id])return slotAssignments[entry.id];
+    if(typeof entry.slot==='number') return entry.slot;
+    if(entry.slot) return normaliseSlotToNumber(entry.slot,mealSlots);
     const h=new Date(entry.id).getHours();
     const n=mealSlots.length;
     const bounds=n===2?[13]:n===4?[10,13,18]:n===5?[9,12,15,19]:[8,10,13,16,19];
@@ -1232,9 +1228,21 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     return mealSlots[idx===-1?n-1:Math.min(idx,n-1)];
   }
 
-  function renameSlot(idx,name){setMealSlots(s=>s.map((v,i)=>i===idx?name:v));setEditingSlot(null);}
-  function addMealSlot(){const newName=`Meal ${mealSlots.length+1}`;setMealSlots(s=>[...s,newName]);setActiveSlotIdx(mealSlots.length);}
+  function addMealSlot(){const next=mealSlots.length>0?Math.max(...mealSlots)+1:1;setMealSlots(s=>[...s,next]);setActiveSlotIdx(mealSlots.length);}
   function removeSlot(idx){if(mealSlots.length<=1)return;setMealSlots(s=>s.filter((_,i)=>i!==idx));setActiveSlotIdx(0);}
+
+  function handleSetActiveSlot(targetSlot,openQuickLog=false){
+    const lSlots=getLoggedSlots(log);
+    const missing=getMissingSlots(targetSlot,mealSlots,lSlots,skippedSlots||[]);
+    if(missing.length>0){
+      setSkipPromptTarget({targetSlot,missingSlots:missing,openQuickLog});
+      setShowSkipPrompt(true);
+      return;
+    }
+    const idx=mealSlots.indexOf(targetSlot);
+    setActiveSlotIdx(idx>=0?idx:0);
+    if(openQuickLog)setShowQuickLog(true);
+  }
 
   // ── Day Type Nutrition ────────────────────────────────────────────────────────
   const [showNutritionReasoning,setShowNutritionReasoning]=useState(false);
@@ -1294,7 +1302,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
       const goal=profile?.goal||"maintain";
       const dietary=(profile?.dietary||[]).filter(d=>d!=="none");
       const dietaryStr=dietary.length>0?`Dietary restrictions (STRICTLY follow): ${dietary.join(", ")}.`:"No dietary restrictions.";
-      const slotsForFreq=MEAL_SLOT_DEFS[profile?.mealFreq||"4"]||["Breakfast","Lunch","Dinner","Snack"];
+      const slotsForFreq=getSlotsForFreq(profile?.mealFreq||"4").map(n=>getSlotLabel(n));
       let rawText='';
       await streamAI(`You are a nutrition coach. Create a practical weekly meal prep plan for Sunday prep day.
 Goal: ${goal}. Training days: ${trainingDays.join(",")||"Mon,Wed,Fri"} (${trainingCals} kcal, ${macros?.protein||150}g protein). Rest days: ${restDays.join(",")} (${restCals} kcal, ${Math.round((macros?.protein||150)*0.85)}g protein).
@@ -1370,7 +1378,7 @@ Reply with ONLY a valid JSON object, no markdown:
       carbs: Math.round((food.carbs||0)*fg*10)/10,
       fat: Math.round((food.fat||0)*fg*10)/10,
       grams,
-      slot: slot || mealSlots[activeSlotIdx] || "Lunch",
+      slot: slot || mealSlots[activeSlotIdx] || 1,
       source: food.source || "usda",
     } : {
       id: Date.now(),
@@ -1379,7 +1387,7 @@ Reply with ONLY a valid JSON object, no markdown:
       protein: food.protein||0,
       carbs: food.carbs||0,
       fat: food.fat||0,
-      slot: slot || mealSlots[activeSlotIdx] || "Lunch",
+      slot: slot || mealSlots[activeSlotIdx] || 1,
       source: "quick",
     };
     logEntryWithUndo(entry);
@@ -1392,7 +1400,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
   function handleLogTemplate(template){
     (template.entries||[]).forEach((e,i)=>{
-      setTimeout(()=>logEntryWithUndo({...e,id:Date.now()+i,slot:mealSlots[activeSlotIdx]||"Lunch"}),i*10);
+      setTimeout(()=>logEntryWithUndo({...e,id:Date.now()+i,slot:mealSlots[activeSlotIdx]||1}),i*10);
     });
     incrementTemplateUse(template.id).catch(()=>{});
     setShowQuickLog(false);
@@ -1460,12 +1468,13 @@ Reply with ONLY a valid JSON object, no markdown:
   useEffect(()=>{
     if(!log||log.length<3)return;
     const slotCounts={};
-    log.forEach(e=>{const s=e.slot||"Lunch";slotCounts[s]=(slotCounts[s]||0)+1;});
+    log.forEach(e=>{const s=getEntrySlot(e);slotCounts[s]=(slotCounts[s]||0)+1;});
     const bigSlot=Object.entries(slotCounts).find(([,c])=>c>=3);
-    if(bigSlot&&bigSlot[0]!==recipeSuggestSlot){
-      const slotItems=log.filter(e=>(e.slot||"Lunch")===bigSlot[0]);
-      const alreadySaved=userRecipes.some(r=>r.name.toLowerCase().includes(bigSlot[0].toLowerCase()));
-      if(!alreadySaved)setRecipeSuggestSlot(bigSlot[0]);
+    if(bigSlot&&parseInt(bigSlot[0])!==recipeSuggestSlot){
+      const bigSlotNum=parseInt(bigSlot[0]);
+      const slotItems=log.filter(e=>getEntrySlot(e)===bigSlotNum);
+      const alreadySaved=userRecipes.some(r=>r.name.toLowerCase().includes(getSlotLabel(bigSlotNum).toLowerCase()));
+      if(!alreadySaved)setRecipeSuggestSlot(bigSlotNum);
     }
   },[log]);
 
@@ -1565,6 +1574,55 @@ Reply with ONLY a valid JSON object, no markdown:
           onClose={()=>setRecipeLogging(null)}
         />
       )}
+      {/* Skip Prompt Modal */}
+      {showSkipPrompt&&skipPromptTarget&&(()=>{
+        const {targetSlot,missingSlots,openQuickLog:oql}=skipPromptTarget;
+        const lSlots=getLoggedSlots(log);
+        const basePerSlot=macros.calories/mealSlots.length;
+        const freedCals=missingSlots.length*basePerSlot;
+        const remainingAfterSkip=mealSlots.filter(s=>!lSlots.includes(s)&&!(skippedSlots||[]).includes(s)&&!missingSlots.includes(s));
+        const extraPerMeal=remainingAfterSkip.length>0?Math.round(freedCals/remainingAfterSkip.length):0;
+        const headline=missingSlots.length===1
+          ?`DID YOU SKIP MEAL ${missingSlots[0]}?`
+          :missingSlots.length===2
+            ?`DID YOU SKIP MEAL ${missingSlots[0]} AND MEAL ${missingSlots[1]}?`
+            :`DID YOU SKIP ${missingSlots.length} MEALS?`;
+        const bodyText=missingSlots.length===1
+          ?`Skipping Meal ${missingSlots[0]} will add those calories to your remaining meals.`
+          :`Skipping those meals will split those calories evenly across your remaining meals.`;
+        const impactText=remainingAfterSkip.length===1
+          ?`+${Math.round(freedCals)} kcal added to Meal ${remainingAfterSkip[0]}`
+          :`+${extraPerMeal} kcal added to each of your remaining ${remainingAfterSkip.length} meals`;
+        const btnLabel=missingSlots.length===1?`SKIP MEAL ${missingSlots[0]} →`:`SKIP ${missingSlots.length} MEALS →`;
+        async function confirmSkip(){
+          const newSkipped=[...(skippedSlots||[]),...missingSlots];
+          if(onSkipSlots)await onSkipSlots(newSkipped);
+          const idx=mealSlots.indexOf(targetSlot);
+          setActiveSlotIdx(idx>=0?idx:0);
+          setShowSkipPrompt(false);
+          setSkipPromptTarget(null);
+          if(oql)setShowQuickLog(true);
+        }
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,0.92)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>{setShowSkipPrompt(false);setSkipPromptTarget(null);}}>
+            <div style={{background:"#060d1a",border:"1px solid rgba(245,245,240,0.1)",borderRadius:"20px 20px 0 0",padding:"28px 24px 48px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:36,height:4,borderRadius:2,background:"rgba(245,245,240,0.12)",margin:"0 auto 24px"}}/>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// HEADS UP</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:0.95,marginBottom:12}}>
+                {headline}<span style={{color:"#e8341c"}}>.</span>
+              </div>
+              <div style={{fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:8}}>{bodyText}</div>
+              {remainingAfterSkip.length>0&&(
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:20,letterSpacing:"0.08em"}}>{impactText}</div>
+              )}
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <button onClick={confirmSkip} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:10,padding:14,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>{btnLabel}</button>
+                <button onClick={()=>{setShowSkipPrompt(false);setSkipPromptTarget(null);}} style={{width:"100%",background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:12,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GO BACK</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {/* Quick Log Sheet */}
       {showQuickLog&&(
         <QuickLogSheet
@@ -2059,90 +2117,112 @@ Reply with ONLY a valid JSON object, no markdown:
             )}
 
             {/* FOOD LOG — grouped by meal slots */}
-            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div>
-                  <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
-                </div>
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
-                  <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
-                </div>
-              </div>
-              {log.length===0
-                ?<EmptyState icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(245,245,240,.2)" strokeWidth="1.5"/><path d="M8 12h8M12 8v8" stroke="rgba(245,245,240,.3)" strokeWidth="1.5" strokeLinecap="round"/></svg>} title="Nothing logged yet" subtitle="Describe a meal, scan a barcode, or use the restaurant finder" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
-                :<div>
-                  {mealSlots.map((slot,si)=>{
-                    const slotItems=log.filter(e=>getEntrySlot(e)===slot);
-                    if(slotItems.length===0)return null;
-                    const slotCals=slotItems.reduce((s,e)=>s+(e.calories||0),0);
-                    return(
-                      <div key={slot} style={{marginBottom:12}}>
-                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                          {editingSlot===si
-                            ?<input autoFocus defaultValue={slot} onBlur={e=>renameSlot(si,e.target.value||slot)} onKeyDown={e=>{if(e.key==="Enter")renameSlot(si,e.target.value||slot);if(e.key==="Escape")setEditingSlot(null);}} style={{background:"none",border:`1px solid ${T.prot}`,borderRadius:6,padding:"2px 8px",color:"#fff",fontSize:11,fontWeight:700,fontFamily:"inherit",outline:"none",width:120}}/>
-                            :<button onClick={()=>setEditingSlot(si)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:10,fontWeight:700,color:T.mu,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>{slot} ✎</button>
-                          }
-                          <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
-                          <div style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)"}}>{slotCals} kcal</div>
-                          {mealSlots.length>1&&<button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>}
-                        </div>
-                        {slotItems.map((item,i)=>(
-                          <SwipeRow key={item.id}
-                            onDelete={()=>{
-                              const snap={...item};
-                              removeLog(item.id);
-                              showToast(`${snap.food||"Item"} removed`,{action:()=>logEntry(snap),actionLabel:"Undo"});
-                            }}
-                            style={{borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}
-                          >
-                            <div
-                              className="card-press"
-                              onPointerDown={()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
-                              onPointerUp={()=>clearTimeout(longPressRef.current)}
-                              onPointerLeave={()=>clearTimeout(longPressRef.current)}
-                              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
+            {(()=>{
+              const lSlots=getLoggedSlots(log);
+              const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots);
+              const basePerSlot=Math.round(macros.calories/mealSlots.length);
+              return(
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                    <div>
+                      <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
+                      <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
+                    </div>
+                  </div>
+                  <div>
+                    {mealSlots.map((slot,si)=>{
+                      const isSkipped=(skippedSlots||[]).includes(slot);
+                      const slotItems=log.filter(e=>getEntrySlot(e)===slot);
+                      const slotCals=slotItems.reduce((s,e)=>s+(e.calories||0),0);
+                      const target=slotTargets[slot]||0;
+                      const hasRedistributed=!isSkipped&&(skippedSlots||[]).length>0&&!lSlots.includes(slot)&&target>basePerSlot;
+                      return(
+                        <div key={slot} style={{marginBottom:12,opacity:isSkipped?0.4:1}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:slotItems.length>0?6:4}}>
+                            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:isSkipped?"rgba(245,245,240,0.4)":"#f5f5f0",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
+                            <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
+                            {isSkipped?(
+                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
+                            ):(
+                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.06em"}}>
+                                {slotCals} / {target} kcal
+                                {hasRedistributed&&(
+                                  <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#FEA020",cursor:"pointer",marginLeft:4}}>↑</span>
+                                )}
+                              </span>
+                            )}
+                            {!isSkipped&&(
+                              <button onClick={()=>handleSetActiveSlot(slot,true)} style={{background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.3)",color:"#e8341c",borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",lineHeight:1.4}}>+</button>
+                            )}
+                            {mealSlots.length>1&&!isSkipped&&(
+                              <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
+                            )}
+                          </div>
+                          {tooltipSlot===slot&&(
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:6}}>Includes calories from skipped meals</div>
+                          )}
+                          {slotItems.map((item,i)=>(
+                            <SwipeRow key={item.id}
+                              onDelete={()=>{
+                                const snap={...item};
+                                removeLog(item.id);
+                                showToast(`${snap.food||"Item"} removed`,{action:()=>logEntry(snap),actionLabel:"Undo"});
+                              }}
+                              style={{borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}
                             >
-                              <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                                <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0,overflow:"hidden"}}>
-                                  {item.photo_url
-                                    ? <img src={item.photo_url} style={{width:30,height:30,borderRadius:8,objectFit:"cover"}} alt=""/>
-                                    : item.method==="photo"?"📸":item.method==="barcode"?"🔲":item.method==="quick"?"✏️":"🧠"}
-                                </div>
-                                <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
-                                  <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"var(--mono)"}}>
-                                    <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                              <div
+                                className="card-press"
+                                onPointerDown={()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
+                                onPointerUp={()=>clearTimeout(longPressRef.current)}
+                                onPointerLeave={()=>clearTimeout(longPressRef.current)}
+                                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
+                              >
+                                <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+                                  <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0,overflow:"hidden"}}>
+                                    {item.photo_url
+                                      ?<img src={item.photo_url} style={{width:30,height:30,borderRadius:8,objectFit:"cover"}} alt=""/>
+                                      :item.method==="photo"?"📸":item.method==="barcode"?"🔲":item.method==="quick"?"✏️":"🧠"}
+                                  </div>
+                                  <div style={{flex:1,minWidth:0}}>
+                                    <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
+                                    <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"var(--mono)"}}>
+                                      <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                                <div style={{textAlign:"right"}}>
-                                  <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
-                                  <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                                <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                                  <div style={{textAlign:"right"}}>
+                                    <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
+                                    <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                                  </div>
+                                  <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                                 </div>
-                                <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                               </div>
-                            </div>
-                          </SwipeRow>
-                        ))}
+                            </SwipeRow>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {log.filter(e=>!mealSlots.includes(getEntrySlot(e))).map((item,i,arr)=>(
+                      <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
+                        <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:13}}>{item.calories} kcal</div>
+                          <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                        </div>
                       </div>
-                    );
-                  })}
-                  {/* entries not yet assigned to a slot */}
-                  {log.filter(e=>!mealSlots.includes(getEntrySlot(e))).map((item,i,arr)=>(
-                    <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
-                      <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                        <div style={{fontFamily:"var(--mono)",fontSize:13}}>{item.calories} kcal</div>
-                        <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                    {log.length===0&&(
+                      <EmptyState icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(245,245,240,.2)" strokeWidth="1.5"/><path d="M8 12h8M12 8v8" stroke="rgba(245,245,240,.3)" strokeWidth="1.5" strokeLinecap="round"/></svg>} title="Nothing logged yet" subtitle="Tap + on any meal slot or use Log Food" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
+                    )}
+                  </div>
                 </div>
-              }
-            </div>
+              );
+            })()}
 
             {/* ── MY RECIPES (compact home section) ── */}
             {userRecipes.length>0&&(
@@ -2189,7 +2269,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Log to meal</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {mealSlots.map((slot,i)=>(
-                    <button key={slot} onClick={()=>setActiveSlotIdx(i)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.prot:T.bd}`,background:activeSlotIdx===i?`${T.prot}15`:"none",color:activeSlotIdx===i?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{slot}</button>
+                    <button key={slot} onClick={()=>handleSetActiveSlot(slot)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.prot:T.bd}`,background:activeSlotIdx===i?`${T.prot}15`:"none",color:activeSlotIdx===i?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{getSlotLabel(slot)}</button>
                   ))}
                   <button onClick={addMealSlot} style={{padding:"7px 14px",borderRadius:20,border:`1.5px dashed ${T.bd}`,background:"none",color:"rgba(245,245,240,0.3)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Meal</button>
                 </div>
@@ -2331,9 +2411,9 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* Smart save suggestion */}
             {recipeSuggestSlot&&(
               <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"14px 16px",marginBottom:16}}>
-                <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>You often eat these together for {recipeSuggestSlot}:</div>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>You often eat these together for {getSlotLabel(recipeSuggestSlot)}:</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:12}}>
-                  {log.filter(e=>(e.slot||"Lunch")===recipeSuggestSlot).slice(0,3).map(e=>e.food).join(" + ")}
+                  {log.filter(e=>getEntrySlot(e)===recipeSuggestSlot).slice(0,3).map(e=>e.food).join(" + ")}
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);setRecipeSuggestSlot(null);}} style={{flex:1,padding:"10px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Save as Recipe</button>

@@ -33,6 +33,7 @@ import { completeReferral } from "./services/referralService.js";
 import { getMorningBrief } from "./services/morningBriefService.js";
 import SorenessCheckIn, { SorenesSummary } from "./components/SorenessCheckIn.jsx";
 import { trainedYesterday, alreadyLoggedToday, getTodaySoreness } from "./services/sorenessService.js";
+import { getSlotsForFreq, getSlotTargets, getLoggedSlots } from "./utils/mealSlots.js";
 import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
@@ -1403,6 +1404,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   },[]);
 
   const [log,setLog]=useState([]);
+  const [skippedSlots,setSkippedSlots]=useState([]);
   const [foodInput,setFoodInput]=useState("");
   const [logging,setLogging]=useState(false);
   const [logMsg,setLogMsg]=useState("");
@@ -1509,8 +1511,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     hap?.();
     const today=new Date().toISOString().split("T")[0];
     await Promise.allSettled([
-      sb.from("food_logs").select("entries").eq("user_id",user.id).eq("date",logDate).maybeSingle()
-        .then(({data})=>{if(data?.entries)setLog(data.entries);}),
+      sb.from("food_logs").select("entries,skipped_slots").eq("user_id",user.id).eq("date",logDate).maybeSingle()
+        .then(({data})=>{if(data?.entries)setLog(data.entries);setSkippedSlots(data?.skipped_slots||[]);}),
       getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[])),
       getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[])),
       sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50)
@@ -1614,6 +1616,13 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     if(error)console.error("[saveFoodLog] error:",error.message,error.code);
   }
 
+  async function saveSkippedSlots(newSkipped){
+    if(!user)return;
+    setSkippedSlots(newSkipped);
+    const today=new Date().toISOString().split("T")[0];
+    await sb.from("food_logs").upsert({user_id:user.id,date:today,skipped_slots:newSkipped},{onConflict:"user_id,date"});
+  }
+
   function handlePhotoLog(entries){
     const newLog=[...entries,...log];
     setLog(newLog);
@@ -1630,8 +1639,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   useEffect(()=>{
     if(!user)return;
     setLog([]);
-    sb.from("food_logs").select("entries").eq("user_id",user.id).eq("date",logDate).maybeSingle().then(({data})=>{
+    sb.from("food_logs").select("entries,skipped_slots").eq("user_id",user.id).eq("date",logDate).maybeSingle().then(({data})=>{
       if(data?.entries)setLog(data.entries);
+      setSkippedSlots(data?.skipped_slots||[]);
     });
   },[user,logDate]);
 
@@ -2089,15 +2099,24 @@ Be specific and practical. Empathetic tone. No fluff.`,
   function logEntry(entry){const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
 
   async function fetchRecs(){
-    setRecsLoading(true);setRecs("…");
-    const actCtx=todayActs.length>0?`\nToday's activity: ${todayActs.map(a=>`${a.type} (${a.calories} kcal via ${a.source})`).join(", ")}\n`:"";
-    const dietaryCtx=(profile.dietary||[]).filter(d=>d!=="none");
+    if(recsLoading||!city.trim())return;setRecsLoading(true);setRecs("");
+    const dietaryCtx=(profile?.dietary||[]).filter(d=>d!=="none");
+    const slots=getSlotsForFreq(profile?.mealFreq||"3");
+    const lSlots=getLoggedSlots(log);
+    const slotTargets=getSlotTargets(macros.calories,slots,skippedSlots||[],lSlots);
+    const nextSlot=slots.find(s=>!lSlots.includes(s)&&!(skippedSlots||[]).includes(s));
+    const currentSlotTarget=nextSlot?slotTargets[nextSlot]:Math.round(macros.calories/slots.length);
+    const remainingSlots=slots.filter(s=>!lSlots.includes(s)&&!(skippedSlots||[]).includes(s));
+    const mealProteinTarget=Math.round((macros.protein/slots.length)+((skippedSlots||[]).length>0?(macros.protein/slots.length*(skippedSlots||[]).length)/(remainingSlots.length||1):0));
+    const currentMealSlot=nextSlot?`Meal ${nextSlot}`:"this meal";
+    const mealsRemaining=remainingSlots.length;
     try{
-      await streamAI(`You are a precision nutrition coach. The user is in ${city||"their city"} and needs to hit these EXACT remaining macros:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations ("no sauce", "extra protein", "double meat")\n• Macros: calories / protein / carbs / fat\n• How close it gets to their remaining targets\n\nThen 1 quick home meal option.\n\nBe SPECIFIC. Use real menu item names. Show exact macro numbers.`,900,"restaurant_ai",
-        (partial)=>{setRecs(partial);},
-        (full)=>{setRecsLoading(false);setRecs(full);if(user)track(EVENTS.AI_RESTAURANT,{city,chars:full.length},user.id);}
+      await streamAI(`You are a precision nutrition coach. The user is in ${city||"their city"} and is planning ${currentMealSlot} of ${slots.length} meals today.\n\nCurrent meal calorie target: ${currentSlotTarget} kcal\nProtein target for this meal: ~${mealProteinTarget}g\nMeals remaining after this one: ${Math.max(0,mealsRemaining-1)}\nDaily remaining macros: ${remaining.calories} kcal · ${remaining.protein}g protein · ${remaining.carbs}g carbs · ${remaining.fat}g fat\n\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations\n• Macros: calories / protein / carbs / fat\n• How close it gets to your ${currentMealSlot} target (${currentSlotTarget} kcal)\n• "Covers X% of your ${currentMealSlot} protein target (${mealProteinTarget}g)"\n\nRules:\n- This is ONE meal, not the full day.${mealsRemaining>1?` Do not recommend a meal exceeding 120% of the ${currentSlotTarget} kcal meal target.`:` This is your last meal — you may go slightly over to hit daily protein.`}\n- Be SPECIFIC. Use real menu item names. Show exact macro numbers.\n\nThen 1 quick home meal option.`,900,"restaurant_ai",
+        ()=>{},
+        (text)=>{setRecs(text);}
       );
     }catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");if(user)trackError(e,"restaurant_ai",user.id);setRecsLoading(false);}
+    setRecsLoading(false);
   }
 
   async function fetchRecipes(){
@@ -4050,7 +4069,7 @@ Rules:
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></ErrorBoundary>}
