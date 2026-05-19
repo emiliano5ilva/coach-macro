@@ -2104,7 +2104,6 @@ Be specific and practical. Empathetic tone. No fluff.`,
   async function fetchRecs(){
     if(recsLoading||!city.trim())return;
     setRecsLoading(true);setRecs("");setNearbyRestaurants([]);setCitySearchError("");
-    // Try Places API geocode + nearby search
     try{
       const coords=await geocodeCity(city.trim());
       if(!coords){setCitySearchError("City not found. Try a different search.");setRecsLoading(false);return;}
