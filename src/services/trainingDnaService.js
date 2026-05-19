@@ -23,12 +23,14 @@ export async function calculateTrainingDNA(userId) {
     { data: muscleRec },
     { data: prof },
     { data: runLogs },
+    { data: compoundPRs },
   ] = await Promise.all([
     sb.from('workout_logs').select('date, workout').eq('user_id', userId).gte('date', cut90),
     sb.from('food_logs').select('date, entries').eq('user_id', userId).gte('date', cut30),
     sb.from('muscle_recovery').select('muscle_group, last_trained_at').eq('user_id', userId),
     sb.from('profiles').select('goalCals, created_at').eq('id', userId).single(),
     sb.from('run_logs').select('distance_km').eq('user_id', userId),
+    sb.from('personal_records').select('exercise_name, weight, date').eq('user_id', userId).in('exercise_name', COMPOUND),
   ]);
 
   const wl = workoutLogs || [];
@@ -36,43 +38,24 @@ export async function calculateTrainingDNA(userId) {
   const mr = muscleRec || [];
 
   // ── 1. STRENGTH ───────────────────────────────────────────────────────────
-  // Progressive overload on compound lifts over 90 days.
-  const compoundByExercise = {};
-  wl.forEach(session => {
-    const dateObj = new Date(session.date);
-    (session.workout?.exercises || []).forEach(ex => {
-      if (!COMPOUND.includes(ex.name)) return;
-      const maxWeight = Math.max(0, ...(ex.sets || []).map(s => parseFloat(s.weight || 0)));
-      if (maxWeight <= 0) return;
-      if (!compoundByExercise[ex.name]) compoundByExercise[ex.name] = [];
-      compoundByExercise[ex.name].push({ date: dateObj, weight: maxWeight });
-    });
-  });
+  // Uses personal_records table — one row per compound lift, O(1) vs JSONB scan.
+  const prRows = compoundPRs || [];
+  const recentPRs = prRows.filter(p => p.date >= cut30);
 
-  const exerciseEntries = Object.values(compoundByExercise);
   let strengthScore = 0;
-  if (exerciseEntries.length >= 2) {
-    let progressingLifts = 0;
-    let totalLifts = 0;
-    exerciseEntries.forEach(entries => {
-      if (entries.length < 2) return;
-      entries.sort((a, b) => a.date - b.date);
-      totalLifts++;
-      if (entries[entries.length - 1].weight > entries[0].weight) progressingLifts++;
-    });
-    strengthScore = totalLifts > 0
-      ? Math.min(95, 40 + Math.round((progressingLifts / totalLifts) * 55))
-      : 30;
-  } else if (exerciseEntries.length === 1) {
-    strengthScore = 30;
-  } else {
-    // Has strength sessions but no named compound logged — low baseline
+  if (prRows.length >= 5) strengthScore = 65;
+  else if (prRows.length >= 3) strengthScore = 50;
+  else if (prRows.length >= 1) strengthScore = 35;
+  else {
     const hasStrengthSessions = wl.some(s =>
       !s.workout?.focus?.toLowerCase().includes('run') &&
       s.workout?.type !== 'running'
     );
     strengthScore = hasStrengthSessions ? 20 : 0;
   }
+  // Recent PR bonus — actively setting new records
+  if (recentPRs.length >= 2) strengthScore = Math.min(95, strengthScore + 25);
+  else if (recentPRs.length >= 1) strengthScore = Math.min(95, strengthScore + 15);
 
   // ── 2. ENDURANCE ──────────────────────────────────────────────────────────
   // Run/cardio sessions in workout_logs + total distance in run_logs.

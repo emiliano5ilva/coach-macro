@@ -1432,6 +1432,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const restInterval=useRef(null);
   const [history,setHistory]=useState({});
   const [workoutLogsRaw,setWorkoutLogsRaw]=useState([]);
+  const [dbPRs,setDbPRs]=useState([]);
   const [deloadActive,setDeloadActive]=useState(profile?.deload_active||false);
   const [deloadStartedAt,setDeloadStartedAt]=useState(profile?.deload_started_at||null);
   const [deloadSnooze,setDeloadSnooze]=useState(()=>localStorage.getItem("deload_snooze")||null);
@@ -1535,6 +1536,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
             setHistory(hist);
           }
         }),
+      sb.from("personal_records").select("exercise_name,weight,reps,date").eq("user_id",user.id).order("date",{ascending:false}).limit(30)
+        .then(({data})=>{if(data)setDbPRs(data);}),
     ]);
     setIsRefreshing(false);
   }
@@ -1699,6 +1702,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       }
       setWorkoutsLoaded(true);
     });
+    sb.from("personal_records").select("exercise_name,weight,reps,date").eq("user_id",user.id).order("date",{ascending:false}).limit(30)
+      .then(({data})=>{if(data)setDbPRs(data);});
     // Bodyweight logs — last 90 days
     sb.from("bodyweight_logs").select("date,weight").eq("user_id",user.id).order("date",{ascending:true}).limit(90).then(({data})=>{
       if(data&&data.length>0)setBodyweightLogs(data);
@@ -2329,11 +2334,26 @@ Rules:
       if(user){
         try{
           const feedbackData=activeWorkout.exercises.filter(ex=>ex.feedback).map(ex=>({name:ex.name,feedback:ex.feedback}));
+          const today=new Date().toISOString().split("T")[0];
           await sb.from("workout_logs").insert({
             user_id:user.id,
-            date:new Date().toISOString().split("T")[0],
-            workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData}
+            date:today,
+            workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData},
+            volume_lbs:Math.round(totalVolume),
+            total_sets:setsLogged.reduce((a,e)=>a+e.sets.length,0),
+            total_reps:setsLogged.reduce((a,e)=>a+e.sets.reduce((b,s)=>b+(parseInt(s.reps)||0),0),0),
+            session_duration_mins:duration,
+            pr_count:prs.length,
           });
+          if(prs.length>0){
+            await sb.from("personal_records").upsert(
+              prs.map(pr=>({user_id:user.id,exercise_name:pr.name,weight:parseFloat(pr.weight)||0,reps:parseInt(pr.reps)||1,date:today})),
+              {onConflict:"user_id,exercise_name"}
+            ).then(({data,error})=>{
+              if(error)console.error("[finishWorkout] PR upsert:",error.message);
+              else if(data)setDbPRs(p=>{const m={};p.forEach(r=>m[r.exercise_name]=r);(data||[]).forEach(r=>m[r.exercise_name]=r);return Object.values(m);});
+            });
+          }
           recordWorkoutRecovery(user.id, setsLogged).catch(() => {});
           window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
           // Complete referral on first session
@@ -3484,6 +3504,10 @@ Rules:
     },[workoutLogsRaw,dailyFoodMap]);
 
     const personalRecords=useMemo(()=>{
+      if(dbPRs.length>0){
+        return dbPRs.slice(0,6).map(pr=>[pr.exercise_name,{weight:pr.weight,date:pr.date}]);
+      }
+      // Fallback: compute from JSONB for users with no personal_records rows yet
       const prs={};
       (workoutLogsRaw||[]).forEach(log=>{
         (log.workout?.exercises||[]).forEach(ex=>{
@@ -3495,13 +3519,16 @@ Rules:
         });
       });
       return Object.entries(prs).sort((a,b)=>b[1].date.localeCompare(a[1].date)).slice(0,6);
-    },[workoutLogsRaw]);
+    },[dbPRs,workoutLogsRaw]);
 
     const {volumeThisWeek,volumeLastWeek}=useMemo(()=>{
       const lws=new Date(_twStart);lws.setDate(lws.getDate()-7);const lwStr=lws.toISOString().split('T')[0];
       let tw=0,lw=0;
       (workoutLogsRaw||[]).forEach(log=>{
-        const vol=(log.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0),0);
+        // Use volume_lbs column if populated; fall back to JSONB computation
+        const vol=log.volume_lbs>0
+          ?log.volume_lbs
+          :(log.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0),0);
         if(log.date>=_twStart)tw+=vol;else if(log.date>=lwStr)lw+=vol;
       });
       return{volumeThisWeek:Math.round(tw),volumeLastWeek:Math.round(lw)};
