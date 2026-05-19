@@ -1671,6 +1671,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     exs=exs.map(ex=>{const c=ex.originalName||ex.name;const sw=permanentSwaps[c];return{...ex,name:sw||ex.name,swappedFrom:sw?c:undefined,isFavorite:favorites.includes(c)};});
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
+    const _sl=wPrefs.sessionLength||60;
+    const _exCap=_sl<=30?3:_sl<=45?4:_sl<=60?5:_sl<=75?6:_sl<=90?7:exs.length;
+    exs=exs.slice(0,_exCap);
     todayPrescription=exs;
   }else if(prescType==="running"){
     todayProgObj=RUNNING_PROGRAMS[wPrefs.runPlan||"Couch to 5K"];
@@ -1691,10 +1694,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     todayPrescription=getTodayHyroxWorkout(todayProgObj,weekNum,todayKey);
   }else if(prescType==="hybrid-hyrox"){
     todayProgObj=HYBRID_PROGRAMS["Hyrox Hybrid"];
-    todayPrescription=getTodayHybridWorkout(todayProgObj,todayKey);
+    todayPrescription=getTodayHybridWorkout("Hyrox Hybrid",todayKey,weekNum);
   }else if(prescType==="hybrid"){
-    todayProgObj=HYBRID_PROGRAMS[wPrefs.hybridTemplate||"Balanced Hybrid"];
-    todayPrescription=getTodayHybridWorkout(todayProgObj,todayKey);
+    const _hybridTemplate=wPrefs.hybridTemplate||"Balanced Hybrid";
+    todayProgObj=HYBRID_PROGRAMS[_hybridTemplate];
+    todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
   }
 
   function startFromProgram(){
@@ -2297,7 +2301,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const goalCtxLine=GOAL_CTX_LINE[goal]||"// TRAINING · Stay consistent";
 
               const exArr=todayPrescription;
-              const estMins=Math.round(exArr.length*12/5)*5||30;
+              const estMins=wPrefs.sessionLength||60;
 
               const firstPrescEx=exArr[0]?getPrescription(goal,skillLevel,exArr[0].name):null;
               const headerSxR=firstPrescEx?`${firstPrescEx.sets} × ${firstPrescEx.reps}`:null;
@@ -2315,8 +2319,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 return{text:`${lastMax}${wUnit}${isUp?" ↑":""}`,color:isUp?"#22c55e":"rgba(245,245,240,0.55)"};
               }
 
-              const visibleExs=exArr.slice(0,5);
-              const hiddenCount=Math.max(0,exArr.length-5);
+              const visibleExs=exArr;
+              const hiddenCount=0;
 
               return(
                 <>
