@@ -1,8 +1,5 @@
 export async function geocodeCity(cityName) {
-  const apiKey = import.meta.env.VITE_GOOGLE_PLACES_KEY;
-  console.log('Places key:', apiKey ? 'SET' : 'MISSING');
-  if (!apiKey) return null;
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cityName)}&key=${apiKey}`;
+  const url = `/api/places?endpoint=geocode&address=${encodeURIComponent(cityName)}`;
   const res = await fetch(url);
   const data = await res.json();
   const loc = data.results?.[0]?.geometry?.location;
@@ -10,10 +7,8 @@ export async function geocodeCity(cityName) {
   return { lat: loc.lat, lng: loc.lng };
 }
 
-export async function getNearbyRestaurants(lat, lng) {
-  const apiKey = import.meta.env.VITE_GOOGLE_PLACES_KEY;
-  if (!apiKey) return [];
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=2000&type=restaurant&key=${apiKey}`;
+export async function getNearbyRestaurants(lat, lng, radius = 2000) {
+  const url = `/api/places?endpoint=nearbysearch&location=${lat},${lng}&radius=${radius}&type=restaurant`;
   const res = await fetch(url);
   const data = await res.json();
   return data.results || [];

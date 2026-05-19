@@ -2103,7 +2103,6 @@ Be specific and practical. Empathetic tone. No fluff.`,
 
   async function fetchRecs(){
     if(recsLoading||!city.trim())return;
-    console.log('Places key:',import.meta.env.VITE_GOOGLE_PLACES_KEY?'SET':'MISSING');
     setRecsLoading(true);setRecs("");setNearbyRestaurants([]);setCitySearchError("");
     // Try Places API geocode + nearby search
     try{
