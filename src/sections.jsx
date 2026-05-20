@@ -39,6 +39,7 @@ import { getAdaptLimit, trialDaysRemaining, trialExpiringSoon, isExpired, getSub
 import { purchaseMonthly, purchaseAnnual, restorePurchases } from "./services/purchaseService.js";
 import { getTodaySoreness } from "./services/sorenessService.js";
 import { getProgramImage } from "./data/programImages.js";
+import { triggerEventUnlock } from "./services/featureUnlockService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -2182,6 +2183,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     if(isNewPR){
       setSessionPRs(p=>({...p,[ex.name]:{weight,reps}}));
       showToast(`🔥 New PR — ${weight}${profile?.wUnit||"lbs"} on ${ex.name}!`,"pr",{duration:5000});
+      if(user?.id)triggerEventUnlock(user.id,'pr_set').catch(()=>{});
     } else {
       setSessionPRs(p=>{const u={...p};delete u[ex.name];return u;});
     }

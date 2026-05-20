@@ -57,6 +57,9 @@ import { getRunningPhase, getRunTimePredictor } from "./services/runningPeriodis
 import { getStrengthPhase, getStrengthPredictor } from "./services/strengthPeriodisationService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
+import SpotlightTour from "./components/SpotlightTour.jsx";
+import FeatureUnlockCard from "./components/FeatureUnlockCard.jsx";
+import { checkFeatureUnlocks, getPendingUnlock, getUserStats, markUnlockShown, markAppTourComplete, triggerEventUnlock, APP_TOUR_STEPS } from "./services/featureUnlockService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1519,6 +1522,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [showAdaptationModal,setShowAdaptationModal]=useState(false);
   const [adaptationChecking,setAdaptationChecking]=useState(false);
 
+  // ── Feature Unlock System ──────────────────────────────────────────────────
+  const [showAppTour,setShowAppTour]=useState(false);
+  const [pendingUnlock,setPendingUnlock]=useState(null);
+  const [showFeatureTour,setShowFeatureTour]=useState(false);
+  const [featureTourSteps,setFeatureTourSteps]=useState([]);
+
   // ── Life-Aware Training — Calendar ────────────────────────────────────────
   const [calendarConnected,setCalendarConnected]=useState(()=>localStorage.getItem("calendar_connected")==="1");
   const [calendarAlerts,setCalendarAlerts]=useState([]);
@@ -1777,6 +1786,20 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     }).catch(()=>{});
     // Mark dashboard as loaded after data arrives
     setTimeout(()=>setDashboardLoaded(true),300);
+
+    // ── Feature unlock check — once per day ────────────────────────────────
+    const lastUnlockCheck=localStorage.getItem('last_unlock_check');
+    const todayStr=new Date().toISOString().split('T')[0];
+    if(lastUnlockCheck!==todayStr){
+      localStorage.setItem('last_unlock_check',todayStr);
+      getUserStats(user.id,profile).then(stats=>{
+        checkFeatureUnlocks(user.id,stats).catch(()=>{});
+      }).catch(()=>{});
+    }
+    // Load pending unlock card
+    getPendingUnlock(user.id).then(pending=>{
+      if(pending&&pending.feature)setPendingUnlock(pending);
+    }).catch(()=>{});
 
     // Metabolic Adaptation — load existing active/detected, then run weekly check
     getActiveAdaptation(user.id).then(existing=>{
@@ -2729,8 +2752,15 @@ Rules:
     }
 
     getTodayNutritionProtocol(user.id).then(proto=>{
-      if(proto) setTodayProtocol(proto);
+      if(proto){
+        setTodayProtocol(proto);
+        triggerEventUnlock(user.id,'protocol_triggered').catch(()=>{});
+      }
     }).catch(()=>{});
+
+    // App tour — show once after onboarding
+    sb.from('feature_unlocks').select('tour_completed').eq('user_id',user.id).eq('feature_key','app_tour').maybeSingle()
+      .then(({data})=>{if(!data?.tour_completed)setShowAppTour(true);}).catch(()=>{});
   },[user?.id]);
 
   // ── Coach Macro Score ──────────────────────────────────────────────────────
@@ -2916,13 +2946,29 @@ Rules:
     }
   }
 
+  // ── FEATURE SHOW ME ────────────────────────────────────────────────────────
+  function handleFeatureShowMe(featureKey){
+    const tourMap={
+      streaks:[{targetSelector:'[data-tour="streak-counter"]',headline:'YOUR STREAK',description:"Every day you train or log a meal keeps your streak alive. Don't break the chain."}],
+      macro_memory:[{targetSelector:'[data-tour="macro-memory"]',headline:'RECENT MEALS',description:'Your most logged meals appear here. One tap to log them again.'}],
+      progress_view:[{targetSelector:'[data-tour="progress-tab"]',headline:'YOUR PROGRESS',description:'Tap here to see your strength progress, nutrition trends, and recovery data.'}],
+      rpe_input:[{targetSelector:'[data-tour="rpe-row"]',headline:'RATE YOUR EFFORT',description:'After logging a set tap how hard it felt. This data makes your program smarter.'}],
+      training_dna:[{targetSelector:'[data-tour="training-dna"]',headline:'YOUR ATHLETE DNA',description:'This radar shows your strengths across 6 dimensions. It grows as you train.'}],
+      plateau_detection:[{targetSelector:'[data-tour="plateau-section"]',headline:'PLATEAU TRACKER',description:'When a lift stalls we detect it and give you a specific strategy to break through.'}],
+      advanced_coaching:[{targetSelector:'[data-tour="today-cards"]',headline:'COACHING CARDS',description:'These cards update daily based on your training. Deload alerts, fatigue signals, and more.'}],
+      first_pr:[{targetSelector:'[data-tour="pr-section"]',headline:'YOUR RECORDS',description:'Every PR you set is saved here. Watch this list grow.'}],
+    };
+    const steps=tourMap[featureKey];
+    if(steps){setFeatureTourSteps(steps);setShowFeatureTour(true);}
+  }
+
   // ── LAYOUT ─────────────────────────────────────────────────────────────────
   const NAV_ITEMS = [
-    {id:"today",    label:"TODAY",    icon:"today"},
+    {id:"today",    label:"TODAY",    icon:"today",    tour:"today-tab"},
     {id:"train",    label:"TRAIN",    icon:"train"},
-    {id:"fuel",     label:"FUEL",     icon:"fuel"},
-    {id:"progress", label:"PROGRESS", icon:"progress"},
-    {id:"me",       label:"ME",       icon:"me"},
+    {id:"fuel",     label:"FUEL",     icon:"fuel",     tour:"fuel-tab"},
+    {id:"progress", label:"PROGRESS", icon:"progress", tour:"progress-tab"},
+    {id:"me",       label:"ME",       icon:"me",       tour:"me-tab"},
   ];
 
   function TabIcon({name, size=22}) {
@@ -3147,6 +3193,24 @@ Rules:
             </div>
           );
         })()}
+
+        {/* Feature Unlock Card */}
+        {pendingUnlock&&pendingUnlock.feature&&(
+          <div style={{margin:"0 20px 0"}}>
+            <FeatureUnlockCard
+              unlock={pendingUnlock}
+              onShowMe={()=>{
+                markUnlockShown(user?.id,pendingUnlock.feature_key).catch(()=>{});
+                handleFeatureShowMe(pendingUnlock.feature_key);
+                setPendingUnlock(null);
+              }}
+              onDismiss={()=>{
+                markUnlockShown(user?.id,pendingUnlock.feature_key).catch(()=>{});
+                setPendingUnlock(null);
+              }}
+            />
+          </div>
+        )}
 
         {/* Morning Brief + Comeback Protocol */}
         <div style={{margin:"0 20px 12px"}}>
@@ -3618,7 +3682,7 @@ Rules:
                 </div>
               </div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
-              <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              <button data-tour="start-session" onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                 <svg width={14} height={14} viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>
                 Start Session
               </button>
@@ -3627,7 +3691,7 @@ Rules:
         }
 
         {/* ── PRESENT SECTION ── */}
-        <div style={{margin:"0 20px 8px"}}>
+        <div data-tour="today-cards" style={{margin:"0 20px 8px"}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
             <span>// PRESENT</span>
             <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
@@ -4488,7 +4552,9 @@ Rules:
             </div>
 
             {/* Training DNA */}
-            <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+            <div data-tour="training-dna">
+              <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+            </div>
 
             {/* Coach Tips */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
@@ -4523,7 +4589,7 @@ Rules:
 
           {/* ── STRENGTH ── */}
           {activeTab==="strength"&&<>
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.12)",borderRadius:12}}>
+            <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.12)",borderRadius:12}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>// ACTIVE PLATEAUS</div>
               {activePlateaus.length>0?(
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -4547,7 +4613,7 @@ Rules:
             </div>
 
             {personalRecords.length>0?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
+              <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Personal Records</div>
                 {personalRecords.map(([name,pr])=>(
                   <div key={name} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
@@ -5033,7 +5099,7 @@ Rules:
       </div>
       <div className="app-tab-bar">
         {NAV_ITEMS.map(item=>(
-          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}`} onClick={()=>handleTabPress(item.id)}>
+          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}>
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <TabIcon name={item.icon} size={22}/>
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:T.fat,border:"2px solid var(--navy)"}}/>}
@@ -5043,6 +5109,24 @@ Rules:
           </button>
         ))}
       </div>
+
+      {/* App tour — fires once after onboarding */}
+      {showAppTour&&(
+        <SpotlightTour
+          steps={APP_TOUR_STEPS}
+          onComplete={()=>{setShowAppTour(false);markAppTourComplete(user?.id).catch(()=>{});}}
+          onSkip={()=>{setShowAppTour(false);markAppTourComplete(user?.id).catch(()=>{});}}
+        />
+      )}
+
+      {/* Feature-specific mini tours */}
+      {showFeatureTour&&(
+        <SpotlightTour
+          steps={featureTourSteps}
+          onComplete={()=>setShowFeatureTour(false)}
+          onSkip={()=>setShowFeatureTour(false)}
+        />
+      )}
     </div>
   );
 }
