@@ -4858,7 +4858,29 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             ))}
           </div>
         }/>
-        <MeRow label="Notifications" isLast noChevron rightEl={<Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>}/>
+        <MeRow label="Notifications" noChevron rightEl={<Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>}/>
+        {(profile?.goal==="build_muscle"||profile?.goal==="get_stronger"||wPrefs?.primaryGoal==="build_muscle"||wPrefs?.primaryGoal==="get_stronger")&&(
+          <div style={{padding:"14px 16px",borderTop:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Calorie Cycling</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:2}}>Training days +250 kcal · rest at base</div>
+            </div>
+            <Toggle value={!!wPrefs?.calorie_cycling_enabled} onChange={async v=>{const wp={...wPrefs,calorie_cycling_enabled:v};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("calorie_cycling_enabled",v);}}/>
+          </div>
+        )}
+        {(profile?.goal==="lose_fat"||profile?.goal==="recomp"||wPrefs?.primaryGoal==="lose_fat"||wPrefs?.primaryGoal==="recomp")&&(
+          <div style={{padding:"14px 16px",borderTop:"1px solid rgba(245,245,240,0.06)"}}>
+            <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:4}}>Refeed Interval</div>
+            <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginBottom:10}}>Metabolism reset every N days in deficit</div>
+            <div style={{display:"flex",gap:8}}>
+              {[5,7,10].map(n=>(
+                <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(232,52,28,0.2)":"rgba(245,245,240,0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(232,52,28,0.5)":"rgba(245,245,240,0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"#e8341c":"rgba(245,245,240,0.6)",fontFamily:"var(--mono)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                  {n}d
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── SUBSCRIPTION ── */}

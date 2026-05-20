@@ -1,5 +1,6 @@
 import { sb, ai } from '../client';
 import { getHyroxPhase } from './hyroxPeriodisationService.js';
+import { getTodayNutritionProtocol } from './nutritionPeriodisationService.js';
 import { getActiveDeload, getUpcomingDeload } from './deloadService.js';
 import { getActivePlateaus } from './plateauService.js';
 import { getLatestBalance, getBalanceCorrections } from './muscleBalanceService.js';
@@ -72,13 +73,14 @@ export async function gatherBriefContext(userId) {
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
 
-  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
     getActivePlateaus(userId).catch(() => []),
     getLatestBalance(userId).catch(() => null),
     getRecentAdjustments(userId).catch(() => []),
     analyseRPETrends(userId).catch(() => null),
+    getTodayNutritionProtocol(userId).catch(() => null),
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
@@ -118,6 +120,9 @@ export async function gatherBriefContext(userId) {
       .filter(s => s.type === 'exercise_rpe_drift')
       .map(s => s.exercise)
       .slice(0, 2),
+    nutritionProtocol: nutritionProtocol?.protocol_type || null,
+    nutritionProtocolReason: nutritionProtocol?.reason || null,
+    adjustedCalories: nutritionProtocol?.adjusted_calories || null,
   };
 }
 
@@ -136,6 +141,18 @@ export async function generateBriefContent(ctx) {
     ? ctx.lastAdjustment.action === 'advance'
       ? `NOTE: Program was advanced to Week ${ctx.lastAdjustment.new_week} based on strong performance signals. Mention this briefly in today section — athlete is ahead of schedule.`
       : `NOTE: Program week was repeated (Week ${ctx.lastAdjustment.new_week}) due to: ${ctx.lastAdjustment.reason}. Reference this in today section — frame it as smart training, not failure.`
+    : '';
+
+  const nutritionBlock = ctx.nutritionProtocol && ctx.nutritionProtocol !== 'standard'
+    ? ctx.nutritionProtocol === 'refeed'
+      ? `NUTRITION: Today is a REFEED DAY (${ctx.adjustedCalories} kcal). Briefly mention this in yesterday or coach_says — frame it as a metabolism reset, not a cheat day.`
+      : ctx.nutritionProtocol === 'carb_load'
+        ? `NUTRITION: Tomorrow is race day — today is a CARB LOADING day (${ctx.adjustedCalories} kcal). Reference this in today section — top up glycogen, go easy on fat.`
+        : ctx.nutritionProtocol === 'race_day'
+          ? `NUTRITION: RACE DAY. Targets are high-carb (${ctx.adjustedCalories} kcal). Reference this in today and coach_says.`
+          : ctx.nutritionProtocol === 'training_day'
+            ? `NUTRITION: Calorie cycling active — training day boost to ${ctx.adjustedCalories} kcal. Mention extra fuel in today section.`
+            : ''
     : '';
 
   const hyroxBlock = ctx.isHyrox && ctx.hyroxPhase
@@ -158,7 +175,7 @@ export async function generateBriefContent(ctx) {
     ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}

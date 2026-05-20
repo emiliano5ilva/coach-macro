@@ -1223,7 +1223,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,resetSignal=0}) {
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,resetSignal=0,todayProtocol=null}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recipes",label:"Recipes"},{id:"prep",label:"Meal Prep"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -2207,6 +2207,36 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,.35)",marginTop:6,letterSpacing:"0.1em"}}>WEEKS {periodizationInfo.wks}</div>
               </div>
             )}
+
+            {/* NUTRITION PERIODISATION PROTOCOL */}
+            {todayProtocol&&todayProtocol.protocol_type!=="standard"&&(()=>{
+              const typeMap={
+                refeed:{label:"REFEED DAY",icon:"🔄",color:"#f59e0b",comment:"// Leptin reset · metabolism boost"},
+                carb_load:{label:"CARB LOADING",icon:"⚡",color:"#3b82f6",comment:"// Race tomorrow · top up glycogen"},
+                race_day:{label:"RACE DAY",icon:"🏁",color:"#e8341c",comment:"// High carbs · low fat · race ready"},
+                training_day:{label:"TRAINING DAY",icon:"💪",color:"#22c55e",comment:"// Extra fuel · performance calories"},
+                rest_day:{label:"REST DAY",icon:"🛋️",color:"rgba(245,245,240,0.4)",comment:"// Recovery focus · base calories"},
+              };
+              const meta=typeMap[todayProtocol.protocol_type]||typeMap.training_day;
+              const calDiff=todayProtocol.adjusted_calories-todayProtocol.base_calories;
+              const carbDiff=todayProtocol.adjusted_carbs_g-todayProtocol.base_carbs_g;
+              return(
+                <div style={{background:`${meta.color}10`,border:`1.5px solid ${meta.color}30`,borderRadius:16,padding:"14px 18px"}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:meta.color,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>{meta.comment}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                    <div style={{fontSize:22}}>{meta.icon}</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:meta.color,letterSpacing:"0.04em",textTransform:"uppercase"}}>{meta.label}</div>
+                  </div>
+                  <div style={{fontSize:13,color:"rgba(245,245,240,0.8)",lineHeight:1.55,marginBottom:10}}>{todayProtocol.reason}</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_calories} kcal{calDiff>0?` (+${calDiff})`:calDiff<0?` (${calDiff})`:""}</div>
+                    <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_protein_g}g protein</div>
+                    <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_carbs_g}g carbs{carbDiff>0?` (+${carbDiff})`:carbDiff<0?` (${carbDiff})`:""}</div>
+                    <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_fat_g}g fat</div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* CYCLE NUTRITION INSIGHT (Part 6) */}
             {profile?.cycleTracking&&(()=>{
