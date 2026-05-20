@@ -1715,7 +1715,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
   const [todaySoreness,setTodaySoreness]=useState(null);
@@ -3028,7 +3028,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
               const totalWeeks=progInfo?.weeks||12;
               const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
-              const progPct=Math.min(weekNum/totalWeeks,1);
+              const displayWeek=programCurrentWeek||weekNum;
+              const progPct=Math.min(displayWeek/totalWeeks,1);
               const hyroxRaceDate=wPrefs?.hyroxRaceDate||profile?.hyrox_race_date;
               const hyroxPhaseData=wPrefs?.isHyrox&&hyroxRaceDate?getHyroxPhase(hyroxRaceDate):null;
               const phases=(()=>{
@@ -3044,7 +3045,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 const t=Math.ceil(totalWeeks/3);
                 return[{name:"FOUNDATION",start:1,end:t},{name:"BUILD",start:t+1,end:2*t},{name:"PEAK",start:2*t+1,end:totalWeeks}];
               })();
-              const currentPhase=hyroxPhaseData?{name:hyroxPhaseData.label}:(phases.find(p=>weekNum>=p.start&&weekNum<=p.end)||phases[phases.length-1]);
+              const currentPhase=hyroxPhaseData?{name:hyroxPhaseData.label}:(phases.find(p=>displayWeek>=p.start&&displayWeek<=p.end)||phases[phases.length-1]);
               return(
                 <div style={{background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16,position:"relative",overflow:"hidden"}}>
                   <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(232,52,28,0.04)",pointerEvents:"none"}}/>
@@ -3062,7 +3063,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <button onClick={()=>setTrainScreen("plan")} style={{padding:"7px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:9,color:"#e8341c",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.1em",flexShrink:0}}>Switch →</button>
                   </div>
                   <div style={{display:"flex",gap:8,marginBottom:12}}>
-                    {[{label:"WEEK",value:`${weekNum}/${totalWeeks}`},{label:"DAYS/WK",value:`${daysPerWeek}×`},{label:"PHASE",value:currentPhase.name}].map(({label,value})=>(
+                    {[{label:"WEEK",value:`${displayWeek}/${totalWeeks}`},{label:"DAYS/WK",value:`${daysPerWeek}×`},{label:"PHASE",value:currentPhase.name}].map(({label,value})=>(
                       <div key={label} style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
                         <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
                         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:13,color:"#f5f5f0",textTransform:"uppercase"}}>{value}</div>
@@ -3081,10 +3082,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                   <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none"}}>
                     {Array.from({length:totalWeeks}).map((_,i)=>{
-                      const w=i+1;const isCurrent=w===weekNum;const isPast=w<weekNum;
+                      const w=i+1;const isCurrent=w===displayWeek;const isPast=w<displayWeek;
                       return(<div key={w} style={{flexShrink:0,minWidth:28,padding:"5px 0",textAlign:"center",borderRadius:5,background:isCurrent?"#e8341c":isPast?"rgba(52,211,153,0.12)":"rgba(245,245,240,0.04)",border:`1px solid ${isCurrent?"transparent":isPast?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`,fontFamily:"var(--mono)",fontSize:9,color:isCurrent?"#fff":isPast?"#34d399":"rgba(245,245,240,0.4)",letterSpacing:"0.04em"}}>W{w}</div>);
                     })}
                   </div>
+                  {recentAdjustments?.length>0&&recentAdjustments[0].action!=="no_change"&&(
+                    <div style={{marginTop:8,display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                        {recentAdjustments[0].action==="advance"?"↑ Advanced":"↺ Repeated"}{" — "}{new Date(recentAdjustments[0].assessed_at+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

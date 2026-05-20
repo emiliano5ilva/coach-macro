@@ -3,6 +3,7 @@ import { getHyroxPhase } from './hyroxPeriodisationService.js';
 import { getActiveDeload, getUpcomingDeload } from './deloadService.js';
 import { getActivePlateaus } from './plateauService.js';
 import { getLatestBalance, getBalanceCorrections } from './muscleBalanceService.js';
+import { getRecentAdjustments } from './periodisationService.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
@@ -70,11 +71,12 @@ export async function gatherBriefContext(userId) {
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
 
-  const [activeDeload, upcomingDeload, plateaus, latestBalance] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
     getActivePlateaus(userId).catch(() => []),
     getLatestBalance(userId).catch(() => null),
+    getRecentAdjustments(userId).catch(() => []),
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
@@ -108,6 +110,7 @@ export async function gatherBriefContext(userId) {
     })),
     muscleImbalance: balanceCorrections.length > 0 ? balanceCorrections[0].type : null,
     imbalanceSeverity: balanceCorrections[0]?.severity || null,
+    lastAdjustment: recentAdjs[0]?.action !== 'no_change' ? recentAdjs[0] : null,
   };
 }
 
@@ -115,6 +118,12 @@ export async function generateBriefContent(ctx) {
   const yNote = ctx.yesterdayNutrition
     ? `Yesterday: ${ctx.yesterdayNutrition.calories} kcal logged, ${ctx.yesterdayNutrition.protein}g protein.`
     : 'No nutrition logged yesterday.';
+
+  const adjustmentBlock = ctx.lastAdjustment
+    ? ctx.lastAdjustment.action === 'advance'
+      ? `NOTE: Program was advanced to Week ${ctx.lastAdjustment.new_week} based on strong performance signals. Mention this briefly in today section — athlete is ahead of schedule.`
+      : `NOTE: Program week was repeated (Week ${ctx.lastAdjustment.new_week}) due to: ${ctx.lastAdjustment.reason}. Reference this in today section — frame it as smart training, not failure.`
+    : '';
 
   const hyroxBlock = ctx.isHyrox && ctx.hyroxPhase
     ? `- HYROX: ${ctx.weeksToRace}w to race | Phase: ${ctx.hyroxPhase}${ctx.hyroxWeakStations?.length ? ` | Weak stations: ${ctx.hyroxWeakStations.join(', ')}` : ''}${ctx.hyroxCategory ? ` | Category: ${ctx.hyroxCategory}` : ''}`
@@ -136,7 +145,7 @@ export async function generateBriefContent(ctx) {
     ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}
