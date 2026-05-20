@@ -736,6 +736,46 @@ function findExerciseCoaching(exerciseName, location) {
   return null;
 }
 
+const HEALTH_EXCLUSIONS = {
+  bad_knees:    ['Barbell Back Squat','Barbell Front Squat','Leg Press','Box Jump','Jump Squat','Running Lunge'],
+  bad_shoulders:['Overhead Press','Behind Neck Press','Upright Row','Dip'],
+  bad_back:     ['Deadlift','Good Morning','Barbell Row','Sit-Up'],
+  osteoporosis: ['Box Jump','Jump Squat','Burpee'],
+};
+const HEALTH_SUBSTITUTES = {
+  bad_knees:'Leg Extension',bad_shoulders:'Cable Lateral Raise',
+  bad_back:'Hip Thrust',osteoporosis:'Walking Lunge',
+};
+const HEALTH_NOTES = {
+  heart_condition:'Keep intensity moderate — no max effort.',
+  diabetes:'Monitor energy — keep session to moderate intensity.',
+};
+const HYROX_SUBSTITUTIONS = {
+  'SkiErg':       {equipment_needed:'skierg',      substitute:'Rowing 1000m',          note:'No SkiErg — using row'},
+  'Sled Push':    {equipment_needed:'sled',         substitute:'Leg Press to Failure',   note:'No sled — leg press × 20'},
+  'Sled Pull':    {equipment_needed:'sled',         substitute:'Seated Cable Row × 20',  note:'No sled — cable row instead'},
+  'Row':          {equipment_needed:'rowing_machine',substitute:'SkiErg 1000m',          note:'No rower — SkiErg instead'},
+  'Farmers Carry':{equipment_needed:'turf_track',   substitute:'Dumbbell Carry 50m',     note:'Use heaviest dumbbells'},
+};
+function applyHealthConditionSubstitutions(exercises,healthConditions){
+  if(!healthConditions?.length)return exercises;
+  const noteMods=healthConditions
+    .map(c=>HEALTH_NOTES[c])
+    .filter(Boolean)
+    .join(' ');
+  return exercises.map(ex=>{
+    for(const cond of healthConditions){
+      const excluded=HEALTH_EXCLUSIONS[cond]||[];
+      if(excluded.some(e=>ex.name.toLowerCase().includes(e.toLowerCase()))){
+        const sub=HEALTH_SUBSTITUTES[cond];
+        if(sub)return{...ex,name:sub,originalHealthName:ex.name,isHealthAdapted:true,notes:(ex.notes||"")+(noteMods?` — ${noteMods}`:"")};
+        return{...ex,isHealthAdapted:true,notes:(ex.notes||"")+(noteMods?` — ${noteMods}`:"")};
+      }
+    }
+    if(noteMods&&!ex.healthNoteAdded)return{...ex,healthNoteAdded:true,notes:(ex.notes||"")+` — ${noteMods}`};
+    return ex;
+  });
+}
 const ADAPT_CATEGORIES = [
   {id:"injury",   emoji:"🤕", label:"Injury / Pain",       options:[]},
   {id:"travel",   emoji:"✈️", label:"Traveling / No Gym",   options:["Hotel gym only","Dumbbells only","Bodyweight only","Resistance bands only"]},
@@ -809,7 +849,27 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
 
       const situationText = (level && location) ? `Injury — ${location.replace(/_/g,' ')} pain (level ${level}/3)` : selectedReason;
 
-      const prompt = `You are an expert personal trainer and coach.\n\nCurrent program: ${wPrefs.splitType||"General"} — ${wPrefs.liftExp||"intermediate"} level\nTraining goal: ${goalDescription}\nToday's session: ${todayFocus}\nUser situation: ${situationText}${adaptHealthCtx}${injuryCtx}\n\nCurrent muscle recovery state:\n${recoveryContext}\n\nCurrent planned exercises:\n${JSON.stringify((todayExercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps,notes:e.notes})), null, 2)}\n\nPlease adapt this session for the user's situation. Return ONLY a valid JSON object with no extra text:\n{\n  "changes": [\n    { "type": "removed", "exercise": "name", "reason": "why" },\n    { "type": "replaced", "original": "name", "replacement": "name", "reason": "why" },\n    { "type": "modified", "exercise": "name", "change": "what changed", "reason": "why" }\n  ],\n  "adapted_exercises": [\n    { "name": "exercise name", "sets": 3, "reps": "10-12", "notes": "coaching note", "weight": "", "done": false }\n  ],\n  "session_note": "One sentence summary of the adaptation"\n}\n\nRules:\n- Injury: remove dangerous movements, suggest safer alternatives that work around the injury.\n- Travel/no gym: convert all barbell movements to dumbbell or bodyweight alternatives.\n- Poor recovery/sick: reduce sets by 30-40%, reduce intensity, focus on movement quality.\n- Menstrual phase: reduce volume 30%, remove heavy compound lifts, keep lighter accessory work.\n- Follicular/ovulation: keep or increase intensity — good time for PRs.\n- Time constraints: keep only the primary compound movements, cut accessories to fit the time.\n- Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.\n- Recovery aware: if a muscle group being trained today is below 50% recovered, reduce its exercises by 1 set and add a note about incomplete recovery.\n- Goal aligned: adaptations must keep the session aligned with the user's training goal — a fat loss user should keep rest periods short, a strength user should keep heavy compounds even when adapting.`;
+      // B1: Physical limitations
+      const adaptMobilityLimitations=wPrefs?.mobilityLimitations||[];
+      const adaptHealthConditions=profile?.profile_data?.healthConditions||[];
+      const adaptMobilityCtx=adaptMobilityLimitations.length>0?`\n\nMOBILITY LIMITATIONS: ${adaptMobilityLimitations.join(', ')}\nNever prescribe exercises that conflict with these limitations, even as alternatives.`:'';
+      const adaptHealthCondCtx=adaptHealthConditions.length>0?`\n\nHEALTH CONDITIONS: ${adaptHealthConditions.join(', ')}\nAdapt session to be safe for these conditions.${adaptHealthConditions.includes('heart_condition')?'\nKeep intensity moderate. No max effort work.':''}${adaptHealthConditions.includes('bad_knees')?'\nNo deep knee flexion or high impact.':''}`:''
+      // B2: Life factors
+      const adaptStress=wPrefs?.stressLevel||'medium';
+      const adaptSleepQ=profile?.profile_data?.sleepQ||profile?.sleepQ||null;
+      const adaptStressCtx=(adaptStress==='high'||adaptStress==='very_high')?`\n\nLIFE STRESS: ${adaptStress}\nReduce intensity and volume. Prioritise completion over performance.`:'';
+      const adaptSleepCtx=(adaptSleepQ==='poor'||adaptSleepQ==='very_poor')?'\n\nSLEEP QUALITY: Poor\nReduce CNS-demanding exercises. Recommend moderate effort or active recovery.':'';
+      // B3: Goal context
+      const adaptGoalTimeline=profile?.profile_data?.goalTimeline||null;
+      const adaptTrainingAge=wPrefs?.trainingAge||null;
+      const adaptGoalTimelineCtx=(adaptGoalTimeline==='1_month'||adaptGoalTimeline==='3_months')?`\n\nGOAL URGENCY: ${adaptGoalTimeline} timeline. Consistency beats skipping.`:'';
+      const adaptBegCtx=adaptTrainingAge==='new'?'\n\nTRAINING AGE: Beginner. Prioritise movement quality over load. Technique cues over weight.':'';
+      // B4: Competition
+      const nearestEvt=[profile?.strength_comp_date,profile?.hyrox_race_date,profile?.run_race_date].filter(Boolean).sort()[0];
+      const weeksToEvt=nearestEvt?Math.floor((new Date(nearestEvt)-new Date())/(1000*60*60*24*7)):null;
+      const adaptCompCtx=weeksToEvt!==null&&weeksToEvt<=4?`\n\nCOMPETITION IN ${weeksToEvt} WEEKS. Do NOT prescribe anything that risks injury or excessive fatigue. Protect for race day. Reduce volume.`:weeksToEvt!==null&&weeksToEvt<=8?`\n\nCompetition in ${weeksToEvt} weeks. Keep adaptations conservative.`:'';
+
+      const prompt = `You are an expert personal trainer and coach.\n\nCurrent program: ${wPrefs.splitType||"General"} — ${wPrefs.liftExp||"intermediate"} level\nTraining goal: ${goalDescription}\nToday's session: ${todayFocus}\nUser situation: ${situationText}${adaptHealthCtx}${injuryCtx}${adaptMobilityCtx}${adaptHealthCondCtx}${adaptStressCtx}${adaptSleepCtx}${adaptGoalTimelineCtx}${adaptBegCtx}${adaptCompCtx}\n\nCurrent muscle recovery state:\n${recoveryContext}\n\nCurrent planned exercises:\n${JSON.stringify((todayExercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps,notes:e.notes})), null, 2)}\n\nPlease adapt this session for the user's situation. Return ONLY a valid JSON object with no extra text:\n{\n  "changes": [\n    { "type": "removed", "exercise": "name", "reason": "why" },\n    { "type": "replaced", "original": "name", "replacement": "name", "reason": "why" },\n    { "type": "modified", "exercise": "name", "change": "what changed", "reason": "why" }\n  ],\n  "adapted_exercises": [\n    { "name": "exercise name", "sets": 3, "reps": "10-12", "notes": "coaching note", "weight": "", "done": false }\n  ],\n  "session_note": "One sentence summary of the adaptation"\n}\n\nRules:\n- Injury: remove dangerous movements, suggest safer alternatives that work around the injury.\n- Travel/no gym: convert all barbell movements to dumbbell or bodyweight alternatives.\n- Poor recovery/sick: reduce sets by 30-40%, reduce intensity, focus on movement quality.\n- Menstrual phase: reduce volume 30%, remove heavy compound lifts, keep lighter accessory work.\n- Follicular/ovulation: keep or increase intensity — good time for PRs.\n- Time constraints: keep only the primary compound movements, cut accessories to fit the time.\n- Feeling great: add 1-2 sets to primary lifts, suggest going for a PR.\n- Recovery aware: if a muscle group being trained today is below 50% recovered, reduce its exercises by 1 set and add a note about incomplete recovery.\n- Goal aligned: adaptations must keep the session aligned with the user's training goal — a fat loss user should keep rest periods short, a strength user should keep heavy compounds even when adapting.`;
 
       let adaptText = '';
       const timeout = new Promise((_,rej) => setTimeout(() => rej(new Error("Adaptation timed out. Try again.")), 25000));
@@ -2042,7 +2102,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           tier:ex.tier,
           restSecs,
           restReason,
-          priority:isPriorityExercise(ex.name,wPrefs?.musclePriorities||[]),
+          priority:isPriorityExercise(ex.name,[...new Set([...(wPrefs?.musclePriorities||[]),...(wPrefs?.weakPoints||[])])]),
           sets:Array.from({length:setCount},()=>({
             weight:applyWeightMod(ex.weight||"",weightMod),
             reps:repsVal,done:false
@@ -2050,13 +2110,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         };
       });
       exercises=applyMobilitySubstitutions(exercises,wPrefs?.mobilityLimitations||[]);
+      exercises=applyHealthConditionSubstitutions(exercises,profile?.profile_data?.healthConditions||[]);
       exercises=lifeStageModifier(exercises,profile);
       const userAge=getAge(profile?.dobYear,profile?.dobMonth,profile?.dobDay);
       const ageProg=getAgeAppropriateProgram(exercises,userAge);
       if(ageProg!==null)exercises=ageProg;
       const jointMode=wPrefs?.jointHealthMode!==false;
       exercises=applyOlderAdultProgram(exercises,userAge,jointMode);
-      const priorities=wPrefs?.musclePriorities||[];
+      const priorities=[...new Set([...(wPrefs?.musclePriorities||[]),...(wPrefs?.weakPoints||[])])];
       if(priorities.length>0){
         exercises=[...exercises].sort((a,b)=>(a.priority?0:1)-(b.priority?0:1));
       }
@@ -2279,7 +2340,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function startWOD(){
     const weakStations=(wPrefs?.hyroxWeakStations||profile?.hyrox_weak_stations||[]).slice(0,4);
     const stations=weakStations.length>0?weakStations:['SkiErg','Row','Wall Balls','Burpee Broad Jump'];
-    const stationObjs=stations.map(name=>HYROX_STATIONS.find(s=>s.name===name)||{name,distance:'',tip:''}).filter(Boolean);
+    const equipment=Array.isArray(profile?.hyrox_equipment)?profile.hyrox_equipment:(wPrefs?.hyroxEquipment?[wPrefs.hyroxEquipment]:[]);
+    const hasFullGym=equipment.includes('full_gym');
+    const stationObjs=stations.map(name=>{
+      const base=HYROX_STATIONS.find(s=>s.name===name)||{name,distance:'',tip:''};
+      const sub=HYROX_SUBSTITUTIONS[name];
+      if(sub&&!hasFullGym&&!equipment.includes(sub.equipment_needed)){
+        return{...base,name:sub.substitute,tip:sub.note,isSubstituted:true,originalName:name};
+      }
+      return base;
+    }).filter(Boolean);
     setHyroxWodStations(stationObjs);
     setHyroxWodCurStation(0);
     setHyroxWodCurRound(0);
@@ -2579,6 +2649,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         </div>
         <div style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.2)",borderRadius:14,padding:18,marginBottom:20}}>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#f5f5f0",marginBottom:4}}>{(st.name||"").toUpperCase()}<span style={{color:"#FC4C02"}}>.</span></div>
+          {st.isSubstituted&&<div style={{marginBottom:6}}><span style={{display:"inline-block",background:"rgba(254,160,32,0.08)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(254,160,32,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// EQUIPMENT SUBSTITUTION</span></div>}
           {(st.distance||st.reps)&&<div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:18,color:"rgba(245,245,240,0.6)",marginBottom:8}}>{st.distance||st.reps}</div>}
           {st.tip&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{st.tip}</div>}
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
@@ -3648,6 +3719,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {ex.mobilitySubstituted&&(
                             <div style={{marginLeft:32,marginTop:4}}>
                               <span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// MOBILITY ADAPTED</span>
+                            </div>
+                          )}
+                          {ex.isHealthAdapted&&(
+                            <div style={{marginLeft:32,marginTop:4}}>
+                              <span style={{display:"inline-block",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.08em",textTransform:"uppercase"}}>// HEALTH ADAPTED</span>
                             </div>
                           )}
                           <div style={{marginLeft:32,marginTop:4}}>

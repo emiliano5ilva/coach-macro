@@ -50,9 +50,10 @@ const JSON_FORMAT = `{
 }`;
 
 export function buildUserContext(profile, slotTargets, currentSlot, totalMeals, trainedToday, sessionType) {
+  const pd = profile?.profile_data || {};
   return {
     goal: profile?.goal || 'maintenance',
-    dietary: (profile?.dietary || []).filter(d => d !== 'none'),
+    dietary: (profile?.dietary || pd?.dietary || []).filter(d => d !== 'none'),
     currentMealSlot: currentSlot || 1,
     totalMeals: totalMeals || 3,
     currentMealCalorieTarget: slotTargets?.calories || 500,
@@ -61,13 +62,39 @@ export function buildUserContext(profile, slotTargets, currentSlot, totalMeals, 
     mealFatTarget: slotTargets?.fat || 20,
     trainedToday: trainedToday || false,
     sessionType: sessionType || null,
+    healthConditions: pd?.healthConditions || [],
+    conditions: pd?.conditions || [],
+    goalTimeline: pd?.goalTimeline || null,
+    fasting: pd?.fasting || null,
   };
 }
 
 function buildRestaurantPrompt(restaurantName, userContext) {
-  const { goal, dietary, currentMealSlot, totalMeals, currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget, trainedToday, sessionType } = userContext;
+  const { goal, dietary, currentMealSlot, totalMeals, currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget, trainedToday, sessionType, healthConditions, conditions, goalTimeline, fasting } = userContext;
   const dietStr = dietary.length > 0 ? `\nDIETARY RESTRICTIONS (strictly avoid): ${dietary.join(', ')}.` : '';
   const isChain = isKnownChain(restaurantName);
+
+  const diabetesCtx = (healthConditions||[]).includes('diabetes')
+    ? '\nDIABETES: Avoid high GI foods. Flag dishes with heavy sugar, white rice, white bread, or sugary sauces. Recommend protein + vegetables + complex carbs.'
+    : '';
+  const hypertensionCtx = (healthConditions||[]).includes('hypertension')
+    ? '\nHYPERTENSION: Flag high sodium dishes. Note any item over 800mg sodium. Recommend sauces on the side.'
+    : '';
+  const thyroidCtx = (conditions||[]).includes('thyroid')
+    ? '\nTHYROID CONDITION: Avoid recommending raw cruciferous vegetables in large quantities. Cooked is fine.'
+    : '';
+  const urgentCtx = goalTimeline === '1_month'
+    ? '\nURGENT TIMELINE: 1 month to goal. Be strict — flag anything that significantly exceeds macro targets.'
+    : '';
+  const goalCtx = goal === 'lose_fat'
+    ? '\nWEIGHT LOSS GOAL: Prioritise high protein, high volume/low calorie foods. Flag hidden calories in sauces, dressings, oils.'
+    : goal === 'build_muscle'
+      ? '\nMUSCLE BUILDING GOAL: Prioritise protein-dense dishes and adequate carbs. Slight calorie overage acceptable.'
+      : '';
+  const fastingCtx = fasting && fasting !== 'no' && fasting !== 'none'
+    ? `\nFASTING PROTOCOL: ${fasting}. This may be their first or last meal in their eating window. Recommend higher protein and calorie-dense options if first meal.`
+    : '';
+
   return `You are the Coach Macro nutrition AI. Recommend exactly what to order at ${restaurantName}.
 
 MEAL CONTEXT:
@@ -78,7 +105,7 @@ MEAL CONTEXT:
 - Fat target: ${mealFatTarget}g
 - Training goal: ${goal}
 - Trained today: ${trainedToday}
-- Session type: ${sessionType || 'none'}${dietStr}
+- Session type: ${sessionType || 'none'}${dietStr}${diabetesCtx}${hypertensionCtx}${thyroidCtx}${urgentCtx}${goalCtx}${fastingCtx}
 
 RESTAURANT: ${restaurantName}
 ${isChain ? 'Known chain — use exact menu knowledge and suggest specific modifications (e.g. "ask for half rice", "no cheese", "sauce on the side", "grilled not fried").' : 'Independent restaurant — suggest general preparation modifications only, not specific portion requests.'}
@@ -88,8 +115,8 @@ FLAG WARNINGS IF:
 - Protein < ${Math.round(mealProteinTarget * 0.8)}g (below 80% of target)
 - Carbs > ${Math.round(mealCarbTarget * 1.1)}g (110% of target)
 - Fat > ${Math.round(mealFatTarget * 1.1)}g (110% of target)
-- Sodium > 1000mg
-- Sugar > 20g
+- Sodium > 1000mg${(healthConditions||[]).includes('hypertension') ? ' (flag above 800mg for hypertension)' : ''}
+- Sugar > 20g${(healthConditions||[]).includes('diabetes') ? ' (flag above 10g for diabetes)' : ''}
 
 RULES: Optimise for protein first. Stay within 110% of all targets. Never recommend alcohol. Be specific with exact item names.
 
@@ -105,12 +132,18 @@ export async function getRestaurantRecs(restaurantName, _cuisineTypes, userConte
 }
 
 export async function getMenuScanRecs(base64Image, mediaType, userContext) {
-  const { goal, dietary, currentMealSlot, totalMeals, currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget, trainedToday } = userContext;
+  const { goal, dietary, currentMealSlot, totalMeals, currentMealCalorieTarget, mealProteinTarget, mealCarbTarget, mealFatTarget, trainedToday, healthConditions, conditions, fasting } = userContext;
   const dietStr = dietary.length > 0 ? `\nDIETARY RESTRICTIONS (strictly avoid): ${dietary.join(', ')}.` : '';
+  const scanHealthCtx = [
+    (healthConditions||[]).includes('diabetes') ? 'Avoid high GI, sugary sauces, white rice/bread.' : '',
+    (healthConditions||[]).includes('hypertension') ? 'Flag sodium > 800mg.' : '',
+    (conditions||[]).includes('thyroid') ? 'Avoid raw cruciferous vegetables.' : '',
+    fasting && fasting !== 'no' && fasting !== 'none' ? `Fasting protocol: ${fasting} — recommend protein-dense options.` : '',
+  ].filter(Boolean).join(' ');
   const textPrompt = `This is a restaurant menu. The user needs to order Meal ${currentMealSlot} of ${totalMeals} today.
 
 Meal targets: ${currentMealCalorieTarget} kcal · ${mealProteinTarget}g protein · ${mealCarbTarget}g carbs · ${mealFatTarget}g fat
-Goal: ${goal} · Trained today: ${trainedToday}${dietStr}
+Goal: ${goal} · Trained today: ${trainedToday}${dietStr}${scanHealthCtx ? `\n${scanHealthCtx}` : ''}
 
 Read the menu and recommend what to order. Apply the same warning thresholds: calories >110%, protein <80%, carbs/fat >110%, sodium >1000mg, sugar >20g.
 

@@ -2226,9 +2226,15 @@ Be specific and practical. Empathetic tone. No fluff.`,
     const deloadCtx=deloadActive?"\n⚠️ DELOAD WEEK: 60% of normal weight, 12–15 reps, remove maximal effort sets. Recovery focus only.":"";
     const terrainCtx=(wPrefs.terrain||profile?.terrain)?` | TERRAIN: ${wPrefs.terrain||profile?.terrain}${(wPrefs.trackAccess||profile?.trackAccess)?", track available":", no track — use time-based intervals"}`:"";
     const compCtx=(profile?.strength_comp_type||wPrefs?.strength_comp_type)?` | COMP PREP: ${(profile?.strength_comp_type||wPrefs?.strength_comp_type||"").replace(/_/g," ")}${profile?.strength_comp_federation||wPrefs?.strength_comp_federation?` (${profile?.strength_comp_federation||wPrefs?.strength_comp_federation})`:""} — program accordingly`:"";
+    const paceZones5k=(()=>{const t=wPrefs?.current5KTime;if(!t)return null;const[m,s]=t.split(':');const tot=parseInt(m||0)*60+parseInt(s||0);if(!tot)return null;const race=tot/5;const fmt=sec=>{const pm=Math.floor(sec/60);const ps=Math.round(sec%60);return`${pm}:${String(ps).padStart(2,'0')}/km`;};return{easy:fmt(race*1.25),tempo:fmt(race*1.08),race:fmt(race),interval:fmt(race*0.97)};})();
+    const runCtx=paceZones5k?`\nPACE ZONES (5K baseline ${wPrefs.current5KTime}): Easy ${paceZones5k.easy} · Tempo ${paceZones5k.tempo} · Race ${paceZones5k.race} · Intervals ${paceZones5k.interval}. Use these exact paces.`:`\nNo 5K baseline — use RPE/perceived effort.`;
+    const cardioExpCtx=wPrefs?.cardioExp==='beginner'?'\nBEGINNER RUNNER: walk/run intervals OK, keep under 30min, easy effort only, no tempo yet.'
+      :wPrefs?.cardioExp==='advanced'?'\nADVANCED RUNNER: high mileage from week 1, tempo + intervals appropriate, lactate threshold work welcome.'
+      :wPrefs?.cardioExp==='intermediate'?'\nINTERMEDIATE RUNNER: standard progression, introduce tempo from week 3, mix easy and moderate efforts.':'';
+    const isRunPrompt=planMode==="running"||(wPrefs?.splitType||"").toLowerCase().includes("run");
     const prompt=todayType==="rest"
       ?`REST DAY recovery for ${profile.goal} athlete. Mobility, stretching, foam rolling, recovery nutrition. Equipment: ${wPrefs.equipment}. Clear sections.`
-      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${terrainCtx}${compCtx}${actCtx}${deloadCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
+      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${terrainCtx}${compCtx}${isRunPrompt?runCtx:""}${isRunPrompt?cardioExpCtx:""}${actCtx}${deloadCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
     try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);const m=getAIErrorMessage(e);if(m)setWorkout("⚠️ "+m+" Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
   }
 
@@ -2241,13 +2247,17 @@ Be specific and practical. Empathetic tone. No fluff.`,
       const focus=FOCUS_MUSCLES[todayFocus]||"full body movements";
       const structHealthItems=[...(profile.conditions||[]).filter(c=>c!=="none"),...(wPrefs.injuries||[]).filter(Boolean)];
       const structHealthCtx=structHealthItems.length>0?` | HEALTH: ${structHealthItems.join(", ")} — avoid contraindicated movements`:"";
-      const structTerrainCtx=(wPrefs.terrain||profile?.terrain)?` | TERRAIN: ${wPrefs.terrain||profile?.terrain}${(wPrefs.trackAccess||profile?.trackAccess)?", track available":", no track — time-based intervals"}`:"";
+      const structTerrainCtx=(wPrefs.terrain||profile?.terrain)?` | TERRAIN: ${wPrefs.terrain||profile?.terrain}${(wPrefs.trackAccess||profile?.trackAccess)?", track available":", no track — time-based intervals"}`:""
+      const structPaceZones5k=(()=>{const t=wPrefs?.current5KTime;if(!t)return null;const[m,s]=t.split(':');const tot=parseInt(m||0)*60+parseInt(s||0);if(!tot)return null;const race=tot/5;const fmt=sec=>{const pm=Math.floor(sec/60);const ps=Math.round(sec%60);return`${pm}:${String(ps).padStart(2,'0')}/km`;};return{easy:fmt(race*1.25),tempo:fmt(race*1.08),race:fmt(race),interval:fmt(race*0.97)};})();
+      const structRunCtx=runPlanName?(structPaceZones5k?`\nPACE ZONES (5K baseline ${wPrefs.current5KTime}): Easy ${structPaceZones5k.easy} · Tempo ${structPaceZones5k.tempo} · Race ${structPaceZones5k.race} · Intervals ${structPaceZones5k.interval}.`:`\nNo 5K baseline — use RPE.`):"";
+      const structCardioExpCtx=runPlanName?(wPrefs?.cardioExp==='beginner'?'\nBEGINNER RUNNER: walk/run OK, easy effort only, no tempo yet.':wPrefs?.cardioExp==='advanced'?'\nADVANCED RUNNER: tempo + intervals from week 1.':'\nINTERMEDIATE RUNNER: standard progression, tempo from week 3.'):"";
+
       const structCompCtx=(profile?.strength_comp_type||wPrefs?.strength_comp_type)?` | COMP PREP: ${(profile?.strength_comp_type||wPrefs?.strength_comp_type||"").replace(/_/g," ")}${profile?.strength_comp_federation?` (${profile.strength_comp_federation})`:""} — periodize accordingly`:"";
       const structSessionLen=wPrefs.sessionLength||45;
       const exCount=structSessionLen<=30?"3-4":structSessionLen<=45?"4-5":structSessionLen<=60?"5-6":"6-8";
       const structDeloadCtx=deloadActive?"\n⚠️ DELOAD WEEK — use 12-15 reps on all exercises, 3 sets max per exercise, no PRs, technique focus.":"";
       const raw=await ai(`Build a structured ${todayFocus} workout session.
-ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"} | Session: ${structSessionLen}min${structHealthCtx}${structTerrainCtx}${structCompCtx}${structDeloadCtx}
+ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"} | Session: ${structSessionLen}min${structHealthCtx}${structTerrainCtx}${structCompCtx}${structRunCtx}${structCardioExpCtx}${structDeloadCtx}
 ${splitInfo}${runInfo}${hybridInfo}
 MUSCLES TO COVER: ${focus}
 

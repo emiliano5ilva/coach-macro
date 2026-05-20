@@ -551,6 +551,7 @@ export default function NativeApp() {
         strength_target_total:wp.strengthTargetTotal||null,
         strength_current_phase:strengthCurrentPhase,
         strength_weight_class:wp.strengthWeightClass||null,
+        recovery_capacity:wp.recoveryCapacity||'normal',
       },{onConflict:"id"}).select();
       if(error)throw error;
       return true;

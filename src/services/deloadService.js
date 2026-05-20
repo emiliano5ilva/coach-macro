@@ -33,7 +33,7 @@ export async function checkDeloadNeeded(userId) {
   if (existing?.length > 0) return null;
 
   const [profileRes, sessionsRes, sorenessRes, lastDeloadRes] = await Promise.all([
-    sb.from('profiles').select('program_start_date, skill_level, wprefs').eq('id', userId).single(),
+    sb.from('profiles').select('program_start_date, skill_level, wprefs, profile_data, recovery_capacity').eq('id', userId).single(),
     sb.from('workout_logs')
       .select('date, volume_lbs, total_sets, workout')
       .eq('user_id', userId)
@@ -94,7 +94,7 @@ export async function checkDeloadNeeded(userId) {
   }
 
   // ── SIGNAL 3: PLANNED INTERVAL ─────────────────────────────────────────────
-  const recoveryCapacity = prof?.wprefs?.recoveryCapacity || 'normal';
+  const recoveryCapacity = prof?.recovery_capacity || prof?.wprefs?.recoveryCapacity || prof?.profile_data?.recoveryCapacity || 'normal';
   const plannedInterval = THRESHOLDS.planned_interval_weeks[recoveryCapacity] || 5;
   const programStart = new Date(prof?.program_start_date || now);
   const weeksSinceStart = Math.floor((now - programStart) / (7 * 864e5));
