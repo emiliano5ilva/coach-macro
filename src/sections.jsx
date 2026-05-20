@@ -1699,7 +1699,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
   const [todaySoreness,setTodaySoreness]=useState(null);
@@ -3430,6 +3430,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// ACTIVE SESSION</div>
                     <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,lineHeight:1}}>{todayFocus}</div>
+                    {deloadActive&&<div style={{display:"inline-block",marginTop:6,background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.2)",borderRadius:6,padding:"3px 10px",fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.1em",textTransform:"uppercase"}}>DELOAD WEEK — 50% VOLUME</div>}
                     <div style={{fontSize:11,color:T.mu,marginTop:4}}>{activeWorkout.exercises?.length||0} exercises · {activeWorkout.exercises?.reduce((a,e)=>a+(e.sets?.length||0),0)||0} total sets</div>
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>

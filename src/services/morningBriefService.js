@@ -1,5 +1,6 @@
 import { sb, ai } from '../client';
 import { getHyroxPhase } from './hyroxPeriodisationService.js';
+import { getActiveDeload, getUpcomingDeload } from './deloadService.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
@@ -67,6 +68,11 @@ export async function gatherBriefContext(userId) {
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
 
+  const [activeDeload, upcomingDeload] = await Promise.all([
+    getActiveDeload(userId).catch(() => null),
+    getUpcomingDeload(userId).catch(() => null),
+  ]);
+
   return {
     name: firstName,
     primaryGoal: goalNames[p.primaryGoal || goal] || (p.primaryGoal || goal),
@@ -88,6 +94,9 @@ export async function gatherBriefContext(userId) {
     hyroxRaceDate,
     hyroxCategory: wp.hyroxCategory || row?.hyrox_category || null,
     hyroxWeakStations: wp.hyroxWeakStations || row?.hyrox_weak_stations || [],
+    isDeloadWeek: !!activeDeload,
+    deloadIncoming: !activeDeload && !!upcomingDeload,
+    deloadStartDate: upcomingDeload?.week_start || null,
   };
 }
 
@@ -100,7 +109,13 @@ export async function generateBriefContent(ctx) {
     ? `- HYROX: ${ctx.weeksToRace}w to race | Phase: ${ctx.hyroxPhase}${ctx.hyroxWeakStations?.length ? ` | Weak stations: ${ctx.hyroxWeakStations.join(', ')}` : ''}${ctx.hyroxCategory ? ` | Category: ${ctx.hyroxCategory}` : ''}`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.
+  const deloadBlock = ctx.isDeloadWeek
+    ? `IMPORTANT: This is a DELOAD WEEK. Today section should reference the lighter training and explain why it is productive not lazy. Coach Says should focus on quality of movement not intensity. Deload weeks are where the adaptations set in.`
+    : ctx.deloadIncoming
+      ? `NOTE: A deload week starts on ${ctx.deloadStartDate}. You may briefly reference this if relevant to recovery context.`
+      : '';
+
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}

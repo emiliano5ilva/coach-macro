@@ -47,6 +47,7 @@ import { BodyCompositionVector, GoalProbabilityCone, BalanceCheck } from "./Prog
 import { NutritionPerformanceChart, WeightTrendChart, MacroCalendarHeatmap, SleepPerformanceChart, AthleteWaveformChart, RunPaceChart, RunWeeklyMilesChart, RunTrainingLoadChart } from "./ProgressCharts3.jsx";
 import ChartSettingsScreen, { CHART_REGISTRY, DEFAULT_SETTINGS as CHART_DEFAULT_SETTINGS, ChartWrap, ChartExplainModal } from "./screens/ChartSettings.jsx";
 import PhotoFoodLogger from "./PhotoFoodLogger.jsx";
+import { checkDeloadNeeded, getActiveDeload, getDeloadHistory, skipDeload, activateUpcomingDeload, completeExpiredDeload } from "./services/deloadService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
 
@@ -1436,6 +1437,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [deloadActive,setDeloadActive]=useState(profile?.deload_active||false);
   const [deloadStartedAt,setDeloadStartedAt]=useState(profile?.deload_started_at||null);
   const [deloadSnooze,setDeloadSnooze]=useState(()=>localStorage.getItem("deload_snooze")||null);
+  const [upcomingDeload,setUpcomingDeload]=useState(null);
+  const [deloadWeeksHistory,setDeloadWeeksHistory]=useState([]);
+  const [skipConfirmDeload,setSkipConfirmDeload]=useState(false);
   const [dailyScores,setDailyScores]=useState(()=>(profile?.daily_scores||[]).slice(-90));
   const [scoreMilestones,setScoreMilestones]=useState(()=>profile?.score_milestones||[]);
   const [activeMilestone,setActiveMilestone]=useState(null);
@@ -1538,6 +1542,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         }),
       sb.from("personal_records").select("exercise_name,weight,reps,date").eq("user_id",user.id).order("date",{ascending:false}).limit(30)
         .then(({data})=>{if(data)setDbPRs(data);}),
+      sb.from("deload_weeks").select("*").eq("user_id",user.id).order("week_start",{ascending:false}).limit(20)
+        .then(({data})=>{if(data)setDeloadWeeksHistory(data);}),
     ]);
     setIsRefreshing(false);
   }
@@ -1704,6 +1710,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     });
     sb.from("personal_records").select("exercise_name,weight,reps,date").eq("user_id",user.id).order("date",{ascending:false}).limit(30)
       .then(({data})=>{if(data)setDbPRs(data);});
+    // Deload history
+    sb.from("deload_weeks").select("*").eq("user_id",user.id).order("week_start",{ascending:false}).limit(20)
+      .then(({data})=>{if(data)setDeloadWeeksHistory(data);});
     // Bodyweight logs — last 90 days
     sb.from("bodyweight_logs").select("date,weight").eq("user_id",user.id).order("date",{ascending:true}).limit(90).then(({data})=>{
       if(data&&data.length>0)setBodyweightLogs(data);
@@ -2436,14 +2445,30 @@ Rules:
 
   async function startDeload(){
     const now=new Date().toISOString();
-    setDeloadActive(true);setDeloadStartedAt(now);
+    const today=now.split("T")[0];
+    // Find the upcoming deload row from state, or use today as start
+    const upcomingRow=deloadWeeksHistory.find(d=>d.status==="upcoming");
+    const weekStart=upcomingRow?.week_start||today;
+    const weekEndDate=new Date(weekStart);weekEndDate.setDate(weekEndDate.getDate()+6);
+    const weekEnd=weekEndDate.toISOString().split("T")[0];
+    setDeloadActive(true);setDeloadStartedAt(weekStart);
+    setUpcomingDeload(null);
     if(user){
-      try{await sb.from("profiles").upsert({
-        id:user.id,
-        profile_data:{...profile,deload_active:true,deload_started_at:now,last_deload_at:now},
-        deload_active:true,deload_started_at:now,last_deload_at:now,
-        updated_at:now
-      },{onConflict:"id"});}catch(e){console.error("[startDeload]",e);}
+      try{
+        await sb.from("profiles").upsert({
+          id:user.id,
+          profile_data:{...profile,deload_active:true,deload_started_at:weekStart,last_deload_at:now},
+          deload_active:true,deload_started_at:weekStart,last_deload_at:now,updated_at:now,
+        },{onConflict:"id"});
+        const signals=analyzeDeload(workoutLogsRaw,profile,schedule);
+        const sigMap={};signals.forEach(s=>{sigMap[s.type]={message:s.label};});
+        const {data:deloadRow}=await sb.from("deload_weeks").upsert({
+          user_id:user.id,week_start:weekStart,week_end:weekEnd,
+          trigger_reason:signals.length>0?"combined":"planned",
+          trigger_signals:sigMap,status:"active",volume_reduction_pct:50,
+        },{onConflict:"user_id,week_start"}).select().single();
+        if(deloadRow)setDeloadWeeksHistory(prev=>[deloadRow,...prev.filter(d=>d.week_start!==weekStart)]);
+      }catch(e){console.error("[startDeload]",e);}
     }
   }
 
@@ -2486,14 +2511,22 @@ Rules:
 
   async function handleDeloadComplete(){
     const now=new Date().toISOString();
-    setDeloadActive(false);setDeloadStartedAt(null);
+    setDeloadActive(false);setDeloadStartedAt(null);setUpcomingDeload(null);
+    const activeRow=deloadWeeksHistory.find(d=>d.status==="active");
+    if(activeRow){
+      setDeloadWeeksHistory(prev=>prev.map(d=>d.id===activeRow.id?{...d,status:"completed"}:d));
+    }
     if(user){
-      try{await sb.from("profiles").upsert({
-        id:user.id,
-        profile_data:{...profile,deload_active:false,deload_started_at:null},
-        deload_active:false,
-        updated_at:now
-      },{onConflict:"id"});}catch(e){console.error("[handleDeloadComplete]",e);}
+      try{
+        await sb.from("profiles").upsert({
+          id:user.id,
+          profile_data:{...profile,deload_active:false,deload_started_at:null},
+          deload_active:false,updated_at:now,
+        },{onConflict:"id"});
+        if(activeRow){
+          await sb.from("deload_weeks").update({status:"completed"}).eq("id",activeRow.id);
+        }
+      }catch(e){console.error("[handleDeloadComplete]",e);}
     }
   }
 
@@ -2503,6 +2536,44 @@ Rules:
       if(days>=7)handleDeloadComplete();
     }
   },[deloadActive,deloadStartedAt]);
+
+  // ── Daily deload check (once per day) ─────────────────────────────────────
+  useEffect(()=>{
+    if(!user)return;
+    const today=new Date().toISOString().split("T")[0];
+    const lastCheck=localStorage.getItem("deload_check_date");
+    if(lastCheck===today)return;
+    localStorage.setItem("deload_check_date",today);
+
+    // Complete any expired deload
+    completeExpiredDeload(user.id).then(completed=>{
+      if(completed){
+        setDeloadActive(false);setDeloadStartedAt(null);
+        setDeloadWeeksHistory(prev=>prev.map(d=>d.id===completed.id?{...d,status:"completed"}:d));
+        sb.from("profiles").upsert({id:user.id,deload_active:false,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+      }
+    }).catch(()=>{});
+
+    // Activate any upcoming deload that just started
+    activateUpcomingDeload(user.id).then(activated=>{
+      if(activated){
+        setDeloadActive(true);setDeloadStartedAt(activated.week_start);
+        setDeloadWeeksHistory(prev=>prev.map(d=>d.id===activated.id?activated:d));
+        sb.from("profiles").upsert({id:user.id,deload_active:true,deload_started_at:activated.week_start,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+      }
+    }).catch(()=>{});
+
+    // Check if a new deload should be scheduled
+    checkDeloadNeeded(user.id).then(result=>{
+      if(result){
+        setUpcomingDeload(result);
+        setDeloadWeeksHistory(prev=>{
+          const exists=prev.find(d=>d.id===result.deload?.id);
+          return exists?prev:[result.deload,...prev].filter(Boolean);
+        });
+      }
+    }).catch(()=>{});
+  },[user?.id]);
 
   // ── Coach Macro Score ──────────────────────────────────────────────────────
   const coachScore = useMemo(()=>{
@@ -3048,25 +3119,76 @@ Rules:
           <div className="coach-text">"{todayFocus} day. Stay consistent — your progress compounds every session."</div>
         </div>
 
-        {/* ── SMART DELOAD DETECTOR ── */}
-        {(()=>{
+        {/* ── DELOAD DETECTION ── */}
+        {!deloadActive&&(()=>{
           const todayStr=new Date().toISOString().split("T")[0];
-          if(deloadActive){
-            const daysLeft=deloadStartedAt?Math.max(0,7-Math.floor((new Date()-new Date(deloadStartedAt))/864e5)):7;
-            return <DeloadActiveBadge daysLeft={daysLeft} onComplete={handleDeloadComplete}/>;
-          }
           const snoozedToday=deloadSnooze===todayStr;
-          if(!snoozedToday&&workoutLogsRaw.length>=5){
-            const signals=analyzeDeload(workoutLogsRaw,profile,schedule);
-            if(signals.length>=3){
-              return <DeloadCard
-                signals={signals}
-                onStart={startDeload}
-                onDismiss={()=>{setDeloadSnooze(todayStr);localStorage.setItem("deload_snooze",todayStr);}}
-              />;
-            }
+          if(snoozedToday)return null;
+
+          // Determine signals to display: prefer service result, fall back to local analyzeDeload
+          const svcSignals=upcomingDeload?.signals||null;
+          const localSignals=!svcSignals&&workoutLogsRaw.length>=5?analyzeDeload(workoutLogsRaw,profile,schedule):[];
+          if(!svcSignals&&localSignals.length<3)return null;
+
+          const deloadStartStr=upcomingDeload?.deloadStart||null;
+          const deloadEndStr=upcomingDeload?.deloadEnd||null;
+          const formattedRange=deloadStartStr&&deloadEndStr
+            ?`${new Date(deloadStartStr+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})} — ${new Date(deloadEndStr+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`
+            :"Next week";
+
+          // Build top 2 signal lines
+          let signalLines=[];
+          if(svcSignals){
+            if(svcSignals.planned)signalLines.push(`You've trained hard for ${svcSignals.planned.weeks} weeks without a break.`);
+            if(svcSignals.soreness_high)signalLines.push(svcSignals.soreness_high.message+".");
+            if(svcSignals.performance_decline)signalLines.push(svcSignals.performance_decline.message+".");
+            if(svcSignals.rpe_high)signalLines.push(svcSignals.rpe_high.message+".");
+          } else {
+            signalLines=localSignals.slice(0,2).map(s=>s.label);
           }
-          return null;
+          signalLines=signalLines.slice(0,2);
+
+          if(skipConfirmDeload){
+            const upcoming=upcomingDeload?.deload||deloadWeeksHistory.find(d=>d.status==="upcoming");
+            return(
+              <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// SKIP DELOAD?</div>
+                <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.7)",lineHeight:1.6,marginBottom:16}}>
+                  Skipping a deload increases injury risk and slows long-term progress. We strongly recommend you take it.
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={async()=>{
+                    const row=upcoming||upcomingDeload?.deload;
+                    if(row?.id){await sb.from("deload_weeks").update({status:"skipped"}).eq("id",row.id);setDeloadWeeksHistory(prev=>prev.map(d=>d.id===row.id?{...d,status:"skipped"}:d));}
+                    setUpcomingDeload(null);setSkipConfirmDeload(false);
+                    setDeloadSnooze(todayStr);localStorage.setItem("deload_snooze",todayStr);
+                  }} style={{flex:1,padding:12,background:"rgba(245,245,240,0.08)",border:"1px solid rgba(245,245,240,0.15)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>SKIP ANYWAY</button>
+                  <button onClick={()=>setSkipConfirmDeload(false)} style={{flex:2,padding:12,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>TAKE THE DELOAD</button>
+                </div>
+              </div>
+            );
+          }
+
+          return(
+            <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(254,160,32,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// DELOAD WEEK INCOMING</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",marginBottom:10,textTransform:"uppercase",lineHeight:1}}>
+                YOUR BODY NEEDS THIS<span style={{color:"#FEA020"}}>.</span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+                {signalLines.map((l,i)=>(
+                  <div key={i} style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>{l}</div>
+                ))}
+              </div>
+              <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>
+                Next week: same exercises, 50% less volume and weight. This is where the gains you've built actually set in.
+              </div>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",marginBottom:14}}>DELOAD WEEK: {formattedRange}</div>
+              <button onClick={startDeload} style={{width:"100%",padding:13,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>GOT IT →</button>
+              <button onClick={()=>setSkipConfirmDeload(true)} style={{width:"100%",padding:10,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SKIP DELOAD</button>
+            </div>
+          );
         })()}
 
         {/* ── INJURY PREVENTION ALERT ── */}
@@ -3090,32 +3212,68 @@ Rules:
           </div>
         ))}
 
-        {/* Today's session */}
-        <div className="hero-card" style={{margin:"0 20px 14px",padding:"16px",borderRadius:14,background:deloadActive?"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05) 40%,var(--navy-mid) 100%)":undefined,border:deloadActive?"1px solid rgba(245,158,11,0.2)":undefined}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-            <div className="header-eyebrow">// Today's Session</div>
-            <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {topRiskLevel&&!deloadActive&&(
-                <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:6,
-                  background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,158,11,0.12)",
-                  color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,
-                  border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,158,11,0.3)"}`,
-                  fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
-                  ⚠️ {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
-                </span>
-              )}
-              {deloadActive
-                ?<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(245,158,11,0.15)",color:T.fat,border:"1px solid rgba(245,158,11,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>DELOAD</span>
-                :<span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
-              }
+        {/* Today's session — STATE B (deload active) or normal */}
+        {deloadActive
+          ?(
+            <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(254,160,32,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// DELOAD WEEK ACTIVE</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>
+                RECOVERY WEEK<span style={{color:"#FEA020"}}>.</span>
+              </div>
+              <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5,marginBottom:14}}>
+                Same movements. Half the volume. Trust the process.
+              </div>
+              {(()=>{
+                const daysLeft=deloadStartedAt?Math.max(0,7-Math.floor((new Date()-new Date(deloadStartedAt))/864e5)):7;
+                return(
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.12em"}}>
+                      {daysLeft>0?`${daysLeft} day${daysLeft===1?"":"s"} remaining`:"Deload complete — great work."}
+                    </div>
+                    <div style={{flex:1,height:3,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${Math.round((7-Math.max(0,daysLeft))/7*100)}%`,background:"#FEA020",borderRadius:2,transition:"width 0.6s"}}/>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div style={{background:"rgba(254,160,32,0.06)",border:"1px solid rgba(254,160,32,0.15)",borderRadius:8,padding:"8px 12px",marginBottom:14,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>
+                50% load · 50% volume · Full movement pattern
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setSection("train")} style={{flex:1,padding:14,background:"#FEA020",border:"none",borderRadius:12,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
+                  START DELOAD SESSION →
+                </button>
+                {deloadStartedAt&&Math.max(0,7-Math.floor((new Date()-new Date(deloadStartedAt))/864e5))<=0&&(
+                  <button onClick={handleDeloadComplete} style={{padding:14,background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:12,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0}}>COMPLETE →</button>
+                )}
+              </div>
             </div>
-          </div>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
-          <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:deloadActive?T.fat:"var(--red)",border:"none",borderRadius:12,color:deloadActive?"#0a0e1a":"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            <svg width={14} height={14} viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>
-            Start Session
-          </button>
-        </div>
+          ):(
+            <div className="hero-card" style={{margin:"0 20px 14px",padding:"16px",borderRadius:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div className="header-eyebrow">// Today's Session</div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  {topRiskLevel&&(
+                    <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:6,
+                      background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,158,11,0.12)",
+                      color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,
+                      border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,158,11,0.3)"}`,
+                      fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                      ⚠️ {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
+                    </span>
+                  )}
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
+                </div>
+              </div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
+              <button onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <svg width={14} height={14} viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>
+                Start Session
+              </button>
+            </div>
+          )
+        }
 
         {/* ── PRESENT SECTION ── */}
         <div style={{margin:"0 20px 8px"}}>
@@ -3537,9 +3695,12 @@ Rules:
     const weeklyFreq=useMemo(()=>Array.from({length:8},(_,i)=>{
       const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-(7-i)*7);ws.setHours(0,0,0,0);
       const we=new Date(ws);we.setDate(we.getDate()+7);
-      const count=(workoutLogsRaw||[]).filter(l=>l.date>=ws.toISOString().split('T')[0]&&l.date<we.toISOString().split('T')[0]).length;
-      return{week:i+1,count,isCurrent:i===7};
-    }),[workoutLogsRaw]);
+      const wsStr=ws.toISOString().split('T')[0];
+      const weStr=we.toISOString().split('T')[0];
+      const count=(workoutLogsRaw||[]).filter(l=>l.date>=wsStr&&l.date<weStr).length;
+      const isDeloadWk=(deloadWeeksHistory||[]).some(d=>d.week_start<=weStr&&d.week_end>=wsStr&&(d.status==="active"||d.status==="completed"));
+      return{week:i+1,count,isCurrent:i===7,isDeload:isDeloadWk};
+    }),[workoutLogsRaw,deloadWeeksHistory]);
 
     const restDaysThisWeek=Math.max(0,(new Date().getDay()||7)-workoutsThisWeek);
     const recoveryScore=useMemo(()=>{
@@ -3956,19 +4117,30 @@ Rules:
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Workout Frequency</div>
               {(()=>{
                 const maxC=Math.max(...weeklyFreq.map(w=>w.count),1);
+                const hasDeloadWks=weeklyFreq.some(w=>w.isDeload);
                 return(
-                  <div style={{display:"flex",alignItems:"flex-end",gap:4,height:72}}>
-                    {weeklyFreq.map(({week,count,isCurrent})=>{
-                      const h=count>0?Math.max(8,Math.round((count/maxC)*72)):4;
-                      const c=isCurrent?"#e8341c":count>0?"rgba(232,52,28,0.55)":"rgba(245,245,240,0.06)";
-                      return(
-                        <div key={week} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                          <div style={{width:"100%",height:h,background:c,borderRadius:3,transition:"height 0.4s"}}/>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:isCurrent?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.25)"}}>{isCurrent?"NOW":`W${week}`}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <>
+                    <div style={{display:"flex",alignItems:"flex-end",gap:4,height:72}}>
+                      {weeklyFreq.map(({week,count,isCurrent,isDeload})=>{
+                        const h=count>0?Math.max(8,Math.round((count/maxC)*72)):isDeload?20:4;
+                        const c=isDeload?(isCurrent?"#FEA020":"rgba(254,160,32,0.4)"):isCurrent?"#e8341c":count>0?"rgba(232,52,28,0.55)":"rgba(245,245,240,0.06)";
+                        return(
+                          <div key={week} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                            <div style={{width:"100%",height:h,background:c,borderRadius:3,transition:"height 0.4s"}}/>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:isDeload?"#FEA020":isCurrent?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.25)",textAlign:"center",lineHeight:1.2}}>
+                              {isDeload?"DELOAD":isCurrent?"NOW":`W${week}`}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {hasDeloadWks&&(
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:"rgba(254,160,32,0.4)"}}/>
+                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Deload week</span>
+                      </div>
+                    )}
+                  </>
                 );
               })()}
             </div>
@@ -4220,7 +4392,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
