@@ -1,6 +1,7 @@
 import { sb, ai } from '../client';
 import { getHyroxPhase } from './hyroxPeriodisationService.js';
 import { getActiveDeload, getUpcomingDeload } from './deloadService.js';
+import { getActivePlateaus } from './plateauService.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
@@ -68,9 +69,10 @@ export async function gatherBriefContext(userId) {
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
 
-  const [activeDeload, upcomingDeload] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
+    getActivePlateaus(userId).catch(() => []),
   ]);
 
   return {
@@ -97,6 +99,10 @@ export async function gatherBriefContext(userId) {
     isDeloadWeek: !!activeDeload,
     deloadIncoming: !activeDeload && !!upcomingDeload,
     deloadStartDate: upcomingDeload?.week_start || null,
+    activePlateaus: (plateaus || []).slice(0, 2).map(p => ({
+      exercise: p.exercise_name,
+      strategy: p.strategy_prescribed,
+    })),
   };
 }
 
@@ -115,7 +121,11 @@ export async function generateBriefContent(ctx) {
       ? `NOTE: A deload week starts on ${ctx.deloadStartDate}. You may briefly reference this if relevant to recovery context.`
       : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}
+  const plateauBlock = ctx.activePlateaus?.length > 0
+    ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
+    : '';
+
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}

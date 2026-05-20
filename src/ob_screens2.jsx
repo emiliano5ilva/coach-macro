@@ -48,6 +48,7 @@ import { NutritionPerformanceChart, WeightTrendChart, MacroCalendarHeatmap, Slee
 import ChartSettingsScreen, { CHART_REGISTRY, DEFAULT_SETTINGS as CHART_DEFAULT_SETTINGS, ChartWrap, ChartExplainModal } from "./screens/ChartSettings.jsx";
 import PhotoFoodLogger from "./PhotoFoodLogger.jsx";
 import { checkDeloadNeeded, getActiveDeload, getDeloadHistory, skipDeload, activateUpcomingDeload, completeExpiredDeload } from "./services/deloadService.js";
+import { detectPlateaus, getActivePlateaus, checkPlateauResolved, getStrategyByName } from "./services/plateauService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
 
@@ -1439,6 +1440,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [deloadSnooze,setDeloadSnooze]=useState(()=>localStorage.getItem("deload_snooze")||null);
   const [upcomingDeload,setUpcomingDeload]=useState(null);
   const [deloadWeeksHistory,setDeloadWeeksHistory]=useState([]);
+  const [activePlateaus,setActivePlateaus]=useState([]);
+  const [plateauSnooze,setPlateauSnooze]=useState(()=>localStorage.getItem("plateau_snooze")||null);
   const [skipConfirmDeload,setSkipConfirmDeload]=useState(false);
   const [dailyScores,setDailyScores]=useState(()=>(profile?.daily_scores||[]).slice(-90));
   const [scoreMilestones,setScoreMilestones]=useState(()=>profile?.score_milestones||[]);
@@ -1544,6 +1547,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         .then(({data})=>{if(data)setDbPRs(data);}),
       sb.from("deload_weeks").select("*").eq("user_id",user.id).order("week_start",{ascending:false}).limit(20)
         .then(({data})=>{if(data)setDeloadWeeksHistory(data);}),
+      getActivePlateaus(user.id).then(data=>{if(data)setActivePlateaus(data);}).catch(()=>{}),
     ]);
     setIsRefreshing(false);
   }
@@ -1713,6 +1717,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     // Deload history
     sb.from("deload_weeks").select("*").eq("user_id",user.id).order("week_start",{ascending:false}).limit(20)
       .then(({data})=>{if(data)setDeloadWeeksHistory(data);});
+    // Active plateaus
+    getActivePlateaus(user.id).then(data=>{if(data)setActivePlateaus(data);}).catch(()=>{});
     // Bodyweight logs — last 90 days
     sb.from("bodyweight_logs").select("date,weight").eq("user_id",user.id).order("date",{ascending:true}).limit(90).then(({data})=>{
       if(data&&data.length>0)setBodyweightLogs(data);
@@ -2424,11 +2430,40 @@ Rules:
         try{const m=await import(/* @vite-ignore */ "@capacitor-community/in-app-review");await(m.InAppReview||m.AppReview)?.requestReview?.();}catch{}
       }
 
+      // Plateau detection and resolution
+      let plateausBroken=[];
+      if(user){
+        try{
+          // Check if any active plateaus were broken this session
+          const checkPromises=setsLogged.map(async ex=>{
+            const maxW=Math.max(...ex.sets.filter(s=>s.done!==false).map(s=>parseFloat(s.weight)||0));
+            if(maxW>0){
+              const resolved=await checkPlateauResolved(user.id,ex.name,maxW);
+              if(resolved)plateausBroken.push(ex.name);
+            }
+          });
+          await Promise.all(checkPromises);
+          // Detect new plateaus after session saved
+          const newPlateaus=await detectPlateaus(user.id,profile);
+          if(newPlateaus.length>0){
+            setActivePlateaus(prev=>{
+              const existing=new Set(prev.map(p=>p.id));
+              const added=newPlateaus.filter(p=>p.id&&!existing.has(p.id));
+              return [...prev,...added];
+            });
+          }
+          // Refresh resolved plateaus out of state
+          if(plateausBroken.length>0){
+            setActivePlateaus(prev=>prev.filter(p=>!plateausBroken.includes(p.exercise_name)));
+          }
+        }catch(e){console.error("[finishWorkout] plateau:",e);}
+      }
+
       setWorkoutSummary({
         title:todayFocus,duration,burn,
         totalVolume:Math.round(totalVolume),
         totalSets,completedSets:totalSetsLogged,
-        prs,exercises:setsLogged,
+        prs,exercises:setsLogged,plateausBroken,
       });
     } else {
       setActiveWorkout(null);
@@ -3187,6 +3222,54 @@ Rules:
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",marginBottom:14}}>DELOAD WEEK: {formattedRange}</div>
               <button onClick={startDeload} style={{width:"100%",padding:13,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>GOT IT →</button>
               <button onClick={()=>setSkipConfirmDeload(true)} style={{width:"100%",padding:10,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SKIP DELOAD</button>
+            </div>
+          );
+        })()}
+
+        {/* ── PLATEAU DETECTION ── */}
+        {activePlateaus.length>0&&plateauSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
+          const shown=activePlateaus.slice(0,2);
+          const extra=activePlateaus.length-shown.length;
+          return(
+            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,rgba(96,165,250,0.06) 0%,transparent 70%)",pointerEvents:"none"}}/>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#60a5fa",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// PLATEAU DETECTED</div>
+              <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:14}}>
+                {shown.map((p,i)=>{
+                  const strategy=getStrategyByName(p.strategy_prescribed);
+                  return(
+                    <div key={p.id||i}>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>
+                        {p.exercise_name.toUpperCase()}<span style={{color:"#60a5fa"}}>.</span>
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:10}}>
+                        {p.plateau_type==="weight"
+                          ?`Stuck at ${p.stalled_value} lbs for ${p.sessions_stalled} sessions.`
+                          :`Volume flat or declining for ${p.sessions_stalled} sessions.`}
+                      </div>
+                      {strategy&&(
+                        <>
+                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// BREAK IT WITH</div>
+                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",marginBottom:4}}>
+                            {strategy.name}<span style={{color:"#60a5fa"}}>.</span>
+                          </div>
+                          <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:8}}>{strategy.description}</div>
+                          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                            {strategy.prescription.map((step,si)=>(
+                              <div key={si} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                                <span style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",minWidth:20,flexShrink:0,marginTop:1}}>0{si+1}</span>
+                                <span style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5}}>{step}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {extra>0&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:12}}>and {extra} more exercise{extra>1?"s":""} need attention</div>}
+              <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setPlateauSnooze(t);localStorage.setItem("plateau_snooze",t);}} style={{width:"100%",padding:13,background:"#60a5fa",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
             </div>
           );
         })()}
@@ -4076,6 +4159,29 @@ Rules:
 
           {/* ── STRENGTH ── */}
           {activeTab==="strength"&&<>
+            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.12)",borderRadius:12}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>// ACTIVE PLATEAUS</div>
+              {activePlateaus.length>0?(
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {activePlateaus.map((p,i)=>(
+                    <div key={p.id||i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<activePlateaus.length-1?"1px solid rgba(245,245,240,0.05)":"none"}}>
+                      <div style={{flex:1,minWidth:0,marginRight:12}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.exercise_name}</div>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>
+                          {p.plateau_type==="weight"?`Weight stuck at ${p.stalled_value} lbs × ${p.sessions_stalled} sessions`:`Volume flat × ${p.sessions_stalled} sessions`}
+                        </div>
+                      </div>
+                      {p.strategy_prescribed&&(
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#60a5fa",textAlign:"right",flexShrink:0,maxWidth:110,lineHeight:1.3}}>{p.strategy_prescribed}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ):(
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#22c55e",marginTop:6}}>✓ All lifts progressing</div>
+              )}
+            </div>
+
             {personalRecords.length>0?(
               <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Personal Records</div>
@@ -4392,7 +4498,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}

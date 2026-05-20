@@ -1512,7 +1512,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
 
 // WarmupScreen is now imported from ./components/WarmupScreen.jsx
 
-function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogMore }) {
+function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogMore, plateausBroken }) {
   const [coachNote, setCoachNote] = useState(null);
   const [noteLoading, setNoteLoading] = useState(true);
 
@@ -1566,6 +1566,22 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
               <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:T.prot}}>{pr.weight} {wUnit} ← new PR</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Plateaus broken */}
+      {plateausBroken?.length>0&&(
+        <div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,padding:"12px 16px",marginBottom:14}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#60a5fa",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// PLATEAUS BROKEN</div>
+          {plateausBroken.map((name,i)=>(
+            <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:i<plateausBroken.length-1?6:10}}>
+              <span style={{fontSize:16}}>💪</span>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:15,color:"#f5f5f0",textTransform:"uppercase"}}>{name} — UNSTUCK.</span>
+            </div>
+          ))}
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:16,color:"rgba(245,245,240,0.7)",lineHeight:1.4}}>
+            The strategy worked. Keep pushing — the adaptation is happening.
+          </div>
         </div>
       )}
 
@@ -1699,7 +1715,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
   const [todaySoreness,setTodaySoreness]=useState(null);
@@ -3423,6 +3439,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     profile={profile}
                     onSaveAndExit={clearWorkoutSummary}
                     onLogMore={()=>{clearWorkoutSummary();setTrainScreen("builder");}}
+                    plateausBroken={workoutSummary.plateausBroken||[]}
                   />
                 :<div>
                 {/* Header */}
@@ -3568,15 +3585,47 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           </div>
                           {ex.notes&&<div style={{fontSize:11,color:T.mu,marginLeft:32}}>{ex.notes}</div>}
                           {ex.mobilitySubstituted&&ex.originalName&&<div style={{fontSize:10,color:"#8B5CF6",marginLeft:32,marginTop:2}}>Substituted from {ex.originalName} due to mobility</div>}
+                          {(()=>{
+                            const exPlateau=(activePlateaus||[]).find(p=>p.exercise_name===ex.name&&p.status==="active");
+                            if(!exPlateau)return null;
+                            return(
+                              <div style={{marginLeft:32,marginTop:4}}>
+                                <span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                                  PLATEAU — USE {exPlateau.strategy_prescribed||"DROP SETS"} TODAY
+                                </span>
+                              </div>
+                            );
+                          })()}
                           <div style={{marginLeft:32,marginTop:4}}>
                             <MuscleChips name={ex.name} sugg={sugg} history={history}/>
                           </div>
                         </div>
-                        {sugg&&<div style={{background:`${T.prot}10`,border:`1px solid ${T.prot}25`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
-                          <div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div>
-                          <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}{profile?.wUnit || 'lbs'} × {sugg.reps}</div>
-                          <div style={{fontSize:9,color:T.mu}}>{sugg.note}</div>
-                        </div>}
+                        {(()=>{
+                          const exPlateau=(activePlateaus||[]).find(p=>p.exercise_name===ex.name&&p.status==="active");
+                          const dropPct=0.70;
+                          const dropWeight=sugg?.weight?Math.round(parseFloat(sugg.weight)*dropPct/2.5)*2.5:null;
+                          return(
+                            <div style={{background:`${T.prot}10`,border:`1px solid ${T.prot}25`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
+                              {sugg&&<>
+                                <div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div>
+                                <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}{profile?.wUnit || 'lbs'} × {sugg.reps}</div>
+                                <div style={{fontSize:9,color:T.mu}}>{sugg.note}</div>
+                              </>}
+                              {exPlateau&&dropWeight&&exPlateau.strategy_prescribed==="DROP SET TECHNIQUE"&&(
+                                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.4}}>Drop set: {dropWeight}{profile?.wUnit||'lbs'} after final set</div>
+                              )}
+                              {exPlateau&&exPlateau.strategy_prescribed==="WAVE LOADING"&&sugg?.weight&&(()=>{
+                                const w=parseFloat(sugg.weight)||0;
+                                return(
+                                  <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.5}}>
+                                    W1: {Math.round(w*0.85/2.5)*2.5}×3 · {Math.round(w*0.90/2.5)*2.5}×2<br/>
+                                    W2: {Math.round(w*0.87/2.5)*2.5}×3 · {Math.round(w*0.92/2.5)*2.5}×2
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Progress bar */}
