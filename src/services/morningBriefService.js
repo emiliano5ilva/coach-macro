@@ -2,6 +2,7 @@ import { sb, ai } from '../client';
 import { getHyroxPhase } from './hyroxPeriodisationService.js';
 import { getActiveDeload, getUpcomingDeload } from './deloadService.js';
 import { getActivePlateaus } from './plateauService.js';
+import { getLatestBalance, getBalanceCorrections } from './muscleBalanceService.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
@@ -69,11 +70,13 @@ export async function gatherBriefContext(userId) {
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
 
-  const [activeDeload, upcomingDeload, plateaus] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus, latestBalance] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
     getActivePlateaus(userId).catch(() => []),
+    getLatestBalance(userId).catch(() => null),
   ]);
+  const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
   return {
     name: firstName,
@@ -103,6 +106,8 @@ export async function gatherBriefContext(userId) {
       exercise: p.exercise_name,
       strategy: p.strategy_prescribed,
     })),
+    muscleImbalance: balanceCorrections.length > 0 ? balanceCorrections[0].type : null,
+    imbalanceSeverity: balanceCorrections[0]?.severity || null,
   };
 }
 
@@ -121,11 +126,17 @@ export async function generateBriefContent(ctx) {
       ? `NOTE: A deload week starts on ${ctx.deloadStartDate}. You may briefly reference this if relevant to recovery context.`
       : '';
 
+  const muscleImbalanceBlock = ctx.muscleImbalance
+    ? `MUSCLE BALANCE ALERT:\n${ctx.muscleImbalance === 'push_pull'
+        ? 'Push volume significantly exceeds pull volume. If today is a push session suggest adding a pull exercise.'
+        : 'Quad volume significantly exceeds posterior chain. If today is legs suggest adding Romanian deadlifts.'}\nSeverity: ${ctx.imbalanceSeverity}`
+    : '';
+
   const plateauBlock = ctx.activePlateaus?.length > 0
     ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}

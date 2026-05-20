@@ -49,6 +49,7 @@ import ChartSettingsScreen, { CHART_REGISTRY, DEFAULT_SETTINGS as CHART_DEFAULT_
 import PhotoFoodLogger from "./PhotoFoodLogger.jsx";
 import { checkDeloadNeeded, getActiveDeload, getDeloadHistory, skipDeload, activateUpcomingDeload, completeExpiredDeload } from "./services/deloadService.js";
 import { detectPlateaus, getActivePlateaus, checkPlateauResolved, getStrategyByName } from "./services/plateauService.js";
+import { calculateMuscleBalance, getBalanceCorrections, getLatestBalance } from "./services/muscleBalanceService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
 
@@ -1442,6 +1443,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [deloadWeeksHistory,setDeloadWeeksHistory]=useState([]);
   const [activePlateaus,setActivePlateaus]=useState([]);
   const [plateauSnooze,setPlateauSnooze]=useState(()=>localStorage.getItem("plateau_snooze")||null);
+  const [balanceCorrections,setBalanceCorrections]=useState([]);
+  const [latestBalance,setLatestBalance]=useState(null);
+  const [balanceSnooze,setBalanceSnooze]=useState(()=>localStorage.getItem("balance_snooze")||null);
   const [skipConfirmDeload,setSkipConfirmDeload]=useState(false);
   const [dailyScores,setDailyScores]=useState(()=>(profile?.daily_scores||[]).slice(-90));
   const [scoreMilestones,setScoreMilestones]=useState(()=>profile?.score_milestones||[]);
@@ -1548,6 +1552,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       sb.from("deload_weeks").select("*").eq("user_id",user.id).order("week_start",{ascending:false}).limit(20)
         .then(({data})=>{if(data)setDeloadWeeksHistory(data);}),
       getActivePlateaus(user.id).then(data=>{if(data)setActivePlateaus(data);}).catch(()=>{}),
+      getLatestBalance(user.id).then(b=>{if(b){setLatestBalance(b);setBalanceCorrections(getBalanceCorrections(b));}}).catch(()=>{}),
     ]);
     setIsRefreshing(false);
   }
@@ -1719,6 +1724,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       .then(({data})=>{if(data)setDeloadWeeksHistory(data);});
     // Active plateaus
     getActivePlateaus(user.id).then(data=>{if(data)setActivePlateaus(data);}).catch(()=>{});
+    // Muscle balance
+    getLatestBalance(user.id).then(b=>{if(b){setLatestBalance(b);setBalanceCorrections(getBalanceCorrections(b));}}).catch(()=>{});
     // Bodyweight logs — last 90 days
     sb.from("bodyweight_logs").select("date,weight").eq("user_id",user.id).order("date",{ascending:true}).limit(90).then(({data})=>{
       if(data&&data.length>0)setBodyweightLogs(data);
@@ -2230,6 +2237,22 @@ Rules:
           sets:ex.sets.slice(0,Math.max(2,Math.ceil(ex.sets.length*0.6))).map(s=>({...s,reps:typeof s.reps==="number"?13:"12-15"})),
         }));
       }
+      // Inject balance correction exercises at end of session
+      if(balanceCorrections?.length>0){
+        balanceCorrections.forEach(correction=>{
+          correction.exercises.forEach(exStr=>{
+            const di=exStr.indexOf(" — ");
+            if(di===-1)return;
+            const name=exStr.substring(0,di).trim();
+            const sr=exStr.substring(di+3).trim().split(" × ");
+            const setsCount=parseInt(sr[0])||3;
+            const repsVal=sr[1]||"12";
+            if(!parsed.exercises.some(e=>e.name===name)){
+              parsed.exercises.push({name,notes:"// Added for muscle balance",isBalanceCorrection:true,restSecs:60,sets:Array.from({length:setsCount},()=>({reps:String(repsVal),weight:"",done:false}))});
+            }
+          });
+        });
+      }
       setActiveWorkout(parsed);setTrainScreen("active");setActiveSessionOpen(true);
     }catch(e){
       console.error("[startStructured] AI error — falling back to hardcoded program:",e);
@@ -2239,7 +2262,23 @@ Rules:
         const dayIdx=Math.floor((new Date()-startD)/(24*60*60*1000))%(daysPerWeek||1);
         const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym");
         if(exs&&exs.length){
-          setActiveWorkout({title:todayFocus,exercises:exs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}))});
+          const fallbackExs=exs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}));
+          if(balanceCorrections?.length>0){
+            balanceCorrections.forEach(correction=>{
+              correction.exercises.forEach(exStr=>{
+                const di=exStr.indexOf(" — ");
+                if(di===-1)return;
+                const name=exStr.substring(0,di).trim();
+                const sr=exStr.substring(di+3).trim().split(" × ");
+                const setsCount=parseInt(sr[0])||3;
+                const repsVal=sr[1]||"12";
+                if(!fallbackExs.some(e=>e.name===name)){
+                  fallbackExs.push({name,notes:"// Added for muscle balance",isBalanceCorrection:true,restSecs:60,sets:Array.from({length:setsCount},()=>({reps:String(repsVal),weight:"",done:false}))});
+                }
+              });
+            });
+          }
+          setActiveWorkout({title:todayFocus,exercises:fallbackExs});
           setTrainScreen("active");setActiveSessionOpen(true);
         }else{
           setWorkout("⚠️ AI unavailable. Use the Today tab → Start Workout to begin.");
@@ -2457,6 +2496,13 @@ Rules:
             setActivePlateaus(prev=>prev.filter(p=>!plateausBroken.includes(p.exercise_name)));
           }
         }catch(e){console.error("[finishWorkout] plateau:",e);}
+      }
+
+      // Muscle balance recalculation after session
+      if(user){
+        calculateMuscleBalance(user.id).then(balance=>{
+          if(balance){setLatestBalance(balance);setBalanceCorrections(getBalanceCorrections(balance));}
+        }).catch(()=>{});
       }
 
       setWorkoutSummary({
@@ -3270,6 +3316,65 @@ Rules:
               </div>
               {extra>0&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:12}}>and {extra} more exercise{extra>1?"s":""} need attention</div>}
               <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setPlateauSnooze(t);localStorage.setItem("plateau_snooze",t);}} style={{width:"100%",padding:13,background:"#60a5fa",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+            </div>
+          );
+        })()}
+
+        {/* ── MUSCLE BALANCE WARNING ── */}
+        {balanceCorrections.length>0&&balanceSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
+          const primary=balanceCorrections[0];
+          const isRisk=primary.severity==="risk";
+          const accent=isRisk?"#e8341c":"#FEA020";
+          const borderColor=isRisk?"rgba(232,52,28,0.2)":"rgba(254,160,32,0.2)";
+          return(
+            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MUSCLE IMBALANCE DETECTED</div>
+              {balanceCorrections.map((c,ci)=>{
+                const isPP=c.type==="push_pull";
+                const pushPct=isPP&&(balanceCorrections[0]?.type==="push_pull")
+                  ? Math.round(100*(c.type==="push_pull"?(latestBalance?.push_volume_lbs||0)/Math.max(1,(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)):0))
+                  : 0;
+                const totalVol=isPP
+                  ?(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)
+                  :(latestBalance?.quad_volume_lbs||0)+(latestBalance?.posterior_volume_lbs||0);
+                const aVol=isPP?(latestBalance?.push_volume_lbs||0):(latestBalance?.quad_volume_lbs||0);
+                const bVol=isPP?(latestBalance?.pull_volume_lbs||0):(latestBalance?.posterior_volume_lbs||0);
+                const aPct=totalVol>0?Math.round(aVol/totalVol*100):50;
+                const bPct=100-aPct;
+                const aLabel=isPP?"PUSH":"QUAD";
+                const bLabel=isPP?"PULL":"POST";
+                const aColor=isRisk?"#e8341c":"#FEA020";
+                const bColor="#60a5fa";
+                return(
+                  <div key={ci} style={{marginBottom:ci<balanceCorrections.length-1?16:0}}>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
+                      {isPP?"PUSH/PULL IMBALANCE":"QUAD/POSTERIOR IMBALANCE"}<span style={{color:accent}}>.</span>
+                    </div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:10}}>
+                      {c.message}<br/>{c.risk}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
+                      {[[aLabel,aPct,aColor],[bLabel,bPct,bColor]].map(([label,pct,color])=>(
+                        <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
+                          <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+                          </div>
+                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:28,textAlign:"right",flexShrink:0}}>{pct}%</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// FIX THIS WEEK</div>
+                    <div style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5,marginBottom:8}}>{c.fix}</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                      {c.exercises.map((ex,ei)=>(
+                        <div key={ei} style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e"}}>+ {ex}</div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setBalanceSnooze(t);localStorage.setItem("balance_snooze",t);}} style={{width:"100%",marginTop:14,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
             </div>
           );
         })()}
@@ -4401,6 +4506,73 @@ Rules:
               <MuscleRecovery userId={user?.id}/>
             </div>
 
+            {/* Muscle Balance */}
+            {(()=>{
+              const b=latestBalance;
+              const noData=!b||(b.push_volume_lbs===0&&b.pull_volume_lbs===0&&b.quad_volume_lbs===0&&b.posterior_volume_lbs===0);
+              const ppStatus=b?.push_pull_status||"balanced";
+              const qpStatus=b?.quad_posterior_status||"balanced";
+              const statusColor=s=>s==="risk"?"#e8341c":s==="warning"?"#FEA020":"#22c55e";
+              const ppTotal=(b?.push_volume_lbs||0)+(b?.pull_volume_lbs||0);
+              const qpTotal=(b?.quad_volume_lbs||0)+(b?.posterior_volume_lbs||0);
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Muscle Balance</div>
+                  {noData?(
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)"}}>
+                      COMPLETE MORE SESSIONS TO SEE BALANCE.
+                    </div>
+                  ):(
+                    <>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>LAST 30 DAYS</div>
+                      {/* Push/Pull */}
+                      <div style={{marginBottom:14}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>PUSH vs PULL</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(ppStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{ppStatus}</div>
+                        </div>
+                        {[["PUSH",b?.push_volume_lbs||0,"#e8341c"],["PULL",b?.pull_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
+                          <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${ppTotal>0?Math.round(vol/ppTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
+                          </div>
+                        ))}
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
+                          {b?.push_pull_ratio||1}:1 push to pull — {ppStatus}
+                        </div>
+                      </div>
+                      <div style={{height:1,background:"rgba(245,245,240,0.05)",marginBottom:14}}/>
+                      {/* Quad/Posterior */}
+                      <div style={{marginBottom:14}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>QUAD vs POSTERIOR</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(qpStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{qpStatus}</div>
+                        </div>
+                        {[["QUAD",b?.quad_volume_lbs||0,"#e8341c"],["POST",b?.posterior_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
+                          <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${qpTotal>0?Math.round(vol/qpTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
+                          </div>
+                        ))}
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
+                          {b?.quad_posterior_ratio||1}:1 quad to posterior — {qpStatus}
+                        </div>
+                      </div>
+                      {ppStatus==="balanced"&&qpStatus==="balanced"&&(
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#22c55e"}}>✓ Muscle balance is good. Keep it up.</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
             {(()=>{
               const split=wPrefs?.splitType||'';
               const optimal=split.includes('6')?1:split.includes('4')?3:4;
@@ -4498,7 +4670,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}

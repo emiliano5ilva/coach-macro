@@ -1715,7 +1715,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
   const [todaySoreness,setTodaySoreness]=useState(null);
@@ -3596,6 +3596,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                               </div>
                             );
                           })()}
+                          {ex.isBalanceCorrection&&(
+                            <div style={{marginLeft:32,marginTop:4}}>
+                              <span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.08em",textTransform:"uppercase"}}>// BALANCE CORRECTION</span>
+                            </div>
+                          )}
                           <div style={{marginLeft:32,marginTop:4}}>
                             <MuscleChips name={ex.name} sugg={sugg} history={history}/>
                           </div>
