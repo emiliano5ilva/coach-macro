@@ -501,6 +501,18 @@ export default function NativeApp() {
         const w=Math.ceil((new Date(wp.hyroxRaceDate)-new Date())/(7*86400000));
         return w<=3?"taper":w<=8?"peak":w<=12?"race_prep":w<=16?"strength":"base";
       })();
+      const runRaceTypeMap={first_5k:"5k",sub25_5k:"5k",first_10k:"10k",sub50_10k:"10k",half:"half_marathon",marathon:"marathon",fitness:"5k"};
+      const runRaceType=(wp.runRaceDate&&wp.runningGoal)?runRaceTypeMap[wp.runningGoal]||null:null;
+      const runCurrentPhase=(()=>{
+        if(!wp.runRaceDate)return null;
+        const w=Math.floor((new Date(wp.runRaceDate)-new Date())/(7*86400000));
+        return w>16?"base":w>12?"build":w>8?"race_specific":w>3?"peak":w>0?"taper":"race_week";
+      })();
+      const strengthCurrentPhase=(()=>{
+        if(!wp.strengthCompDate)return null;
+        const w=Math.floor((new Date(wp.strengthCompDate)-new Date())/(7*86400000));
+        return w>16?"hypertrophy":w>12?"strength":w>8?"peaking":w>2?"competition_prep":"taper";
+      })();
       const{error}=await sb.from("profiles").upsert({
         id:uid,profile_data:prof,schedule:sch,wprefs:wp,
         referral_code:prof.referralCode||null,
@@ -526,6 +538,18 @@ export default function NativeApp() {
         hyrox_current_phase:hyroxPhase,
         hyrox_target_time:minSecToInterval(wp.hyroxTargetTimeMin,wp.hyroxTargetTimeSec),
         hyrox_previous_time:minSecToInterval(wp.hyroxPrevTimeMin,wp.hyroxPrevTimeSec),
+        // running race
+        run_race_date:wp.runRaceDate||null,
+        run_race_type:runRaceType,
+        run_previous_time:minSecToInterval(wp.runPrevTimeMin,wp.runPrevTimeSec),
+        run_current_phase:runCurrentPhase,
+        // strength competition
+        strength_comp_date:wp.strengthCompDate||null,
+        strength_comp_type:wp.strengthCompType||null,
+        strength_comp_federation:wp.strengthFederation||null,
+        strength_target_total:wp.strengthTargetTotal||null,
+        strength_current_phase:strengthCurrentPhase,
+        strength_weight_class:wp.strengthWeightClass||null,
       },{onConflict:"id"}).select();
       if(error)throw error;
       return true;
@@ -570,6 +594,10 @@ export default function NativeApp() {
   async function handleTrainDone(trainData){
     setSaveErr("");
     const finalProf={...profile,...trainData};
+    // Store lift maxes in profile_data for strength predictor
+    if(trainData.squatMaxInput)finalProf.squat_max=parseFloat(trainData.squatMaxInput)||null;
+    if(trainData.benchMaxInput)finalProf.bench_max=parseFloat(trainData.benchMaxInput)||null;
+    if(trainData.deadliftMaxInput)finalProf.deadlift_max=parseFloat(trainData.deadliftMaxInput)||null;
     if(!finalProf.referralCode){
       const first=(finalProf.name||"USER").split(" ")[0].replace(/[^A-Za-z]/g,"").toUpperCase().slice(0,8)||"USER";
       finalProf.referralCode=first+Math.floor(1000+Math.random()*9000);
@@ -617,6 +645,19 @@ export default function NativeApp() {
       hyroxEquipment:trainData.hyroxEquipment||"",hyroxFitnessLevel:trainData.hyroxFitnessLevel||"",
       hyroxTargetTimeMin:trainData.hyroxTargetTimeMin||"",hyroxTargetTimeSec:trainData.hyroxTargetTimeSec||"",
       hyroxPrevTimeMin:trainData.hyroxPrevTimeMin||"",hyroxPrevTimeSec:trainData.hyroxPrevTimeSec||"",
+      // running race fields
+      runRaceDate:trainData.raceDate||"",
+      runPrevTimeMin:trainData.runPrevTimeMin||"",runPrevTimeSec:trainData.runPrevTimeSec||"",
+      // strength comp fields
+      strengthCompeting:trainData.strengthCompeting||"",
+      strengthCompType:trainData.strengthCompType||"",
+      strengthFederation:trainData.strengthFederation||"",
+      strengthCompDate:trainData.strengthCompDate||"",
+      squatMax:parseFloat(trainData.squatMaxInput)||null,
+      benchMax:parseFloat(trainData.benchMaxInput)||null,
+      deadliftMax:parseFloat(trainData.deadliftMaxInput)||null,
+      strengthWeightClass:trainData.strengthWeightClass||"",
+      strengthTargetTotal:parseFloat(trainData.strengthTargetTotal)||null,
     };
     setSchedule(sch);setWPrefs(wp);setProfile(finalProf);setPhase("loading");
     if(!user){setSaveErr("Not logged in. Please sign in again.");return;}

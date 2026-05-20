@@ -445,9 +445,11 @@ function DomsTooltip() {
 
 export function TrainOnboarding({d, onComplete, onBack}) {
   const [sc,setSc]=useState(0);
-  const [runSc,setRunSc]=useState(null); // null = not in run sub-flow; 0-7 = screens A-H
+  const [runSc,setRunSc]=useState(null); // null = not in run sub-flow; 0-8 = screens A-I
   const [hyroxSc,setHyroxSc]=useState(null); // null = inactive; 0-7 = screens A-H
   const [hyroxPath,setHyroxPath]=useState([]); // history for back nav
+  const [strengthCompSc,setStrengthCompSc]=useState(null); // null = inactive; 0-6 = screens A-G
+  const [strengthCompPath,setStrengthCompPath]=useState([]);
   const [data,setData]=useState({
     freq:"", trainType:"lifting", split:"", equipment:"Full Gym",
     sessionLength:60, weakPoints:[], injuries:[], longRunDay:"Sunday",
@@ -457,6 +459,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
     current5KTime:null, unknownFitness:"", runningGoal:"", raceDate:"",
     goalRaceTime:"", terrain:"road", trackAccess:false,
     timeInputMin:"", timeInputSec:"",
+    runPrevTimeMin:"", runPrevTimeSec:"", runHasPrevTime:null,
     // AIT fields
     recoveryCapacity:"", musclePriorities:[], trainingAge:"",
     blackoutDays:[], mobilityLimitations:[],
@@ -466,6 +469,10 @@ export function TrainOnboarding({d, onComplete, onBack}) {
     hyroxExp:"", hyroxCategory:"", hyroxPrevTimeMin:"", hyroxPrevTimeSec:"",
     hyroxWeakStations:[], hyroxRaceDate:"", hyroxTargetTimeMin:"", hyroxTargetTimeSec:"",
     hyroxEquipment:[], hyroxFitnessLevel:"",
+    // strength competition fields
+    strengthCompeting:"", strengthCompType:"", strengthFederation:"",
+    strengthCompDate:"", squatMaxInput:"", benchMaxInput:"", deadliftMaxInput:"",
+    strengthWeightClass:"", strengthTargetTotal:"",
   });
   const upd=(k,v)=>setData(p=>({...p,[k]:v}));
   const auto=(k,v)=>{upd(k,v);setTimeout(()=>setSc(s=>s+1),260);};
@@ -475,7 +482,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
   const pct=Math.round((sc/SCREENS)*100);
 
   const isRunType = data.trainType==="running"||data.trainType==="hybrid";
-  const runSubTotal = 8;
+  const runSubTotal = 9;
   const runPct = runSc!==null ? Math.round((runSc/runSubTotal)*100) : 0;
 
   function getRecDays(freq,trainType){
@@ -681,9 +688,49 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <button onClick={()=>{upd("raceDate","");rNext();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>No race date yet — skip</button>
               </div>}
 
-              {/* Screen E — Terrain */}
+              {/* Screen E — Previous race time */}
               {runSc===4&&<div>
                 <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · E</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  HAVE YOU RACED<br/><span style={{color:T.prot}}>THIS DISTANCE?</span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Your best time gives us a precision baseline for pacing. Skip if this is your first.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+                  {[
+                    {v:true,  e:"🏅",l:"Yes — I have a time", sub:"Enter your personal best for this distance"},
+                    {v:false, e:"🆕",l:"No — first time at this distance", sub:"We'll estimate and adjust as you train"},
+                  ].map(o=>(
+                    <div key={String(o.v)} onClick={()=>{upd("runHasPrevTime",o.v);if(!o.v)setTimeout(rNext,260);}} style={{background:data.runHasPrevTime===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.runHasPrevTime===o.v?T.prot:T.bd}`,borderRadius:12,padding:"18px 20px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                      <div style={{fontSize:24,flexShrink:0}}>{o.e}</div>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:data.runHasPrevTime===o.v?T.prot:"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:3,lineHeight:1.5}}>{o.sub}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {data.runHasPrevTime===true&&<>
+                  <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
+                    <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>Your best time (HH:MM:SS or MM:SS)</div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
+                      <div style={{textAlign:"center"}}>
+                        <input value={data.runPrevTimeMin} onChange={e=>upd("runPrevTimeMin",e.target.value.replace(/\D/g,"").slice(0,3))} placeholder="00" maxLength={3} style={{width:72,background:T.s1,border:`2px solid ${T.prot}40`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                        <div style={{fontSize:10,color:T.mu,marginTop:4}}>min</div>
+                      </div>
+                      <div style={{fontSize:36,fontWeight:700,color:T.mu,paddingBottom:20}}>:</div>
+                      <div style={{textAlign:"center"}}>
+                        <input value={data.runPrevTimeSec} onChange={e=>upd("runPrevTimeSec",e.target.value.replace(/\D/g,"").slice(0,2))} placeholder="00" maxLength={2} style={{width:72,background:T.s1,border:`2px solid ${T.prot}40`,color:"#fff",fontSize:36,fontWeight:700,textAlign:"center",borderRadius:10,padding:"10px 8px",outline:"none",fontFamily:"inherit"}}/>
+                        <div style={{fontSize:10,color:T.mu,marginTop:4}}>sec</div>
+                      </div>
+                    </div>
+                  </div>
+                  <PrimaryBtn onClick={rNext} label="Continue →" disabled={!data.runPrevTimeMin}/>
+                </>}
+              </div>}
+
+              {/* Screen F — Terrain */}
+              {runSc===5&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · F</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
                   WHERE DO YOU<br/><span style={{color:T.prot}}>USUALLY RUN?</span>
                 </div>
@@ -706,9 +753,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <PrimaryBtn onClick={rNext} label="Continue →" disabled={!data.terrain}/>
               </div>}
 
-              {/* Screen F — Track Access */}
-              {runSc===5&&<div>
-                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · F</div>
+              {/* Screen G — Track Access */}
+              {runSc===6&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · G</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
                   TRACK<br/><span style={{color:T.prot}}>ACCESS?</span>
                 </div>
@@ -729,9 +776,9 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 </div>
               </div>}
 
-              {/* Screen G — Long Run Day */}
-              {runSc===6&&<div>
-                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · G</div>
+              {/* Screen H — Long Run Day */}
+              {runSc===7&&<div>
+                <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · H</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
                   LONG RUN<br/><span style={{color:T.prot}}>DAY.</span>
                 </div>
@@ -749,8 +796,8 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <PrimaryBtn onClick={rNext} label="Continue →" disabled={!data.longRunDay}/>
               </div>}
 
-              {/* Screen H — Summary + Launch */}
-              {runSc===7&&<div>
+              {/* Screen I — Summary + Launch */}
+              {runSc===8&&<div>
                 <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Run Setup · Done</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:16}}>
                   YOUR RUNNING<br/><span style={{color:T.prot}}>PROFILE.</span>
@@ -1279,7 +1326,7 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                 <div style={{fontSize:14,color:"#ccc",lineHeight:1.75}}>{rec.why}</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                <button onClick={()=>{upd("split",rec.id);setSc(7);}} style={{width:"100%",padding:"16px",background:T.prot,color:"#000",fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>
+                <button onClick={()=>{upd("split",rec.id);if((data.primaryGoal==="get_stronger"||(d?.goal||"").toLowerCase()==="get_stronger")&&data.trainType==="lifting"&&strengthCompSc===null){setStrengthCompPath([]);setStrengthCompSc(0);}else{setSc(7);}}} style={{width:"100%",padding:"16px",background:T.prot,color:"#000",fontWeight:700,fontSize:16,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:1}}>
                   Use This Program →
                 </button>
                 <button onClick={()=>setSc(6)} style={{width:"100%",padding:"14px",background:"none",color:T.mu,fontWeight:600,fontSize:14,border:`1.5px solid ${T.bd}`,borderRadius:14,cursor:"pointer",fontFamily:"inherit"}}>
@@ -1372,13 +1419,225 @@ export function TrainOnboarding({d, onComplete, onBack}) {
                   </div>
                 </div>
               </div>}
-              <PrimaryBtn onClick={next} label="Continue →" disabled={!data.split}/>
+              <PrimaryBtn onClick={()=>{if((data.primaryGoal==="get_stronger"||(d?.goal||"").toLowerCase()==="get_stronger")&&data.trainType==="lifting"&&strengthCompSc===null&&data.split){setStrengthCompPath([]);setStrengthCompSc(0);}else{next();}}} label="Continue →" disabled={!data.split}/>
+            </div>
+          );
+        })()}
+
+        {/* ─── STRENGTH COMPETITION SUB-FLOW (Screens A–G) ─────────────────── */}
+        {strengthCompSc!==null&&(()=>{
+          const isLifting=data.trainType==="lifting";
+          const isPowerlifting=data.strengthCompType==="powerlifting";
+          const isMale=(d?.sex||d?.biologicalSex||"male").toLowerCase()!=="female";
+          const MALE_CLASSES=["59kg","66kg","74kg","83kg","93kg","105kg","120kg","120+kg"];
+          const FEMALE_CLASSES=["47kg","52kg","57kg","63kg","69kg","76kg","84kg","84+kg"];
+          const weightClasses=isMale?MALE_CLASSES:FEMALE_CLASSES;
+
+          function scAdvance(){
+            const sc=strengthCompSc;
+            setStrengthCompPath(p=>[...p,sc]);
+            if(sc===0){
+              if(data.strengthCompeting==="considering"||data.strengthCompeting==="no_comp"){
+                setStrengthCompSc(null);setSc(7);
+              } else {
+                setStrengthCompSc(1);
+              }
+            } else if(sc===1){
+              setStrengthCompSc(data.strengthCompType==="powerlifting"?2:3);
+            } else if(sc===2){
+              setStrengthCompSc(3);
+            } else if(sc===3){
+              setStrengthCompSc(4);
+            } else if(sc===4){
+              setStrengthCompSc(data.strengthCompType==="powerlifting"?5:6);
+            } else if(sc===5){
+              setStrengthCompSc(6);
+            } else {
+              setStrengthCompSc(null);setSc(7);
+            }
+          }
+          function scBack(){
+            const prev=strengthCompPath[strengthCompPath.length-1];
+            if(prev===undefined){setStrengthCompSc(null);}
+            else{setStrengthCompPath(p=>p.slice(0,-1));setStrengthCompSc(prev);}
+          }
+          const squat=parseFloat(data.squatMaxInput)||0;
+          const bench=parseFloat(data.benchMaxInput)||0;
+          const deadlift=parseFloat(data.deadliftMaxInput)||0;
+          const estTotal=squat+bench+deadlift;
+
+          const compPhasePreview=(()=>{
+            if(!data.strengthCompDate)return null;
+            const w=Math.floor((new Date(data.strengthCompDate)-new Date())/(7*24*60*60*1000));
+            if(w>16)return{label:"HYPERTROPHY BLOCK",color:"#22c55e"};
+            if(w>12)return{label:"STRENGTH BLOCK",color:"#60a5fa"};
+            if(w>8)return{label:"PEAKING BLOCK",color:"#FEA020"};
+            if(w>2)return{label:"COMPETITION PREP",color:"#e8341c"};
+            return{label:"TAPER WEEK",color:"#9933FF"};
+          })();
+
+          return(
+            <div style={{animation:"fadeIn .25s ease"}}>
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>// Strength Competition · {strengthCompSc+1}/7</div>
+                  <div style={{height:3,background:T.s3,borderRadius:2,overflow:"hidden"}}>
+                    <div style={{height:"100%",background:T.prot,width:`${Math.round((strengthCompSc/7)*100)}%`,transition:"width .5s ease"}}/>
+                  </div>
+                </div>
+              </div>
+              <button onClick={scBack} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:18,padding:"0 0 16px",fontFamily:"inherit"}}>← Back</button>
+
+              {/* Screen A — Competing? */}
+              {strengthCompSc===0&&<div>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>// Strength Competition</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  ARE YOU TRAINING FOR<br/><span style={{color:T.prot}}>A COMPETITION<span style={{color:"#e8341c"}}>?</span></span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+                  {[
+                    {v:"competing",   e:"🏆",l:"YES — I HAVE A DATE",      sub:"Add competition periodisation to your program"},
+                    {v:"considering", e:"🤔",l:"THINKING ABOUT IT",         sub:"Skip for now — you can add this later in settings"},
+                    {v:"no_comp",     e:"💪",l:"NO — JUST GETTING STRONGER",sub:"Pure strength focus, no competition target"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>{upd("strengthCompeting",o.v);if(o.v!=="competing")setTimeout(scAdvance,260);}} style={{background:data.strengthCompeting===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.strengthCompeting===o.v?T.prot:T.bd}`,borderRadius:12,padding:"16px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                      <div style={{fontSize:24,flexShrink:0}}>{o.e}</div>
+                      <div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:data.strengthCompeting===o.v?T.prot:"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2,lineHeight:1.5}}>{o.sub}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {data.strengthCompeting==="competing"&&<PrimaryBtn onClick={scAdvance} label="Continue →"/>}
+              </div>}
+
+              {/* Screen B — Comp type */}
+              {strengthCompSc===1&&<div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  WHAT TYPE OF<br/><span style={{color:T.prot}}>COMPETITION<span style={{color:"#e8341c"}}>?</span></span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+                  {[
+                    {v:"powerlifting",      e:"🏋️",l:"POWERLIFTING",       sub:"Squat, Bench, Deadlift"},
+                    {v:"weightlifting",     e:"⚡",l:"WEIGHTLIFTING",      sub:"Snatch and Clean & Jerk"},
+                    {v:"strongman",         e:"🔩",l:"STRONGMAN",          sub:"Events-based competition"},
+                    {v:"functional_fitness",e:"🔥",l:"FUNCTIONAL FITNESS", sub:"CrossFit style competition"},
+                  ].map(o=>(
+                    <div key={o.v} onClick={()=>{upd("strengthCompType",o.v);setTimeout(scAdvance,260);}} style={{background:data.strengthCompType===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${data.strengthCompType===o.v?T.prot:T.bd}`,borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+                      <div style={{fontSize:22,flexShrink:0}}>{o.e}</div>
+                      <div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:data.strengthCompType===o.v?T.prot:"#fff"}}>{o.l}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>}
+
+              {/* Screen C — Federation (powerlifting only) */}
+              {strengthCompSc===2&&<div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  WHICH<br/><span style={{color:T.prot}}>FEDERATION<span style={{color:"#e8341c"}}>?</span></span>
+                </div>
+                <p style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",lineHeight:1.6,marginBottom:16,textTransform:"uppercase",letterSpacing:"0.06em"}}>This sets the equipment rules and lift standards for your program.</p>
+                <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:24}}>
+                  {["USPA","IPF/USAPL","RPS","WRPF","OTHER"].map(f=>(
+                    <button key={f} onClick={()=>upd("strengthFederation",f)} style={{padding:"10px 18px",borderRadius:8,background:data.strengthFederation===f?"rgba(232,52,28,0.15)":T.s2,border:`1.5px solid ${data.strengthFederation===f?T.prot:T.bd}`,color:data.strengthFederation===f?T.prot:"rgba(245,245,240,0.7)",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.08em"}}>
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                <PrimaryBtn onClick={scAdvance} label="Continue →" disabled={!data.strengthFederation}/>
+              </div>}
+
+              {/* Screen D — Competition date */}
+              {strengthCompSc===3&&<div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  WHEN IS YOUR<br/><span style={{color:T.prot}}>COMPETITION<span style={{color:"#e8341c"}}>?</span></span>
+                </div>
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:14,padding:"20px",marginBottom:16}}>
+                  <input type="date" value={data.strengthCompDate} onChange={e=>upd("strengthCompDate",e.target.value)} style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:20,fontWeight:600,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                {data.strengthCompDate&&compPhasePreview&&(()=>{
+                  const w=Math.floor((new Date(data.strengthCompDate)-new Date())/(7*24*60*60*1000));
+                  return(
+                    <div style={{background:`${compPhasePreview.color}10`,border:`1px solid ${compPhasePreview.color}30`,borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#fff"}}>{w}<span style={{fontSize:14,color:"rgba(245,245,240,0.4)",marginLeft:4}}>WEEKS OUT</span></div>
+                      <div style={{background:`${compPhasePreview.color}18`,border:`1px solid ${compPhasePreview.color}50`,borderRadius:8,padding:"6px 12px"}}>
+                        <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:13,color:compPhasePreview.color}}>{compPhasePreview.label}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+                <PrimaryBtn onClick={scAdvance} label="Continue →" disabled={!data.strengthCompDate} style={{marginBottom:8}}/>
+                <button onClick={scAdvance} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Skip — I don't have a date yet</button>
+              </div>}
+
+              {/* Screen E — Current maxes */}
+              {strengthCompSc===4&&<div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:8}}>
+                  LET'S SET YOUR<br/><span style={{color:T.prot}}>BASELINE<span style={{color:"#e8341c"}}>.</span></span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>Enter your current best lifts. Your program loads percentage from these numbers.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+                  {[
+                    {k:"squatMaxInput",   l:"SQUAT",       ph:"Your best squat"},
+                    {k:"benchMaxInput",   l:"BENCH PRESS", ph:"Your best bench"},
+                    {k:"deadliftMaxInput",l:"DEADLIFT",    ph:"Your best deadlift"},
+                  ].map(({k,l,ph})=>(
+                    <div key={k} style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px"}}>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>{l}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <input type="number" value={data[k]} onChange={e=>upd(k,e.target.value)} placeholder={ph} style={{flex:1,background:"none",border:"none",color:"#fff",fontSize:22,fontWeight:700,outline:"none",fontFamily:"inherit"}}/>
+                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:12,color:"rgba(245,245,240,0.4)"}}>{d?.wUnit||"lbs"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {estTotal>0&&<div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:16}}>Estimated Total: {estTotal} {d?.wUnit||"lbs"}</div>}
+                <PrimaryBtn onClick={scAdvance} label="Continue →" style={{marginBottom:8}}/>
+                <button onClick={()=>{upd("squatMaxInput","");upd("benchMaxInput","");upd("deadliftMaxInput","");scAdvance();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>I don't know my maxes — skip</button>
+              </div>}
+
+              {/* Screen F — Weight class (powerlifting only) */}
+              {strengthCompSc===5&&<div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR WEIGHT<br/><span style={{color:T.prot}}>CLASS<span style={{color:"#e8341c"}}>?</span></span>
+                </div>
+                <p style={{fontSize:13,color:T.mu,marginBottom:20,lineHeight:1.65}}>{isMale?"Male":"Female"} classes ({data.strengthFederation||"standard"}).</p>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
+                  {weightClasses.map(wc=>(
+                    <div key={wc} onClick={()=>upd("strengthWeightClass",wc)} style={{background:data.strengthWeightClass===wc?`${T.prot}15`:T.s2,border:`1.5px solid ${data.strengthWeightClass===wc?T.prot:T.bd}`,borderRadius:10,padding:"12px 6px",textAlign:"center",cursor:"pointer",transition:"all .2s"}}>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:data.strengthWeightClass===wc?T.prot:"rgba(245,245,240,0.7)"}}>{wc}</div>
+                    </div>
+                  ))}
+                </div>
+                <PrimaryBtn onClick={scAdvance} label="Continue →" style={{marginBottom:8}}/>
+                <button onClick={()=>{upd("strengthWeightClass","");scAdvance();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>I haven't decided yet — skip</button>
+              </div>}
+
+              {/* Screen G — Target total */}
+              {strengthCompSc===6&&<div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
+                  YOUR TARGET<br/><span style={{color:T.prot}}>TOTAL<span style={{color:"#e8341c"}}>?</span></span>
+                </div>
+                {estTotal>0&&<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"12px 16px",marginBottom:16,fontSize:13,color:T.mu}}>
+                  You're currently at <b style={{color:"#fff"}}>{estTotal} {d?.wUnit||"lbs"}</b>. What are you targeting?
+                </div>}
+                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
+                  <input type="number" value={data.strengthTargetTotal} onChange={e=>upd("strengthTargetTotal",e.target.value)} placeholder="Target total" style={{flex:1,background:"none",border:"none",color:"#fff",fontSize:22,fontWeight:700,outline:"none",fontFamily:"inherit"}}/>
+                  <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:12,color:"rgba(245,245,240,0.4)"}}>{d?.wUnit||"lbs"}</span>
+                </div>
+                <PrimaryBtn onClick={scAdvance} label="Build My Program →" style={{marginBottom:8}}/>
+                <button onClick={()=>{upd("strengthTargetTotal","");scAdvance();}} style={{width:"100%",padding:"11px",background:"none",color:T.mu,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13}}>I just want to compete and see</button>
+              </div>}
             </div>
           );
         })()}
 
         {/* SCREEN 7 — Equipment */}
-        {sc===7&&<div style={{animation:"fadeIn .25s ease"}}>
+        {sc===7&&strengthCompSc===null&&<div style={{animation:"fadeIn .25s ease"}}>
           <div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>Train · Step 8</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:42,fontWeight:900,lineHeight:.9,marginBottom:12}}>
             EQUIPMENT<br/><span style={{color:T.prot}}>ACCESS.</span>

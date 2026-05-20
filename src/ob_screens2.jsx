@@ -53,6 +53,8 @@ import { calculateMuscleBalance, getBalanceCorrections, getLatestBalance } from 
 import { checkPeriodisationAdjustment, getRecentAdjustments, getProgramCurrentWeek } from "./services/periodisationService.js";
 import { analyseRPETrends } from "./services/rpeTrendingService.js";
 import { getTodayNutritionProtocol } from "./services/nutritionPeriodisationService.js";
+import { getRunningPhase, getRunTimePredictor } from "./services/runningPeriodisationService.js";
+import { getStrengthPhase, getStrengthPredictor } from "./services/strengthPeriodisationService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
 
@@ -4289,6 +4291,102 @@ Rules:
                     ))}
                   </>}
                 </div>
+              </>);
+            })()}
+
+            {/* Running Race Countdown Card */}
+            {profile?.run_race_date&&!wPrefs?.isHyrox&&(()=>{
+              const phase=getRunningPhase(profile.run_race_date);
+              if(!phase)return null;
+              const pred=getRunTimePredictor(profile,(workoutLogsRaw||[]).filter(l=>l.workout?.avg_pace_secs_per_km).slice(0,20));
+              const raceTypeLabels={_5k:"5K","5k":"5K",_10k:"10K","10k":"10K",half_marathon:"HALF MARATHON",marathon:"MARATHON",ultra:"ULTRA",obstacle:"OBSTACLE / OCR"};
+              const raceLabel=raceTypeLabels[profile.run_race_type]||(profile.run_race_type||"").toUpperCase().replace(/_/g," ");
+              return(<>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}25`,borderRadius:16}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Race Day</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                    <div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:38,color:"#fff",lineHeight:1}}>{phase.weeksUntilRace}w</div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:3}}>until race day</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"6px 12px",marginBottom:6}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:15,color:phase.color}}>{phase.label}</div>
+                      </div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.35)",textTransform:"uppercase"}}>{raceLabel&&<>{raceLabel} · </>}{new Date(profile.run_race_date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+                    </div>
+                  </div>
+                  <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 8px 8px 0",padding:"8px 12px"}}>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.5}}>{phase.description}</div>
+                  </div>
+                </div>
+                {(pred.currentPrediction||pred.previousTime)&&<div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}12`,borderRadius:16}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Predicted Finish</div>
+                  <div style={{display:"flex",gap:12,marginBottom:pred.targetTime?14:0}}>
+                    <div style={{flex:1,background:`${phase.color}06`,borderRadius:10,padding:"12px",textAlign:"center"}}>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Predicted</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"#fff"}}>{pred.currentPrediction||pred.previousTime}</div>
+                    </div>
+                    {pred.targetTime&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Target</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.targetTime}</div>
+                    </div>}
+                  </div>
+                  {pred.targetTime&&pred.gap&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.04)",borderRadius:8}}>
+                    <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
+                  </div>}
+                </div>}
+              </>);
+            })()}
+
+            {/* Strength Competition Card */}
+            {profile?.strength_comp_date&&(()=>{
+              const phase=getStrengthPhase(profile.strength_comp_date);
+              if(!phase)return null;
+              const pred=getStrengthPredictor(profile);
+              const compTypeLabel=(profile.strength_comp_type||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+              const federation=profile.strength_comp_federation;
+              return(<>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}25`,borderRadius:16}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Competition</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                    <div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:38,color:"#fff",lineHeight:1}}>{phase.weeksUntilRace}w</div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:3}}>until competition</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"6px 12px",marginBottom:6}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:15,color:phase.color}}>{phase.label}</div>
+                      </div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.35)",textTransform:"uppercase"}}>{compTypeLabel}{federation?` · ${federation}`:""}</div>
+                    </div>
+                  </div>
+                  <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 8px 8px 0",padding:"8px 12px"}}>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.5}}>{phase.description}</div>
+                  </div>
+                </div>
+                {pred.currentTotal>0&&<div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}12`,borderRadius:16}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Current Total</div>
+                  <div style={{display:"flex",gap:12,marginBottom:pred.targetTotal?14:0}}>
+                    <div style={{flex:1,background:`${phase.color}06`,borderRadius:10,padding:"12px",textAlign:"center"}}>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Current</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"#fff"}}>{pred.currentTotal.toLocaleString()} {profile?.units==="metric"?"kg":"lbs"}</div>
+                    </div>
+                    {pred.targetTotal&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Target</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.targetTotal.toLocaleString()} {profile?.units==="metric"?"kg":"lbs"}</div>
+                    </div>}
+                  </div>
+                  {pred.targetTotal&&pred.gapToTarget!==null&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:pred.topLiftToImprove?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.04)",borderRadius:8}}>
+                    <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"Target reached":"Gap to target"}</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.onTrack?"✓ On track":`${Math.abs(pred.gapToTarget)} to go`}</span>
+                  </div>}
+                  {pred.topLiftToImprove&&<div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:6,height:6,borderRadius:1,background:phase.color,flexShrink:0}}/>
+                    <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.75)"}}>Focus: {pred.topLiftToImprove} — most room to close the gap</span>
+                  </div>}
+                </div>}
               </>);
             })()}
 
