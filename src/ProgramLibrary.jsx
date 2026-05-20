@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { T, getDayMacros, Spinner } from "./components.jsx";
 import { sb } from "./client.js";
 import { PROGRAM_LIBRARY } from "./programs.js";
+import { getProgramImage } from "./data/programImages.js";
 import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
 
@@ -662,7 +663,13 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           const r = ratings[prog.id] || { avg: 0, count: 0 };
           const lvlColor = prog.level==="Beginner"?"#34D399":prog.level==="Advanced"?"#F87171":"#FBbF24";
           return (
-            <div key={prog.id} className={`plib-card${isCurrent?" current":""}`} onClick={() => setDetailProg(prog)}>
+            <div key={prog.id} className={`plib-card${isCurrent?" current":""}`} onClick={() => setDetailProg(prog)} style={{overflow:"hidden"}}>
+              {(()=>{ const img=getProgramImage(prog.id); return img?(
+                <div style={{position:"relative",width:"calc(100% + 32px)",height:100,margin:"-16px -16px 12px -16px",borderRadius:"12px 12px 0 0",overflow:"hidden"}}>
+                  <img src={img} alt={prog.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.style.display="none";}}/>
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,height:50,background:"linear-gradient(transparent,rgba(9,11,17,0.97))",pointerEvents:"none"}}/>
+                </div>
+              ):null; })()}
               <div style={{ fontSize:28, marginBottom:8 }}>{meta.emoji || CATEGORY_EMOJI[prog.category] || "🏋️"}</div>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:16, fontWeight:800, lineHeight:1.1, marginBottom:6 }}>{prog.name}</div>
               <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:8 }}>

@@ -38,6 +38,7 @@ import { getReferralData, getReferrals, REFERRAL_TIERS } from "./services/referr
 import { getAdaptLimit, trialDaysRemaining, trialExpiringSoon, isExpired, getSubscriptionLabel } from "./utils/subscription.js";
 import { purchaseMonthly, purchaseAnnual, restorePurchases } from "./services/purchaseService.js";
 import { getTodaySoreness } from "./services/sorenessService.js";
+import { getProgramImage } from "./data/programImages.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -3030,6 +3031,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
               const totalWeeks=progInfo?.weeks||12;
               const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
+              const programImage=getProgramImage(progInfo?.id||wPrefs.splitType);
               const displayWeek=programCurrentWeek||weekNum;
               const progPct=Math.min(displayWeek/totalWeeks,1);
               const hyroxRaceDate=wPrefs?.hyroxRaceDate||profile?.hyrox_race_date;
@@ -3070,6 +3072,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const currentPhase=activePhaseData?{name:activePhaseData.label}:(phases.find(p=>displayWeek>=p.start&&displayWeek<=p.end)||phases[phases.length-1]);
               return(
                 <div style={{background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16,position:"relative",overflow:"hidden"}}>
+                  {programImage&&(
+                    <div style={{position:"relative",width:"calc(100% + 32px)",height:120,margin:"-16px -16px 14px -16px",borderRadius:"12px 12px 0 0",overflow:"hidden"}}>
+                      <img src={programImage} alt={progName} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.style.display="none";}}/>
+                      <div style={{position:"absolute",bottom:0,left:0,right:0,height:60,background:"linear-gradient(transparent,#111827)",pointerEvents:"none"}}/>
+                    </div>
+                  )}
                   <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(232,52,28,0.04)",pointerEvents:"none"}}/>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,position:"relative"}}>
                     <div>
