@@ -1225,7 +1225,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
 
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,logMode,setLogMode,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,logDate,setLogDate,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,resetSignal=0,todayProtocol=null}) {
 
-  const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"recipes",label:"Recipes"},{id:"prep",label:"Meal Prep"}];
+  const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"kitchen",label:"Kitchen"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
 
   const [now,setNow]=useState(Date.now());
@@ -2434,7 +2434,7 @@ Reply with ONLY a valid JSON object, no markdown:
               {[
                 ["Food", ()=>setShowQuickLog(true),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2s-2 2-2 5a2 2 0 004 0c0-3-2-5-2-5z"/><path d="M17 3v4a5 5 0 01-10 0V3"/><path d="M7 14v8m10-8v8"/></svg>],
-                ["Recipes", ()=>setFuelScreen("recipes"),
+                ["Recipes", ()=>setFuelScreen("kitchen"),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>],
               ].map(([label, action, icon])=>(
                 <button key={label} onClick={action} style={{padding:"14px 6px 12px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
@@ -2446,20 +2446,8 @@ Reply with ONLY a valid JSON object, no markdown:
               ))}
             </div>
 
-            {/* RESTAURANT AI CARD */}
-            <div onClick={openRestaurantAI} style={{display:"flex",alignItems:"center",gap:14,background:"#111827",border:"1px solid rgba(232,52,28,0.25)",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative"}}>
-              <div style={{width:44,height:44,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              </div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.04em"}}>RESTAURANT AI</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em",marginTop:2}}>Order smart near you</div>
-              </div>
-              <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
-            </div>
-
             {/* MEAL PREP CARD */}
-            <button onClick={()=>setFuelScreen("prep")} style={{width:"100%",background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
+            <button onClick={()=>setFuelScreen("kitchen")} style={{width:"100%",background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
               <div style={{flex:1}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// Meal Prep</div>
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",marginBottom:4}}>Weekly Prep</div>
@@ -2611,7 +2599,7 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)"}}>My Recipes</div>
-                  <button onClick={()=>setFuelScreen("recipes")} style={{background:"none",border:"none",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>See All →</button>
+                  <button onClick={()=>setFuelScreen("kitchen")} style={{background:"none",border:"none",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>See All →</button>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {userRecipes.slice(0,3).map(r=>(
@@ -2639,23 +2627,185 @@ Reply with ONLY a valid JSON object, no markdown:
                 📷 SNAP &amp; LOG — Point camera at your plate
               </button>
             )}
-            <div onClick={openRestaurantAI} style={{display:"flex",alignItems:"center",gap:14,background:"#111827",border:"1px solid rgba(232,52,28,0.25)",borderRadius:14,padding:"14px 16px",marginBottom:12,cursor:"pointer",position:"relative"}}>
-              <div style={{width:44,height:44,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              </div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.04em"}}>RESTAURANT AI</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em",marginTop:2}}>Order smart near you</div>
-              </div>
-              <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
-            </div>
             <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:18,overflowX:"auto"}}>
-              {[["search","🔍 Search"],["ai","🧠 AI"],["barcode","🔲 Barcode"],["quick","✏️ Quick"]].map(([k,l])=>(
-                <button key={k} onClick={()=>setLogMode(k)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
+              {[["search","🔍 Search"],["ai","🧠 AI"],["barcode","🔲 Barcode"],["quick","✏️ Quick"],["restaurant","📍 Near Me"]].map(([k,l])=>(
+                <button key={k} onClick={()=>{setLogMode(k);if(k==="restaurant")openRestaurantAI();}} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
               ))}
             </div>
             {logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
-            {logMode!=="search"&&<>
+            {logMode==="restaurant"&&restaurantAI&&(
+              <div>
+                <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                  {[
+                    {label:"MEAL",value:String(restaurantAI.slot)},
+                    {label:"KCAL",value:String(restaurantAI.calTarget)},
+                    {label:"PROTEIN",value:`${restaurantAI.proteinTarget}G`,color:"#22c55e"},
+                    {label:"CARBS",value:`${restaurantAI.carbTarget}G`},
+                    {label:"FAT",value:`${restaurantAI.fatTarget}G`},
+                  ].map(({label,value,color})=>(
+                    <div key={label} style={{textAlign:"center"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:color||"#f5f5f0",lineHeight:1}}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {raStep==='picker'&&(
+                  <div>
+                    <div onClick={()=>setRaStep('nearme')} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+                      <div style={{width:48,height:48,borderRadius:10,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em"}}>NEAR ME<span style={{color:"#e8341c"}}>.</span></div>
+                        <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginTop:4,lineHeight:1.4}}>Find restaurants nearby and get AI recommendations.</div>
+                      </div>
+                      <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
+                    </div>
+                    <div onClick={()=>menuScanRef.current?.click()} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+                      <div style={{width:48,height:48,borderRadius:10,background:"rgba(96,165,250,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 014 0v2"/><circle cx="12" cy="13" r="3"/></svg>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em"}}>SCAN MENU<span style={{color:"#60a5fa"}}>.</span></div>
+                        <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginTop:4,lineHeight:1.4}}>Photograph any menu — AI picks what to order.</div>
+                      </div>
+                      <div style={{color:"#60a5fa",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
+                    </div>
+                  </div>
+                )}
+                {raStep==='nearme'&&(
+                  <div>
+                    <button onClick={()=>setRaStep('picker')} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:16,display:"block"}}>← BACK</button>
+                    <div style={{display:"flex",gap:8,marginBottom:14}}>
+                      <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"#111827",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
+                      <button onClick={fetchRaNearby} disabled={raNearbyLoading||!raNearbyCity.trim()} style={{padding:"12px 18px",background:raNearbyLoading?"#111":"#e8341c",color:raNearbyLoading?"rgba(245,245,240,0.3)":"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:raNearbyLoading?"default":"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{raNearbyLoading?"Searching…":"Find →"}</button>
+                    </div>
+                    {raNearbyError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(232,52,28,0.8)",marginBottom:12,padding:"8px 12px",background:"rgba(232,52,28,0.08)",borderRadius:8}}>{raNearbyError}</div>}
+                    {raNearbyLoading&&[1,2,3].map(i=>(
+                      <div key={i} style={{height:70,borderRadius:12,background:"rgba(255,255,255,0.04)",marginBottom:8,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
+                    ))}
+                    {raNearby.length>0&&(
+                      <div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// {raNearby.length} RESTAURANTS NEARBY</div>
+                        {raNearby.slice(0,10).map((r,i)=>(
+                          <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                              <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,letterSpacing:"0.06em"}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
+                            </div>
+                            <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0,marginLeft:12}}>→</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {raStep==='result'&&(
+                  <div>
+                    <button onClick={()=>setRaStep(raPrevStep)} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:16,display:"block"}}>← BACK</button>
+                    {raRestaurant&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:16}}>{raRestaurant.name}</div>}
+                    {raLoading&&(
+                      <div>
+                        {[1,2,3,4].map(i=>(
+                          <div key={i} style={{height:i===1?120:70,borderRadius:12,background:"rgba(255,255,255,0.04)",marginBottom:10,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
+                        ))}
+                        <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",textAlign:"center",marginTop:8}}>Checking your macros…</div>
+                      </div>
+                    )}
+                    {raError&&!raLoading&&(
+                      <div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:12,padding:"14px 16px",fontFamily:"var(--mono)",fontSize:11,color:"rgba(232,52,28,0.8)"}}>{raError}</div>
+                    )}
+                    {raResult&&!raLoading&&(()=>{
+                      const b=raResult.best_order;
+                      const m=b?.estimated_macros||{};
+                      const calStyle=raMacroChipStyle(m.calories,restaurantAI.calTarget);
+                      const protStyle=raMacroChipStyle(m.protein_g,restaurantAI.proteinTarget,true);
+                      const carbStyle=raMacroChipStyle(m.carbs_g,restaurantAI.carbTarget);
+                      const fatStyle=raMacroChipStyle(m.fat_g,restaurantAI.fatTarget);
+                      const coveragePct=Math.min(100,Math.round(b?.protein_coverage_pct||0));
+                      return(
+                        <div>
+                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ORDER THIS</div>
+                          <div style={{background:"linear-gradient(135deg,#0d0d0d 0%,#110808 100%)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14,padding:16,marginBottom:16,position:"relative",overflow:"hidden"}}>
+                            <div style={{position:"absolute",top:-30,right:-20,width:100,height:100,background:"radial-gradient(ellipse,rgba(232,52,28,0.12),transparent 70%)",pointerEvents:"none"}}/>
+                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:0.95,marginBottom:4}}>{b?.item||"—"}<span style={{color:"#e8341c"}}>.</span></div>
+                            {b?.customisation&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.08em",marginBottom:8}}>{b.customisation}</div>}
+                            <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:14}}>{b?.reason}</div>
+                            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+                              {[
+                                {label:"CAL",val:m.calories,style:calStyle},
+                                {label:"PROTEIN",val:`${m.protein_g}G`,style:protStyle},
+                                {label:"CARBS",val:`${m.carbs_g}G`,style:carbStyle},
+                                {label:"FAT",val:`${m.fat_g}G`,style:fatStyle},
+                              ].map(({label,val,style})=>(
+                                <div key={label} style={{background:style.bg,borderRadius:8,padding:"6px 10px",textAlign:"center"}}>
+                                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:style.color,lineHeight:1}}>{val}</div>
+                                  <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em",marginTop:2}}>{label}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:coveragePct>0?10:0}}>
+                              <div style={{flex:1,height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                                <div style={{height:"100%",width:`${coveragePct}%`,background:"#22c55e",borderRadius:2,transition:"width 0.6s ease"}}/>
+                              </div>
+                              <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",flexShrink:0}}>Covers {coveragePct}% of Meal {restaurantAI.slot} protein target</div>
+                            </div>
+                            {(b?.warnings||[]).length>0&&(
+                              <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(232,52,28,0.1)"}}>
+                                {b.warnings.map((w,i)=>(
+                                  <div key={i} style={{display:"flex",gap:8,marginBottom:6}}>
+                                    <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#FEA020",flexShrink:0}}>⚠</span>
+                                    <div>
+                                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",lineHeight:1.4}}>{w.message}</div>
+                                      {w.fix&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",fontStyle:"italic",marginTop:2}}>{w.fix}</div>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {(raResult.backup_options||[]).length>0&&(
+                            <div style={{marginBottom:16}}>
+                              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
+                              {raResult.backup_options.map((opt,i)=>(
+                                <div key={i} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
+                                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",marginBottom:opt.customisation?3:4}}>{opt.item}<span style={{color:"#e8341c"}}>.</span></div>
+                                  {opt.customisation&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.06em",marginBottom:4}}>{opt.customisation}</div>}
+                                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>{opt.reason}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {(raResult.avoid||[]).length>0&&(
+                            <div style={{marginBottom:16}}>
+                              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// SKIP THESE</div>
+                              {raResult.avoid.map((item,i)=>(
+                                <div key={i} style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.06)",borderRadius:10,padding:"12px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
+                                  <div style={{flex:1}}>
+                                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)",textDecoration:"line-through",marginBottom:3}}>{item.item}</div>
+                                    <div style={{fontSize:13,color:"rgba(245,245,240,0.35)",lineHeight:1.4}}>{item.reason}</div>
+                                  </div>
+                                  <div style={{color:"rgba(232,52,28,0.5)",fontSize:16,flexShrink:0}}>✕</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {raResult.coach_note&&(
+                            <div>
+                              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// COACH SAYS</div>
+                              <div style={{background:"rgba(232,52,28,0.05)",borderLeft:"3px solid #e8341c",borderRadius:"0 10px 10px 0",padding:"12px 14px"}}>
+                                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",lineHeight:1.45}}>"{raResult.coach_note}"</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+            {logMode!=="search"&&logMode!=="restaurant"&&<>
               {/* Meal slot selector */}
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Log to meal</div>
@@ -2707,8 +2857,8 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         )}
 
-        {/* ── MY RECIPES ── */}
-        {fuelScreen==="recipes"&&(
+        {/* ── KITCHEN (Recipes + Meal Prep) ── */}
+        {fuelScreen==="kitchen"&&(
           <div style={{maxWidth:isMobile?"100%":700}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
               <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MY RECIPES</div>
@@ -2846,12 +2996,9 @@ Reply with ONLY a valid JSON object, no markdown:
                 </div>
               </>
             )}
-          </div>
-        )}
 
-        {/* ── MEAL PREP ── */}
-        {fuelScreen==="prep"&&(
-          <div style={{maxWidth:isMobile?"100%":700}}>
+            {/* ── MEAL PREP section inside Kitchen ── */}
+            <div style={{borderTop:`1px solid ${T.bd}`,marginTop:32,paddingTop:28}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
               <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP 🥡</div>
               {prepPlan&&!prepLoading&&(
@@ -3026,6 +3173,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <button onClick={generatePrepPlan} style={{width:"100%",padding:"13px",background:T.s2,color:"#7E57C2",fontSize:13,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:"1px solid rgba(126,87,194,0.25)",borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Regenerate Plan</button>
               </div>
             )}
+            </div>{/* end meal prep section */}
           </div>
         )}
 
@@ -3064,11 +3212,13 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         )}
 
+        {/* hidden file input for menu scan — used by both inline tab and modal */}
+        <input ref={menuScanRef} type="file" accept="image/*" capture="environment" onChange={handleMenuScan} style={{display:"none"}}/>
+
         {/* ── RESTAURANT AI MODAL ── */}
-        {restaurantAI&&(
+        {restaurantAI&&logMode!=="restaurant"&&(
           <div style={{position:"fixed",inset:0,background:"#000",zIndex:400,overflowY:"auto",paddingBottom:60,WebkitOverflowScrolling:"touch"}}>
             <div style={{position:"fixed",top:"-10%",left:"50%",transform:"translateX(-50%)",width:"70%",height:"50%",background:"radial-gradient(ellipse,rgba(232,52,28,0.12),transparent 70%)",pointerEvents:"none",zIndex:401}}/>
-            <input ref={menuScanRef} type="file" accept="image/*" capture="environment" onChange={handleMenuScan} style={{display:"none"}}/>
             <div style={{position:"relative",zIndex:402,padding:"56px 18px 20px"}}>
               <button onClick={raBack} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:20,display:"block"}}>← BACK</button>
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// RESTAURANT AI</div>
