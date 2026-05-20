@@ -3567,9 +3567,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#000" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 : ei+1}
                             </div>
-                            {/* GIF thumb — real image when available, play-icon fallback */}
+                            {/* Exercise thumbnail — image when available, muscle-group fallback */}
                             {(()=>{
                               const thumbUrl = getThumbnailUrl(ex.name);
+                              const exMuscleData = getExerciseData(ex.name);
+                              const primaryMuscle = exMuscleData?.primary?.[0] || null;
+                              const mColor = getMuscleColor(primaryMuscle);
+                              const mLetter = {'#e8341c':'C','#60a5fa':'B','#FEA020':'S','#9C6FFF':'A','#22c55e':'L','#14C4B3':'CO'}[mColor] || '?';
                               return (
                                 <div
                                   onClick={()=>openDetail(ex.name,ei)}
@@ -3583,12 +3587,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                       onError={e=>{ e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
                                     />
                                   ) : null}
-                                  {/* Fallback play icon — shown when no thumb or img error */}
-                                  <div style={{position:"absolute",inset:0,display:thumbUrl?"none":"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:2}}>
-                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{opacity:.35}}><polygon points="5,3 19,12 5,21" fill="rgba(245,245,240,1)"/></svg>
+                                  <div style={{position:"absolute",inset:0,display:thumbUrl?"none":"flex",background:`${mColor}1A`,borderRadius:10,alignItems:"center",justifyContent:"center"}}>
+                                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:mColor,lineHeight:1}}>{mLetter}</span>
                                   </div>
-                                  {/* GIF badge */}
-                                  <div style={{position:"absolute",bottom:3,right:3,background:T.prot,borderRadius:4,padding:"1px 5px",fontSize:8,fontWeight:800,letterSpacing:".04em",color:"#fff",lineHeight:1.4,opacity:.9}}>GIF</div>
                                 </div>
                               );
                             })()}

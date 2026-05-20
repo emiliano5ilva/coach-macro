@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { T, Spinner, PrimaryBtn } from "./components.jsx";
 import { sb } from "./client.js";
 import { getCachedExerciseData } from "./services/exerciseMedia.js";
+import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
 
 export const COACHING_CUES = {
   "Barbell Squat": {
@@ -209,11 +210,14 @@ export const COACHING_CUES = {
   },
 };
 
-function GifPlaceholder() {
+function ExercisePlaceholder({ exerciseName }) {
+  const exMuscleData = getExerciseData(exerciseName);
+  const primaryMuscle = exMuscleData?.primary?.[0] || null;
+  const mColor = getMuscleColor(primaryMuscle);
+  const mLetter = {'#e8341c':'C','#60a5fa':'B','#FEA020':'S','#9C6FFF':'A','#22c55e':'L','#14C4B3':'CO'}[mColor] || '?';
   return (
-    <div style={{width:"100%",aspectRatio:"4/3",background:T.s2,borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,marginBottom:20}}>
-      <div style={{fontSize:52}}>🏋️</div>
-      <div style={{fontSize:12,color:T.mu}}>Demo unavailable</div>
+    <div style={{width:"100%",aspectRatio:"4/3",background:`${mColor}1A`,borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,marginBottom:20}}>
+      <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:72,color:mColor,lineHeight:1}}>{mLetter}</span>
     </div>
   );
 }
@@ -224,10 +228,10 @@ function GifSkeleton() {
   );
 }
 
-function ExerciseImages({ url1, url2 }) {
+function ExerciseImages({ url1, url2, exerciseName }) {
   const [err1, setErr1] = useState(false);
   const [err2, setErr2] = useState(false);
-  if (!url1 || err1) return <GifPlaceholder/>;
+  if (!url1 || err1) return <ExercisePlaceholder exerciseName={exerciseName}/>;
   if (!url2 || err2) {
     return <img src={url1} alt="exercise start" onError={()=>setErr1(true)} style={{width:"100%",borderRadius:14,marginBottom:20,display:"block",objectFit:"cover"}}/>;
   }
@@ -322,7 +326,7 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
 
         <div style={{padding:"0 20px 28px"}}>
           {/* Images */}
-          {loading ? <GifSkeleton/> : <ExerciseImages url1={exData?.gif_url} url2={exData?.gif_url_2}/>}
+          {loading ? <GifSkeleton/> : <ExerciseImages url1={exData?.gif_url} url2={exData?.gif_url_2} exerciseName={exerciseName}/>}
 
           {/* Muscles */}
           {!loading && (exData?.target_muscles?.length>0 || exData?.secondary_muscles?.length>0) && (
