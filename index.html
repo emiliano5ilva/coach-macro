@@ -11,5 +11,31 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
+<!-- UserJot Feedback Widget -->
+<script>
+window.$ujq=window.$ujq||[];
+window.uj=window.uj||new Proxy({},{
+  get:(_,p)=>(...a)=>
+    window.$ujq.push([p,...a])
+});
+document.head.appendChild(
+  Object.assign(
+    document.createElement('script'),
+    {
+      src:'https://cdn.userjot.com/sdk/v2/uj.js',
+      type:'module',
+      async:!0
+    }
+  )
+);
+window.uj.init(
+  'cmpdox60502qt0iqwx692w8tw',
+  {
+    widget: true,
+    theme: 'dark',
+    trigger: 'custom',
+  }
+);
+</script>
 </body>
 </html>

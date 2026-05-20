@@ -4977,6 +4977,38 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         document.body
       )}
 
+      {/* ── YOUR VOICE ── */}
+      <div style={eyebrowStyle}>// Your Voice</div>
+      {[
+        {icon:"💡",title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(232,52,28,0.1)",bd:"rgba(232,52,28,0.2)",section:"feedback"},
+        {icon:"🐛",title:"REPORT A PROBLEM.",sub:"Help us fix what's broken",bg:"rgba(254,160,32,0.1)",bd:"rgba(254,160,32,0.2)",section:"feedback"},
+      ].map(({icon,title,sub,bg,bd,section})=>(
+        <div key={title} onClick={()=>{if(window.uj)window.uj.showWidget({section});}} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
+          onPointerDown={e=>e.currentTarget.style.borderColor="rgba(232,52,28,0.3)"}
+          onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
+          onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
+        >
+          <div style={{width:40,height:40,borderRadius:10,background:bg,border:`1px solid ${bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{icon}</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0"}}>{title}</div>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
+          </div>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.3)"}}>→</div>
+        </div>
+      ))}
+      <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"roadmap"});}} style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.05)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
+        onPointerDown={e=>e.currentTarget.style.borderColor="rgba(96,165,250,0.25)"}
+        onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
+        onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
+      >
+        <div style={{width:40,height:40,borderRadius:10,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>📍</div>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(245,245,240,0.7)"}}>SEE OUR ROADMAP.</div>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.3)",marginTop:2}}>What we're building and what's coming next</div>
+        </div>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.3)"}}>→</div>
+      </div>
+
       {/* ── CONNECTED APPS ── */}
       <div style={eyebrowStyle}>// Connected Apps</div>
       <div style={cardStyle}>

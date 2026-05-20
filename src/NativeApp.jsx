@@ -465,6 +465,7 @@ export default function NativeApp() {
         // Sync entitlements on load (non-blocking)
         checkEntitlements(uid).catch(()=>{});
         if(trialEnd)scheduleTrialExpiryNotification(trialEnd);
+        if(window.uj){window.uj.identify({id:uid,email:data.profile_data?.email||"",firstName:data.first_name||data.profile_data?.name||""});}
         const expired=tier==='expired';
         if(data.schedule)setSchedule(data.schedule);
         if(data.wprefs)setWPrefs(data.wprefs);
@@ -676,6 +677,7 @@ export default function NativeApp() {
   async function handleSignOut(){
     track(EVENTS.USER_LOGOUT,{},user?.id);
     await sb.auth.signOut();
+    if(window.uj)window.uj.identify(null);
     setUser(null);setProfile(null);setPhase("welcome-screen");
   }
 
