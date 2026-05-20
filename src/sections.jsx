@@ -1781,6 +1781,8 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
 
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
+  const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
+  const [exExpanded,setExExpanded]=useState(false);
   const [showGVT,setShowGVT]=useState(false);
   const [todaySoreness,setTodaySoreness]=useState(null);
   useEffect(()=>{
@@ -3166,37 +3168,44 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </div>
                     <button onClick={()=>setTrainScreen("plan")} style={{padding:"7px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:9,color:"#e8341c",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.1em",flexShrink:0}}>Switch →</button>
                   </div>
-                  <div style={{display:"flex",gap:8,marginBottom:12}}>
-                    {[{label:"WEEK",value:`${displayWeek}/${totalWeeks}`},{label:"DAYS/WK",value:`${daysPerWeek}×`},{label:"PHASE",value:currentPhase.name}].map(({label,value})=>(
-                      <div key={label} style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                        <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:13,color:"#f5f5f0",textTransform:"uppercase"}}>{value}</div>
+                  {progDetailsExpanded&&(
+                    <>
+                      <div style={{display:"flex",gap:8,marginBottom:12}}>
+                        {[{label:"WEEK",value:`${displayWeek}/${totalWeeks}`},{label:"DAYS/WK",value:`${daysPerWeek}×`},{label:"PHASE",value:currentPhase.name}].map(({label,value})=>(
+                          <div key={label} style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                            <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
+                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:13,color:"#f5f5f0",textTransform:"uppercase"}}>{value}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <div style={{height:2,background:"rgba(245,245,240,0.06)",borderRadius:1,overflow:"hidden",marginBottom:4}}>
-                    <div style={{height:"100%",width:`${progPct*100}%`,background:"#e8341c",borderRadius:1,transition:"width 0.6s"}}/>
-                  </div>
-                  <div style={{display:"flex",marginBottom:12}}>
-                    {phases.map(p=>{
-                      const phasePct=((p.end-p.start+1)/totalWeeks)*100;
-                      const isCurrent=p===currentPhase;
-                      return(<div key={p.name} style={{flex:`0 0 ${phasePct}%`,textAlign:"center"}}><div style={{fontFamily:"var(--mono)",fontSize:7,letterSpacing:"0.08em",textTransform:"uppercase",color:isCurrent?"#e8341c":"rgba(245,245,240,0.2)"}}>{p.name}</div></div>);
-                    })}
-                  </div>
-                  <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none"}}>
-                    {Array.from({length:totalWeeks}).map((_,i)=>{
-                      const w=i+1;const isCurrent=w===displayWeek;const isPast=w<displayWeek;
-                      return(<div key={w} style={{flexShrink:0,minWidth:28,padding:"5px 0",textAlign:"center",borderRadius:5,background:isCurrent?"#e8341c":isPast?"rgba(52,211,153,0.12)":"rgba(245,245,240,0.04)",border:`1px solid ${isCurrent?"transparent":isPast?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`,fontFamily:"var(--mono)",fontSize:9,color:isCurrent?"#fff":isPast?"#34d399":"rgba(245,245,240,0.4)",letterSpacing:"0.04em"}}>W{w}</div>);
-                    })}
-                  </div>
-                  {recentAdjustments?.length>0&&recentAdjustments[0].action!=="no_change"&&(
-                    <div style={{marginTop:8,display:"flex",alignItems:"center",gap:6}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
-                        {recentAdjustments[0].action==="advance"?"↑ Advanced":"↺ Repeated"}{" — "}{new Date(recentAdjustments[0].assessed_at+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+                      <div style={{height:2,background:"rgba(245,245,240,0.06)",borderRadius:1,overflow:"hidden",marginBottom:4}}>
+                        <div style={{height:"100%",width:`${progPct*100}%`,background:"#e8341c",borderRadius:1,transition:"width 0.6s"}}/>
                       </div>
-                    </div>
+                      <div style={{display:"flex",marginBottom:12}}>
+                        {phases.map(p=>{
+                          const phasePct=((p.end-p.start+1)/totalWeeks)*100;
+                          const isCurrent=p===currentPhase;
+                          return(<div key={p.name} style={{flex:`0 0 ${phasePct}%`,textAlign:"center"}}><div style={{fontFamily:"var(--mono)",fontSize:7,letterSpacing:"0.08em",textTransform:"uppercase",color:isCurrent?"#e8341c":"rgba(245,245,240,0.2)"}}>{p.name}</div></div>);
+                        })}
+                      </div>
+                      <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none"}}>
+                        {Array.from({length:totalWeeks}).map((_,i)=>{
+                          const w=i+1;const isCurrent=w===displayWeek;const isPast=w<displayWeek;
+                          return(<div key={w} style={{flexShrink:0,minWidth:28,padding:"5px 0",textAlign:"center",borderRadius:5,background:isCurrent?"#e8341c":isPast?"rgba(52,211,153,0.12)":"rgba(245,245,240,0.04)",border:`1px solid ${isCurrent?"transparent":isPast?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`,fontFamily:"var(--mono)",fontSize:9,color:isCurrent?"#fff":isPast?"#34d399":"rgba(245,245,240,0.4)",letterSpacing:"0.04em"}}>W{w}</div>);
+                        })}
+                      </div>
+                      {recentAdjustments?.length>0&&recentAdjustments[0].action!=="no_change"&&(
+                        <div style={{marginTop:8,display:"flex",alignItems:"center",gap:6}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                            {recentAdjustments[0].action==="advance"?"↑ Advanced":"↺ Repeated"}{" — "}{new Date(recentAdjustments[0].assessed_at+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
+                  <div onClick={()=>setProgDetailsExpanded(s=>!s)} style={{marginTop:12,textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                    {progDetailsExpanded?"Program details ↑":"Program details ↓"}
+                  </div>
                 </div>
               );
             })()}
@@ -3309,8 +3318,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 return{text:`${lastMax}${wUnit}${isUp?" ↑":""}`,color:isUp?"#22c55e":"rgba(245,245,240,0.55)"};
               }
 
-              const visibleExs=exArr;
-              const hiddenCount=0;
+              const visibleExs=exExpanded?exArr:exArr.slice(0,3);
+              const hiddenCount=exExpanded?0:Math.max(0,exArr.length-3);
 
               return(
                 <>
@@ -3379,7 +3388,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                     {/* + more */}
                     {hiddenCount>0&&(
-                      <div style={{paddingTop:10,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.30)",letterSpacing:"0.1em",textTransform:"uppercase"}}>+ {hiddenCount} more exercise{hiddenCount>1?"s":""}</div>
+                      <div onClick={()=>setExExpanded(true)} style={{paddingTop:10,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.30)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>+ {hiddenCount} more — tap to expand</div>
+                    )}
+                    {exExpanded&&exArr.length>3&&(
+                      <div onClick={()=>setExExpanded(false)} style={{paddingTop:6,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>show less ↑</div>
                     )}
 
                     {/* Goal context line */}
@@ -4837,6 +4849,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [delStep,setDelStep]=useState(0);
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
+  const [displayPrefs,setDisplayPrefs]=useState(wPrefs?.displayPrefs||{});
   const [editModal,setEditModal]=useState(null);
   const [editValue,setEditValue]=useState("");
   const [localName,setLocalName]=useState(profile?.name||"");
@@ -5000,6 +5013,109 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── DISPLAY ── */}
+      <div style={eyebrowStyle}>// Display</div>
+      <div style={cardStyle}>
+        {/* Skill Level Chips */}
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
+          <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:12}}>Adjusts coaching language and visible metrics</div>
+          <div style={{display:"flex",gap:6}}>
+            {["beginner","intermediate","advanced"].map(level=>{
+              const isActive=currentSkill===level;
+              return(
+                <button key={level} onClick={async()=>{
+                  const newWp={...wPrefs,liftExp:level};
+                  setWPrefs(newWp);
+                  await saveSettings(newWp,null);
+                  showToast(`Display preferences updated for ${level} level.`,"success");
+                }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(245,245,240,0.15)",background:isActive?"#e8341c":"transparent",color:isActive?"#fff":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
+                  {level}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* Today Tab Toggles */}
+        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY TAB</div>
+          {[
+            {key:"morning_brief",label:"Morning Brief",def:true},
+            {key:"streak_counter",label:"Streak Counter",def:true},
+            {key:"deload_alerts",label:"Deload Alerts",def:true},
+            {key:"plateau_alerts",label:"Plateau Alerts",def:true},
+            {key:"fatigue_detection",label:"Fatigue Detection",def:currentSkill!=="beginner"},
+            {key:"muscle_balance",label:"Muscle Balance",def:currentSkill==="advanced"},
+            {key:"program_adjustments",label:"Program Adjustments",def:currentSkill!=="beginner"},
+          ].map(({key,label,def})=>{
+            const val=displayPrefs[key]??def;
+            return(
+              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
+                <div onClick={async()=>{
+                  const newDp={...displayPrefs,[key]:!val};
+                  setDisplayPrefs(newDp);
+                  const newWp={...wPrefs,displayPrefs:newDp};
+                  setWPrefs(newWp);
+                  await saveSettings(newWp,null);
+                }} style={{width:44,height:24,borderRadius:12,background:val?"#e8341c":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* During Workouts */}
+        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// DURING WORKOUTS</div>
+          {[
+            {key:"rpe_input",label:"RPE Input",def:currentSkill!=="beginner"},
+            {key:"momentum_bar",label:"Momentum Bar",def:currentSkill!=="beginner"},
+          ].map(({key,label,def})=>{
+            const val=displayPrefs[key]??def;
+            return(
+              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
+                <div onClick={async()=>{
+                  const newDp={...displayPrefs,[key]:!val};
+                  setDisplayPrefs(newDp);
+                  const newWp={...wPrefs,displayPrefs:newDp};
+                  setWPrefs(newWp);
+                  await saveSettings(newWp,null);
+                }} style={{width:44,height:24,borderRadius:12,background:val?"#e8341c":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Nutrition */}
+        <div style={{padding:"10px 16px 6px"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// NUTRITION</div>
+          {[
+            {key:"full_macro_breakdown",label:"Full Macro Breakdown",def:currentSkill!=="beginner"},
+            {key:"macro_memory",label:"Macro Memory",def:currentSkill!=="beginner"},
+            {key:"nutrition_timing",label:"Nutrition Timing",def:currentSkill!=="beginner"},
+          ].map(({key,label,def})=>{
+            const val=displayPrefs[key]??def;
+            return(
+              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
+                <div onClick={async()=>{
+                  const newDp={...displayPrefs,[key]:!val};
+                  setDisplayPrefs(newDp);
+                  const newWp={...wPrefs,displayPrefs:newDp};
+                  setWPrefs(newWp);
+                  await saveSettings(newWp,null);
+                }} style={{width:44,height:24,borderRadius:12,background:val?"#e8341c":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── SUBSCRIPTION ── */}

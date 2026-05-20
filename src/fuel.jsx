@@ -1280,6 +1280,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     setBodySuggestLoading(false);
   }
   const useBudgetView=wPrefs?.fuelView==="budget";
+  const [ringExpanded,setRingExpanded]=useState(false);
 
   // ── Meal Slots ─────────────────────────────────────────────────────────────
   const [mealSlots,setMealSlots]=useState(()=>getSlotsForFreq(profile?.mealFreq));
@@ -1980,13 +1981,6 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── HOME ── */}
         {fuelScreen==="home"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {/* ── POWERED BY COACH MACRO STRIP ── */}
-            <FeatureStrip
-              tab="fuel"
-              onNavigate={(screen) => setFuelScreen(screen)}
-              onPhoto={() => onOpenPhotoLogger?.()}
-              onBarcode={() => { setFuelScreen("log"); setLogMode("barcode"); }}
-            />
             {/* VIEW TOGGLE — Macro Ring / Body Budget */}
             <div style={{display:"flex",gap:2,background:"rgba(255,255,255,.04)",borderRadius:10,padding:2,alignSelf:"flex-start"}}>
               {[["ring","Macro Ring"],["budget","Body Budget"]].map(([id,label])=>(
@@ -2060,132 +2054,177 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             ):(
               (()=>{
-                /* ── OPTION A: Nutrition Context Card + Calorie Ring + Macro Bars ── */
-                const circ = parseFloat((2 * Math.PI * 84).toFixed(1));
+                /* ── SIMPLIFIED HERO RING ── */
+                const circ = parseFloat((2 * Math.PI * 68).toFixed(1));
+                const calRemaining = Math.max(0, remaining.calories);
+                const calOver = remaining.calories < 0;
                 const calPct = macros.calories > 0 ? Math.min(1, consumed.calories / macros.calories) : 0;
                 const fillLen = parseFloat((calPct * circ).toFixed(1));
+                const ringColor = calOver ? '#e8341c' : remaining.calories < macros.calories * 0.15 ? '#FEA020' : '#22c55e';
+                const proteinHit = consumed.protein >= macros.protein * 0.95;
                 const pctP = macros.protein > 0 ? Math.min(100, Math.round(consumed.protein / macros.protein * 100)) : 0;
                 const pctC = macros.carbs > 0 ? Math.min(100, Math.round(consumed.carbs / macros.carbs * 100)) : 0;
                 const pctF = macros.fat > 0 ? Math.min(100, Math.round(consumed.fat / macros.fat * 100)) : 0;
-                const remP = Math.max(0, Math.round(macros.protein - consumed.protein));
-                const remC = Math.max(0, Math.round(macros.carbs - consumed.carbs));
-                const remF = Math.max(0, Math.round(macros.fat - consumed.fat));
-                const isRun = (wPrefs?.splitType||"").toLowerCase().includes("run") || (todayFocus||"").toLowerCase().includes("run");
-                const isLegs = ["legs","lower","glute"].some(k=>(todayFocus||"").toLowerCase().includes(k));
-                let ctx;
-                if(todayType==="rest"){
-                  ctx={title:dayNutrition?.label||"Rest Day",sub:dayNutrition?.keyInsight||"Lower calories · Protect muscle",
-                    arrows:[{macro:"Protein",color:"#60a5fa",dir:"↑",why:"Hold muscle protein synthesis"},{macro:"Carbs",color:"#22c55e",dir:"↓",why:"No session to fuel"},{macro:"Fat",color:"#f59e0b",dir:"→",why:"Maintenance level"}],
-                    coach:dayNutrition?.reasoning||"Recovering, not performing. Protect muscle."};
-                }else if(isRun){
-                  ctx={title:dayNutrition?.label||"Running Day",sub:dayNutrition?.keyInsight||"Carb priority · Aerobic fuel",
-                    arrows:[{macro:"Protein",color:"#60a5fa",dir:"→",why:"Maintenance"},{macro:"Carbs",color:"#22c55e",dir:"↑↑",why:"Glycogen for the miles"},{macro:"Fat",color:"#f59e0b",dir:"↓",why:"Lower for digestion"}],
-                    coach:dayNutrition?.reasoning||"Aerobic system runs on glycogen. Load up."};
-                }else if(isLegs){
-                  ctx={title:dayNutrition?.label||"Hypertrophy Day",sub:dayNutrition?.keyInsight||"Higher carbs · Leg focus",
-                    arrows:[{macro:"Protein",color:"#60a5fa",dir:"↑",why:"Muscle repair priority"},{macro:"Carbs",color:"#22c55e",dir:"↑↑",why:"Fuel heavy lifting"},{macro:"Fat",color:"#f59e0b",dir:"→",why:"Maintenance level"}],
-                    coach:dayNutrition?.reasoning||"Largest muscle group today needs glycogen."};
-                }else{
-                  ctx={title:dayNutrition?.label||"Strength Day",sub:dayNutrition?.keyInsight||"Higher protein + carbs",
-                    arrows:[{macro:"Protein",color:"#60a5fa",dir:"↑",why:"Muscle repair priority"},{macro:"Carbs",color:"#22c55e",dir:"↑",why:"Session fuel"},{macro:"Fat",color:"#f59e0b",dir:"→",why:"Maintenance level"}],
-                    coach:dayNutrition?.reasoning||"Heavy work today — protein and carbs both up."};
-                }
-                return(<>
-                  <style>{`
-                    @keyframes fuelRingSweep{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}
-                    @keyframes fuelBarP{from{width:0}to{width:${pctP}%}}
-                    @keyframes fuelBarC{from{width:0}to{width:${pctC}%}}
-                    @keyframes fuelBarF{from{width:0}to{width:${pctF}%}}
-                    @keyframes fuelCtxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-                    @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
-                  `}</style>
+                const isBeginner = (wPrefs?.liftExp || profile?.liftExp || 'beginner').toLowerCase() === 'beginner';
 
-                  {/* NUTRITION CONTEXT CARD */}
-                  {!macros.isFlexDay&&(
-                    <div style={{background:"#000",border:"1px solid var(--red)",borderRadius:14,padding:"18px 20px",boxShadow:"0 0 24px rgba(232,52,28,0.12)",animation:"fuelCtxIn 0.32s cubic-bezier(.2,.7,.3,1) 0.4s both"}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",marginBottom:8}}>// Today's Fuel Strategy</div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",letterSpacing:"-0.01em",lineHeight:1,marginBottom:4}}>{ctx.title}</div>
-                      <div style={{fontSize:13,color:"var(--white-dim)",marginBottom:14}}>{ctx.sub}</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:8,padding:"12px 0",borderTop:"1px solid rgba(245,245,240,0.08)",borderBottom:"1px solid rgba(245,245,240,0.08)",marginBottom:14}}>
-                        {ctx.arrows.map(({macro,color,dir,why})=>{
-                          const dC=dir.includes("↑")?"var(--green)":dir==="↓"?"var(--amber)":"rgba(245,245,240,0.4)";
-                          return(
-                            <div key={macro} style={{display:"flex",alignItems:"center",gap:10}}>
-                              <div style={{width:10,height:10,borderRadius:"50%",background:color,boxShadow:`0 0 6px ${color}99`,flexShrink:0}}/>
-                              <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white)",letterSpacing:"0.1em",width:64,textTransform:"uppercase",fontWeight:500}}>{macro}</span>
-                              <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,color:dC,width:18,textAlign:"center"}}>{dir}</span>
-                              <span style={{fontSize:13,color:"var(--white-dim)",flex:1}}>{why}</span>
-                            </div>
-                          );
-                        })}
+                if (ringExpanded) {
+                  // Full expanded view (original ring + macro bars)
+                  const circFull = parseFloat((2 * Math.PI * 84).toFixed(1));
+                  const calPctFull = macros.calories > 0 ? Math.min(1, consumed.calories / macros.calories) : 0;
+                  const fillLenFull = parseFloat((calPctFull * circFull).toFixed(1));
+                  const pctPx = macros.protein > 0 ? Math.min(100, Math.round(consumed.protein / macros.protein * 100)) : 0;
+                  const pctCx = macros.carbs > 0 ? Math.min(100, Math.round(consumed.carbs / macros.carbs * 100)) : 0;
+                  const pctFx = macros.fat > 0 ? Math.min(100, Math.round(consumed.fat / macros.fat * 100)) : 0;
+                  const remPx = Math.max(0, Math.round(macros.protein - consumed.protein));
+                  const remCx = Math.max(0, Math.round(macros.carbs - consumed.carbs));
+                  const remFx = Math.max(0, Math.round(macros.fat - consumed.fat));
+                  return (
+                    <div onClick={() => setRingExpanded(false)} style={{ cursor: 'pointer' }}>
+                      <style>{`
+                        @keyframes fuelRingSweep{from{stroke-dashoffset:${circFull}}to{stroke-dashoffset:${(circFull - fillLenFull).toFixed(1)}}}
+                        @keyframes fuelBarP{from{width:0}to{width:${pctPx}%}}
+                        @keyframes fuelBarC{from{width:0}to{width:${pctCx}%}}
+                        @keyframes fuelBarF{from{width:0}to{width:${pctFx}%}}
+                        @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+                      `}</style>
+                      <div style={{display:"flex",justifyContent:"center",padding:"8px 0 4px"}}>
+                        <div style={{position:"relative",width:200,height:200}}>
+                          <svg width="200" height="200" viewBox="0 0 200 200" style={{transform:"rotate(-90deg)",filter:"drop-shadow(0 0 24px rgba(232,52,28,0.18))"}}>
+                            <defs><linearGradient id="fuelRingGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#e8341c"/><stop offset="100%" stopColor="#c42d18"/></linearGradient></defs>
+                            <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(245,245,240,0.08)" strokeWidth="16"/>
+                            <circle cx="100" cy="100" r="84" fill="none" stroke="url(#fuelRingGrad)" strokeWidth="16" strokeLinecap="round" strokeDasharray={circFull} strokeDashoffset={circFull - fillLenFull} style={{animation:"fuelRingSweep 0.8s cubic-bezier(.2,.7,.3,1) both"}}/>
+                          </svg>
+                          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",pointerEvents:"none"}}>
+                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:50,lineHeight:1,letterSpacing:"-0.02em",color:remaining.calories<0?T.prot:"#fff"}}>{consumed.calories.toLocaleString()}</div>
+                            <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"var(--white-dim)",marginTop:6,textTransform:"uppercase"}}>of {macros.calories.toLocaleString()} kcal</div>
+                            <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:4,letterSpacing:"0.1em"}}>{Math.max(0,remaining.calories).toLocaleString()} remaining</div>
+                          </div>
+                        </div>
                       </div>
-                      <div style={{display:"flex",gap:10,padding:"10px 12px",background:"rgba(232,52,28,0.05)",borderLeft:"2px solid var(--red)",borderRadius:"0 8px 8px 0",marginBottom:12}}>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",flexShrink:0,writingMode:"vertical-rl",transform:"rotate(180deg)",alignSelf:"stretch"}}>// Coach</div>
-                        <div style={{fontStyle:"italic",fontSize:"13.5px",color:"var(--white)",lineHeight:1.55}}>"{ctx.coach}"</div>
-                      </div>
-                      {earnedCals>0&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:T.green,letterSpacing:"0.1em",marginBottom:8}}>+{earnedCals} kcal earned from activity</div>}
-                      <button onClick={()=>{}} style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",textDecoration:"underline",background:"none",border:"none",padding:0,cursor:"pointer"}}>Adjust targets →</button>
-                    </div>
-                  )}
-
-                  {/* FLEX DAY BANNER */}
-                  {macros.isFlexDay&&(
-                    <div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.25)",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",marginBottom:12,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>↑ COLLAPSE</div>
                       <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// Flex Day · Enjoy the surplus</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"var(--amber)"}}>Flex Day</div>
-                      </div>
-                      {earnedCals>0&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:T.green,letterSpacing:"0.08em"}}>+{earnedCals} earned</div>}
-                    </div>
-                  )}
-
-                  {/* CALORIE RING */}
-                  <div style={{display:"flex",justifyContent:"center",padding:"18px 0 8px"}}>
-                    <div style={{position:"relative",width:200,height:200}}>
-                      <svg width="200" height="200" viewBox="0 0 200 200" style={{transform:"rotate(-90deg)",filter:"drop-shadow(0 0 24px rgba(232,52,28,0.18))"}}>
-                        <defs>
-                          <linearGradient id="fuelRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#e8341c"/>
-                            <stop offset="100%" stopColor="#c42d18"/>
-                          </linearGradient>
-                        </defs>
-                        <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(245,245,240,0.08)" strokeWidth="16"/>
-                        <circle cx="100" cy="100" r="84" fill="none" stroke="url(#fuelRingGrad)" strokeWidth="16" strokeLinecap="round"
-                          strokeDasharray={circ}
-                          strokeDashoffset={circ - fillLen}
-                          style={{animation:"fuelRingSweep 0.8s cubic-bezier(.2,.7,.3,1) both"}}
-                        />
-                      </svg>
-                      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",pointerEvents:"none"}}>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:50,lineHeight:1,letterSpacing:"-0.02em",color:remaining.calories<0?T.prot:"#fff"}}>{consumed.calories.toLocaleString()}</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"var(--white-dim)",marginTop:6,textTransform:"uppercase"}}>of {macros.calories.toLocaleString()} kcal</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:4,letterSpacing:"0.1em"}}>{Math.max(0,remaining.calories).toLocaleString()} remaining</div>
+                        {[{label:"Protein",c:consumed.protein,t:macros.protein,pct:pctPx,rem:remPx,anim:"fuelBarP",delay:"0.1s",fill:"linear-gradient(90deg,rgba(96,165,250,0.7),#60a5fa)",glow:"0 0 8px rgba(96,165,250,0.5)"},{label:"Carbs",c:consumed.carbs,t:macros.carbs,pct:pctCx,rem:remCx,anim:"fuelBarC",delay:"0.2s",fill:"linear-gradient(90deg,rgba(34,197,94,0.7),#22c55e)",glow:"0 0 8px rgba(34,197,94,0.5)"},{label:"Fat",c:consumed.fat,t:macros.fat,pct:pctFx,rem:remFx,anim:"fuelBarF",delay:"0.3s",fill:"linear-gradient(90deg,rgba(245,158,11,0.7),#f59e0b)",glow:"0 0 8px rgba(245,158,11,0.5)"}].map(({label,c,t,pct,rem,anim,delay,fill,glow})=>(
+                          <div key={label} style={{marginBottom:14}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}><span style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"var(--white)",textTransform:"uppercase",fontWeight:500}}>// {label}</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>{Math.round(c)}<span style={{color:"rgba(245,245,240,0.4)"}}>/{Math.round(t)}g</span></span></div>
+                            <div style={{height:8,background:"rgba(245,245,240,0.08)",borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,borderRadius:4,background:fill,boxShadow:glow,animation:`${anim} 0.8s cubic-bezier(.2,.7,.3,1) ${delay} both`}}/></div>
+                            <div style={{fontFamily:"var(--mono)",fontSize:"9.5px",color:"rgba(245,245,240,0.65)",letterSpacing:"0.08em",marginTop:6}}>{pct}% · {rem}g remaining</div>
+                          </div>
+                        ))}
+                        {macros.isFlexDay&&<div style={{marginTop:6,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
+                        {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:6,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days</div>}
                       </div>
                     </div>
-                  </div>
+                  );
+                }
 
-                  {/* MACRO BARS */}
-                  <div>
-                    {[
-                      {label:"Protein",c:consumed.protein,t:macros.protein,pct:pctP,rem:remP,anim:"fuelBarP",delay:"0.1s",fill:"linear-gradient(90deg,rgba(96,165,250,0.7),#60a5fa)",glow:"0 0 8px rgba(96,165,250,0.5)"},
-                      {label:"Carbs",c:consumed.carbs,t:macros.carbs,pct:pctC,rem:remC,anim:"fuelBarC",delay:"0.2s",fill:"linear-gradient(90deg,rgba(34,197,94,0.7),#22c55e)",glow:"0 0 8px rgba(34,197,94,0.5)"},
-                      {label:"Fat",c:consumed.fat,t:macros.fat,pct:pctF,rem:remF,anim:"fuelBarF",delay:"0.3s",fill:"linear-gradient(90deg,rgba(245,158,11,0.7),#f59e0b)",glow:"0 0 8px rgba(245,158,11,0.5)"},
-                    ].map(({label,c,t,pct,rem,anim,delay,fill,glow})=>(
-                      <div key={label} style={{marginBottom:14}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}>
-                          <span style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"var(--white)",textTransform:"uppercase",fontWeight:500}}>// {label}</span>
-                          <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>{Math.round(c)}<span style={{color:"rgba(245,245,240,0.4)"}}>/{Math.round(t)}g</span></span>
+                // COLLAPSED HERO
+                return (
+                  <>
+                    <style>{`
+                      @keyframes fuelRingSweepS{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ - fillLen).toFixed(1)}}}
+                      @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+                    `}</style>
+
+                    {/* Hero Ring */}
+                    <div onClick={() => setRingExpanded(true)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, paddingBottom: 4, cursor: 'pointer' }}>
+                      <div style={{ position: 'relative', width: 160, height: 160 }}>
+                        <svg width="160" height="160" viewBox="0 0 160 160" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(245,245,240,0.07)" strokeWidth="12"/>
+                          <circle cx="80" cy="80" r="68" fill="none" stroke={ringColor} strokeWidth="12" strokeLinecap="round"
+                            strokeDasharray={circ} strokeDashoffset={circ - fillLen}
+                            style={{ animation: 'fuelRingSweepS 0.8s cubic-bezier(.2,.7,.3,1) both', transition: 'stroke 0.4s' }}
+                          />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none' }}>
+                          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, lineHeight: 1, color: calOver ? '#e8341c' : '#f5f5f0', letterSpacing: '-0.02em' }}>
+                            {calOver ? `+${Math.abs(remaining.calories)}` : calRemaining.toLocaleString()}
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 8, color: 'rgba(245,245,240,0.4)', marginTop: 5, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                            {calOver ? 'OVER TARGET' : (isBeginner ? 'CALORIES LEFT' : 'KCAL REMAINING')}
+                          </div>
                         </div>
-                        <div style={{height:8,background:"rgba(245,245,240,0.08)",borderRadius:4,overflow:"hidden"}}>
-                          <div style={{height:"100%",width:`${pct}%`,borderRadius:4,background:fill,boxShadow:glow,animation:`${anim} 0.8s cubic-bezier(.2,.7,.3,1) ${delay} both`}}/>
-                        </div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:"9.5px",color:"rgba(245,245,240,0.65)",letterSpacing:"0.08em",marginTop:6}}>{pct}% · {rem}g remaining</div>
                       </div>
-                    ))}
-                    {macros.isFlexDay&&<div style={{marginTop:6,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
-                    {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:6,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days</div>}
-                  </div>
-                </>);
+
+                      {/* Thin P/C/F bar */}
+                      <div style={{ width: 160, marginTop: 10 }}>
+                        <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', gap: 1 }}>
+                          <div style={{ flex: pctP, background: proteinHit ? '#22c55e' : '#e8341c', borderRadius: '2px 0 0 2px', transition: 'flex 0.5s' }} />
+                          <div style={{ flex: pctC, background: '#FEA020', transition: 'flex 0.5s' }} />
+                          <div style={{ flex: pctF, background: '#60a5fa', borderRadius: '0 2px 2px 0', transition: 'flex 0.5s' }} />
+                          <div style={{ flex: Math.max(0, 300 - pctP - pctC - pctF), background: 'rgba(245,245,240,0.06)' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 7, color: proteinHit ? '#22c55e' : 'rgba(245,245,240,0.4)', letterSpacing: '0.08em' }}>
+                            Protein {Math.round(consumed.protein)}g{proteinHit ? ' ✓' : ''}
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 7, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.08em' }}>
+                            Carbs {Math.round(consumed.carbs)}g
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 7, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.08em' }}>
+                            Fat {Math.round(consumed.fat)}g
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'center', marginTop: 6, fontFamily: 'DM Mono, monospace', fontSize: 7, color: 'rgba(245,245,240,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                          TAP FOR BREAKDOWN ↓
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Meal rows */}
+                    <div style={{ marginTop: 16, borderTop: '1px solid rgba(245,245,240,0.05)' }}>
+                      {log.length === 0 ? (
+                        <div style={{ padding: '20px 0', textAlign: 'center' }}>
+                          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: 'rgba(245,245,240,0.3)', textTransform: 'uppercase', marginBottom: 6 }}>
+                            TAP + TO LOG YOUR FIRST MEAL<span style={{ color: '#e8341c' }}>.</span>
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(245,245,240,0.2)', animation: 'fuelBounce 1.2s ease-in-out infinite', display: 'inline-block' }}>↓</div>
+                        </div>
+                      ) : (
+                        log.slice(0, 8).map((entry, i) => (
+                          <div key={entry.id || i} style={{
+                            display: 'flex', alignItems: 'center',
+                            padding: '12px 0',
+                            borderBottom: '1px solid rgba(245,245,240,0.05)',
+                          }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontFamily: 'var(--condensed)', fontSize: 15, color: '#f5f5f0', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.food}</div>
+                              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginTop: 2, letterSpacing: '0.08em' }}>
+                                {entry.calories} kcal · {entry.protein}g P · {entry.carbs}g C · {entry.fat}g F
+                              </div>
+                            </div>
+                            <button onClick={() => removeLog(entry.id)} style={{ marginLeft: 12, width: 24, height: 24, borderRadius: '50%', background: 'rgba(245,245,240,0.06)', border: '1px solid rgba(245,245,240,0.1)', color: 'rgba(245,245,240,0.35)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+                          </div>
+                        ))
+                      )}
+                      {log.length > 8 && (
+                        <div style={{ padding: '10px 0', fontFamily: 'DM Mono, monospace', fontSize: 8, color: 'rgba(245,245,240,0.3)', textAlign: 'center', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                          + {log.length - 8} more entries
+                        </div>
+                      )}
+
+                      {/* Water row */}
+                      <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(245,245,240,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                          <span style={{ fontSize: 14 }}>💧</span>
+                          <div>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>WATER</div>
+                            <div style={{ fontFamily: 'var(--condensed)', fontSize: 15, color: '#f5f5f0', fontWeight: 700, marginTop: 1 }}>
+                              {waterLogs?.length || 0} / {waterTarget || 8} glasses
+                            </div>
+                          </div>
+                        </div>
+                        <button onClick={() => onAddWater?.({ amount_oz: 8 })} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(232,52,28,0.15)', border: '1px solid rgba(232,52,28,0.3)', color: '#e8341c', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 700, lineHeight: 1 }}>+</button>
+                      </div>
+
+                      {/* Log food button */}
+                      <div style={{ paddingTop: 12 }}>
+                        <button onClick={() => setFuelScreen("log")} style={{ width: '100%', padding: '13px 0', background: 'transparent', border: '1px solid rgba(232,52,28,0.3)', borderRadius: 12, fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#e8341c', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                          + LOG FOOD
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                );
               })()
             )}
 
@@ -2463,6 +2502,14 @@ Reply with ONLY a valid JSON object, no markdown:
                 <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
               </div>
             </button>
+
+            {/* ── POWERED BY COACH MACRO STRIP ── */}
+            <FeatureStrip
+              tab="fuel"
+              onNavigate={(screen) => setFuelScreen(screen)}
+              onPhoto={() => onOpenPhotoLogger?.()}
+              onBarcode={() => { setFuelScreen("log"); setLogMode("barcode"); }}
+            />
 
             {/* WATER TRACKER */}
             {waterTarget>0&&(
@@ -3411,6 +3458,10 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         )}
 
+        {/* Floating log button */}
+        {fuelScreen==="home"&&(
+          <button onClick={()=>setFuelScreen("log")} style={{position:"fixed",bottom:90,right:20,width:52,height:52,borderRadius:"50%",background:"#e8341c",boxShadow:"0 4px 20px rgba(232,52,28,0.4)",border:"none",color:"#fff",fontSize:24,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,fontWeight:300,lineHeight:1}}>+</button>
+        )}
       </div>
     </div>
   );

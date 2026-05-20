@@ -63,6 +63,7 @@ import { checkFeatureUnlocks, getPendingUnlock, getUserStats, markUnlockShown, m
 import WinScreen from "./components/WinScreen.jsx";
 import StreakCard from "./components/StreakCard.jsx";
 import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
+import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1534,6 +1535,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   // ── Win Celebrations ───────────────────────────────────────────────────────
   const [showWinScreen,setShowWinScreen]=useState(null);
   const [pendingStreakWin,setPendingStreakWin]=useState(null);
+  const [briefExpanded,setBriefExpanded]=useState(()=>{const today=new Date().toISOString().split("T")[0];return localStorage.getItem("brief_expanded")===today;});
+  const [sessionExpandedToday,setSessionExpandedToday]=useState(false);
+  const [graduationDismissed,setGraduationDismissed]=useState(false);
 
   // ── Life-Aware Training — Calendar ────────────────────────────────────────
   const [calendarConnected,setCalendarConnected]=useState(()=>localStorage.getItem("calendar_connected")==="1");
@@ -3214,6 +3218,39 @@ Rules:
           );
         })()}
 
+        {/* Graduation Prompt */}
+        {(()=>{
+          if(graduationDismissed)return null;
+          const sl=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();
+          if(sl!=='beginner')return null;
+          if(workoutLogsRaw.length<10)return null;
+          const daysSince=profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at))/864e5):0;
+          if(daysSince<30)return null;
+          const key=`graduation_${user?.id}`;
+          if(localStorage.getItem(key))return null;
+          return(
+            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(254,160,32,0.2)",borderRadius:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LEVEL UP?</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>YOU'VE BEEN AT THIS A MONTH<span style={{color:"#FEA020"}}>.</span></div>
+              <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:14}}>Want to unlock more advanced stats and coaching? You've earned it.</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={async()=>{
+                  const newWp={...wPrefs,liftExp:"intermediate"};
+                  setWPrefs(newWp);
+                  if(user){await sb.from("profiles").upsert({id:user.id,wprefs:newWp},{onConflict:"id"});}
+                  setGraduationDismissed(true);
+                  if(user)localStorage.setItem(`graduation_${user.id}`,new Date().toISOString().split("T")[0]);
+                  showToast("Upgraded to Intermediate view!","success");
+                }} style={{flex:2,padding:"12px 0",background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>UPGRADE MY VIEW →</button>
+                <button onClick={()=>{
+                  setGraduationDismissed(true);
+                  if(user)localStorage.setItem(`graduation_${user.id}`,new Date(Date.now()+30*864e5).toISOString().split("T")[0]);
+                }} style={{flex:1,padding:"12px 0",background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>KEEP IT SIMPLE</button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Streak counter + StreakCard */}
         {(()=>{
           const todayStr=new Date().toISOString().split("T")[0];
@@ -3268,65 +3305,62 @@ Rules:
         {/* Morning Brief + Comeback Protocol */}
         <div style={{margin:"0 20px 12px"}}>
           {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
-            <div style={{padding:"16px",background:"linear-gradient(135deg,#0d1420,#0a0e1a)",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
-                  {new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+            briefExpanded
+              ?<div style={{padding:"16px",background:"linear-gradient(135deg,#0d1420,#0a0e1a)",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
+                    {new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+                  </div>
                 </div>
-              </div>
-              {morningBriefLoading
-                ?<div style={{display:"flex",flexDirection:"column",gap:9}}>
-                  {[1,0.85,0.7,0.55].map((w,i)=><div key={i} className="skeleton" style={{height:12,width:`${w*100}%`,borderRadius:3,animationDelay:`${i*80}ms`}}/>)}
-                </div>
-                :morningBriefError
-                  ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>{morningBriefError}</div>
-                  :morningBrief&&(()=>{
-                    const b=morningBrief;
-                    return(
-                      <div>
-                        {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
-                        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                          {b.yesterday&&(
-                            <div>
-                              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div>
-                              <div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div>
-                            </div>
-                          )}
-                          <div style={{height:1,background:"rgba(245,245,240,0.06)"}}/>
-                          {b.today&&(
-                            <div>
-                              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div>
-                              <div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div>
-                            </div>
-                          )}
-                          {b.coach_says&&(
-                            <div style={{padding:"8px 10px",background:"rgba(232,52,28,0.08)",borderRadius:6,borderLeft:"2px solid rgba(232,52,28,0.4)"}}>
-                              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div>
-                              <div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div>
-                            </div>
-                          )}
+                {morningBriefLoading
+                  ?<div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    {[1,0.85,0.7,0.55].map((w,i)=><div key={i} className="skeleton" style={{height:12,width:`${w*100}%`,borderRadius:3,animationDelay:`${i*80}ms`}}/>)}
+                  </div>
+                  :morningBriefError
+                    ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>{morningBriefError}</div>
+                    :morningBrief&&(()=>{
+                      const b=morningBrief;
+                      return(
+                        <div>
+                          {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
+                          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                            {b.yesterday&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div><div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div></div>)}
+                            <div style={{height:1,background:"rgba(245,245,240,0.06)"}}/>
+                            {b.today&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div><div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div></div>)}
+                            {b.coach_says&&(<div style={{padding:"8px 10px",background:"rgba(232,52,28,0.08)",borderRadius:6,borderLeft:"2px solid rgba(232,52,28,0.4)"}}><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div><div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div></div>)}
+                          </div>
+                          {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
+                          {showCheckin&&!checkinDone&&(<SorenessCheckIn userId={user?.id} onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}} onSkip={()=>setShowCheckin(false)}/>)}
+                          {checkinDone&&sorenessData&&(<SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>)}
                         </div>
-                        {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
-                        {showCheckin&&!checkinDone&&(
-                          <SorenessCheckIn
-                            userId={user?.id}
-                            onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}}
-                            onSkip={()=>setShowCheckin(false)}
-                          />
-                        )}
-                        {checkinDone&&sorenessData&&(
-                          <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
-                        )}
-                      </div>
-                    );
-                  })()
-              }
-              {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
-                <FlagBtn responseText={morningBrief?JSON.stringify(morningBrief):""} feature="morning_brief" user={user}/>
-                <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
-              </div>}
-            </div>
+                      );
+                    })()
+                }
+                {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
+                  <FlagBtn responseText={morningBrief?JSON.stringify(morningBrief):""} feature="morning_brief" user={user}/>
+                  <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                    <button onClick={()=>{setBriefExpanded(false);}} style={{background:"transparent",border:"none",color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>COLLAPSE ↑</button>
+                    <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
+                  </div>
+                </div>}
+              </div>
+              :(()=>{
+                const b=morningBrief;
+                const coachSays=morningBriefLoading?"Loading brief...":(morningBriefError?"Couldn't load brief — tap to retry":(b?.coach_says||b?.greeting||""));
+                return(
+                  <div onClick={()=>{setBriefExpanded(true);const today=new Date().toISOString().split("T")[0];localStorage.setItem("brief_expanded",today);}}
+                    style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderLeft:"2px solid #e8341c",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:15,color:"#f5f5f0",lineHeight:1.4,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      {coachSays}
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase"}}>// MORNING BRIEF</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase"}}>READ MORE ↓</div>
+                    </div>
+                  </div>
+                );
+              })()
           )}
           {showComebackProtocol&&(
             <div style={{padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,boxSizing:"border-box"}}>
@@ -3451,25 +3485,28 @@ Rules:
             );
           }
 
+          const deloadSummary=`Rest week${formattedRange&&formattedRange!=="Next week"?" · "+formattedRange:""}`;
           return(
-            <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(254,160,32,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// DELOAD WEEK INCOMING</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",marginBottom:10,textTransform:"uppercase",lineHeight:1}}>
-                YOUR BODY NEEDS THIS<span style={{color:"#FEA020"}}>.</span>
+            <CollapsibleAlert color="#FEA020" summary={deloadSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(254,160,32,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
+                {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// REST WEEK COMING UP":"// DELOAD WEEK INCOMING"}</div>);})()}
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",marginBottom:10,textTransform:"uppercase",lineHeight:1}}>
+                  YOUR BODY NEEDS THIS<span style={{color:"#FEA020"}}>.</span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+                  {signalLines.map((l,i)=>(
+                    <div key={i} style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>{l}</div>
+                  ))}
+                </div>
+                <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>
+                  Next week: same exercises, 50% less volume and weight. This is where the gains you've built actually set in.
+                </div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",marginBottom:14}}>DELOAD WEEK: {formattedRange}</div>
+                <button onClick={startDeload} style={{width:"100%",padding:13,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>GOT IT →</button>
+                <button onClick={()=>setSkipConfirmDeload(true)} style={{width:"100%",padding:10,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SKIP DELOAD</button>
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
-                {signalLines.map((l,i)=>(
-                  <div key={i} style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>{l}</div>
-                ))}
-              </div>
-              <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>
-                Next week: same exercises, 50% less volume and weight. This is where the gains you've built actually set in.
-              </div>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",marginBottom:14}}>DELOAD WEEK: {formattedRange}</div>
-              <button onClick={startDeload} style={{width:"100%",padding:13,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>GOT IT →</button>
-              <button onClick={()=>setSkipConfirmDeload(true)} style={{width:"100%",padding:10,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SKIP DELOAD</button>
-            </div>
+            </CollapsibleAlert>
           );
         })()}
 
@@ -3483,34 +3520,37 @@ Rules:
             ?"Your training signals are strong. Moving to the next week."
             :"Your body needs more time here. Repeating this week.";
           const reasons=(weekAdjustment.reason||"").split("; ").filter(Boolean);
+          const adjSummary=`Program ${isAdvance?"advanced":"repeated"} to Week ${weekAdjustment.new_week}`;
           return(
-            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// PROGRAM UPDATED</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
-                {title}<span style={{color:accent}}>.</span>
+            <CollapsibleAlert color={accent} summary={adjSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// PROGRAM UPDATED</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
+                  {title}<span style={{color:accent}}>.</span>
+                </div>
+                <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>{subtitle}</div>
+                {reasons.length>0&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
+                    {reasons.map((r,i)=>(
+                      <div key={i} style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",lineHeight:1.6}}>{isAdvance?"✓ ":"⚡ "}{r}</div>
+                    ))}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:8,marginBottom:0}}>
+                  <div style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>WAS</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:16,color:"rgba(245,245,240,0.4)"}}>W{weekAdjustment.old_week}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",fontSize:16,color:"rgba(245,245,240,0.3)"}}>→</div>
+                  <div style={{flex:1,background:`${accent}12`,border:`1px solid ${accent}30`,borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>NOW</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:16,color:accent}}>W{weekAdjustment.new_week}</div>
+                  </div>
+                </div>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setAdjSnooze(t);localStorage.setItem("adj_snooze",t);}} style={{width:"100%",marginTop:12,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
-              <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>{subtitle}</div>
-              {reasons.length>0&&(
-                <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
-                  {reasons.map((r,i)=>(
-                    <div key={i} style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",lineHeight:1.6}}>{isAdvance?"✓ ":"⚡ "}{r}</div>
-                  ))}
-                </div>
-              )}
-              <div style={{display:"flex",gap:8,marginBottom:0}}>
-                <div style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>WAS</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:16,color:"rgba(245,245,240,0.4)"}}>W{weekAdjustment.old_week}</div>
-                </div>
-                <div style={{display:"flex",alignItems:"center",fontSize:16,color:"rgba(245,245,240,0.3)"}}>→</div>
-                <div style={{flex:1,background:`${accent}12`,border:`1px solid ${accent}30`,borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>NOW</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:16,color:accent}}>W{weekAdjustment.new_week}</div>
-                </div>
-              </div>
-              <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setAdjSnooze(t);localStorage.setItem("adj_snooze",t);}} style={{width:"100%",marginTop:12,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
-            </div>
+            </CollapsibleAlert>
           );
         })()}
 
@@ -3518,47 +3558,51 @@ Rules:
         {activePlateaus.length>0&&plateauSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
           const shown=activePlateaus.slice(0,2);
           const extra=activePlateaus.length-shown.length;
+          const plateauNames=shown.map(p=>p.exercise_name).join(", ");
+          const plateauSummary=`${plateauNames} stalled — strateg${shown.length>1?"ies":"y"} ready`;
           return(
-            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,rgba(96,165,250,0.06) 0%,transparent 70%)",pointerEvents:"none"}}/>
-              {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#60a5fa",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{sl2==='beginner'?"// LET'S MIX IT UP":"// PLATEAU DETECTED"}</div>);})()}
-              <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:14}}>
-                {shown.map((p,i)=>{
-                  const strategy=getStrategyByName(p.strategy_prescribed);
-                  return(
-                    <div key={p.id||i}>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>
-                        {p.exercise_name.toUpperCase()}<span style={{color:"#60a5fa"}}>.</span>
+            <CollapsibleAlert color="#60a5fa" summary={plateauSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,rgba(96,165,250,0.06) 0%,transparent 70%)",pointerEvents:"none"}}/>
+                {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#60a5fa",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{sl2==='beginner'?"// LET'S MIX IT UP":"// PLATEAU DETECTED"}</div>);})()}
+                <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:14}}>
+                  {shown.map((p,i)=>{
+                    const strategy=getStrategyByName(p.strategy_prescribed);
+                    return(
+                      <div key={p.id||i}>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>
+                          {p.exercise_name.toUpperCase()}<span style={{color:"#60a5fa"}}>.</span>
+                        </div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:10}}>
+                          {p.plateau_type==="weight"
+                            ?`Stuck at ${p.stalled_value} lbs for ${p.sessions_stalled} sessions.`
+                            :`Volume flat or declining for ${p.sessions_stalled} sessions.`}
+                        </div>
+                        {strategy&&(
+                          <>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// BREAK IT WITH</div>
+                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",marginBottom:4}}>
+                              {strategy.name}<span style={{color:"#60a5fa"}}>.</span>
+                            </div>
+                            <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:8}}>{strategy.description}</div>
+                            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                              {strategy.prescription.map((step,si)=>(
+                                <div key={si} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                                  <span style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",minWidth:20,flexShrink:0,marginTop:1}}>0{si+1}</span>
+                                  <span style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5}}>{step}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:10}}>
-                        {p.plateau_type==="weight"
-                          ?`Stuck at ${p.stalled_value} lbs for ${p.sessions_stalled} sessions.`
-                          :`Volume flat or declining for ${p.sessions_stalled} sessions.`}
-                      </div>
-                      {strategy&&(
-                        <>
-                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// BREAK IT WITH</div>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",marginBottom:4}}>
-                            {strategy.name}<span style={{color:"#60a5fa"}}>.</span>
-                          </div>
-                          <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:8}}>{strategy.description}</div>
-                          <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                            {strategy.prescription.map((step,si)=>(
-                              <div key={si} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                                <span style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",minWidth:20,flexShrink:0,marginTop:1}}>0{si+1}</span>
-                                <span style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5}}>{step}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                {extra>0&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:12}}>and {extra} more exercise{extra>1?"s":""} need attention</div>}
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setPlateauSnooze(t);localStorage.setItem("plateau_snooze",t);}} style={{width:"100%",padding:13,background:"#60a5fa",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
-              {extra>0&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:12}}>and {extra} more exercise{extra>1?"s":""} need attention</div>}
-              <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setPlateauSnooze(t);localStorage.setItem("plateau_snooze",t);}} style={{width:"100%",padding:13,background:"#60a5fa",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
-            </div>
+            </CollapsibleAlert>
           );
         })()}
 
@@ -3568,56 +3612,59 @@ Rules:
           const isRisk=primary.severity==="risk";
           const accent=isRisk?"#e8341c":"#FEA020";
           const borderColor=isRisk?"rgba(232,52,28,0.2)":"rgba(254,160,32,0.2)";
+          const balanceSummary=`${primary.type==="push_pull"?"Push/pull":"Quad/posterior"} imbalance — fix ready`;
           return(
-            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MUSCLE IMBALANCE DETECTED</div>
-              {balanceCorrections.map((c,ci)=>{
-                const isPP=c.type==="push_pull";
-                const pushPct=isPP&&(balanceCorrections[0]?.type==="push_pull")
-                  ? Math.round(100*(c.type==="push_pull"?(latestBalance?.push_volume_lbs||0)/Math.max(1,(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)):0))
-                  : 0;
-                const totalVol=isPP
-                  ?(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)
-                  :(latestBalance?.quad_volume_lbs||0)+(latestBalance?.posterior_volume_lbs||0);
-                const aVol=isPP?(latestBalance?.push_volume_lbs||0):(latestBalance?.quad_volume_lbs||0);
-                const bVol=isPP?(latestBalance?.pull_volume_lbs||0):(latestBalance?.posterior_volume_lbs||0);
-                const aPct=totalVol>0?Math.round(aVol/totalVol*100):50;
-                const bPct=100-aPct;
-                const aLabel=isPP?"PUSH":"QUAD";
-                const bLabel=isPP?"PULL":"POST";
-                const aColor=isRisk?"#e8341c":"#FEA020";
-                const bColor="#60a5fa";
-                return(
-                  <div key={ci} style={{marginBottom:ci<balanceCorrections.length-1?16:0}}>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
-                      {isPP?"PUSH/PULL IMBALANCE":"QUAD/POSTERIOR IMBALANCE"}<span style={{color:accent}}>.</span>
-                    </div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:10}}>
-                      {c.message}<br/>{c.risk}
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
-                      {[[aLabel,aPct,aColor],[bLabel,bPct,bColor]].map(([label,pct,color])=>(
-                        <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
-                          <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+            <CollapsibleAlert color={accent} summary={balanceSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MUSCLE IMBALANCE DETECTED</div>
+                {balanceCorrections.map((c,ci)=>{
+                  const isPP=c.type==="push_pull";
+                  const pushPct=isPP&&(balanceCorrections[0]?.type==="push_pull")
+                    ? Math.round(100*(c.type==="push_pull"?(latestBalance?.push_volume_lbs||0)/Math.max(1,(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)):0))
+                    : 0;
+                  const totalVol=isPP
+                    ?(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)
+                    :(latestBalance?.quad_volume_lbs||0)+(latestBalance?.posterior_volume_lbs||0);
+                  const aVol=isPP?(latestBalance?.push_volume_lbs||0):(latestBalance?.quad_volume_lbs||0);
+                  const bVol=isPP?(latestBalance?.pull_volume_lbs||0):(latestBalance?.posterior_volume_lbs||0);
+                  const aPct=totalVol>0?Math.round(aVol/totalVol*100):50;
+                  const bPct=100-aPct;
+                  const aLabel=isPP?"PUSH":"QUAD";
+                  const bLabel=isPP?"PULL":"POST";
+                  const aColor=isRisk?"#e8341c":"#FEA020";
+                  const bColor="#60a5fa";
+                  return(
+                    <div key={ci} style={{marginBottom:ci<balanceCorrections.length-1?16:0}}>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
+                        {isPP?"PUSH/PULL IMBALANCE":"QUAD/POSTERIOR IMBALANCE"}<span style={{color:accent}}>.</span>
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:10}}>
+                        {c.message}<br/>{c.risk}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
+                        {[[aLabel,aPct,aColor],[bLabel,bPct,bColor]].map(([label,pct,color])=>(
+                          <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:28,textAlign:"right",flexShrink:0}}>{pct}%</div>
                           </div>
-                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:28,textAlign:"right",flexShrink:0}}>{pct}%</div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// FIX THIS WEEK</div>
+                      <div style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5,marginBottom:8}}>{c.fix}</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                        {c.exercises.map((ex,ei)=>(
+                          <div key={ei} style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e"}}>+ {ex}</div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// FIX THIS WEEK</div>
-                    <div style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5,marginBottom:8}}>{c.fix}</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                      {c.exercises.map((ex,ei)=>(
-                        <div key={ei} style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e"}}>+ {ex}</div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setBalanceSnooze(t);localStorage.setItem("balance_snooze",t);}} style={{width:"100%",marginTop:14,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
-            </div>
+                  );
+                })}
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setBalanceSnooze(t);localStorage.setItem("balance_snooze",t);}} style={{width:"100%",marginTop:14,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+              </div>
+            </CollapsibleAlert>
           );
         })()}
 
@@ -3628,34 +3675,37 @@ Rules:
           const borderColor=isHigh?"rgba(232,52,28,0.2)":"rgba(254,160,32,0.2)";
           const headline=isHigh?"YOUR BODY IS TIRED.":"FATIGUE BUILDING.";
           const exerciseSignals=(fatigueAlert.fatigueSignals||[]).filter(s=>s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence");
+          const fatigueSummary=isHigh?"High fatigue — lighter session today":"Fatigue building — monitor effort";
           return(
-            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
-              {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// YOUR BODY IS TIRED":"// FATIGUE DETECTED"}</div>);})()}
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
-                {headline}<span style={{color:accent}}>.</span>
-              </div>
-              {fatigueAlert.topSignal&&(
-                <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>{fatigueAlert.topSignal.message}</div>
-              )}
-              {exerciseSignals.length>0&&(
-                <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
-                  {exerciseSignals.map((s,i)=>(
-                    <div key={i} style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)"}}>
-                      • {s.exercise}: RPE +{s.rpeDrift} over {s.sessions} sessions
-                    </div>
-                  ))}
+            <CollapsibleAlert color={accent} summary={fatigueSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
+                {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// YOUR BODY IS TIRED":"// FATIGUE DETECTED"}</div>);})()}
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                  {headline}<span style={{color:accent}}>.</span>
                 </div>
-              )}
-              <div style={{borderLeft:`2px solid ${accent}`,paddingLeft:10,marginBottom:12}}>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:15,color:"#f5f5f0",lineHeight:1.4}}>
-                  {isHigh
-                    ?"Consider requesting a deload or taking an extra rest day before your next heavy session."
-                    :"Watch your RPE closely this week. If it keeps climbing a deload may be needed soon."}
+                {fatigueAlert.topSignal&&(
+                  <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>{fatigueAlert.topSignal.message}</div>
+                )}
+                {exerciseSignals.length>0&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+                    {exerciseSignals.map((s,i)=>(
+                      <div key={i} style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)"}}>
+                        • {s.exercise}: RPE +{s.rpeDrift} over {s.sessions} sessions
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{borderLeft:`2px solid ${accent}`,paddingLeft:10,marginBottom:12}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:15,color:"#f5f5f0",lineHeight:1.4}}>
+                    {isHigh
+                      ?"Consider requesting a deload or taking an extra rest day before your next heavy session."
+                      :"Watch your RPE closely this week. If it keeps climbing a deload may be needed soon."}
+                  </div>
                 </div>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setFatigueSnooze(t);localStorage.setItem("fatigue_snooze",t);}} style={{width:"100%",padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
-              <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setFatigueSnooze(t);localStorage.setItem("fatigue_snooze",t);}} style={{width:"100%",padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
-            </div>
+            </CollapsibleAlert>
           );
         })()}
 
@@ -3718,27 +3768,38 @@ Rules:
               </div>
             </div>
           ):(
-            <div className="hero-card" style={{margin:"0 20px 14px",padding:"16px",borderRadius:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                <div className="header-eyebrow">// Today's Session</div>
-                <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                  {topRiskLevel&&(
-                    <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:6,
-                      background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,158,11,0.12)",
-                      color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,
-                      border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,158,11,0.3)"}`,
-                      fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
-                      ⚠️ {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
-                    </span>
-                  )}
-                  <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 9px",borderRadius:6,background:"rgba(34,197,94,0.15)",color:"var(--green)",border:"1px solid rgba(34,197,94,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase"}}>READY</span>
-                </div>
+            <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                {todayFocus.replace(/\.$/, "")}<span style={{color:"#e8341c"}}>.</span>
               </div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,lineHeight:1,textTransform:"uppercase",marginBottom:14}}>{todayFocus}</div>
-              <button data-tour="start-session" onClick={()=>setSection("train")} style={{width:"100%",padding:14,background:"var(--red)",border:"none",borderRadius:12,color:"white",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                <svg width={14} height={14} viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>
-                Start Session
+              {topRiskLevel&&(
+                <div style={{marginBottom:8}}>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:6,
+                    background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,158,11,0.12)",
+                    color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,
+                    border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,158,11,0.3)"}`,
+                    fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                    ⚠️ {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
+                  </span>
+                </div>
+              )}
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:14,letterSpacing:"0.06em"}}>
+                {wPrefs?.sessionLength||45} min · Tap to see your plan
+              </div>
+              <button onClick={()=>setSection("train")} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
+                START SESSION →
               </button>
+              <div onClick={()=>setSessionExpandedToday(s=>!s)} style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:8}}>
+                {sessionExpandedToday?"Session details ↑":"Session details ↓"}
+              </div>
+              {sessionExpandedToday&&(
+                <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(245,245,240,0.05)"}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>
+                    Go to Train tab to see the full exercise list, muscle chips, and set prescriptions.
+                  </div>
+                </div>
+              )}
             </div>
           )
         }
