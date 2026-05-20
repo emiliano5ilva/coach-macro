@@ -438,6 +438,9 @@ const TRAINING_DAY_TYPES = [
 ];
 
 export function getDailyWaterTarget(profile, dayType) {
+  if (profile?.waterMode === 'custom' && profile?.waterGoalOz) {
+    return Math.round(parseFloat(profile.waterGoalOz));
+  }
   const wLbs = profile?.wUnit === 'kg'
     ? (parseFloat(profile?.weight || 70) * 2.205)
     : parseFloat(profile?.weight || 160);

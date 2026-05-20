@@ -2492,6 +2492,12 @@ Reply with ONLY a valid JSON object, no markdown:
               const basePerSlot=Math.round(macros.calories/mealSlots.length);
               return(
                 <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  {(()=>{
+                    const f=profile?.fasting||profile?.profile_data?.fasting;
+                    if(!f||f==="no")return null;
+                    const windowLabel=f==="16:8"?"8h eating window":f==="omad"?"OMAD — 1 meal":f==="custom"?`${Math.max(1,24-fastHours)}h eating window`:"Fasting active";
+                    return<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{windowLabel}</div>;
+                  })()}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                     <div>
                       <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>

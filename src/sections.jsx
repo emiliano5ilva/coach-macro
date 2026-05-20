@@ -19,7 +19,7 @@ import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
-import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle } from "./utils/ait.js";
+import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle, getLifeFactorMod } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
 import { ExerciseDetailModal } from "./ExerciseDetailModal.jsx";
@@ -1950,7 +1950,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const weekNum=Math.floor(daysSinceStart/7)+1;
   const dayIndex=daysSinceStart%(daysPerWeek||1);
   const isLifting=!wPrefs.isHyrox&&!wPrefs.isHybrid&&!(wPrefs.splitType||"").toLowerCase().includes("run");
-  const isGVTWeek=isLifting&&weekNum%4===0&&todayType==="training";
+  const isGVTWeek=isLifting&&(wPrefs?.gvt===true||(wPrefs?.gvt!==false&&weekNum%4===0))&&todayType==="training";
 
   let prescType="lifting";
   if(wPrefs.isHyrox&&wPrefs.isHybrid)prescType="hybrid-hyrox";
@@ -2022,7 +2022,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const style=getCoachingStyle(wPrefs?.trainingAge);
       const baseSetCount=style.sets?.min||3;
       const weightMod=readiness?.config?.weightMod||1.0;
-      const volMod=readiness?.config?.volumeMod||1.0;
+      const lifeFactorMod=getLifeFactorMod(wPrefs?.stressLevel,profile?.sleepQuality||wPrefs?.sleepQuality,wPrefs?.jobPhysicality);
+      const volMod=(readiness?.config?.volumeMod||1.0)*lifeFactorMod;
       const trainingGoal=profile?.primaryGoal||wPrefs?.primaryGoal;
       const skillLevel=wPrefs?.liftExp||profile?.liftExp||"beginner";
       const goalLabel=trainingGoal?getGoalLabel(trainingGoal):null;
@@ -3623,7 +3624,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             </button>
                           </div>
                           {ex.notes&&<div style={{fontSize:11,color:T.mu,marginLeft:32}}>{ex.notes}</div>}
-                          {ex.mobilitySubstituted&&ex.originalName&&<div style={{fontSize:10,color:"#8B5CF6",marginLeft:32,marginTop:2}}>Substituted from {ex.originalName} due to mobility</div>}
                           {(()=>{
                             const exPlateau=(activePlateaus||[]).find(p=>p.exercise_name===ex.name&&p.status==="active");
                             if(!exPlateau)return null;
@@ -3638,6 +3638,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {ex.isBalanceCorrection&&(
                             <div style={{marginLeft:32,marginTop:4}}>
                               <span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.08em",textTransform:"uppercase"}}>// BALANCE CORRECTION</span>
+                            </div>
+                          )}
+                          {ex.priority&&(
+                            <div style={{marginLeft:32,marginTop:4}}>
+                              <span style={{display:"inline-block",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.08em",textTransform:"uppercase"}}>// PRIORITY MUSCLE</span>
+                            </div>
+                          )}
+                          {ex.mobilitySubstituted&&(
+                            <div style={{marginLeft:32,marginTop:4}}>
+                              <span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// MOBILITY ADAPTED</span>
                             </div>
                           )}
                           <div style={{marginLeft:32,marginTop:4}}>

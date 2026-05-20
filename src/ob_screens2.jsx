@@ -1469,7 +1469,14 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [comebackDismissed,setComebackDismissed]=useState(()=>localStorage.getItem("comeback_dismissed")===new Date().toISOString().split("T")[0]);
   const [planMode,setPlanMode]=useState(()=>wPrefs?.isHyrox?'hyrox':wPrefs?.isHybrid?'hybrid':'strength');
   const [runPlan,setRunPlan]=useState(()=>wPrefs?.runPlan||"Couch to 5K");
-  const [hybridMix,setHybridMix]=useState({strength:true,run:false,hyrox:false});
+  const [hybridMix,setHybridMix]=useState(()=>{
+    const bias=wPrefs?.hybridBias||"lifting_primary";
+    return{
+      strength:bias!=="running_primary",
+      run:bias==="balanced"||bias==="running_primary",
+      hyrox:wPrefs?.isHyrox||false,
+    };
+  });
   const [stravaToken,setStravaToken]=useState("");
   const [stravaStatus,setStravaStatus]=useState("idle");
   const [stravaAthlete,setStravaAthlete]=useState(null);
@@ -2217,9 +2224,11 @@ Be specific and practical. Empathetic tone. No fluff.`,
     const healthCtx=healthItems.length>0?` | HEALTH: ${healthItems.join(", ")} — modify exercises accordingly`:"";
     const sessionLen=wPrefs.sessionLength||45;
     const deloadCtx=deloadActive?"\n⚠️ DELOAD WEEK: 60% of normal weight, 12–15 reps, remove maximal effort sets. Recovery focus only.":"";
+    const terrainCtx=(wPrefs.terrain||profile?.terrain)?` | TERRAIN: ${wPrefs.terrain||profile?.terrain}${(wPrefs.trackAccess||profile?.trackAccess)?", track available":", no track — use time-based intervals"}`:"";
+    const compCtx=(profile?.strength_comp_type||wPrefs?.strength_comp_type)?` | COMP PREP: ${(profile?.strength_comp_type||wPrefs?.strength_comp_type||"").replace(/_/g," ")}${profile?.strength_comp_federation||wPrefs?.strength_comp_federation?` (${profile?.strength_comp_federation||wPrefs?.strength_comp_federation})`:""} — program accordingly`:"";
     const prompt=todayType==="rest"
       ?`REST DAY recovery for ${profile.goal} athlete. Mobility, stretching, foam rolling, recovery nutrition. Equipment: ${wPrefs.equipment}. Clear sections.`
-      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${actCtx}${deloadCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
+      :`Complete ${todayFocus} session.\nATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Split: ${wPrefs.splitType} | Exp: ${profile.liftExp||"intermediate"} | Session: ${sessionLen}min${healthCtx}${terrainCtx}${compCtx}${actCtx}${deloadCtx}\nMUSCLE COVERAGE: ${coverage}\nFORMAT: Exercise | Sets×Reps | Rest | Form cue | Overload note\n1.Warm-up 2.Heavy compounds 3.Secondary 4.Isolation (ALL sub-muscles) 5.Finisher/Core${planMode==="hybrid"&&hybridMix.run?"\n═══ RUN BLOCK ═══\nType / Distance / Pace zone":""  }${planMode==="hybrid"&&hybridMix.hyrox||planMode==="hyrox"?`\n═══ HYROX ═══\n${todayType==="cardio"?"8 stations + 1km runs":"3-4 station finisher <20min"}`:""}\nSpecific. Clear headers. No fluff.`;
     try{const txt=await ai(prompt,1000);setWorkout(txt);}catch(e){console.error("[generateWorkout] AI error:",e);const m=getAIErrorMessage(e);if(m)setWorkout("⚠️ "+m+" Tap 'Build Workout' to retry.");}setWorkoutLoading(false);
   }
 
@@ -2232,11 +2241,13 @@ Be specific and practical. Empathetic tone. No fluff.`,
       const focus=FOCUS_MUSCLES[todayFocus]||"full body movements";
       const structHealthItems=[...(profile.conditions||[]).filter(c=>c!=="none"),...(wPrefs.injuries||[]).filter(Boolean)];
       const structHealthCtx=structHealthItems.length>0?` | HEALTH: ${structHealthItems.join(", ")} — avoid contraindicated movements`:"";
+      const structTerrainCtx=(wPrefs.terrain||profile?.terrain)?` | TERRAIN: ${wPrefs.terrain||profile?.terrain}${(wPrefs.trackAccess||profile?.trackAccess)?", track available":", no track — time-based intervals"}`:"";
+      const structCompCtx=(profile?.strength_comp_type||wPrefs?.strength_comp_type)?` | COMP PREP: ${(profile?.strength_comp_type||wPrefs?.strength_comp_type||"").replace(/_/g," ")}${profile?.strength_comp_federation?` (${profile.strength_comp_federation})`:""} — periodize accordingly`:"";
       const structSessionLen=wPrefs.sessionLength||45;
       const exCount=structSessionLen<=30?"3-4":structSessionLen<=45?"4-5":structSessionLen<=60?"5-6":"6-8";
       const structDeloadCtx=deloadActive?"\n⚠️ DELOAD WEEK — use 12-15 reps on all exercises, 3 sets max per exercise, no PRs, technique focus.":"";
       const raw=await ai(`Build a structured ${todayFocus} workout session.
-ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"} | Session: ${structSessionLen}min${structHealthCtx}${structDeloadCtx}
+ATHLETE: Goal: ${profile.goal} | Equipment: ${wPrefs.equipment} | Experience: ${profile.liftExp||"intermediate"} | Session: ${structSessionLen}min${structHealthCtx}${structTerrainCtx}${structCompCtx}${structDeloadCtx}
 ${splitInfo}${runInfo}${hybridInfo}
 MUSCLES TO COVER: ${focus}
 
@@ -2833,7 +2844,14 @@ Rules:
     const k=name.toLowerCase().replace(/\s+/g,"_");const prev=history[k];if(!prev||!prev.length)return null;
     const last=prev[prev.length-1];const lastSet=last.sets[last.sets.length-1];if(!lastSet)return null;
     const {reps,weight}=lastSet;
-    return reps>=12?{weight:(parseFloat(weight||0)+5).toFixed(0),reps:"8-10",note:"Weight ↑"}:{weight,reps:String(parseInt(reps)+1),note:"Add a rep"};
+    if(reps>=12){
+      const rate={new:0.05,developing:0.025,established:0.015,veteran:0.01}[wPrefs?.trainingAge]||0.025;
+      const step=profile?.wUnit==='kg'?1.25:2.5;
+      const w=parseFloat(weight||0);
+      const inc=Math.max(step,Math.round(w*rate/step)*step);
+      return{weight:(w+inc).toFixed(0),reps:"8-10",note:"Weight ↑"};
+    }
+    return{weight,reps:String(parseInt(reps)+1),note:"Add a rep"};
   }
 
   async function connectStrava(){
@@ -4773,8 +4791,9 @@ Rules:
                   const W=320,H=70;
                   const allW=data.map(l=>parseFloat(l.weight));
                   const projW14=intercept+slope*(data.length-1)+slope*7;
-                  const minW=Math.min(...allW,projW14)-1;
-                  const maxW=Math.max(...allW,projW14)+1;
+                  const goalW=profile?.goalWeight?parseFloat(profile.goalWeight):null;
+                  const minW=Math.min(...allW,projW14,...(goalW?[goalW]:[]))-1;
+                  const maxW=Math.max(...allW,projW14,...(goalW?[goalW]:[]))+1;
                   const range=maxW-minW||1;
                   const toY=(w)=>Math.round((1-(w-minW)/range)*H);
                   const toX=(i,len)=>Math.round((i/(len+6))*W);
@@ -4798,12 +4817,14 @@ Rules:
                           stroke="rgba(232,52,28,0.5)" strokeWidth="1.5" strokeDasharray="4 4"/>
                         <polygon points={`${histPts[histPts.length-1].x},${histPts[histPts.length-1].y} ${projX},${Math.max(0,projY-8)} ${projX},${Math.min(H,projY+8)}`}
                           fill="rgba(232,52,28,0.06)"/>
+                        {goalW&&<line x1={0} y1={toY(goalW)} x2={W} y2={toY(goalW)} stroke="#22c55e" strokeWidth="1" strokeDasharray="4 3" opacity="0.55"/>}
+                        {goalW&&<text x={W-2} y={toY(goalW)-3} textAnchor="end" fontFamily="'DM Mono',monospace" fontSize="7" fill="#22c55e" opacity="0.7">GOAL</text>}
                         {histPts.map((p,i)=>(
                           <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#e8341c"/>
                         ))}
                         <circle cx={projX} cy={projY} r="3" fill="rgba(232,52,28,0.7)"/>
                       </svg>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Based on {data.length} weigh-ins · 7-day projection</div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Based on {data.length} weigh-ins · 7-day projection{goalW?` · Goal: ${goalW}${profile?.wUnit||'lbs'}`:''}</div>
                     </>
                   );
                 })()}
@@ -4811,6 +4832,17 @@ Rules:
             ):(
               <PH eyebrow="// Weight Projection" headline="LOG YOUR WEIGHT." body="Log your weight for 5+ days to see trend projection and forecast."/>
             )}
+            {(profile?.wHistory||profile?.wTrend)&&(()=>{
+              const histLabel={yes:"Previously significantly heavier",no:"Weight stable long-term",notsure:"Weight history unclear"}[profile.wHistory]||null;
+              const trendLabel={losing:"Losing",gaining:"Gaining",stable:"Stable",notsure:"Trend unclear"}[profile.wTrend]||null;
+              if(!histLabel&&!trendLabel)return null;
+              return(
+                <div style={{margin:"0 16px 14px",padding:"10px 14px",background:"rgba(96,165,250,0.04)",border:"1px solid rgba(96,165,250,0.1)",borderRadius:10,display:"flex",gap:12,flexWrap:"wrap"}}>
+                  {histLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{histLabel}</span>}
+                  {trendLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Trend: {trendLabel}</span>}
+                </div>
+              );
+            })()}
           </>}
 
           {/* ── RECOVERY ── */}

@@ -135,6 +135,13 @@ export async function gatherBriefContext(userId) {
     strengthPhase: strengthPhase?.label || null,
     strengthWeeksToComp: strengthPhase?.weeksUntilRace || null,
     strengthRepRange: strengthPhase?.repRange || null,
+    goalTimeline: p.goalTimeline || null,
+    sex: p.sex || null,
+    menopauseSymptoms: p.menopauseSymptoms || [],
+    cycleCondition: p.cycleCondition || null,
+    strengthWeightClass: wp.strengthWeightClass || p.strengthWeightClass || null,
+    strengthCompType: wp.strength_comp_type || p.strength_comp_type || null,
+    strengthCompFederation: wp.strength_comp_federation || p.strength_comp_federation || null,
   };
 }
 
@@ -179,6 +186,18 @@ export async function generateBriefContent(ctx) {
     ? `- HYROX: ${ctx.weeksToRace}w to race | Phase: ${ctx.hyroxPhase}${ctx.hyroxWeakStations?.length ? ` | Weak stations: ${ctx.hyroxWeakStations.join(', ')}` : ''}${ctx.hyroxCategory ? ` | Category: ${ctx.hyroxCategory}` : ''}`
     : '';
 
+  const goalTimelineBlock = ctx.goalTimeline
+    ? `GOAL DEADLINE: Athlete wants to achieve their goal within ${ctx.goalTimeline}. Reference this timeline in today or coach_says if relevant — create a sense of productive urgency without pressure.`
+    : '';
+
+  const femaleHealthBlock = ctx.sex === 'female' && (ctx.menopauseSymptoms?.length || ctx.cycleCondition)
+    ? `FEMALE HEALTH CONTEXT:${ctx.cycleCondition ? ` Cycle condition: ${ctx.cycleCondition}.` : ''}${ctx.menopauseSymptoms?.length ? ` Menopause symptoms: ${ctx.menopauseSymptoms.join(', ')}.` : ''} Tailor coach_says to acknowledge these factors — recovery, energy variability, and appropriate intensity. Be supportive and science-informed, not generic.`
+    : '';
+
+  const strengthWeightClassBlock = ctx.strengthWeightClass
+    ? `STRENGTH COMPETITION: Weight class target: ${ctx.strengthWeightClass}${ctx.strengthCompType ? ` | Type: ${ctx.strengthCompType}` : ''}${ctx.strengthCompFederation ? ` | Federation: ${ctx.strengthCompFederation}` : ''}. If relevant, briefly mention weight management or competition prep context.`
+    : '';
+
   const deloadBlock = ctx.isDeloadWeek
     ? `IMPORTANT: This is a DELOAD WEEK. Today section should reference the lighter training and explain why it is productive not lazy. Coach Says should focus on quality of movement not intensity. Deload weeks are where the adaptations set in.`
     : ctx.deloadIncoming
@@ -195,7 +214,7 @@ export async function generateBriefContent(ctx) {
     ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}
