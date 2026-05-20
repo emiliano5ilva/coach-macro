@@ -4,6 +4,7 @@ import { getActiveDeload, getUpcomingDeload } from './deloadService.js';
 import { getActivePlateaus } from './plateauService.js';
 import { getLatestBalance, getBalanceCorrections } from './muscleBalanceService.js';
 import { getRecentAdjustments } from './periodisationService.js';
+import { analyseRPETrends } from './rpeTrendingService.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
@@ -71,12 +72,13 @@ export async function gatherBriefContext(userId) {
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
 
-  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
     getActivePlateaus(userId).catch(() => []),
     getLatestBalance(userId).catch(() => null),
     getRecentAdjustments(userId).catch(() => []),
+    analyseRPETrends(userId).catch(() => null),
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
@@ -111,6 +113,11 @@ export async function gatherBriefContext(userId) {
     muscleImbalance: balanceCorrections.length > 0 ? balanceCorrections[0].type : null,
     imbalanceSeverity: balanceCorrections[0]?.severity || null,
     lastAdjustment: recentAdjs[0]?.action !== 'no_change' ? recentAdjs[0] : null,
+    fatigueLevel: rpeTrends?.overallFatigue || null,
+    fatigueExercises: (rpeTrends?.fatigueSignals || [])
+      .filter(s => s.type === 'exercise_rpe_drift')
+      .map(s => s.exercise)
+      .slice(0, 2),
   };
 }
 
@@ -118,6 +125,12 @@ export async function generateBriefContent(ctx) {
   const yNote = ctx.yesterdayNutrition
     ? `Yesterday: ${ctx.yesterdayNutrition.calories} kcal logged, ${ctx.yesterdayNutrition.protein}g protein.`
     : 'No nutrition logged yesterday.';
+
+  const fatigueBlock = ctx.fatigueLevel === 'high'
+    ? `FATIGUE ALERT: This athlete is showing high fatigue signals from RPE trending data${ctx.fatigueExercises?.length ? ` (affected: ${ctx.fatigueExercises.join(', ')})` : ''}. Coach Says MUST recommend backing off intensity today or taking a rest day. Do NOT recommend pushing hard.`
+    : ctx.fatigueLevel === 'medium'
+      ? `MILD FATIGUE: RPE is trending up slightly${ctx.fatigueExercises?.length ? ` on ${ctx.fatigueExercises.join(', ')}` : ''}. Coach Says should mention monitoring effort today and backing off if needed.`
+      : '';
 
   const adjustmentBlock = ctx.lastAdjustment
     ? ctx.lastAdjustment.action === 'advance'
@@ -145,7 +158,7 @@ export async function generateBriefContent(ctx) {
     ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}

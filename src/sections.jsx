@@ -1715,7 +1715,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [showGVT,setShowGVT]=useState(false);
   const [todaySoreness,setTodaySoreness]=useState(null);
@@ -3612,6 +3612,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           <div style={{marginLeft:32,marginTop:4}}>
                             <MuscleChips name={ex.name} sugg={sugg} history={history}/>
                           </div>
+                          {(()=>{
+                            const exFatigue=(fatigueAlert?.fatigueSignals||[]).find(s=>(s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence")&&s.exercise===ex.name);
+                            if(!exFatigue)return null;
+                            return(
+                              <div style={{marginLeft:32,marginTop:6,display:"flex",alignItems:"center",gap:8,background:"rgba(254,160,32,0.06)",borderRadius:6,padding:"5px 10px"}}>
+                                <span style={{color:"#FEA020",fontFamily:"var(--mono)",fontSize:10,flexShrink:0}}>⚠</span>
+                                <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>RPE trending up — same weight, more effort. Watch for fatigue.</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                         {(()=>{
                           const exPlateau=(activePlateaus||[]).find(p=>p.exercise_name===ex.name&&p.status==="active");
@@ -3693,6 +3703,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"#0d0d0d",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(245,245,240,0.5)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}
                           >{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
                           </div>
+                          {s.done&&(
+                            <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:44,marginBottom:6,marginTop:-2}}>
+                              <span style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.25)",marginRight:2,letterSpacing:"0.08em"}}>RPE</span>
+                              {[6,7,8,9,10].map(r=>(
+                                <button key={r} onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets[si].rpe=r;setActiveWorkout(u);}}
+                                  style={{width:26,height:20,borderRadius:4,border:`1px solid ${s.rpe===r?"#FEA020":"rgba(245,245,240,0.08)"}`,background:s.rpe===r?"rgba(254,160,32,0.15)":"transparent",color:s.rpe===r?"#FEA020":"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:8,cursor:"pointer",padding:0,fontWeight:s.rpe===r?700:400,lineHeight:1}}>
+                                  {r}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         );
                       });

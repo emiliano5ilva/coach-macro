@@ -51,6 +51,7 @@ import { checkDeloadNeeded, getActiveDeload, getDeloadHistory, skipDeload, activ
 import { detectPlateaus, getActivePlateaus, checkPlateauResolved, getStrategyByName } from "./services/plateauService.js";
 import { calculateMuscleBalance, getBalanceCorrections, getLatestBalance } from "./services/muscleBalanceService.js";
 import { checkPeriodisationAdjustment, getRecentAdjustments, getProgramCurrentWeek } from "./services/periodisationService.js";
+import { analyseRPETrends } from "./services/rpeTrendingService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
 
@@ -1451,6 +1452,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [recentAdjustments,setRecentAdjustments]=useState([]);
   const [weekAdjustment,setWeekAdjustment]=useState(null);
   const [adjSnooze,setAdjSnooze]=useState(()=>localStorage.getItem("adj_snooze")||null);
+  const [fatigueAlert,setFatigueAlert]=useState(null);
+  const [fatigueSnooze,setFatigueSnooze]=useState(()=>localStorage.getItem("fatigue_snooze")||null);
   const [skipConfirmDeload,setSkipConfirmDeload]=useState(false);
   const [dailyScores,setDailyScores]=useState(()=>(profile?.daily_scores||[]).slice(-90));
   const [scoreMilestones,setScoreMilestones]=useState(()=>profile?.score_milestones||[]);
@@ -2510,6 +2513,15 @@ Rules:
         }).catch(()=>{});
       }
 
+      // RPE fatigue detection after session
+      if(user){
+        analyseRPETrends(user.id).then(trends=>{
+          if(trends&&(trends.overallFatigue==="high"||trends.overallFatigue==="medium")){
+            setFatigueAlert(trends);
+          }
+        }).catch(()=>{});
+      }
+
       setWorkoutSummary({
         title:todayFocus,duration,burn,
         totalVolume:Math.round(totalVolume),
@@ -2662,6 +2674,12 @@ Rules:
 
     getProgramCurrentWeek(user.id).then(data=>{
       if(data?.program_current_week) setProgramCurrentWeek(data.program_current_week);
+    }).catch(()=>{});
+
+    analyseRPETrends(user.id).then(trends=>{
+      if(trends&&(trends.overallFatigue==="high"||trends.overallFatigue==="medium")){
+        setFatigueAlert(trends);
+      }
     }).catch(()=>{});
     getRecentAdjustments(user.id).then(setRecentAdjustments).catch(()=>{});
 
@@ -3436,6 +3454,44 @@ Rules:
                 );
               })}
               <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setBalanceSnooze(t);localStorage.setItem("balance_snooze",t);}} style={{width:"100%",marginTop:14,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+            </div>
+          );
+        })()}
+
+        {/* ── FATIGUE ALERT ── */}
+        {fatigueAlert&&(fatigueAlert.overallFatigue==="high"||fatigueAlert.overallFatigue==="medium")&&fatigueSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
+          const isHigh=fatigueAlert.overallFatigue==="high";
+          const accent=isHigh?"#e8341c":"#FEA020";
+          const borderColor=isHigh?"rgba(232,52,28,0.2)":"rgba(254,160,32,0.2)";
+          const headline=isHigh?"YOUR BODY IS TIRED.":"FATIGUE BUILDING.";
+          const exerciseSignals=(fatigueAlert.fatigueSignals||[]).filter(s=>s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence");
+          return(
+            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// FATIGUE DETECTED</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                {headline}<span style={{color:accent}}>.</span>
+              </div>
+              {fatigueAlert.topSignal&&(
+                <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>{fatigueAlert.topSignal.message}</div>
+              )}
+              {exerciseSignals.length>0&&(
+                <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+                  {exerciseSignals.map((s,i)=>(
+                    <div key={i} style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)"}}>
+                      • {s.exercise}: RPE +{s.rpeDrift} over {s.sessions} sessions
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{borderLeft:`2px solid ${accent}`,paddingLeft:10,marginBottom:12}}>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:15,color:"#f5f5f0",lineHeight:1.4}}>
+                  {isHigh
+                    ?"Consider requesting a deload or taking an extra rest day before your next heavy session."
+                    :"Watch your RPE closely this week. If it keeps climbing a deload may be needed soon."}
+                </div>
+              </div>
+              <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setFatigueSnooze(t);localStorage.setItem("fatigue_snooze",t);}} style={{width:"100%",padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
             </div>
           );
         })()}
@@ -4431,6 +4487,88 @@ Rules:
                 </div>
               );
             })()}
+            {(()=>{
+              // RPE trend chart — only if user has RPE data on at least 5 sessions
+              const sixWeeksAgo=new Date(Date.now()-42*864e5).toISOString().split("T")[0];
+              const recentLogs=(workoutLogsRaw||[]).filter(l=>l.date>=sixWeeksAgo).sort((a,b)=>a.date>b.date?1:-1);
+
+              // Build per-exercise RPE history from raw logs
+              const exRPEMap={};
+              recentLogs.forEach(log=>{
+                (log.workout?.exercises||[]).forEach(ex=>{
+                  if(!exRPEMap[ex.name])exRPEMap[ex.name]=[];
+                  const doneSets=(ex.sets||[]).filter(s=>s.done&&s.rpe!=null);
+                  if(!doneSets.length)return;
+                  const avgRPE=doneSets.reduce((sum,s)=>sum+s.rpe,0)/doneSets.length;
+                  exRPEMap[ex.name].push({date:log.date,avgRPE:Math.round(avgRPE*10)/10});
+                });
+              });
+
+              // Sessions that have ANY RPE data
+              const sessionsWithRPE=new Set(recentLogs.filter(l=>(l.workout?.exercises||[]).some(ex=>(ex.sets||[]).some(s=>s.done&&s.rpe!=null))).map(l=>l.date));
+              if(sessionsWithRPE.size<5)return null;
+
+              // Pick top 2 exercises with most RPE data
+              const topExercises=Object.entries(exRPEMap)
+                .filter(([,h])=>h.length>=3)
+                .sort((a,b)=>b[1].length-a[1].length)
+                .slice(0,2);
+              if(topExercises.length===0)return null;
+
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// RPE TREND</div>
+                  {topExercises.map(([exName,exHistory])=>{
+                    const points=exHistory.slice(-8);
+                    if(points.length<2)return null;
+                    const W=240,H=50;
+                    const minRPE=6,maxRPE=10;
+                    const xStep=(W-20)/(points.length-1);
+                    const toX=i=>10+i*xStep;
+                    const toY=rpe=>H-4-((rpe-minRPE)/(maxRPE-minRPE))*(H-8);
+                    const trend=points[points.length-1].avgRPE-points[0].avgRPE;
+                    const trendColor=trend>0.5?"#e8341c":trend>0?"#FEA020":"#22c55e";
+                    const trendLabel=trend>0.5?"↑ RPE rising":trend>0?"→ RPE stable (slight rise)":"→ RPE stable";
+                    const pts=points.map((p,i)=>`${toX(i)},${toY(p.avgRPE)}`).join(" ");
+                    const rpeColor=(rpe)=>rpe<=7?"#22c55e":rpe<=8?"#FEA020":"#e8341c";
+                    return(
+                      <div key={exName} style={{marginBottom:14}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,color:"rgba(245,245,240,0.7)"}}>{exName}</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:trendColor,letterSpacing:"0.08em"}}>{trendLabel}</div>
+                        </div>
+                        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible"}}>
+                          <polyline points={pts} fill="none" stroke={trendColor} strokeWidth={1.5} strokeOpacity={0.6}/>
+                          {points.map((p,i)=>(
+                            <g key={i}>
+                              <circle cx={toX(i)} cy={toY(p.avgRPE)} r={3} fill={rpeColor(p.avgRPE)}/>
+                              {i===points.length-1&&(
+                                <text x={toX(i)+5} y={toY(p.avgRPE)+3} fill={rpeColor(p.avgRPE)} fontSize={7} fontFamily="monospace">{p.avgRPE}</text>
+                              )}
+                            </g>
+                          ))}
+                          {[7,8,9].map(r=>(
+                            <line key={r} x1={0} y1={toY(r)} x2={W} y2={toY(r)} stroke="rgba(245,245,240,0.05)" strokeWidth={1}/>
+                          ))}
+                        </svg>
+                        <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[0].date.slice(5)}</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[points.length-1].date.slice(5)}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{display:"flex",gap:12,marginTop:4}}>
+                    {[["≤7","#22c55e","Easy"],["8","#FEA020","Hard"],["≥9","#e8341c","Very Hard"]].map(([label,color,desc])=>(
+                      <div key={label} style={{display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{width:6,height:6,borderRadius:"50%",background:color,flexShrink:0}}/>
+                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{label} {desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </>}
 
           {/* ── NUTRITION ── */}
@@ -4731,7 +4869,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
