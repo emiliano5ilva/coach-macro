@@ -2020,7 +2020,12 @@ Reply with ONLY a valid JSON object, no markdown:
                       <span style={{fontSize:14,fontWeight:700,color:T.green}}>+{a.calories} kcal</span>
                     </div>
                   ))}
-                  {log.length===0&&<div style={{padding:"12px",border:`1px dashed ${T.bd}`,borderRadius:8,textAlign:"center",color:T.mu,fontSize:12}}>No meals logged yet</div>}
+                  {log.length===0&&(
+                    <div style={{padding:"16px 12px",border:`1px dashed rgba(245,245,240,0.1)`,borderRadius:10,textAlign:"center"}}>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:6}}>TAP + TO LOG YOUR FIRST MEAL<span style={{color:"#e8341c"}}>.</span></div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.1em",animation:"fuelBounce 1.2s ease-in-out infinite",display:"inline-block"}}>↓</div>
+                    </div>
+                  )}
                   {log.map((e,i)=>(
                     <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:T.s2,borderRadius:8}}>
                       <span style={{fontSize:13,color:"rgba(245,245,240,.8)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.food}</span>
@@ -2092,6 +2097,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     @keyframes fuelBarC{from{width:0}to{width:${pctC}%}}
                     @keyframes fuelBarF{from{width:0}to{width:${pctF}%}}
                     @keyframes fuelCtxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+                    @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
                   `}</style>
 
                   {/* NUTRITION CONTEXT CARD */}

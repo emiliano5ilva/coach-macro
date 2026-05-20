@@ -60,6 +60,9 @@ import { recordWorkoutRecovery } from "./services/recoveryService.js";
 import SpotlightTour from "./components/SpotlightTour.jsx";
 import FeatureUnlockCard from "./components/FeatureUnlockCard.jsx";
 import { checkFeatureUnlocks, getPendingUnlock, getUserStats, markUnlockShown, markAppTourComplete, triggerEventUnlock, APP_TOUR_STEPS } from "./services/featureUnlockService.js";
+import WinScreen from "./components/WinScreen.jsx";
+import StreakCard from "./components/StreakCard.jsx";
+import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1528,6 +1531,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [showFeatureTour,setShowFeatureTour]=useState(false);
   const [featureTourSteps,setFeatureTourSteps]=useState([]);
 
+  // ── Win Celebrations ───────────────────────────────────────────────────────
+  const [showWinScreen,setShowWinScreen]=useState(null);
+  const [pendingStreakWin,setPendingStreakWin]=useState(null);
+
   // ── Life-Aware Training — Calendar ────────────────────────────────────────
   const [calendarConnected,setCalendarConnected]=useState(()=>localStorage.getItem("calendar_connected")==="1");
   const [calendarAlerts,setCalendarAlerts]=useState([]);
@@ -1701,6 +1708,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   }
 
   function handlePhotoLog(entries){
+    const isFirstMeal=log.length===0;
     const newLog=[...entries,...log];
     setLog(newLog);
     if(user){
@@ -1710,6 +1718,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     }
     setShowPhotoLogger(false);
     setFuelScreen("home");
+    if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}
   }
 
   // Load food log for selected date (re-runs when logDate or user changes)
@@ -2188,11 +2197,13 @@ Be specific and practical. Empathetic tone. No fluff.`,
       const raw=await ai(`Estimate macros for: "${foodInput}". Reply ONLY valid JSON no markdown: {"food":"short name","calories":0,"protein":0,"carbs":0,"fat":0}`);
       const p=JSON.parse(raw.trim());
       const entry={...p,id:Date.now(),method:"ai"};
+      const isFirstMeal=log.length===0;
       const newLog=[entry,...log];
       setLog(newLog);
       setLogMsg(`✓ ${p.food} — ${p.calories} kcal`);
       setFoodInput("");
       if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"ai",calories:p.calories,protein:p.protein},user.id);}
+      if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}
     }
     catch(e){console.error("[aiLog] error:",e);const m=getAIErrorMessage(e);if(m)setLogMsg("⚠️ "+m);}
     setLogging(false);
@@ -2204,7 +2215,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
     const result=await lookupBarcode(barcode);setBarcodeResult(result);setBarcodeLoading(false);
     return result;
   }
-  function addBarcode(){if(!barcodeResult)return;const entry={...barcodeResult,id:Date.now(),method:"barcode"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);}
+  function addBarcode(){if(!barcodeResult)return;const isFirstMeal=log.length===0;const entry={...barcodeResult,id:Date.now(),method:"barcode"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}}
   function addQuick(){if(!quickFields.calories)return;const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"quick",calories:entry.calories,protein:entry.protein},user.id);}setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
   function removeLog(id){const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
   function logEntry(entry){const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
@@ -2586,6 +2597,11 @@ Rules:
         totalSets,completedSets:totalSetsLogged,
         prs,exercises:setsLogged,plateausBroken,
       });
+      // First workout win
+      if(workoutCount===1){
+        const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';
+        setShowWinScreen({...getWin('first_workout',sl),_afterSummary:true});
+      }
     } else {
       setActiveWorkout(null);
       try { localStorage.removeItem("cm_active_workout"); } catch {}
@@ -2597,6 +2613,10 @@ Rules:
     setWorkoutSummary(null);
     setWorkoutStartTime(null);
     setTrainScreen("progress");setActiveSessionOpen(false);
+    // Show first-workout win screen after summary dismissed
+    if(showWinScreen?._afterSummary){
+      setShowWinScreen(prev=>prev?{...prev,_afterSummary:false}:null);
+    }
   }
 
   async function startDeload(){
@@ -3194,6 +3214,39 @@ Rules:
           );
         })()}
 
+        {/* Streak counter + StreakCard */}
+        {(()=>{
+          const todayStr=new Date().toISOString().split("T")[0];
+          let homStreak=0;
+          for(let i=0;i<30;i++){
+            const d=new Date();d.setDate(d.getDate()-i);
+            const ds=d.toISOString().split("T")[0];
+            if(workoutLogsRaw.some(w=>w.date===ds))homStreak++;else break;
+          }
+          const sl=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();
+          const isBeginner=sl==='beginner';
+          const streakWin=checkStreakWins(homStreak,sl);
+          return(
+            <>
+              {homStreak>=2&&(
+                <div data-tour="streak-counter" style={{margin:"0 20px 12px",display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:16}}>🔥</span>
+                  <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#e8341c"}}>{homStreak}</span>
+                  <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase"}}>DAY STREAK</span>
+                  {homStreak>=7&&<><span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/><span style={{fontFamily:"var(--mono)",fontSize:7,color:"#22c55e"}}>ON FIRE</span></>}
+                </div>
+              )}
+              {streakWin&&pendingStreakWin!=='dismissed'&&(
+                <StreakCard
+                  win={streakWin}
+                  streak={homStreak}
+                  onDismiss={()=>{markStreakWinShown(streakWin.key);setPendingStreakWin('dismissed');}}
+                />
+              )}
+            </>
+          );
+        })()}
+
         {/* Feature Unlock Card */}
         {pendingUnlock&&pendingUnlock.feature&&(
           <div style={{margin:"0 20px 0"}}>
@@ -3468,7 +3521,7 @@ Rules:
           return(
             <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,rgba(96,165,250,0.06) 0%,transparent 70%)",pointerEvents:"none"}}/>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#60a5fa",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// PLATEAU DETECTED</div>
+              {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#60a5fa",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{sl2==='beginner'?"// LET'S MIX IT UP":"// PLATEAU DETECTED"}</div>);})()}
               <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:14}}>
                 {shown.map((p,i)=>{
                   const strategy=getStrategyByName(p.strategy_prescribed);
@@ -3578,7 +3631,7 @@ Rules:
           return(
             <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// FATIGUE DETECTED</div>
+              {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// YOUR BODY IS TIRED":"// FATIGUE DETECTED"}</div>);})()}
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
                 {headline}<span style={{color:accent}}>.</span>
               </div>
@@ -3632,7 +3685,7 @@ Rules:
           ?(
             <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(254,160,32,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// DELOAD WEEK ACTIVE</div>
+              {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// REST WEEK COMING UP":"// DELOAD WEEK ACTIVE"}</div>);})()}
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>
                 RECOVERY WEEK<span style={{color:"#FEA020"}}>.</span>
               </div>
@@ -4279,6 +4332,35 @@ Rules:
 
           {/* ── OVERVIEW ── */}
           {activeTab==="overview"&&<>
+            {/* Empty state — fewer than 3 sessions */}
+            {workoutLogsRaw.length<3&&(
+              <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.2)",borderRadius:16}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// PROGRESS UNLOCKS IN 3 SESSIONS</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                  YOUR DATA IS BUILDING<span style={{color:"#e8341c"}}>.</span>
+                </div>
+                <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5,marginBottom:16}}>
+                  Complete {3-workoutLogsRaw.length} more session{3-workoutLogsRaw.length===1?"":"s"} to unlock your full progress dashboard. Coach Macro needs a baseline to start measuring your growth.
+                </div>
+                <div style={{marginBottom:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.12em"}}>Sessions completed</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c"}}>{workoutLogsRaw.length}/3</span>
+                  </div>
+                  <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/3*100)}%`,background:"#e8341c",borderRadius:3,transition:"width 0.6s ease"}}/>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    {[0,1,2].map(i=>(
+                      <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<workoutLogsRaw.length?"#e8341c":"rgba(245,245,240,0.07)"}}/>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={()=>setSection("train")} style={{width:"100%",padding:"13px 0",background:"#e8341c",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>
+                  START A SESSION →
+                </button>
+              </div>
+            )}
             {/* Coach Score Card */}
             <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Coach Score</div>
@@ -4553,7 +4635,26 @@ Rules:
 
             {/* Training DNA */}
             <div data-tour="training-dna">
-              <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+              {workoutLogsRaw.length<10?(
+                <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// ATHLETE DNA</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                    ATHLETE DNA FORMING<span style={{color:"#e8341c"}}>.</span>
+                  </div>
+                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:14}}>
+                    Your training profile unlocks after 10 sessions. {10-workoutLogsRaw.length} to go.
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Sessions</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{workoutLogsRaw.length}/10</span>
+                  </div>
+                  <div style={{height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/10*100)}%`,background:"rgba(245,245,240,0.25)",borderRadius:2,transition:"width 0.6s ease"}}/>
+                  </div>
+                </div>
+              ):(
+                <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+              )}
             </div>
 
             {/* Coach Tips */}
@@ -5125,6 +5226,14 @@ Rules:
           steps={featureTourSteps}
           onComplete={()=>setShowFeatureTour(false)}
           onSkip={()=>setShowFeatureTour(false)}
+        />
+      )}
+
+      {/* Win Screen — fullscreen celebration */}
+      {showWinScreen&&!showWinScreen._afterSummary&&(
+        <WinScreen
+          win={showWinScreen}
+          onContinue={()=>{setShowWinScreen(null);setSection("today");}}
         />
       )}
     </div>

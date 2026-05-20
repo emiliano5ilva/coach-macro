@@ -3824,7 +3824,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           </div>
                           {s.done&&(
                             <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:44,marginBottom:6,marginTop:-2}}>
-                              <span style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.25)",marginRight:2,letterSpacing:"0.08em"}}>RPE</span>
+                              <span style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.25)",marginRight:2,letterSpacing:"0.08em"}}>{skillLevel==='beginner'?'EFFORT':'RPE'}</span>
                               {[6,7,8,9,10].map(r=>(
                                 <button key={r} onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets[si].rpe=r;setActiveWorkout(u);}}
                                   style={{width:26,height:20,borderRadius:4,border:`1px solid ${s.rpe===r?"#FEA020":"rgba(245,245,240,0.08)"}`,background:s.rpe===r?"rgba(254,160,32,0.15)":"transparent",color:s.rpe===r?"#FEA020":"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:8,cursor:"pointer",padding:0,fontWeight:s.rpe===r?700:400,lineHeight:1}}>

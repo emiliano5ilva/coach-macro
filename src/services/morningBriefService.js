@@ -214,11 +214,19 @@ export async function generateBriefContent(ctx) {
     ? `PLATEAU CONTEXT:\nThese lifts are currently stalled:\n${ctx.activePlateaus.map(p => `${p.exercise}: use ${p.strategy}`).join('\n')}\nIf today involves these exercises reference the plateau-breaking strategy in Coach Says.`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}
+  const skillTier = (ctx.liftExp || 'intermediate').toLowerCase();
+  const writingStyleBlock = skillTier === 'beginner'
+    ? `WRITING STYLE: This athlete is a BEGINNER. Write in plain everyday language — no jargon. Never say "deload", "RPE", "periodisation", "hypertrophy", "TDEE", "progressive overload", or similar technical terms. Instead say "rest week", "how hard the workout felt", "your eating plan", "building muscle", "calorie target", "gradually adding weight". Keep it warm, encouraging, and simple. Explain the why in plain English.`
+    : skillTier === 'advanced'
+      ? `WRITING STYLE: This is an ADVANCED athlete. Use precise coaching language — RPE, deload, hypertrophy, progressive overload, periodisation are all fine. Be concise and data-driven. Skip motivational fluff.`
+      : `WRITING STYLE: This is an INTERMEDIATE athlete. Use standard coaching terms but briefly clarify any technical concepts when relevant. Be direct and data-informed.`;
+
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}
 
 Context:
 - Name: ${ctx.name}
 - Goal: ${ctx.primaryGoal}
+- Experience level: ${skillTier}
 - Today: ${ctx.todayFocus} (${ctx.todayType === 'rest' ? 'rest day' : 'training day'}) — Week ${ctx.weekNum} of ${ctx.splitType}
 - Last session: ${ctx.lastSession}
 - Today's targets: ${ctx.macros.calories} kcal | ${ctx.macros.protein}g protein | ${ctx.macros.carbs}g carbs | ${ctx.macros.fat}g fat
