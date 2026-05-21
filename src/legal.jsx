@@ -32,6 +32,7 @@ const LEGAL_CSS = `
 `;
 
 const LEGAL_LINKS = [
+  { label: "About", path: "/about" },
   { label: "Privacy Policy", path: "/privacy" },
   { label: "Terms of Service", path: "/terms" },
   { label: "Health Disclaimer", path: "/health-disclaimer" },
@@ -83,7 +84,7 @@ export function PrivacyPolicy() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Privacy Policy</h1>
-        <div className="legal-updated">Last Updated: May 13, 2026</div>
+        <div className="legal-updated">Last Updated: May 20, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Information We Collect</h2>
@@ -135,6 +136,8 @@ export function PrivacyPolicy() {
             <li><strong>Stripe</strong> (payment processing) — legacy web payments</li>
             <li><strong>Resend</strong> (email delivery) — sends transactional emails</li>
             <li><strong>Apple Health</strong> (optional integration) — reads sleep, heart rate, HRV, and steps when user grants permission</li>
+            <li><strong>Strava</strong> (activity data sync — only if you choose to connect your Strava account). We receive workout activity data including runs, rides, and training sessions. Strava's privacy policy applies to data processed by Strava: strava.com/legal/privacy</li>
+            <li><strong>Vercel</strong> — application hosting, web infrastructure, and content delivery network</li>
             <li><strong>ExerciseDB via RapidAPI</strong> — provides exercise demonstration data</li>
             <li><strong>Open Food Facts</strong> (food database) — open source food nutrition data</li>
             <li><strong>USDA FoodData Central</strong> — US government food nutrition database</li>
@@ -238,7 +241,7 @@ export function WashingtonPrivacy() {
         <LegalLogo />
         <div className="legal-tag">State Privacy Notice</div>
         <h1 className="legal-title" style={{ fontSize: 38 }}>Washington My Health MY Data Act</h1>
-        <div className="legal-updated">Last Updated: May 13, 2026</div>
+        <div className="legal-updated">Last Updated: May 20, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Introduction</h2>
@@ -310,11 +313,11 @@ export function CaliforniaPrivacy() {
         <div className="legal-tag">State Privacy Notice</div>
         <h1 className="legal-title" style={{ fontSize: 42 }}>California Privacy Notice</h1>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>CCPA / CPRA</div>
-        <div className="legal-updated">Last Updated: May 13, 2026</div>
+        <div className="legal-updated">Last Updated: May 20, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Introduction</h2>
-          <p className="legal-p">This notice applies to California residents and is provided pursuant to the California Consumer Privacy Act (CCPA) as amended by the California Privacy Rights Act (CPRA).</p>
+          <p className="legal-p">This notice applies to California residents and is provided by Coach Macro LLC pursuant to the California Consumer Privacy Act (CCPA) as amended by the California Privacy Rights Act (CPRA).</p>
         </div>
 
         <div className="legal-section">
@@ -388,7 +391,7 @@ export function TermsOfService() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Terms of Service</h1>
-        <div className="legal-updated">Last Updated: May 13, 2026</div>
+        <div className="legal-updated">Last Updated: May 20, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Acceptance of Terms</h2>
@@ -428,9 +431,11 @@ export function TermsOfService() {
 
         <div className="legal-section">
           <h2 className="legal-h2">6. Subscription and Cancellation</h2>
-          <p className="legal-p"><strong>Free Trial:</strong> New users and referral recipients may receive a free trial period. No charge occurs during the trial. You may cancel before the trial ends without being charged.</p>
+          <p className="legal-p"><strong>Free Trial:</strong> New users and referral recipients may receive a 14-day free trial. No charge occurs during the trial. You may cancel before the trial ends without being charged.</p>
           <ul className="legal-ul">
             <li>Coach Macro offers free and paid subscription tiers</li>
+            <li>Monthly plan: $9.99 / month</li>
+            <li>Annual plan: $79.99 / year</li>
             <li>Paid subscriptions are billed monthly or annually</li>
             <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
             <li>Prices may change with 30 days notice</li>
@@ -501,7 +506,7 @@ export function HealthDisclaimer() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Health Disclaimer</h1>
-        <div className="legal-updated">Last Updated: May 13, 2026</div>
+        <div className="legal-updated">Last Updated: May 20, 2026</div>
 
         <div className="legal-warning" style={{ marginBottom: 48 }}>
           <div className="legal-warning-title">Important — Please Read Carefully</div>
@@ -553,6 +558,11 @@ export function HealthDisclaimer() {
           </div>
         </div>
 
+        <div className="legal-section">
+          <h2 className="legal-h2">8. Contact</h2>
+          <p className="legal-p">For questions about this disclaimer, contact Coach Macro LLC at: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
+        </div>
+
         <LegalFooter currentPath="/health-disclaimer" />
       </div>
     </div>
@@ -568,7 +578,7 @@ export function HealthDataNotice() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Health Data Notice</h1>
-        <div className="legal-updated">Last Updated: May 13, 2026</div>
+        <div className="legal-updated">Last Updated: May 20, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Types of Health Data We Collect</h2>
@@ -630,6 +640,7 @@ export function HealthDataNotice() {
             <li><strong>Supabase:</strong> our secure database provider for storage</li>
             <li><strong>Anthropic:</strong> our AI provider processes prompts that may include health context</li>
             <li><strong>Fitness integrations</strong> you explicitly connect (Apple Health)</li>
+            <li><strong>Strava</strong> (if connected) — workout activity data imported with your permission. You can disconnect Strava at any time from the Connected Apps section in the ME tab.</li>
           </ul>
           <div className="legal-highlight">
             <p><strong>We never sell health data. We never share health data with advertisers.</strong></p>

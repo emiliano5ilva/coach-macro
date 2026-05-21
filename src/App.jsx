@@ -2,6 +2,7 @@ import React, { useEffect, lazy, Suspense } from 'react';
 import { LandingPage } from './landing.jsx';
 import { PrivacyPolicy, TermsOfService, HealthDisclaimer, HealthDataNotice,
   WashingtonPrivacy, CaliforniaPrivacy, SupportPage } from './legal.jsx';
+import { AboutPage } from './about.jsx';
 
 const NativeApp = lazy(() => import('./NativeApp.jsx'));
 const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true;
@@ -31,6 +32,7 @@ function WebApp() {
   if (path === '/washington-privacy') return <WashingtonPrivacy />;
   if (path === '/california-privacy') return <CaliforniaPrivacy />;
   if (path === '/support')            return <SupportPage />;
+  if (path === '/about')              return <AboutPage />;
   return <LandingPage />;
 }
 
