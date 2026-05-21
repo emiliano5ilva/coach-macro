@@ -196,7 +196,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
 
   const inputStyle={width:"100%",background:"rgba(245,245,240,0.04)",border:"1.5px solid var(--white-border)",borderRadius:12,padding:"14px 16px",color:"var(--white)",fontSize:15,outline:"none",fontFamily:"var(--body)",boxSizing:"border-box"};
   const labelStyle={display:"block",fontSize:10,color:"var(--white-dim)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"var(--mono)"};
-  const outer={minHeight:"100vh",background:"var(--navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",position:"relative",overflow:"hidden"};
+  const outer={minHeight:"100vh",background:"#000000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",position:"relative",overflow:"hidden"};
   const invitePending=(()=>{try{return JSON.parse(localStorage.getItem("coachMacroInvite")||"null");}catch{return null;}})();
 
   const field=(label,val,setVal,type="text",ph="")=>(
@@ -740,7 +740,7 @@ export default function NativeApp() {
   if(phase==="welcome-screen")return<AuthScreen onAuth={handleAuth} startView="welcome"/>;
 
   if(phase==="loading")return(
-    <div style={{minHeight:"100vh",background:"var(--navy)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div style={{minHeight:"100vh",background:"#000000",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
       <style>{GLOBAL_CSS}</style>
       <div style={{textAlign:"center",maxWidth:340}}>
         <div style={{marginBottom:16}}><Logo size={36} text={true}/></div>
@@ -763,16 +763,16 @@ export default function NativeApp() {
     const cMacros=getDayMacros(profile?.goalCals,profile?.goal,cType,0);
     const cFocus=dayFocus[cKey]||"Full Body";
     return(
-      <div style={{minHeight:"100vh",background:"var(--navy)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{minHeight:"100vh",background:"#000000",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
         <style>{GLOBAL_CSS}</style>
         <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
           <div style={{fontSize:64,marginBottom:8}}>🎉</div>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.9,marginBottom:24,textTransform:"uppercase"}}>LET'S GO,<br/><span style={{color:"var(--red)"}}>{profile?.name?.toUpperCase()||"ATHLETE"}.</span></div>
-          <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:18,padding:"20px 24px",marginBottom:16,textAlign:"left"}}>
+          <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.1)",borderRadius:18,padding:"20px 24px",marginBottom:16,textAlign:"left"}}>
             <div style={{fontSize:10,color:"var(--red)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14,fontFamily:"var(--mono)"}}>Today's Targets</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
               {[["Cals",cMacros.calories,"kcal","var(--red)"],["Prot",cMacros.protein,"g","var(--red)"],["Carbs",cMacros.carbs,"g","#60a5fa"],["Fat",cMacros.fat,"g","#f59e0b"]].map(([l,v,u,c])=>(
-                <div key={l} style={{background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
+                <div key={l} style={{background:"rgba(232,52,28,0.06)",borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
                   <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,fontStyle:"italic",color:c,lineHeight:1}}>{v}</div>
                   <div style={{fontSize:9,color:"var(--white-dim)",marginTop:2,fontFamily:"var(--mono)"}}>{l}</div>
                 </div>

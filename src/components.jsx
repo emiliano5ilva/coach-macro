@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 
 export const T = {
-  bg:   "#050810",         // page background
-  s1:   "#161e35",         // navyLight — raised cards, inputs, elevated elements
-  s2:   "#0A0F1C",         // navyCard  — standard card surface
-  s3:   "#0f1628",         // navyMid   — section bg variants
-  bd:   "rgba(245,245,240,0.08)",  // border subtle
-  mu:   "rgba(245,245,240,0.4)",   // text tertiary
-  dim:  "rgba(245,245,240,0.65)",  // text secondary
+  bg:   "#000000",         // page background — pure black
+  s1:   "#0d0d0d",         // card surface
+  s2:   "#0d0d0d",         // card surface
+  s3:   "#0d0d0d",         // section background
+  bd:   "rgba(232,52,28,0.08)",   // border subtle — red-tinted
+  mu:   "rgba(245,245,240,0.4)",  // text tertiary
+  dim:  "rgba(245,245,240,0.65)", // text secondary
   prot: "#e8341c",         // brand red / protein
   carb: "#60a5fa",         // design blue — carbs + training ring
   fat:  "#f59e0b",         // design amber — fat + warnings
   red:  "#e8341c",         // brand red
   white:"#f5f5f0",
+  txt:  "#f5f5f0",         // primary text
+  brand:"#e8341c",         // brand accent (alias for red)
   green:"#22c55e",         // design green — success, done states
   recovery: "#7E57C2",     // recovery/purple
   gold:     "#FFD700",     // achievement gold
@@ -225,10 +227,10 @@ export function useCountUp(target, dur=1400) {
 export const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   :root {
-    --navy: #0a0e1a;
-    --navy-mid: #0f1628;
-    --navy-light: #161e35;
-    --navy-card: #0A0F1C;
+    --navy: #000000;
+    --navy-mid: #0d0d0d;
+    --navy-light: #0d0d0d;
+    --navy-card: #0d0d0d;
     --red: #e8341c;
     --red-dim: #c42d18;
     --green: #22c55e;
@@ -237,16 +239,16 @@ export const GLOBAL_CSS = `
     --white: #f5f5f0;
     --white-dim: rgba(245,245,240,0.65);
     --white-faint: rgba(245,245,240,0.4);
-    --white-border: rgba(245,245,240,0.08);
+    --white-border: rgba(232,52,28,0.08);
     --recovery: #7E57C2;
     --recovery-hover: #673AB7;
     --recovery-bg: rgba(126,87,194,0.12);
     --gold: #FFD700;
     --gold-deep: #FFA000;
     --gold-bg: rgba(255,215,0,0.12);
-    --surface-1: #0A0F1C;
-    --surface-2: #0f1628;
-    --surface-3: #161e35;
+    --surface-1: #0d0d0d;
+    --surface-2: #0d0d0d;
+    --surface-3: #0d0d0d;
     --border-subtle: rgba(245,245,240,0.06);
     --border-medium: rgba(245,245,240,0.12);
     --border-strong: rgba(245,245,240,0.20);
@@ -262,7 +264,7 @@ export const GLOBAL_CSS = `
   html,body,#root{height:100%}
   button,a,[role=button]{min-height:44px;min-width:44px}
   @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
-  body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:#050810;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(96,165,250,0.06),transparent 50%)}
+  body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:#000000;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.06),transparent 50%)}
   .grid-bg{background-image:linear-gradient(rgba(245,245,240,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,240,0.022) 1px,transparent 1px);background-size:32px 32px}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
@@ -315,21 +317,21 @@ export const GLOBAL_CSS = `
   .header-title{font-family:var(--condensed);font-style:italic;font-weight:900;font-size:34px;letter-spacing:-0.01em;text-transform:uppercase;line-height:0.92;color:var(--white)}
   .icon-btn{width:36px;height:36px;border-radius:10px;background:rgba(245,245,240,0.06);border:1px solid rgba(245,245,240,0.08);display:flex;align-items:center;justify-content:center;color:var(--white);cursor:pointer}
   .section-title{font-family:var(--condensed);font-weight:800;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--white-dim);margin:18px 20px 10px}
-  .hero-card{background:linear-gradient(135deg,rgba(232,52,28,0.18) 0%,rgba(232,52,28,0.08) 30%,var(--navy-mid) 100%);border:1px solid rgba(232,52,28,0.15);border-radius:16px;position:relative;overflow:hidden}
+  .hero-card{background:linear-gradient(135deg,rgba(232,52,28,0.18) 0%,rgba(232,52,28,0.08) 30%,#0d0d0d 100%);border:1px solid rgba(232,52,28,0.15);border-radius:16px;position:relative;overflow:hidden}
   .hero-card::before{content:'';position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle at top right,rgba(232,52,28,0.12),transparent 70%);pointer-events:none}
-  .coach-card{margin:0 20px 14px;padding:14px 16px;background:var(--navy-light);border-left:3px solid var(--red);border-radius:4px 14px 14px 4px}
+  .coach-card{margin:0 20px 14px;padding:14px 16px;background:#0d0d0d;border-left:3px solid var(--red);border-radius:4px 14px 14px 4px}
   .coach-label{font-family:var(--mono);font-size:9px;letter-spacing:0.16em;color:var(--red);text-transform:uppercase;margin-bottom:6px}
   .coach-text{font-family:var(--body);font-size:13.5px;line-height:1.5;color:var(--white);font-style:italic}
-  .quick-btn{width:100%;padding:13px 16px;background:var(--navy-light);border:1px solid var(--white-border);border-radius:12px;color:var(--white);font-family:var(--condensed);font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .quick-btn{width:100%;padding:13px 16px;background:#0d0d0d;border:1px solid rgba(232,52,28,0.1);border-radius:12px;color:var(--white);font-family:var(--condensed);font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:12px}
   .quick-btn:hover{border-color:rgba(232,52,28,0.3)}
   .toggle{width:44px;height:26px;background:rgba(245,245,240,0.1);border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
   .toggle.on{background:var(--red)}
   .toggle-knob{position:absolute;top:2px;left:2px;width:22px;height:22px;background:var(--white);border-radius:50%;transition:left 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.3)}
   .toggle.on .toggle-knob{left:20px}
-  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:var(--navy);scrollbar-width:none}
+  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:#000000;scrollbar-width:none}
   .app-screen::-webkit-scrollbar{display:none}
-  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(10,14,26,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(245,245,240,0.06);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
-  .ob-page{min-height:100vh;background:#060D1A;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,0,0,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(232,52,28,0.08);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
+  .ob-page{min-height:100vh;background:#000000;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .ob-inner{width:100%;max-width:480px;margin:0 auto;padding:max(env(safe-area-inset-top,0px),20px) 20px 60px}
   .rolodex-scroll::-webkit-scrollbar{display:none}
   @media(min-width:768px){.app-tab-bar{max-width:480px;left:50%;transform:translateX(-50%)}}
@@ -341,10 +343,10 @@ export const GLOBAL_CSS = `
   .tab-label-txt{font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase}
   .app-tab.active .tab-label-txt{color:var(--red)}
   .grid-bg{background-image:linear-gradient(rgba(245,245,240,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,240,0.022) 1px,transparent 1px);background-size:32px 32px}
-  .full-modal{position:fixed;inset:0;z-index:200;background:var(--navy);animation:modal-in 0.32s cubic-bezier(.2,.7,.3,1) both;display:flex;flex-direction:column;overflow-y:auto}
+  .full-modal{position:fixed;inset:0;z-index:200;background:#000000;animation:modal-in 0.32s cubic-bezier(.2,.7,.3,1) both;display:flex;flex-direction:column;overflow-y:auto}
   @media(min-width:768px){.full-modal{max-width:480px;left:50%;right:auto;transform:translateX(-50%)}}
   .bottom-sheet-overlay{position:fixed;inset:0;z-index:200}
-  .bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--navy-light);border-radius:24px 24px 0 0;max-height:82%;overflow-y:auto;animation:sheet-in 0.32s cubic-bezier(.2,.7,.3,1);padding-bottom:24px}
+  .bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:#0d0d0d;border-radius:24px 24px 0 0;max-height:82%;overflow-y:auto;animation:sheet-in 0.32s cubic-bezier(.2,.7,.3,1);padding-bottom:24px}
   @media(min-width:768px){.bottom-sheet{max-width:480px;left:50%;right:auto;transform:translateX(-50%)}}
 `;
 
@@ -546,11 +548,11 @@ export function InfoTip({title,content}) {
   const [open,setOpen]=React.useState(false);
   return (
     <>
-      <button onClick={()=>{hap();setOpen(true);}} style={{background:"none",border:`1px solid ${T.bd}`,borderRadius:"50%",width:18,height:18,color:"rgba(245,245,240,0.45)",fontSize:10,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1}}>?</button>
+      <button onClick={()=>{hap();setOpen(true);}} style={{background:"none",border:"1px solid rgba(232,52,28,0.2)",borderRadius:"50%",width:18,height:18,color:"rgba(245,245,240,0.45)",fontSize:10,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1}}>?</button>
       {open && (
         <div style={{position:"fixed",inset:0,zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)"}} onClick={()=>setOpen(false)}>
-          <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:"24px 20px",maxWidth:320,width:"90%",animation:"toast-in 0.22s cubic-bezier(.2,.7,.3,1) forwards"}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:15,fontWeight:800,color:T.txt,marginBottom:10}}>{title}</div>
+          <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:20,padding:"24px 20px",maxWidth:320,width:"90%",animation:"toast-in 0.22s cubic-bezier(.2,.7,.3,1) forwards"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:15,fontWeight:800,color:"#f5f5f0",marginBottom:10}}>{title}</div>
             <div style={{fontSize:14,color:"rgba(245,245,240,0.7)",lineHeight:1.6}}>{content}</div>
             <button onClick={()=>setOpen(false)} style={{marginTop:16,width:"100%",padding:"10px",background:T.bd,border:"none",borderRadius:12,color:T.txt,fontSize:14,fontWeight:600,cursor:"pointer"}}>Got it</button>
           </div>

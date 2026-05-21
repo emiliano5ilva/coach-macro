@@ -531,7 +531,7 @@ function DeloadCard({signals, onStart, onDismiss}) {
       </div>
       <div style={{display:"flex",gap:8}}>
         <button onClick={onStart} style={{flex:2,padding:"12px",background:"var(--red)",border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Start Deload Week →</button>
-        <button onClick={onDismiss} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Tomorrow</button>
+        <button onClick={onDismiss} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid rgba(232,52,28,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Tomorrow</button>
       </div>
     </div>
   );
@@ -779,7 +779,7 @@ function ScoreRing({score}) {
         filter:isElite?"drop-shadow(0 0 6px rgba(255,215,0,0.55))":"none",
         transition:"filter 0.32s cubic-bezier(.2,.7,.3,1)",
       }}>
-        <circle cx={90} cy={90} r={R} stroke="rgba(255,255,255,0.06)" strokeWidth={14} fill="none"/>
+        <circle cx={90} cy={90} r={R} stroke="rgba(232,52,28,0.06)" strokeWidth={14} fill="none"/>
         <circle cx={90} cy={90} r={R} stroke={color} strokeWidth={14} fill="none"
           strokeLinecap="round"
           strokeDasharray={C}
@@ -804,13 +804,13 @@ function ScoreExplanationModal({sc, onClose}) {
     {label:"Consistency",pct:10,val:sc.c,color:T.fat,desc:"How many of your planned sessions you've completed over the last 30 days."},
   ];
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.92)",backdropFilter:"blur(10px)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"20px 20px 0 0",padding:"24px 20px 48px",maxWidth:480,width:"100%",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-        <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(10px)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:"20px 20px 0 0",padding:"24px 20px 48px",maxWidth:480,width:"100%",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
         <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,marginBottom:4,textAlign:"center"}}>HOW YOUR SCORE IS CALCULATED</div>
         <div style={{fontSize:11,color:"rgba(245,245,240,.4)",textAlign:"center",marginBottom:24}}>Tap anywhere to close</div>
         {comps.map(({label,pct,val,color,desc})=>(
-          <div key={label} style={{marginBottom:20,background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.06)",borderRadius:14,padding:"16px"}}>
+          <div key={label} style={{marginBottom:20,background:"rgba(232,52,28,0.03)",border:"1px solid rgba(232,52,28,0.06)",borderRadius:14,padding:"16px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
               <div>
                 <div style={{fontFamily:"var(--condensed)",fontSize:17,fontWeight:800,color:"#fff"}}>{label}</div>
@@ -821,7 +821,7 @@ function ScoreExplanationModal({sc, onClose}) {
                 <div style={{fontSize:9,color:"rgba(245,245,240,.3)"}}>/ 100</div>
               </div>
             </div>
-            <div style={{height:4,background:"rgba(255,255,255,.06)",borderRadius:2,overflow:"hidden",marginBottom:10}}>
+            <div style={{height:4,background:"rgba(232,52,28,0.06)",borderRadius:2,overflow:"hidden",marginBottom:10}}>
               <div style={{height:"100%",width:`${val}%`,background:color,borderRadius:2,transition:"width .7s ease"}}/>
             </div>
             <div style={{fontSize:12,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{desc}</div>
@@ -990,7 +990,7 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
         const barPct = nextM ? Math.max(3,Math.min(97,Math.round(((pred.current1RM-lowerBound)/(nextM.weight-lowerBound))*100))) : 5;
         const showDivider = i < totalItems-1;
         return (
-          <div key={pred.key} style={{marginBottom:showDivider?20:0,paddingBottom:showDivider?20:0,borderBottom:showDivider?"1px solid rgba(255,255,255,0.05)":"none"}}>
+          <div key={pred.key} style={{marginBottom:showDivider?20:0,paddingBottom:showDivider?20:0,borderBottom:showDivider?"1px solid rgba(232,52,28,0.05)":"none"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
               <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:17,letterSpacing:.5}}>{pred.label.toUpperCase()}</div>
               <div style={{fontFamily:"var(--mono)",fontSize:12,color:T.carb,fontWeight:600}}>~{pred.current1RM} {unit} est. 1RM</div>
@@ -1256,7 +1256,7 @@ function InjuryAlertCard({risks, onAdapt, onDismiss}) {
       )}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <button onClick={onAdapt} style={{flex:2,padding:"11px 8px",background:lc.left,border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Adjust Tomorrow's Session</button>
-        <button onClick={onDismiss} style={{flex:1,padding:"11px",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Got It</button>
+        <button onClick={onDismiss} style={{flex:1,padding:"11px",background:"transparent",border:"1px solid rgba(232,52,28,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Got It</button>
       </div>
       <div style={{fontSize:10,color:"rgba(245,245,240,0.2)",lineHeight:1.7,fontStyle:"italic"}}>
         Injury alerts are informational only and based on general training principles. They are not medical advice. Consult a healthcare professional for any pain or injury concerns.
@@ -1373,7 +1373,7 @@ function WeeklyNutritionCalendar({weekMacros,todayKey}) {
           const barH=maxCal>minCal?Math.max(8,Math.round(((d.calories-minCal)/(maxCal-minCal))*48)+8):28;
           return(
             <button key={d.day} onClick={()=>setExpandedDay(expandedDay===d.day?null:d.day)}
-              style={{background:"none",border:`1.5px solid ${isToday2?c:"rgba(255,255,255,0.06)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
+              style={{background:"none",border:`1.5px solid ${isToday2?c:"rgba(232,52,28,0.06)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
               <div style={{fontSize:8,fontWeight:700,color:isToday2?c:"rgba(245,245,240,0.35)",marginBottom:4,letterSpacing:1,textTransform:"uppercase"}}>{d.day}</div>
               <div style={{height:barH,background:isToday2?c:`${c}55`,borderRadius:3,margin:"0 2px 4px",minHeight:8}}/>
               <div style={{fontSize:8,fontWeight:700,color:isToday2?"#fff":"rgba(245,245,240,0.5)",lineHeight:1}}>{Math.round(d.calories/100)*100}</div>
@@ -1387,7 +1387,7 @@ function WeeklyNutritionCalendar({weekMacros,todayKey}) {
         if(!d)return null;
         const c=calColors[d.dayType]||"#374151";
         return(
-          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+          <div style={{background:"rgba(232,52,28,0.03)",borderRadius:10,padding:"12px 14px",borderTop:"1px solid rgba(232,52,28,0.06)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <div>
                 <div style={{fontSize:10,color:c,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{d.day} — {d.label}</div>
@@ -1397,7 +1397,7 @@ function WeeklyNutritionCalendar({weekMacros,todayKey}) {
             </div>
             <div style={{display:"flex",gap:10}}>
               {[["P",d.protein,"g","var(--red)"],["C",d.carbs,"g","var(--blue)"],["F",d.fat,"g","var(--amber)"]].map(([l,v,u,c2])=>(
-                <div key={l} style={{flex:1,background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                <div key={l} style={{flex:1,background:"rgba(232,52,28,0.04)",borderRadius:8,padding:"8px",textAlign:"center"}}>
                   <div style={{fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{l}</div>
                   <div style={{fontSize:16,fontWeight:800,color:c2}}>{v}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}>{u}</span></div>
                 </div>
@@ -3421,7 +3421,7 @@ Rules:
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"var(--green)"}}>{pct}%</div>
                 <div style={{fontSize:11,color:"rgba(245,245,240,.5)"}}>{sessions} sessions last 30 days</div>
               </div>
-              <div style={{height:4,background:"rgba(255,255,255,.08)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
+              <div style={{height:4,background:"rgba(232,52,28,0.08)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
                 <div style={{height:"100%",width:`${pct}%`,background:"var(--green)",borderRadius:2,transition:"width .6s"}}/>
               </div>
               <div style={{fontSize:12,color:"rgba(245,245,240,.6)",lineHeight:1.55,fontStyle:"italic"}}>Every session counts. Every time you show up is a win.</div>
@@ -3957,7 +3957,7 @@ Rules:
                           <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Strength</div>
                           <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>{goalTrajectories.strength.weeklyGainPct>0?"+":""}{goalTrajectories.strength.weeklyGainPct}% per session avg</div>
                         </div>
-                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.strength.trend==="up"?T.green:goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(255,255,255,.05)"}}>
+                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.strength.trend==="up"?T.green:goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(232,52,28,0.05)"}}>
                           {goalTrajectories.strength.trend==="up"?"↗ PROGRESSING":goalTrajectories.strength.trend==="down"?"↘ DECLINING":"→ STABLE"}
                         </div>
                       </div>
@@ -3971,7 +3971,7 @@ Rules:
                             {goalTrajectories.bodyComp.weeksToGoal&&` · ~${goalTrajectories.bodyComp.weeksToGoal}w to goal`}
                           </div>
                         </div>
-                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.bodyComp.trend==="gaining"?T.fat:goalTrajectories.bodyComp.trend==="losing"?T.green:"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(255,255,255,.05)"}}>
+                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.bodyComp.trend==="gaining"?T.fat:goalTrajectories.bodyComp.trend==="losing"?T.green:"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(232,52,28,0.05)"}}>
                           {goalTrajectories.bodyComp.trend==="gaining"?"↗ GAINING":goalTrajectories.bodyComp.trend==="losing"?"↘ LOSING":"→ STABLE"}
                         </div>
                       </div>

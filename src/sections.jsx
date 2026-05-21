@@ -517,12 +517,12 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
     .lib-wrap{padding:20px 0 40px;}
     .lib-cat-title{font-family:var(--condensed);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,245,240,.4);margin:28px 0 10px;}
     .lib-cat-title:first-child{margin-top:0;}
-    .lib-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
+    .lib-card{background:rgba(232,52,28,0.03);border:1px solid rgba(232,52,28,0.07);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
     .lib-card.lib-current{border-color:rgba(232,52,28,.4);background:rgba(232,52,28,.06);}
     .lib-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
     .lib-card-name{font-family:var(--condensed);font-size:18px;font-weight:700;letter-spacing:.01em;}
     .lib-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
-    .lib-badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:4px;background:rgba(255,255,255,.07);color:rgba(245,245,240,.55);}
+    .lib-badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:4px;background:rgba(232,52,28,0.07);color:rgba(245,245,240,.55);}
     .lib-badge.beg{background:rgba(52,211,153,.12);color:#34D399;}
     .lib-badge.int{background:rgba(251,191,36,.12);color:#FBbF24;}
     .lib-badge.adv{background:rgba(248,113,113,.12);color:#F87171;}
@@ -530,20 +530,20 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
     .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,.5);background:rgba(232,52,28,.1);color:var(--red);cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
     .lib-switch-btn:hover{background:rgba(232,52,28,.2);border-color:var(--red);}
     .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--red);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,.3);background:rgba(232,52,28,.06);}
-    .lib-soon{font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(245,245,240,.25);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);}
-    .lib-modal-overlay{position:fixed;inset:0;background:rgba(6,13,26,.85);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
-    .lib-modal{background:#0A1222;border:1px solid rgba(255,255,255,.1);border-radius:14px 14px 0 0;padding:28px 24px 36px;max-width:480px;width:100%;}
+    .lib-soon{font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(245,245,240,.25);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,0.07);background:rgba(232,52,28,0.03);}
+    .lib-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+    .lib-modal{background:#0d0d0d;border:1px solid rgba(232,52,28,0.12);border-radius:14px 14px 0 0;padding:28px 24px 36px;max-width:480px;width:100%;}
     .lib-modal h3{margin:0 0 8px;font-family:var(--condensed);font-size:22px;font-weight:800;letter-spacing:.02em;}
     .lib-modal p{margin:0 0 24px;font-size:13px;color:rgba(245,245,240,.55);line-height:1.6;}
     .lib-modal-btns{display:flex;flex-direction:column;gap:10px;}
     .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:var(--red);color:#fff;cursor:pointer;font-family:inherit;}
-    .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
+    .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(232,52,28,0.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
     .lib-fav-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.15);border-radius:9px;margin-bottom:6px;}
     .lib-fav-name{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px;}
     .lib-fav-group{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(245,245,240,.35);}
     .lib-fav-remove{font-size:11px;color:rgba(245,245,240,.3);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:6px;}
     .lib-fav-remove:hover{color:rgba(255,77,109,.7);background:rgba(255,77,109,.08);}
-    .lib-fav-section{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06);}
+    .lib-fav-section{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(232,52,28,0.06);}
   `;
 
   const libFavorites=wPrefs.favorites||[];
@@ -788,22 +788,22 @@ const ADAPT_CATEGORIES = [
 
 
 const ADAPT_CSS = `
-  .adapt-overlay{position:fixed;inset:0;background:rgba(6,13,26,.97);z-index:300;display:flex;flex-direction:column;overflow:hidden;}
-  .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .adapt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:300;display:flex;flex-direction:column;overflow:hidden;}
+  .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(232,52,28,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
   .adapt-title{font-family:var(--condensed);font-style:italic;font-size:24px;font-weight:900;letter-spacing:.04em;}
-  .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(232,52,28,0.12);background:rgba(232,52,28,0.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .adapt-body{flex:1;overflow-y:auto;padding:20px;}
   .adapt-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
-  .adapt-cat-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:6px;font-family:inherit;}
+  .adapt-cat-card{background:rgba(232,52,28,0.04);border:1.5px solid rgba(232,52,28,0.08);border-radius:14px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:6px;font-family:inherit;}
   .adapt-cat-card.sel{border-color:rgba(232,52,28,.5);background:rgba(232,52,28,.08);}
-  .adapt-cat-card:hover{background:rgba(255,255,255,.07);}
+  .adapt-cat-card:hover{background:rgba(232,52,28,0.07);}
   .adapt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
-  .adapt-chip{padding:9px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(245,245,240,.65);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+  .adapt-chip{padding:9px 14px;border-radius:20px;border:1.5px solid rgba(232,52,28,0.12);background:rgba(232,52,28,0.04);color:rgba(245,245,240,.65);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
   .adapt-chip.sel{border-color:var(--red);background:rgba(232,52,28,.12);color:var(--red);}
-  .adapt-footer{padding:16px 20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+  .adapt-footer{padding:16px 20px 28px;border-top:1px solid rgba(232,52,28,0.07);flex-shrink:0;}
   .adapt-primary{width:100%;padding:15px;border:none;border-radius:12px;background:var(--red);color:#fff;font-size:15px;font-weight:700;letter-spacing:.05em;cursor:pointer;font-family:inherit;}
   .adapt-primary:disabled{opacity:.35;cursor:not-allowed;}
-  .adapt-secondary{width:100%;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:rgba(245,245,240,.5);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
+  .adapt-secondary{width:100%;padding:14px;border:1px solid rgba(232,52,28,0.1);border-radius:12px;background:transparent;color:rgba(245,245,240,.5);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 `;
@@ -1081,7 +1081,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
           <div style={{marginBottom:20}}>
             <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:10}}>WHAT CHANGED</div>
             {result.changes.map((c,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.05)"}}>
+              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(232,52,28,0.05)"}}>
                 <span style={{fontSize:16,flexShrink:0,lineHeight:1.5}}>{ICONS[c.type]||"•"}</span>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:2}}>
@@ -1097,7 +1097,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         <div>
           <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:10}}>ADAPTED EXERCISES · {result.adapted_exercises?.length}</div>
           {(result.adapted_exercises||[]).map((ex,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(255,255,255,.03)",borderRadius:8,marginBottom:6}}>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(232,52,28,0.03)",borderRadius:8,marginBottom:6}}>
               <span style={{fontSize:13,fontWeight:600}}>{ex.name}</span>
               <span style={{fontSize:11,color:"rgba(245,245,240,.45)",flexShrink:0,marginLeft:8}}>{ex.sets}×{ex.reps}</span>
             </div>
@@ -1176,7 +1176,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
             <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:12}}>{selectedCat.label}</div>
             {selectedCat.id==="other"
               ?<textarea value={customText} onChange={e=>setCustomText(e.target.value)} placeholder="Describe your situation..." rows={4}
-                  style={{width:"100%",background:"rgba(255,255,255,.04)",border:"1.5px solid rgba(255,255,255,.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:13,fontFamily:"inherit",resize:"none",outline:"none",boxSizing:"border-box"}}/>
+                  style={{width:"100%",background:"rgba(232,52,28,0.04)",border:"1.5px solid rgba(232,52,28,0.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:13,fontFamily:"inherit",resize:"none",outline:"none",boxSizing:"border-box"}}/>
               :<div className="adapt-chips">
                 {selectedCat.options.map(opt=>(
                   <button key={opt} className={`adapt-chip${subOption===opt?" sel":""}`} onClick={()=>setSubOption(opt)}>{opt}</button>
@@ -1297,7 +1297,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
             </div>
           </div>
           {nextLine && (
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:12,padding:"8px 16px",borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:12,padding:"8px 16px",borderRadius:10,background:"rgba(232,52,28,0.04)",border:"1px solid rgba(232,52,28,0.07)"}}>
               {nextLine.icon}
               <span style={{fontFamily:"var(--body)",fontSize:13,color:nextLine.color,lineHeight:1.4}}>{nextLine.text}</span>
             </div>
@@ -1453,7 +1453,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
         <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', marginBottom: 10 }}>{GENERAL_WARMUP.instructions}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
           {GENERAL_WARMUP.options.map((opt, i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div key={i} style={{ background: 'rgba(232,52,28,0.04)', border: '1px solid rgba(232,52,28,0.07)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{opt.name}</div>
                 <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)' }}>{opt.detail}</div>
@@ -1484,7 +1484,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
               onClick={() => { setTab(pt.id); setExpanded(null); }}
               style={{
                 padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                border: `1.5px solid ${tab === pt.id ? T.prot : 'rgba(255,255,255,.1)'}`,
+                border: `1.5px solid ${tab === pt.id ? T.prot : 'rgba(232,52,28,0.1)'}`,
                 background: tab === pt.id ? `${T.prot}18` : 'none',
                 color: tab === pt.id ? T.prot : 'rgba(245,245,240,.5)',
                 fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
@@ -1503,8 +1503,8 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
                 key={`${tab}-${i}`}
                 onClick={() => setExpanded(isOpen ? null : i)}
                 style={{
-                  background: isOpen ? 'rgba(232,52,28,.05)' : 'rgba(255,255,255,.03)',
-                  border: `1px solid ${isOpen ? 'rgba(232,52,28,.25)' : 'rgba(255,255,255,.07)'}`,
+                  background: isOpen ? 'rgba(232,52,28,.05)' : 'rgba(232,52,28,0.03)',
+                  border: `1px solid ${isOpen ? 'rgba(232,52,28,.25)' : 'rgba(232,52,28,0.07)'}`,
                   borderRadius: 12, padding: '11px 14px', cursor: 'pointer',
                   transition: 'border-color 0.2s, background 0.2s',
                 }}
@@ -1529,7 +1529,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
                   </div>
                 </div>
                 {isOpen && (
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.06)', fontSize: 12, color: 'rgba(245,245,240,.6)', lineHeight: 1.65 }}>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(232,52,28,0.06)', fontSize: 12, color: 'rgba(245,245,240,.6)', lineHeight: 1.65 }}>
                     {ex.detail}
                   </div>
                 )}
@@ -1549,7 +1549,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
             {['strength', 'running'].map(ct => (
               <button key={ct} onClick={() => setCoolTab(ct)} style={{
                 padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                border: `1.5px solid ${coolTab === ct ? T.prot : 'rgba(255,255,255,.1)'}`,
+                border: `1.5px solid ${coolTab === ct ? T.prot : 'rgba(232,52,28,0.1)'}`,
                 background: coolTab === ct ? `${T.prot}18` : 'none',
                 color: coolTab === ct ? T.prot : 'rgba(245,245,240,.45)',
                 fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
@@ -1560,7 +1560,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {(COOL_DOWN[coolTab] || []).map((ex, i) => (
-            <div key={`cd-${coolTab}-${i}`} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '11px 14px' }}>
+            <div key={`cd-${coolTab}-${i}`} style={{ background: 'rgba(232,52,28,0.03)', border: '1px solid rgba(232,52,28,0.07)', borderRadius: 12, padding: '11px 14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ex.name}</div>
                 <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.6)', flexShrink: 0 }}>{ex.duration}</div>
@@ -1677,7 +1677,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {coolProtocol.map((step, i) => (
-                    <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(255,255,255,.05)":"none"}}>
+                    <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(232,52,28,0.05)":"none"}}>
                       <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
                       <div>
                         <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
@@ -2420,7 +2420,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           {headline}<span style={{color:"#e8341c"}}>.</span>
         </div>
         {target&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
-        <div onClick={startGPSRun} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
+        <div onClick={startGPSRun} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
           <div style={{background:"rgba(232,52,28,0.1)",borderRadius:10,padding:12,flexShrink:0}}>
             <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           </div>
@@ -2429,7 +2429,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Live pace, distance, and route tracking using your phone GPS.</div>
           </div>
         </div>
-        <div onClick={startManualRun} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
+        <div onClick={startManualRun} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
           <div style={{background:"rgba(245,245,240,0.06)",borderRadius:10,padding:12,flexShrink:0}}>
             <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
@@ -2745,9 +2745,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {swapModal&&(()=>{
         const opts=getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
         return(
-          <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.92)",backdropFilter:"blur(8px)",zIndex:250,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
-            <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
-              <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:250,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
+            <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
               <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SWAP EXERCISE</div>
               <div style={{fontSize:18,fontWeight:700,marginBottom:2}}>{swapModal.exerciseName}</div>
               <div style={{fontSize:12,color:"rgba(245,245,240,.4)",marginBottom:18}}>Choose a replacement — same muscle group</div>
@@ -2755,7 +2755,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ?<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
                   {opts.map((opt,i)=>(
                     <button key={i} onClick={()=>setSelectedSwap(selectedSwap===opt.name?null:opt.name)}
-                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(232,52,28,.12)":"rgba(255,255,255,.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(232,52,28,.45)":"rgba(255,255,255,.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
+                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(232,52,28,.12)":"rgba(232,52,28,0.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(232,52,28,.45)":"rgba(232,52,28,0.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
                       <span style={{fontSize:14,fontWeight:600,color:"#fff"}}>{opt.name}</span>
                       {selectedSwap===opt.name&&<span style={{fontSize:14,color:T.prot}}>✓</span>}
                     </button>
@@ -2763,20 +2763,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
                 :<div style={{fontSize:13,color:"rgba(245,245,240,.4)",textAlign:"center",padding:"16px 0",marginBottom:18}}>No alternatives for this equipment setup.</div>
               }
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(255,255,255,.03)",borderRadius:10,border:"1px solid rgba(255,255,255,.06)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(232,52,28,0.03)",borderRadius:10,border:"1px solid rgba(232,52,28,0.06)"}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Make permanent</div>
                   <div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Always replace this exercise in my plan</div>
                 </div>
-                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.prot:"rgba(255,255,255,.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.prot:"rgba(232,52,28,0.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
                   <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:swapPermanent?19:3}}/>
                 </button>
               </div>
               <button onClick={()=>selectedSwap&&applySwap(swapModal.exerciseIdx,selectedSwap,swapPermanent,swapModal.originalName)} disabled={!selectedSwap}
-                style={{width:"100%",padding:15,background:selectedSwap?T.prot:"rgba(255,255,255,.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
+                style={{width:"100%",padding:15,background:selectedSwap?T.prot:"rgba(232,52,28,0.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
                 Swap Exercise →
               </button>
-              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
             </div>
           </div>
         );
@@ -2784,9 +2784,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
       {/* Pre-session Readiness Modal */}
       {showReadiness&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.92)",backdropFilter:"blur(8px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
-          <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
-            <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
+          <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+            <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"var(--mono)"}}>Pre-Session Check-In</div>
             <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,marginBottom:20}}>How are you feeling?</div>
             {/* Sleep */}
@@ -2876,16 +2876,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               );
             })()}
             <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy}
-              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(255,255,255,.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
+              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(232,52,28,0.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
               Start Session →
             </button>
-            <button onClick={skipReadiness} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Skip Check-In</button>
+            <button onClick={skipReadiness} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Skip Check-In</button>
           </div>
         </div>
       )}
 
       {/* Toast */}
-      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0A1222",border:"1px solid rgba(232,52,28,.35)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
+      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0d0d0d",border:"1px solid rgba(232,52,28,.35)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
 
       {/* ── PAGE HEADER ── */}
       {trainScreen!=="routine-builder"&&(
@@ -3147,11 +3147,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               })();
               const currentPhase=activePhaseData?{name:activePhaseData.label}:(phases.find(p=>displayWeek>=p.start&&displayWeek<=p.end)||phases[phases.length-1]);
               return(
-                <div style={{background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16,position:"relative",overflow:"hidden"}}>
+                <div style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16,position:"relative",overflow:"hidden"}}>
                   {programImage&&(
                     <div style={{position:"relative",width:"calc(100% + 32px)",height:120,margin:"-16px -16px 14px -16px",borderRadius:"12px 12px 0 0",overflow:"hidden"}}>
                       <img src={programImage} alt={progName} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.style.display="none";}}/>
-                      <div style={{position:"absolute",bottom:0,left:0,right:0,height:60,background:"linear-gradient(transparent,#111827)",pointerEvents:"none"}}/>
+                      <div style={{position:"absolute",bottom:0,left:0,right:0,height:60,background:"linear-gradient(transparent,#0d0d0d)",pointerEvents:"none"}}/>
                     </div>
                   )}
                   <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(232,52,28,0.04)",pointerEvents:"none"}}/>
@@ -3324,7 +3324,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               return(
                 <>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// today</div>
-                  <div style={{background:"#111827",borderRadius:14,padding:16,border:"1px solid rgba(245,245,240,0.07)",marginBottom:12}}>
+                  <div style={{background:"#0d0d0d",borderRadius:14,padding:16,border:"1px solid rgba(245,245,240,0.07)",marginBottom:12}}>
                     {/* Header row */}
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
                       <div>
@@ -3415,7 +3415,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {eyebrow:"// CUSTOM BUILDS", label:"My Routines",      sub:"Workouts you've built",            screen:"routine-builder"},
                   {eyebrow:"// PREP RIGHT",    label:"Warm-Up",          sub:"Movement prep by muscle group",    screen:"warmup-protocols"},
                 ].map(({eyebrow,label,sub,screen})=>(
-                  <button key={screen} onClick={()=>setTrainScreen(screen)} style={{display:"flex",flexDirection:"column",gap:6,padding:"16px",background:"#111827",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,cursor:"pointer",textAlign:"left"}}>
+                  <button key={screen} onClick={()=>setTrainScreen(screen)} style={{display:"flex",flexDirection:"column",gap:6,padding:"16px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,cursor:"pointer",textAlign:"left"}}>
                     <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:500}}>{eyebrow}</div>
                     <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1.1,letterSpacing:"0.01em"}}>{label}</div>
                     <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.4,marginTop:2}}>{sub}</div>
@@ -3616,9 +3616,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                           {factors.map((f,fi)=>(
                             <span key={fi} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
-                              background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(255,255,255,.06)",
+                              background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(232,52,28,0.06)",
                               color:f.ok?T.green:f.ok===false?T.prot:"rgba(245,245,240,.4)",
-                              border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(255,255,255,.1)"}`}}>
+                              border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(232,52,28,0.1)"}`}}>
                               {f.ok?"✓":f.ok===false?"✗":"—"} {f.label}
                             </span>
                           ))}
@@ -3696,7 +3696,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             >
                               <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
                               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}>
-                                {ex.tier&&<span style={{fontSize:9,fontWeight:700,background:ex.tier==="A"?`${T.prot}20`:ex.tier==="B"?`${T.carb}20`:"rgba(255,255,255,.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>{ex.tier}</span>}
+                                {ex.tier&&<span style={{fontSize:9,fontWeight:700,background:ex.tier==="A"?`${T.prot}20`:ex.tier==="B"?`${T.carb}20`:"rgba(232,52,28,0.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>{ex.tier}</span>}
                                 {ex.priority&&<span style={{fontSize:9,fontWeight:700,background:"rgba(249,115,22,.15)",color:"#F97316",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",display:"inline-flex",alignItems:"center",gap:2}}><svg width={7} height={7} viewBox="0 0 24 24" fill="#F97316"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>PRIORITY</span>}
                                 {ex.mobilitySubstituted&&<span style={{fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>MODIFIED</span>}
                               </div>
@@ -4576,7 +4576,7 @@ function AthleteWaveChart({waveData}){
   return(
     <div style={{marginTop:16,marginBottom:4}}>
       <div style={{fontSize:10,color:'rgba(245,245,240,0.35)',letterSpacing:2,textTransform:'uppercase',fontFamily:"var(--mono)",marginBottom:8}}>TRAINING WAVE — 8 WEEKS</div>
-      <div style={{borderRadius:10,overflow:'hidden',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+      <div style={{borderRadius:10,overflow:'hidden',background:'rgba(232,52,28,0.03)',border:'1px solid rgba(232,52,28,0.07)'}}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',display:'block'}}>
           {[25,50,75].map(v=>{
             const y=(H-pad-(v/100)*(H-pad*2)).toFixed(1);
@@ -4742,8 +4742,8 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
     <>
       <div style={eyebrowStyle}>// Refer a Friend</div>
       <div style={{
-        background: '#111827', borderRadius: 14, padding: 16,
-        border: '1px solid rgba(245,245,240,0.07)',
+        background: '#0d0d0d', borderRadius: 14, padding: 16,
+        border: '1px solid rgba(232,52,28,0.07)',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Gradient */}
@@ -4926,7 +4926,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const wUnit=wPrefs?.wUnit||profile?.wUnit||"lbs";
 
   const eyebrowStyle={fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,marginTop:24};
-  const cardStyle={background:"#111827",borderRadius:12,border:"1px solid rgba(245,245,240,0.07)",overflow:"hidden"};
+  const cardStyle={background:"#0d0d0d",borderRadius:12,border:"1px solid rgba(245,245,240,0.07)",overflow:"hidden"};
   function MeRow({label:lbl,value:val,onPress,isLast,isDestructive,noChevron,rightEl}){
     return(
       <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
@@ -5155,7 +5155,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {showPlansModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
-            <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+            <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
             <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
             {[{id:"monthly",label:"MONTHLY",price:"$9.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"ANNUAL",price:"$79.99",per:"/year · $6.67/mo",badge:"BEST VALUE",saving:"Save 33% vs monthly",gradient:true}].map(plan=>(
@@ -5168,7 +5168,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 setPurchaseLoading(null);
                 if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
                 else showToast("Purchase failed. Try again.","error");
-              }} style={{background:plan.gradient?"linear-gradient(135deg,#111827 0%,#1a0f0f 100%)":"#111827",border:`1px solid ${plan.gradient?"#e8341c":"rgba(245,245,240,0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
+              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(232,52,28,0.04))":"#0d0d0d",border:`1px solid ${plan.gradient?"#e8341c":"rgba(232,52,28,0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
                 {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"#e8341c",borderRadius:20,padding:"3px 10px",fontFamily:"var(--mono)",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:plan.gradient?"#e8341c":"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:4}}>{plan.label}</div>
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"var(--mono)",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(245,245,240,0.4)"}}> {plan.per}</span></div>
@@ -5328,7 +5328,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── EDIT FIELD MODAL ── */}
       {editModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setEditModal(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#111827",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
             <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type={editModal==="name"?"text":"number"} placeholder={editModal==="name"?"Your name":editModal==="weight"?`Weight in ${wUnit}`:"Height in cm"}
               style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
@@ -5350,7 +5350,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── GOAL SELECTOR MODAL ── */}
       {showGoalSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowGoalSelector(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#111827",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {Object.entries(GOAL_LABELS).map(([key,label])=>(
@@ -5367,7 +5367,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── SKILL SELECTOR MODAL ── */}
       {showSkillSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowSkillSelector(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#111827",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[{key:"beginner",label:"Beginner",sub:"Under 1 year"},{key:"intermediate",label:"Intermediate",sub:"1–4 years"},{key:"advanced",label:"Advanced",sub:"4+ years"}].map(({key,label,sub})=>(
@@ -5607,11 +5607,11 @@ export function UpgradeScreen({ profile, onContinue }) {
               </div>
             ))}
           </div>
-          <div style={{ background:'rgba(80,200,80,0.05)', border:'1px solid rgba(80,200,80,0.15)', borderRadius:12, padding:'14px' }}>
-            <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.2, color:'rgba(80,200,80,0.8)', marginBottom:10 }}>STILL FREE</div>
+          <div style={{ background:'rgba(34,197,94,0.05)', border:'1px solid rgba(34,197,94,0.15)', borderRadius:12, padding:'14px' }}>
+            <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.2, color:'rgba(34,197,94,0.8)', marginBottom:10 }}>STILL FREE</div>
             {free.map(f => (
               <div key={f} style={{ display:'flex', gap:8, padding:'5px 0', fontSize:12, color:'rgba(245,245,240,0.65)', alignItems:'flex-start' }}>
-                <span style={{ color:'rgba(80,200,80,0.8)', flexShrink:0 }}>✓</span>{f}
+                <span style={{ color:'rgba(34,197,94,0.8)', flexShrink:0 }}>✓</span>{f}
               </div>
             ))}
           </div>
@@ -5640,13 +5640,6 @@ export function UpgradeScreen({ profile, onContinue }) {
             Upgrade to Pro →
           </a>
         </div>
-
-        <button
-          onClick={onContinue}
-          style={{ width:'100%', background:'none', border:`1px solid ${T.bd}`, borderRadius:10, padding:'13px', color:T.mu, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:"'Inter',sans-serif", marginBottom:14 }}
-        >
-          Continue with limited access
-        </button>
 
         <div style={{ fontSize:12, color:T.mu, textAlign:'center' }}>
           Secure checkout · Cancel anytime
