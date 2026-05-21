@@ -3724,7 +3724,7 @@ Rules:
             </div>
           ):(()=>{
             const isRD=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
-            const focusLabel=(todayFocus||"").replace(/\.$/, "");
+            const focusLabel=(()=>{const raw=(todayFocus||"").replace(/\.$/, "");if(!raw||raw.toLowerCase()==="rest")return DAY_CFG[todayType]?.label||"Training";return raw;})();
             if(isRD){
               return(
                 <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
