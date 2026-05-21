@@ -3029,10 +3029,10 @@ Rules:
             <div className="header-title">Hey, {firstName}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <button onClick={()=>{setSection("train");setTrainScreen("progress");}} aria-label="Streak" style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:0,padding:0,cursor:"pointer",flexShrink:0,opacity:homStreak>0?1:0.4}}>
-              <span style={{fontSize:14,lineHeight:1}}>🔥</span>
-              {homStreak>0&&<span style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:9,color:"#e8341c",lineHeight:1,marginTop:1}}>{homStreak}</span>}
-            </button>
+            <div onClick={()=>{setSection("train");setTrainScreen("progress");}} style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",marginRight:8,flexShrink:0,opacity:homStreak>0?1:0.4}}>
+              <span style={{fontSize:13,lineHeight:1}}>🔥</span>
+              {homStreak>0&&<span style={{fontFamily:"DM Mono,monospace",fontSize:8,color:"#e8341c",lineHeight:1,marginTop:1,fontWeight:500}}>{homStreak}</span>}
+            </div>
             <button className="icon-btn" aria-label="Notifications"><svg width={16} height={16} viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 7 3 9H3c0-2 3-2 3-9zM10 21a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/></svg></button>
             <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,var(--red),#8b1a0a)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--condensed)",fontWeight:800,fontStyle:"italic",fontSize:16,color:"white"}}>{firstName[0].toUpperCase()}</div>
           </div>
@@ -3260,7 +3260,7 @@ Rules:
         <div style={{margin:"0 20px 12px"}}>
           {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
             briefExpanded
-              ?<div style={{padding:"16px",background:"linear-gradient(135deg,#0d1420,#0a0e1a)",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
+              ?<div style={{padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
@@ -3280,9 +3280,9 @@ Rules:
                           {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
                           <div style={{display:"flex",flexDirection:"column",gap:8}}>
                             {b.yesterday&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div><div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div></div>)}
-                            <div style={{height:1,background:"rgba(245,245,240,0.06)"}}/>
+                            <div style={{height:1,background:"rgba(232,52,28,0.08)"}}/>
                             {b.today&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div><div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div></div>)}
-                            {b.coach_says&&(<div style={{padding:"8px 10px",background:"rgba(232,52,28,0.08)",borderRadius:6,borderLeft:"2px solid rgba(232,52,28,0.4)"}}><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div><div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div></div>)}
+                            {b.coach_says&&(<div style={{padding:"8px 10px",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:6}}><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div><div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div></div>)}
                           </div>
                           {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
                           {showCheckin&&!checkinDone&&(<SorenessCheckIn userId={user?.id} onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}} onSkip={()=>setShowCheckin(false)}/>)}
@@ -3292,11 +3292,8 @@ Rules:
                     })()
                 }
                 {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
-                  <FlagBtn responseText={morningBrief?JSON.stringify(morningBrief):""} feature="morning_brief" user={user}/>
-                  <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                    <button onClick={()=>{setBriefExpanded(false);}} style={{background:"transparent",border:"none",color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>COLLAPSE ↑</button>
-                    <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Got it →</button>
-                  </div>
+                  <button onClick={()=>{setBriefExpanded(false);}} style={{background:"transparent",border:"none",color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
+                  <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
                 </div>}
               </div>
               :(()=>{
