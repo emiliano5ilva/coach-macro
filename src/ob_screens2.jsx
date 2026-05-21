@@ -3014,6 +3014,12 @@ Rules:
     if (!dashboardLoaded && log.length === 0 && workoutLogsRaw.length === 0) {
       return <DashboardSkeleton/>;
     }
+    let homStreak=0;
+    for(let i=0;i<30;i++){
+      const d=new Date();d.setDate(d.getDate()-i);
+      const ds=d.toISOString().split("T")[0];
+      if(workoutLogsRaw.some(w=>w.date===ds))homStreak++;else break;
+    }
     return (
       <div className="page-enter">
         {/* Header */}
@@ -3023,6 +3029,10 @@ Rules:
             <div className="header-title">Hey, {firstName}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={()=>{setSection("train");setTrainScreen("progress");}} aria-label="Streak" style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:0,padding:0,cursor:"pointer",flexShrink:0,opacity:homStreak>0?1:0.4}}>
+              <span style={{fontSize:14,lineHeight:1}}>🔥</span>
+              {homStreak>0&&<span style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:9,color:"#e8341c",lineHeight:1,marginTop:1}}>{homStreak}</span>}
+            </button>
             <button className="icon-btn" aria-label="Notifications"><svg width={16} height={16} viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 7 3 9H3c0-2 3-2 3-9zM10 21a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/></svg></button>
             <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,var(--red),#8b1a0a)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--condensed)",fontWeight:800,fontStyle:"italic",fontSize:16,color:"white"}}>{firstName[0].toUpperCase()}</div>
           </div>
@@ -3213,26 +3223,10 @@ Rules:
 
         {/* Streak counter + StreakCard */}
         {(()=>{
-          const todayStr=new Date().toISOString().split("T")[0];
-          let homStreak=0;
-          for(let i=0;i<30;i++){
-            const d=new Date();d.setDate(d.getDate()-i);
-            const ds=d.toISOString().split("T")[0];
-            if(workoutLogsRaw.some(w=>w.date===ds))homStreak++;else break;
-          }
           const sl=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();
-          const isBeginner=sl==='beginner';
           const streakWin=checkStreakWins(homStreak,sl);
           return(
             <>
-              {homStreak>=2&&(
-                <div data-tour="streak-counter" style={{margin:"0 20px 12px",display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:16}}>🔥</span>
-                  <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#e8341c"}}>{homStreak}</span>
-                  <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase"}}>DAY STREAK</span>
-                  {homStreak>=7&&<><span style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",display:"inline-block"}}/><span style={{fontFamily:"var(--mono)",fontSize:7,color:"#22c55e"}}>ON FIRE</span></>}
-                </div>
-              )}
               {streakWin&&pendingStreakWin!=='dismissed'&&(
                 <StreakCard
                   win={streakWin}

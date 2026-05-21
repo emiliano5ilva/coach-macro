@@ -3292,66 +3292,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* ── MUSCLE RECOVERY ── */}
             <MuscleRecovery userId={user?.id}/>
 
-            {/* ── RECENT PRs ── */}
-            {Object.keys(history||{}).length>0&&(()=>{
-              const prEntries=Object.entries(history)
-                .map(([key,sessions])=>{
-                  const last=sessions[sessions.length-1];
-                  const prev=sessions.length>1?sessions[sessions.length-2]:null;
-                  const lastMax=Math.max(...last.sets.map(s=>parseFloat(s.weight||0)));
-                  const prevMax=prev?Math.max(...prev.sets.map(s=>parseFloat(s.weight||0))):null;
-                  const improved=prevMax&&lastMax>prevMax;
-                  const lastDate=last.date||"";
-                  const daysAgo=lastDate?Math.floor((new Date()-new Date(lastDate+"T12:00:00"))/86400000):null;
-                  return{key,lastMax,improved,daysAgo,sessions:sessions.length};
-                })
-                .filter(e=>e.lastMax>0)
-                .sort((a,b)=>b.lastMax-a.lastMax)
-                .slice(0,4);
-              if(prEntries.length===0)return null;
-              const wUnit=profile?.wUnit||"lbs";
-              return(
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                    <div className="header-eyebrow" style={{marginBottom:0}}>// Recent PRs</div>
-                    <button onClick={()=>setTrainScreen("progress")} style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,background:"none",border:"none",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>All →</button>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    {prEntries.map(({key,lastMax,improved,daysAgo,sessions})=>(
-                      <div key={key} style={{background:T.s2,border:`1px solid ${improved?"rgba(34,197,94,0.2)":T.bd}`,borderRadius:12,padding:"12px 14px",position:"relative",overflow:"hidden"}}>
-                        {improved&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:T.green,borderRadius:"12px 12px 0 0"}}/>}
-                        <div style={{fontSize:11,fontWeight:600,color:"rgba(245,245,240,0.65)",textTransform:"capitalize",marginBottom:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{key.replace(/_/g," ")}</div>
-                        <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900,color:T.prot,lineHeight:1}}>{lastMax}<span style={{fontSize:10,color:T.mu,fontFamily:"var(--mono)",fontWeight:400,marginLeft:3}}>{wUnit}</span></div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
-                          {improved&&<span style={{fontSize:9,color:T.green,fontFamily:"var(--mono)",fontWeight:700,letterSpacing:"0.08em"}}>↑ NEW PR</span>}
-                          <span style={{fontSize:9,color:T.mu,fontFamily:"var(--mono)",marginLeft:"auto"}}>{daysAgo===0?"today":daysAgo===1?"yesterday":daysAgo!=null?`${daysAgo}d ago`:""}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ── STREAK ── */}
-            {sessionCount>0&&(()=>{
-              const bestStreak=profile?.longestStreak||sessionCount;
-              const isPersonalBest=sessionCount>=bestStreak;
-              return(
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:16}}>
-                  <div style={{width:48,height:48,borderRadius:13,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 3z" stroke="var(--red)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div className="header-eyebrow" style={{marginBottom:4}}>// Streak</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,lineHeight:1}}>{sessionCount} <span style={{fontSize:13,fontWeight:600,fontStyle:"normal",color:T.mu}}>sessions logged</span></div>
-                    {isPersonalBest&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:"0.1em",marginTop:4}}>PERSONAL BEST ✓</div>}
-                    {!isPersonalBest&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:T.mu,letterSpacing:"0.1em",marginTop:4}}>BEST: {bestStreak} SESSIONS</div>}
-                  </div>
-                  <button onClick={()=>setTrainScreen("progress")} style={{padding:"8px 12px",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.18)",borderRadius:9,color:T.prot,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.08em",flexShrink:0}}>Stats →</button>
-                </div>
-              );
-            })()}
             {/* ── EXPLORE BOTTOM SHEET ── */}
             {showExploreSheet&&(
               <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
