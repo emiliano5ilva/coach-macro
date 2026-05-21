@@ -3725,12 +3725,13 @@ Rules:
           ):(()=>{
             const isRD=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
             const focusLabel=(()=>{const raw=(todayFocus||"").replace(/\.$/, "");if(!raw||raw.toLowerCase()==="rest")return DAY_CFG[todayType]?.label||"Training";return raw;})();
+            const coachQuote=(()=>{const fallback=isRD?"Rest day. Your body grows when you recover. Come back tomorrow stronger.":"Show up, do the work, trust the process.";const raw=(morningBrief?.coach_says||"").trim();const first=raw.split(/\.[\s]/)[0].trim();const result=first?first+(first.endsWith(".")||first.endsWith("!")||first.endsWith("?")?"":" ."):fallback;return result.length>100?result.substring(0,97)+"...":result;})();
             if(isRD){
               return(
                 <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:10}}>REST<span style={{color:"#e8341c"}}>.</span></div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:8}}>{morningBrief?.coach_says||"Rest day. Your body grows when you recover. Come back tomorrow stronger."}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:8}}>{coachQuote}</div>
                 </div>
               );
             }
@@ -3740,7 +3741,7 @@ Rules:
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
                   {focusLabel}<span style={{color:"#e8341c"}}>.</span>
                 </div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:6,marginBottom:14}}>{morningBrief?.coach_says||"Show up, do the work, trust the process."}</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:6,marginBottom:14}}>{coachQuote}</div>
                 <button onClick={()=>setSection("train")} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
                   START SESSION →
                 </button>
