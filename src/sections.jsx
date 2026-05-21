@@ -1779,7 +1779,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -3205,6 +3205,44 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   )}
                   <div onClick={()=>setProgDetailsExpanded(s=>!s)} style={{marginTop:12,textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>
                     {progDetailsExpanded?"Program details ↑":"Program details ↓"}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── TODAY'S NUTRITION CONTEXT ── */}
+            {(()=>{
+              const displayPrefs=wPrefs?.displayPrefs||{};
+              const currentSkill=(wPrefs?.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+              const showMacroCard=displayPrefs.full_macro_breakdown!=null?displayPrefs.full_macro_breakdown:currentSkill!=="beginner";
+              if(!showMacroCard||!todayProtocol||!macros)return null;
+              const p=todayProtocol;
+              const base={cal:p.base_calories||macros.calories,prot:p.base_protein_g||macros.protein,carbs:p.base_carbs_g||macros.carbs};
+              const adj={cal:p.adjusted_calories||macros.calories,prot:p.adjusted_protein_g||macros.protein,carbs:p.adjusted_carbs_g||macros.carbs};
+              function arrow(adj,base){
+                if(adj>base+5)return{sym:"↑",color:T.green};
+                if(adj<base-5)return{sym:"↓",color:"#ef4444"};
+                return{sym:"→",color:"rgba(245,245,240,0.4)"};
+              }
+              const chips=[
+                {label:"PROTEIN",val:`${adj.prot}g`,...arrow(adj.prot,base.prot)},
+                {label:"CARBS",val:`${adj.carbs}g`,...arrow(adj.carbs,base.carbs)},
+                {label:"CALORIES",val:String(adj.cal),...arrow(adj.cal,base.cal)},
+              ];
+              return(
+                <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,padding:"12px 14px",marginBottom:10,display:"flex",gap:0,position:"relative",overflow:"hidden"}}>
+                  <div style={{width:3,background:"#e8341c",borderRadius:2,marginRight:12,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S NUTRITION</div>
+                    <div style={{display:"flex",gap:6,marginBottom:8}}>
+                      {chips.map(c=>(
+                        <div key={c.label} style={{flex:1,background:"rgba(245,245,240,0.03)",borderRadius:8,padding:"7px 6px",textAlign:"center"}}>
+                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:15,color:c.color,lineHeight:1}}>{c.sym} {c.val}</div>
+                          <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:3}}>{c.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {p.reason&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",lineHeight:1.5}}>{p.reason}</div>}
                   </div>
                 </div>
               );

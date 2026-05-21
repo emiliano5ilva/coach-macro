@@ -42,9 +42,9 @@ function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd,
 
   if (!food) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.9)", backdropFilter: "blur(8px)", zIndex: 310, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }} onClick={e => e.stopPropagation()}>
-        <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", backdropFilter: "blur(8px)", zIndex: 310, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }} onClick={e => e.stopPropagation()}>
+        <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 2 }}>{food.name}</div>
         {food.brand && <div style={{ fontSize: 11, color: T.mu, marginBottom: 14 }}>{food.brand}</div>}
         <div style={{ display: "flex", gap: 14, marginBottom: 20, background: T.s2, borderRadius: 12, padding: "12px 16px" }}>
@@ -105,9 +105,9 @@ function RecipeLogSheet({ recipe, mealSlots, activeSlotIdx, setActiveSlotIdx, on
   const totFat  = Math.round(recipe.fat_per_serving * servings * 10) / 10;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.9)", backdropFilter: "blur(8px)", zIndex: 320, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }} onClick={e => e.stopPropagation()}>
-        <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", backdropFilter: "blur(8px)", zIndex: 320, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }} onClick={e => e.stopPropagation()}>
+        <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
         <div style={{ fontFamily: "var(--condensed)", fontSize: 22, fontWeight: 900, marginBottom: 2 }}>{recipe.name}</div>
         {recipe.category && <div style={{ fontSize: 11, color: T.mu, marginBottom: 16 }}>{recipe.category}</div>}
 
@@ -331,7 +331,7 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
             {[["P", perServing.protein, 50, T.prot], ["C", perServing.carbs, 100, T.carb], ["F", perServing.fat, 40, T.fat]].map(([l, v, mx, c]) => (
               <div key={l} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <div style={{ fontSize: 9, color: T.mu, width: 10 }}>{l}</div>
-                <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,.07)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ flex: 1, height: 4, background: "rgba(232,52,28,0.07)", borderRadius: 2, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${Math.min(100, v / mx * 100)}%`, background: c, borderRadius: 2 }} />
                 </div>
                 <div style={{ fontSize: 9, color: T.mu, width: 24, textAlign: "right" }}>{v}g</div>
@@ -443,9 +443,9 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
 
   if (voiceState === "confirm") {
     return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.92)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
+          <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
           <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 6 }}>Voice Log Preview</div>
           <div style={{ fontFamily: "var(--condensed)", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>"{voiceTranscript}"</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
@@ -475,9 +475,9 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
     const pctFit = Math.round(logAgainMeal.total_calories / Math.max(1, target) * 100);
     const fitColor = pctFit <= 110 ? T.green : "#F59E0B";
     return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.92)", backdropFilter: "blur(8px)", zIndex: 310, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 20px" }} />
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 310, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
+          <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
           <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 4 }}>Log Again</div>
           <div style={{ fontFamily: "var(--condensed)", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>
             {new Date(logAgainMeal.logged_at + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
@@ -526,12 +526,12 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(6,13,26,.88)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "#0A1222", border: "1px solid rgba(255,255,255,.12)", borderRadius: "20px 20px 0 0", padding: "0 0 48px", maxWidth: 480, width: "100%", maxHeight: "88vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "0 0 48px", maxWidth: 480, width: "100%", maxHeight: "88vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ padding: "20px 20px 0" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 16px" }} />
+          <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
 
           {/* Macro progress bar */}
           <div style={{ marginBottom: 16 }}>
@@ -543,7 +543,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                 <span style={{ color: T.fat }}>F {remaining.fat > 0 ? remaining.fat : 0}g</span>
               </div>
             </div>
-            <div style={{ height: 6, background: "rgba(255,255,255,.06)", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: 6, background: "rgba(232,52,28,0.06)", borderRadius: 3, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${calPct}%`, background: `linear-gradient(90deg,var(--red),rgba(232,52,28,0.5))`, borderRadius: 3, transition: "width .4s" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 9, color: T.mu }}>
@@ -739,7 +739,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                       </div>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
                         {(t.entries || []).slice(0, 4).map((e, i) => (
-                          <span key={i} style={{ fontSize: 10, background: "rgba(255,255,255,.06)", borderRadius: 5, padding: "2px 7px", color: "rgba(245,245,240,.6)" }}>{e.food}</span>
+                          <span key={i} style={{ fontSize: 10, background: "rgba(232,52,28,0.06)", borderRadius: 5, padding: "2px 7px", color: "rgba(245,245,240,.6)" }}>{e.food}</span>
                         ))}
                         {(t.entries || []).length > 4 && <span style={{ fontSize: 10, color: T.mu }}>+{t.entries.length - 4} more</span>}
                       </div>
@@ -1285,6 +1285,12 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   // ── Meal Slots ─────────────────────────────────────────────────────────────
   const [mealSlots,setMealSlots]=useState(()=>getSlotsForFreq(profile?.mealFreq));
   const [activeSlotIdx,setActiveSlotIdx]=useState(0);
+  const [logSlotConfirmed,setLogSlotConfirmed]=useState(false);
+  const prevFuelScreenRef=useRef(fuelScreen);
+  useEffect(()=>{
+    if(fuelScreen==="log"&&prevFuelScreenRef.current!=="log")setLogSlotConfirmed(false);
+    prevFuelScreenRef.current=fuelScreen;
+  },[fuelScreen]);
   const [showSkipPrompt,setShowSkipPrompt]=useState(false);
   const [skipPromptTarget,setSkipPromptTarget]=useState(null);
   const [tooltipSlot,setTooltipSlot]=useState(null);
@@ -1833,7 +1839,7 @@ Reply with ONLY a valid JSON object, no markdown:
       )}
       {/* Undo Toast */}
       {undoEntry&&(
-        <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",background:"#1a2236",border:"1px solid rgba(255,255,255,.15)",borderRadius:14,padding:"12px 16px",zIndex:400,display:"flex",alignItems:"center",gap:14,boxShadow:"0 8px 32px rgba(0,0,0,.5)",minWidth:260}}>
+        <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:"12px 16px",zIndex:400,display:"flex",alignItems:"center",gap:14,boxShadow:"0 8px 32px rgba(0,0,0,.5)",minWidth:260}}>
           <div style={{flex:1,fontSize:13,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{undoEntry.food} added</div>
           <button onClick={handleUndo} style={{padding:"6px 14px",background:"rgba(232,52,28,.15)",border:"1px solid rgba(232,52,28,.4)",borderRadius:8,color:T.prot,fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>Undo</button>
         </div>
@@ -1926,7 +1932,7 @@ Reply with ONLY a valid JSON object, no markdown:
       })()}
       {/* Undo skip toast */}
       {showUndoToast&&justSkipped.length>0&&(
-        <div style={{position:"fixed",bottom:100,left:16,right:16,background:"#111827",border:"1px solid rgba(232,52,28,0.3)",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:9999,overflow:"hidden"}}>
+        <div style={{position:"fixed",bottom:100,left:16,right:16,background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.3)",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:9999,overflow:"hidden"}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#f5f5f0"}}>
             {justSkipped.length===1?`Meal ${justSkipped[0]} skipped.`:`${justSkipped.length} meals skipped.`}
           </div>
@@ -2444,7 +2450,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* PER-DAY MODAL */}
             {dayModal&&(
               <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.88)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setDayModal(null)}>
-                <div style={{background:"#0A1222",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+                <div style={{background:"#0d0d0d",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
                   <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
                   <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>DAY SETTINGS</div>
                   <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,marginBottom:20}}>{DAY_NAMES[dayModal]||dayModal}</div>
@@ -2672,21 +2678,55 @@ Reply with ONLY a valid JSON object, no markdown:
 
         {/* ── LOG FOOD ── */}
         {fuelScreen==="log"&&(
-          <div style={{maxWidth:isMobile?"100%":600}}>
+          <div style={{maxWidth:isMobile?"100%":600,padding:"0 16px"}}>
             <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
-            <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Search 1M+ foods or describe your meal with AI</p>
             {onOpenPhotoLogger&&(
-              <button onClick={onOpenPhotoLogger} style={{width:"100%",padding:"14px",borderRadius:14,background:`${T.brand}18`,border:`1.5px solid ${T.brand}50`,color:T.brand,fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                📷 SNAP &amp; LOG — Point camera at your plate
+              <button onClick={onOpenPhotoLogger} style={{width:"100%",background:"rgba(232,52,28,0.08)",border:"1.5px solid rgba(232,52,28,0.3)",borderRadius:14,padding:16,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
+                <div style={{width:44,height:44,borderRadius:10,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📷</div>
+                <div style={{textAlign:"left"}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em",lineHeight:1}}>SNAP &amp; LOG<span style={{color:"#e8341c"}}>.</span></div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginTop:3}}>Point your camera at your plate</div>
+                </div>
               </button>
             )}
-            <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:18,overflowX:"auto"}}>
+            {/* ── MEAL SLOT SELECTOR ── */}
+            {(()=>{
+              const slotCals={};
+              mealSlots.forEach(slot=>{
+                slotCals[slot]=log.filter(e=>getEntrySlot(e)===slot).reduce((s,e)=>s+(e.calories||0),0);
+              });
+              return !logSlotConfirmed?(
+                <div style={{marginBottom:16}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// WHICH MEAL?</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {mealSlots.map((slot,i)=>{
+                      const kcal=slotCals[slot]||0;
+                      return(
+                        <button key={slot} onClick={()=>{setActiveSlotIdx(i);setLogSlotConfirmed(true);}} style={{flex:1,background:activeSlotIdx===i?"rgba(232,52,28,0.08)":"#0d0d0d",border:`1px solid ${activeSlotIdx===i?"#e8341c":"rgba(232,52,28,0.1)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#f5f5f0",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>{getSlotLabel(slot)}</div>
+                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:kcal>0?"rgba(245,245,240,0.4)":"rgba(245,245,240,0.3)"}}>{kcal>0?`${kcal} kcal`:"Empty"}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ):(
+                <button onClick={()=>setLogSlotConfirmed(false)} style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:8,padding:"6px 14px",display:"inline-flex",gap:8,alignItems:"center",marginBottom:14,cursor:"pointer",fontFamily:"inherit"}}>
+                  <span style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase"}}>ADDING TO {(getSlotLabel(mealSlots[activeSlotIdx])||"MEAL 1").toUpperCase()}</span>
+                  <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)"}}>tap to change</span>
+                </button>
+              );
+            })()}
+            {/* ── METHOD TABS ── */}
+            {logSlotConfirmed&&(
+            <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:14,overflowX:"auto"}}>
               {[["search","🔍 Search"],["ai","🧠 AI"],["barcode","🔲 Barcode"],["quick","✏️ Quick"],["restaurant","📍 Near Me"]].map(([k,l])=>(
-                <button key={k} onClick={()=>{setLogMode(k);if(k==="restaurant")openRestaurantAI();}} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
+                <button key={k} onClick={()=>{setLogMode(k);if(k==="restaurant")openRestaurantAI();}} style={{flex:1,padding:"10px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
               ))}
             </div>
-            {logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
-            {logMode==="restaurant"&&restaurantAI&&(
+            )}
+            {logSlotConfirmed&&logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
+            {logSlotConfirmed&&logMode==="restaurant"&&restaurantAI&&(
               <div>
                 <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   {[
@@ -2704,7 +2744,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 </div>
                 {raStep==='picker'&&(
                   <div>
-                    <div onClick={()=>setRaStep('nearme')} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+                    <div onClick={()=>setRaStep('nearme')} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
                       <div style={{width:48,height:48,borderRadius:10,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                       </div>
@@ -2714,7 +2754,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       </div>
                       <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
                     </div>
-                    <div onClick={()=>menuScanRef.current?.click()} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+                    <div onClick={()=>menuScanRef.current?.click()} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
                       <div style={{width:48,height:48,borderRadius:10,background:"rgba(96,165,250,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 014 0v2"/><circle cx="12" cy="13" r="3"/></svg>
                       </div>
@@ -2730,7 +2770,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div>
                     <button onClick={()=>setRaStep('picker')} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:16,display:"block"}}>← BACK</button>
                     <div style={{display:"flex",gap:8,marginBottom:14}}>
-                      <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"#111827",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
+                      <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
                       <button onClick={fetchRaNearby} disabled={raNearbyLoading||!raNearbyCity.trim()} style={{padding:"12px 18px",background:raNearbyLoading?"#111":"#e8341c",color:raNearbyLoading?"rgba(245,245,240,0.3)":"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:raNearbyLoading?"default":"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{raNearbyLoading?"Searching…":"Find →"}</button>
                     </div>
                     {raNearbyError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(232,52,28,0.8)",marginBottom:12,padding:"8px 12px",background:"rgba(232,52,28,0.08)",borderRadius:8}}>{raNearbyError}</div>}
@@ -2741,7 +2781,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       <div>
                         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// {raNearby.length} RESTAURANTS NEARBY</div>
                         {raNearby.slice(0,10).map((r,i)=>(
-                          <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                          <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                               <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,letterSpacing:"0.06em"}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
@@ -2821,7 +2861,7 @@ Reply with ONLY a valid JSON object, no markdown:
                             <div style={{marginBottom:16}}>
                               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
                               {raResult.backup_options.map((opt,i)=>(
-                                <div key={i} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
+                                <div key={i} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
                                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",marginBottom:opt.customisation?3:4}}>{opt.item}<span style={{color:"#e8341c"}}>.</span></div>
                                   {opt.customisation&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.06em",marginBottom:4}}>{opt.customisation}</div>}
                                   <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>{opt.reason}</div>
@@ -2858,17 +2898,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
               </div>
             )}
-            {logMode!=="search"&&logMode!=="restaurant"&&<>
-              {/* Meal slot selector */}
-              <div style={{marginBottom:14}}>
-                <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Log to meal</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {mealSlots.map((slot,i)=>(
-                    <button key={slot} onClick={()=>handleSetActiveSlot(slot)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${activeSlotIdx===i?T.prot:T.bd}`,background:activeSlotIdx===i?`${T.prot}15`:"none",color:activeSlotIdx===i?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{getSlotLabel(slot)}</button>
-                  ))}
-                  <button onClick={addMealSlot} style={{padding:"7px 14px",borderRadius:20,border:`1.5px dashed ${T.bd}`,background:"none",color:"rgba(245,245,240,0.3)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Add Meal</button>
-                </div>
-              </div>
+            {logSlotConfirmed&&logMode!=="search"&&logMode!=="restaurant"&&<>
               {logMode==="ai"&&<>
                 <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
                   <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
@@ -2956,7 +2986,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* Delete confirm */}
             {recipeDeleteConfirm&&(
               <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.8)",backdropFilter:"blur(6px)",zIndex:360,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-                <div style={{background:"#0A1222",border:"1px solid rgba(232,52,28,.35)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
+                <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,.35)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
                   <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>Delete "{recipeDeleteConfirm.name}"?</div>
                   <div style={{fontSize:12,color:T.mu,marginBottom:24,lineHeight:1.6}}>This recipe will be permanently removed.</div>
                   <div style={{display:"flex",gap:10}}>
@@ -3055,7 +3085,7 @@ Reply with ONLY a valid JSON object, no markdown:
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
               <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP 🥡</div>
               {prepPlan&&!prepLoading&&(
-                <button onClick={generatePrepPlan} style={{fontSize:11,color:"#7E57C2",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
+                <button onClick={generatePrepPlan} style={{fontSize:11,color:"#e8341c",background:"none",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
               )}
             </div>
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Cook once, eat all week · based on your training schedule</p>
@@ -3073,7 +3103,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{fontSize:48,marginBottom:14}}>🥡</div>
                 <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Generate Your Prep Plan</div>
                 <div style={{fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.65,maxWidth:300,margin:"0 auto 28px"}}>AI builds a complete Sunday prep guide — proteins, carbs, vegetables, and a ready-to-shop grocery list</div>
-                <button onClick={generatePrepPlan} style={{padding:"14px 32px",background:"#7E57C2",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Generate Plan →</button>
+                <button onClick={generatePrepPlan} style={{padding:"14px 32px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"1.8px",textTransform:"uppercase"}}>GENERATE PLAN →</button>
               </div>
             )}
 
@@ -3293,7 +3323,7 @@ Reply with ONLY a valid JSON object, no markdown:
               {/* PICKER */}
               {raStep==='picker'&&(
                 <div>
-                  <div onClick={()=>setRaStep('nearme')} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative"}}>
+                  <div onClick={()=>setRaStep('nearme')} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative"}}>
                     <div style={{width:48,height:48,borderRadius:10,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     </div>
@@ -3303,7 +3333,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     </div>
                     <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
                   </div>
-                  <div onClick={()=>menuScanRef.current?.click()} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative"}}>
+                  <div onClick={()=>menuScanRef.current?.click()} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative"}}>
                     <div style={{width:48,height:48,borderRadius:10,background:"rgba(96,165,250,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 014 0v2"/><circle cx="12" cy="13" r="3"/></svg>
                     </div>
@@ -3320,7 +3350,7 @@ Reply with ONLY a valid JSON object, no markdown:
               {raStep==='nearme'&&(
                 <div>
                   <div style={{display:"flex",gap:8,marginBottom:14}}>
-                    <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"#111827",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
+                    <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
                     <button onClick={fetchRaNearby} disabled={raNearbyLoading||!raNearbyCity.trim()} style={{padding:"12px 18px",background:raNearbyLoading?"#111":"#e8341c",color:raNearbyLoading?"rgba(245,245,240,0.3)":"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:raNearbyLoading?"default":"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{raNearbyLoading?"Searching…":"Find →"}</button>
                   </div>
                   {raNearbyError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(232,52,28,0.8)",marginBottom:12,padding:"8px 12px",background:"rgba(232,52,28,0.08)",borderRadius:8}}>{raNearbyError}</div>}
@@ -3331,7 +3361,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div>
                       <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// {raNearby.length} RESTAURANTS NEARBY</div>
                       {raNearby.slice(0,10).map((r,i)=>(
-                        <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                        <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,letterSpacing:"0.06em"}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
@@ -3415,7 +3445,7 @@ Reply with ONLY a valid JSON object, no markdown:
                           <div style={{marginBottom:16}}>
                             <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
                             {raResult.backup_options.map((opt,i)=>(
-                              <div key={i} style={{background:"#111827",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
+                              <div key={i} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
                                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",marginBottom:opt.customisation?3:4}}>{opt.item}<span style={{color:"#e8341c"}}>.</span></div>
                                 {opt.customisation&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.06em",marginBottom:4}}>{opt.customisation}</div>}
                                 <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>{opt.reason}</div>
