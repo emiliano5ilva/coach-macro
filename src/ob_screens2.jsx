@@ -3907,8 +3907,8 @@ Rules:
                           <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Strength</div>
                           <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>{goalTrajectories.strength.weeklyGainPct>0?"+":""}{goalTrajectories.strength.weeklyGainPct}% per session avg</div>
                         </div>
-                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.strength.trend==="up"?T.green:goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(232,52,28,0.05)"}}>
-                          {goalTrajectories.strength.trend==="up"?"↗ PROGRESSING":goalTrajectories.strength.trend==="down"?"↘ DECLINING":"→ STABLE"}
+                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.strength.trend==="up"?T.green:goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.strength.trend==="up"?"rgba(34,197,94,0.2)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(232,52,28,0.05)"}}>
+                          {goalTrajectories.strength.trend==="up"?"PROGRESSING":goalTrajectories.strength.trend==="down"?"DECLINING":"STABLE"}
                         </div>
                       </div>
                     )}
@@ -3921,8 +3921,8 @@ Rules:
                             {goalTrajectories.bodyComp.weeksToGoal&&` · ~${goalTrajectories.bodyComp.weeksToGoal}w to goal`}
                           </div>
                         </div>
-                        <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,color:goalTrajectories.bodyComp.trend==="gaining"?T.fat:goalTrajectories.bodyComp.trend==="losing"?T.green:"rgba(245,245,240,.5)",padding:"4px 10px",borderRadius:20,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(232,52,28,0.05)"}}>
-                          {goalTrajectories.bodyComp.trend==="gaining"?"↗ GAINING":goalTrajectories.bodyComp.trend==="losing"?"↘ LOSING":"→ STABLE"}
+                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.bodyComp.trend==="gaining"?T.fat:goalTrajectories.bodyComp.trend==="losing"?T.green:"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,0.2)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(232,52,28,0.05)"}}>
+                          {goalTrajectories.bodyComp.trend==="gaining"?"GAINING":goalTrajectories.bodyComp.trend==="losing"?"LOSING":"STABLE"}
                         </div>
                       </div>
                     )}
