@@ -1119,7 +1119,7 @@ export function LandingPage({ onSignUp }) {
           <div className="lp-logo-text"><span className="lp-logo-coach">Coach</span><span className="lp-logo-macro">Macro</span></div>
         </button>
         <div className="lp-footer-links">
-          {[['About','/about'],['Privacy Policy','/privacy'],['Terms','/terms'],['Health Disclaimer','/health-disclaimer'],['Health Data Notice','/health-data-notice'],['Washington Privacy','/washington-privacy'],['California Privacy','/california-privacy'],['Support','/support']].map(([label,path]) => (
+          {[['About','/about'],['FAQ','/faq'],['Privacy Policy','/privacy'],['Terms','/terms'],['Health Disclaimer','/health-disclaimer'],['Health Data Notice','/health-data-notice'],['Washington Privacy','/washington-privacy'],['California Privacy','/california-privacy'],['Support','/support']].map(([label,path]) => (
             <a key={path} href={path}>{label}</a>
           ))}
         </div>

@@ -33,6 +33,7 @@ const LEGAL_CSS = `
 
 const LEGAL_LINKS = [
   { label: "About", path: "/about" },
+  { label: "FAQ", path: "/faq" },
   { label: "Privacy Policy", path: "/privacy" },
   { label: "Terms of Service", path: "/terms" },
   { label: "Health Disclaimer", path: "/health-disclaimer" },
