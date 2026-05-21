@@ -1954,6 +1954,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     _doStartFromProgram(null);
   }
 
+  // ── Explore sheet state ─────────────────────────────────────────────────
+  const [showExploreSheet,setShowExploreSheet]=useState(false);
+
   // ── Adapt Now state ──────────────────────────────────────────────────────
   const [showAdapt,setShowAdapt]=useState(false);
   const [adaptToast,setAdaptToast]=useState("");
@@ -3087,21 +3090,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </div>
             );})()}
 
-            {/* ── ADAPT NOW + FAVORITES ── */}
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>adaptLeft>0&&setShowAdapt(true)} style={{flex:1,padding:"12px",background:"transparent",border:`1px solid ${adaptLeft>0?"var(--amber)":"rgba(245,245,240,0.08)"}`,borderRadius:12,color:adaptLeft>0?"var(--amber)":"rgba(245,245,240,0.3)",cursor:adaptLeft>0?"pointer":"not-allowed",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all .15s"}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
-                {adaptLeft>0?"Adapt Now":`Adapt · ${daysUntilReset}d`}
-              </button>
-              <button onClick={()=>setTrainScreen("library")} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid var(--white-border)",borderRadius:12,color:"var(--white-dim)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>♡ Favorites</button>
-            </div>
-
-            {/* ── CUSTOM ROUTINE + BROWSE ── */}
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setTrainScreen("routine-builder")} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid var(--white-border)",borderRadius:12,color:"var(--white)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>+ Custom Routine</button>
-              <button onClick={()=>setTrainScreen("library")} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid var(--white-border)",borderRadius:12,color:"var(--white)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Browse Exercises</button>
-            </div>
-
             {/* ── YOUR PROGRAM ── */}
             {(()=>{
               const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
@@ -3210,6 +3198,26 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               );
             })()}
 
+            {/* ── EXERCISE LIBRARY BUTTON ── */}
+            <button onClick={()=>setTrainScreen("library")} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:12,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
+              <div style={{textAlign:"left"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FULL DATABASE</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:2}}>800+ exercises</div>
+              </div>
+              <div style={{color:"#e8341c",fontSize:20,flexShrink:0}}>→</div>
+            </button>
+
+            {/* ── EXPLORE BUTTON ── */}
+            <button onClick={()=>setShowExploreSheet(true)} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:12,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
+              <div style={{textAlign:"left"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TOOLS & MORE</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXPLORE</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:2}}>Programs · Routines · Warm-up · Favorites</div>
+              </div>
+              <div style={{color:"#e8341c",fontSize:20,flexShrink:0}}>→</div>
+            </button>
+
             {/* ── TODAY'S NUTRITION CONTEXT ── */}
             {(()=>{
               const displayPrefs=wPrefs?.displayPrefs||{};
@@ -3281,187 +3289,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </div>
             </div>
 
-            {/* ── FEATURE STRIP ── */}
-            <FeatureStrip
-              tab="train"
-              onNavigate={(screen) => setTrainScreen(screen)}
-              onAdapt={() => setShowAdapt(true)}
-            />
-
-            {/* ── TODAY'S SESSION ── */}
-            {(()=>{
-              const isRestDay=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
-              const isTraining=todayType==="training"&&Array.isArray(todayPrescription)&&todayPrescription.length>0;
-
-              if(isRestDay){
-                return(
-                  <>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// today</div>
-                    <div style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.05)",borderRadius:14,padding:16,marginBottom:12}}>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,color:"#f5f5f0",lineHeight:1,marginBottom:8}}>REST DAY<span style={{color:"#e8341c"}}>.</span></div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:13,color:"rgba(245,245,240,0.4)",lineHeight:1.5}}>Your body grows when you rest. Come back tomorrow.</div>
-                    </div>
-                  </>
-                );
-              }
-
-              if(!isTraining)return null;
-
-              const goal=profile?.primaryGoal||wPrefs?.primaryGoal;
-              const skillLevel=(wPrefs?.liftExp||profile?.liftExp||"intermediate").toLowerCase();
-              const wUnit=profile?.wUnit||"lbs";
-              const workoutObj=prescType==="lifting"?getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,skillLevel):null;
-              const rawDayName=workoutObj?.dayName||"";
-
-              const SESSION_NAMES={
-                "Push":"PUSH","Push Day":"PUSH","Push A":"PUSH","Push B":"PUSH",
-                "Pull":"PULL","Pull Day":"PULL","Pull A":"PULL","Pull B":"PULL",
-                "Legs":"LEGS","Legs Day":"LEGS","Legs A":"LEGS","Legs B":"LEGS",
-                "Upper":"UPPER","Upper Body":"UPPER","Upper A":"UPPER","Upper B":"UPPER",
-                "Lower":"LOWER","Lower Body":"LOWER","Lower A":"LOWER","Lower B":"LOWER",
-                "Run":"RUN","Running":"RUN","Run Day":"RUN",
-                "Full Body":"FULL BODY","Full Body A":"FULL BODY","Full Body B":"FULL BODY",
-                "WOD":"WORKOUT","Hyrox":"WORKOUT","HIIT":"WORKOUT",
-              };
-              const sessionLabel=SESSION_NAMES[rawDayName]||(rawDayName?rawDayName.toUpperCase():"WORKOUT");
-
-              const GOAL_LABEL_MAP={build_muscle:"HYPERTROPHY",get_stronger:"STRENGTH",lose_fat:"METABOLIC",recomp:"RECOMP",get_faster:"POWER",train_for_race:"ENDURANCE"};
-              const GOAL_CTX_LINE={
-                build_muscle:"// HYPERTROPHY · Controlled tempo · 90s rest",
-                get_stronger:"// STRENGTH · Max load · 3 min rest",
-                lose_fat:"// METABOLIC · High reps · 45s rest",
-                recomp:"// RECOMP · Moderate load · 75s rest",
-                get_faster:"// POWER · Explosive · 2 min rest",
-                train_for_race:"// ENDURANCE · Pace-based · See plan",
-              };
-              const goalLabel=GOAL_LABEL_MAP[goal]||"TRAINING";
-              const goalCtxLine=GOAL_CTX_LINE[goal]||"// TRAINING · Stay consistent";
-
-              const exArr=todayPrescription;
-              const estMins=wPrefs.sessionLength||60;
-
-              const firstPrescEx=exArr[0]?getPrescription(goal,skillLevel,exArr[0].name):null;
-              const headerSxR=firstPrescEx?`${firstPrescEx.sets} × ${firstPrescEx.reps}`:null;
-
-              function getWeightDisplay(name){
-                const k=name.toLowerCase().replace(/\s+/g,"_");
-                const sessions=history?.[k]||history?.[name]||null;
-                if(!sessions?.length)return{text:"Start light",color:"rgba(245,245,240,0.35)"};
-                const last=sessions[sessions.length-1];
-                const prev=sessions.length>1?sessions[sessions.length-2]:null;
-                const lastMax=Math.max(0,...(last.sets||[]).map(s=>parseFloat(s.weight||0)));
-                const prevMax=prev?Math.max(0,...(prev.sets||[]).map(s=>parseFloat(s.weight||0))):null;
-                if(!lastMax)return{text:"Start light",color:"rgba(245,245,240,0.35)"};
-                const isUp=prevMax&&lastMax>prevMax;
-                return{text:`${lastMax}${wUnit}${isUp?" ↑":""}`,color:isUp?"#22c55e":"rgba(245,245,240,0.55)"};
-              }
-
-              const visibleExs=exExpanded?exArr:exArr.slice(0,3);
-              const hiddenCount=exExpanded?0:Math.max(0,exArr.length-3);
-
-              return(
-                <>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// today</div>
-                  <div style={{background:"#0d0d0d",borderRadius:14,padding:16,border:"1px solid rgba(245,245,240,0.07)",marginBottom:12}}>
-                    {/* Header row */}
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                      <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.32)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>
-                          // W{weekNum} · D{dayIndex+1} · {estMins} MIN
-                        </div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,textTransform:"uppercase",color:"#f5f5f0",lineHeight:0.92}}>
-                          {sessionLabel}<span style={{color:"#e8341c"}}>.</span>
-                        </div>
-                      </div>
-                      {goal&&(
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{goalLabel}</div>
-                          {headerSxR&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",marginTop:2}}>{headerSxR}</div>}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Exercise list */}
-                    {visibleExs.map((ex,i)=>{
-                      const muscleData=getExerciseData(ex.name);
-                      const wDisplay=getWeightDisplay(ex.name);
-                      const prescData=getPrescription(goal,skillLevel,ex.name);
-                      const sxr=prescData?`${prescData.sets} × ${prescData.reps}`:(ex.sets&&ex.reps?`${ex.sets} × ${ex.reps}`:null);
-                      const isLast=i===visibleExs.length-1&&hiddenCount===0;
-                      return(
-                        <div key={i} style={{padding:"10px 0",borderBottom:isLast?"none":"1px solid rgba(245,245,240,0.05)"}}>
-                          {/* Top: name + weight */}
-                          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:muscleData?.primary?.length?4:0}}>
-                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:15,color:"#f5f5f0",lineHeight:1.1,flex:1,minWidth:0}}>{ex.name}</div>
-                            <div style={{fontFamily:"var(--mono)",fontSize:11,color:wDisplay.color,flexShrink:0,lineHeight:1.2}}>{wDisplay.text}</div>
-                          </div>
-                          {/* Middle: primary muscle chips */}
-                          {muscleData?.primary?.length>0&&(
-                            <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:4}}>
-                              {muscleData.primary.map(muscle=>{
-                                const c=getMuscleColor(muscle);
-                                return(
-                                  <span key={muscle} style={{display:"inline-flex",borderRadius:20,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap",background:`${c}1A`,border:`1px solid ${c}40`,color:c}}>{muscle}</span>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {/* Bottom: secondary + note + sets×reps */}
-                          {(muscleData?.secondary?.length>0||muscleData?.note||sxr)&&(
-                            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:8}}>
-                              <div style={{flex:1,minWidth:0}}>
-                                {muscleData?.secondary?.length>0&&(
-                                  <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.28)",marginBottom:muscleData.note?1:0}}>+ {muscleData.secondary.join(' · ')}</div>
-                                )}
-                                {muscleData?.note&&(
-                                  <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.18)",fontStyle:"italic"}}>{muscleData.note}</div>
-                                )}
-                              </div>
-                              {sxr&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.38)",letterSpacing:"0.06em",flexShrink:0,marginLeft:8}}>{sxr}</div>}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {/* + more */}
-                    {hiddenCount>0&&(
-                      <div onClick={()=>setExExpanded(true)} style={{paddingTop:10,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.30)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>+ {hiddenCount} more — tap to expand</div>
-                    )}
-                    {exExpanded&&exArr.length>3&&(
-                      <div onClick={()=>setExExpanded(false)} style={{paddingTop:6,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>show less ↑</div>
-                    )}
-
-                    {/* Goal context line */}
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.32)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:14,marginBottom:12}}>{goalCtxLine}</div>
-
-                    {/* Start button */}
-                    <button onClick={startFromProgram} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:10,padding:14,color:"#ffffff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
-                    {activeWorkout&&<button onClick={()=>setTrainScreen("active")} style={{width:"100%",marginTop:8,padding:"12px",background:"transparent",border:`1px solid ${T.prot}40`,borderRadius:10,color:T.prot,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Resume Session</button>}
-                  </div>
-                </>
-              );
-            })()}
-
-            {/* ── QUICK ACCESS ── */}
-            <div>
-              <div className="header-eyebrow" style={{margin:"4px 0 10px"}}>// Quick Access</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                {[
-                  {eyebrow:"// YOUR PLAN",    label:"My Program",      sub:"Current training block",          screen:"plan"},
-                  {eyebrow:"// FULL DATABASE", label:"Exercise Library", sub:"79+ exercises with GIFs",          screen:"library"},
-                  {eyebrow:"// CUSTOM BUILDS", label:"My Routines",      sub:"Workouts you've built",            screen:"routine-builder"},
-                  {eyebrow:"// PREP RIGHT",    label:"Warm-Up",          sub:"Movement prep by muscle group",    screen:"warmup-protocols"},
-                ].map(({eyebrow,label,sub,screen})=>(
-                  <button key={screen} onClick={()=>setTrainScreen(screen)} style={{display:"flex",flexDirection:"column",gap:6,padding:"16px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,cursor:"pointer",textAlign:"left"}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:500}}>{eyebrow}</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1.1,letterSpacing:"0.01em"}}>{label}</div>
-                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.4,marginTop:2}}>{sub}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* ── MUSCLE RECOVERY ── */}
             <MuscleRecovery userId={user?.id}/>
 
@@ -3525,6 +3352,31 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
               );
             })()}
+            {/* ── EXPLORE BOTTOM SHEET ── */}
+            {showExploreSheet&&(
+              <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
+                <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
+                  <div style={{width:36,height:4,background:"rgba(245,245,240,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"#e8341c",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>// EXPLORE</div>
+                  {[
+                    {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"plan"},
+                    {title:"MY ROUTINES",sub:"Your custom workouts",screen:"routine-builder"},
+                    {title:"WARM-UP",sub:"Movement prep by muscle group",screen:"warmup-protocols"},
+                    {title:"FAVORITES",sub:"Saved exercises and workouts",screen:"library"},
+                    {title:"CUSTOM ROUTINE",sub:"Build your own workout",screen:"routine-builder"},
+                    {title:"BROWSE EXERCISES",sub:"Search 800+ exercises",screen:"library"},
+                  ].map(({title,sub,screen})=>(
+                    <div key={title} onClick={()=>{setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(232,52,28,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+                      <div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{title}</div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
+                      </div>
+                      <div style={{color:"#e8341c",fontSize:16,flexShrink:0}}>→</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
