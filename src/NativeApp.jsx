@@ -788,8 +788,7 @@ export default function NativeApp() {
   if(phase==="promo")return<PromoScreen profile={profile} onValidCode={()=>setPhase("app")} onNoCode={()=>setPhase("paywall")}/>;
   if(phase==="paywall")return<Paywall profile={profile}/>;
   if(phase==="upgrade"){track(EVENTS.UPGRADE_VIEWED,{},user?.id);return<UpgradeScreen profile={profile} onContinue={()=>setPhase("app")}/>;}
-  if(phase==="expired")return<ExpiredPaywall profile={profile} onSubscribed={async()=>{
-    // Reload profile to pick up new subscription_tier from DB
+  if(phase==="expired")return<ExpiredPaywall profile={profile} onDismiss={()=>setPhase("app")} onSubscribed={async()=>{
     if(user)await loadProfile(user.id);
     else setPhase("app");
   }}/>;

@@ -5656,84 +5656,210 @@ export function UpgradeScreen({ profile, onContinue }) {
   );
 }
 
-// ─── EXPIRED PAYWALL (full-screen, shows when trial ends + not subscribed) ─────
-export function ExpiredPaywall({ profile, onSubscribed }) {
-  const [loading, setLoading] = useState(null);
-  const firstName = (profile?.name || '').split(' ')[0] || 'Athlete';
+// ─── EXPIRED PAYWALL — two-screen flow ───────────────────────────────────────
+// Screen 1: Trial ended. X → Screen 2.
+// Screen 2: Exit offer ($1 first month). X → dismiss entirely (onDismiss).
+export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
+  const [loading, setLoading] = useState(false);
+  const [showExitOffer, setShowExitOffer] = useState(false);
 
-  async function doPurchase(type) {
-    if (loading) return;
-    setLoading(type);
+  async function getUid() {
+    const { data: { user } } = await sb.auth.getUser();
+    return user?.id;
+  }
+
+  async function purchaseMonthlyFn() {
     try {
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) { setLoading(null); return; }
-      const ok = type === 'monthly' ? await purchaseMonthly(user.id) : await purchaseAnnual(user.id);
+      setLoading(true);
+      const uid = await getUid();
+      if (!uid) return;
+      const ok = await purchaseMonthly(uid);
       if (ok) onSubscribed?.();
       else showToast('Purchase failed. Try again.', 'error');
     } catch { showToast('Purchase failed. Try again.', 'error'); }
-    setLoading(null);
+    finally { setLoading(false); }
+  }
+
+  async function purchaseAnnualFn() {
+    try {
+      setLoading(true);
+      const uid = await getUid();
+      if (!uid) return;
+      const ok = await purchaseAnnual(uid);
+      if (ok) onSubscribed?.();
+      else showToast('Purchase failed. Try again.', 'error');
+    } catch { showToast('Purchase failed. Try again.', 'error'); }
+    finally { setLoading(false); }
+  }
+
+  async function purchaseDollarOfferFn() {
+    // $1 intro price is configured in App Store Connect as an introductory
+    // offer on the monthly product — RevenueCat surfaces it automatically
+    // when eligible. Wired to monthly purchase path for now.
+    await purchaseMonthlyFn();
   }
 
   async function doRestore() {
-    setLoading('restore');
     try {
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) { setLoading(null); return; }
-      const tier = await restorePurchases(user.id);
+      setLoading(true);
+      const uid = await getUid();
+      if (!uid) return;
+      const tier = await restorePurchases(uid);
       if (tier) onSubscribed?.();
       else showToast('No active purchases found.', 'info');
     } catch { showToast('Restore failed. Try again.', 'error'); }
-    setLoading(null);
+    finally { setLoading(false); }
   }
 
+  const xBtnStyle = {
+    position: 'absolute', top: 24, right: 24,
+    width: 32, height: 32, borderRadius: '50%',
+    background: 'rgba(245,245,240,0.06)',
+    border: '1px solid rgba(245,245,240,0.1)',
+    color: 'rgba(245,245,240,0.5)',
+    fontSize: 16, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 10, lineHeight: 1,
+  };
+
   return (
-    <div style={{ minHeight:'100vh', background:'#000', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px 20px', position:'relative', overflow:'hidden' }}>
-      <div style={{ position:'absolute', top:'20%', left:'50%', transform:'translateX(-50%)', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(232,52,28,0.12) 0%, transparent 70%)', pointerEvents:'none' }}/>
+    <div style={{ minHeight: '100vh', background: '#000', position: 'relative', overflow: 'hidden' }}>
       <style>{GLOBAL_CSS}</style>
-      <div style={{ width:'100%', maxWidth:420, position:'relative', zIndex:1 }}>
 
-        <div style={{ fontFamily:'var(--mono)', fontSize:24, fontWeight:700, color:'#e8341c', letterSpacing:'0.1em', marginBottom:32, lineHeight:1.1 }}>COACH<br/>MACRO</div>
-
-        <div style={{ fontFamily:'var(--condensed)', fontStyle:'italic', fontWeight:900, fontSize:36, lineHeight:1, marginBottom:12 }}>
-          YOUR TRIAL HAS ENDED<span style={{ color:'#e8341c' }}>.</span>
+      {/* Loading overlay */}
+      {loading && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ width: 40, height: 40, border: '3px solid rgba(232,52,28,0.2)', borderTop: '3px solid #e8341c', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
-        <div style={{ fontSize:15, color:'rgba(245,245,240,0.6)', lineHeight:1.5, marginBottom:24 }}>
-          You have had 14 days to experience Coach Macro. Subscribe to keep your data, programs, and progress.
-        </div>
+      )}
 
-        <div style={{ marginBottom:24 }}>
-          {['All your workout history', 'Your training programs', 'Personal records', 'Muscle recovery data'].map(item => (
-            <div key={item} style={{ display:'flex', gap:10, alignItems:'center', marginBottom:10 }}>
-              <span style={{ fontFamily:'var(--mono)', fontSize:10, color:'#22c55e', fontWeight:700 }}>✓</span>
-              <span style={{ fontSize:14, color:'#f5f5f0' }}>{item}</span>
+      {/* ── SCREEN 2: EXIT OFFER OVERLAY ───────────────────────────────── */}
+      {showExitOffer && (
+        <div style={{ position: 'absolute', inset: 0, background: '#000', zIndex: 100, padding: '32px 24px', overflowY: 'auto' }}>
+          {/* Atmospheric glow */}
+          <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(232,52,28,0.12)', pointerEvents: 'none' }} />
+
+          {/* X — final exit, no subscription */}
+          <button style={xBtnStyle} onClick={() => { setShowExitOffer(false); onDismiss?.(); }}>×</button>
+
+          <div style={{ position: 'relative', zIndex: 1, paddingTop: 24 }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#e8341c', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>// WAIT. BEFORE YOU GO.</div>
+
+            <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 46, lineHeight: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+              ONE MONTH.<br /><span style={{ color: '#e8341c' }}>ONE DOLLAR.</span>
+            </div>
+
+            <div style={{ fontFamily: 'var(--condensed)', fontWeight: 400, fontSize: 17, color: 'rgba(245,245,240,0.6)', lineHeight: '24px', marginBottom: 20 }}>
+              Try Coach Macro for real.<br />30 days. Full access.<br />No shortcuts.
+            </div>
+
+            {/* Offer card */}
+            <div style={{ background: '#0d0d0d', border: '1px solid rgba(232,52,28,0.2)', borderRadius: 14, padding: 20, marginBottom: 16, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#e8341c', borderRadius: '14px 14px 0 0' }} />
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#e8341c', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10, marginTop: 8 }}>ONE-TIME OFFER</div>
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 4, marginBottom: 4 }}>
+                <span style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 72, color: '#f5f5f0', lineHeight: '72px' }}>$1</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'rgba(245,245,240,0.35)', paddingBottom: 8 }}>first month</span>
+              </div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.35)', textAlign: 'center', lineHeight: 1.6, marginBottom: 16 }}>
+                Then $9.99/month automatically.<br />Cancel before then —<br />you owe nothing more.
+              </div>
+              <button
+                onClick={purchaseDollarOfferFn}
+                disabled={loading}
+                style={{ background: '#e8341c', borderRadius: 12, padding: 15, width: '100%', border: 'none', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 11, color: '#fff', letterSpacing: 1.8, textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}
+              >GET 1 MONTH FOR $1 →</button>
+            </div>
+
+            <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontSize: 16, color: 'rgba(245,245,240,0.4)', textAlign: 'center', lineHeight: '22px', marginBottom: 16 }}>
+              "If you're serious about your training — $1 is not the reason to stop."
+            </div>
+
+            <button
+              onClick={() => setShowExitOffer(false)}
+              style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'var(--mono)', fontSize: 11, color: 'rgba(245,245,240,0.3)', textDecoration: 'underline', textAlign: 'center', cursor: 'pointer' }}
+            >← Back to plans</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── SCREEN 1: TRIAL ENDED PAYWALL ──────────────────────────────── */}
+      <div style={{ padding: '24px', overflowY: 'auto', minHeight: '100vh', position: 'relative' }}>
+        {/* Atmospheric glow */}
+        <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(232,52,28,0.12)', pointerEvents: 'none' }} />
+
+        {/* X button — opens exit offer */}
+        <button style={xBtnStyle} onClick={() => setShowExitOffer(true)}>×</button>
+
+        <div style={{ position: 'relative', zIndex: 1, paddingTop: 24 }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#e8341c', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>// 14-DAY FREE TRIAL</div>
+
+          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 52, lineHeight: '46px', textTransform: 'uppercase', marginBottom: 12 }}>
+            YOUR TRIAL<br /><span style={{ color: '#e8341c' }}>IS OVER.</span>
+          </div>
+
+          <div style={{ fontFamily: 'var(--condensed)', fontWeight: 400, fontSize: 17, color: 'rgba(245,245,240,0.6)', lineHeight: '24px', marginBottom: 20 }}>
+            Don't lose your coach. Everything that made the last 14 days work — gone without a plan.
+          </div>
+
+          <div style={{ height: 1, background: 'rgba(245,245,240,0.06)', marginBottom: 16 }} />
+
+          {/* Outcomes */}
+          {[
+            'Macros that adjust to your training automatically',
+            'A coach in your pocket every morning',
+            'Plateau detection before you even notice it',
+            'Full muscle recovery map after every session',
+            'Restaurant AI — order smart wherever you eat',
+          ].map((text, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ width: 18, height: 18, borderRadius: 9, background: 'rgba(232,52,28,0.15)', border: '1px solid rgba(232,52,28,0.3)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                <span style={{ color: '#e8341c', fontSize: 10 }}>✓</span>
+              </div>
+              <span style={{ fontFamily: 'var(--condensed)', fontSize: 17, color: '#f5f5f0', lineHeight: '22px' }}>{text}</span>
             </div>
           ))}
+
+          <div style={{ marginBottom: 20 }} />
+
+          {/* Pricing — side by side */}
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+            {/* Monthly */}
+            <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '1px solid rgba(245,245,240,0.08)', padding: 16 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.4)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>MONTHLY</div>
+              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$9.99</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br />billed monthly</div>
+              <button
+                onClick={purchaseMonthlyFn}
+                disabled={loading}
+                style={{ width: '100%', background: 'transparent', border: '1px solid rgba(245,245,240,0.15)', borderRadius: 10, padding: 11, fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, color: '#f5f5f0', letterSpacing: 1.4, textTransform: 'uppercase', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}
+              >GET MONTHLY →</button>
+            </div>
+
+            {/* Annual */}
+            <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '2px solid #e8341c', padding: 16, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -1, right: -1, background: '#e8341c', borderRadius: '0 12px 0 8px', padding: '4px 10px', fontFamily: 'var(--mono)', fontSize: 8, color: '#fff', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SAVE 33%</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: '#e8341c', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>ANNUAL</div>
+              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$6.67</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br />$79.99 billed yearly</div>
+              <button
+                onClick={purchaseAnnualFn}
+                disabled={loading}
+                style={{ width: '100%', background: '#e8341c', border: 'none', borderRadius: 10, padding: 13, fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, color: '#fff', letterSpacing: 1.4, textTransform: 'uppercase', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}
+              >GET ANNUAL →</button>
+            </div>
+          </div>
+
+          {/* Bottom */}
+          <div style={{ textAlign: 'center', marginTop: 4 }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Cancel anytime · No hidden fees</div>
+            <button
+              onClick={doRestore}
+              disabled={loading}
+              style={{ background: 'none', border: 'none', fontFamily: 'var(--mono)', fontSize: 11, color: 'rgba(245,245,240,0.3)', textDecoration: 'underline', cursor: 'pointer' }}
+            >Restore Purchase</button>
+          </div>
         </div>
-
-        {/* Monthly card */}
-        <div style={{ background:'#111827', border:'1px solid rgba(245,245,240,0.1)', borderRadius:14, padding:16, marginBottom:10 }}>
-          <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'rgba(245,245,240,0.4)', textTransform:'uppercase', marginBottom:4 }}>MONTHLY</div>
-          <div style={{ fontFamily:'var(--condensed)', fontStyle:'italic', fontWeight:900, fontSize:32, lineHeight:1 }}>$9.99<span style={{ fontFamily:'var(--mono)', fontSize:11, fontStyle:'normal', fontWeight:400, color:'rgba(245,245,240,0.4)' }}> / month</span></div>
-        </div>
-
-        {/* Annual card */}
-        <div style={{ background:'linear-gradient(135deg,#111827 0%,#1a0f0f 100%)', border:'1px solid #e8341c', borderRadius:14, padding:16, marginBottom:24, position:'relative' }}>
-          <div style={{ position:'absolute', top:-10, right:16, background:'#e8341c', borderRadius:20, padding:'3px 10px', fontFamily:'var(--mono)', fontSize:8, color:'#fff', fontWeight:700 }}>BEST VALUE</div>
-          <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'#e8341c', textTransform:'uppercase', marginBottom:4 }}>ANNUAL</div>
-          <div style={{ fontFamily:'var(--condensed)', fontStyle:'italic', fontWeight:900, fontSize:32, lineHeight:1 }}>$79.99<span style={{ fontFamily:'var(--mono)', fontSize:11, fontStyle:'normal', fontWeight:400, color:'rgba(245,245,240,0.4)' }}> / year · $6.67/month</span></div>
-          <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'#22c55e', marginTop:4 }}>Save 33% vs monthly</div>
-        </div>
-
-        <button onClick={() => doPurchase('monthly')} disabled={!!loading} style={{ width:'100%', padding:14, background:'rgba(232,52,28,0.12)', border:'1px solid rgba(232,52,28,0.3)', borderRadius:12, color:'#e8341c', fontFamily:'var(--mono)', fontWeight:700, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', cursor:'pointer', marginBottom:8, opacity:loading?0.6:1 }}>
-          {loading==='monthly'?'PROCESSING…':'START MONTHLY — $9.99/MO'}
-        </button>
-        <button onClick={() => doPurchase('annual')} disabled={!!loading} style={{ width:'100%', padding:14, background:'#e8341c', border:'none', borderRadius:12, color:'#fff', fontFamily:'var(--mono)', fontWeight:700, fontSize:10, letterSpacing:'0.16em', textTransform:'uppercase', cursor:'pointer', marginBottom:16, opacity:loading?0.6:1 }}>
-          {loading==='annual'?'PROCESSING…':'START ANNUAL — $79.99/YR'}
-        </button>
-
-        <button onClick={doRestore} disabled={!!loading} style={{ display:'block', width:'100%', background:'none', border:'none', textAlign:'center', fontFamily:'var(--mono)', fontSize:9, color:'rgba(245,245,240,0.35)', cursor:'pointer', letterSpacing:'0.06em' }}>
-          {loading==='restore'?'Checking…':'Restore purchases'}
-        </button>
       </div>
     </div>
   );
