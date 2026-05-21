@@ -3284,7 +3284,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
         {/* ── ACTIVE WORKOUT ── */}
         {trainScreen==="active"&&activeSessionOpen&&ReactDOM.createPortal(
-          <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:9999,backgroundColor:"#050810",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{background:'#000000',position:'fixed',inset:0,zIndex:9999,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* End Session confirmation overlay */}
             {endConfirm&&(
               <div style={{position:"fixed",inset:0,zIndex:10001,background:"rgba(5,8,16,0.92)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
@@ -3327,8 +3327,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {sessionMode==='hyrox-wod'&&renderHyroxWOD()}
             {sessionMode==='hyrox-weakness-picker'&&renderHyroxWeaknessPicker()}
             {sessionMode==='hyrox-summary'&&renderHyroxSummary()}
-            {(()=>{console.log('[SESSION PORTAL]',{activeWorkout,exercisesLength:activeWorkout?.exercises?.length,todayPrescription});return null;})()}
-            {!sessionMode&&(!activeWorkout
+{!sessionMode&&(!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
                 <div style={{fontSize:48,marginBottom:16}}>💪</div>
                 <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:8}}>NO ACTIVE SESSION</div>

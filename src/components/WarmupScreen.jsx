@@ -57,81 +57,152 @@ export default function WarmupScreen({ sessionType = 'push', skillLevel = 'begin
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 9000,
-      background: '#050810',
-      display: 'flex', flexDirection: 'column',
-      fontFamily: "'Barlow Condensed', sans-serif",
+      position: 'fixed',
+      inset: 0,
+      zIndex: 9000,
+      background: '#000000',
       overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      fontFamily: "'Barlow Condensed', sans-serif",
     }}>
       {/* Header */}
-      <div style={{ padding: '48px 24px 0' }}>
+      <div style={{ padding: 'max(env(safe-area-inset-top),48px) 24px 0' }}>
         <div style={{
-          fontSize: 11, letterSpacing: '0.2em', color: '#ef4444',
-          fontFamily: "'DM Mono', monospace", marginBottom: 8,
+          fontSize: 11,
+          letterSpacing: '0.2em',
+          color: '#e8341c',
+          fontFamily: "'DM Mono', monospace",
+          marginBottom: 8,
         }}>
           // WARM-UP
         </div>
         <div style={{
-          fontSize: 36, fontWeight: 800, color: '#fff',
-          lineHeight: 1, textTransform: 'uppercase', marginBottom: 12,
+          fontSize: 36,
+          fontWeight: 900,
+          fontStyle: 'italic',
+          color: '#f5f5f0',
+          lineHeight: 1,
+          textTransform: 'uppercase',
+          marginBottom: 14,
         }}>
-          BEFORE {sessionLabel}<span style={{ color: '#ef4444' }}>.</span>
+          BEFORE {sessionLabel}<span style={{ color: '#e8341c' }}>.</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <span style={{
-            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-            color: '#ef4444', borderRadius: 20, padding: '3px 12px',
-            fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+            background: 'rgba(232,52,28,0.12)',
+            border: '1px solid rgba(232,52,28,0.3)',
+            color: '#e8341c',
+            borderRadius: 20,
+            padding: '3px 12px',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.12em',
             fontFamily: "'DM Mono', monospace",
           }}>
             ~{durationMins} MIN
           </span>
-          <span style={{ fontSize: 13, color: '#666', letterSpacing: '0.05em' }}>
+          <span style={{
+            fontSize: 11,
+            color: 'rgba(245,245,240,0.45)',
+            letterSpacing: '0.1em',
+            fontFamily: "'DM Mono', monospace",
+          }}>
             {exercises.length} EXERCISES
           </span>
         </div>
         {sorenessNote && (
-          <div style={{ fontSize: 11, fontFamily:"'DM Mono',monospace", color: '#666', fontStyle:'italic', marginBottom: 8, lineHeight:1.4 }}>
+          <div style={{
+            fontSize: 11,
+            fontFamily: "'DM Mono', monospace",
+            color: '#FEA020',
+            marginBottom: 8,
+            lineHeight: 1.4,
+          }}>
             {sorenessNote}
           </div>
         )}
-        <div style={{ fontSize: 13, color: '#555', marginBottom: 28 }}>
+        <div style={{
+          fontSize: 14,
+          color: 'rgba(245,245,240,0.45)',
+          marginBottom: 28,
+          lineHeight: 1.5,
+        }}>
           Complete this warm-up to prime your body and reduce injury risk.
         </div>
       </div>
 
       {/* Exercise list */}
-      <div style={{ flex: 1, padding: '0 24px', paddingBottom: 16 }}>
+      <div style={{ padding: '0 24px', paddingBottom: 24 }}>
+        {exercises.length === 0 && (
+          <div style={{
+            padding: '24px',
+            background: '#0d0d0d',
+            borderRadius: 12,
+            border: '1px solid rgba(245,245,240,0.06)',
+            textAlign: 'center',
+            color: 'rgba(245,245,240,0.4)',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 11,
+            letterSpacing: '0.1em',
+          }}>
+            No protocol found for {sessionType} / {skillLevel}
+          </div>
+        )}
         {exercises.map((ex, i) => {
-          const color = TYPE_COLOR[ex.type] || '#aaa';
+          const color = TYPE_COLOR[ex.type] || 'rgba(245,245,240,0.5)';
           return (
             <div key={i} style={{
-              display: 'flex', alignItems: 'flex-start', gap: 14,
-              paddingBottom: 16, marginBottom: 16,
-              borderBottom: i < exercises.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 14,
+              paddingBottom: 18,
+              marginBottom: 18,
+              borderBottom: i < exercises.length - 1 ? '1px solid rgba(245,245,240,0.06)' : 'none',
             }}>
-              {/* Colored dot */}
+              {/* Type dot */}
               <div style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: color, marginTop: 6, flexShrink: 0,
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: color,
+                marginTop: 8,
+                flexShrink: 0,
               }} />
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{
+                    fontSize: 17,
+                    fontWeight: 900,
+                    color: '#f5f5f0',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.02em',
+                  }}>
                     {ex.name}
                   </span>
                   <span style={{
-                    fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
-                    color, opacity: 0.8, fontFamily: "'DM Mono', monospace",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: '0.12em',
+                    color,
+                    fontFamily: "'DM Mono', monospace",
                   }}>
-                    {TYPE_LABEL[ex.type] || ex.type?.toUpperCase()}
+                    {TYPE_LABEL[ex.type] || (ex.type || '').toUpperCase()}
                   </span>
                 </div>
-                <div style={{ fontSize: 13, color: '#888' }}>
+                <div style={{
+                  fontSize: 13,
+                  color: 'rgba(245,245,240,0.65)',
+                  fontFamily: "'DM Mono', monospace",
+                  marginBottom: ex.notes ? 4 : 0,
+                }}>
                   {ex.sets} {parseInt(ex.sets) === 1 ? 'set' : 'sets'} × {ex.reps}
                 </div>
                 {ex.notes && (
-                  <div style={{ fontSize: 11, color: '#555', marginTop: 2, lineHeight: 1.4 }}>
+                  <div style={{
+                    fontSize: 12,
+                    color: 'rgba(245,245,240,0.4)',
+                    lineHeight: 1.5,
+                  }}>
                     {ex.notes}
                   </div>
                 )}
@@ -140,37 +211,64 @@ export default function WarmupScreen({ sessionType = 'push', skillLevel = 'begin
           );
         })}
 
-        {/* Legend */}
+        {/* Type legend */}
         <div style={{
-          display: 'flex', gap: 20, marginTop: 8, paddingTop: 16,
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex',
+          gap: 20,
+          marginTop: 8,
+          paddingTop: 16,
+          borderTop: '1px solid rgba(245,245,240,0.06)',
         }}>
           {Object.entries(TYPE_LABEL).map(([type, label]) => (
             <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: TYPE_COLOR[type] }} />
-              <span style={{ fontSize: 10, color: '#555', letterSpacing: '0.1em', fontFamily: "'DM Mono', monospace" }}>
+              <div style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: TYPE_COLOR[type],
+              }} />
+              <span style={{
+                fontSize: 10,
+                color: 'rgba(245,245,240,0.3)',
+                letterSpacing: '0.1em',
+                fontFamily: "'DM Mono', monospace",
+              }}>
                 {label}
               </span>
             </div>
           ))}
         </div>
+
+        {/* Bottom spacer for sticky buttons */}
+        <div style={{ height: 160 }} />
       </div>
 
-      {/* Fixed bottom buttons */}
+      {/* Sticky bottom buttons */}
       <div style={{
-        padding: '16px 24px 40px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
-        background: '#050810',
-        display: 'flex', flexDirection: 'column', gap: 12,
+        position: 'sticky',
+        bottom: 0,
+        padding: '16px 24px',
+        paddingBottom: 'max(env(safe-area-inset-bottom),32px)',
+        borderTop: '1px solid rgba(245,245,240,0.08)',
+        background: '#000000',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
       }}>
         <button
           onClick={onStart}
           style={{
-            width: '100%', padding: '18px 0',
-            background: '#ef4444', border: 'none', borderRadius: 12,
-            color: '#fff', fontSize: 18, fontWeight: 800,
-            fontFamily: "'Barlow Condensed', sans-serif",
-            letterSpacing: '0.08em', textTransform: 'uppercase',
+            width: '100%',
+            padding: '16px 0',
+            background: '#e8341c',
+            border: 'none',
+            borderRadius: 12,
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: "'DM Mono', monospace",
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
             cursor: 'pointer',
           }}
         >
@@ -179,16 +277,21 @@ export default function WarmupScreen({ sessionType = 'push', skillLevel = 'begin
         <button
           onClick={onSkip}
           style={{
-            width: '100%', padding: '14px 0',
-            background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
+            width: '100%',
+            padding: '14px 0',
+            background: 'transparent',
+            border: '1px solid rgba(245,245,240,0.15)',
             borderRadius: 12,
-            color: '#666', fontSize: 14, fontWeight: 600,
-            fontFamily: "'Barlow Condensed', sans-serif",
-            letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'rgba(245,245,240,0.45)',
+            fontSize: 11,
+            fontWeight: 700,
+            fontFamily: "'DM Mono', monospace",
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
             cursor: 'pointer',
           }}
         >
-          SKIP WARM-UP
+          SKIP WARM-UP →
         </button>
       </div>
     </div>
