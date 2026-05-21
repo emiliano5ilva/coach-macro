@@ -3120,13 +3120,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const displayWeek=programCurrentWeek||weekNum;
               const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
               const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
-              const cardStyle={minWidth:260,maxWidth:260,flexShrink:0,scrollSnapAlign:"start",background:"#0d0d0d",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
+              const cardStyle={minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",background:"#0d0d0d",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
               return(
                 <>
                   <div
                     ref={carouselRef}
-                    onScroll={e=>{const el=e.currentTarget;const idx=Math.min(2,Math.max(0,Math.round(el.scrollLeft/270)));setActiveCard(idx);}}
-                    style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:10,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
+                    onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||el.clientWidth||320;const idx=Math.min(2,Math.max(0,Math.round(el.scrollLeft/w)));setActiveCard(idx);}}
+                    style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:0,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
                   >
                     {/* Card 1 — YOUR PROGRAM */}
                     <div onClick={()=>setTrainScreen("plan")} style={{...cardStyle,border:"1px solid rgba(232,52,28,0.2)"}}>
@@ -3343,7 +3343,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     onLogMore={()=>{clearWorkoutSummary();setTrainScreen("builder");}}
                     plateausBroken={workoutSummary.plateausBroken||[]}
                   />
-                :<div>
+                : !activeWorkout.exercises?.length
+                  ? <div style={{textAlign:"center",padding:"80px 24px"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>// NO SESSION FOUND</div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:12}}>NO WORKOUT<br/>SCHEDULED.</div>
+                      <div style={{fontFamily:"var(--condensed)",fontSize:18,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:32,maxWidth:280,margin:"0 auto 32px"}}>Your program doesn't have a session assigned for today. Try Adapt Now to generate one.</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:280,margin:"0 auto"}}>
+                        <button onClick={()=>setShowAdapt(true)} style={{padding:"14px 28px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>ADAPT NOW →</button>
+                        <button onClick={()=>setTrainScreen("today")} style={{padding:"13px 28px",background:"none",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>GO BACK</button>
+                      </div>
+                    </div>
+                  :<div>
                 {/* Header */}
                 <div className="hero-card" style={{padding:"18px 20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{flex:1,minWidth:0}}>

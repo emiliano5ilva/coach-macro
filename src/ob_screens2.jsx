@@ -3033,9 +3033,38 @@ Rules:
             <div className="header-title">Hey, {firstName}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <div onClick={handleStreakPress} style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",marginRight:8}}>
-              <span style={{fontSize:14,lineHeight:1}}>🔥</span>
-              {streakCount>0&&<span style={{fontFamily:"DM Mono,monospace",fontSize:8,color:"#e8341c",lineHeight:1,marginTop:2,fontWeight:500}}>{streakCount}</span>}
+            <div
+              onClick={()=>{}}
+              style={{
+                width:'36px',
+                height:'36px',
+                borderRadius:'10px',
+                background:'rgba(232,52,28,0.1)',
+                border:'1px solid rgba(232,52,28,0.2)',
+                display:'flex',
+                flexDirection:'column',
+                alignItems:'center',
+                justifyContent:'center',
+                cursor:'pointer',
+                marginRight:'8px',
+                gap:'2px',
+              }}
+            >
+              <span style={{fontSize:'14px',
+                lineHeight:'1',
+                userSelect:'none'}}>
+                🔥
+              </span>
+              <span style={{
+                fontFamily:'DM Mono,monospace',
+                fontSize:'8px',
+                color:'#e8341c',
+                lineHeight:'1',
+                fontWeight:'500',
+                userSelect:'none',
+              }}>
+                14
+              </span>
             </div>
             <button className="icon-btn" aria-label="Notifications"><svg width={16} height={16} viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 7 3 9H3c0-2 3-2 3-9zM10 21a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/></svg></button>
             <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,var(--red),#8b1a0a)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--condensed)",fontWeight:800,fontStyle:"italic",fontSize:16,color:"white"}}>{firstName[0].toUpperCase()}</div>
