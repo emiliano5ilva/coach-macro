@@ -3730,7 +3730,7 @@ Rules:
                 <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:10}}>REST<span style={{color:"#e8341c"}}>.</span></div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.4}}>Rest day. Stay consistent — your progress compounds every session.</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:8}}>{morningBrief?.coach_says||"Rest day. Your body grows when you recover. Come back tomorrow stronger."}</div>
                 </div>
               );
             }
