@@ -3050,11 +3050,23 @@ Rules:
                 gap:'2px',
               }}
             >
-              <span style={{fontSize:'14px',
-                lineHeight:'1',
-                userSelect:'none'}}>
-                🔥
-              </span>
+              <svg
+                width="14"
+                height="17"
+                viewBox="0 0 14 17"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{display:'block',margin:'0 auto'}}
+              >
+                <path
+                  d="M7 0C7 0 9.5 3 9.5 5.5C9.5 5.5 11 4 11 4C11 4 14 7.5 14 10.5C14 13.5 11 17 7 17C3 17 0 13.5 0 10.5C0 7.5 2.5 5 2.5 5C2.5 5 3.5 7 4.5 7C4.5 7 2.5 4.5 7 0Z"
+                  fill="#e8341c"
+                />
+                <path
+                  d="M7 8C7 8 8.5 9.5 8.5 11C8.5 12.5 7.8 13.5 7 13.5C6.2 13.5 5.5 12.5 5.5 11C5.5 9.5 7 8 7 8Z"
+                  fill="#FEA020"
+                />
+              </svg>
               <span style={{
                 fontFamily:'DM Mono,monospace',
                 fontSize:'8px',
@@ -3063,7 +3075,7 @@ Rules:
                 fontWeight:'500',
                 userSelect:'none',
               }}>
-                14
+                {streakCount||14}
               </span>
             </div>
             <button className="icon-btn" aria-label="Notifications"><svg width={16} height={16} viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 7 3 7 3 9H3c0-2 3-2 3-9zM10 21a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/></svg></button>

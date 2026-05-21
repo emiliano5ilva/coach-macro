@@ -3327,6 +3327,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {sessionMode==='hyrox-wod'&&renderHyroxWOD()}
             {sessionMode==='hyrox-weakness-picker'&&renderHyroxWeaknessPicker()}
             {sessionMode==='hyrox-summary'&&renderHyroxSummary()}
+            {(()=>{console.log('[SESSION PORTAL]',{activeWorkout,exercisesLength:activeWorkout?.exercises?.length,todayPrescription});return null;})()}
             {!sessionMode&&(!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
                 <div style={{fontSize:48,marginBottom:16}}>💪</div>
