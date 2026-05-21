@@ -3737,24 +3737,10 @@ Rules:
             return(
               <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
                   {focusLabel}<span style={{color:"#e8341c"}}>.</span>
                 </div>
-                {topRiskLevel&&(
-                  <div style={{marginBottom:8}}>
-                    <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 8px",borderRadius:6,
-                      background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,158,11,0.12)",
-                      color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,
-                      border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,158,11,0.3)"}`,
-                      fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}><path d="M12 2L1 21h22L12 2zm0 3.99L20.53 19H3.47L12 5.99zm-1 5.01v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
-                      {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
-                    </span>
-                  </div>
-                )}
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:14,letterSpacing:"0.06em"}}>
-                  {wPrefs?.sessionLength||45} min · Tap to see your plan
-                </div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:6,marginBottom:14}}>{morningBrief?.coach_says||"Show up, do the work, trust the process."}</div>
                 <button onClick={()=>setSection("train")} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
                   START SESSION →
                 </button>
