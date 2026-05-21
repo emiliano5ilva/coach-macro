@@ -1958,6 +1958,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [showExploreSheet,setShowExploreSheet]=useState(false);
   const [activeCard,setActiveCard]=useState(0);
   const carouselRef=useRef(null);
+  const [sessionDetailExpanded,setSessionDetailExpanded]=useState(false);
 
   // ── Adapt Now state ──────────────────────────────────────────────────────
   const [showAdapt,setShowAdapt]=useState(false);
@@ -3087,6 +3088,25 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--white)",marginBottom:6}}>No Program Selected</div>
                   <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
                   <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
+                </div>
+              )}
+              {todayType==="training"&&(
+                <div style={{marginTop:14}}>
+                  <button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:15,fontFamily:"DM Mono,monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
+                  <div onClick={()=>setSessionDetailExpanded(s=>!s)} style={{textAlign:"center",fontFamily:"DM Mono,monospace",fontSize:10,color:"rgba(245,245,240,0.3)",marginTop:8,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                    SESSION DETAILS {sessionDetailExpanded?"↑":"↓"}
+                  </div>
+                  {sessionDetailExpanded&&Array.isArray(todayPrescription)&&(
+                    <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(245,245,240,0.05)",display:"flex",flexDirection:"column",gap:6}}>
+                      {todayPrescription.map((ex,i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:10,fontSize:12,color:"rgba(245,245,240,0.65)"}}>
+                          <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"DM Mono,monospace",fontSize:9,color:"#e8341c",flexShrink:0}}>{i+1}</div>
+                          <div style={{flex:1}}>{ex.name}</div>
+                          <div style={{fontFamily:"DM Mono,monospace",fontSize:9,color:"rgba(245,245,240,0.35)"}}>{ex.sets}×{ex.reps}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
