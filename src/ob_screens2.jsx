@@ -1228,15 +1228,15 @@ function InjuryAlertCard({risks, onAdapt, onDismiss}) {
   if(!risks||risks.length===0)return null;
   const top=risks[0];
   const LC={
-    high:    {label:"🔴 HIGH RISK",    color:"#EF4444",bg:"rgba(239,68,68,0.06)",  border:"rgba(239,68,68,0.28)",  left:"#EF4444"},
-    moderate:{label:"🟠 MODERATE RISK",color:"#F97316",bg:"rgba(249,115,22,0.06)", border:"rgba(249,115,22,0.28)", left:"#F97316"},
-    low:     {label:"🟡 LOW RISK",     color:T.fat,bg:"rgba(245,158,11,0.06)",  border:"rgba(245,158,11,0.28)",  left:T.fat},
+    high:    {label:"HIGH RISK",    color:"#EF4444",bg:"rgba(239,68,68,0.06)",  border:"rgba(239,68,68,0.28)",  left:"#EF4444"},
+    moderate:{label:"MODERATE RISK",color:"#F97316",bg:"rgba(249,115,22,0.06)", border:"rgba(249,115,22,0.28)", left:"#F97316"},
+    low:     {label:"LOW RISK",     color:T.fat,bg:"rgba(245,158,11,0.06)",  border:"rgba(245,158,11,0.28)",  left:T.fat},
   };
   const lc=LC[top.level]||LC.low;
   return (
     <div style={{margin:"0 20px 14px",padding:"16px 18px",background:lc.bg,border:`1px solid ${lc.border}`,borderLeft:`3px solid ${lc.left}`,borderRadius:"4px 14px 14px 4px"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-        <span style={{fontSize:14}}>⚠️</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#e8341c"><path d="M12 2L1 21h22L12 2zm0 3.99L20.53 19H3.47L12 5.99zm-1 5.01v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
         <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:lc.color,textTransform:"uppercase",fontWeight:700}}>INJURY PREVENTION ALERT</div>
         <div style={{marginLeft:"auto",padding:"2px 8px",background:`${lc.color}15`,border:`1px solid ${lc.color}40`,borderRadius:4,fontFamily:"var(--mono)",fontSize:9,color:lc.color,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,whiteSpace:"nowrap"}}>{lc.label}</div>
       </div>
@@ -3110,46 +3110,6 @@ Rules:
           />
         )}
 
-        {/* ── PAST SECTION — Your Last 30 Days ── */}
-        {workoutLogsRaw.length>0&&(()=>{
-          const now=new Date();
-          const cutoff=new Date(now.getFullYear(),now.getMonth(),now.getDate()-30);
-          const last30=workoutLogsRaw.filter(w=>new Date(w.date+"T12:00:00")>=cutoff);
-          const sessionsCount=last30.length;
-          const totalSetsAll=last30.reduce((a,w)=>(w.workout?.exercises||[]).reduce((b,ex)=>b+(ex.sets?.length||0),a),0);
-          // Nutrition adherence: logged days in last 30
-          const loggedDays=new Set(log.filter(l=>{const d=new Date(l.date+"T12:00:00");return d>=cutoff;}).map(l=>l.date)).size;
-          const nutPct=Math.round((loggedDays/30)*100);
-          // Strength gain: compare avg session volume this 15d vs prior 15d
-          const mid=new Date(now.getFullYear(),now.getMonth(),now.getDate()-15);
-          const recent=last30.filter(w=>new Date(w.date+"T12:00:00")>=mid);
-          const older=last30.filter(w=>new Date(w.date+"T12:00:00")<mid);
-          const avgVol=arr=>arr.length?arr.reduce((a,w)=>(w.workout?.exercises||[]).reduce((b,ex)=>b+(ex.sets||[]).filter(s=>s.done).reduce((c,s)=>c+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0),a),0)/arr.length:0;
-          const volGain=older.length&&recent.length?Math.round((avgVol(recent)-avgVol(older))/Math.max(avgVol(older),1)*100):null;
-          if(!sessionsCount)return null;
-          return(
-            <div style={{margin:"0 20px 14px"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-                <span>// PAST · LAST 30 DAYS</span>
-                <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                <div style={{background:"rgba(34,197,94,.07)",border:"1px solid rgba(34,197,94,.15)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:T.green,lineHeight:1}}>{sessionsCount}</div>
-                  <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Sessions</div>
-                </div>
-                <div style={{background:"rgba(59,130,246,.07)",border:"1px solid rgba(59,130,246,.15)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:"#3b82f6",lineHeight:1}}>{nutPct}%</div>
-                  <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Nutrition</div>
-                </div>
-                <div style={{background:volGain!=null&&volGain>=0?"rgba(245,158,11,.07)":"rgba(239,68,68,.07)",border:`1px solid ${volGain!=null&&volGain>=0?"rgba(245,158,11,.15)":"rgba(239,68,68,.15)"}`,borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:26,color:volGain!=null&&volGain>=0?T.fat:"#ef4444",lineHeight:1}}>{volGain!=null?`${volGain>=0?"+":""}${volGain}%`:"—"}</div>
-                  <div style={{fontSize:9,color:"rgba(245,245,240,.4)",marginTop:3,letterSpacing:".1em",textTransform:"uppercase"}}>Strength</div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Morning Adjustment Banner — with Biological Algorithm personalization */}
         {healthSnap&&(()=>{
@@ -3429,11 +3389,6 @@ Rules:
           );
         })()}
 
-        {/* Coach quote */}
-        <div className="coach-card">
-          <div className="coach-label">// Coach</div>
-          <div className="coach-text">"{todayFocus} day. Stay consistent — your progress compounds every session."</div>
-        </div>
 
         {/* ── DELOAD DETECTION ── */}
         {!deloadActive&&(()=>{
@@ -3767,47 +3722,61 @@ Rules:
                 )}
               </div>
             </div>
-          ):(
-            <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
-                {todayFocus.replace(/\.$/, "")}<span style={{color:"#e8341c"}}>.</span>
-              </div>
-              {topRiskLevel&&(
-                <div style={{marginBottom:8}}>
-                  <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"4px 8px",borderRadius:6,
-                    background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,158,11,0.12)",
-                    color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,
-                    border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,158,11,0.3)"}`,
-                    fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
-                    ⚠️ {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
-                  </span>
+          ):(()=>{
+            const isRD=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
+            const focusLabel=(todayFocus||"").replace(/\.$/, "");
+            if(isRD){
+              return(
+                <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:10}}>REST<span style={{color:"#e8341c"}}>.</span></div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.4}}>Rest day. Stay consistent — your progress compounds every session.</div>
                 </div>
-              )}
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:14,letterSpacing:"0.06em"}}>
-                {wPrefs?.sessionLength||45} min · Tap to see your plan
-              </div>
-              <button onClick={()=>setSection("train")} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
-                START SESSION →
-              </button>
-              <div onClick={()=>setSessionExpandedToday(s=>!s)} style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:8}}>
-                {sessionExpandedToday?"Session details ↑":"Session details ↓"}
-              </div>
-              {sessionExpandedToday&&(
-                <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(245,245,240,0.05)"}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>
-                    Go to Train tab to see the full exercise list, muscle chips, and set prescriptions.
+              );
+            }
+            return(
+              <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                  {focusLabel}<span style={{color:"#e8341c"}}>.</span>
+                </div>
+                {topRiskLevel&&(
+                  <div style={{marginBottom:8}}>
+                    <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 8px",borderRadius:6,
+                      background:topRiskLevel==="high"?"rgba(239,68,68,0.12)":topRiskLevel==="moderate"?"rgba(249,115,22,0.12)":"rgba(245,158,11,0.12)",
+                      color:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,
+                      border:`1px solid ${topRiskLevel==="high"?"rgba(239,68,68,0.3)":topRiskLevel==="moderate"?"rgba(249,115,22,0.3)":"rgba(245,158,11,0.3)"}`,
+                      fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}><path d="M12 2L1 21h22L12 2zm0 3.99L20.53 19H3.47L12 5.99zm-1 5.01v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+                      {topRiskLevel==="high"?"HIGH RISK":topRiskLevel==="moderate"?"MONITOR":"WATCH"}
+                    </span>
                   </div>
+                )}
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:14,letterSpacing:"0.06em"}}>
+                  {wPrefs?.sessionLength||45} min · Tap to see your plan
                 </div>
-              )}
-            </div>
-          )
-        }
+                <button onClick={()=>setSection("train")} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
+                  START SESSION →
+                </button>
+                <div onClick={()=>setSessionExpandedToday(s=>!s)} style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:8}}>
+                  {sessionExpandedToday?"Session details ↑":"Session details ↓"}
+                </div>
+                {sessionExpandedToday&&(
+                  <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(245,245,240,0.05)"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>
+                      Go to Train tab to see the full exercise list, muscle chips, and set prescriptions.
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
 
         {/* ── PRESENT SECTION ── */}
         <div data-tour="today-cards" style={{margin:"0 20px 8px"}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-            <span>// PRESENT</span>
+            <span>// THIS WEEK</span>
             <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
           </div>
         </div>
@@ -3861,8 +3830,8 @@ Rules:
                   strokeDasharray={2*Math.PI*46} strokeDashoffset={2*Math.PI*46*(1-Math.min(workoutLogsRaw.filter(w=>{const d=new Date(w.date||w.logged_at);const now=new Date();return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());}).length/Math.max(1,Object.values(schedule).filter(v=>v==="training").length),1))} style={{transition:"stroke-dashoffset 0.6s"}}/>
               </svg>
               <div style={{position:"absolute",textAlign:"center"}}>
-                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:22,fontStyle:"italic",lineHeight:1}}>{workoutLogsRaw.filter(w=>{const d=new Date(w.date||w.logged_at);const now=new Date();return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());}).length}/{Object.values(schedule).filter(v=>v==="training").length}</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.1em",textTransform:"uppercase"}}>sessions</div>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:22,fontStyle:"italic",lineHeight:1}}>{workoutLogsRaw.filter(w=>{const d=new Date(w.date||w.logged_at);const now=new Date();return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());}).length}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.1em",textTransform:"uppercase",textAlign:"center",lineHeight:1.3}}>SESSIONS<br/>THIS WEEK</div>
               </div>
             </div>
           </div>
@@ -3983,17 +3952,6 @@ Rules:
           );
         })()}
 
-        {/* Quick actions */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,margin:"0 20px 24px"}}>
-          <button onClick={()=>setSection("fuel")} className="quick-btn">
-            <svg width={16} height={16} viewBox="0 0 24 24"><g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2"/><line x1="3" y1="12" x2="21" y2="12"/></g></svg>
-            Log Food
-          </button>
-          <button onClick={()=>setSection("train")} className="quick-btn">
-            <svg width={16} height={16} viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-            Start Workout
-          </button>
-        </div>
       </div>
     );
   }
