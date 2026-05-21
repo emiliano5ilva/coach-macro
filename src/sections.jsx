@@ -1956,6 +1956,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   // ── Explore sheet state ─────────────────────────────────────────────────
   const [showExploreSheet,setShowExploreSheet]=useState(false);
+  const [activeCard,setActiveCard]=useState(0);
+  const carouselRef=useRef(null);
 
   // ── Adapt Now state ──────────────────────────────────────────────────────
   const [showAdapt,setShowAdapt]=useState(false);
@@ -3090,133 +3092,59 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </div>
             );})()}
 
-            {/* ── YOUR PROGRAM ── */}
+            {/* ── QUICK ACCESS CAROUSEL ── */}
             {(()=>{
               const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
               const totalWeeks=progInfo?.weeks||12;
               const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
-              const programImage=getProgramImage(progInfo?.id||wPrefs.splitType);
               const displayWeek=programCurrentWeek||weekNum;
-              const progPct=Math.min(displayWeek/totalWeeks,1);
-              const hyroxRaceDate=wPrefs?.hyroxRaceDate||profile?.hyrox_race_date;
-              const hyroxPhaseData=wPrefs?.isHyrox&&hyroxRaceDate?getHyroxPhase(hyroxRaceDate):null;
-              const runRaceDate=profile?.run_race_date||wPrefs?.runRaceDate;
-              const isRunner=!wPrefs?.isHyrox&&(wPrefs?.splitType||"").toLowerCase().includes("run")||(!wPrefs?.isHyrox&&!!runRaceDate);
-              const runPhaseData=isRunner&&runRaceDate?getRunningPhase(runRaceDate):null;
-              const strengthCompDate=profile?.strength_comp_date||wPrefs?.strengthCompDate;
-              const strengthPhaseData=!wPrefs?.isHyrox&&!isRunner&&strengthCompDate?getStrengthPhase(strengthCompDate):null;
-              const activePhaseData=hyroxPhaseData||runPhaseData||strengthPhaseData;
-              const phases=(()=>{
-                if(wPrefs?.isHyrox)return[
-                  {name:"BASE FITNESS",start:1,end:Math.ceil(totalWeeks*0.25)},
-                  {name:"STN STRENGTH",start:Math.ceil(totalWeeks*0.25)+1,end:Math.ceil(totalWeeks*0.5)},
-                  {name:"RACE PREP",start:Math.ceil(totalWeeks*0.5)+1,end:Math.ceil(totalWeeks*0.75)},
-                  {name:"PEAK",start:Math.ceil(totalWeeks*0.75)+1,end:totalWeeks-1},
-                  {name:"TAPER",start:totalWeeks,end:totalWeeks},
-                ];
-                if(runPhaseData)return[
-                  {name:"BASE BUILD",start:1,end:Math.ceil(totalWeeks*0.4)},
-                  {name:"BUILD",start:Math.ceil(totalWeeks*0.4)+1,end:Math.ceil(totalWeeks*0.6)},
-                  {name:"RACE SPEC",start:Math.ceil(totalWeeks*0.6)+1,end:Math.ceil(totalWeeks*0.8)},
-                  {name:"PEAK",start:Math.ceil(totalWeeks*0.8)+1,end:totalWeeks-1},
-                  {name:"TAPER",start:totalWeeks,end:totalWeeks},
-                ];
-                if(strengthPhaseData)return[
-                  {name:"HYPERTROPHY",start:1,end:Math.ceil(totalWeeks*0.35)},
-                  {name:"STRENGTH",start:Math.ceil(totalWeeks*0.35)+1,end:Math.ceil(totalWeeks*0.6)},
-                  {name:"PEAKING",start:Math.ceil(totalWeeks*0.6)+1,end:Math.ceil(totalWeeks*0.8)},
-                  {name:"COMP PREP",start:Math.ceil(totalWeeks*0.8)+1,end:totalWeeks-1},
-                  {name:"TAPER",start:totalWeeks,end:totalWeeks},
-                ];
-                if(totalWeeks>=16)return[{name:"BASE",start:1,end:4},{name:"BUILD",start:5,end:8},{name:"INTENSITY",start:9,end:12},{name:"RACE PREP",start:13,end:totalWeeks}];
-                if(totalWeeks>=12)return[{name:"FOUNDATION",start:1,end:4},{name:"BUILD",start:5,end:8},{name:"PEAK",start:9,end:totalWeeks}];
-                const t=Math.ceil(totalWeeks/3);
-                return[{name:"FOUNDATION",start:1,end:t},{name:"BUILD",start:t+1,end:2*t},{name:"PEAK",start:2*t+1,end:totalWeeks}];
-              })();
-              const currentPhase=activePhaseData?{name:activePhaseData.label}:(phases.find(p=>displayWeek>=p.start&&displayWeek<=p.end)||phases[phases.length-1]);
+              const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
+              const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
+              const cardStyle={minWidth:260,maxWidth:260,flexShrink:0,scrollSnapAlign:"start",background:"#0d0d0d",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
               return(
-                <div style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16,padding:16,position:"relative",overflow:"hidden"}}>
-                  {programImage&&(
-                    <div style={{position:"relative",width:"calc(100% + 32px)",height:120,margin:"-16px -16px 14px -16px",borderRadius:"12px 12px 0 0",overflow:"hidden"}}>
-                      <img src={programImage} alt={progName} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.style.display="none";}}/>
-                      <div style={{position:"absolute",bottom:0,left:0,right:0,height:60,background:"linear-gradient(transparent,#0d0d0d)",pointerEvents:"none"}}/>
+                <>
+                  <div
+                    ref={carouselRef}
+                    onScroll={e=>{const el=e.currentTarget;const idx=Math.min(2,Math.max(0,Math.round(el.scrollLeft/270)));setActiveCard(idx);}}
+                    style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:10,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
+                  >
+                    {/* Card 1 — YOUR PROGRAM */}
+                    <div onClick={()=>setTrainScreen("plan")} style={{...cardStyle,border:"1px solid rgba(232,52,28,0.2)"}}>
+                      <div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// YOUR PROGRAM</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{progName}<span style={{color:"#e8341c"}}>.</span></div>
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Week {displayWeek} · {expLabel}</div>
+                      <div style={{position:"absolute",bottom:16,right:16,color:"#e8341c",fontSize:18,lineHeight:1}}>→</div>
                     </div>
-                  )}
-                  <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(232,52,28,0.04)",pointerEvents:"none"}}/>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,position:"relative"}}>
-                    <div>
-                      <div className="header-eyebrow" style={{marginBottom:4}}>// Your Program</div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",lineHeight:1,color:"#f5f5f0"}}>{progName}<span style={{color:"#e8341c"}}>.</span></div>
-                      {activePhaseData&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
-                        <div style={{background:`${activePhaseData.color}18`,border:`1px solid ${activePhaseData.color}50`,borderRadius:6,padding:"2px 8px"}}>
-                          <span style={{fontFamily:"var(--mono)",fontSize:8,fontWeight:700,color:activePhaseData.color,textTransform:"uppercase",letterSpacing:"0.1em"}}>{activePhaseData.label}</span>
-                        </div>
-                        <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{activePhaseData.weeksUntilRace}w to {strengthPhaseData?"competition":"race"}</span>
-                      </div>}
+                    {/* Card 2 — EXERCISE LIBRARY */}
+                    <div onClick={()=>setTrainScreen("library")} style={{...cardStyle,border:"1px solid rgba(232,52,28,0.1)"}}>
+                      <div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FULL DATABASE</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY<span style={{color:"#e8341c"}}>.</span></div>
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>800+ exercises</div>
+                      <div style={{position:"absolute",bottom:16,right:16,color:"#e8341c",fontSize:18,lineHeight:1}}>→</div>
                     </div>
-                    <button onClick={()=>setTrainScreen("plan")} style={{padding:"7px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:9,color:"#e8341c",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.1em",flexShrink:0}}>Switch →</button>
+                    {/* Card 3 — EXPLORE */}
+                    <div onClick={()=>setShowExploreSheet(true)} style={{...cardStyle,border:"1px solid rgba(232,52,28,0.1)"}}>
+                      <div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TOOLS & MORE</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXPLORE<span style={{color:"#e8341c"}}>.</span></div>
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Programs · Routines · Warm-up · Favorites</div>
+                      <div style={{position:"absolute",bottom:16,right:16,color:"#e8341c",fontSize:18,lineHeight:1}}>→</div>
+                    </div>
                   </div>
-                  {progDetailsExpanded&&(
-                    <>
-                      <div style={{display:"flex",gap:8,marginBottom:12}}>
-                        {[{label:"WEEK",value:`${displayWeek}/${totalWeeks}`},{label:"DAYS/WK",value:`${daysPerWeek}×`},{label:"PHASE",value:currentPhase.name}].map(({label,value})=>(
-                          <div key={label} style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                            <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
-                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:13,color:"#f5f5f0",textTransform:"uppercase"}}>{value}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{height:2,background:"rgba(245,245,240,0.06)",borderRadius:1,overflow:"hidden",marginBottom:4}}>
-                        <div style={{height:"100%",width:`${progPct*100}%`,background:"#e8341c",borderRadius:1,transition:"width 0.6s"}}/>
-                      </div>
-                      <div style={{display:"flex",marginBottom:12}}>
-                        {phases.map(p=>{
-                          const phasePct=((p.end-p.start+1)/totalWeeks)*100;
-                          const isCurrent=p===currentPhase;
-                          return(<div key={p.name} style={{flex:`0 0 ${phasePct}%`,textAlign:"center"}}><div style={{fontFamily:"var(--mono)",fontSize:7,letterSpacing:"0.08em",textTransform:"uppercase",color:isCurrent?"#e8341c":"rgba(245,245,240,0.2)"}}>{p.name}</div></div>);
-                        })}
-                      </div>
-                      <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none"}}>
-                        {Array.from({length:totalWeeks}).map((_,i)=>{
-                          const w=i+1;const isCurrent=w===displayWeek;const isPast=w<displayWeek;
-                          return(<div key={w} style={{flexShrink:0,minWidth:28,padding:"5px 0",textAlign:"center",borderRadius:5,background:isCurrent?"#e8341c":isPast?"rgba(52,211,153,0.12)":"rgba(245,245,240,0.04)",border:`1px solid ${isCurrent?"transparent":isPast?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`,fontFamily:"var(--mono)",fontSize:9,color:isCurrent?"#fff":isPast?"#34d399":"rgba(245,245,240,0.4)",letterSpacing:"0.04em"}}>W{w}</div>);
-                        })}
-                      </div>
-                      {recentAdjustments?.length>0&&recentAdjustments[0].action!=="no_change"&&(
-                        <div style={{marginTop:8,display:"flex",alignItems:"center",gap:6}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
-                            {recentAdjustments[0].action==="advance"?"↑ Advanced":"↺ Repeated"}{" — "}{new Date(recentAdjustments[0].assessed_at+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  <div onClick={()=>setProgDetailsExpanded(s=>!s)} style={{marginTop:12,textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>
-                    {progDetailsExpanded?"Program details ↑":"Program details ↓"}
+                  {/* Scroll indicator dots */}
+                  <div style={{display:"flex",gap:5,justifyContent:"center",marginBottom:16}}>
+                    {[0,1,2].map(i=>(
+                      <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"#e8341c":"rgba(245,245,240,0.15)",transition:"background 0.2s"}}/>
+                    ))}
                   </div>
-                </div>
+                </>
               );
             })()}
-
-            {/* ── EXERCISE LIBRARY BUTTON ── */}
-            <button onClick={()=>setTrainScreen("library")} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:12,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
-              <div style={{textAlign:"left"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FULL DATABASE</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:2}}>800+ exercises</div>
-              </div>
-              <div style={{color:"#e8341c",fontSize:20,flexShrink:0}}>→</div>
-            </button>
-
-            {/* ── EXPLORE BUTTON ── */}
-            <button onClick={()=>setShowExploreSheet(true)} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:12,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
-              <div style={{textAlign:"left"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TOOLS & MORE</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXPLORE</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:2}}>Programs · Routines · Warm-up · Favorites</div>
-              </div>
-              <div style={{color:"#e8341c",fontSize:20,flexShrink:0}}>→</div>
-            </button>
 
             {/* ── TODAY'S NUTRITION CONTEXT ── */}
             {(()=>{
