@@ -240,6 +240,7 @@ Return ONLY valid JSON:
   "yesterday": "Yesterday recap — session or rest, nutrition hit or miss (1-2 sentences, specific numbers if available)",
   "today": "Today's focus — specific target, key lift or macro priority aligned to their goal (2-3 sentences)",
   "coach_says": "One sharp insight based on their data — streak, sleep, pattern, or momentum (1-2 sentences)",
+  "coach_tip": "ONE short punchy sentence (max 12 words). What a real coach would say to this athlete before their session. Direct. No fluff. Examples: 'Focus on form over load today.' / 'Heavy today. Earn it.' / 'Your body is recovered. Push.' / 'Nail your protein today — that is the job.'",
   "sign_off": "— Coach Macro"
 }
 

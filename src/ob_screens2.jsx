@@ -3725,7 +3725,7 @@ Rules:
           ):(()=>{
             const isRD=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
             const focusLabel=(()=>{const raw=(todayFocus||"").replace(/\.$/, "");if(!raw||raw.toLowerCase()==="rest")return DAY_CFG[todayType]?.label||"Training";return raw;})();
-            const coachQuote=(()=>{const fallback=isRD?"Rest day. Your body grows when you recover. Come back tomorrow stronger.":"Show up, do the work, trust the process.";const raw=(morningBrief?.coach_says||"").trim();const first=raw.split(/\.[\s]/)[0].trim();const result=first?first+(first.endsWith(".")||first.endsWith("!")||first.endsWith("?")?"":" ."):fallback;return result.length>100?result.substring(0,97)+"...":result;})();
+            const coachQuote=(()=>{const tip=(morningBrief?.coach_tip||"").trim();if(tip)return tip.length>100?tip.substring(0,97)+"...":tip;return isRD?"Rest. Your body grows when you recover.":"Show up, do the work, trust the process.";})();
             if(isRD){
               return(
                 <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
