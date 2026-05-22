@@ -2099,7 +2099,7 @@ Reply with ONLY a valid JSON object, no markdown:
                                     <span style={{...mno,fontSize:10,color:r.amountColor,letterSpacing:'0.08em'}}>{r.amount}</span>
                                   </div>
                                 </div>
-                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.55)',lineHeight:1.4}}>{r.text}</div>
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'#f5f5f0',lineHeight:1.4}}>{r.text}</div>
                               </div>
                             ))}
                           </div>
@@ -2108,36 +2108,128 @@ Reply with ONLY a valid JSON object, no markdown:
                     );
                   })()}
 
-                  {/* Meal rows */}
-                  <div style={{marginTop:16,borderTop:'1px solid rgba(245,245,240,0.05)'}}>
-                    {log.length===0?(
-                      <div style={{padding:'20px 0',textAlign:'center'}}>
-                        <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:18,color:'rgba(245,245,240,0.3)',textTransform:'uppercase',marginBottom:6}}>TAP + TO LOG YOUR FIRST MEAL<span style={{color:'#e8341c'}}>.</span></div>
-                        <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.2)',animation:'fuelBounce 1.2s ease-in-out infinite',display:'inline-block'}}>↓</div>
-                      </div>
-                    ):(
-                      log.slice(0,8).map((entry,i)=>(
-                        <div key={entry.id||i} style={{display:'flex',alignItems:'center',padding:'12px 0',borderBottom:'1px solid rgba(245,245,240,0.05)'}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontFamily:'var(--condensed)',fontSize:15,color:'#f5f5f0',fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.food}</div>
-                            <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.35)',marginTop:2,letterSpacing:'0.08em'}}>{entry.calories} kcal · {entry.protein}g P · {entry.carbs}g C · {entry.fat}g F</div>
-                          </div>
-                          <button onClick={()=>removeLog(entry.id)} style={{marginLeft:12,width:24,height:24,borderRadius:'50%',background:'rgba(245,245,240,0.06)',border:'1px solid rgba(245,245,240,0.1)',color:'rgba(245,245,240,0.35)',fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>×</button>
-                        </div>
-                      ))
-                    )}
-                    {log.length>8&&(
-                      <div style={{padding:'10px 0',...mno,fontSize:8,color:'rgba(245,245,240,0.3)',textAlign:'center',letterSpacing:'0.1em',textTransform:'uppercase'}}>+ {log.length-8} more entries</div>
-                    )}
+                </>
+              );
+            })()}
 
-                    {/* Log food button */}
-                    <div style={{paddingTop:12}}>
-                      <button onClick={()=>setFuelScreen("log")} style={{width:'100%',padding:'13px 0',background:'transparent',border:'1px solid rgba(232,52,28,0.3)',borderRadius:12,...mno,fontSize:10,color:'#e8341c',fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}>
-                        + LOG FOOD
-                      </button>
+            {/* FOOD LOG — grouped by meal slots */}
+            {(()=>{
+              const lSlots=getLoggedSlots(log);
+              const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
+              const basePerSlot=Math.round(macros.calories/mealSlots.length);
+              return(
+                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                  {(()=>{
+                    const f=profile?.fasting||profile?.profile_data?.fasting;
+                    if(!f||f==="no")return null;
+                    const windowLabel=f==="16:8"?"8h eating window":f==="omad"?"OMAD — 1 meal":f==="custom"?`${Math.max(1,24-fastHours)}h eating window`:"Fasting active";
+                    return<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{windowLabel}</div>;
+                  })()}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                    <div>
+                      <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
+                      <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
                     </div>
                   </div>
-                </>
+                  <div>
+                    {mealSlots.map((slot,si)=>{
+                      const isSkipped=(skippedSlots||[]).includes(slot);
+                      const slotItems=log.filter(e=>getEntrySlot(e)===slot);
+                      const slotCals=slotItems.reduce((s,e)=>s+(e.calories||0),0);
+                      const target=slotTargets[slot]||0;
+                      const hasRedistributed=!isSkipped&&(skippedSlots||[]).length>0&&!lSlots.includes(slot)&&target>basePerSlot;
+                      const hasOverageReduction=!isSkipped&&!lSlots.includes(slot)&&Object.keys(slotOverages||{}).some(k=>parseInt(k)!==slot);
+                      return(
+                        <div key={slot} style={{marginBottom:12,opacity:isSkipped?0.4:1}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:slotItems.length>0?6:4}}>
+                            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:isSkipped?"rgba(245,245,240,0.4)":"#f5f5f0",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
+                            <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
+                            {isSkipped?(
+                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
+                            ):(
+                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.06em"}}>
+                                {slotCals} / {target} kcal
+                                {hasRedistributed&&(
+                                  <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#FEA020",cursor:"pointer",marginLeft:4}}>↑</span>
+                                )}
+                                {hasOverageReduction&&!hasRedistributed&&(
+                                  <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#e8341c",cursor:"pointer",marginLeft:4}}>↓</span>
+                                )}
+                              </span>
+                            )}
+                            {!isSkipped&&(
+                              <button onClick={()=>handleSetActiveSlot(slot,true)} style={{background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.3)",color:"#e8341c",borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",lineHeight:1.4}}>+</button>
+                            )}
+                            {mealSlots.length>1&&!isSkipped&&(
+                              <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
+                            )}
+                          </div>
+                          {tooltipSlot===slot&&hasRedistributed&&(
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:6}}>Includes calories from skipped meals</div>
+                          )}
+                          {tooltipSlot===slot&&hasOverageReduction&&!hasRedistributed&&(
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:6}}>Reduced due to overage in an earlier meal</div>
+                          )}
+                          {slotItems.map((item,i)=>(
+                            <SwipeRow key={item.id}
+                              onDelete={()=>{
+                                const snap={...item};
+                                removeLog(item.id);
+                                showToast(`${snap.food||"Item"} removed`,{action:()=>logEntry(snap),actionLabel:"Undo"});
+                              }}
+                              style={{borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}
+                            >
+                              <div
+                                className="card-press"
+                                onPointerDown={()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
+                                onPointerUp={()=>clearTimeout(longPressRef.current)}
+                                onPointerLeave={()=>clearTimeout(longPressRef.current)}
+                                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
+                              >
+                                <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+                                  <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0,overflow:"hidden"}}>
+                                    {item.photo_url
+                                      ?<img src={item.photo_url} style={{width:30,height:30,borderRadius:8,objectFit:"cover"}} alt=""/>
+                                      :item.method==="photo"?"📸":item.method==="barcode"?"🔲":item.method==="quick"?"✏️":"🧠"}
+                                  </div>
+                                  <div style={{flex:1,minWidth:0}}>
+                                    <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
+                                    <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"var(--mono)"}}>
+                                      <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                                  <div style={{textAlign:"right"}}>
+                                    <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
+                                    <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                                  </div>
+                                  <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                                </div>
+                              </div>
+                            </SwipeRow>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {log.filter(e=>!mealSlots.includes(getEntrySlot(e))).map((item,i,arr)=>(
+                      <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
+                        <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:13}}>{item.calories} kcal</div>
+                          <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                        </div>
+                      </div>
+                    ))}
+                    {log.length===0&&(
+                      <EmptyState icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(245,245,240,.2)" strokeWidth="1.5"/><path d="M8 12h8M12 8v8" stroke="rgba(245,245,240,.3)" strokeWidth="1.5" strokeLinecap="round"/></svg>} title="Nothing logged yet" subtitle="Tap + on any meal slot or use Log Food" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
+                    )}
+                  </div>
+                </div>
               );
             })()}
 
@@ -2430,127 +2522,6 @@ Reply with ONLY a valid JSON object, no markdown:
               />
               </>
             )}
-
-            {/* FOOD LOG — grouped by meal slots */}
-            {(()=>{
-              const lSlots=getLoggedSlots(log);
-              const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
-              const basePerSlot=Math.round(macros.calories/mealSlots.length);
-              return(
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                  {(()=>{
-                    const f=profile?.fasting||profile?.profile_data?.fasting;
-                    if(!f||f==="no")return null;
-                    const windowLabel=f==="16:8"?"8h eating window":f==="omad"?"OMAD — 1 meal":f==="custom"?`${Math.max(1,24-fastHours)}h eating window`:"Fasting active";
-                    return<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{windowLabel}</div>;
-                  })()}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                    <div>
-                      <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
-                    </div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
-                      <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
-                    </div>
-                  </div>
-                  <div>
-                    {mealSlots.map((slot,si)=>{
-                      const isSkipped=(skippedSlots||[]).includes(slot);
-                      const slotItems=log.filter(e=>getEntrySlot(e)===slot);
-                      const slotCals=slotItems.reduce((s,e)=>s+(e.calories||0),0);
-                      const target=slotTargets[slot]||0;
-                      const hasRedistributed=!isSkipped&&(skippedSlots||[]).length>0&&!lSlots.includes(slot)&&target>basePerSlot;
-                      const hasOverageReduction=!isSkipped&&!lSlots.includes(slot)&&Object.keys(slotOverages||{}).some(k=>parseInt(k)!==slot);
-                      return(
-                        <div key={slot} style={{marginBottom:12,opacity:isSkipped?0.4:1}}>
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:slotItems.length>0?6:4}}>
-                            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:isSkipped?"rgba(245,245,240,0.4)":"#f5f5f0",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
-                            <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
-                            {isSkipped?(
-                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
-                            ):(
-                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.06em"}}>
-                                {slotCals} / {target} kcal
-                                {hasRedistributed&&(
-                                  <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#FEA020",cursor:"pointer",marginLeft:4}}>↑</span>
-                                )}
-                                {hasOverageReduction&&!hasRedistributed&&(
-                                  <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#e8341c",cursor:"pointer",marginLeft:4}}>↓</span>
-                                )}
-                              </span>
-                            )}
-                            {!isSkipped&&(
-                              <button onClick={()=>handleSetActiveSlot(slot,true)} style={{background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.3)",color:"#e8341c",borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",lineHeight:1.4}}>+</button>
-                            )}
-                            {mealSlots.length>1&&!isSkipped&&(
-                              <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
-                            )}
-                          </div>
-                          {tooltipSlot===slot&&hasRedistributed&&(
-                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:6}}>Includes calories from skipped meals</div>
-                          )}
-                          {tooltipSlot===slot&&hasOverageReduction&&!hasRedistributed&&(
-                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:6}}>Reduced due to overage in an earlier meal</div>
-                          )}
-                          {slotItems.map((item,i)=>(
-                            <SwipeRow key={item.id}
-                              onDelete={()=>{
-                                const snap={...item};
-                                removeLog(item.id);
-                                showToast(`${snap.food||"Item"} removed`,{action:()=>logEntry(snap),actionLabel:"Undo"});
-                              }}
-                              style={{borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}
-                            >
-                              <div
-                                className="card-press"
-                                onPointerDown={()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
-                                onPointerUp={()=>clearTimeout(longPressRef.current)}
-                                onPointerLeave={()=>clearTimeout(longPressRef.current)}
-                                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
-                              >
-                                <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                                  <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0,overflow:"hidden"}}>
-                                    {item.photo_url
-                                      ?<img src={item.photo_url} style={{width:30,height:30,borderRadius:8,objectFit:"cover"}} alt=""/>
-                                      :item.method==="photo"?"📸":item.method==="barcode"?"🔲":item.method==="quick"?"✏️":"🧠"}
-                                  </div>
-                                  <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
-                                    <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"var(--mono)"}}>
-                                      <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                                  <div style={{textAlign:"right"}}>
-                                    <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
-                                    <div style={{fontSize:9,color:T.mu}}>kcal</div>
-                                  </div>
-                                  <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
-                                </div>
-                              </div>
-                            </SwipeRow>
-                          ))}
-                        </div>
-                      );
-                    })}
-                    {log.filter(e=>!mealSlots.includes(getEntrySlot(e))).map((item,i,arr)=>(
-                      <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
-                        <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
-                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:13}}>{item.calories} kcal</div>
-                          <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
-                        </div>
-                      </div>
-                    ))}
-                    {log.length===0&&(
-                      <EmptyState icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(245,245,240,.2)" strokeWidth="1.5"/><path d="M8 12h8M12 8v8" stroke="rgba(245,245,240,.3)" strokeWidth="1.5" strokeLinecap="round"/></svg>} title="Nothing logged yet" subtitle="Tap + on any meal slot or use Log Food" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* ── MY RECIPES (compact home section) ── */}
             {userRecipes.length>0&&(
