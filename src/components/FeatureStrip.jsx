@@ -33,10 +33,10 @@ function FeatureCard({ category, name, description, onTap }) {
     <button
       onClick={onTap}
       style={{
-        background: '#111827',
+        background: '#0d0d0d',
         borderRadius: 12,
         padding: 14,
-        border: '1px solid rgba(245,245,240,0.07)',
+        border: '1px solid rgba(232,52,28,0.15)',
         minWidth: 160,
         flexShrink: 0,
         position: 'relative',

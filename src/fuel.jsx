@@ -1281,6 +1281,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   }
   const useBudgetView=wPrefs?.fuelView==="budget";
   const [ringExpanded,setRingExpanded]=useState(false);
+  const [whyExpanded,setWhyExpanded]=useState(false);
 
   // ── Meal Slots ─────────────────────────────────────────────────────────────
   const [mealSlots,setMealSlots]=useState(()=>getSlotsForFreq(profile?.mealFreq));
@@ -1987,252 +1988,156 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── HOME ── */}
         {fuelScreen==="home"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {/* VIEW TOGGLE — Macro Ring / Body Budget */}
-            <div style={{display:"flex",gap:2,background:"rgba(255,255,255,.04)",borderRadius:10,padding:2,alignSelf:"flex-start"}}>
-              {[["ring","Macro Ring"],["budget","Body Budget"]].map(([id,label])=>(
-                <button key={id} onClick={()=>{const wp={...wPrefs,fuelView:id};setWPrefs(wp);saveSettings(wp,null);}}
-                  style={{padding:"7px 16px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",transition:"all 0.15s",
-                  background:(id==="ring"?!useBudgetView:useBudgetView)?"var(--navy-light)":"transparent",
-                  color:(id==="ring"?!useBudgetView:useBudgetView)?"#fff":"rgba(245,245,240,.4)"}}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            {/* MAIN CARD — ring + macros */}
-            {/* BODY BUDGET or MACRO RING */}
-            {useBudgetView?(
-              <div className="hero-card" style={{padding:isMobile?"18px 16px":"24px 28px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TODAY'S BODY BUDGET</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:24,fontWeight:900,lineHeight:1}}>{macros.calories.toLocaleString()} kcal</div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:10,color:T.mu,letterSpacing:2,textTransform:"uppercase",marginBottom:2}}>Starting</div>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,.6)"}}>balance</div>
-                  </div>
-                </div>
-                {/* Ledger */}
-                <div style={{display:"flex",flexDirection:"column",gap:1,marginBottom:14}}>
-                  {todayActs.filter(a=>a.calories>0).map((a,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(52,211,153,0.07)",borderRadius:8,border:"1px solid rgba(52,211,153,0.15)"}}>
-                      <span style={{fontSize:13,color:"rgba(245,245,240,.8)"}}>{a.title||a.type} earned</span>
-                      <span style={{fontSize:14,fontWeight:700,color:T.green}}>+{a.calories} kcal</span>
+            {/* ── MACRO RING ── */}
+            {(()=>{
+              const circ=parseFloat((2*Math.PI*100).toFixed(1));
+              const calRemaining=Math.max(0,remaining.calories);
+              const calOver=remaining.calories<0;
+              const calPct=macros.calories>0?Math.min(1,consumed.calories/macros.calories):0;
+              const fillLen=parseFloat((calPct*circ).toFixed(1));
+              const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
+              const mno={fontFamily:"'DM Mono',monospace"};
+              return(
+                <>
+                  <style>{`
+                    @keyframes fuelRingSweepN{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}
+                    @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+                  `}</style>
+
+                  {/* Ring row: consumed | ring+remaining | target */}
+                  <div style={{position:'relative',height:220}}>
+                    <svg width="220" height="220" viewBox="0 0 220 220"
+                      style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%) rotate(-90deg)',filter:'drop-shadow(0 0 16px rgba(232,52,28,0.10))'}}>
+                      <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="10"/>
+                      <circle cx="110" cy="110" r="100" fill="none" stroke="#e8341c" strokeWidth="10" strokeLinecap="round"
+                        strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
+                        style={{animation:'fuelRingSweepN 0.8s cubic-bezier(.2,.7,.3,1) both'}}/>
+                    </svg>
+                    {/* Left — consumed */}
+                    <div style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
+                      <div style={{...cnd,fontSize:26,color:'#f5f5f0',lineHeight:1}}>{consumed.calories.toLocaleString()}</div>
+                      <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
                     </div>
-                  ))}
-                  {log.length===0&&(
-                    <div style={{padding:"16px 12px",border:`1px dashed rgba(245,245,240,0.1)`,borderRadius:10,textAlign:"center"}}>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:6}}>TAP + TO LOG YOUR FIRST MEAL<span style={{color:"#e8341c"}}>.</span></div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.25)",letterSpacing:"0.1em",animation:"fuelBounce 1.2s ease-in-out infinite",display:"inline-block"}}>↓</div>
+                    {/* Center — remaining */}
+                    <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',textAlign:'center',pointerEvents:'none'}}>
+                      <div style={{...cnd,fontSize:48,color:calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em'}}>
+                        {calOver?`+${Math.abs(remaining.calories).toLocaleString()}`:calRemaining.toLocaleString()}
+                      </div>
+                      <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>
+                        {calOver?'OVER':'REMAINING'}
+                      </div>
                     </div>
-                  )}
-                  {log.map((e,i)=>(
-                    <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:T.s2,borderRadius:8}}>
-                      <span style={{fontSize:13,color:"rgba(245,245,240,.8)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.food}</span>
-                      <span style={{fontSize:14,fontWeight:700,color:"#fff",flexShrink:0,marginLeft:8}}>−{e.calories} kcal</span>
+                    {/* Right — target */}
+                    <div style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
+                      <div style={{...cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}>{macros.calories.toLocaleString()}</div>
+                      <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
                     </div>
-                  ))}
-                </div>
-                {/* Divider + remaining */}
-                <div style={{height:1,background:`linear-gradient(90deg,${T.prot},${T.fat})`,borderRadius:1,marginBottom:14,opacity:.4}}/>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
-                  <div>
-                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginBottom:2}}>Remaining</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:isMobile?40:48,fontWeight:900,color:remaining.calories<0?T.prot:"#fff",lineHeight:1}}>{remaining.calories.toLocaleString()}</div>
-                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>kcal · {remaining.protein}g protein still needed</div>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    {[["P",T.prot,remaining.protein,"g"],[" C",T.carb,remaining.carbs,"g"],["F",T.fat,remaining.fat,"g"]].map(([l,c,v,u])=>(
-                      <div key={l} style={{fontSize:12,color:c,fontWeight:700}}>{l}: {v}{u}</div>
+
+                  {/* Macro bars */}
+                  <div style={{display:'flex',flexDirection:'column',gap:10,marginTop:20}}>
+                    {[
+                      {label:'PROTEIN',c:Math.round(consumed.protein),t:Math.round(macros.protein),color:'#e8341c'},
+                      {label:'CARBS',  c:Math.round(consumed.carbs),  t:Math.round(macros.carbs),  color:'#60a5fa'},
+                      {label:'FAT',    c:Math.round(consumed.fat),    t:Math.round(macros.fat),    color:'#FEA020'},
+                    ].map(({label,c,t,color})=>(
+                      <div key={label} style={{display:'flex',alignItems:'center',gap:12}}>
+                        <div style={{...mno,fontSize:9,textTransform:'uppercase',letterSpacing:'0.12em',width:56,color:'rgba(245,245,240,0.5)',flexShrink:0}}>{label}</div>
+                        <div style={{flex:1,height:6,background:'rgba(245,245,240,0.06)',borderRadius:3,overflow:'hidden'}}>
+                          <div style={{height:'100%',borderRadius:3,background:color,width:`${Math.min(100,t>0?Math.round(c/t*100):0)}%`,transition:'width 0.5s ease'}}/>
+                        </div>
+                        <div style={{...mno,fontSize:9,color:'#f5f5f0',letterSpacing:'0.08em',whiteSpace:'nowrap'}}>{c} / {t}g</div>
+                      </div>
                     ))}
                   </div>
-                </div>
-                {/* AI Suggestion */}
-                {remaining.calories>200&&(
-                  <div style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
-                    <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>Suggested to close the gap</div>
-                    {bodySuggest
-                      ?<div style={{fontSize:13,color:"#fff",lineHeight:1.6}}>{bodySuggest}</div>
-                      :<button onClick={fetchBodySuggest} disabled={bodySuggestLoading} style={{fontSize:12,color:T.prot,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600,padding:0}}>{bodySuggestLoading?"Getting suggestion...":"Get AI meal suggestion →"}</button>
+
+                  {/* WHY ARE MY MACROS LIKE THIS? */}
+                  {(()=>{
+                    const hasProto=todayProtocol&&todayProtocol.protocol_type!=='standard';
+                    const reasons=[];
+                    if(hasProto){
+                      const calDiff=Math.round((todayProtocol.adjusted_calories||0)-(todayProtocol.base_calories||0));
+                      const carbDiff=Math.round((todayProtocol.adjusted_carbs_g||0)-(todayProtocol.base_carbs_g||0));
+                      if(todayType==='training')reasons.push({macro:'PROTEIN',color:'#e8341c',arrow:'↑',arrowColor:'#22c55e',amount:`+${Math.max(5,Math.round(macros.protein*0.05))}g`,text:'Training day — extra protein supports muscle protein synthesis post-workout.'});
+                      if(Math.abs(carbDiff)>5)reasons.push({macro:'CARBS',color:'#60a5fa',arrow:calDiff>0?'↑':'↓',arrowColor:calDiff>0?'#22c55e':'#e8341c',amount:`${calDiff>0?'+':''}${carbDiff}g`,text:calDiff>0?`${todayFocus||'Training'} day — carbohydrates are your primary fuel source for compound movements.`:'Rest day today — lower carb intake matches your reduced energy output.'});
+                      reasons.push({macro:'FAT',color:'#FEA020',arrow:'→',arrowColor:'rgba(245,245,240,0.35)',amount:'same',text:'Fat targets are consistent across training and rest days.'});
                     }
-                  </div>
-                )}
-              </div>
-            ):(
-              (()=>{
-                /* ── SIMPLIFIED HERO RING ── */
-                const circ = parseFloat((2 * Math.PI * 68).toFixed(1));
-                const calRemaining = Math.max(0, remaining.calories);
-                const calOver = remaining.calories < 0;
-                const calPct = macros.calories > 0 ? Math.min(1, consumed.calories / macros.calories) : 0;
-                const fillLen = parseFloat((calPct * circ).toFixed(1));
-                const ringColor = calOver ? '#e8341c' : remaining.calories < macros.calories * 0.15 ? '#FEA020' : '#22c55e';
-                const proteinHit = consumed.protein >= macros.protein * 0.95;
-                const pctP = macros.protein > 0 ? Math.min(100, Math.round(consumed.protein / macros.protein * 100)) : 0;
-                const pctC = macros.carbs > 0 ? Math.min(100, Math.round(consumed.carbs / macros.carbs * 100)) : 0;
-                const pctF = macros.fat > 0 ? Math.min(100, Math.round(consumed.fat / macros.fat * 100)) : 0;
-                const isBeginner = (wPrefs?.liftExp || profile?.liftExp || 'beginner').toLowerCase() === 'beginner';
-
-                if (ringExpanded) {
-                  // Full expanded view (original ring + macro bars)
-                  const circFull = parseFloat((2 * Math.PI * 84).toFixed(1));
-                  const calPctFull = macros.calories > 0 ? Math.min(1, consumed.calories / macros.calories) : 0;
-                  const fillLenFull = parseFloat((calPctFull * circFull).toFixed(1));
-                  const pctPx = macros.protein > 0 ? Math.min(100, Math.round(consumed.protein / macros.protein * 100)) : 0;
-                  const pctCx = macros.carbs > 0 ? Math.min(100, Math.round(consumed.carbs / macros.carbs * 100)) : 0;
-                  const pctFx = macros.fat > 0 ? Math.min(100, Math.round(consumed.fat / macros.fat * 100)) : 0;
-                  const remPx = Math.max(0, Math.round(macros.protein - consumed.protein));
-                  const remCx = Math.max(0, Math.round(macros.carbs - consumed.carbs));
-                  const remFx = Math.max(0, Math.round(macros.fat - consumed.fat));
-                  return (
-                    <div onClick={() => setRingExpanded(false)} style={{ cursor: 'pointer' }}>
-                      <style>{`
-                        @keyframes fuelRingSweep{from{stroke-dashoffset:${circFull}}to{stroke-dashoffset:${(circFull - fillLenFull).toFixed(1)}}}
-                        @keyframes fuelBarP{from{width:0}to{width:${pctPx}%}}
-                        @keyframes fuelBarC{from{width:0}to{width:${pctCx}%}}
-                        @keyframes fuelBarF{from{width:0}to{width:${pctFx}%}}
-                        @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
-                      `}</style>
-                      <div style={{display:"flex",justifyContent:"center",padding:"8px 0 4px"}}>
-                        <div style={{position:"relative",width:200,height:200}}>
-                          <svg width="200" height="200" viewBox="0 0 200 200" style={{transform:"rotate(-90deg)",filter:"drop-shadow(0 0 24px rgba(232,52,28,0.18))"}}>
-                            <defs><linearGradient id="fuelRingGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#e8341c"/><stop offset="100%" stopColor="#c42d18"/></linearGradient></defs>
-                            <circle cx="100" cy="100" r="84" fill="none" stroke="rgba(245,245,240,0.08)" strokeWidth="16"/>
-                            <circle cx="100" cy="100" r="84" fill="none" stroke="url(#fuelRingGrad)" strokeWidth="16" strokeLinecap="round" strokeDasharray={circFull} strokeDashoffset={circFull - fillLenFull} style={{animation:"fuelRingSweep 0.8s cubic-bezier(.2,.7,.3,1) both"}}/>
-                          </svg>
-                          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",pointerEvents:"none"}}>
-                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:50,lineHeight:1,letterSpacing:"-0.02em",color:remaining.calories<0?T.prot:"#fff"}}>{consumed.calories.toLocaleString()}</div>
-                            <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"var(--white-dim)",marginTop:6,textTransform:"uppercase"}}>of {macros.calories.toLocaleString()} kcal</div>
-                            <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:4,letterSpacing:"0.1em"}}>{Math.max(0,remaining.calories).toLocaleString()} remaining</div>
-                          </div>
+                    return(
+                      <div style={{marginTop:12,borderTop:'1px solid rgba(232,52,28,0.08)'}}>
+                        <div onClick={()=>setWhyExpanded(w=>!w)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',cursor:'pointer'}}>
+                          <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em'}}>WHY ARE MY MACROS LIKE THIS?</div>
+                          <div style={{color:'#e8341c',fontSize:14}}>{whyExpanded?'↑':'↓'}</div>
                         </div>
-                      </div>
-                      <div style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",marginBottom:12,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>↑ COLLAPSE</div>
-                      <div>
-                        {[{label:"Protein",c:consumed.protein,t:macros.protein,pct:pctPx,rem:remPx,anim:"fuelBarP",delay:"0.1s",fill:"linear-gradient(90deg,rgba(96,165,250,0.7),#60a5fa)",glow:"0 0 8px rgba(96,165,250,0.5)"},{label:"Carbs",c:consumed.carbs,t:macros.carbs,pct:pctCx,rem:remCx,anim:"fuelBarC",delay:"0.2s",fill:"linear-gradient(90deg,rgba(34,197,94,0.7),#22c55e)",glow:"0 0 8px rgba(34,197,94,0.5)"},{label:"Fat",c:consumed.fat,t:macros.fat,pct:pctFx,rem:remFx,anim:"fuelBarF",delay:"0.3s",fill:"linear-gradient(90deg,rgba(245,158,11,0.7),#f59e0b)",glow:"0 0 8px rgba(245,158,11,0.5)"}].map(({label,c,t,pct,rem,anim,delay,fill,glow})=>(
-                          <div key={label} style={{marginBottom:14}}>
-                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}><span style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"var(--white)",textTransform:"uppercase",fontWeight:500}}>// {label}</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>{Math.round(c)}<span style={{color:"rgba(245,245,240,0.4)"}}>/{Math.round(t)}g</span></span></div>
-                            <div style={{height:8,background:"rgba(245,245,240,0.08)",borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,borderRadius:4,background:fill,boxShadow:glow,animation:`${anim} 0.8s cubic-bezier(.2,.7,.3,1) ${delay} both`}}/></div>
-                            <div style={{fontFamily:"var(--mono)",fontSize:"9.5px",color:"rgba(245,245,240,0.65)",letterSpacing:"0.08em",marginTop:6}}>{pct}% · {rem}g remaining</div>
-                          </div>
-                        ))}
-                        {macros.isFlexDay&&<div style={{marginTop:6,background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,158,11,.9)",lineHeight:1.6}}>Hit your protein ({macros.protein}g) and enjoy the rest today. Your weekday deficit has you covered.</div>}
-                        {!macros.isFlexDay&&(macros.flexDeficit||0)>0&&flexOn&&<div style={{marginTop:6,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"rgba(245,245,240,.4)",lineHeight:1.6}}>−{macros.flexDeficit} kcal today covers your flex days</div>}
-                      </div>
-                    </div>
-                  );
-                }
-
-                // COLLAPSED HERO
-                return (
-                  <>
-                    <style>{`
-                      @keyframes fuelRingSweepS{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ - fillLen).toFixed(1)}}}
-                      @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
-                    `}</style>
-
-                    {/* Hero Ring */}
-                    <div onClick={() => setRingExpanded(true)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, paddingBottom: 4, cursor: 'pointer' }}>
-                      <div style={{ position: 'relative', width: 160, height: 160 }}>
-                        <svg width="160" height="160" viewBox="0 0 160 160" style={{ transform: 'rotate(-90deg)' }}>
-                          <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(245,245,240,0.07)" strokeWidth="12"/>
-                          <circle cx="80" cy="80" r="68" fill="none" stroke={ringColor} strokeWidth="12" strokeLinecap="round"
-                            strokeDasharray={circ} strokeDashoffset={circ - fillLen}
-                            style={{ animation: 'fuelRingSweepS 0.8s cubic-bezier(.2,.7,.3,1) both', transition: 'stroke 0.4s' }}
-                          />
-                        </svg>
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none' }}>
-                          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, lineHeight: 1, color: calOver ? '#e8341c' : '#f5f5f0', letterSpacing: '-0.02em' }}>
-                            {calOver ? `+${Math.abs(remaining.calories)}` : calRemaining.toLocaleString()}
-                          </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 8, color: 'rgba(245,245,240,0.4)', marginTop: 5, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                            {calOver ? 'OVER TARGET' : (isBeginner ? 'CALORIES LEFT' : 'KCAL REMAINING')}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Thin P/C/F bar */}
-                      <div style={{ width: 160, marginTop: 10 }}>
-                        <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', gap: 1 }}>
-                          <div style={{ flex: pctP, background: proteinHit ? '#22c55e' : '#e8341c', borderRadius: '2px 0 0 2px', transition: 'flex 0.5s' }} />
-                          <div style={{ flex: pctC, background: '#FEA020', transition: 'flex 0.5s' }} />
-                          <div style={{ flex: pctF, background: '#60a5fa', borderRadius: '0 2px 2px 0', transition: 'flex 0.5s' }} />
-                          <div style={{ flex: Math.max(0, 300 - pctP - pctC - pctF), background: 'rgba(245,245,240,0.06)' }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 7, color: proteinHit ? '#22c55e' : 'rgba(245,245,240,0.4)', letterSpacing: '0.08em' }}>
-                            Protein {Math.round(consumed.protein)}g{proteinHit ? ' ✓' : ''}
-                          </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 7, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.08em' }}>
-                            Carbs {Math.round(consumed.carbs)}g
-                          </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 7, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.08em' }}>
-                            Fat {Math.round(consumed.fat)}g
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'center', marginTop: 6, fontFamily: 'DM Mono, monospace', fontSize: 7, color: 'rgba(245,245,240,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                          TAP FOR BREAKDOWN ↓
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Meal rows */}
-                    <div style={{ marginTop: 16, borderTop: '1px solid rgba(245,245,240,0.05)' }}>
-                      {log.length === 0 ? (
-                        <div style={{ padding: '20px 0', textAlign: 'center' }}>
-                          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: 'rgba(245,245,240,0.3)', textTransform: 'uppercase', marginBottom: 6 }}>
-                            TAP + TO LOG YOUR FIRST MEAL<span style={{ color: '#e8341c' }}>.</span>
-                          </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(245,245,240,0.2)', animation: 'fuelBounce 1.2s ease-in-out infinite', display: 'inline-block' }}>↓</div>
-                        </div>
-                      ) : (
-                        log.slice(0, 8).map((entry, i) => (
-                          <div key={entry.id || i} style={{
-                            display: 'flex', alignItems: 'center',
-                            padding: '12px 0',
-                            borderBottom: '1px solid rgba(245,245,240,0.05)',
-                          }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontFamily: 'var(--condensed)', fontSize: 15, color: '#f5f5f0', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.food}</div>
-                              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginTop: 2, letterSpacing: '0.08em' }}>
-                                {entry.calories} kcal · {entry.protein}g P · {entry.carbs}g C · {entry.fat}g F
+                        {whyExpanded&&(
+                          <div style={{marginBottom:12}}>
+                            {reasons.length>0?reasons.map((r,i)=>(
+                              <div key={i} style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'12px 14px',marginBottom:8}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                  <span style={{background:`${r.color}25`,border:`1px solid ${r.color}4D`,borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:r.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{r.macro}</span>
+                                  <span style={{...mno,fontSize:10,color:r.arrowColor,letterSpacing:'0.08em'}}>{r.arrow} {r.amount}</span>
+                                </div>
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.6)',lineHeight:1.4}}>{r.text}</div>
                               </div>
-                            </div>
-                            <button onClick={() => removeLog(entry.id)} style={{ marginLeft: 12, width: 24, height: 24, borderRadius: '50%', background: 'rgba(245,245,240,0.06)', border: '1px solid rgba(245,245,240,0.1)', color: 'rgba(245,245,240,0.35)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+                            )):(
+                              <div style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'12px 14px',marginBottom:8}}>
+                                <div style={{marginBottom:6}}>
+                                  <span style={{background:'rgba(232,52,28,0.15)',border:'1px solid rgba(232,52,28,0.3)',borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.1em',textTransform:'uppercase'}}>BASE TARGETS</span>
+                                </div>
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.6)',lineHeight:1.4}}>Today's macros reflect your standard daily targets. Adjust on training days automatically.</div>
+                              </div>
+                            )}
                           </div>
-                        ))
-                      )}
-                      {log.length > 8 && (
-                        <div style={{ padding: '10px 0', fontFamily: 'DM Mono, monospace', fontSize: 8, color: 'rgba(245,245,240,0.3)', textAlign: 'center', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                          + {log.length - 8} more entries
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    );
+                  })()}
 
-                      {/* Water row */}
-                      <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(245,245,240,0.05)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                          <span style={{ fontSize: 14 }}>💧</span>
-                          <div>
-                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>WATER</div>
-                            <div style={{ fontFamily: 'var(--condensed)', fontSize: 15, color: '#f5f5f0', fontWeight: 700, marginTop: 1 }}>
-                              {waterLogs?.length || 0} / {waterTarget || 8} glasses
-                            </div>
+                  {/* Meal rows */}
+                  <div style={{marginTop:16,borderTop:'1px solid rgba(245,245,240,0.05)'}}>
+                    {log.length===0?(
+                      <div style={{padding:'20px 0',textAlign:'center'}}>
+                        <div style={{fontFamily:'var(--condensed)',fontStyle:'italic',fontWeight:900,fontSize:18,color:'rgba(245,245,240,0.3)',textTransform:'uppercase',marginBottom:6}}>TAP + TO LOG YOUR FIRST MEAL<span style={{color:'#e8341c'}}>.</span></div>
+                        <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.2)',animation:'fuelBounce 1.2s ease-in-out infinite',display:'inline-block'}}>↓</div>
+                      </div>
+                    ):(
+                      log.slice(0,8).map((entry,i)=>(
+                        <div key={entry.id||i} style={{display:'flex',alignItems:'center',padding:'12px 0',borderBottom:'1px solid rgba(245,245,240,0.05)'}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:'var(--condensed)',fontSize:15,color:'#f5f5f0',fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.food}</div>
+                            <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.35)',marginTop:2,letterSpacing:'0.08em'}}>{entry.calories} kcal · {entry.protein}g P · {entry.carbs}g C · {entry.fat}g F</div>
+                          </div>
+                          <button onClick={()=>removeLog(entry.id)} style={{marginLeft:12,width:24,height:24,borderRadius:'50%',background:'rgba(245,245,240,0.06)',border:'1px solid rgba(245,245,240,0.1)',color:'rgba(245,245,240,0.35)',fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>×</button>
+                        </div>
+                      ))
+                    )}
+                    {log.length>8&&(
+                      <div style={{padding:'10px 0',...mno,fontSize:8,color:'rgba(245,245,240,0.3)',textAlign:'center',letterSpacing:'0.1em',textTransform:'uppercase'}}>+ {log.length-8} more entries</div>
+                    )}
+
+                    {/* Water row */}
+                    <div style={{display:'flex',alignItems:'center',padding:'12px 0',borderBottom:'1px solid rgba(245,245,240,0.05)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
+                        <svg width="12" height="16" viewBox="0 0 12 16" fill="none"><path d="M6 1C6 1 0.5 7.5 0.5 11a5.5 5.5 0 0011 0C11.5 7.5 6 1 6 1z" stroke="rgba(96,165,250,0.7)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="rgba(96,165,250,0.1)"/></svg>
+                        <div>
+                          <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',textTransform:'uppercase',letterSpacing:'0.1em'}}>WATER</div>
+                          <div style={{fontFamily:'var(--condensed)',fontSize:15,color:'#f5f5f0',fontWeight:700,marginTop:1}}>
+                            {Math.round(waterLogs?.reduce((s,l)=>s+Number(l.amount_oz||0),0)||0)} / {waterTarget||64} oz
                           </div>
                         </div>
-                        <button onClick={() => onAddWater?.({ amount_oz: 8 })} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(232,52,28,0.15)', border: '1px solid rgba(232,52,28,0.3)', color: '#e8341c', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 700, lineHeight: 1 }}>+</button>
                       </div>
-
-                      {/* Log food button */}
-                      <div style={{ paddingTop: 12 }}>
-                        <button onClick={() => setFuelScreen("log")} style={{ width: '100%', padding: '13px 0', background: 'transparent', border: '1px solid rgba(232,52,28,0.3)', borderRadius: 12, fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#e8341c', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                          + LOG FOOD
-                        </button>
-                      </div>
+                      <button onClick={()=>onAddWater?.({amount_oz:8})} style={{width:28,height:28,borderRadius:'50%',background:'rgba(232,52,28,0.15)',border:'1px solid rgba(232,52,28,0.3)',color:'#e8341c',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontWeight:700,lineHeight:1}}>+</button>
                     </div>
-                  </>
-                );
-              })()
-            )}
+
+                    {/* Log food button */}
+                    <div style={{paddingTop:12}}>
+                      <button onClick={()=>setFuelScreen("log")} style={{width:'100%',padding:'13px 0',background:'transparent',border:'1px solid rgba(232,52,28,0.3)',borderRadius:12,...mno,fontSize:10,color:'#e8341c',fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}>
+                        + LOG FOOD
+                      </button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* METABOLIC RESET PROGRESS */}
             {metabolicProtocol?.progress&&(
@@ -2509,14 +2414,6 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             </button>
 
-            {/* ── POWERED BY COACH MACRO STRIP ── */}
-            <FeatureStrip
-              tab="fuel"
-              onNavigate={(screen) => setFuelScreen(screen)}
-              onPhoto={() => onOpenPhotoLogger?.()}
-              onBarcode={() => { setFuelScreen("log"); setLogMode("barcode"); }}
-            />
-
             {/* WATER TRACKER */}
             {waterTarget>0&&(
               <>
@@ -2682,7 +2579,9 @@ Reply with ONLY a valid JSON object, no markdown:
             <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
             {onOpenPhotoLogger&&(
               <button onClick={onOpenPhotoLogger} style={{width:"100%",background:"rgba(232,52,28,0.08)",border:"1.5px solid rgba(232,52,28,0.3)",borderRadius:14,padding:16,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
-                <div style={{width:44,height:44,borderRadius:10,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📷</div>
+                <div style={{width:44,height:44,borderRadius:10,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <svg width="22" height="18" viewBox="0 0 22 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 5.5A1.5 1.5 0 012.5 4h1.086a1.5 1.5 0 001.342-.83l.164-.328A1.5 1.5 0 016.435 2h9.13a1.5 1.5 0 011.342.83l.164.328A1.5 1.5 0 0018.414 4H19.5A1.5 1.5 0 0121 5.5v10A1.5 1.5 0 0119.5 17h-17A1.5 1.5 0 011 15.5v-10z"/><circle cx="11" cy="10" r="3"/></svg>
+                </div>
                 <div style={{textAlign:"left"}}>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em",lineHeight:1}}>SNAP &amp; LOG<span style={{color:"#e8341c"}}>.</span></div>
                   <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginTop:3}}>Point your camera at your plate</div>
