@@ -31,6 +31,7 @@ import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
+import BodyMap from "./components/BodyMap.jsx";
 import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
@@ -3448,6 +3449,147 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           document.body
         )}
 
+        {/* ── POST-WORKOUT SUMMARY ── */}
+        {trainScreen==="summary"&&workoutSummary&&ReactDOM.createPortal(
+          (()=>{
+            const MUSCLE_TO_BODYMAP={
+              'Sternal Pec':'chest','Clavicular Pec':'chest','Serratus':'chest',
+              'Anterior Delt':'shoulders-f','Medial Delt':'shoulders-f','Supraspinatus':'shoulders-f',
+              'Rear Delt':'rear-delts',
+              'Long Head Tricep':'triceps','Lateral Head Tricep':'triceps','Medial Head Tricep':'triceps','Anconeus':'triceps',
+              'Long Head Bicep':'biceps','Short Head Bicep':'biceps','Brachialis':'biceps',
+              'Forearms':'forearms-f',
+              'Abs':'abs','Core':'abs','Obliques':'abs',
+              'Hip Flexors':'hip-flexors',
+              'Rectus Femoris':'quads','Vastus Lateralis':'quads','Vastus Medialis':'quads','Vastus Intermedius':'quads','Adductors':'quads',
+              'Biceps Femoris':'hamstrings','Semitendinosus':'hamstrings','Semimembranosus':'hamstrings',
+              'Gluteus Maximus':'glutes','Gluteus Medius':'glutes','Gluteus Minimus':'glutes',
+              'Calves':'calves-f',
+              'Lats':'lats','Teres Major':'lats','Rhomboids':'lats',
+              'Upper Traps':'traps','Mid Traps':'traps','Lower Traps':'traps',
+              'Lower Back':'lower-back',
+            };
+            const BODYMAP_COLOR={chest:'#e8341c','shoulders-f':'#FEA020','rear-delts':'#FEA020',biceps:'#9C6FFF',triceps:'#9C6FFF','forearms-f':'#9C6FFF','forearms-b':'#9C6FFF',abs:'#14C4B3','hip-flexors':'#14C4B3',quads:'#22c55e',hamstrings:'#22c55e',glutes:'#22c55e','calves-f':'#22c55e','calves-b':'#22c55e',lats:'#60a5fa',traps:'#60a5fa','lower-back':'#60a5fa'};
+            const REGION_LABELS={chest:'Chest','shoulders-f':'Shoulders','rear-delts':'Rear Delts',biceps:'Biceps',triceps:'Triceps','forearms-f':'Forearms',abs:'Core','hip-flexors':'Hip Flexors',quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes','calves-f':'Calves',lats:'Back',traps:'Traps','lower-back':'Lower Back'};
+            const ALL_REGIONS=['chest','shoulders-f','biceps','forearms-f','abs','hip-flexors','quads','calves-f','traps','lats','rear-delts','triceps','forearms-b','lower-back','glutes','hamstrings','calves-b'];
+            const workedRegions=new Set();
+            const primaryMuscleNames=new Set();
+            (workoutSummary.exercises||[]).forEach(ex=>{
+              const md=getExerciseData(ex.name);
+              if(md)md.primary.forEach(m=>{primaryMuscleNames.add(m);const r=MUSCLE_TO_BODYMAP[m];if(r)workedRegions.add(r);});
+            });
+            const bodyColors={};
+            ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?BODYMAP_COLOR[r]:'rgba(245,245,240,0.08)';});
+            const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:BODYMAP_COLOR[r]||'#e8341c'}));
+            const tomorrowIdx=(WDAYS.indexOf(todayKey)+1)%7;
+            const tomorrowKey=WDAYS[tomorrowIdx];
+            const tomorrowType=schedule?.[tomorrowKey]||'rest';
+            const tomorrowFocus=tomorrowType==='rest'?'REST DAY':(dayFocus?.[tomorrowKey]||tomorrowType.toUpperCase())+' DAY';
+            const tomorrowFullDay=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][(new Date().getDay()+1)%7];
+            const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
+            const durStr=workoutSummary.duration>=60?`${Math.floor(workoutSummary.duration/60)}H ${workoutSummary.duration%60}M`:`${workoutSummary.duration} MINUTES`;
+            const mno={fontFamily:"'DM Mono',monospace"};
+            const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
+            return(
+              <div style={{position:'fixed',inset:0,background:'#000000',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+                <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}`}</style>
+                <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
+
+                  {/* Close */}
+                  <button onClick={clearWorkoutSummary} style={{background:'none',border:'none',cursor:'pointer',padding:0,color:'rgba(245,245,240,0.35)',fontSize:22,lineHeight:1,marginBottom:28,display:'block'}}>✕</button>
+
+                  {/* Headline */}
+                  <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// SESSION COMPLETE'}</div>
+                  <div style={{...cnd,fontSize:72,color:'#f5f5f0',lineHeight:0.9,textTransform:'uppercase',marginBottom:12,letterSpacing:'-0.01em'}}>
+                    SESSION<br/>COMPLETE<span style={{color:'#e8341c'}}>.</span>
+                  </div>
+                  <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.35)',marginBottom:36,letterSpacing:'0.08em'}}>
+                    {dateStr} · {durStr}
+                  </div>
+
+                  {/* Stats row */}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:32}}>
+                    {[
+                      {val:workoutSummary.completedSets,label:'SETS'},
+                      {val:workoutSummary.totalVolume>0?workoutSummary.totalVolume.toLocaleString()+' lbs':'—',label:'VOLUME'},
+                      {val:workoutSummary.exercises?.length||0,label:'EXERCISES'},
+                    ].map(({val,label})=>(
+                      <div key={label} style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
+                        <div style={{...cnd,fontSize:32,color:'#f5f5f0',lineHeight:1}}>{val}</div>
+                        <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',marginTop:4}}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Muscles worked */}
+                  {workedRegions.size>0&&(
+                    <div style={{marginBottom:32}}>
+                      <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
+                      <BodyMap colors={bodyColors}/>
+                      {workedChips.length>0&&(
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:16}}>
+                          {workedChips.map(({label,color})=>(
+                            <span key={label} style={{background:`${color}15`,border:`1px solid ${color}30`,borderRadius:20,padding:'4px 12px',...mno,fontSize:9,color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* PRs */}
+                  {workoutSummary.prs?.length>0&&(
+                    <div style={{marginBottom:32}}>
+                      <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEW RECORDS'}</div>
+                      {workoutSummary.prs.map((pr,i)=>(
+                        <div key={i} style={{background:'rgba(34,197,94,0.05)',border:'1px solid rgba(34,197,94,0.15)',borderRadius:12,padding:'14px 16px',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <div>
+                            <div style={{...cnd,fontSize:18,color:'#f5f5f0',textTransform:'uppercase'}}>{pr.name}</div>
+                            {pr.reps&&<div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',marginTop:2}}>{pr.reps} REPS</div>}
+                          </div>
+                          <div style={{...cnd,fontSize:28,color:'#22c55e',textAlign:'right'}}>
+                            {pr.weight}<span style={{...mno,fontSize:10,fontStyle:'normal',fontWeight:400}}> lbs</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Fuel up */}
+                  <div style={{marginBottom:32}}>
+                    <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// FUEL UP'}</div>
+                    <div style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:16}}>
+                      <div style={{...cnd,fontSize:20,color:'#f5f5f0',textTransform:'uppercase',marginBottom:6}}>
+                        {macros?`${Math.round((macros.protein||150)*0.35)}G PROTEIN · ${Math.round((macros.carbs||200)*0.3)}G CARBS`:'40–50G PROTEIN · MODERATE CARBS'}
+                      </div>
+                      <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',lineHeight:1.6}}>
+                        Post-workout window is open. Hit protein within the next 45 minutes.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Next session */}
+                  <div style={{marginBottom:48}}>
+                    <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEXT UP'}</div>
+                    <div style={{...cnd,fontSize:28,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:8}}>
+                      {tomorrowFullDay} · {tomorrowFocus}
+                    </div>
+                    <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.4)',lineHeight:1.6}}>
+                      {tomorrowType==='rest'?'Rest day tomorrow. Focus on sleep and nutrition for full recovery.':'Rest well tonight. Your next session is in 24 hours.'}
+                    </div>
+                  </div>
+
+                  {/* Back to home */}
+                  <button onClick={clearWorkoutSummary} style={{width:'100%',padding:'18px 0',background:'#e8341c',border:'none',borderRadius:12,color:'#fff',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:16}}>
+                    BACK TO HOME →
+                  </button>
+
+                </div>
+              </div>
+            );
+          })(),
+          document.body
+        )}
+
         {/* ── ACTIVE WORKOUT ── */}
         {trainScreen==="active"&&activeSessionOpen&&ReactDOM.createPortal(
           <div style={{background:'#000000',position:'fixed',inset:0,zIndex:9999,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
@@ -3480,10 +3622,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {sessionMode==='hyrox-summary'&&renderHyroxSummary()}
 {!sessionMode&&(!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
-                <div style={{fontSize:48,marginBottom:16}}>💪</div>
-                <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:8}}>NO ACTIVE SESSION</div>
-                <div style={{fontSize:14,color:T.mu,marginBottom:24,lineHeight:1.6}}>Go to Lift Smarter, build your workout, then tap "Start This Session" to begin tracking sets and reps here.</div>
-                <button onClick={()=>setTrainScreen("builder")} style={{padding:"14px 28px",background:T.prot,color:T.white,fontWeight:700,fontSize:15,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Build a Workout →</button>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",textTransform:"uppercase",lineHeight:0.9,marginBottom:16}}>NO SESSION<br/>ACTIVE<span style={{color:"#e8341c"}}>.</span></div>
+                <div style={{fontFamily:"var(--mono)",fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.6}}>Head to the Train tab and tap Start Session to begin.</div>
+                <button onClick={()=>setTrainScreen("today")} style={{padding:"14px 28px",background:"#e8341c",color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.14em"}}>GO TO TRAIN →</button>
               </div>
               : workoutSummary
                 ? <WorkoutSummaryScreen
