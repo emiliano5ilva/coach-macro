@@ -1282,6 +1282,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const useBudgetView=wPrefs?.fuelView==="budget";
   const [ringExpanded,setRingExpanded]=useState(false);
   const [whyExpanded,setWhyExpanded]=useState(false);
+  const [kitchenCard,setKitchenCard]=useState(0);
 
   // ── Meal Slots ─────────────────────────────────────────────────────────────
   const [mealSlots,setMealSlots]=useState(()=>getSlotsForFreq(profile?.mealFreq));
@@ -2053,15 +2054,32 @@ Reply with ONLY a valid JSON object, no markdown:
 
                   {/* WHY ARE MY MACROS LIKE THIS? */}
                   {(()=>{
-                    const hasProto=todayProtocol&&todayProtocol.protocol_type!=='standard';
-                    const reasons=[];
-                    if(hasProto){
-                      const calDiff=Math.round((todayProtocol.adjusted_calories||0)-(todayProtocol.base_calories||0));
-                      const carbDiff=Math.round((todayProtocol.adjusted_carbs_g||0)-(todayProtocol.base_carbs_g||0));
-                      if(todayType==='training')reasons.push({macro:'PROTEIN',color:'#e8341c',arrow:'↑',arrowColor:'#22c55e',amount:`+${Math.max(5,Math.round(macros.protein*0.05))}g`,text:'Training day — extra protein supports muscle protein synthesis post-workout.'});
-                      if(Math.abs(carbDiff)>5)reasons.push({macro:'CARBS',color:'#60a5fa',arrow:calDiff>0?'↑':'↓',arrowColor:calDiff>0?'#22c55e':'#e8341c',amount:`${calDiff>0?'+':''}${carbDiff}g`,text:calDiff>0?`${todayFocus||'Training'} day — carbohydrates are your primary fuel source for compound movements.`:'Rest day today — lower carb intake matches your reduced energy output.'});
-                      reasons.push({macro:'FAT',color:'#FEA020',arrow:'→',arrowColor:'rgba(245,245,240,0.35)',amount:'same',text:'Fat targets are consistent across training and rest days.'});
-                    }
+                    const isTraining=todayType==='training';
+                    const carbDiff=Math.round((todayProtocol?.adjusted_carbs_g||0)-(todayProtocol?.base_carbs_g||0));
+                    const protAdj=isTraining?Math.max(10,Math.round(macros.protein*0.06)):8;
+                    const macroRows=[
+                      {
+                        key:'PROTEIN',color:'#e8341c',chipBg:'rgba(232,52,28,0.12)',chipBorder:'rgba(232,52,28,0.3)',
+                        arrows:[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}],
+                        amount:`+${protAdj}g`,amountColor:'#22c55e',
+                        text:isTraining?'Training day — extra protein supports muscle recovery and growth post-workout.':'Muscle protein synthesis continues 24–48h post-workout. Protein stays elevated on rest days.',
+                      },
+                      {
+                        key:'CARBS',color:'#60a5fa',chipBg:'rgba(96,165,250,0.12)',chipBorder:'rgba(96,165,250,0.3)',
+                        arrows:Math.abs(carbDiff)>5
+                          ?(carbDiff>0?(carbDiff>50?[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'},{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}]:[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}]):[{dir:'↓',bg:'rgba(232,52,28,0.15)',c:'#e8341c'}])
+                          :[{dir:'→',bg:'rgba(245,245,240,0.06)',c:'rgba(245,245,240,0.35)'}],
+                        amount:Math.abs(carbDiff)>5?`${carbDiff>0?'+':''}${carbDiff}g`:'—',
+                        amountColor:carbDiff>5?'#22c55e':carbDiff<-5?'#e8341c':'rgba(245,245,240,0.35)',
+                        text:carbDiff>5?`${todayFocus||'Training'} day — carbohydrates are your primary fuel for compound movements.`:carbDiff<-5?'No training today — reduced carbs match your lower energy demand.':'Carb targets are consistent today.',
+                      },
+                      {
+                        key:'FAT',color:'#FEA020',chipBg:'rgba(254,160,32,0.12)',chipBorder:'rgba(254,160,32,0.3)',
+                        arrows:[{dir:'→',bg:'rgba(245,245,240,0.06)',c:'rgba(245,245,240,0.35)'}],
+                        amount:'same',amountColor:'rgba(245,245,240,0.35)',
+                        text:'Fat targets stay consistent across training and rest days.',
+                      },
+                    ];
                     return(
                       <div style={{marginTop:12,borderTop:'1px solid rgba(232,52,28,0.08)'}}>
                         <div onClick={()=>setWhyExpanded(w=>!w)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',cursor:'pointer'}}>
@@ -2069,23 +2087,21 @@ Reply with ONLY a valid JSON object, no markdown:
                           <div style={{color:'#e8341c',fontSize:14}}>{whyExpanded?'↑':'↓'}</div>
                         </div>
                         {whyExpanded&&(
-                          <div style={{marginBottom:12}}>
-                            {reasons.length>0?reasons.map((r,i)=>(
-                              <div key={i} style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'12px 14px',marginBottom:8}}>
-                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                                  <span style={{background:`${r.color}25`,border:`1px solid ${r.color}4D`,borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:r.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{r.macro}</span>
-                                  <span style={{...mno,fontSize:10,color:r.arrowColor,letterSpacing:'0.08em'}}>{r.arrow} {r.amount}</span>
+                          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
+                            {macroRows.map(r=>(
+                              <div key={r.key} style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.08)',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                  <span style={{background:r.chipBg,border:`1px solid ${r.chipBorder}`,borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:r.color,letterSpacing:'0.12em',textTransform:'uppercase'}}>{r.key}</span>
+                                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                    {r.arrows.map((a,i)=>(
+                                      <div key={i} style={{width:20,height:20,borderRadius:'50%',background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:a.c}}>{a.dir}</div>
+                                    ))}
+                                    <span style={{...mno,fontSize:10,color:r.amountColor,letterSpacing:'0.08em'}}>{r.amount}</span>
+                                  </div>
                                 </div>
-                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.6)',lineHeight:1.4}}>{r.text}</div>
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.55)',lineHeight:1.4}}>{r.text}</div>
                               </div>
-                            )):(
-                              <div style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'12px 14px',marginBottom:8}}>
-                                <div style={{marginBottom:6}}>
-                                  <span style={{background:'rgba(232,52,28,0.15)',border:'1px solid rgba(232,52,28,0.3)',borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.1em',textTransform:'uppercase'}}>BASE TARGETS</span>
-                                </div>
-                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.6)',lineHeight:1.4}}>Today's macros reflect your standard daily targets. Adjust on training days automatically.</div>
-                              </div>
-                            )}
+                            ))}
                           </div>
                         )}
                       </div>
@@ -2113,20 +2129,6 @@ Reply with ONLY a valid JSON object, no markdown:
                     {log.length>8&&(
                       <div style={{padding:'10px 0',...mno,fontSize:8,color:'rgba(245,245,240,0.3)',textAlign:'center',letterSpacing:'0.1em',textTransform:'uppercase'}}>+ {log.length-8} more entries</div>
                     )}
-
-                    {/* Water row */}
-                    <div style={{display:'flex',alignItems:'center',padding:'12px 0',borderBottom:'1px solid rgba(245,245,240,0.05)'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
-                        <svg width="12" height="16" viewBox="0 0 12 16" fill="none"><path d="M6 1C6 1 0.5 7.5 0.5 11a5.5 5.5 0 0011 0C11.5 7.5 6 1 6 1z" stroke="rgba(96,165,250,0.7)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="rgba(96,165,250,0.1)"/></svg>
-                        <div>
-                          <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',textTransform:'uppercase',letterSpacing:'0.1em'}}>WATER</div>
-                          <div style={{fontFamily:'var(--condensed)',fontSize:15,color:'#f5f5f0',fontWeight:700,marginTop:1}}>
-                            {Math.round(waterLogs?.reduce((s,l)=>s+Number(l.amount_oz||0),0)||0)} / {waterTarget||64} oz
-                          </div>
-                        </div>
-                      </div>
-                      <button onClick={()=>onAddWater?.({amount_oz:8})} style={{width:28,height:28,borderRadius:'50%',background:'rgba(232,52,28,0.15)',border:'1px solid rgba(232,52,28,0.3)',color:'#e8341c',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontWeight:700,lineHeight:1}}>+</button>
-                    </div>
 
                     {/* Log food button */}
                     <div style={{paddingTop:12}}>
@@ -2388,7 +2390,7 @@ Reply with ONLY a valid JSON object, no markdown:
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
               {[
-                ["Food", ()=>setShowQuickLog(true),
+                ["Food", ()=>setFuelScreen("log"),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2s-2 2-2 5a2 2 0 004 0c0-3-2-5-2-5z"/><path d="M17 3v4a5 5 0 01-10 0V3"/><path d="M7 14v8m10-8v8"/></svg>],
                 ["Recipes", ()=>setFuelScreen("kitchen"),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>],
@@ -2842,6 +2844,36 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── KITCHEN (Recipes + Meal Prep) ── */}
         {fuelScreen==="kitchen"&&(
           <div style={{maxWidth:isMobile?"100%":700}}>
+
+            {/* Kitchen carousel */}
+            {(()=>{
+              const kitchenCards=[
+                {eyebrow:'// WEEKLY PREP',title:'MEAL PREP.',sub:'Cook once, eat all week',onPress:()=>{}},
+                {eyebrow:'// AI NUTRITION',title:'RESTAURANT AI.',sub:'Scan any menu for instant macro recommendations',onPress:()=>setFuelScreen('recs')},
+              ];
+              return(
+                <div style={{marginBottom:20}}>
+                  <div style={{overflowX:'auto',display:'flex',flexDirection:'row',gap:0,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',msOverflowStyle:'none',marginBottom:8}}
+                    onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||320;setKitchenCard(Math.min(1,Math.max(0,Math.round(el.scrollLeft/w))));}}
+                  >
+                    {kitchenCards.map((card,i)=>(
+                      <div key={i} onClick={card.onPress} style={{minWidth:'100%',maxWidth:'100%',scrollSnapAlign:'start',background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.12)',borderRadius:14,padding:'18px 16px',boxSizing:'border-box',cursor:'pointer',position:'relative'}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>{card.eyebrow}</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:24,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:6}}>{card.title}</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.4)',lineHeight:1.5}}>{card.sub}</div>
+                        <div style={{position:'absolute',bottom:16,right:16,color:'#e8341c',fontSize:16,lineHeight:1}}>→</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',justifyContent:'center',gap:6}}>
+                    {kitchenCards.map((_,i)=>(
+                      <div key={i} style={{width:i===kitchenCard?16:6,height:6,borderRadius:3,background:i===kitchenCard?'#e8341c':'rgba(245,245,240,0.15)',transition:'all 0.2s'}}/>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
               <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MY RECIPES</div>
               <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
@@ -2982,7 +3014,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* ── MEAL PREP section inside Kitchen ── */}
             <div style={{borderTop:`1px solid ${T.bd}`,marginTop:32,paddingTop:28}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
-              <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP 🥡</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP</div>
               {prepPlan&&!prepLoading&&(
                 <button onClick={generatePrepPlan} style={{fontSize:11,color:"#e8341c",background:"none",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
               )}
@@ -2999,7 +3031,6 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {!prepPlan&&!prepLoading&&(
               <div style={{textAlign:"center",padding:"56px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
-                <div style={{fontSize:48,marginBottom:14}}>🥡</div>
                 <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Generate Your Prep Plan</div>
                 <div style={{fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.65,maxWidth:300,margin:"0 auto 28px"}}>AI builds a complete Sunday prep guide — proteins, carbs, vegetables, and a ready-to-shop grocery list</div>
                 <button onClick={generatePrepPlan} style={{padding:"14px 32px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"1.8px",textTransform:"uppercase"}}>GENERATE PLAN →</button>
