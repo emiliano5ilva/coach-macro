@@ -3131,12 +3131,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     SESSION DETAILS {sessionDetailExpanded?"↑":"↓"}
                   </div>
                   {sessionDetailExpanded&&Array.isArray(todayPrescription)&&(
-                    <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(245,245,240,0.05)",display:"flex",flexDirection:"column",gap:6}}>
+                    <div style={{marginTop:10,padding:"4px 0",borderTop:"1px solid rgba(245,245,240,0.05)",display:"flex",flexDirection:"column"}}>
                       {todayPrescription.map((ex,i)=>(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:10,fontSize:12,color:"rgba(245,245,240,0.65)"}}>
-                          <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"DM Mono,monospace",fontSize:9,color:"#e8341c",flexShrink:0}}>{i+1}</div>
-                          <div style={{flex:1}}>{ex.name}</div>
-                          <div style={{fontFamily:"DM Mono,monospace",fontSize:9,color:"rgba(245,245,240,0.35)"}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid rgba(232,52,28,0.06)"}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",fontSize:11,color:"#e8341c",fontWeight:700,flexShrink:0}}>{i+1}</div>
+                          <div style={{flex:1,fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase"}}>{ex.name}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:"#f5f5f0",letterSpacing:"0.08em"}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
                         </div>
                       ))}
                     </div>
@@ -3473,10 +3473,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             const REGION_LABELS={chest:'Chest','shoulders-f':'Shoulders','rear-delts':'Rear Delts',biceps:'Biceps',triceps:'Triceps','forearms-f':'Forearms',abs:'Core','hip-flexors':'Hip Flexors',quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes','calves-f':'Calves',lats:'Back',traps:'Traps','lower-back':'Lower Back'};
             const ALL_REGIONS=['chest','shoulders-f','biceps','forearms-f','abs','hip-flexors','quads','calves-f','traps','lats','rear-delts','triceps','forearms-b','lower-back','glutes','hamstrings','calves-b'];
             // Use completedWorkout for real done-set data; fallback to workoutSummary
+            const parseReps=(r)=>{if(typeof r==='number')return r;if(typeof r==='string'){const p=r.split('-');return parseInt(p[0])||0;}return 0;};
             const srcExercises=completedWorkout?(completedWorkout.exercises||[]):(workoutSummary?.exercises||[]);
             const exercisesWorked=completedWorkout?srcExercises.filter(ex=>ex.sets?.some(s=>s.done)):srcExercises;
             const totalSetsLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.length||0),0):(workoutSummary?.completedSets||0);
-            const totalVolumeLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.reduce((sum,s)=>sum+((parseFloat(s.weight)||0)*(parseInt(s.reps)||0)),0)||0),0):(workoutSummary?.totalVolume||0);
+            const totalVolumeLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.reduce((sum,s)=>sum+((parseFloat(s.weight)||0)*parseReps(s.reps)),0)||0),0):(workoutSummary?.totalVolume||0);
             const workedRegions=new Set();
             const primaryMuscleNames=new Set();
             exercisesWorked.forEach(ex=>{
@@ -3519,7 +3520,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:32}}>
                     {[
                       {val:totalSetsLogged,label:'SETS'},
-                      {val:totalVolumeLogged>0?Math.round(totalVolumeLogged).toLocaleString()+' lbs':'—',label:'VOLUME'},
+                      {val:totalVolumeLogged>0?(totalVolumeLogged>=1000?(totalVolumeLogged/1000).toFixed(1)+'K lbs':Math.round(totalVolumeLogged)+' lbs'):'—',label:'VOLUME'},
                       {val:exercisesWorked.length||0,label:'EXERCISES'},
                     ].map(({val,label})=>(
                       <div key={label} style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
