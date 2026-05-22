@@ -1227,6 +1227,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"kitchen",label:"Kitchen"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
+  const mno={fontFamily:"'DM Mono',monospace"};
 
   const [now,setNow]=useState(Date.now());
   useEffect(()=>{
@@ -2223,7 +2224,10 @@ Reply with ONLY a valid JSON object, no markdown:
                       </div>
                     ))}
                     {log.length===0&&(
-                      <EmptyState title="Nothing logged yet" subtitle="Tap + on any meal slot or use Log Food"/>
+                      <div style={{textAlign:"center",padding:"24px 0"}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",marginBottom:4}}>Nothing logged yet</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.2)",letterSpacing:"0.1em"}}>Tap + on any meal slot above</div>
+                      </div>
                     )}
                   </div>
                 </div>
