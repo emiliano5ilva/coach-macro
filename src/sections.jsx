@@ -1255,7 +1255,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
   }
 
   return (
-    <div style={{position:"fixed",inset:0,zIndex:8000,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+    <div style={{position:"fixed",inset:0,zIndex:10000,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
       <div style={{width:"100%",maxWidth:480,background:"#0b1120",borderRadius:"22px 22px 0 0",padding:"0 24px 44px",border:"1px solid rgba(232,52,28,0.08)"}}>
         <div style={{height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{width:36,height:4,borderRadius:2,background:"rgba(245,245,240,0.12)"}}/>
@@ -1703,9 +1703,11 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   );
 }
 
-function MuscleChips({ name, sets, reps, sugg, history: h }) {
+function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup }) {
   const md = getExerciseData(name);
   const mono = { fontFamily:"'DM Mono','SF Mono',monospace" };
+  const groupColorMap={'chest':'#e8341c','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
+  const fallbackColor=groupColorMap[(muscleGroup||'').toLowerCase()]||'rgba(245,245,240,0.4)';
 
   // Weight progression indicator
   let weightEl = null;
@@ -1768,12 +1770,21 @@ function MuscleChips({ name, sets, reps, sugg, history: h }) {
           )}
         </>
       ) : (
-        /* Graceful fallback — no map entry */
-        sets && reps && (
-          <div style={{...mono, fontSize:9, color:'rgba(245,245,240,0.38)', marginTop:2}}>
-            {sets}×{reps}
-          </div>
-        )
+        /* Fallback — use muscleGroup chip if available */
+        <>
+          {muscleGroup && (
+            <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:3}}>
+              <span style={{...mono,fontSize:8,textTransform:'uppercase',letterSpacing:'0.08em',padding:'2px 8px',borderRadius:20,background:fallbackColor+'1a',border:`1px solid ${fallbackColor}33`,color:fallbackColor}}>
+                {muscleGroup}
+              </span>
+            </div>
+          )}
+          {sets && reps && (
+            <div style={{...mono, fontSize:9, color:'rgba(245,245,240,0.38)', marginTop:2}}>
+              {sets}×{reps}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -3436,16 +3447,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* Set completion flash overlay */}
             <SetFlashOverlay flash={setFlash}/>
 
-            {/* Enhanced rest timer — fixed overlay */}
-            <EnhancedRestTimer
-              restTimer={restTimer}
-              restActive={restActive}
-              lastLoggedSet={lastLoggedSet}
-              onSkip={skipRest}
-              onAdjust={adjustRest}
-              wUnit={profile?.wUnit || 'lbs'}
-            />
-
             {sessionMode==='run-picker'&&renderRunPicker()}
             {sessionMode==='run-gps'&&renderGPSRunScreen()}
             {sessionMode==='run-manual'&&renderManualRunScreen()}
@@ -3589,9 +3590,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                               const thumbUrl=getThumbnailUrl(ex.name);
                               const exMuscleData=getExerciseData(ex.name);
                               const primaryMuscle=exMuscleData?.primary?.[0]||null;
-                              const mColor=getMuscleColor(primaryMuscle)||'#888888';
+                              const groupColorMap={'chest':'#e8341c','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
+                              const groupColor=groupColorMap[(ex.muscleGroup||'').toLowerCase()]||'#888888';
+                              const mColor=getMuscleColor(primaryMuscle)||groupColor;
                               const colorToLetter={'#e8341c':'C','#60a5fa':'B','#FEA020':'S','#9C6FFF':'A','#22c55e':'L','#14C4B3':'CO'};
-                              const mLetter=colorToLetter[mColor]||(primaryMuscle?.[0]?.toUpperCase()||'?');
+                              const mLetter=colorToLetter[mColor]||ex.muscleGroup?.[0]?.toUpperCase()||ex.name?.[0]?.toUpperCase()||'?';
                               return(
                                 <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:54,height:54,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
                                   {thumbUrl?(<img src={thumbUrl} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>):null}
@@ -3626,7 +3629,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {ex.priority&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.08em",textTransform:"uppercase"}}>// PRIORITY MUSCLE</span></div>}
                           {ex.mobilitySubstituted&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// MOBILITY ADAPTED</span></div>}
                           {ex.isHealthAdapted&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.08em",textTransform:"uppercase"}}>// HEALTH ADAPTED</span></div>}
-                          <div style={{marginLeft:32,marginTop:4}}><MuscleChips name={ex.name} sugg={sugg} history={history}/></div>
+                          <div style={{marginLeft:32,marginTop:4}}><MuscleChips name={ex.name} sugg={sugg} history={history} muscleGroup={ex.muscleGroup}/></div>
                           {(()=>{
                             const exFatigue=(fatigueAlert?.fatigueSignals||[]).find(s=>(s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence")&&s.exercise===ex.name);
                             if(!exFatigue)return null;
@@ -3740,6 +3743,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
           </div>
         , document.body)}
+
+        {/* Rest timer — own body-level portal to escape overflow:auto container */}
+        {trainScreen==="active"&&activeSessionOpen&&ReactDOM.createPortal(
+          <EnhancedRestTimer
+            restTimer={restTimer}
+            restActive={restActive}
+            lastLoggedSet={lastLoggedSet}
+            onSkip={skipRest}
+            onAdjust={adjustRest}
+            wUnit={profile?.wUnit || 'lbs'}
+          />,
+          document.body
+        )}
 
         {/* ── Exercise detail modal ── */}
         {detailModal&&(
