@@ -370,6 +370,261 @@ export const EXERCISE_MUSCLE_MAP = {
     note: 'Sandbag load challenges core stability more',
   },
 
+  // ── ALIASES / DUMBBELL FULL-NAME VARIANTS ────────────────────────────────
+  'Incline Dumbbell Press': {
+    primary: ['Clavicular Pec', 'Anterior Delt'],
+    secondary: ['Long Head Tricep', 'Serratus'],
+    note: 'Incline shifts emphasis to upper pec',
+  },
+  'Dumbbell Bench Press': {
+    primary: ['Sternal Pec', 'Anterior Delt'],
+    secondary: ['Long Head Tricep', 'Lateral Head Tricep', 'Serratus'],
+    note: 'Greater ROM than barbell — deeper stretch at bottom',
+  },
+  'Dumbbell Fly': {
+    primary: ['Sternal Pec', 'Clavicular Pec'],
+    secondary: ['Anterior Delt', 'Serratus'],
+    note: 'Isolation — minimal tricep involvement',
+  },
+  'Dumbbell Row': {
+    primary: ['Lats', 'Teres Major'],
+    secondary: ['Rear Delt', 'Long Head Bicep', 'Lower Traps'],
+    note: 'Elbow close to body for more lat focus',
+  },
+  'Dumbbell Curl': {
+    primary: ['Long Head Bicep', 'Short Head Bicep'],
+    secondary: ['Brachialis', 'Forearms'],
+    note: 'Supinate at the top for peak contraction',
+  },
+  'Incline Dumbbell Curl': {
+    primary: ['Long Head Bicep'],
+    secondary: ['Short Head Bicep', 'Brachialis'],
+    note: 'Incline fully stretches and loads the long head',
+  },
+  'Dumbbell Shoulder Press': {
+    primary: ['Anterior Delt', 'Medial Delt'],
+    secondary: ['Long Head Tricep', 'Upper Traps', 'Serratus'],
+    note: 'Greater range than barbell',
+  },
+  'Seated Dumbbell Press': {
+    primary: ['Anterior Delt', 'Medial Delt'],
+    secondary: ['Long Head Tricep', 'Upper Traps', 'Serratus'],
+    note: 'Greater range than barbell',
+  },
+  'Dumbbell Overhead Press': {
+    primary: ['Anterior Delt', 'Medial Delt'],
+    secondary: ['Long Head Tricep', 'Upper Traps', 'Serratus'],
+    note: 'Greater range than barbell',
+  },
+  'Dumbbell Romanian Deadlift': {
+    primary: ['Biceps Femoris', 'Semitendinosus', 'Gluteus Maximus'],
+    secondary: ['Lower Back', 'Adductors', 'Forearms'],
+    note: 'Hip hinge — feel the stretch not the lower back',
+  },
+  'Dumbbell Deadlift': {
+    primary: ['Gluteus Maximus', 'Biceps Femoris', 'Lower Back'],
+    secondary: ['Semitendinosus', 'Lats', 'Vastus Lateralis', 'Core'],
+    note: 'Same hip hinge pattern as barbell — lighter load',
+  },
+  'Barbell Squat': {
+    primary: ['Rectus Femoris', 'Vastus Lateralis', 'Vastus Medialis', 'Gluteus Maximus'],
+    secondary: ['Adductors', 'Core', 'Lower Back'],
+    note: 'Hitting depth maximises glute and quad range',
+  },
+  'Squat': {
+    primary: ['Rectus Femoris', 'Vastus Lateralis', 'Gluteus Maximus'],
+    secondary: ['Adductors', 'Core'],
+    note: 'Full range of motion — knees track over toes',
+  },
+  'Calf Raise': {
+    primary: ['Calves'],
+    secondary: [],
+    note: 'Full stretch at bottom — do not bounce',
+  },
+  'Cable Row': {
+    primary: ['Mid Traps', 'Rhomboids', 'Lats'],
+    secondary: ['Rear Delt', 'Long Head Bicep', 'Lower Traps'],
+    note: 'Squeeze shoulder blades at the top',
+  },
+  'Close Grip Bench Press': {
+    primary: ['Medial Head Tricep', 'Long Head Tricep'],
+    secondary: ['Lateral Head Tricep', 'Anterior Delt', 'Sternal Pec'],
+    note: 'Close grip shifts load from pec to triceps',
+  },
+  'Weighted Pull Up': {
+    primary: ['Lats', 'Teres Major'],
+    secondary: ['Long Head Bicep', 'Rear Delt', 'Lower Traps', 'Serratus'],
+    note: 'Full dead hang maximises lat stretch',
+  },
+  'Barbell Hip Thrust': {
+    primary: ['Gluteus Maximus', 'Gluteus Medius'],
+    secondary: ['Biceps Femoris', 'Adductors', 'Core'],
+    note: 'Best exercise for glute max activation',
+  },
+  'Dumbbell Hip Thrust': {
+    primary: ['Gluteus Maximus', 'Gluteus Medius'],
+    secondary: ['Biceps Femoris', 'Adductors', 'Core'],
+    note: 'Best exercise for glute max activation',
+  },
+  'Decline Barbell Press': {
+    primary: ['Sternal Pec'],
+    secondary: ['Lateral Head Tricep', 'Medial Head Tricep', 'Anterior Delt'],
+    note: 'Decline maximises lower pec activation',
+  },
+  'Barbell Bent Over Row': {
+    primary: ['Lats', 'Mid Traps', 'Rhomboids'],
+    secondary: ['Rear Delt', 'Long Head Bicep', 'Lower Back'],
+    note: '45° torso angle hits mid-back and lats equally',
+  },
+  'Barbell Overhead Press': {
+    primary: ['Anterior Delt', 'Medial Delt'],
+    secondary: ['Long Head Tricep', 'Upper Traps', 'Serratus'],
+    note: 'Long head loads because arm goes overhead',
+  },
+  'Machine Shoulder Press': {
+    primary: ['Anterior Delt', 'Medial Delt'],
+    secondary: ['Long Head Tricep', 'Upper Traps'],
+    note: 'Fixed path reduces stabiliser demand',
+  },
+  'Assisted Pull Up': {
+    primary: ['Lats', 'Teres Major'],
+    secondary: ['Long Head Bicep', 'Rear Delt', 'Lower Traps'],
+    note: 'Same pattern as pull-up — counterweight reduces load',
+  },
+
+  // ── SHOULDERS — NEW ───────────────────────────────────────────────────────
+  'Rear Delt Fly': {
+    primary: ['Rear Delt'],
+    secondary: ['Mid Traps', 'Rhomboids'],
+    note: 'Keep slight bend in elbows throughout',
+  },
+  'Upright Row': {
+    primary: ['Upper Traps', 'Medial Delt'],
+    secondary: ['Anterior Delt', 'Short Head Bicep', 'Supraspinatus'],
+    note: 'Keep elbows above wrists throughout',
+  },
+  'Shrug': {
+    primary: ['Upper Traps'],
+    secondary: ['Mid Traps', 'Levator Scapulae'],
+    note: 'Full elevation — pause at top for peak contraction',
+  },
+
+  // ── ARMS — NEW ────────────────────────────────────────────────────────────
+  'Concentration Curl': {
+    primary: ['Short Head Bicep'],
+    secondary: ['Long Head Bicep', 'Brachialis'],
+    note: 'Arm braced on leg — maximises short head peak',
+  },
+  'Cable Curl': {
+    primary: ['Long Head Bicep', 'Short Head Bicep'],
+    secondary: ['Brachialis', 'Forearms'],
+    note: 'Constant tension through full range',
+  },
+  'Diamond Push Up': {
+    primary: ['Medial Head Tricep', 'Long Head Tricep'],
+    secondary: ['Lateral Head Tricep', 'Anterior Delt', 'Sternal Pec'],
+    note: 'Hands close together maximises tricep load',
+  },
+  'Cable Tricep Kickback': {
+    primary: ['Lateral Head Tricep'],
+    secondary: ['Medial Head Tricep', 'Anconeus'],
+    note: 'Upper arm parallel to floor throughout',
+  },
+
+  // ── LEGS — NEW ────────────────────────────────────────────────────────────
+  'Hack Squat': {
+    primary: ['Rectus Femoris', 'Vastus Lateralis', 'Vastus Medialis'],
+    secondary: ['Gluteus Maximus', 'Adductors'],
+    note: 'Machine locks torso — pure quad loading',
+  },
+  'Goblet Squat': {
+    primary: ['Rectus Femoris', 'Vastus Medialis', 'Gluteus Maximus'],
+    secondary: ['Adductors', 'Core'],
+    note: 'Weight forward encourages upright torso and depth',
+  },
+  'Bodyweight Squat': {
+    primary: ['Rectus Femoris', 'Gluteus Maximus'],
+    secondary: ['Vastus Medialis', 'Adductors', 'Core'],
+    note: 'Focus on depth and knee tracking',
+  },
+  'Air Squat': {
+    primary: ['Rectus Femoris', 'Gluteus Maximus'],
+    secondary: ['Vastus Medialis', 'Adductors', 'Core'],
+    note: 'Focus on depth and knee tracking',
+  },
+  'Reverse Lunge': {
+    primary: ['Rectus Femoris', 'Gluteus Maximus'],
+    secondary: ['Vastus Medialis', 'Biceps Femoris', 'Core'],
+    note: 'Step back — less knee stress than forward lunge',
+  },
+  'Step Up': {
+    primary: ['Rectus Femoris', 'Gluteus Maximus'],
+    secondary: ['Vastus Medialis', 'Biceps Femoris', 'Core'],
+    note: 'Drive through the heel of the elevated foot',
+  },
+  'Sumo Squat': {
+    primary: ['Adductors', 'Gluteus Maximus', 'Vastus Medialis'],
+    secondary: ['Gluteus Medius', 'Rectus Femoris'],
+    note: 'Wide stance targets inner quads and adductors',
+  },
+  'Sumo Deadlift': {
+    primary: ['Adductors', 'Gluteus Maximus'],
+    secondary: ['Biceps Femoris', 'Vastus Lateralis', 'Lower Back'],
+    note: 'Wide stance reduces lower back stress vs conventional',
+  },
+  'Glute Bridge': {
+    primary: ['Gluteus Maximus'],
+    secondary: ['Biceps Femoris', 'Adductors', 'Core'],
+    note: 'Drive hips to full extension — pause at top',
+  },
+  'Hip Thrust Pulse': {
+    primary: ['Gluteus Maximus'],
+    secondary: ['Gluteus Medius', 'Adductors'],
+    note: 'Short pulses at peak contraction for metabolic stress',
+  },
+  'Donkey Kick': {
+    primary: ['Gluteus Maximus'],
+    secondary: ['Gluteus Medius', 'Core'],
+    note: 'Keep hips square — move from the hip not the spine',
+  },
+  'Lateral Band Walk': {
+    primary: ['Gluteus Medius', 'Gluteus Minimus'],
+    secondary: ['Tensor Fasciae Latae', 'Adductors'],
+    note: 'Maintain tension throughout — do not snap band',
+  },
+  'Clamshell': {
+    primary: ['Gluteus Medius'],
+    secondary: ['Gluteus Minimus', 'Tensor Fasciae Latae'],
+    note: 'Keep pelvis stable — only the top knee opens',
+  },
+  'Cable Pull Through': {
+    primary: ['Gluteus Maximus', 'Biceps Femoris'],
+    secondary: ['Lower Back', 'Adductors', 'Core'],
+    note: 'Hip hinge — squeeze glutes hard at lockout',
+  },
+  'Curtsy Lunge': {
+    primary: ['Gluteus Medius', 'Rectus Femoris'],
+    secondary: ['Adductors', 'Gluteus Maximus', 'Vastus Medialis'],
+    note: 'Cross-step behind targets gluteus medius',
+  },
+  'Glute Kickback': {
+    primary: ['Gluteus Maximus'],
+    secondary: ['Biceps Femoris', 'Gluteus Medius'],
+    note: 'Keep pelvis neutral throughout the movement',
+  },
+
+  // ── CORE — NEW ────────────────────────────────────────────────────────────
+  'Dead Bug': {
+    primary: ['Abs', 'Core'],
+    secondary: ['Hip Flexors', 'Obliques'],
+    note: 'Lower back pressed to floor throughout — anti-extension',
+  },
+  'Bird Dog': {
+    primary: ['Core', 'Lower Back'],
+    secondary: ['Gluteus Maximus', 'Abs'],
+    note: 'Extend opposite arm and leg — keep spine neutral',
+  },
+
   // ── RUNNING ──────────────────────────
   'Easy Run': {
     primary: ['Biceps Femoris', 'Gluteus Maximus'],
@@ -398,5 +653,14 @@ export function getMuscleColor(muscle) {
 }
 
 export function getExerciseData(exerciseName) {
-  return EXERCISE_MUSCLE_MAP[exerciseName] || null;
+  if (!exerciseName) return null;
+  return (
+    EXERCISE_MUSCLE_MAP[exerciseName]
+    || EXERCISE_MUSCLE_MAP[exerciseName.replace(/-/g,' ')]
+    || EXERCISE_MUSCLE_MAP[exerciseName.replace(/ /g,'-')]
+    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase()]
+    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase().replace(/-/g,' ')]
+    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase().replace(/ /g,'-')]
+    || null
+  );
 }
