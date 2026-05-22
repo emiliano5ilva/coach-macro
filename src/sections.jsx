@@ -3277,13 +3277,143 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
         {/* ── WARM-UP SCREEN ── */}
         {trainScreen==="warmup"&&(
-          <WarmupScreen
-            sessionType={warmupSessionType||'push'}
-            skillLevel={warmupSkillLevel||'beginner'}
-            soreness={todaySoreness}
-            onStart={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
-            onSkip={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
-          />
+          <div style={{
+            position:'fixed',
+            top:0,left:0,right:0,bottom:0,
+            background:'#000000',
+            overflowY:'auto',
+            zIndex:9000,
+            display:'flex',
+            flexDirection:'column',
+            fontFamily:"'Barlow Condensed',sans-serif",
+          }}>
+            {/* Header */}
+            <div style={{padding:'max(env(safe-area-inset-top),48px) 24px 0'}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:'0.2em',color:'#e8341c',marginBottom:8}}>
+                {'// WARM-UP'}
+              </div>
+              <div style={{fontSize:36,fontWeight:900,fontStyle:'italic',color:'#f5f5f0',lineHeight:1,textTransform:'uppercase',marginBottom:14}}>
+                BEFORE {({'push':'PUSH SESSION','pull':'PULL SESSION','legs':'LEG SESSION','upper':'UPPER BODY SESSION','lower':'LOWER BODY SESSION','run':'RUN SESSION','hyrox':'HYROX SESSION'}[warmupSessionType||'push'])||'PUSH SESSION'}<span style={{color:'#e8341c'}}>.</span>
+              </div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.4)',marginBottom:24,letterSpacing:'0.08em'}}>
+                COMPLETE BEFORE LOADING THE BAR
+              </div>
+            </div>
+
+            {/* Self-contained hardcoded exercises — no external data */}
+            {(()=>{
+              try {
+                const wuExercises={
+                  push:[
+                    {name:'Arm Circles',sets:'2 × 30 sec',note:'Forward and backward'},
+                    {name:'Band Pull-Aparts',sets:'2 × 15 reps',note:'Activate rear delts'},
+                    {name:'Wall Slides',sets:'2 × 10 reps',note:'Shoulder mobility'},
+                    {name:'Incline Push-Ups',sets:'2 × 10 reps',note:'Prime chest and triceps'},
+                    {name:'Empty Bar Bench Press',sets:'1 × 15 reps',note:'Movement pattern prep'},
+                  ],
+                  pull:[
+                    {name:'Shoulder Rollouts',sets:'2 × 10 each',note:'Forward and backward'},
+                    {name:'Dead Hang',sets:'2 × 20 sec',note:'Decompress the spine'},
+                    {name:'Band Pull-Aparts',sets:'2 × 15 reps',note:'Rear delt activation'},
+                    {name:'Light Lat Pulldown',sets:'2 × 15 reps',note:'Feel lats engage'},
+                  ],
+                  legs:[
+                    {name:'Hip Circles',sets:'2 × 10 each',note:'Big slow circles'},
+                    {name:'Leg Swings',sets:'2 × 12 each',note:'Forward and back'},
+                    {name:'Bodyweight Squat',sets:'2 × 15 reps',note:'Slow 3-sec descent'},
+                    {name:'Glute Bridge',sets:'2 × 15 reps',note:'Pause at top'},
+                    {name:'Light Goblet Squat',sets:'1 × 12 reps',note:'Open the hips'},
+                  ],
+                  upper:[
+                    {name:'Arm Circles',sets:'2 × 20 each',note:'Loosen shoulders'},
+                    {name:'Band Pull-Aparts',sets:'2 × 15 reps',note:'Scapula activation'},
+                    {name:'Shoulder Rolls',sets:'2 × 10 each',note:'Full range both ways'},
+                    {name:'Light Press',sets:'2 × 15 reps',note:'Pattern prep'},
+                  ],
+                  lower:[
+                    {name:'Hip Circles',sets:'2 × 10 each',note:'Both directions'},
+                    {name:'Leg Swings',sets:'2 × 12 each',note:'Lateral and forward'},
+                    {name:'Bodyweight Squat',sets:'2 × 15 reps',note:'Feel the range'},
+                    {name:'Hip Flexor Stretch',sets:'2 × 30 sec',note:'Hold and breathe'},
+                  ],
+                  run:[
+                    {name:'Leg Swings',sets:'2 × 15 each',note:'Loosen hips'},
+                    {name:'Ankle Circles',sets:'2 × 10 each',note:'Both directions'},
+                    {name:'High Knees (slow)',sets:'2 × 30 sec',note:'Warm the hip flexors'},
+                    {name:'Easy Jog',sets:'1 × 3 min',note:'Build to aerobic pace'},
+                  ],
+                  hyrox:[
+                    {name:'Hip Circles',sets:'2 × 10 each',note:'Loosen hips and lower back'},
+                    {name:'Arm Circles',sets:'2 × 15 each',note:'Full range both directions'},
+                    {name:'Glute Bridge',sets:'2 × 15 reps',note:'Activate posterior chain'},
+                    {name:'Easy Jog',sets:'1 × 3 min',note:'Build to aerobic pace'},
+                    {name:'SkiErg Light',sets:'2 × 20 reps',note:'60% effort — get the feel'},
+                  ],
+                };
+                const list=wuExercises[warmupSessionType||'push']||wuExercises.push;
+                return(
+                  <div style={{padding:'0 24px',paddingBottom:200}}>
+                    {list.map((ex,i)=>(
+                      <div key={i} style={{
+                        background:'#0d0d0d',
+                        border:'1px solid rgba(232,52,28,0.08)',
+                        borderRadius:12,
+                        padding:'14px 16px',
+                        marginBottom:8,
+                        display:'flex',
+                        justifyContent:'space-between',
+                        alignItems:'center',
+                      }}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:18,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1.1}}>
+                            {ex.name}
+                          </div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',marginTop:3,letterSpacing:'0.1em'}}>
+                            {ex.note}
+                          </div>
+                        </div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'#e8341c',letterSpacing:'0.1em',flexShrink:0,marginLeft:12,textAlign:'right'}}>
+                          {ex.sets}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              } catch(err) {
+                return(
+                  <div style={{padding:24,fontFamily:"'DM Mono',monospace",fontSize:12,color:'#e8341c'}}>
+                    {'Error: '+err.message}
+                  </div>
+                );
+              }
+            })()}
+
+            {/* BEGIN SESSION + SKIP buttons */}
+            <div style={{
+              position:'fixed',
+              bottom:0,left:0,right:0,
+              padding:'16px 24px',
+              paddingBottom:'max(env(safe-area-inset-bottom),24px)',
+              background:'#000000',
+              borderTop:'1px solid rgba(245,245,240,0.06)',
+              display:'flex',
+              flexDirection:'column',
+              gap:10,
+            }}>
+              <button
+                onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
+                style={{width:'100%',padding:'16px 0',background:'#e8341c',border:'none',borderRadius:12,color:'#fff',fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}
+              >
+                BEGIN SESSION →
+              </button>
+              <button
+                onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
+                style={{width:'100%',padding:'13px 0',background:'transparent',border:'1px solid rgba(245,245,240,0.15)',borderRadius:12,color:'rgba(245,245,240,0.4)',fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}
+              >
+                SKIP WARM-UP →
+              </button>
+            </div>
+          </div>
         )}
 
         {/* ── ACTIVE WORKOUT ── */}
