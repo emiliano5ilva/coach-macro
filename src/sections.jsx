@@ -1824,22 +1824,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   // ── Local rest timer ─────────────────────────────────────────────────────
   const [showRestTimer,setShowRestTimer]=useState(false);
   const [restSeconds,setRestSeconds]=useState(90);
-  const restIntervalRef=useRef(null);
   const restTotalRef=useRef(90);
-  function startLocalRest(secs=90){
-    clearInterval(restIntervalRef.current);
-    restTotalRef.current=secs;
-    setRestSeconds(secs);
-    setShowRestTimer(true);
-    restIntervalRef.current=setInterval(()=>{
-      setRestSeconds(prev=>{
-        if(prev<=1){clearInterval(restIntervalRef.current);setShowRestTimer(false);return 0;}
-        return prev-1;
-      });
-    },1000);
-  }
-  function stopLocalRest(){clearInterval(restIntervalRef.current);setShowRestTimer(false);setRestSeconds(90);}
-  useEffect(()=>()=>{clearInterval(restIntervalRef.current);},[]);
+  useEffect(()=>{
+    if(!showRestTimer)return;
+    if(restSeconds<=0){setShowRestTimer(false);return;}
+    const t=setTimeout(()=>setRestSeconds(s=>s-1),1000);
+    return()=>clearTimeout(t);
+  },[showRestTimer,restSeconds]);
+  function startLocalRest(secs=90){restTotalRef.current=secs;setRestSeconds(secs);setShowRestTimer(true);}
+  function stopLocalRest(){setShowRestTimer(false);setRestSeconds(0);}
+  const formatRest=(s)=>{const m=Math.floor(s/60);const sec=s%60;return`${m}:${sec.toString().padStart(2,'0')}`;};
 
   // ── Exercise detail modal ────────────────────────────────────────────────
   const [detailModal,setDetailModal]=useState(null); // {exerciseName, exerciseIdx}
@@ -3539,7 +3533,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {activeWorkout.readinessTier&&(()=>{const cfg=READINESS_CONFIG[activeWorkout.readinessTier];const isOptimal=activeWorkout.readinessTier==="optimal";const badgeColor=isOptimal?"#22c55e":cfg.color;return(
                   <div style={{background:`${badgeColor}10`,border:`1.5px solid ${badgeColor}30`,borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
                     <div style={{flex:1}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:badgeColor,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#e8341c",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",lineHeight:1.1}}>{cfg.label}</div>
                       <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:3}}>{cfg.sub}</div>
                     </div>
@@ -3599,7 +3593,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const ei=Math.min(currentExerciseIdx,exList.length-1);
                   const ex=exList[ei];
                   if(!ex)return null;
-                  console.log('EXERCISE MUSCLES:',{name:ex.name,primaryMuscles:ex.primaryMuscles,secondaryMuscles:ex.secondaryMuscles,muscleGroup:ex.muscleGroup,muscles:ex.muscles,category:ex.category});
+                  console.log('EXERCISE MUSCLES:',{name:ex.name,primaryMuscles:ex.primaryMuscles,secondaryMuscles:ex.secondaryMuscles,muscleGroup:ex.muscleGroup,muscles:ex.muscles,category:ex.category,bodyPart:ex.bodyPart});
+                  console.log('IMAGE FIELDS:',{gif:ex.gif,gifUrl:ex.gifUrl,image:ex.image,imageUrl:ex.imageUrl,thumbnail:ex.thumbnail});
                   const sugg=getSuggestion(ex.name);
                   const doneSets=(ex.sets||[]).filter(s=>s.done).length;
                   const totalSets=(ex.sets||[]).length;
@@ -3621,17 +3616,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 : ei+1}
                             </div>
                             {(()=>{
-                              const thumbUrl=getThumbnailUrl(ex.name);
+                              // Muscle color + letter — substring match so "back muscles" still hits "back"
                               const exMuscleData=getExerciseData(ex.name);
-                              const rawPrimary=(ex.primaryMuscles?.[0]||ex.muscleGroup||exMuscleData?.primary?.[0]||'chest').toLowerCase();
-                              const MCOLORS={'chest':'#e8341c','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
-                              const fallbackBg=MCOLORS[rawPrimary]||getMuscleColor(exMuscleData?.primary?.[0])||'#e8341c';
-                              const mLetter=rawPrimary==='core'?'CO':(rawPrimary[0]?.toUpperCase()||'?');
+                              const rawMuscle=(ex.primaryMuscles?.[0]||ex.muscleGroup||ex.muscles?.primary?.[0]||ex.bodyPart||ex.category||exMuscleData?.primary?.[0]||'chest').toLowerCase();
+                              const MUSCLE_MAP={chest:{color:'#e8341c',letter:'C'},back:{color:'#60a5fa',letter:'B'},shoulder:{color:'#FEA020',letter:'S'},arm:{color:'#9C6FFF',letter:'A'},bicep:{color:'#9C6FFF',letter:'A'},tricep:{color:'#9C6FFF',letter:'A'},leg:{color:'#22c55e',letter:'L'},glute:{color:'#22c55e',letter:'L'},calf:{color:'#22c55e',letter:'L'},calves:{color:'#22c55e',letter:'L'},core:{color:'#14C4B3',letter:'CO'},default:{color:'#e8341c',letter:'?'}};
+                              const muscleKey=Object.keys(MUSCLE_MAP).find(k=>k!=='default'&&rawMuscle.includes(k))||'default';
+                              const {color:fallbackBg,letter:mLetter}=MUSCLE_MAP[muscleKey];
+                              // Image source — check all possible field names
+                              const imgSrc=ex.gif||ex.gifUrl||ex.image||ex.imageUrl||ex.thumbnail||getThumbnailUrl(ex.name)||null;
                               return(
                                 <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:64,height:64,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                  {thumbUrl?(<img src={thumbUrl} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>):null}
-                                  <div style={{position:"absolute",inset:0,display:thumbUrl?"none":"flex",background:fallbackBg,borderRadius:10,alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#fff",lineHeight:1,textTransform:"uppercase"}}>{mLetter}</span>
+                                  {imgSrc?(<img src={imgSrc} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>):null}
+                                  <div style={{position:"absolute",inset:0,display:imgSrc?"none":"flex",background:fallbackBg,borderRadius:10,alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff",lineHeight:1,textTransform:"uppercase"}}>{mLetter}</span>
                                   </div>
                                 </div>
                               );
@@ -3776,19 +3773,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
         , document.body)}
 
-        {/* Local rest timer overlay — own portal so it escapes overflow:auto */}
+        {/* Local rest timer overlay — body-level portal escapes overflow:auto */}
         {showRestTimer&&ReactDOM.createPortal(
-          <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10001,background:"#0d0d0d",borderTop:"2px solid #e8341c",borderRadius:"20px 20px 0 0",padding:"24px 24px",paddingBottom:"max(env(safe-area-inset-bottom),24px)",fontFamily:"'Barlow Condensed',sans-serif"}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.18em",marginBottom:10}}>// REST</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:72,color:"#f5f5f0",lineHeight:1,marginBottom:14,fontVariantNumeric:"tabular-nums"}}>
-              {String(Math.floor(restSeconds/60)).padStart(1,'0')}:{String(restSeconds%60).padStart(2,'0')}
+          <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10001,background:"#0d0d0d",borderTop:"2px solid #e8341c",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"max(env(safe-area-inset-bottom),40px)"}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8,textAlign:"center"}}>// REST</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:72,color:"#f5f5f0",textAlign:"center",lineHeight:1,marginBottom:16}}>
+              {formatRest(restSeconds)}
             </div>
-            <div style={{width:"100%",height:3,background:"rgba(245,245,240,0.1)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${Math.max(0,restSeconds/restTotalRef.current*100)}%`,background:"#e8341c",borderRadius:2,transition:"width 1s linear"}}/>
+            <div style={{height:3,background:"rgba(245,245,240,0.1)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
+              <div style={{height:"100%",background:"#e8341c",borderRadius:2,width:`${Math.max(0,(restSeconds/restTotalRef.current)*100)}%`,transition:"width 1s linear"}}/>
             </div>
             <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>setRestSeconds(s=>Math.max(10,s-30))} style={{flex:1,padding:"14px 0",background:"transparent",border:"1px solid rgba(245,245,240,0.15)",borderRadius:12,color:"rgba(245,245,240,0.6)",fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:"0.12em",cursor:"pointer"}}>−30s</button>
-              <button onClick={stopLocalRest} style={{flex:2,padding:"14px 0",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:"0.14em",cursor:"pointer"}}>SKIP REST →</button>
+              <button onClick={()=>setRestSeconds(s=>Math.max(0,s-30))} style={{flex:1,background:"transparent",border:"1px solid rgba(245,245,240,0.15)",borderRadius:12,padding:13,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",cursor:"pointer"}}>−30s</button>
+              <button onClick={stopLocalRest} style={{flex:2,background:"#e8341c",border:"none",borderRadius:12,padding:13,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
             </div>
           </div>,
           document.body
