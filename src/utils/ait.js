@@ -50,7 +50,7 @@ export const READINESS_CONFIG = {
     weightMod: 1.0,
     volumeMod: 1.0,
     amrap: true,
-    badge: "💪 PEAK DAY",
+    badge: "PEAK DAY",
   },
   suboptimal: {
     label: "Let's be smart today",
@@ -59,7 +59,7 @@ export const READINESS_CONFIG = {
     weightMod: 0.9,
     volumeMod: 1.0,
     amrap: false,
-    badge: "⚡ MANAGE",
+    badge: "MANAGE",
   },
   poor: {
     label: "Recovery session today",
@@ -68,7 +68,7 @@ export const READINESS_CONFIG = {
     weightMod: 0.6,
     volumeMod: 0.7,
     amrap: false,
-    badge: "🔄 RECOVERY",
+    badge: "RECOVERY",
   },
 };
 

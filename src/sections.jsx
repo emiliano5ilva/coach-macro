@@ -1703,11 +1703,14 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   );
 }
 
-function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup }) {
+function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryMuscles: pmProp, secondaryMuscles: smProp }) {
   const md = getExerciseData(name);
   const mono = { fontFamily:"'DM Mono','SF Mono',monospace" };
   const groupColorMap={'chest':'#e8341c','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
   const fallbackColor=groupColorMap[(muscleGroup||'').toLowerCase()]||'rgba(245,245,240,0.4)';
+  // Resolve muscle arrays from all possible field shapes
+  const fallbackPrimary = pmProp || (muscleGroup ? [muscleGroup] : []);
+  const fallbackSecondary = smProp || [];
 
   // Weight progression indicator
   let weightEl = null;
@@ -1770,13 +1773,23 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup }) {
           )}
         </>
       ) : (
-        /* Fallback — use muscleGroup chip if available */
+        /* Fallback — use passed primaryMuscles/muscleGroup arrays */
         <>
-          {muscleGroup && (
+          {fallbackPrimary.length > 0 && (
             <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:3}}>
-              <span style={{...mono,fontSize:8,textTransform:'uppercase',letterSpacing:'0.08em',padding:'2px 8px',borderRadius:20,background:fallbackColor+'1a',border:`1px solid ${fallbackColor}33`,color:fallbackColor}}>
-                {muscleGroup}
-              </span>
+              {fallbackPrimary.map((m,i) => {
+                const col = getMuscleColor(m) || groupColorMap[(m||'').toLowerCase()] || fallbackColor;
+                return (
+                  <span key={i} style={{...mono,fontSize:8,textTransform:'uppercase',letterSpacing:'0.08em',padding:'2px 8px',borderRadius:20,background:col+'1a',border:`1px solid ${col}33`,color:col}}>
+                    {m}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          {fallbackSecondary.length > 0 && (
+            <div style={{...mono,fontSize:8,color:'rgba(245,245,240,0.28)',letterSpacing:'0.06em',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              + {fallbackSecondary.join(' · ')}
             </div>
           )}
           {sets && reps && (
@@ -1807,6 +1820,26 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   // ── Exercise navigation ──────────────────────────────────────────────────
   const [currentExerciseIdx,setCurrentExerciseIdx]=useState(0);
   useEffect(()=>{ if(trainScreen==="active") setCurrentExerciseIdx(0); },[trainScreen]);
+
+  // ── Local rest timer ─────────────────────────────────────────────────────
+  const [showRestTimer,setShowRestTimer]=useState(false);
+  const [restSeconds,setRestSeconds]=useState(90);
+  const restIntervalRef=useRef(null);
+  const restTotalRef=useRef(90);
+  function startLocalRest(secs=90){
+    clearInterval(restIntervalRef.current);
+    restTotalRef.current=secs;
+    setRestSeconds(secs);
+    setShowRestTimer(true);
+    restIntervalRef.current=setInterval(()=>{
+      setRestSeconds(prev=>{
+        if(prev<=1){clearInterval(restIntervalRef.current);setShowRestTimer(false);return 0;}
+        return prev-1;
+      });
+    },1000);
+  }
+  function stopLocalRest(){clearInterval(restIntervalRef.current);setShowRestTimer(false);setRestSeconds(90);}
+  useEffect(()=>()=>{clearInterval(restIntervalRef.current);},[]);
 
   // ── Exercise detail modal ────────────────────────────────────────────────
   const [detailModal,setDetailModal]=useState(null); // {exerciseName, exerciseIdx}
@@ -3503,12 +3536,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
 
                 {/* Readiness banner */}
-                {activeWorkout.readinessTier&&(()=>{const cfg=READINESS_CONFIG[activeWorkout.readinessTier];return(
-                  <div style={{background:`${cfg.color}10`,border:`1.5px solid ${cfg.color}30`,borderRadius:14,padding:"10px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{fontSize:11,fontWeight:700,color:cfg.color,letterSpacing:".1em"}}>{cfg.badge}</div>
+                {activeWorkout.readinessTier&&(()=>{const cfg=READINESS_CONFIG[activeWorkout.readinessTier];const isOptimal=activeWorkout.readinessTier==="optimal";const badgeColor=isOptimal?"#22c55e":cfg.color;return(
+                  <div style={{background:`${badgeColor}10`,border:`1.5px solid ${badgeColor}30`,borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{cfg.label}</div>
-                      <div style={{fontSize:11,color:T.mu}}>{cfg.sub}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:badgeColor,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",lineHeight:1.1}}>{cfg.label}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:3}}>{cfg.sub}</div>
                     </div>
                   </div>
                 );})()}
@@ -3566,6 +3599,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const ei=Math.min(currentExerciseIdx,exList.length-1);
                   const ex=exList[ei];
                   if(!ex)return null;
+                  console.log('EXERCISE MUSCLES:',{name:ex.name,primaryMuscles:ex.primaryMuscles,secondaryMuscles:ex.secondaryMuscles,muscleGroup:ex.muscleGroup,muscles:ex.muscles,category:ex.category});
                   const sugg=getSuggestion(ex.name);
                   const doneSets=(ex.sets||[]).filter(s=>s.done).length;
                   const totalSets=(ex.sets||[]).length;
@@ -3589,17 +3623,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             {(()=>{
                               const thumbUrl=getThumbnailUrl(ex.name);
                               const exMuscleData=getExerciseData(ex.name);
-                              const primaryMuscle=exMuscleData?.primary?.[0]||null;
-                              const groupColorMap={'chest':'#e8341c','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
-                              const groupColor=groupColorMap[(ex.muscleGroup||'').toLowerCase()]||'#888888';
-                              const mColor=getMuscleColor(primaryMuscle)||groupColor;
-                              const colorToLetter={'#e8341c':'C','#60a5fa':'B','#FEA020':'S','#9C6FFF':'A','#22c55e':'L','#14C4B3':'CO'};
-                              const mLetter=colorToLetter[mColor]||ex.muscleGroup?.[0]?.toUpperCase()||ex.name?.[0]?.toUpperCase()||'?';
+                              const rawPrimary=(ex.primaryMuscles?.[0]||ex.muscleGroup||exMuscleData?.primary?.[0]||'chest').toLowerCase();
+                              const MCOLORS={'chest':'#e8341c','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
+                              const fallbackBg=MCOLORS[rawPrimary]||getMuscleColor(exMuscleData?.primary?.[0])||'#e8341c';
+                              const mLetter=rawPrimary==='core'?'CO':(rawPrimary[0]?.toUpperCase()||'?');
                               return(
-                                <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:54,height:54,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:64,height:64,borderRadius:10,background:T.s3,border:`1px solid ${T.bd}`,flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
                                   {thumbUrl?(<img src={thumbUrl} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>):null}
-                                  <div style={{position:"absolute",inset:0,display:thumbUrl?"none":"flex",background:`${mColor}1A`,borderRadius:10,alignItems:"center",justifyContent:"center"}}>
-                                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:mColor,lineHeight:1}}>{mLetter}</span>
+                                  <div style={{position:"absolute",inset:0,display:thumbUrl?"none":"flex",background:fallbackBg,borderRadius:10,alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#fff",lineHeight:1,textTransform:"uppercase"}}>{mLetter}</span>
                                   </div>
                                 </div>
                               );
@@ -3629,7 +3661,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {ex.priority&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.08em",textTransform:"uppercase"}}>// PRIORITY MUSCLE</span></div>}
                           {ex.mobilitySubstituted&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// MOBILITY ADAPTED</span></div>}
                           {ex.isHealthAdapted&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.08em",textTransform:"uppercase"}}>// HEALTH ADAPTED</span></div>}
-                          <div style={{marginLeft:32,marginTop:4}}><MuscleChips name={ex.name} sugg={sugg} history={history} muscleGroup={ex.muscleGroup}/></div>
+                          <div style={{marginLeft:32,marginTop:4}}><MuscleChips name={ex.name} sugg={sugg} history={history} muscleGroup={ex.muscleGroup} primaryMuscles={ex.primaryMuscles} secondaryMuscles={ex.secondaryMuscles}/></div>
                           {(()=>{
                             const exFatigue=(fatigueAlert?.fatigueSignals||[]).find(s=>(s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence")&&s.exercise===ex.name);
                             if(!exFatigue)return null;
@@ -3677,7 +3709,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 <div style={{fontSize:13,color:s.done?"#22c55e":isActiveSt?"#f5f5f0":T.mu,fontWeight:700,textAlign:"center"}}>#{si+1}</div>
                                 <input defaultValue={s.weight||sugg?.weight||""} placeholder={profile?.wUnit||'lbs'} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
                                 <input defaultValue={s.reps||sugg?.reps||10} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
-                                <button onClick={()=>{if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);}}} style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"#0d0d0d",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(245,245,240,0.5)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}>{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
+                                <button onClick={()=>{if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);startLocalRest(90);}}} style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"#0d0d0d",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(245,245,240,0.5)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}>{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
                               </div>
                               {s.done&&(
                                 <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:44,marginBottom:6,marginTop:-2}}>
@@ -3744,16 +3776,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
         , document.body)}
 
-        {/* Rest timer — own body-level portal to escape overflow:auto container */}
-        {trainScreen==="active"&&activeSessionOpen&&ReactDOM.createPortal(
-          <EnhancedRestTimer
-            restTimer={restTimer}
-            restActive={restActive}
-            lastLoggedSet={lastLoggedSet}
-            onSkip={skipRest}
-            onAdjust={adjustRest}
-            wUnit={profile?.wUnit || 'lbs'}
-          />,
+        {/* Local rest timer overlay — own portal so it escapes overflow:auto */}
+        {showRestTimer&&ReactDOM.createPortal(
+          <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10001,background:"#0d0d0d",borderTop:"2px solid #e8341c",borderRadius:"20px 20px 0 0",padding:"24px 24px",paddingBottom:"max(env(safe-area-inset-bottom),24px)",fontFamily:"'Barlow Condensed',sans-serif"}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.18em",marginBottom:10}}>// REST</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:72,color:"#f5f5f0",lineHeight:1,marginBottom:14,fontVariantNumeric:"tabular-nums"}}>
+              {String(Math.floor(restSeconds/60)).padStart(1,'0')}:{String(restSeconds%60).padStart(2,'0')}
+            </div>
+            <div style={{width:"100%",height:3,background:"rgba(245,245,240,0.1)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${Math.max(0,restSeconds/restTotalRef.current*100)}%`,background:"#e8341c",borderRadius:2,transition:"width 1s linear"}}/>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setRestSeconds(s=>Math.max(10,s-30))} style={{flex:1,padding:"14px 0",background:"transparent",border:"1px solid rgba(245,245,240,0.15)",borderRadius:12,color:"rgba(245,245,240,0.6)",fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:"0.12em",cursor:"pointer"}}>−30s</button>
+              <button onClick={stopLocalRest} style={{flex:2,padding:"14px 0",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:"0.14em",cursor:"pointer"}}>SKIP REST →</button>
+            </div>
+          </div>,
           document.body
         )}
 
