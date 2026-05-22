@@ -1290,7 +1290,10 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [logSlotConfirmed,setLogSlotConfirmed]=useState(false);
   const prevFuelScreenRef=useRef(fuelScreen);
   useEffect(()=>{
-    if(fuelScreen==="log"&&prevFuelScreenRef.current!=="log")setLogSlotConfirmed(false);
+    if(fuelScreen==="log"&&prevFuelScreenRef.current!=="log"){
+      setLogSlotConfirmed(false);
+      setLogMode(null);
+    }
     prevFuelScreenRef.current=fuelScreen;
   },[fuelScreen]);
   const [showSkipPrompt,setShowSkipPrompt]=useState(false);
@@ -2125,15 +2128,9 @@ Reply with ONLY a valid JSON object, no markdown:
                     const windowLabel=f==="16:8"?"8h eating window":f==="omad"?"OMAD — 1 meal":f==="custom"?`${Math.max(1,24-fastHours)}h eating window`:"Fasting active";
                     return<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{windowLabel}</div>;
                   })()}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                    <div>
-                      <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
-                    </div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button onClick={addMealSlot} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:T.prot,borderRadius:10,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Meal</button>
-                      <button onClick={()=>setShowQuickLog(true)} style={{background:"rgba(232,52,28,0.1)",border:"1px dashed rgba(232,52,28,0.4)",color:"#e8341c",borderRadius:10,padding:"7px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:"0.1em"}}>+ Food</button>
-                    </div>
+                  <div style={{marginBottom:14}}>
+                    <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
                   </div>
                   <div>
                     {mealSlots.map((slot,si)=>{
@@ -2226,7 +2223,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       </div>
                     ))}
                     {log.length===0&&(
-                      <EmptyState icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(245,245,240,.2)" strokeWidth="1.5"/><path d="M8 12h8M12 8v8" stroke="rgba(245,245,240,.3)" strokeWidth="1.5" strokeLinecap="round"/></svg>} title="Nothing logged yet" subtitle="Tap + on any meal slot or use Log Food" actionLabel="Log First Meal" onAction={()=>setFuelScreen("log")}/>
+                      <EmptyState title="Nothing logged yet" subtitle="Tap + on any meal slot or use Log Food"/>
                     )}
                   </div>
                 </div>
@@ -2549,56 +2546,106 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── LOG FOOD ── */}
         {fuelScreen==="log"&&(
           <div style={{maxWidth:isMobile?"100%":600,padding:"0 16px"}}>
-            <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>LOG FOOD</div>
-            {onOpenPhotoLogger&&(
-              <button onClick={onOpenPhotoLogger} style={{width:"100%",background:"rgba(232,52,28,0.08)",border:"1.5px solid rgba(232,52,28,0.3)",borderRadius:14,padding:16,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
-                <div style={{width:44,height:44,borderRadius:10,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <svg width="22" height="18" viewBox="0 0 22 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 5.5A1.5 1.5 0 012.5 4h1.086a1.5 1.5 0 001.342-.83l.164-.328A1.5 1.5 0 016.435 2h9.13a1.5 1.5 0 011.342.83l.164.328A1.5 1.5 0 0018.414 4H19.5A1.5 1.5 0 0121 5.5v10A1.5 1.5 0 0119.5 17h-17A1.5 1.5 0 011 15.5v-10z"/><circle cx="11" cy="10" r="3"/></svg>
-                </div>
-                <div style={{textAlign:"left"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em",lineHeight:1}}>SNAP &amp; LOG<span style={{color:"#e8341c"}}>.</span></div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginTop:3}}>Point your camera at your plate</div>
-                </div>
-              </button>
-            )}
-            {/* ── MEAL SLOT SELECTOR ── */}
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
+              <button onClick={()=>setFuelScreen("home")} style={{background:"none",border:"none",color:"#f5f5f0",fontSize:20,cursor:"pointer",padding:"0 4px 0 0",lineHeight:1,flexShrink:0}}>←</button>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>LOG FOOD</div>
+            </div>
+
+            {/* Step 1: Meal selection */}
             {(()=>{
               const slotCals={};
               mealSlots.forEach(slot=>{
                 slotCals[slot]=log.filter(e=>getEntrySlot(e)===slot).reduce((s,e)=>s+(e.calories||0),0);
               });
-              return !logSlotConfirmed?(
-                <div style={{marginBottom:16}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// WHICH MEAL?</div>
-                  <div style={{display:"flex",gap:6}}>
+              return(
+                <>
+                  <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>// WHICH MEAL?</div>
+                  <div style={{display:"flex",gap:8,marginBottom:logSlotConfirmed?8:20}}>
                     {mealSlots.map((slot,i)=>{
                       const kcal=slotCals[slot]||0;
+                      const sel=logSlotConfirmed&&activeSlotIdx===i;
                       return(
-                        <button key={slot} onClick={()=>{setActiveSlotIdx(i);setLogSlotConfirmed(true);}} style={{flex:1,background:activeSlotIdx===i?"rgba(232,52,28,0.08)":"#0d0d0d",border:`1px solid ${activeSlotIdx===i?"#e8341c":"rgba(232,52,28,0.1)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#f5f5f0",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>{getSlotLabel(slot)}</div>
-                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:kcal>0?"rgba(245,245,240,0.4)":"rgba(245,245,240,0.3)"}}>{kcal>0?`${kcal} kcal`:"Empty"}</div>
+                        <button key={slot} onClick={()=>{setActiveSlotIdx(i);setLogSlotConfirmed(true);}} style={{flex:1,background:sel?"rgba(232,52,28,0.1)":"#0d0d0d",border:sel?"1.5px solid #e8341c":"1px solid rgba(232,52,28,0.12)",borderRadius:12,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.15s",fontFamily:"inherit"}}>
+                          <div style={{...mno,fontSize:10,color:"#f5f5f0",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>{getSlotLabel(slot)}</div>
+                          <div style={{...mno,fontSize:9,color:kcal>0?"#e8341c":"rgba(245,245,240,0.3)"}}>{kcal>0?`${kcal} kcal`:"Empty"}</div>
                         </button>
                       );
                     })}
                   </div>
-                </div>
-              ):(
-                <button onClick={()=>setLogSlotConfirmed(false)} style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:8,padding:"6px 14px",display:"inline-flex",gap:8,alignItems:"center",marginBottom:14,cursor:"pointer",fontFamily:"inherit"}}>
-                  <span style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase"}}>ADDING TO {(getSlotLabel(mealSlots[activeSlotIdx])||"MEAL 1").toUpperCase()}</span>
-                  <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)"}}>tap to change</span>
-                </button>
+                  {logSlotConfirmed&&(
+                    <>
+                      <div style={{marginBottom:16}}>
+                        <span style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:20,padding:"5px 14px",...mno,fontSize:10,color:"#e8341c",letterSpacing:"0.12em",textTransform:"uppercase",display:"inline-block"}}>
+                          ADDING TO {(getSlotLabel(mealSlots[activeSlotIdx])||"MEAL 1").toUpperCase()}
+                        </span>
+                      </div>
+                      <div style={{height:1,background:"rgba(232,52,28,0.08)",marginBottom:20}}/>
+                    </>
+                  )}
+                </>
               );
             })()}
-            {/* ── METHOD TABS ── */}
-            {logSlotConfirmed&&(
-            <div style={{display:"flex",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,padding:3,gap:3,marginBottom:14,overflowX:"auto"}}>
-              {[["search","🔍 Search"],["ai","🧠 AI"],["barcode","🔲 Barcode"],["quick","✏️ Quick"],["restaurant","📍 Near Me"]].map(([k,l])=>(
-                <button key={k} onClick={()=>{setLogMode(k);if(k==="restaurant")openRestaurantAI();}} style={{flex:1,padding:"10px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",background:logMode===k?`${T.prot}18`:"none",outline:logMode===k?`1.5px solid ${T.prot}`:"none",color:logMode===k?T.prot:T.mu,fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
-              ))}
-            </div>
+
+            {/* Step 2: Log methods */}
+            {!logSlotConfirmed?(
+              <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.25)",textAlign:"center",padding:"24px 0",letterSpacing:"0.1em"}}>Select a meal above to continue</div>
+            ):(
+              <>
+                {!logMode&&(
+                  <>
+                    <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>// HOW DO YOU WANT TO LOG?</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+                      {[
+                        {
+                          label:"SNAP & LOG",sub:"Photo → instant macros",
+                          icon:<svg width="18" height="15" viewBox="0 0 18 15" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4A1 1 0 012 3h1a1 1 0 00.9-.55l.2-.4A1 1 0 015 1.5h8a1 1 0 01.9.55l.2.4A1 1 0 0015 3h1a1 1 0 011 1v9a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><circle cx="9" cy="8" r="2.5"/></svg>,
+                          action:()=>onOpenPhotoLogger&&onOpenPhotoLogger(),
+                        },
+                        {
+                          label:"SEARCH",sub:"1M+ foods database",
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="5"/><path d="M13 13l3 3"/></svg>,
+                          action:()=>setLogMode("search"),
+                        },
+                        {
+                          label:"AI DESCRIBE",sub:"Describe in plain text",
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.5 3.5l1.5 1.5M13 13l1.5 1.5M3.5 14.5l1.5-1.5M13 5l1.5-1.5"/><circle cx="9" cy="9" r="3"/></svg>,
+                          action:()=>setLogMode("ai"),
+                        },
+                        {
+                          label:"BARCODE",sub:"Scan any barcode",
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M1 1h3M14 1h3M1 17h3M14 17h3M1 1v3M1 14v3M17 1v3M17 14v3"/><line x1="5" y1="5" x2="5" y2="13" strokeWidth="1.5"/><line x1="8" y1="5" x2="8" y2="13" strokeWidth="1.5"/><line x1="11" y1="5" x2="11" y2="13" strokeWidth="1.5"/><line x1="13" y1="5" x2="13" y2="13" strokeWidth="1.5"/></svg>,
+                          action:()=>setLogMode("barcode"),
+                        },
+                        {
+                          label:"MY FOODS",sub:"Your saved foods",
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1l2.5 5 5.5.8-4 3.9.9 5.5L9 13.5l-4.9 2.6.9-5.5-4-3.9 5.5-.8L9 1z"/></svg>,
+                          action:()=>setFuelScreen("kitchen"),
+                        },
+                        {
+                          label:"NEARBY",sub:"Restaurants near you",
+                          icon:<svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1C5 1 2 3.5 2 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="8" cy="7" r="2"/></svg>,
+                          action:()=>{setLogMode("restaurant");openRestaurantAI();},
+                        },
+                      ].map(({label,sub,icon,action})=>(
+                        <button key={label} onClick={action} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"18px 14px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                          <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            {icon}
+                          </div>
+                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{label}</div>
+                          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {logMode&&(
+                  <button onClick={()=>setLogMode(null)} style={{background:"none",border:"none",...mno,fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← METHODS</button>
+                )}
+                {logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
+              </>
             )}
-            {logSlotConfirmed&&logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
-            {logSlotConfirmed&&logMode==="restaurant"&&restaurantAI&&(
+            {logMode==="restaurant"&&restaurantAI&&(
               <div>
                 <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   {[
@@ -2770,7 +2817,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
               </div>
             )}
-            {logSlotConfirmed&&logMode!=="search"&&logMode!=="restaurant"&&<>
+            {logMode!=="search"&&logMode!=="restaurant"&&logMode&&<>
               {logMode==="ai"&&<>
                 <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
                   <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
