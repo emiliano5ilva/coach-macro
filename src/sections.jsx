@@ -1809,7 +1809,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryM
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -3136,7 +3136,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div key={i} style={{display:"flex",alignItems:"center",gap:10,fontSize:12,color:"rgba(245,245,240,0.65)"}}>
                           <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"DM Mono,monospace",fontSize:9,color:"#e8341c",flexShrink:0}}>{i+1}</div>
                           <div style={{flex:1}}>{ex.name}</div>
-                          <div style={{fontFamily:"DM Mono,monospace",fontSize:9,color:"rgba(245,245,240,0.35)"}}>{ex.sets}×{ex.reps}</div>
+                          <div style={{fontFamily:"DM Mono,monospace",fontSize:9,color:"rgba(245,245,240,0.35)"}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
                         </div>
                       ))}
                     </div>
@@ -3450,7 +3450,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── POST-WORKOUT SUMMARY ── */}
-        {trainScreen==="summary"&&workoutSummary&&ReactDOM.createPortal(
+        {trainScreen==="summary"&&(completedWorkout||workoutSummary)&&ReactDOM.createPortal(
           (()=>{
             const MUSCLE_TO_BODYMAP={
               'Sternal Pec':'chest','Clavicular Pec':'chest','Serratus':'chest',
@@ -3472,9 +3472,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             const BODYMAP_COLOR={chest:'#e8341c','shoulders-f':'#FEA020','rear-delts':'#FEA020',biceps:'#9C6FFF',triceps:'#9C6FFF','forearms-f':'#9C6FFF','forearms-b':'#9C6FFF',abs:'#14C4B3','hip-flexors':'#14C4B3',quads:'#22c55e',hamstrings:'#22c55e',glutes:'#22c55e','calves-f':'#22c55e','calves-b':'#22c55e',lats:'#60a5fa',traps:'#60a5fa','lower-back':'#60a5fa'};
             const REGION_LABELS={chest:'Chest','shoulders-f':'Shoulders','rear-delts':'Rear Delts',biceps:'Biceps',triceps:'Triceps','forearms-f':'Forearms',abs:'Core','hip-flexors':'Hip Flexors',quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes','calves-f':'Calves',lats:'Back',traps:'Traps','lower-back':'Lower Back'};
             const ALL_REGIONS=['chest','shoulders-f','biceps','forearms-f','abs','hip-flexors','quads','calves-f','traps','lats','rear-delts','triceps','forearms-b','lower-back','glutes','hamstrings','calves-b'];
+            // Use completedWorkout for real done-set data; fallback to workoutSummary
+            const srcExercises=completedWorkout?(completedWorkout.exercises||[]):(workoutSummary?.exercises||[]);
+            const exercisesWorked=completedWorkout?srcExercises.filter(ex=>ex.sets?.some(s=>s.done)):srcExercises;
+            const totalSetsLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.length||0),0):(workoutSummary?.completedSets||0);
+            const totalVolumeLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.reduce((sum,s)=>sum+((parseFloat(s.weight)||0)*(parseInt(s.reps)||0)),0)||0),0):(workoutSummary?.totalVolume||0);
             const workedRegions=new Set();
             const primaryMuscleNames=new Set();
-            (workoutSummary.exercises||[]).forEach(ex=>{
+            exercisesWorked.forEach(ex=>{
               const md=getExerciseData(ex.name);
               if(md)md.primary.forEach(m=>{primaryMuscleNames.add(m);const r=MUSCLE_TO_BODYMAP[m];if(r)workedRegions.add(r);});
             });
@@ -3487,7 +3492,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             const tomorrowFocus=tomorrowType==='rest'?'REST DAY':(dayFocus?.[tomorrowKey]||tomorrowType.toUpperCase())+' DAY';
             const tomorrowFullDay=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][(new Date().getDay()+1)%7];
             const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
-            const durStr=workoutSummary.duration>=60?`${Math.floor(workoutSummary.duration/60)}H ${workoutSummary.duration%60}M`:`${workoutSummary.duration} MINUTES`;
+            const dur=workoutSummary?.duration||0;
+            const durStr=dur>=60?`${Math.floor(dur/60)}H ${dur%60}M`:`${dur||'—'} MINUTES`;
             const mno={fontFamily:"'DM Mono',monospace"};
             const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
             return(
@@ -3496,7 +3502,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
 
                   {/* Close */}
-                  <button onClick={clearWorkoutSummary} style={{background:'none',border:'none',cursor:'pointer',padding:0,color:'rgba(245,245,240,0.35)',fontSize:22,lineHeight:1,marginBottom:28,display:'block'}}>✕</button>
+                  <div onClick={clearWorkoutSummary} style={{width:36,height:36,borderRadius:10,background:'rgba(245,245,240,0.06)',border:'1px solid rgba(245,245,240,0.1)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',marginBottom:24}}>
+                    <span style={{color:'rgba(245,245,240,0.5)',fontSize:16,lineHeight:1,fontFamily:'sans-serif',userSelect:'none'}}>&#x2715;</span>
+                  </div>
 
                   {/* Headline */}
                   <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// SESSION COMPLETE'}</div>
@@ -3510,9 +3518,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {/* Stats row */}
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:32}}>
                     {[
-                      {val:workoutSummary.completedSets,label:'SETS'},
-                      {val:workoutSummary.totalVolume>0?workoutSummary.totalVolume.toLocaleString()+' lbs':'—',label:'VOLUME'},
-                      {val:workoutSummary.exercises?.length||0,label:'EXERCISES'},
+                      {val:totalSetsLogged,label:'SETS'},
+                      {val:totalVolumeLogged>0?Math.round(totalVolumeLogged).toLocaleString()+' lbs':'—',label:'VOLUME'},
+                      {val:exercisesWorked.length||0,label:'EXERCISES'},
                     ].map(({val,label})=>(
                       <div key={label} style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
                         <div style={{...cnd,fontSize:32,color:'#f5f5f0',lineHeight:1}}>{val}</div>
@@ -3537,7 +3545,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   )}
 
                   {/* PRs */}
-                  {workoutSummary.prs?.length>0&&(
+                  {workoutSummary?.prs?.length>0&&(
                     <div style={{marginBottom:32}}>
                       <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEW RECORDS'}</div>
                       {workoutSummary.prs.map((pr,i)=>(

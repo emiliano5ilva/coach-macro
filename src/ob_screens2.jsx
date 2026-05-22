@@ -1674,6 +1674,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [setFlash,setSetFlash]=useState(null);
   const [workoutStartTime,setWorkoutStartTime]=useState(null);
   const [workoutSummary,setWorkoutSummary]=useState(null);
+  const [completedWorkout,setCompletedWorkout]=useState(null);
   const notifTimeoutRef=useRef(null);
 
   useEffect(()=>{
@@ -2467,6 +2468,9 @@ Rules:
         }
       });
       setHistory(nh);
+      // Snapshot before any async — prevents "NO ACTIVE SESSION" flash
+      setCompletedWorkout({...activeWorkout});
+      setTrainScreen('summary');
 
       const duration=workoutStartTime?Math.max(1,Math.round((Date.now()-workoutStartTime)/60000)):45;
       const burn=todayType==="training"?Math.round(duration*6):Math.round(duration*11);
@@ -2508,8 +2512,6 @@ Rules:
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
 
-      // Show summary screen instead of immediately exiting
-      setActiveWorkout(null);
       skipRest();
       try { localStorage.removeItem("cm_active_workout"); } catch {}
       const totalSetsLogged = setsLogged.reduce((a,e)=>a+e.sets.length,0);
@@ -2612,8 +2614,6 @@ Rules:
         totalSets,completedSets:totalSetsLogged,
         prs,exercises:setsLogged,plateausBroken,
       });
-      setTrainScreen('summary');
-      setActiveSessionOpen(false);
       // First workout win
       if(workoutCount===1){
         const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';
@@ -2628,10 +2628,13 @@ Rules:
 
   function clearWorkoutSummary(){
     setWorkoutSummary(null);
+    setCompletedWorkout(null);
+    setActiveWorkout(null);
     setWorkoutStartTime(null);
     setTrainScreen("today");
     setActiveSessionOpen(false);
     setSection("today");
+    try { localStorage.removeItem("cm_active_workout"); } catch {}
     // Show first-workout win screen after summary dismissed
     if(showWinScreen?._afterSummary){
       setShowWinScreen(prev=>prev?{...prev,_afterSummary:false}:null);
@@ -5249,7 +5252,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{if(s==="warmup"){setSessionStarting(true);setTimeout(()=>{setTrainScreen(s);setActiveSessionOpen(false);setSessionStarting(false);},50);}else{setTrainScreen(s);setActiveSessionOpen(s==="active");}}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{if(s==="warmup"){setSessionStarting(true);setTimeout(()=>{setTrainScreen(s);setActiveSessionOpen(false);setSessionStarting(false);},50);}else{setTrainScreen(s);setActiveSessionOpen(s==="active");}}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
