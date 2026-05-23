@@ -482,6 +482,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
   const [routinesLoading, setRoutinesLoading] = useState(true);
   const [editRoutine, setEditRoutine] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [mpPendingProg, setMpPendingProg] = useState(null);
 
   const currentId = wPrefs._libraryId || null;
 
@@ -546,7 +547,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     } catch { showToast("Rating failed", "error"); }
   }
 
-  async function confirmSwitch(prog) {
+  async function doActualSwitch(prog) {
     setSwitching(true);
     try {
       const newWPrefs = { ...wPrefs, _libraryId: prog.id };
@@ -562,7 +563,6 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
 
       const { data: { user: me } } = await sb.auth.getUser();
       if (me) {
-        // Also update nutrition if recalculation differs
         const calc = recalculateNutritionForProgram(profile, prog);
         const profileUpdate = { id: me.id, wprefs: newWPrefs, startDate: newStartDate };
         if (calc.delta !== 0) profileUpdate.goalCals = calc.goalCals;
@@ -576,6 +576,16 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       console.error("[ProgramLibrary] switch error:", e);
       showToast("Switch failed", "error");
     } finally { setSwitching(false); }
+  }
+
+  async function confirmSwitch(prog) {
+    if (localStorage.getItem('__mp_exists') === '1') {
+      setMpPendingProg(prog);
+      setConfirmProg(null);
+      setDetailProg(null);
+      return;
+    }
+    await doActualSwitch(prog);
   }
 
   async function deleteRoutine(id) {
@@ -599,6 +609,25 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     setTrainScreen("active");
   }
 
+  const MpSwitchWarnModal = mpPendingProg ? (
+    <div style={{ position:"fixed", inset:0, background:"rgba(6,13,26,.9)", backdropFilter:"blur(6px)", zIndex:400, display:"flex", alignItems:"flex-end", justifyContent:"center" }} onClick={() => setMpPendingProg(null)}>
+      <div style={{ background:"#0d0d0d", border:"1px solid rgba(254,160,32,0.3)", borderRadius:"16px 16px 0 0", padding:"28px 20px 40px", maxWidth:480, width:"100%" }} onClick={e => e.stopPropagation()}>
+        <div style={{ width:36, height:4, borderRadius:2, background:"rgba(255,255,255,.15)", margin:"0 auto 20px" }}/>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:"#FEA020", letterSpacing:"0.16em", textTransform:"uppercase", marginBottom:8 }}>// MEAL PLAN WARNING</div>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontStyle:"italic", fontWeight:900, fontSize:22, color:"#f5f5f0", textTransform:"uppercase", lineHeight:1, marginBottom:12 }}>Meal plan will be invalidated<span style={{ color:"#FEA020" }}>.</span></div>
+        <div style={{ background:"rgba(254,160,32,0.06)", border:"1px solid rgba(254,160,32,0.2)", borderRadius:10, padding:"12px 14px", marginBottom:24, fontSize:13, color:"rgba(245,245,240,0.75)", lineHeight:1.6 }}>
+          Switching to <strong style={{ color:"#f5f5f0" }}>{mpPendingProg.name}</strong> will clear your current meal prep plan. You can regenerate it once you're in the Kitchen tab.
+        </div>
+        <button disabled={switching} onClick={async () => { localStorage.setItem('__mp_regen_needed','1'); window.dispatchEvent(new CustomEvent('cm_clear_meal_prep')); const p = mpPendingProg; setMpPendingProg(null); await doActualSwitch(p); }} style={{ width:"100%", padding:15, background:"#FEA020", color:"#000", fontWeight:700, fontSize:14, border:"none", borderRadius:12, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>
+          {switching ? "Switching…" : "SWITCH ANYWAY →"}
+        </button>
+        <button disabled={switching} onClick={() => setMpPendingProg(null)} style={{ width:"100%", padding:13, background:"transparent", color:"rgba(245,245,240,0.5)", border:"1px solid rgba(245,245,240,0.1)", borderRadius:12, fontSize:14, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+          KEEP CURRENT PROGRAM
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   // Show detail modal
   if (detailProg && !confirmProg) {
     return (
@@ -621,6 +650,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
             onCancel={() => !switching && setConfirmProg(null)}
           />
         )}
+        {MpSwitchWarnModal}
       </>
     );
   }
@@ -746,6 +776,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           onCancel={() => !switching && setConfirmProg(null)}
         />
       )}
+      {MpSwitchWarnModal}
     </div>
   );
 }

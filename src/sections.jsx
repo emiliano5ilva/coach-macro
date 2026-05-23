@@ -1104,6 +1104,12 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
             </div>
           ))}
         </div>
+        {localStorage.getItem('__mp_exists')==='1'&&(
+          <div style={{background:"rgba(254,160,32,0.08)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:10,padding:"12px 14px",marginTop:16,display:"flex",alignItems:"flex-start",gap:10}}>
+            <span style={{color:"#FEA020",fontSize:14,flexShrink:0,lineHeight:1.5}}>!</span>
+            <span style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.8)",lineHeight:1.55}}>Your meal plan was built around your original session — today's meals may need adjusting.</span>
+          </div>
+        )}
       </div>
       <div className="adapt-footer">
         <button className="adapt-primary" onClick={()=>onUseAdapted(result, selectedReason)}>✓ Use This Adapted Session</button>
