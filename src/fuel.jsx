@@ -3026,7 +3026,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {(()=>{
               const kitchenCards=[
                 {eyebrow:'// WEEKLY PREP',title:'MEAL PREP.',sub:'Cook once, eat all week',onPress:()=>mealPrepRef.current?.scrollIntoView({behavior:'smooth'})},
-                {eyebrow:'// AI NUTRITION',title:'RESTAURANT AI.',sub:'Scan any menu for instant macro recommendations',onPress:()=>setFuelScreen('recs')},
+                {eyebrow:'// AI NUTRITION',title:'RESTAURANT AI.',sub:'Scan any menu for instant macro recommendations',onPress:()=>{setFuelScreen('log');setLogMode('restaurant');openRestaurantAI();}},
               ];
               return(
                 <div style={{marginBottom:20}}>
