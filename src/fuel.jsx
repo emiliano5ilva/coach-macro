@@ -1115,7 +1115,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           {!searching&&query&&<button onClick={()=>{setQuery("");setResults([]);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:18,cursor:"pointer",lineHeight:1,padding:"0 2px"}}>×</button>}
         </div>
         <button onClick={()=>setShowBarcodeInSearch(true)} style={{width:44,height:44,borderRadius:10,background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9V6a1 1 0 011-1h3"/><path d="M15 5h3a1 1 0 011 1v3"/><path d="M21 15v3a1 1 0 01-1 1h-3"/><path d="M9 19H6a1 1 0 01-1-1v-3"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="13" y1="8" x2="13" y2="16"/><line x1="17" y1="8" x2="17" y2="16"/></svg>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="5" height="5" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/><rect x="14" y="1" width="5" height="5" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/><rect x="1" y="14" width="5" height="5" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/><line x1="8" y1="1" x2="8" y2="8" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="11" y1="1" x2="11" y2="8" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="12" x2="8" y2="19" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="11" y1="12" x2="11" y2="19" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="14" y1="8" x2="19" y2="8" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="14" y1="11" x2="19" y2="11" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/></svg>
         </button>
       </div>
       {searching&&<div style={{marginBottom:16}}><FoodSearchSkeleton/></div>}
@@ -2652,7 +2652,8 @@ Reply with ONLY a valid JSON object, no markdown:
                 {!logMode&&(
                   <>
                     <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>// HOW DO YOU WANT TO LOG?</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+                    {/* Row 1 */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                       {[
                         {
                           label:"SNAP & LOG",sub:"Photo → instant macros",
@@ -2660,46 +2661,173 @@ Reply with ONLY a valid JSON object, no markdown:
                           action:()=>onOpenPhotoLogger&&onOpenPhotoLogger(),
                         },
                         {
-                          label:"SEARCH",sub:"Search foods or scan a barcode",
+                          label:"SEARCH & AI",sub:"Search foods or describe your meal",
                           icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="5"/><path d="M13 13l3 3"/></svg>,
                           action:()=>setLogMode("search"),
                         },
+                      ].map(({label,sub,icon,action})=>(
+                        <button key={label} onClick={action} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"18px 14px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                          <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
+                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{label}</div>
+                          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
+                        </button>
+                      ))}
+                    </div>
+                    {/* Row 2 */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                      {[
                         {
-                          label:"AI DESCRIBE",sub:"Describe in plain text",
-                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.5 3.5l1.5 1.5M13 13l1.5 1.5M3.5 14.5l1.5-1.5M13 5l1.5-1.5"/><circle cx="9" cy="9" r="3"/></svg>,
-                          action:()=>setLogMode("ai"),
+                          label:"MY FOODS",sub:"Saved foods & quick macros",
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1l2.5 5 5.5.8-4 3.9.9 5.5L9 13.5l-4.9 2.6.9-5.5-4-3.9 5.5-.8L9 1z"/></svg>,
+                          action:()=>setLogMode("myfoods"),
                         },
                         {
                           label:"QUICK ADD",sub:"Add protein, carbs, or fat directly",
                           icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><circle cx="9" cy="9" r="7.5"/><path d="M9 5.5v7M5.5 9h7"/></svg>,
                           action:()=>setLogMode("quick"),
                         },
-                        {
-                          label:"MY FOODS",sub:"Your saved foods",
-                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1l2.5 5 5.5.8-4 3.9.9 5.5L9 13.5l-4.9 2.6.9-5.5-4-3.9 5.5-.8L9 1z"/></svg>,
-                          action:()=>setFuelScreen("kitchen"),
-                        },
-                        {
-                          label:"NEARBY",sub:"Restaurants near you",
-                          icon:<svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1C5 1 2 3.5 2 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="8" cy="7" r="2"/></svg>,
-                          action:()=>{setLogMode("restaurant");openRestaurantAI();},
-                        },
                       ].map(({label,sub,icon,action})=>(
                         <button key={label} onClick={action} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"18px 14px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-                          <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            {icon}
-                          </div>
+                          <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
                           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{label}</div>
                           <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
                         </button>
                       ))}
                     </div>
+                    {/* Row 3: Restaurant AI full width */}
+                    <button onClick={()=>{setLogMode("restaurant");openRestaurantAI();}} style={{width:"100%",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,WebkitTapHighlightColor:"transparent"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:14}}>
+                        <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1C5 1 2 3.5 2 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="8" cy="7" r="2"/></svg>
+                        </div>
+                        <div>
+                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>RESTAURANT AI<span style={{color:"#e8341c"}}>.</span></div>
+                          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Scan any menu for instant macro recommendations</div>
+                        </div>
+                      </div>
+                      <div style={{color:"#e8341c",fontSize:18,flexShrink:0}}>→</div>
+                    </button>
                   </>
                 )}
-                {logMode&&(
-                  <button onClick={()=>setLogMode(null)} style={{background:"none",border:"none",...mno,fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← METHODS</button>
+                {logMode&&logMode!=="restaurant"&&(
+                  <button onClick={()=>{setLogMode(null);setAiEstimate(null);setAiEstimating(false);}} style={{background:"none",border:"none",...mno,fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← METHODS</button>
+                )}
+                {(logMode==="search"||logMode==="ai")&&(
+                  <div style={{display:"flex",background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:20,padding:3,gap:2,marginBottom:16}}>
+                    <button onClick={()=>{setLogMode("search");setAiEstimate(null);setAiEstimating(false);}} style={{flex:1,padding:"7px 0",borderRadius:16,border:"none",background:logMode==="search"?"rgba(232,52,28,0.15)":"transparent",color:logMode==="search"?"#e8341c":"rgba(245,245,240,0.35)",...mno,fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em"}}>SEARCH</button>
+                    <button onClick={()=>setLogMode("ai")} style={{flex:1,padding:"7px 0",borderRadius:16,border:"none",background:logMode==="ai"?"rgba(232,52,28,0.15)":"transparent",color:logMode==="ai"?"#e8341c":"rgba(245,245,240,0.35)",...mno,fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em"}}>AI DESCRIBE</button>
+                  </div>
                 )}
                 {logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
+                {logMode==="ai"&&(
+                  <>
+                    {!aiEstimate&&!aiEstimating&&(
+                      <>
+                        <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
+                          <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
+                        </div>
+                        <PrimaryBtn onClick={handleAiDescribeSubmit} label="ESTIMATE MACROS →" disabled={!foodInput.trim()}/>
+                      </>
+                    )}
+                    {aiEstimating&&(
+                      <div style={{background:"#0d0d0d",borderRadius:12,padding:20,textAlign:"center"}}>
+                        <div style={{...mno,fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.16em"}}>ESTIMATING...</div>
+                      </div>
+                    )}
+                    {aiEstimate&&!aiEstimating&&(
+                      <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:"18px 16px",marginTop:16}}>
+                        <div style={{...mno,fontSize:10,color:"#e8341c",letterSpacing:"0.16em",marginBottom:12}}>DOES THIS SOUND RIGHT?</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:14,lineHeight:1.2}}>{aiEstimate.description}</div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                          {[
+                            {label:"KCAL",val:aiEstimate.calories,color:"#f5f5f0",bg:"rgba(232,52,28,0.06)"},
+                            {label:"PROTEIN",val:`${aiEstimate.protein}g`,color:"#e8341c",bg:"rgba(232,52,28,0.06)"},
+                            {label:"CARBS",val:`${aiEstimate.carbs}g`,color:"#60a5fa",bg:"rgba(96,165,250,0.06)"},
+                            {label:"FAT",val:`${aiEstimate.fat}g`,color:"#FEA020",bg:"rgba(254,160,32,0.06)"},
+                          ].map(({label,val,color,bg})=>(
+                            <div key={label} style={{background:bg,borderRadius:10,padding:12,textAlign:"center"}}>
+                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color,lineHeight:1}}>{val}</div>
+                              <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.12em",marginTop:4}}>{label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",marginBottom:16}}>AI estimate — values may vary</div>
+                        <button onClick={()=>{logEntryWithUndo({food:aiEstimate.food,calories:aiEstimate.calories,protein:aiEstimate.protein,carbs:aiEstimate.carbs,fat:aiEstimate.fat,id:Date.now(),method:"ai",slot:mealSlots[activeSlotIdx]||1});setFoodInput("");setAiEstimate(null);setFuelScreen("home");}} style={{width:"100%",padding:"14px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",...mno,fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em",marginBottom:8}}>LOOKS RIGHT — LOG IT →</button>
+                        <button onClick={()=>setAiEstimate(null)} style={{width:"100%",padding:"14px",background:"transparent",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,...mno,fontSize:11,fontWeight:700,cursor:"pointer",color:"rgba(245,245,240,0.5)",letterSpacing:"0.12em"}}>TRY AGAIN</button>
+                      </div>
+                    )}
+                  </>
+                )}
+                {logMode==="myfoods"&&(
+                  <>
+                    {(()=>{
+                      const recentItems=[...new Map(log.filter(e=>e.food&&e.calories).slice(0,15).map(e=>[e.food.toLowerCase(),e])).values()].slice(0,5);
+                      return recentItems.length>0?(
+                        <>
+                          <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// RECENT FOODS</div>
+                          {recentItems.map((item,i)=>(
+                            <button key={i} onClick={()=>{logEntryWithUndo({...item,id:Date.now(),slot:mealSlots[activeSlotIdx]||1});setLogMode(null);}} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                              <div>
+                                <div style={{fontSize:14,fontWeight:700,color:"#f5f5f0"}}>{item.food}</div>
+                                <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{item.calories} kcal · P {item.protein}g</div>
+                              </div>
+                              <div style={{color:"#e8341c",...mno,fontSize:12,flexShrink:0}}>+</div>
+                            </button>
+                          ))}
+                        </>
+                      ):null;
+                    })()}
+                    <button onClick={()=>setFuelScreen("kitchen")} style={{width:"100%",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,marginTop:8}}>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:700,fontSize:14,color:"#f5f5f0",textTransform:"uppercase"}}>See all saved foods</div>
+                      <div style={{color:"#e8341c",...mno,fontSize:10}}>→</div>
+                    </button>
+                    <div style={{height:1,background:"rgba(232,52,28,0.08)",marginBottom:16}}/>
+                    <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// QUICK ADD</div>
+                    <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
+                      {[["Name (optional)","text","name","e.g. Protein shake"],["Calories","number","calories","0"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
+                        <div key={k} style={{marginBottom:12}}>
+                          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
+                          <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                        </div>
+                      ))}
+                    </div>
+                    <PrimaryBtn onClick={addQuick} label="Add Entry →" disabled={!quickFields.calories}/>
+                  </>
+                )}
+                {logMode==="quick"&&(
+                  <>
+                    <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
+                      {[["Name (optional)","text","name","e.g. Protein shake"],["Calories","number","calories","0"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
+                        <div key={k} style={{marginBottom:12}}>
+                          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
+                          <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                        </div>
+                      ))}
+                    </div>
+                    <PrimaryBtn onClick={addQuick} label="Add Entry →" disabled={!quickFields.calories}/>
+                  </>
+                )}
+                {logMode==="barcode"&&(
+                  <>
+                    <BarcodeScanner
+                      onDetected={async(code)=>{
+                        setBarcodeInput(code);setBarcodeLoading(true);setBarcodeResult(null);
+                        const result=await scanBarcode(code);
+                        setBarcodeResult(result);setBarcodeLoading(false);
+                      }}
+                      onCancel={()=>setLogMode("search")}
+                    />
+                    {barcodeLoading&&<div style={{textAlign:"center",padding:"16px",color:T.mu,fontSize:13}}>Looking up product…</div>}
+                    {barcodeResult&&<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:12,marginTop:8}}>
+                      <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{barcodeResult.name}</div>
+                      {barcodeResult.brand&&<div style={{fontSize:11,color:T.mu,marginBottom:8}}>{barcodeResult.brand} · {barcodeResult.serving}</div>}
+                      <div style={{display:"flex",gap:14,marginBottom:12}}>
+                        {[["Cal",barcodeResult.calories,""],["P",barcodeResult.protein,"g"],["C",barcodeResult.carbs,"g"],["F",barcodeResult.fat,"g"]].map(([l,v,u])=>(<div key={l}><div style={{fontSize:9,color:T.mu,textTransform:"uppercase",letterSpacing:1}}>{l}</div><div style={{fontSize:16,fontWeight:800,color:T.prot}}>{v}{u}</div></div>))}
+                      </div>
+                      <PrimaryBtn onClick={addBarcode} label="Add to Log →"/>
+                    </div>}
+                  </>
+                )}
               </>
             )}
             {logMode==="restaurant"&&restaurantAI&&(
@@ -2874,80 +3002,6 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
               </div>
             )}
-            {logMode!=="search"&&logMode!=="restaurant"&&logMode&&<>
-              {logMode==="ai"&&<>
-                {!aiEstimate&&!aiEstimating&&(
-                  <>
-                    <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
-                      <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
-                    </div>
-                    <PrimaryBtn onClick={handleAiDescribeSubmit} label="ESTIMATE MACROS →" disabled={!foodInput.trim()}/>
-                  </>
-                )}
-                {aiEstimating&&(
-                  <div style={{background:"#0d0d0d",borderRadius:12,padding:20,textAlign:"center"}}>
-                    <div style={{...mno,fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.16em"}}>ESTIMATING...</div>
-                  </div>
-                )}
-                {aiEstimate&&!aiEstimating&&(
-                  <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:"18px 16px",marginTop:16}}>
-                    <div style={{...mno,fontSize:10,color:"#e8341c",letterSpacing:"0.16em",marginBottom:12}}>DOES THIS SOUND RIGHT?</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:14,lineHeight:1.2}}>{aiEstimate.description}</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                      {[
-                        {label:"KCAL",val:aiEstimate.calories,color:"#f5f5f0",bg:"rgba(232,52,28,0.06)"},
-                        {label:"PROTEIN",val:`${aiEstimate.protein}g`,color:"#e8341c",bg:"rgba(232,52,28,0.06)"},
-                        {label:"CARBS",val:`${aiEstimate.carbs}g`,color:"#60a5fa",bg:"rgba(96,165,250,0.06)"},
-                        {label:"FAT",val:`${aiEstimate.fat}g`,color:"#FEA020",bg:"rgba(254,160,32,0.06)"},
-                      ].map(({label,val,color,bg})=>(
-                        <div key={label} style={{background:bg,borderRadius:10,padding:12,textAlign:"center"}}>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color,lineHeight:1}}>{val}</div>
-                          <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.12em",marginTop:4}}>{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",marginBottom:16}}>AI estimate — values may vary</div>
-                    <button onClick={()=>{
-                      logEntryWithUndo({food:aiEstimate.food,calories:aiEstimate.calories,protein:aiEstimate.protein,carbs:aiEstimate.carbs,fat:aiEstimate.fat,id:Date.now(),method:"ai",slot:mealSlots[activeSlotIdx]||1});
-                      setFoodInput("");
-                      setAiEstimate(null);
-                      setFuelScreen("home");
-                    }} style={{width:"100%",padding:"14px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",...mno,fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em",marginBottom:8}}>LOOKS RIGHT — LOG IT →</button>
-                    <button onClick={()=>setAiEstimate(null)} style={{width:"100%",padding:"14px",background:"transparent",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,...mno,fontSize:11,fontWeight:700,cursor:"pointer",color:"rgba(245,245,240,0.5)",letterSpacing:"0.12em"}}>TRY AGAIN</button>
-                  </div>
-                )}
-              </>}
-              {logMode==="barcode"&&<>
-                <BarcodeScanner
-                  onDetected={async(code)=>{
-                    setBarcodeInput(code);setBarcodeLoading(true);setBarcodeResult(null);
-                    const result=await scanBarcode(code);
-                    setBarcodeResult(result);setBarcodeLoading(false);
-                  }}
-                  onCancel={()=>setLogMode("search")}
-                />
-                {barcodeLoading&&<div style={{textAlign:"center",padding:"16px",color:T.mu,fontSize:13}}>Looking up product…</div>}
-                {barcodeResult&&<div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:12,marginTop:8}}>
-                  <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{barcodeResult.name}</div>
-                  {barcodeResult.brand&&<div style={{fontSize:11,color:T.mu,marginBottom:8}}>{barcodeResult.brand} · {barcodeResult.serving}</div>}
-                  <div style={{display:"flex",gap:14,marginBottom:12}}>
-                    {[["Cal",barcodeResult.calories,""],["P",barcodeResult.protein,"g"],["C",barcodeResult.carbs,"g"],["F",barcodeResult.fat,"g"]].map(([l,v,u])=>(<div key={l}><div style={{fontSize:9,color:T.mu,textTransform:"uppercase",letterSpacing:1}}>{l}</div><div style={{fontSize:16,fontWeight:800,color:T.prot}}>{v}{u}</div></div>))}
-                  </div>
-                  <PrimaryBtn onClick={addBarcode} label="Add to Log →"/>
-                </div>}
-              </>}
-              {logMode==="quick"&&<>
-                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
-                  {[["Name (optional)","text","name","e.g. Protein shake"],["Calories","number","calories","0"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
-                    <div key={k} style={{marginBottom:12}}>
-                      <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
-                      <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-                    </div>
-                  ))}
-                </div>
-                <PrimaryBtn onClick={addQuick} label="Add Entry →" disabled={!quickFields.calories}/>
-              </>}
-            </>}
           </div>
         )}
 

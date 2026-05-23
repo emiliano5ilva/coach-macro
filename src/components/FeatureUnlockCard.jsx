@@ -10,12 +10,14 @@ export default function FeatureUnlockCard({ unlock, onShowMe, onDismiss }) {
 
       {/* Eyebrow */}
       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: '#e8341c', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>
-        {'// NEW UNLOCK 🔓'}
+        {'// NEW UNLOCK'}
       </div>
 
-      {/* Emoji + Title */}
+      {/* Icon + Title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <span style={{ fontSize: 24 }}>{feature.emoji}</span>
+        <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(232,52,28,0.12)', border: '1px solid rgba(232,52,28,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="20" height="24" viewBox="0 0 20 24" fill="#e8341c" xmlns="http://www.w3.org/2000/svg"><path d="M11 0L0 13h8l-2 11 13-14h-8L11 0z"/></svg>
+        </div>
         <div style={{ fontFamily: 'Barlow Condensed, sans-serif', fontStyle: 'italic', fontWeight: 900, fontSize: 22, color: '#f5f5f0', lineHeight: 1, textTransform: 'uppercase' }}>
           {feature.title.replace(/\.$/, '')}<span style={{ color: '#e8341c' }}>.</span>
         </div>
