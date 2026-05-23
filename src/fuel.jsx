@@ -1115,7 +1115,17 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           {!searching&&query&&<button onClick={()=>{setQuery("");setResults([]);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:18,cursor:"pointer",lineHeight:1,padding:"0 2px"}}>×</button>}
         </div>
         <button onClick={()=>setShowBarcodeInSearch(true)} style={{width:44,height:44,borderRadius:10,background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="5" height="5" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/><rect x="14" y="1" width="5" height="5" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/><rect x="1" y="14" width="5" height="5" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/><line x1="8" y1="1" x2="8" y2="8" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="11" y1="1" x2="11" y2="8" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="12" x2="8" y2="19" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="11" y1="12" x2="11" y2="19" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="14" y1="8" x2="19" y2="8" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/><line x1="14" y1="11" x2="19" y2="11" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
+            <rect x="1" y="1" width="6" height="6" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/>
+            <rect x="15" y="1" width="6" height="6" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/>
+            <rect x="1" y="15" width="6" height="6" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/>
+            <line x1="9" y1="2" x2="9" y2="7" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="12" y1="2" x2="12" y2="7" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="9" y1="15" x2="9" y2="20" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="12" y1="15" x2="12" y2="20" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="15" y1="9" x2="20" y2="9" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="15" y1="12" x2="20" y2="12" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
         </button>
       </div>
       {searching&&<div style={{marginBottom:16}}><FoodSearchSkeleton/></div>}
@@ -1698,6 +1708,7 @@ Reply with ONLY a valid JSON object, no markdown:
   const [showQuickLog,setShowQuickLog]=useState(false);
   const [undoEntry,setUndoEntry]=useState(null);
   const undoTimer=useRef(null);
+  const mealPrepRef=useRef(null);
   const [contextMenu,setContextMenu]=useState(null); // {item, slot}
   const longPressRef=useRef(null);
   const [mealTemplates,setMealTemplates]=useState([]);
@@ -2044,7 +2055,8 @@ Reply with ONLY a valid JSON object, no markdown:
       <div style={{padding:isMobile?"12px 18px":"0"}}>
 
         {/* ── HOME ── */}
-        {fuelScreen==="home"&&(
+        {fuelScreen==="home"&&(()=>{
+          try{return(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* ── MACRO RING ── */}
             {(()=>{
@@ -2598,7 +2610,8 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             )}
           </div>
-        )}
+          );}catch(err){console.error('FUEL HOME CRASH:',err);return(<div style={{padding:24,color:'#e8341c',fontFamily:'DM Mono,monospace',fontSize:12}}>Error: {err.message}</div>);}
+        })()}
 
         {/* ── LOG FOOD ── */}
         {fuelScreen==="log"&&(
@@ -3012,7 +3025,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* Kitchen carousel */}
             {(()=>{
               const kitchenCards=[
-                {eyebrow:'// WEEKLY PREP',title:'MEAL PREP.',sub:'Cook once, eat all week',onPress:()=>{}},
+                {eyebrow:'// WEEKLY PREP',title:'MEAL PREP.',sub:'Cook once, eat all week',onPress:()=>mealPrepRef.current?.scrollIntoView({behavior:'smooth'})},
                 {eyebrow:'// AI NUTRITION',title:'RESTAURANT AI.',sub:'Scan any menu for instant macro recommendations',onPress:()=>setFuelScreen('recs')},
               ];
               return(
@@ -3176,7 +3189,7 @@ Reply with ONLY a valid JSON object, no markdown:
             )}
 
             {/* ── MEAL PREP section inside Kitchen ── */}
-            <div style={{borderTop:`1px solid ${T.bd}`,marginTop:32,paddingTop:28}}>
+            <div ref={mealPrepRef} style={{borderTop:`1px solid ${T.bd}`,marginTop:32,paddingTop:28}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
               <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP</div>
               {prepPlan&&!prepLoading&&(
