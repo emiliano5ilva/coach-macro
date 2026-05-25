@@ -58,7 +58,6 @@ import { getRunningPhase, getRunTimePredictor } from "./services/runningPeriodis
 import { getStrengthPhase, getStrengthPredictor } from "./services/strengthPeriodisationService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
-import { scheduleCoachingNotifications } from "./services/notifications.js";
 import SpotlightTour from "./components/SpotlightTour.jsx";
 import FeatureUnlockCard from "./components/FeatureUnlockCard.jsx";
 import { checkFeatureUnlocks, getPendingUnlock, getUserStats, markUnlockShown, markAppTourComplete, triggerEventUnlock, APP_TOUR_STEPS } from "./services/featureUnlockService.js";
@@ -1412,6 +1411,119 @@ function WeeklyNutritionCalendar({weekMacros,todayKey}) {
   );
 }
 
+function PRFeed({dbPRs,wUnit}){
+  const [prTab,setPrTab]=useState('recent');
+  const thirtyDaysAgo=new Date(Date.now()-30*864e5).toISOString().split('T')[0];
+  const allPRs=(dbPRs||[]).slice(0,30).map(pr=>({name:pr.exercise_name,weight:pr.weight,reps:pr.reps,date:pr.date}));
+  const recentPRs=allPRs.filter(pr=>pr.date>=thirtyDaysAgo);
+  const bestByExercise={};
+  allPRs.forEach(pr=>{if(!bestByExercise[pr.name]||pr.weight>bestByExercise[pr.name].weight)bestByExercise[pr.name]=pr;});
+  const allTimePRs=Object.values(bestByExercise).sort((a,b)=>b.weight-a.weight);
+  const displayPRs=prTab==='recent'?recentPRs:allTimePRs;
+  return(
+    <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// PERSONAL RECORDS</div>
+        <div style={{display:"flex",gap:4}}>
+          {['recent','all time'].map(t=>(
+            <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"#e8341c":"rgba(245,245,240,0.1)"}`,background:prTab===t?"rgba(232,52,28,0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:8,color:prTab===t?"#e8341c":"rgba(245,245,240,0.4)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
+          ))}
+        </div>
+      </div>
+      {displayPRs.length===0?(
+        <div style={{textAlign:"center",padding:"24px 0"}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"rgba(245,245,240,0.3)",lineHeight:1,marginBottom:8}}>YOUR FIRST PR IS ONE SESSION AWAY.</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"rgba(245,245,240,0.3)",lineHeight:1.5}}>Log your first session and Coach Macro will track every personal record from here.</div>
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {displayPRs.slice(0,10).map((pr,i)=>(
+            <div key={pr.name+i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"rgba(34,197,94,0.03)",border:"1px solid rgba(34,197,94,0.1)",borderLeft:"3px solid #22c55e",borderRadius:12}}>
+              <div style={{flex:1,minWidth:0,marginRight:12}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)",marginTop:2}}>{new Date(pr.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{pr.weight}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(34,197,94,0.6)",marginTop:1}}>{wUnit||"lbs"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLastWeek,protHitDays,calHitDays,twStart,macros,user}){
+  const [insight,setInsight]=useState(()=>{
+    const key='cm_week_insight_'+twStart;
+    try{return localStorage.getItem(key)||'';}catch{return '';}
+  });
+  const [insightLoading,setInsightLoading]=useState(false);
+
+  useEffect(()=>{
+    if(insight||insightLoading||!user?.id||workoutsThisWeek===0)return;
+    const key='cm_week_insight_'+twStart;
+    setInsightLoading(true);
+    const prompt=`You are a fitness coach. In one punchy sentence (under 20 words), give a weekly performance insight based on these stats: ${workoutsThisWeek} sessions, ${volumeThisWeek.toLocaleString()} lbs volume (last week: ${volumeLastWeek.toLocaleString()} lbs), protein target hit ${protHitDays}/7 days, calorie target hit ${calHitDays}/7 days. Be specific, motivating, and direct. No fluff.`;
+    ai(prompt,60,'week_insight').then(text=>{
+      const clean=text.replace(/^["']|["']$/g,'').trim();
+      setInsight(clean);
+      try{localStorage.setItem('cm_week_insight_'+twStart,clean);}catch{}
+    }).catch(()=>{}).finally(()=>setInsightLoading(false));
+  },[workoutsThisWeek,user?.id]);
+
+  const weekStart=new Date(twStart+'T12:00:00');
+  const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
+  const fmt=(d)=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase();
+  const dateRange=`${fmt(weekStart)} – ${fmt(weekEnd)}`;
+
+  const lastWeekStart=new Date(weekStart);lastWeekStart.setDate(lastWeekStart.getDate()-7);
+  const lastWeekStr=lastWeekStart.toISOString().split('T')[0];
+  const lastWeekWorkouts=(workoutLogsRaw||[]).filter(l=>l.date>=lastWeekStr&&l.date<twStart).length;
+
+  const sessionDelta=workoutsThisWeek-lastWeekWorkouts;
+  const volDelta=volumeThisWeek-volumeLastWeek;
+  const protPct=Math.round(protHitDays/7*100);
+  const logDays=new Set([...(workoutLogsRaw||[]).filter(l=>l.date>=twStart).map(l=>l.date)]).size;
+
+  return(
+    <div style={{margin:"0 16px 14px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// WEEK IN REVIEW</div>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)"}}>{dateRange}</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        {[
+          {label:"SESSIONS",value:workoutsThisWeek,delta:sessionDelta,unit:''},
+          {label:"VOLUME",value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek||0),delta:volDelta,unit:'lbs'},
+          {label:"PROTEIN",value:`${protPct}%`,delta:null,unit:'of target'},
+          {label:"LOGGED",value:`${logDays}/7`,delta:null,unit:'days'},
+        ].map(({label,value,delta,unit})=>(
+          <div key={label} style={{background:"rgba(232,52,28,0.04)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:1,marginBottom:2}}>{value}</div>
+            {unit&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",marginBottom:4}}>{unit}</div>}
+            {delta!==null&&delta!==0&&(
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:delta>0?"#22c55e":"#e8341c"}}>{delta>0?'+':''}{typeof delta==='number'&&Math.abs(delta)>999?`${(delta/1000).toFixed(1)}k`:delta} vs last wk</div>
+            )}
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:4}}>{label}</div>
+          </div>
+        ))}
+      </div>
+      {(insight||insightLoading)&&(
+        <div style={{borderLeft:"2px solid #e8341c",paddingLeft:12,marginTop:2}}>
+          {insightLoading?(
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:15,color:"rgba(245,245,240,0.35)"}}>Analyzing your week...</div>
+          ):(
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.4}}>{insight}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -1693,11 +1805,13 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       if((workoutLogsRaw||[]).some(w=>w.date===ds))streak++;else if(i>0)break;
     }
     const briefLine=morningBrief?.coach_says||morningBrief?.greeting||'';
-    scheduleCoachingNotifications({
-      consumed,macros,todayType,streakCount:streak,
-      morningBriefLine:briefLine,sessionLoggedToday
-    }).then(()=>{
-      localStorage.setItem('cm_notif_scheduled',today);
+    import('./services/notifications.js').then(({scheduleCoachingNotifications})=>{
+      scheduleCoachingNotifications({
+        consumed,macros,todayType,streakCount:streak,
+        morningBriefLine:briefLine,sessionLoggedToday
+      }).then(()=>{
+        localStorage.setItem('cm_notif_scheduled',today);
+      }).catch(()=>{});
     }).catch(()=>{});
   },[user?.id,macros?.calories,workoutLogsRaw?.length]);
 
@@ -4279,119 +4393,6 @@ Rules:
     {id:'day_30',type:'membership',threshold:30,title:'30 DAYS STRONG.',sub:"A month of coaching. Look how far you've come.",icon:'W4'},
     {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
   ];
-
-  function PRFeed({dbPRs,wUnit}){
-    const [prTab,setPrTab]=useState('recent');
-    const thirtyDaysAgo=new Date(Date.now()-30*864e5).toISOString().split('T')[0];
-    const allPRs=(dbPRs||[]).slice(0,30).map(pr=>({name:pr.exercise_name,weight:pr.weight,reps:pr.reps,date:pr.date}));
-    const recentPRs=allPRs.filter(pr=>pr.date>=thirtyDaysAgo);
-    const bestByExercise={};
-    allPRs.forEach(pr=>{if(!bestByExercise[pr.name]||pr.weight>bestByExercise[pr.name].weight)bestByExercise[pr.name]=pr;});
-    const allTimePRs=Object.values(bestByExercise).sort((a,b)=>b.weight-a.weight);
-    const displayPRs=prTab==='recent'?recentPRs:allTimePRs;
-    return(
-      <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// PERSONAL RECORDS</div>
-          <div style={{display:"flex",gap:4}}>
-            {['recent','all time'].map(t=>(
-              <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"#e8341c":"rgba(245,245,240,0.1)"}`,background:prTab===t?"rgba(232,52,28,0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:8,color:prTab===t?"#e8341c":"rgba(245,245,240,0.4)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
-            ))}
-          </div>
-        </div>
-        {displayPRs.length===0?(
-          <div style={{textAlign:"center",padding:"24px 0"}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"rgba(245,245,240,0.3)",lineHeight:1,marginBottom:8}}>YOUR FIRST PR IS ONE SESSION AWAY.</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"rgba(245,245,240,0.3)",lineHeight:1.5}}>Log your first session and Coach Macro will track every personal record from here.</div>
-          </div>
-        ):(
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {displayPRs.slice(0,10).map((pr,i)=>(
-              <div key={pr.name+i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"rgba(34,197,94,0.03)",border:"1px solid rgba(34,197,94,0.1)",borderLeft:"3px solid #22c55e",borderRadius:12}}>
-                <div style={{flex:1,minWidth:0,marginRight:12}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)",marginTop:2}}>{new Date(pr.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{pr.weight}</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(34,197,94,0.6)",marginTop:1}}>{wUnit||"lbs"}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLastWeek,protHitDays,calHitDays,twStart,macros,user}){
-    const [insight,setInsight]=useState(()=>{
-      const key='cm_week_insight_'+twStart;
-      try{return localStorage.getItem(key)||'';}catch{return '';}
-    });
-    const [insightLoading,setInsightLoading]=useState(false);
-
-    useEffect(()=>{
-      if(insight||insightLoading||!user?.id||workoutsThisWeek===0)return;
-      const key='cm_week_insight_'+twStart;
-      setInsightLoading(true);
-      const prompt=`You are a fitness coach. In one punchy sentence (under 20 words), give a weekly performance insight based on these stats: ${workoutsThisWeek} sessions, ${volumeThisWeek.toLocaleString()} lbs volume (last week: ${volumeLastWeek.toLocaleString()} lbs), protein target hit ${protHitDays}/7 days, calorie target hit ${calHitDays}/7 days. Be specific, motivating, and direct. No fluff.`;
-      ai(prompt,60,'week_insight').then(text=>{
-        const clean=text.replace(/^["']|["']$/g,'').trim();
-        setInsight(clean);
-        try{localStorage.setItem('cm_week_insight_'+twStart,clean);}catch{}
-      }).catch(()=>{}).finally(()=>setInsightLoading(false));
-    },[workoutsThisWeek,user?.id]);
-
-    const weekStart=new Date(twStart+'T12:00:00');
-    const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
-    const fmt=(d)=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase();
-    const dateRange=`${fmt(weekStart)} – ${fmt(weekEnd)}`;
-
-    const lastWeekStart=new Date(weekStart);lastWeekStart.setDate(lastWeekStart.getDate()-7);
-    const lastWeekStr=lastWeekStart.toISOString().split('T')[0];
-    const lastWeekWorkouts=(workoutLogsRaw||[]).filter(l=>l.date>=lastWeekStr&&l.date<twStart).length;
-
-    const sessionDelta=workoutsThisWeek-lastWeekWorkouts;
-    const volDelta=volumeThisWeek-volumeLastWeek;
-    const protPct=Math.round(protHitDays/7*100);
-    const logDays=new Set([...(workoutLogsRaw||[]).filter(l=>l.date>=twStart).map(l=>l.date)]).size;
-
-    return(
-      <div style={{margin:"0 16px 14px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// WEEK IN REVIEW</div>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)"}}>{dateRange}</div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-          {[
-            {label:"SESSIONS",value:workoutsThisWeek,delta:sessionDelta,unit:''},
-            {label:"VOLUME",value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek||0),delta:volDelta,unit:'lbs'},
-            {label:"PROTEIN",value:`${protPct}%`,delta:null,unit:'of target'},
-            {label:"LOGGED",value:`${logDays}/7`,delta:null,unit:'days'},
-          ].map(({label,value,delta,unit})=>(
-            <div key={label} style={{background:"rgba(232,52,28,0.04)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:1,marginBottom:2}}>{value}</div>
-              {unit&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",marginBottom:4}}>{unit}</div>}
-              {delta!==null&&delta!==0&&(
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:delta>0?"#22c55e":"#e8341c"}}>{delta>0?'+':''}{typeof delta==='number'&&Math.abs(delta)>999?`${(delta/1000).toFixed(1)}k`:delta} vs last wk</div>
-              )}
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:4}}>{label}</div>
-            </div>
-          ))}
-        </div>
-        {(insight||insightLoading)&&(
-          <div style={{borderLeft:"2px solid #e8341c",paddingLeft:12,marginTop:2}}>
-            {insightLoading?(
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:15,color:"rgba(245,245,240,0.35)"}}>Analyzing your week...</div>
-            ):(
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.4}}>{insight}</div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   function ProgressSection() {
     const sc = coachScore;
