@@ -1675,6 +1675,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [workoutSummary,setWorkoutSummary]=useState(null);
   const [completedWorkout,setCompletedWorkout]=useState(null);
   const notifTimeoutRef=useRef(null);
+  const [middayDismissed,setMiddayDismissed]=useState(()=>{try{const d=localStorage.getItem('midday_dismissed');return d&&(Date.now()-parseInt(d))<7200000;}catch{return false;}});
+  const [firstWeekCardDismissed,setFirstWeekCardDismissed]=useState(()=>{try{return!!localStorage.getItem('cm_1week_dismissed');}catch{return false;}});
 
   useEffect(()=>{
     if(activeWorkout&&!workoutStartTime)setWorkoutStartTime(Date.now());
@@ -2470,6 +2472,7 @@ Rules:
       // Snapshot before any async — prevents "NO ACTIVE SESSION" flash
       setCompletedWorkout({...activeWorkout});
       setTrainScreen('summary');
+      try{localStorage.setItem('cm_last_session_time',Date.now().toString());}catch{}
 
       const duration=workoutStartTime?Math.max(1,Math.round((Date.now()-workoutStartTime)/60000)):45;
       const burn=todayType==="training"?Math.round(duration*6):Math.round(duration*11);
@@ -3353,10 +3356,41 @@ Rules:
                       );
                     })()
                 }
-                {!morningBriefLoading&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
-                  <button onClick={()=>{setBriefExpanded(false);}} style={{background:"transparent",border:"none",color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
-                  <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
-                </div>}
+                {!morningBriefLoading&&(
+                  <div style={{marginTop:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                      <button onClick={()=>{setBriefExpanded(false);}} style={{background:"transparent",border:"none",color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
+                      <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
+                    </div>
+                    {(()=>{
+                      const hour=new Date().getHours();
+                      const sessionDoneToday=workoutLogsRaw.some(w=>w.date===todayKey)||!!completedWorkout;
+                      const breakfastLogged=log.length>0;
+                      if(todayType==="training"&&hour<12&&!sessionDoneToday){
+                        return(
+                          <div style={{borderTop:"1px solid rgba(232,52,28,0.08)",paddingTop:12}}>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
+                            <button onClick={()=>setSection("train")} style={{width:"100%",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>START YOUR SESSION →</button>
+                          </div>
+                        );
+                      }
+                      if(!breakfastLogged){
+                        return(
+                          <div style={{borderTop:"1px solid rgba(232,52,28,0.08)",paddingTop:12}}>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
+                            <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{width:"100%",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
+                          </div>
+                        );
+                      }
+                      return(
+                        <div style={{borderTop:"1px solid rgba(232,52,28,0.08)",paddingTop:12}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// WHAT SHOULD I DO FIRST?</div>
+                          <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",letterSpacing:"0.04em"}}>YOU'RE ON TRACK. KEEP GOING.</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
               :(()=>{
                 const b=morningBrief;
@@ -3391,6 +3425,65 @@ Rules:
             </div>
           )}
         </div>
+
+        {/* Mid-day check-in card */}
+        {(()=>{
+          const hour=new Date().getHours();
+          if(hour<11||hour>15)return null;
+          if(remaining.calories<=500)return null;
+          if(middayDismissed)return null;
+          const lastLogTime=(()=>{try{return parseInt(localStorage.getItem('last_food_log_time')||'0');}catch{return 0;}})();
+          const hoursSince=(Date.now()-lastLogTime)/3600000;
+          if(lastLogTime>0&&hoursSince<=3)return null;
+          const sessionStarted=trainScreen==="active"||!!completedWorkout;
+          const isAfternoon=hour>=14;
+          const msg=todayType==="training"&&!sessionStarted&&isAfternoon
+            ?{headline:"YOU TRAIN IN A FEW HOURS.",sub:`You need fuel before your session. You're ${Math.round(remaining.calories)} calories behind. Log your next meal now.`}
+            :{headline:"STAYING ON TRACK?",sub:`You have ${Math.round(remaining.calories)} calories and ${Math.round(remaining.protein)}g protein left today. Don't let the day get away from you.`};
+          return(
+            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderLeft:"3px solid #e8341c",borderRadius:12,padding:"14px 16px"}}>
+              <button onClick={()=>{setMiddayDismissed(true);try{localStorage.setItem('midday_dismissed',Date.now().toString());}catch{}}} style={{position:"absolute",top:10,right:12,background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:16,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NUTRITION CHECK</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>{msg.headline}</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>{msg.sub}</div>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(232,52,28,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
+            </div>
+          );
+        })()}
+
+        {/* Post-workout window card */}
+        {(()=>{
+          const lastSession=(()=>{try{return parseInt(localStorage.getItem('cm_last_session_time')||'0');}catch{return 0;}})();
+          if(!lastSession)return null;
+          const hoursAgo=(Date.now()-lastSession)/3600000;
+          if(hoursAgo>3)return null;
+          const pwProtein=macros?.protein?Math.round(macros.protein*0.35):50;
+          const pwCarbs=macros?.carbs?Math.round(macros.carbs*0.4):80;
+          return(
+            <div style={{margin:"0 20px 12px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.2)",borderLeft:"3px solid #22c55e",borderRadius:12,padding:"14px 16px"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// POST-WORKOUT WINDOW</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>FUEL YOUR RECOVERY.</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:10}}>Your post-workout window is open. Hit {pwProtein}g protein and {pwCarbs}g carbs in the next 45 minutes to maximize recovery.</div>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#22c55e",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG POST-WORKOUT MEAL →</button>
+            </div>
+          );
+        })()}
+
+        {/* First week milestone card */}
+        {(()=>{
+          if(firstWeekCardDismissed)return null;
+          if(!profile?.created_at&&!profile?.createdAt)return null;
+          const created=new Date(profile.created_at||profile.createdAt);
+          const daysSince=Math.floor((Date.now()-created.getTime())/86400000);
+          if(daysSince<7||daysSince>14)return null;
+          return(
+            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:"20px"}}>
+              <button onClick={()=>{setFirstWeekCardDismissed(true);try{localStorage.setItem('cm_1week_dismissed','1');}catch{}}} style={{position:"absolute",top:12,right:14,background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:16,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1,marginBottom:8}}>ONE WEEK IN<span style={{color:"#e8341c"}}>.</span></div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>You've been showing up. That's what separates the athletes who get results from the ones who don't.</div>
+            </div>
+          );
+        })()}
 
         {/* Cycle Insight Card (Part 10) */}
         {profile?.sex==="female"&&profile?.cycleTracking&&(()=>{

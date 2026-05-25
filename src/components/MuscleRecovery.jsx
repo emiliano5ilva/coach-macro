@@ -214,6 +214,12 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
         <div style={s.coachLabel}>// Coach</div>
         <div style={s.coachText}>{coachText}</div>
       </div>
+      {!recoveryData&&!loading&&(
+        <div style={{textAlign:"center",padding:"16px 0 4px"}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>LOG SESSIONS TO SEE YOUR MUSCLE RECOVERY MAP.</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"rgba(245,245,240,0.35)",lineHeight:1.5}}>Complete your first session and Coach Macro will track which muscles need rest and which are ready to train.</div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3275,6 +3275,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   );
                 })}
               </div>
+            {sessionCount===0&&WDAYS.indexOf(todayKey)>1&&todayType==="training"&&(
+              <div style={{marginTop:10,background:"rgba(232,52,28,0.04)",border:"1px solid rgba(232,52,28,0.08)",borderRadius:10,padding:"12px 14px"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
+                <div style={{fontFamily:"var(--condensed)",fontSize:15,color:"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
+              </div>
+            )}
             </div>
 
             {/* ── MUSCLE RECOVERY ── */}
@@ -3503,10 +3509,24 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             const durStr=dur>=60?`${Math.floor(dur/60)}H ${dur%60}M`:`${dur||'—'} MINUTES`;
             const mno={fontFamily:"'DM Mono',monospace"};
             const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
+            const isFirstSession=sessionCount<=1;
             return(
               <div style={{position:'fixed',inset:0,background:'#000000',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
                 <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}`}</style>
-                <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
+                {isFirstSession&&(
+                  <div style={{background:'linear-gradient(180deg,rgba(232,52,28,0.15) 0%,transparent 100%)',padding:'40px 24px 24px',textAlign:'center',maxWidth:480,margin:'0 auto',boxSizing:'border-box'}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// FIRST SESSION COMPLETE'}</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:64,color:'#f5f5f0',lineHeight:0.88,marginBottom:16,textTransform:'uppercase'}}>YOU<br/>SHOWED<br/>UP.</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,color:'rgba(245,245,240,0.6)',lineHeight:1.4,marginBottom:24}}>That's the hardest part. Most people never start. You did.</div>
+                    <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+                      {['FIRST SESSION','STREAK STARTED','COACH ACTIVE'].map(chip=>(
+                        <span key={chip} style={{background:'rgba(232,52,28,0.1)',border:'1px solid rgba(232,52,28,0.2)',borderRadius:20,padding:'6px 14px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'#e8341c',letterSpacing:'0.1em'}}>{chip} ✓</span>
+                      ))}
+                    </div>
+                    <div style={{height:1,background:'rgba(232,52,28,0.08)',marginTop:24}}/>
+                  </div>
+                )}
+                <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:isFirstSession?'24px 24px 0':'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
 
                   {/* Close */}
                   <div onClick={clearWorkoutSummary} style={{width:36,height:36,borderRadius:10,background:'rgba(245,245,240,0.06)',border:'1px solid rgba(245,245,240,0.1)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',marginBottom:24}}>
@@ -4029,11 +4049,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{fontSize:11,color:T.mu}}>Updated every session</div>
               </div>
               {Object.keys(history).length===0
-                ?<div style={{textAlign:"center",padding:"32px 0",border:`1px dashed ${T.bd}`,borderRadius:14,color:T.mu}}>
-                  <div style={{fontSize:36,marginBottom:12}}>📈</div>
-                  <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>No records yet</div>
-                  <div style={{fontSize:12,color:T.dim,marginBottom:16}}>Build a workout and start logging sets — your PRs will appear here automatically</div>
-                  <button onClick={()=>setTrainScreen("builder")} style={{padding:"10px 24px",background:T.prot,color:T.white,fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Build First Workout →</button>
+                ?<div style={{textAlign:"center",padding:"32px 16px",border:`1px dashed ${T.bd}`,borderRadius:14,color:T.mu}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",marginBottom:12,lineHeight:1}}>YOUR STORY<br/>STARTS TODAY.</div>
+                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:20,maxWidth:260,margin:"0 auto 20px"}}>Complete your first session and log your first meal. Coach Macro will build your performance profile from real data.</div>
+                  <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+                    <button onClick={()=>setTrainScreen("today")} style={{padding:"10px 16px",background:T.prot,color:T.white,fontWeight:700,fontSize:12,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>START TODAY'S SESSION →</button>
+                  </div>
                 </div>
                 :<div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(3,1fr)",gap:10}}>
                   {Object.entries(history).slice(0,12).map(([key,sessions])=>{

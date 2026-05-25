@@ -2382,12 +2382,23 @@ Reply with ONLY a valid JSON object, no markdown:
                         </div>
                       </div>
                     ))}
-                    {log.length===0&&(
-                      <div style={{textAlign:"center",padding:"24px 0"}}>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",marginBottom:4}}>Nothing logged yet</div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.2)",letterSpacing:"0.1em"}}>Tap + on any meal slot above</div>
-                      </div>
-                    )}
+                    {log.length===0&&(()=>{
+                      const h=new Date().getHours();
+                      const calR=Math.round(remaining?.calories||0);
+                      const protR=Math.round(remaining?.protein||0);
+                      const msg=h<10
+                        ?{head:"BREAKFAST SETS THE TONE.",sub:"Athletes who log breakfast hit their protein targets 73% more often. Start strong.",btn:"LOG BREAKFAST →"}
+                        :h<14
+                          ?{head:"WHAT ARE YOU EATING TODAY?",sub:`You have ${calR} calories and ${protR}g protein to hit. Every meal is a step toward your goal.`,btn:"LOG A MEAL →"}
+                          :{head:"THE DAY ISN'T OVER.",sub:`You have ${calR} calories remaining. Make the rest of today count.`,btn:"LOG NOW →"};
+                      return(
+                        <div style={{textAlign:"center",padding:"24px 16px"}}>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"rgba(245,245,240,0.75)",textTransform:"uppercase",marginBottom:6,lineHeight:1}}>{msg.head}</div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,color:"rgba(245,245,240,0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
+                          <button onClick={()=>setLogMode("search")} style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:8,padding:"8px 16px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>{msg.btn}</button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
