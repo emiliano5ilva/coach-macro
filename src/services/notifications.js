@@ -104,6 +104,75 @@ export async function cancelRestTimerNotification() {
   try { await Local.cancel({ notifications: [{ id: 2001 }] }); } catch {}
 }
 
+export async function scheduleCoachingNotifications({ consumed, macros, todayType, streakCount, morningBriefLine, sessionLoggedToday }) {
+  const Local = await getLocal();
+  if (!Local) return;
+
+  try {
+    const { display } = await Local.checkPermissions();
+    if (display !== 'granted') {
+      const result = await Local.requestPermissions();
+      if (result.display !== 'granted') return;
+    }
+
+    // Cancel previous coaching notifications (ids 3001-3005)
+    try {
+      await Local.cancel({ notifications: [{ id: 3001 }, { id: 3002 }, { id: 3003 }, { id: 3004 }, { id: 3005 }] });
+    } catch {}
+
+    const now = new Date();
+    const notifications = [];
+
+    function todayAt(h, m) {
+      const d = new Date();
+      d.setHours(h, m, 0, 0);
+      return d;
+    }
+
+    // 1. Morning brief reminder — 7:30 AM
+    const t1 = todayAt(7, 30);
+    if (now < t1 && morningBriefLine) {
+      notifications.push({ id: 3001, title: 'Your coach checked in.', body: morningBriefLine, schedule: { at: t1 } });
+    }
+
+    // 2. Pre-workout fuel — 12:00 PM on training days if calories < 800
+    if (todayType === 'training' && !sessionLoggedToday) {
+      const t2 = todayAt(12, 0);
+      if (now < t2 && (consumed?.calories || 0) < 800) {
+        notifications.push({ id: 3002, title: 'YOU TRAIN TODAY.', body: 'Fuel up before your session. You need carbs now.', schedule: { at: t2 } });
+      }
+    }
+
+    // 3. Mid-day protein check — 1:00 PM
+    const t3 = todayAt(13, 0);
+    const proteinBehind = Math.round((macros?.protein || 150) * 0.3) - (consumed?.protein || 0);
+    if (now < t3 && proteinBehind > 20) {
+      notifications.push({ id: 3003, title: 'PROTEIN CHECK.', body: `You're ${proteinBehind}g protein behind. Your muscles need fuel.`, schedule: { at: t3 } });
+    }
+
+    // 4. Evening recap — 7:00 PM if calories remaining > 500
+    const t4 = todayAt(19, 0);
+    const calRemaining = (macros?.calories || 2000) - (consumed?.calories || 0);
+    if (now < t4 && calRemaining > 500) {
+      notifications.push({ id: 3004, title: "HOW'S THE DAY LOOKING?", body: `${Math.round(calRemaining)} calories left to hit your target. Log your last meal.`, schedule: { at: t4 } });
+    }
+
+    // 5. Streak at risk — 9:00 PM on training days if no session logged
+    if (todayType === 'training' && !sessionLoggedToday && streakCount > 0) {
+      const t5 = todayAt(21, 0);
+      if (now < t5) {
+        notifications.push({ id: 3005, title: 'YOUR STREAK IS AT RISK.', body: `Log today's session before midnight to keep your ${streakCount}-day streak alive.`, schedule: { at: t5 } });
+      }
+    }
+
+    if (notifications.length > 0) {
+      await Local.schedule({ notifications });
+    }
+  } catch (e) {
+    console.warn('[CoachingNotif] schedule failed:', e.message);
+  }
+}
+
 export async function requestNotificationPermission() {
   const Push = await getPush();
   if (!Push) return false;

@@ -58,6 +58,7 @@ import { getRunningPhase, getRunTimePredictor } from "./services/runningPeriodis
 import { getStrengthPhase, getStrengthPredictor } from "./services/strengthPeriodisationService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
+import { scheduleCoachingNotifications } from "./services/notifications.js";
 import SpotlightTour from "./components/SpotlightTour.jsx";
 import FeatureUnlockCard from "./components/FeatureUnlockCard.jsx";
 import { checkFeatureUnlocks, getPendingUnlock, getUserStats, markUnlockShown, markAppTourComplete, triggerEventUnlock, APP_TOUR_STEPS } from "./services/featureUnlockService.js";
@@ -1677,6 +1678,28 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const notifTimeoutRef=useRef(null);
   const [middayDismissed,setMiddayDismissed]=useState(()=>{try{const d=localStorage.getItem('midday_dismissed');return d&&(Date.now()-parseInt(d))<7200000;}catch{return false;}});
   const [firstWeekCardDismissed,setFirstWeekCardDismissed]=useState(()=>{try{return!!localStorage.getItem('cm_1week_dismissed');}catch{return false;}});
+  const [pendingMilestone,setPendingMilestone]=useState(null);
+
+  useEffect(()=>{
+    const today=new Date().toISOString().split('T')[0];
+    const lastScheduled=localStorage.getItem('cm_notif_scheduled');
+    if(lastScheduled===today)return;
+    if(!user?.id||!macros)return;
+    const todayStr=new Date().toISOString().split('T')[0];
+    const sessionLoggedToday=(workoutLogsRaw||[]).some(w=>w.date===todayStr);
+    let streak=0;
+    for(let i=0;i<60;i++){
+      const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
+      if((workoutLogsRaw||[]).some(w=>w.date===ds))streak++;else if(i>0)break;
+    }
+    const briefLine=morningBrief?.coach_says||morningBrief?.greeting||'';
+    scheduleCoachingNotifications({
+      consumed,macros,todayType,streakCount:streak,
+      morningBriefLine:briefLine,sessionLoggedToday
+    }).then(()=>{
+      localStorage.setItem('cm_notif_scheduled',today);
+    }).catch(()=>{});
+  },[user?.id,macros?.calories,workoutLogsRaw?.length]);
 
   useEffect(()=>{
     if(activeWorkout&&!workoutStartTime)setWorkoutStartTime(Date.now());
@@ -4235,6 +4258,141 @@ Rules:
     );
   }
 
+  const MILESTONES=[
+    {id:'first_session',type:'session',threshold:1,title:'FIRST SESSION.',sub:"You showed up. That's everything.",icon:'S1'},
+    {id:'sessions_5',type:'session',threshold:5,title:'5 SESSIONS.',sub:"You're building something real.",icon:'S5'},
+    {id:'sessions_10',type:'session',threshold:10,title:'10 SESSIONS.',sub:'Double digits. The habit is forming.',icon:'S10'},
+    {id:'sessions_25',type:'session',threshold:25,title:'25 SESSIONS.',sub:'One month of consistency. Most people quit by now.',icon:'S25'},
+    {id:'sessions_50',type:'session',threshold:50,title:'50 SESSIONS.',sub:'Fifty. You are not most people.',icon:'S50'},
+    {id:'sessions_100',type:'session',threshold:100,title:'100 SESSIONS.',sub:'This is who you are now.',icon:'S100'},
+    {id:'streak_3',type:'streak',threshold:3,title:'3 DAY STREAK.',sub:'Momentum is building.',icon:'3D'},
+    {id:'streak_7',type:'streak',threshold:7,title:'7 DAY STREAK.',sub:'One full week. Your body is adapting.',icon:'7D'},
+    {id:'streak_14',type:'streak',threshold:14,title:'14 DAY STREAK.',sub:'Two weeks straight. This is a habit.',icon:'14D'},
+    {id:'streak_30',type:'streak',threshold:30,title:'30 DAY STREAK.',sub:'A month of showing up. Legendary.',icon:'30D'},
+    {id:'meals_10',type:'meals',threshold:10,title:'10 MEALS LOGGED.',sub:'Nutrition awareness is half the battle.',icon:'M10'},
+    {id:'meals_50',type:'meals',threshold:50,title:'50 MEALS LOGGED.',sub:"You know what you're putting in your body.",icon:'M50'},
+    {id:'meals_100',type:'meals',threshold:100,title:'100 MEALS LOGGED.',sub:'Data is your superpower now.',icon:'M100'},
+    {id:'volume_10k',type:'volume',threshold:10000,title:'10,000 LBS LIFTED.',sub:'Ten thousand pounds of work done.',icon:'V10'},
+    {id:'volume_50k',type:'volume',threshold:50000,title:'50,000 LBS LIFTED.',sub:'Fifty thousand. The iron remembers.',icon:'V50'},
+    {id:'volume_100k',type:'volume',threshold:100000,title:'100,000 LBS LIFTED.',sub:'One hundred thousand pounds. Unstoppable.',icon:'V100'},
+    {id:'day_7',type:'membership',threshold:7,title:'ONE WEEK IN.',sub:'Seven days with Coach Macro. The journey has begun.',icon:'W1'},
+    {id:'day_30',type:'membership',threshold:30,title:'30 DAYS STRONG.',sub:"A month of coaching. Look how far you've come.",icon:'W4'},
+    {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
+  ];
+
+  function PRFeed({dbPRs,wUnit}){
+    const [prTab,setPrTab]=useState('recent');
+    const thirtyDaysAgo=new Date(Date.now()-30*864e5).toISOString().split('T')[0];
+    const allPRs=(dbPRs||[]).slice(0,30).map(pr=>({name:pr.exercise_name,weight:pr.weight,reps:pr.reps,date:pr.date}));
+    const recentPRs=allPRs.filter(pr=>pr.date>=thirtyDaysAgo);
+    const bestByExercise={};
+    allPRs.forEach(pr=>{if(!bestByExercise[pr.name]||pr.weight>bestByExercise[pr.name].weight)bestByExercise[pr.name]=pr;});
+    const allTimePRs=Object.values(bestByExercise).sort((a,b)=>b.weight-a.weight);
+    const displayPRs=prTab==='recent'?recentPRs:allTimePRs;
+    return(
+      <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// PERSONAL RECORDS</div>
+          <div style={{display:"flex",gap:4}}>
+            {['recent','all time'].map(t=>(
+              <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"#e8341c":"rgba(245,245,240,0.1)"}`,background:prTab===t?"rgba(232,52,28,0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:8,color:prTab===t?"#e8341c":"rgba(245,245,240,0.4)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
+            ))}
+          </div>
+        </div>
+        {displayPRs.length===0?(
+          <div style={{textAlign:"center",padding:"24px 0"}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"rgba(245,245,240,0.3)",lineHeight:1,marginBottom:8}}>YOUR FIRST PR IS ONE SESSION AWAY.</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"rgba(245,245,240,0.3)",lineHeight:1.5}}>Log your first session and Coach Macro will track every personal record from here.</div>
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {displayPRs.slice(0,10).map((pr,i)=>(
+              <div key={pr.name+i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"rgba(34,197,94,0.03)",border:"1px solid rgba(34,197,94,0.1)",borderLeft:"3px solid #22c55e",borderRadius:12}}>
+                <div style={{flex:1,minWidth:0,marginRight:12}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)",marginTop:2}}>{new Date(pr.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{pr.weight}</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(34,197,94,0.6)",marginTop:1}}>{wUnit||"lbs"}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLastWeek,protHitDays,calHitDays,twStart,macros,user}){
+    const [insight,setInsight]=useState(()=>{
+      const key='cm_week_insight_'+twStart;
+      try{return localStorage.getItem(key)||'';}catch{return '';}
+    });
+    const [insightLoading,setInsightLoading]=useState(false);
+
+    useEffect(()=>{
+      if(insight||insightLoading||!user?.id||workoutsThisWeek===0)return;
+      const key='cm_week_insight_'+twStart;
+      setInsightLoading(true);
+      const prompt=`You are a fitness coach. In one punchy sentence (under 20 words), give a weekly performance insight based on these stats: ${workoutsThisWeek} sessions, ${volumeThisWeek.toLocaleString()} lbs volume (last week: ${volumeLastWeek.toLocaleString()} lbs), protein target hit ${protHitDays}/7 days, calorie target hit ${calHitDays}/7 days. Be specific, motivating, and direct. No fluff.`;
+      ai(prompt,60,'week_insight').then(text=>{
+        const clean=text.replace(/^["']|["']$/g,'').trim();
+        setInsight(clean);
+        try{localStorage.setItem('cm_week_insight_'+twStart,clean);}catch{}
+      }).catch(()=>{}).finally(()=>setInsightLoading(false));
+    },[workoutsThisWeek,user?.id]);
+
+    const weekStart=new Date(twStart+'T12:00:00');
+    const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
+    const fmt=(d)=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase();
+    const dateRange=`${fmt(weekStart)} – ${fmt(weekEnd)}`;
+
+    const lastWeekStart=new Date(weekStart);lastWeekStart.setDate(lastWeekStart.getDate()-7);
+    const lastWeekStr=lastWeekStart.toISOString().split('T')[0];
+    const lastWeekWorkouts=(workoutLogsRaw||[]).filter(l=>l.date>=lastWeekStr&&l.date<twStart).length;
+
+    const sessionDelta=workoutsThisWeek-lastWeekWorkouts;
+    const volDelta=volumeThisWeek-volumeLastWeek;
+    const protPct=Math.round(protHitDays/7*100);
+    const logDays=new Set([...(workoutLogsRaw||[]).filter(l=>l.date>=twStart).map(l=>l.date)]).size;
+
+    return(
+      <div style={{margin:"0 16px 14px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// WEEK IN REVIEW</div>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)"}}>{dateRange}</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+          {[
+            {label:"SESSIONS",value:workoutsThisWeek,delta:sessionDelta,unit:''},
+            {label:"VOLUME",value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek||0),delta:volDelta,unit:'lbs'},
+            {label:"PROTEIN",value:`${protPct}%`,delta:null,unit:'of target'},
+            {label:"LOGGED",value:`${logDays}/7`,delta:null,unit:'days'},
+          ].map(({label,value,delta,unit})=>(
+            <div key={label} style={{background:"rgba(232,52,28,0.04)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:1,marginBottom:2}}>{value}</div>
+              {unit&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",marginBottom:4}}>{unit}</div>}
+              {delta!==null&&delta!==0&&(
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:delta>0?"#22c55e":"#e8341c"}}>{delta>0?'+':''}{typeof delta==='number'&&Math.abs(delta)>999?`${(delta/1000).toFixed(1)}k`:delta} vs last wk</div>
+              )}
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:4}}>{label}</div>
+            </div>
+          ))}
+        </div>
+        {(insight||insightLoading)&&(
+          <div style={{borderLeft:"2px solid #e8341c",paddingLeft:12,marginTop:2}}>
+            {insightLoading?(
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:15,color:"rgba(245,245,240,0.35)"}}>Analyzing your week...</div>
+            ):(
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.4}}>{insight}</div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function ProgressSection() {
     const sc = coachScore;
     const activeTab = progressTab;
@@ -4248,6 +4406,45 @@ Rules:
         .gte('date',cutoff).order('date',{ascending:false})
         .then(({data})=>setProgFoodLogs(data||[]));
     },[user?.id]);
+
+    // Milestone check
+    const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
+    useEffect(()=>{
+      if(!user?.id)return;
+      sb.from('food_logs').select('entries').eq('user_id',user.id)
+        .then(({data})=>{
+          const total=(data||[]).reduce((s,l)=>s+(l.entries||[]).length,0);
+          setTotalMealsAllTime(total);
+        });
+    },[user?.id]);
+
+    useEffect(()=>{
+      if(!user?.id||!workoutLogsRaw)return;
+      const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
+      const totalSessions=workoutLogsRaw.length;
+      let streak=0;
+      for(let i=0;i<60;i++){
+        const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
+        if(workoutLogsRaw.some(l=>l.date===ds))streak++;else if(i>0)break;
+      }
+      const totalVolume=(workoutLogsRaw||[]).reduce((s,l)=>s+(l.volume_lbs||0),0);
+      const memberDays=profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0;
+      for(const m of MILESTONES){
+        if(earned.includes(m.id))continue;
+        let achieved=false;
+        if(m.type==='session')achieved=totalSessions>=m.threshold;
+        else if(m.type==='streak')achieved=streak>=m.threshold;
+        else if(m.type==='meals')achieved=totalMealsAllTime>=m.threshold;
+        else if(m.type==='volume')achieved=totalVolume>=m.threshold;
+        else if(m.type==='membership')achieved=memberDays>=m.threshold;
+        if(achieved){
+          earned.push(m.id);
+          localStorage.setItem('cm_earned_milestones',JSON.stringify(earned));
+          setPendingMilestone(m);
+          break;
+        }
+      }
+    },[workoutLogsRaw,totalMealsAllTime,user?.id]);
 
     const _twStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.toISOString().split('T')[0];})();
     const todayStr=new Date().toISOString().split('T')[0];
@@ -4484,6 +4681,17 @@ Rules:
 
           {/* ── OVERVIEW ── */}
           {activeTab==="overview"&&<>
+            {workoutLogsRaw.length>0&&<WeeklyReview
+              workoutLogsRaw={workoutLogsRaw}
+              workoutsThisWeek={workoutsThisWeek}
+              volumeThisWeek={volumeThisWeek}
+              volumeLastWeek={volumeLastWeek}
+              protHitDays={protHitDays}
+              calHitDays={calHitDays}
+              twStart={_twStart}
+              macros={macros}
+              user={user}
+            />}
             {/* Empty state — fewer than 3 sessions */}
             {workoutLogsRaw.length<3&&(
               <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.2)",borderRadius:16}}>
@@ -4838,6 +5046,28 @@ Rules:
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:15,color:"rgba(245,245,240,0.45)"}}>Log workouts and meals to see personalized coaching.</div>
               )}
             </div>
+
+            {/* Milestones Grid */}
+            {(()=>{
+              const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
+              const earnedSet=new Set(earned);
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MILESTONES</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                    {MILESTONES.map(m=>{
+                      const isEarned=earnedSet.has(m.id);
+                      return(
+                        <div key={m.id} style={{background:"#0d0d0d",border:`1px solid ${isEarned?"rgba(232,52,28,0.2)":"rgba(245,245,240,0.06)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.25}}>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:900,color:"#e8341c",marginBottom:4,letterSpacing:'-0.02em'}}>{isEarned?m.icon:"X"}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"#e8341c",letterSpacing:"0.1em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingTop:2}}>{m.title.replace(/\.$/, '')}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </>}
 
           {/* ── STRENGTH ── */}
@@ -4865,22 +5095,7 @@ Rules:
               )}
             </div>
 
-            {personalRecords.length>0?(
-              <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Personal Records</div>
-                {personalRecords.map(([name,pr])=>(
-                  <div key={name} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:16,fontWeight:700,color:"#fff",flex:1,minWidth:0,marginRight:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:12,color:"#fff",fontWeight:700}}>{pr.weight} {profile?.wUnit||"lbs"}</div>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:2}}>{new Date(pr.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ):(
-              <PH eyebrow="// Personal Records" headline="YOUR FIRST PR." body="Complete your first session to start tracking personal records."/>
-            )}
+            <PRFeed dbPRs={dbPRs} wUnit={profile?.wUnit||"lbs"}/>
 
             <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Volume This Week</div>
@@ -5350,6 +5565,23 @@ Rules:
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></ErrorBoundary>}
       </div>
+
+      {pendingMilestone&&ReactDOM.createPortal(
+        <div style={{position:'fixed',inset:0,background:'#000000',zIndex:10005,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 24px',textAlign:'center'}}>
+          <div style={{position:'absolute',inset:0,background:'radial-gradient(circle at center,rgba(232,52,28,0.08) 0%,transparent 70%)',pointerEvents:'none'}}/>
+          <div style={{position:'relative',zIndex:1,maxWidth:320,width:'100%'}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:42,fontWeight:900,color:'#e8341c',marginBottom:20,letterSpacing:'-0.02em',lineHeight:1}}>{pendingMilestone.icon}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// MILESTONE UNLOCKED'}</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:'clamp(48px,10vw,72px)',color:'#f5f5f0',textTransform:'uppercase',lineHeight:0.9,marginBottom:16}}>
+              {pendingMilestone.title.replace(/\.$/, '')}<span style={{color:'#e8341c'}}>.</span>
+            </div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,color:'rgba(245,245,240,0.55)',lineHeight:1.4,marginBottom:40}}>{pendingMilestone.sub}</div>
+            <div style={{width:48,height:3,background:'#e8341c',margin:'0 auto 40px'}}/>
+            <button onClick={()=>setPendingMilestone(null)} style={{width:'100%',maxWidth:300,background:'#e8341c',border:'none',borderRadius:14,padding:'16px 0',fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:12,color:'#fff',letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>KEEP GOING</button>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {showLocalRest&&ReactDOM.createPortal(
         <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10002,background:"#0d0d0d",borderTop:"2px solid #e8341c",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"max(env(safe-area-inset-bottom),40px)"}}>
