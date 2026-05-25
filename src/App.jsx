@@ -2,7 +2,7 @@ import React, { useEffect, lazy, Suspense } from 'react';
 import { LandingPage } from './landing.jsx';
 import { PrivacyPolicy, TermsOfService, HealthDisclaimer, HealthDataNotice,
   WashingtonPrivacy, CaliforniaPrivacy, SupportPage } from './legal.jsx';
-import { AboutPage } from './about.jsx';
+import AboutPage from './pages/AboutPage.jsx';
 import FAQPage from './pages/FAQPage.jsx';
 
 const NativeApp = lazy(() => import('./NativeApp.jsx'));
