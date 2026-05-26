@@ -542,8 +542,20 @@ export default function AthletePassport({ userId }) {
 
         {/* Badge row */}
         {badges.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: referralTier >= 4 ? 6 : 14, flexWrap: 'wrap', alignItems: 'center' }}>
             {badges.map(b => <PassportBadge key={b} type={b}/>)}
+          </div>
+        )}
+
+        {/* Referral count — bragging rights, shown only after max tier */}
+        {referralTier >= 4 && (profile?.referral_count || 0) > 0 && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
+            <span style={{ fontFamily: "'Barlow Condensed','Barlow',sans-serif", fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: '#FFD740', lineHeight: 1 }}>
+              {profile.referral_count}
+            </span>
+            <span style={{ fontFamily: "'DM Mono','SF Mono',monospace", fontSize: 7, color: 'rgba(255,215,64,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              referrals
+            </span>
           </div>
         )}
 

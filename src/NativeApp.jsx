@@ -669,14 +669,6 @@ export default function NativeApp() {
       const saved2=await saveProfile(user.id,finalProf,sch,wp);
       if(!saved2){setSaveErr("Could not save your profile. Check your connection and try again.");return;}
     }
-    // Credit referral at signup completion (not on link click)
-    if(_inviteToken||finalProf.inviteCode){
-      fetch("https://coach-macro.com/api/referral-signup",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({userId:user.id,token:_inviteToken||undefined,code:finalProf.inviteCode||undefined}),
-      }).catch(()=>{});
-    }
     track(EVENTS.ONBOARDING_COMPLETE,{goal:finalProf.goal,trainType:finalProf.trainType||trainData.trainType,experience:finalProf.liftExp||trainData.liftExp,daysPerWeek:trainData.freq},user?.id);
     track(EVENTS.TRIAL_START,{trial_ends_at:finalProf.trialEndsAt},user?.id);
     setPhase("celebrate");

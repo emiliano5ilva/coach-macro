@@ -13,10 +13,21 @@ async function setTier(userId, tier) {
   }).eq('id', userId);
 }
 
+async function creditReferralOnPayment(userId) {
+  try {
+    await fetch('https://coach-macro.com/api/referral-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+  } catch {}
+}
+
 export async function purchaseMonthly(userId) {
   // TODO: call Purchases.purchaseStoreProduct({ productIdentifier: 'coach_macro_monthly_999' })
   // and verify entitlement 'pro_monthly' before updating tier.
   await setTier(userId, 'monthly');
+  creditReferralOnPayment(userId);
   return true;
 }
 
@@ -24,6 +35,7 @@ export async function purchaseAnnual(userId) {
   // TODO: call Purchases.purchaseStoreProduct({ productIdentifier: 'coach_macro_annual_7999' })
   // and verify entitlement 'pro_annual' before updating tier.
   await setTier(userId, 'annual');
+  creditReferralOnPayment(userId);
   return true;
 }
 

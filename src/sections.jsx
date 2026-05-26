@@ -4733,10 +4733,24 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
   const [referrals, setReferrals] = useState([]);
   const [codeCopied, setCodeCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [showNextUnlock, setShowNextUnlock] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
-    getReferralData(user.id).then(d => { if (d) setRefData(d); });
+    getReferralData(user.id).then(d => {
+      if (!d) return;
+      setRefData(d);
+      // Flush any pending notifications queued by server when a referral converted
+      const notifs = d.pending_referral_notifications || [];
+      if (notifs.length > 0) {
+        notifs.forEach(n =>
+          showToast(n.message, n.type === 'tier_unlocked' ? 'success' : 'info', { duration: 4500 })
+        );
+        sb.from('profiles').update({
+          profile_data: { ...(d.profile_data || {}), pending_referral_notifications: [] },
+        }).eq('id', user.id).then(() => {});
+      }
+    });
     getReferrals(user.id).then(list => setReferrals(list));
   }, [user?.id]);
 
@@ -4824,29 +4838,69 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
             </div>
           </div>
 
-          {tier < 4 && nextTierDef && (
+          {/* Progress — bar with next-unlock dropdown (tier < 4) or status count (tier 4) */}
+          {tier < 4 && nextTierDef ? (
             <>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginBottom: 6 }}>
-                {nextTierDef.min - referralCount} more to reach {nextTierDef.name}
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginBottom: 5 }}>
+                {nextTierDef.min - referralCount} more referral{nextTierDef.min - referralCount !== 1 ? 's' : ''} to {nextTierDef.name}
               </div>
               <div style={{ background: 'rgba(245,245,240,0.06)', borderRadius: 4, height: 4, overflow: 'hidden', marginBottom: 12 }}>
-                <div style={{ height: '100%', width: `${progressPct}%`, background: tierColor, borderRadius: 4, transition: 'width 0.5s' }} />
+                <div style={{ height: '100%', width: `${progressPct}%`, background: tierColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
               </div>
+              {/* Next unlock row */}
+              <div
+                onClick={() => setShowNextUnlock(v => !v)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+                  background: 'rgba(245,245,240,0.03)', border: '1px solid rgba(245,245,240,0.07)',
+                  borderRadius: 8, padding: '8px 12px', marginBottom: showNextUnlock ? 0 : 12 }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={nextTierDef.color} strokeWidth={2} strokeLinecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Next unlock</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: nextTierDef.color, letterSpacing: '0.06em' }}>
+                    {nextTierDef.newFeatures[0] || nextTierDef.newPerks[0] || nextTierDef.name}
+                  </span>
+                </div>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)' }}>{showNextUnlock ? '▲' : '▼'}</span>
+              </div>
+              {showNextUnlock && (
+                <div style={{ background: 'rgba(245,245,240,0.02)', border: '1px solid rgba(245,245,240,0.07)', borderTop: 'none',
+                  borderRadius: '0 0 8px 8px', padding: '10px 12px', marginBottom: 12 }}>
+                  {nextTierDef.newFeatures.map(f => (
+                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>
+                      <span style={{ fontFamily: 'var(--barlow)', fontSize: 12, color: 'rgba(245,245,240,0.8)' }}>{f}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7, color: 'rgba(245,245,240,0.3)', marginLeft: 'auto' }}>FEATURE</span>
+                    </div>
+                  ))}
+                  {nextTierDef.newPerks.map(p => (
+                    <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
+                      <span style={{ fontFamily: 'var(--barlow)', fontSize: 12, color: 'rgba(245,245,240,0.8)' }}>{p}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7, color: 'rgba(245,245,240,0.3)', marginLeft: 'auto' }}>PERK</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
-          )}
-          {tier >= 4 && (
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: '#FFD740', marginBottom: 12 }}>
-              Maximum tier reached. You are a Coach Macro legend.
+          ) : tier >= 4 ? (
+            <div style={{ textAlign: 'center', padding: '12px 0 16px' }}>
+              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 56, color: '#FFD740', lineHeight: 1, letterSpacing: '-1px' }}>
+                {referralCount}
+              </div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
+                Referrals. Legend status.
+              </div>
             </div>
-          )}
+          ) : null}
 
           {/* Feature unlocks */}
           <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: '#e8341c', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Feature unlocks</div>
           {[
-            { label: 'App icon customization', unlockedAt: 1 },
-            { label: 'Workout history export', unlockedAt: 2 },
+            { label: 'App icon customization',   unlockedAt: 1 },
+            { label: 'Workout history export',    unlockedAt: 2 },
             { label: 'Color scheme customization', unlockedAt: 3 },
-            { label: 'Dashboard layout options', unlockedAt: 4 },
+            { label: 'Dashboard layout options',  unlockedAt: 4 },
           ].map(({ label, unlockedAt }) => {
             const unlocked = tier >= unlockedAt;
             return (
@@ -4874,7 +4928,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
             </>
           )}
           {tier === 0 && (
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)', marginTop: 6 }}>Refer 1 friend to unlock first feature</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)', marginTop: 6 }}>Refer 1 friend who subscribes to unlock your first feature</div>
           )}
         </div>
 
@@ -4888,7 +4942,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
                   {r.referred_name || 'Anonymous'}
                 </span>
                 {r.status === 'completed'
-                  ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#22c55e' }}>JOINED ✓</span>
+                  ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#22c55e' }}>PAID ✓</span>
                   : <span style={{ background: 'rgba(254,160,32,0.1)', border: '1px solid rgba(254,160,32,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#FEA020' }}>PENDING</span>
                 }
               </div>

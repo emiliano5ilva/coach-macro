@@ -31,7 +31,6 @@ import { saveMealToMemory } from "./services/macroMemoryService.js";
 import BioAlgorithmScreen from "./BioAlgorithm.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
-import { completeReferral } from "./services/referralService.js";
 import { getMorningBrief } from "./services/morningBriefService.js";
 import { getHyroxPhase, getRaceTimePredictor } from "./services/hyroxPeriodisationService.js";
 import SorenessCheckIn, { SorenesSummary } from "./components/SorenessCheckIn.jsx";
@@ -2647,9 +2646,6 @@ Rules:
           }
           recordWorkoutRecovery(user.id, setsLogged).catch(() => {});
           window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
-          // Complete referral on first session
-          const { count: sessionCount } = await sb.from('workout_logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
-          if (sessionCount === 1) completeReferral(user.id).catch(() => {});
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
 

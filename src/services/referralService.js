@@ -3,9 +3,13 @@ import { sb } from '../client';
 export async function getReferralData(userId) {
   const { data } = await sb
     .from('profiles')
-    .select('referral_code, referral_count, referral_tier, referred_by')
+    .select('referral_code, referral_count, referral_tier, referred_by, profile_data')
     .eq('id', userId)
     .single();
+  if (data) {
+    data.pending_referral_notifications =
+      data.profile_data?.pending_referral_notifications || [];
+  }
   return data;
 }
 
@@ -83,43 +87,36 @@ export async function completeReferral(userId) {
 
 export const REFERRAL_TIERS = {
   0: {
-    name: 'No tier yet',
-    min: 0,
-    next: 1,
-    color: 'rgba(245,245,240,0.3)',
-    features: [],
-    perks: [],
+    name: 'No tier yet', min: 0, next: 1, color: 'rgba(245,245,240,0.3)',
+    features: [], perks: [],
+    newFeatures: [], newPerks: [],
   },
   1: {
-    name: 'TIER I',
-    min: 1,
-    next: 3,
-    color: '#CD7F32',
+    name: 'TIER I', min: 1, next: 3, color: '#CD7F32',
     features: ['App icon customization'],
     perks: [],
+    newFeatures: ['App icon customization'],
+    newPerks: [],
   },
   2: {
-    name: 'TIER II',
-    min: 3,
-    next: 5,
-    color: '#C0C0C0',
+    name: 'TIER II', min: 3, next: 5, color: '#C0C0C0',
     features: ['App icon customization', 'Workout history export'],
     perks: ['VIP badge on athlete passport', 'Early access to new features'],
+    newFeatures: ['Workout history export (CSV/PDF)'],
+    newPerks: ['VIP badge on athlete passport', 'Early access to new features'],
   },
   3: {
-    name: 'TIER III',
-    min: 5,
-    next: 10,
-    color: '#1D9BF0',
+    name: 'TIER III', min: 5, next: 10, color: '#1D9BF0',
     features: ['App icon customization', 'Workout history export', 'Color scheme customization'],
     perks: ['VIP badge on athlete passport', 'Early access to new features', 'Verified badge (blue checkmark)', '1 month free subscription'],
+    newFeatures: ['Color scheme customization'],
+    newPerks: ['Verified badge (blue checkmark)', '1 month free subscription'],
   },
   4: {
-    name: 'TIER IV',
-    min: 10,
-    next: null,
-    color: '#FFD740',
+    name: 'TIER IV', min: 10, next: null, color: '#FFD740',
     features: ['App icon customization', 'Workout history export', 'Color scheme customization', 'Dashboard layout options'],
     perks: ['VIP badge on athlete passport', 'Early access to new features', 'Verified badge (blue checkmark)', 'Verified badge (white checkmark)', '3 months free subscription', 'Priority support'],
+    newFeatures: ['Dashboard layout options'],
+    newPerks: ['Verified badge (white checkmark)', '3 months free subscription', 'Priority support'],
   },
 };
