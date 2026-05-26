@@ -1792,28 +1792,6 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [firstWeekCardDismissed,setFirstWeekCardDismissed]=useState(()=>{try{return!!localStorage.getItem('cm_1week_dismissed');}catch{return false;}});
   const [pendingMilestone,setPendingMilestone]=useState(null);
 
-  useEffect(()=>{
-    const today=new Date().toISOString().split('T')[0];
-    const lastScheduled=localStorage.getItem('cm_notif_scheduled');
-    if(lastScheduled===today)return;
-    if(!user?.id||!macros)return;
-    const todayStr=new Date().toISOString().split('T')[0];
-    const sessionLoggedToday=(workoutLogsRaw||[]).some(w=>w.date===todayStr);
-    let streak=0;
-    for(let i=0;i<60;i++){
-      const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
-      if((workoutLogsRaw||[]).some(w=>w.date===ds))streak++;else if(i>0)break;
-    }
-    const briefLine=morningBrief?.coach_says||morningBrief?.greeting||'';
-    import('./services/notifications.js').then(({scheduleCoachingNotifications})=>{
-      scheduleCoachingNotifications({
-        consumed,macros,todayType,streakCount:streak,
-        morningBriefLine:briefLine,sessionLoggedToday
-      }).then(()=>{
-        localStorage.setItem('cm_notif_scheduled',today);
-      }).catch(()=>{});
-    }).catch(()=>{});
-  },[user?.id,macros?.calories,workoutLogsRaw?.length]);
 
   useEffect(()=>{
     if(activeWorkout&&!workoutStartTime)setWorkoutStartTime(Date.now());
@@ -2267,6 +2245,30 @@ Be specific and practical. Empathetic tone. No fluff.`,
   }
   const consumed=log.reduce((a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fat:a.fat+i.fat}),{calories:0,protein:0,carbs:0,fat:0});
   const remaining={calories:macros.calories-consumed.calories,protein:macros.protein-consumed.protein,carbs:macros.carbs-consumed.carbs,fat:macros.fat-consumed.fat};
+
+  // ── Coaching notifications (must be after macros + consumed are computed) ───
+  useEffect(()=>{
+    const today=new Date().toISOString().split('T')[0];
+    const lastScheduled=localStorage.getItem('cm_notif_scheduled');
+    if(lastScheduled===today)return;
+    if(!user?.id||!macros)return;
+    const todayStr=new Date().toISOString().split('T')[0];
+    const sessionLoggedToday=(workoutLogsRaw||[]).some(w=>w.date===todayStr);
+    let streak=0;
+    for(let i=0;i<60;i++){
+      const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
+      if((workoutLogsRaw||[]).some(w=>w.date===ds))streak++;else if(i>0)break;
+    }
+    const briefLine=morningBrief?.coach_says||morningBrief?.greeting||'';
+    import('./services/notifications.js').then(({scheduleCoachingNotifications})=>{
+      scheduleCoachingNotifications({
+        consumed,macros,todayType,streakCount:streak,
+        morningBriefLine:briefLine,sessionLoggedToday
+      }).then(()=>{
+        localStorage.setItem('cm_notif_scheduled',today);
+      }).catch(()=>{});
+    }).catch(()=>{});
+  },[user?.id,macros?.calories,workoutLogsRaw?.length]);
 
   // ── Water tracking ──────────────────────────────────────────────────────────
   const waterTarget=getDailyWaterTarget(_profileWithDeload,todayDayType);
@@ -4408,7 +4410,6 @@ Rules:
         .then(({data})=>setProgFoodLogs(data||[]));
     },[user?.id]);
 
-    // Milestone check
     const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
     useEffect(()=>{
       if(!user?.id)return;
