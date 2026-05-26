@@ -127,8 +127,9 @@ ${JSON_FORMAT}`;
 export async function getRestaurantRecs(restaurantName, _cuisineTypes, userContext) {
   const prompt = buildRestaurantPrompt(restaurantName, userContext);
   const text = await ai(prompt, 900, 'restaurant_pick');
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const clean = text.replace(/```json\n?|```/g, '').trim();
+  const jsonMatch = clean.match(/\{[\s\S]*\}/);
+  return JSON.parse(jsonMatch ? jsonMatch[0] : clean);
 }
 
 export async function getMenuScanRecs(base64Image, mediaType, userContext) {
@@ -153,6 +154,7 @@ RESPOND IN THIS EXACT JSON FORMAT. Nothing before or after the JSON:
 ${JSON_FORMAT}`;
 
   const text = await aiWithVision(base64Image, mediaType, textPrompt, 900, 'menu_scan');
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const clean = text.replace(/```json\n?|```/g, '').trim();
+  const jsonMatch = clean.match(/\{[\s\S]*\}/);
+  return JSON.parse(jsonMatch ? jsonMatch[0] : clean);
 }

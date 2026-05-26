@@ -134,10 +134,10 @@ function Tutorial({ onDone }) {
 // ── Camera Screen ─────────────────────────────────────────────────────────────
 
 const CAMERA_TIPS = [
-  '💡 Include a fork in frame for better accuracy',
-  '💡 A hand next to food helps portion estimates',
-  '💡 Top-down shots work best',
-  '💡 Good lighting = better results',
+  'Include a fork in frame for better accuracy',
+  'A hand next to food helps portion estimates',
+  'Top-down shots work best',
+  'Good lighting = better results',
 ];
 
 function CameraScreen({ onCapture, onClose, onFallback, photoMode, setPhotoMode }) {
@@ -201,7 +201,7 @@ function CameraScreen({ onCapture, onClose, onFallback, photoMode, setPhotoMode 
   if (permDenied) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 20 }}>📷</div>
+        <div style={{ marginBottom: 20 }}><svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="rgba(245,245,240,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="14" width="36" height="26" rx="4"/><circle cx="24" cy="27" r="7"/><path d="M17 14l2-4h10l2 4"/></svg></div>
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>Camera Access Needed</div>
         <div style={{ fontSize: 13, color: T.mu, marginBottom: 32, lineHeight: 1.6 }}>
           Allow camera access in your device settings to use photo logging.
@@ -243,13 +243,13 @@ function CameraScreen({ onCapture, onClose, onFallback, photoMode, setPhotoMode 
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "52px 20px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(to bottom,rgba(0,0,0,.6),transparent)" }}>
         <button onClick={onClose} style={{ background: "rgba(0,0,0,.4)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 20, padding: "8px 16px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
         <button onClick={toggleTorch} style={{ background: torch ? "rgba(255,200,0,.3)" : "rgba(0,0,0,.4)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 20, padding: "8px 16px", color: torch ? "#FFD700" : "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-          {torch ? "⚡ On" : "⚡ Flash"}
+          {torch ? "On" : "Flash"}
         </button>
       </div>
 
       {/* Mode toggle pill */}
       <div style={{ position: "absolute", top: "calc(52px + 44px + 16px)", left: "50%", transform: "translateX(-50%)", display: "flex", background: "rgba(0,0,0,.55)", border: "1px solid rgba(255,255,255,.15)", borderRadius: 24, padding: 3, gap: 2 }}>
-        {[["photo", "📷 Photo Only"], ["photo+text", "📝 Photo + Notes"]].map(([mode, label]) => (
+        {[["photo", "Photo Only"], ["photo+text", "Photo + Notes"]].map(([mode, label]) => (
           <button key={mode} onClick={() => setPhotoMode(mode)} style={{ padding: "6px 14px", borderRadius: 20, border: "none", background: photoMode === mode ? "rgba(255,255,255,.2)" : "none", color: photoMode === mode ? "#fff" : "rgba(255,255,255,.5)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
             {label}
           </button>
@@ -260,7 +260,7 @@ function CameraScreen({ onCapture, onClose, onFallback, photoMode, setPhotoMode 
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top,rgba(0,0,0,.8),transparent)" }}>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 40, padding: "20px 32px 16px" }}>
           <button onClick={onFallback} style={{ background: "rgba(255,255,255,.15)", border: "1.5px solid rgba(255,255,255,.3)", borderRadius: 12, padding: "10px 16px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
-            📁<br/>Library
+Library
           </button>
           <button
             onClick={capture}
