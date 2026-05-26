@@ -26,6 +26,9 @@ async function creditReferralOnPayment(userId) {
 export async function purchaseMonthly(userId) {
   // TODO: call Purchases.purchaseStoreProduct({ productIdentifier: 'coach_macro_monthly_999' })
   // and verify entitlement 'pro_monthly' before updating tier.
+  // IMPORTANT: When RevenueCat webhook is set up, referral credit must also be triggered in the
+  // INITIAL_PURCHASE webhook handler. See api/revenuecat-webhook.js stub for implementation.
+  // Do not complete RevenueCat integration without this.
   await setTier(userId, 'monthly');
   creditReferralOnPayment(userId);
   return true;
@@ -34,6 +37,9 @@ export async function purchaseMonthly(userId) {
 export async function purchaseAnnual(userId) {
   // TODO: call Purchases.purchaseStoreProduct({ productIdentifier: 'coach_macro_annual_7999' })
   // and verify entitlement 'pro_annual' before updating tier.
+  // IMPORTANT: When RevenueCat webhook is set up, referral credit must also be triggered in the
+  // INITIAL_PURCHASE webhook handler. See api/revenuecat-webhook.js stub for implementation.
+  // Do not complete RevenueCat integration without this.
   await setTier(userId, 'annual');
   creditReferralOnPayment(userId);
   return true;
