@@ -4375,24 +4375,24 @@ Rules:
   }
 
   const MILESTONES=[
-    {id:'first_session',type:'session',threshold:1,title:'FIRST SESSION.',sub:"You showed up. That's everything.",icon:'S1'},
-    {id:'sessions_5',type:'session',threshold:5,title:'5 SESSIONS.',sub:"You're building something real.",icon:'S5'},
-    {id:'sessions_10',type:'session',threshold:10,title:'10 SESSIONS.',sub:'Double digits. The habit is forming.',icon:'S10'},
-    {id:'sessions_25',type:'session',threshold:25,title:'25 SESSIONS.',sub:'One month of consistency. Most people quit by now.',icon:'S25'},
-    {id:'sessions_50',type:'session',threshold:50,title:'50 SESSIONS.',sub:'Fifty. You are not most people.',icon:'S50'},
-    {id:'sessions_100',type:'session',threshold:100,title:'100 SESSIONS.',sub:'This is who you are now.',icon:'S100'},
-    {id:'streak_3',type:'streak',threshold:3,title:'3 DAY STREAK.',sub:'Momentum is building.',icon:'3D'},
-    {id:'streak_7',type:'streak',threshold:7,title:'7 DAY STREAK.',sub:'One full week. Your body is adapting.',icon:'7D'},
-    {id:'streak_14',type:'streak',threshold:14,title:'14 DAY STREAK.',sub:'Two weeks straight. This is a habit.',icon:'14D'},
-    {id:'streak_30',type:'streak',threshold:30,title:'30 DAY STREAK.',sub:'A month of showing up. Legendary.',icon:'30D'},
-    {id:'meals_10',type:'meals',threshold:10,title:'10 MEALS LOGGED.',sub:'Nutrition awareness is half the battle.',icon:'M10'},
-    {id:'meals_50',type:'meals',threshold:50,title:'50 MEALS LOGGED.',sub:"You know what you're putting in your body.",icon:'M50'},
-    {id:'meals_100',type:'meals',threshold:100,title:'100 MEALS LOGGED.',sub:'Data is your superpower now.',icon:'M100'},
-    {id:'volume_10k',type:'volume',threshold:10000,title:'10,000 LBS LIFTED.',sub:'Ten thousand pounds of work done.',icon:'V10'},
-    {id:'volume_50k',type:'volume',threshold:50000,title:'50,000 LBS LIFTED.',sub:'Fifty thousand. The iron remembers.',icon:'V50'},
-    {id:'volume_100k',type:'volume',threshold:100000,title:'100,000 LBS LIFTED.',sub:'One hundred thousand pounds. Unstoppable.',icon:'V100'},
-    {id:'day_7',type:'membership',threshold:7,title:'ONE WEEK IN.',sub:'Seven days with Coach Macro. The journey has begun.',icon:'W1'},
-    {id:'day_30',type:'membership',threshold:30,title:'30 DAYS STRONG.',sub:"A month of coaching. Look how far you've come.",icon:'W4'},
+    {id:'first_session',type:'session',threshold:1,title:'FIRST SESSION.',sub:"The hardest part is starting. You started.",icon:'S1'},
+    {id:'sessions_5',type:'session',threshold:5,title:'5 SESSIONS.',sub:"Five times you chose to show up.",icon:'S5'},
+    {id:'sessions_10',type:'session',threshold:10,title:'10 SESSIONS.',sub:"Double digits. This is becoming who you are.",icon:'S10'},
+    {id:'sessions_25',type:'session',threshold:25,title:'25 SESSIONS.',sub:"Most people quit by now. You're not most people.",icon:'S25'},
+    {id:'sessions_50',type:'session',threshold:50,title:'50 SESSIONS.',sub:"Fifty. The iron knows your name.",icon:'S50'},
+    {id:'sessions_100',type:'session',threshold:100,title:'100 SESSIONS.',sub:"This is just who you are now.",icon:'S100'},
+    {id:'streak_3',type:'streak',threshold:3,title:'3 DAY STREAK.',sub:"Momentum is a powerful thing.",icon:'3D'},
+    {id:'streak_7',type:'streak',threshold:7,title:'7 DAYS STRAIGHT.',sub:"One full week. Your body is adapting.",icon:'7D'},
+    {id:'streak_14',type:'streak',threshold:14,title:'14 DAYS.',sub:"Two weeks of choosing yourself every day.",icon:'14D'},
+    {id:'streak_30',type:'streak',threshold:30,title:'30 DAY STREAK.',sub:"A month straight. Legendary.",icon:'30D'},
+    {id:'meals_10',type:'meals',threshold:10,title:'10 MEALS LOGGED.',sub:"You know what's in your body. That's power.",icon:'M10'},
+    {id:'meals_50',type:'meals',threshold:50,title:'50 MEALS TRACKED.',sub:"Fifty meals of knowing exactly what you eat.",icon:'M50'},
+    {id:'meals_100',type:'meals',threshold:100,title:'100 MEALS.',sub:"Data is your edge now.",icon:'M100'},
+    {id:'volume_10k',type:'volume',threshold:10000,title:'10,000 LBS MOVED.',sub:"Ten thousand pounds of work done.",icon:'V10'},
+    {id:'volume_50k',type:'volume',threshold:50000,title:'50,000 LBS.',sub:"The iron remembers every rep.",icon:'V50'},
+    {id:'volume_100k',type:'volume',threshold:100000,title:'100K LBS LIFTED.',sub:"One hundred thousand pounds. Unstoppable.",icon:'V100'},
+    {id:'day_7',type:'membership',threshold:7,title:'ONE WEEK IN.',sub:"Seven days with Coach Macro. The journey has begun.",icon:'W1'},
+    {id:'day_30',type:'membership',threshold:30,title:'30 DAYS STRONG.',sub:"A month of showing up. Look how far you've come.",icon:'W4'},
     {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
   ];
 
@@ -5569,19 +5569,44 @@ Rules:
       </div>
 
       {pendingMilestone&&ReactDOM.createPortal(
-        <div style={{position:'fixed',inset:0,background:'#000000',zIndex:10005,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 24px',textAlign:'center'}}>
-          <div style={{position:'absolute',inset:0,background:'radial-gradient(circle at center,rgba(232,52,28,0.08) 0%,transparent 70%)',pointerEvents:'none'}}/>
-          <div style={{position:'relative',zIndex:1,maxWidth:320,width:'100%'}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:42,fontWeight:900,color:'#e8341c',marginBottom:20,letterSpacing:'-0.02em',lineHeight:1}}>{pendingMilestone.icon}</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// MILESTONE UNLOCKED'}</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:'clamp(48px,10vw,72px)',color:'#f5f5f0',textTransform:'uppercase',lineHeight:0.9,marginBottom:16}}>
-              {pendingMilestone.title.replace(/\.$/, '')}<span style={{color:'#e8341c'}}>.</span>
+        <>
+          <style>{`@keyframes cm-milestone-slide{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+          {/* Transparent overlay — tap anywhere to dismiss */}
+          <div onClick={()=>setPendingMilestone(null)} style={{position:'fixed',inset:0,background:'transparent',zIndex:10005}}/>
+          {/* Bottom sheet card */}
+          <div onClick={e=>e.stopPropagation()} style={{position:'fixed',bottom:0,left:0,right:0,background:'#0d0d0d',borderRadius:'24px 24px 0 0',borderTop:'2px solid #e8341c',padding:'28px 24px 48px',zIndex:10006,animation:'cm-milestone-slide 0.35s cubic-bezier(.2,.9,.3,1) both'}}>
+            {/* Top row */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <div style={{background:'rgba(232,52,28,0.1)',border:'1px solid rgba(232,52,28,0.25)',borderRadius:20,padding:'4px 12px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase'}}>// MILESTONE</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.2)',letterSpacing:'0.1em'}}>TAP ANYWHERE TO CONTINUE</div>
             </div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,color:'rgba(245,245,240,0.55)',lineHeight:1.4,marginBottom:40}}>{pendingMilestone.sub}</div>
-            <div style={{width:48,height:3,background:'#e8341c',margin:'0 auto 40px'}}/>
-            <button onClick={()=>setPendingMilestone(null)} style={{width:'100%',maxWidth:300,background:'#e8341c',border:'none',borderRadius:14,padding:'16px 0',fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:12,color:'#fff',letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>KEEP GOING</button>
+            {/* Main row */}
+            <div style={{display:'flex',alignItems:'center',gap:20,marginBottom:16}}>
+              {/* Red ring with threshold number */}
+              <div style={{width:72,height:72,flexShrink:0,position:'relative'}}>
+                <svg viewBox="0 0 72 72" width="72" height="72" style={{position:'absolute',top:0,left:0}}>
+                  <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(232,52,28,0.08)" strokeWidth="4"/>
+                  <circle cx="36" cy="36" r="30" fill="none" stroke="#e8341c" strokeWidth="4" strokeLinecap="round" strokeDasharray="188" strokeDashoffset="47" transform="rotate(-90 36 36)"/>
+                </svg>
+                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:28,color:'#f5f5f0',lineHeight:1}}>
+                  {pendingMilestone.threshold>=1000?`${pendingMilestone.threshold/1000}k`:pendingMilestone.threshold}
+                </div>
+              </div>
+              {/* Title + sub */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:32,color:'#f5f5f0',textTransform:'uppercase',lineHeight:0.9,marginBottom:6}}>
+                  {pendingMilestone.title.replace(/\.$/, '')}<span style={{color:'#e8341c'}}>.</span>
+                </div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.45)',lineHeight:1.3}}>{pendingMilestone.sub}</div>
+              </div>
+            </div>
+            {/* Buttons */}
+            <div style={{display:'flex',gap:10,marginTop:4}}>
+              <button onClick={()=>setPendingMilestone(null)} style={{flex:2,background:'#e8341c',border:'none',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:'#fff',letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}>KEEP GOING</button>
+              <button onClick={()=>{try{navigator.clipboard.writeText(pendingMilestone.title);}catch{}}} style={{flex:1,background:'transparent',border:'1px solid rgba(245,245,240,0.1)',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>SHARE</button>
+            </div>
           </div>
-        </div>,
+        </>,
         document.body
       )}
 
