@@ -5224,15 +5224,15 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── YOUR VOICE ── */}
       <div style={eyebrowStyle}>// Your Voice</div>
       {[
-        {icon:"💡",title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(232,52,28,0.1)",bd:"rgba(232,52,28,0.2)",section:"feedback"},
-        {icon:"🐛",title:"REPORT A PROBLEM.",sub:"Help us fix what's broken",bg:"rgba(254,160,32,0.1)",bd:"rgba(254,160,32,0.2)",section:"feedback"},
+        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>,title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(232,52,28,0.1)",bd:"rgba(232,52,28,0.2)",section:"feedback"},
+        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>,title:"REPORT A PROBLEM.",sub:"Help us fix what's broken",bg:"rgba(254,160,32,0.1)",bd:"rgba(254,160,32,0.2)",section:"feedback"},
       ].map(({icon,title,sub,bg,bd,section})=>(
         <div key={title} onClick={()=>{if(window.uj)window.uj.showWidget({section});}} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
           onPointerDown={e=>e.currentTarget.style.borderColor="rgba(232,52,28,0.3)"}
           onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
           onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
         >
-          <div style={{width:40,height:40,borderRadius:10,background:bg,border:`1px solid ${bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{icon}</div>
+          <div style={{width:40,height:40,borderRadius:10,background:bg,border:`1px solid ${bd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
           <div style={{flex:1}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0"}}>{title}</div>
             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
@@ -5245,7 +5245,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
         onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
       >
-        <div style={{width:40,height:40,borderRadius:10,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>📍</div>
+        <div style={{width:40,height:40,borderRadius:10,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+        </div>
         <div style={{flex:1}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(245,245,240,0.7)"}}>SEE OUR ROADMAP.</div>
           <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.3)",marginTop:2}}>What we're building and what's coming next</div>
