@@ -5004,8 +5004,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={cardStyle}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#e8341c",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="28" height="28" rx="8" fill="#e8341c"/><path d="M14 21s-7-4.5-7-9a5 5 0 0110 0 5 5 0 0110 0c0 4.5-7 9-7 9z" fill="white"/></svg>
+            <div style={{width:60,height:60,borderRadius:14,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="ahPrefGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FF2D55"/><stop offset="100%" stopColor="#FF453A"/></linearGradient></defs>
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#ahPrefGrad)"/>
+              </svg>
             </div>
             <div>
               <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
@@ -5294,8 +5297,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* Apple Health */}
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#ff6b6b,#ee0979)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+            <div style={{width:32,height:32,borderRadius:8,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="ahIntGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FF2D55"/><stop offset="100%" stopColor="#FF453A"/></linearGradient></defs>
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#ahIntGrad)"/>
+              </svg>
             </div>
             <div>
               <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
