@@ -5004,7 +5004,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={cardStyle}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:32,height:32,borderRadius:8,background:"rgba(255,69,58,0.12)",border:"1px solid rgba(255,69,58,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>❤️</div>
+            <div style={{width:44,height:44,borderRadius:10,background:"#e8341c",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="28" height="28" rx="8" fill="#e8341c"/><path d="M14 21s-7-4.5-7-9a5 5 0 0110 0 5 5 0 0110 0c0 4.5-7 9-7 9z" fill="white"/></svg>
+            </div>
             <div>
               <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:1}}>Sleep · HRV · Steps</div>

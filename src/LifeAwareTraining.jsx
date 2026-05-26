@@ -36,7 +36,7 @@ export function CalendarConnectPrompt({ onConnect, onDismiss }) {
               onClick={handleConnect}
               disabled={connecting}
               style={{
-                flex: 1, padding: "11px 14px", background: "#3b82f6", border: "none",
+                flex: 1, padding: "11px 14px", background: "#e8341c", border: "none",
                 borderRadius: 10, color: "#fff", fontFamily: "var(--condensed)", fontWeight: 800,
                 fontSize: 13, letterSpacing: ".08em", textTransform: "uppercase", cursor: "pointer",
                 opacity: connecting ? 0.7 : 1,
@@ -284,8 +284,8 @@ export function CalendarSettingsPanel({ connected, onConnect, onDisconnect, pref
       {/* Status row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${T.bd}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
-            🗓️
+          <div style={{ width: 44, height: 44, borderRadius: 10, background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="20" height="18" rx="3"/><line x1="1" y1="8" x2="21" y2="8"/><line x1="7" y1="1" x2="7" y2="5"/><line x1="15" y1="1" x2="15" y2="5"/><line x1="5" y1="13" x2="5" y2="13" strokeWidth="2"/><line x1="11" y1="13" x2="11" y2="13" strokeWidth="2"/><line x1="17" y1="13" x2="17" y2="13" strokeWidth="2"/><line x1="5" y1="17" x2="5" y2="17" strokeWidth="2"/><line x1="11" y1="17" x2="11" y2="17" strokeWidth="2"/></svg>
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13 }}>Calendar</div>
@@ -310,7 +310,7 @@ export function CalendarSettingsPanel({ connected, onConnect, onDisconnect, pref
             <button
               onClick={onConnect}
               style={{
-                width: "100%", padding: "12px", background: "#3b82f6", border: "none",
+                width: "100%", padding: "12px", background: "#e8341c", border: "none",
                 borderRadius: 12, color: "#fff", fontFamily: "var(--condensed)", fontWeight: 800,
                 fontSize: 14, letterSpacing: ".08em", textTransform: "uppercase", cursor: "pointer",
               }}
