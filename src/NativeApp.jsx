@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES,
   Logo, getDayMacros, getTodayKey, autoFocus,
   calcTDEE, FOCUS_MUSCLES } from "./components.jsx";
@@ -426,6 +426,7 @@ export default function NativeApp() {
   // Apply default theme immediately so UI never flashes wrong colors before profile loads
   useEffect(() => { applyDefaultTheme(); }, []);
   const [phase,setPhase]=useState("splash");
+  const ujInitialized = useRef(false);
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
@@ -435,6 +436,14 @@ export default function NativeApp() {
   const [signupName,setSignupName]=useState("");
   const [saveErr,setSaveErr]=useState("");
   const [authView,setAuthView]=useState("welcome");
+
+  // Init UserJot only after the user is authenticated — prevents update toasts on the login screen
+  useEffect(() => {
+    if (phase === 'app' && !ujInitialized.current && window.uj) {
+      ujInitialized.current = true;
+      window.uj.init('cmpdox60502qt0iqwx692w8tw', { widget: true, theme: 'dark', trigger: 'custom' });
+    }
+  }, [phase]);
 
   async function loadProfile(uid){
     try{
