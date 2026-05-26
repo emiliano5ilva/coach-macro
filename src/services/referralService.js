@@ -78,7 +78,7 @@ export async function completeReferral(userId) {
     .from('referrals')
     .update({ status: 'completed', completed_at: new Date().toISOString() })
     .eq('referred_id', userId)
-    .eq('status', 'pending');
+    .in('status', ['pending', 'signup_credited']);
 }
 
 export const REFERRAL_TIERS = {

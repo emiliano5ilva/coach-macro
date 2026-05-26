@@ -67,21 +67,6 @@ export default withLogging(async function handler(req, res) {
     })
     .eq('token', token);
 
-  // Increment referrer's count
-  const { data: referrerProfile } = await sb
-    .from('profiles')
-    .select('referral_count')
-    .eq('id', referral.referrer_id)
-    .maybeSingle();
-
-  if (referrerProfile !== null) {
-    const newCount = (referrerProfile.referral_count || 0) + 1;
-    const newTier = newCount >= 10 ? 4 : newCount >= 5 ? 3 : newCount >= 3 ? 2 : newCount >= 1 ? 1 : 0;
-    await sb.from('profiles')
-      .update({ referral_count: newCount, referral_tier: newTier })
-      .eq('id', referral.referrer_id);
-  }
-
   return res.redirect(302,
     `https://coach-macro.com?invited=true&token=${encodeURIComponent(token)}&code=${encodeURIComponent(code)}`
   );
