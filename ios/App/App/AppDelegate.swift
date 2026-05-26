@@ -7,7 +7,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Force dark mode — UI is designed exclusively for dark backgrounds.
+        // Belt-and-suspenders alongside UIUserInterfaceStyle=Dark in Info.plist.
+        window?.overrideUserInterfaceStyle = .dark
         return true
     }
 
