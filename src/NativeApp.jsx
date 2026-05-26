@@ -316,23 +316,20 @@ function AuthScreen({onAuth, startView="welcome"}) {
   );
 
   if(view==="welcome") return(
-    <div style={outer}>
+    <div style={{minHeight:"100vh",background:"#000000",display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px 52px",position:"relative",overflow:"hidden"}}>
       <style>{GLOBAL_CSS}</style>
-      <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
-        <div style={{marginBottom:32,display:"flex",justifyContent:"center"}}><Logo size={40} text={false}/></div>
-        {invitePending&&<div style={{background:"rgba(0,230,118,0.08)",border:"1px solid rgba(0,230,118,0.3)",borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontSize:22}}>🎉</span>
-          <div><div style={{fontSize:13,fontWeight:700,color:"#00E676",fontFamily:"var(--condensed)",letterSpacing:1}}>You've been invited!</div>
-          <div style={{fontSize:12,color:"var(--white-dim)",marginTop:2}}>Sign up for 2 weeks free — no credit card needed.</div></div>
-        </div>}
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:52,lineHeight:.88,marginBottom:18,color:"var(--white)",textAlign:"center",textTransform:"uppercase"}}>
-          Stop Guessing.<br/><span style={{color:"var(--red)"}}>Start Knowing.</span>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"18vh",width:"100%",maxWidth:420}}>
+        <div style={{marginBottom:28,display:"flex",justifyContent:"center"}}><Logo size={36} text={false}/></div>
+        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:84,lineHeight:.84,color:"var(--white)",textAlign:"center",textTransform:"uppercase",letterSpacing:"-0.01em"}}>
+          YOUR COACH.
         </div>
-        <p style={{fontSize:14,color:"var(--white-dim)",marginBottom:28,lineHeight:1.65,textAlign:"center"}}>
-          AI-powered macros, workouts, and coaching — built around your body and your goals.
+        <p style={{fontSize:13,color:"rgba(245,245,240,0.30)",marginTop:22,lineHeight:1.6,textAlign:"center",maxWidth:260}}>
+          AI-powered macros and training built around your body, your goals, and your life.
         </p>
-        <button onClick={()=>setView("signup")} style={{width:"100%",padding:"16px",background:"var(--red)",color:"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:12}}>Get Started →</button>
-        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"16px",background:"rgba(245,245,240,0.06)",color:"var(--white)",fontWeight:700,fontSize:15,letterSpacing:"0.1em",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:8}}>Sign In</button>
+      </div>
+      <div style={{width:"100%",maxWidth:420}}>
+        <button onClick={()=>setView("signup")} style={{width:"100%",padding:"17px",background:"var(--red)",color:"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:10}}>Get Started →</button>
+        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"15px",background:"transparent",color:"rgba(245,245,240,0.55)",fontWeight:600,fontSize:14,letterSpacing:"0.08em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:4}}>Sign In</button>
         {socialDivider}{appleBtn}{googleBtn}
         {error&&<ErrorMessage error={error} style={{marginTop:8}}/>}
       </div>
