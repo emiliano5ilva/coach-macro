@@ -5004,12 +5004,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={cardStyle}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:60,height:60,borderRadius:14,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs><linearGradient id="ahPrefGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FF2D55"/><stop offset="100%" stopColor="#FF453A"/></linearGradient></defs>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#ahPrefGrad)"/>
-              </svg>
-            </div>
+            <img src="/images/apple-health-icon.png" alt="Apple Health" style={{width:60,height:60,borderRadius:14,flexShrink:0,display:"block"}}/>
             <div>
               <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:1}}>Sleep · HRV · Steps</div>
@@ -5297,12 +5292,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* Apple Health */}
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:32,height:32,borderRadius:8,background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs><linearGradient id="ahIntGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FF2D55"/><stop offset="100%" stopColor="#FF453A"/></linearGradient></defs>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#ahIntGrad)"/>
-              </svg>
-            </div>
+            <img src="/images/apple-health-icon.png" alt="Apple Health" style={{width:32,height:32,borderRadius:8,flexShrink:0,display:"block"}}/>
             <div>
               <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
               <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Import workouts from Health app</div>
