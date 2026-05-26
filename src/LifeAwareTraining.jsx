@@ -36,7 +36,7 @@ export function CalendarConnectPrompt({ onConnect, onDismiss }) {
               onClick={handleConnect}
               disabled={connecting}
               style={{
-                flex: 1, padding: "11px 14px", background: "#e8341c", border: "none",
+                flex: 1, padding: "11px 14px", background: "var(--accent)", border: "none",
                 borderRadius: 10, color: "#fff", fontFamily: "var(--condensed)", fontWeight: 800,
                 fontSize: 13, letterSpacing: ".08em", textTransform: "uppercase", cursor: "pointer",
                 opacity: connecting ? 0.7 : 1,
@@ -310,7 +310,7 @@ export function CalendarSettingsPanel({ connected, onConnect, onDisconnect, pref
             <button
               onClick={onConnect}
               style={{
-                width: "100%", padding: "12px", background: "#e8341c", border: "none",
+                width: "100%", padding: "12px", background: "var(--accent)", border: "none",
                 borderRadius: 12, color: "#fff", fontFamily: "var(--condensed)", fontWeight: 800,
                 fontSize: 14, letterSpacing: ".08em", textTransform: "uppercase", cursor: "pointer",
               }}
