@@ -206,7 +206,7 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:36,fontWeight:900,marginBottom:8}}>Health conditions?</div>
         <p style={{fontSize:13,color:T.mu,marginBottom:16}}>We adjust your equation accordingly. This can mean the difference between hitting your goal and spinning your wheels for months.</p>
         {[{v:"thyroid",l:"Thyroid condition",sub:"Reduces BMR by up to 25%"},{v:"pcos",l:"PCOS",sub:"Affects insulin sensitivity and fat storage"},{v:"diabetes",l:"Type 1 or 2 Diabetes",sub:"Impacts glucose metabolism"},{v:"meds",l:"Weight-affecting medication",sub:"Many medications alter metabolism"},{v:"none",l:"None of the above"}].map(o=>(
-          <div key={o.v} onClick={()=>toggle(o.v)} style={{background:d.conditions.includes(o.v)?`${T.prot}08`:T.s2,border:`1.5px solid ${d.conditions.includes(o.v)?T.prot:T.bd}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+          <div key={o.v} onClick={()=>toggle(o.v)} style={{background:d.conditions.includes(o.v)?`rgba(var(--accent-rgb),0.03)`:T.s2,border:`1.5px solid ${d.conditions.includes(o.v)?T.prot:T.bd}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
             <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:d.conditions.includes(o.v)?T.prot:"#fff"}}>{o.l}</div>{o.sub&&<div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>}</div>
             <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.conditions.includes(o.v)?T.prot:T.bd}`,background:d.conditions.includes(o.v)?T.prot:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               {d.conditions.includes(o.v)&&<div style={{fontSize:11,color:"#000",fontWeight:800}}>✓</div>}
@@ -256,7 +256,7 @@ export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,marginBottom:8}}>A quick safety check.</div>
         <p style={{fontSize:13,color:T.mu,marginBottom:16,lineHeight:1.65}}>Select any that apply. We'll apply the right modifications, intensity limits, and safety notes to every session — automatically.</p>
         {SAFETY_CONDITIONS.map(o=>(
-          <div key={o.v} onClick={()=>toggle(o.v)} style={{background:hc.includes(o.v)?`${T.prot}08`:T.s2,border:`1.5px solid ${hc.includes(o.v)?T.prot:T.bd}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+          <div key={o.v} onClick={()=>toggle(o.v)} style={{background:hc.includes(o.v)?`rgba(var(--accent-rgb),0.03)`:T.s2,border:`1.5px solid ${hc.includes(o.v)?T.prot:T.bd}`,borderRadius:12,padding:"13px 15px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
             <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:hc.includes(o.v)?T.prot:"#fff"}}>{o.l}</div>{o.sub&&<div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>}</div>
             <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${hc.includes(o.v)?T.prot:T.bd}`,background:hc.includes(o.v)?T.prot:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               {hc.includes(o.v)&&<div style={{fontSize:11,color:"#000",fontWeight:800}}>✓</div>}
@@ -357,7 +357,7 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Based on your answers, we'll recommend the right approach and tell you exactly why.</p>
       <div style={{display:"flex",gap:10,marginBottom:20}}>
         {[{v:"cut",l:"Cut",e:"🔥",sub:"Lose fat"},{v:"maintain",l:"Maintain",e:"⚖️",sub:"Hold weight"},{v:"bulk",l:"Bulk",e:"💪",sub:"Build muscle"}].map(o=>(
-          <div key={o.v} onClick={()=>{upd("goal",o.v);setGR("");}} style={{flex:1,background:d.goal===o.v?`${T.prot}10`:T.s2,border:`2px solid ${d.goal===o.v?T.prot:T.bd}`,borderRadius:12,padding:"18px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
+          <div key={o.v} onClick={()=>{upd("goal",o.v);setGR("");}} style={{flex:1,background:d.goal===o.v?`rgba(var(--accent-rgb),0.06)`:T.s2,border:`2px solid ${d.goal===o.v?T.prot:T.bd}`,borderRadius:12,padding:"18px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
             <div style={{fontSize:26,marginBottom:6}}>{o.e}</div>
             <div style={{fontSize:15,fontWeight:700,color:d.goal===o.v?T.prot:"#fff"}}>{o.l}</div>
             <div style={{fontSize:11,color:T.mu,marginTop:3}}>{o.sub}</div>
@@ -369,22 +369,22 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
         <div style={{fontSize:13,color:"#aaa",lineHeight:1.65}}>Maintenance calories let you lose fat and build muscle simultaneously — especially effective if you're new to structured training or returning after a break. Requires consistent protein and training.</div>
       </div>}
       {d.goal&&d.goal!=="maintain"&&<>
-        {rec&&<div style={{background:`${T.prot}08`,border:`1.5px solid ${T.prot}40`,borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+        {rec&&<div style={{background:`rgba(var(--accent-rgb),0.03)`,border:`1.5px solid rgba(var(--accent-rgb),0.25)`,borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{fontSize:14}}>⭐</div><div style={{fontSize:11,color:T.prot,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>{rec.reason}</div></div>
           <div style={{fontSize:13,color:"#ccc",lineHeight:1.65,marginBottom:10}}>{rec.why}</div>
-          <button onClick={()=>setGR(rec.rate)} style={{padding:"8px 16px",background:goalRate===rec.rate?T.prot:`${T.prot}20`,color:goalRate===rec.rate?"#fff":T.prot,border:`1px solid ${T.prot}50`,borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>{goalRate===rec.rate?"✓ Selected":"Select This →"}</button>
+          <button onClick={()=>setGR(rec.rate)} style={{padding:"8px 16px",background:goalRate===rec.rate?T.prot:`rgba(var(--accent-rgb),0.12)`,color:goalRate===rec.rate?"#fff":T.prot,border:`1px solid rgba(var(--accent-rgb),0.31)`,borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit"}}>{goalRate===rec.rate?"✓ Selected":"Select This →"}</button>
         </div>}
         <div style={{marginBottom:16}}>
           <div style={{fontSize:10,color:T.dim,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>All options</div>
           {(rates[d.goal]||[]).map(r=>{const info=rateInfo[r];const isRec=rec&&r===rec.rate;return(
-            <div key={r} onClick={()=>setGR(r)} style={{background:goalRate===r?`${T.prot}10`:T.s2,border:`1.5px solid ${goalRate===r?T.prot:isRec?`${T.prot}30`:T.bd}`,borderRadius:11,padding:"12px 15px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div key={r} onClick={()=>setGR(r)} style={{background:goalRate===r?`rgba(var(--accent-rgb),0.06)`:T.s2,border:`1.5px solid ${goalRate===r?T.prot:isRec?`rgba(var(--accent-rgb),0.19)`:T.bd}`,borderRadius:11,padding:"12px 15px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div><div style={{fontSize:13,fontWeight:600,color:goalRate===r?T.prot:"#fff"}}>{info.label}</div><div style={{fontSize:11,color:T.mu,marginTop:2}}>{info.result}</div></div>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>{isRec&&<div style={{fontSize:9,color:T.prot,background:`${T.prot}15`,border:`1px solid ${T.prot}30`,borderRadius:8,padding:"2px 7px",fontWeight:700}}>Recommended</div>}{goalRate===r&&<div style={{color:T.prot,fontSize:16}}>✓</div>}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>{isRec&&<div style={{fontSize:9,color:T.prot,background:`rgba(var(--accent-rgb),0.08)`,border:`1px solid rgba(var(--accent-rgb),0.19)`,borderRadius:8,padding:"2px 7px",fontWeight:700}}>Recommended</div>}{goalRate===r&&<div style={{color:T.prot,fontSize:16}}>✓</div>}</div>
             </div>
           );})}
         </div>
       </>}
-      {d.goal&&<div style={{background:"#070E1A",border:`1px solid ${T.prot}30`,borderRadius:13,padding:"16px",marginBottom:20}}>
+      {d.goal&&<div style={{background:"#070E1A",border:`1px solid rgba(var(--accent-rgb),0.19)`,borderRadius:13,padding:"16px",marginBottom:20}}>
         <div style={{fontSize:10,color:T.prot,fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Your Daily Target</div>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:T.prot,lineHeight:1}}>{(d.goal==="maintain"?tdee.total:goalCals).toLocaleString()}</div>
         <div style={{fontSize:13,color:T.mu,marginTop:4}}>kcal / day · {d.goal} phase</div>
@@ -406,7 +406,7 @@ export function GoalScreen({d,upd,tdee,goalCals,goalRate,setGR,onComplete}) {
           ]:[
             {v:"forever",l:"Ongoing",sub:"Lifestyle approach"},
           ]).map(o=>(
-            <div key={o.v} onClick={()=>upd("goalTimeline",o.v)} style={{background:d.goalTimeline===o.v?`${T.prot}10`:T.s2,border:`1.5px solid ${d.goalTimeline===o.v?T.prot:T.bd}`,borderRadius:10,padding:"12px 14px",cursor:"pointer",transition:"all .2s"}}>
+            <div key={o.v} onClick={()=>upd("goalTimeline",o.v)} style={{background:d.goalTimeline===o.v?`rgba(var(--accent-rgb),0.06)`:T.s2,border:`1.5px solid ${d.goalTimeline===o.v?T.prot:T.bd}`,borderRadius:10,padding:"12px 14px",cursor:"pointer",transition:"all .2s"}}>
               <div style={{fontSize:14,fontWeight:700,color:d.goalTimeline===o.v?T.prot:"#fff"}}>{o.l}</div>
               <div style={{fontSize:11,color:T.mu,marginTop:2}}>{o.sub}</div>
             </div>
@@ -531,7 +531,7 @@ function DeloadCard({signals, onStart, onDismiss}) {
       </div>
       <div style={{display:"flex",gap:8}}>
         <button onClick={onStart} style={{flex:2,padding:"12px",background:"var(--red)",border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Start Deload Week →</button>
-        <button onClick={onDismiss} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid rgba(232,52,28,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Tomorrow</button>
+        <button onClick={onDismiss} style={{flex:1,padding:"12px",background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Tomorrow</button>
       </div>
     </div>
   );
@@ -779,7 +779,7 @@ function ScoreRing({score}) {
         filter:isElite?"drop-shadow(0 0 6px rgba(255,215,0,0.55))":"none",
         transition:"filter 0.32s cubic-bezier(.2,.7,.3,1)",
       }}>
-        <circle cx={90} cy={90} r={R} stroke="rgba(232,52,28,0.06)" strokeWidth={14} fill="none"/>
+        <circle cx={90} cy={90} r={R} stroke="rgba(var(--accent-rgb),0.06)" strokeWidth={14} fill="none"/>
         <circle cx={90} cy={90} r={R} stroke={color} strokeWidth={14} fill="none"
           strokeLinecap="round"
           strokeDasharray={C}
@@ -805,12 +805,12 @@ function ScoreExplanationModal({sc, onClose}) {
   ];
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(10px)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:"20px 20px 0 0",padding:"24px 20px 48px",maxWidth:480,width:"100%",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-        <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+      <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"20px 20px 0 0",padding:"24px 20px 48px",maxWidth:480,width:"100%",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
         <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,marginBottom:4,textAlign:"center"}}>HOW YOUR SCORE IS CALCULATED</div>
         <div style={{fontSize:11,color:"rgba(245,245,240,.4)",textAlign:"center",marginBottom:24}}>Tap anywhere to close</div>
         {comps.map(({label,pct,val,color,desc})=>(
-          <div key={label} style={{marginBottom:20,background:"rgba(232,52,28,0.03)",border:"1px solid rgba(232,52,28,0.06)",borderRadius:14,padding:"16px"}}>
+          <div key={label} style={{marginBottom:20,background:"rgba(var(--accent-rgb),0.03)",border:"1px solid rgba(var(--accent-rgb),0.06)",borderRadius:14,padding:"16px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
               <div>
                 <div style={{fontFamily:"var(--condensed)",fontSize:17,fontWeight:800,color:"#fff"}}>{label}</div>
@@ -821,7 +821,7 @@ function ScoreExplanationModal({sc, onClose}) {
                 <div style={{fontSize:9,color:"rgba(245,245,240,.3)"}}>/ 100</div>
               </div>
             </div>
-            <div style={{height:4,background:"rgba(232,52,28,0.06)",borderRadius:2,overflow:"hidden",marginBottom:10}}>
+            <div style={{height:4,background:"rgba(var(--accent-rgb),0.06)",borderRadius:2,overflow:"hidden",marginBottom:10}}>
               <div style={{height:"100%",width:`${val}%`,background:color,borderRadius:2,transition:"width .7s ease"}}/>
             </div>
             <div style={{fontSize:12,color:"rgba(245,245,240,.55)",lineHeight:1.6}}>{desc}</div>
@@ -990,7 +990,7 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
         const barPct = nextM ? Math.max(3,Math.min(97,Math.round(((pred.current1RM-lowerBound)/(nextM.weight-lowerBound))*100))) : 5;
         const showDivider = i < totalItems-1;
         return (
-          <div key={pred.key} style={{marginBottom:showDivider?20:0,paddingBottom:showDivider?20:0,borderBottom:showDivider?"1px solid rgba(232,52,28,0.05)":"none"}}>
+          <div key={pred.key} style={{marginBottom:showDivider?20:0,paddingBottom:showDivider?20:0,borderBottom:showDivider?"1px solid rgba(var(--accent-rgb),0.05)":"none"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
               <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:17,letterSpacing:.5}}>{pred.label.toUpperCase()}</div>
               <div style={{fontFamily:"var(--mono)",fontSize:12,color:T.carb,fontWeight:600}}>~{pred.current1RM} {unit} est. 1RM</div>
@@ -1236,7 +1236,7 @@ function InjuryAlertCard({risks, onAdapt, onDismiss}) {
   return (
     <div style={{margin:"0 20px 14px",padding:"16px 18px",background:lc.bg,border:`1px solid ${lc.border}`,borderLeft:`3px solid ${lc.left}`,borderRadius:"4px 14px 14px 4px"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="#e8341c"><path d="M12 2L1 21h22L12 2zm0 3.99L20.53 19H3.47L12 5.99zm-1 5.01v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2L1 21h22L12 2zm0 3.99L20.53 19H3.47L12 5.99zm-1 5.01v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
         <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.16em",color:lc.color,textTransform:"uppercase",fontWeight:700}}>INJURY PREVENTION ALERT</div>
         <div style={{marginLeft:"auto",padding:"2px 8px",background:`${lc.color}15`,border:`1px solid ${lc.color}40`,borderRadius:4,fontFamily:"var(--mono)",fontSize:9,color:lc.color,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,whiteSpace:"nowrap"}}>{lc.label}</div>
       </div>
@@ -1256,7 +1256,7 @@ function InjuryAlertCard({risks, onAdapt, onDismiss}) {
       )}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <button onClick={onAdapt} style={{flex:2,padding:"11px 8px",background:lc.left,border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Adjust Tomorrow's Session</button>
-        <button onClick={onDismiss} style={{flex:1,padding:"11px",background:"transparent",border:"1px solid rgba(232,52,28,0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Got It</button>
+        <button onClick={onDismiss} style={{flex:1,padding:"11px",background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:11,cursor:"pointer"}}>Got It</button>
       </div>
       <div style={{fontSize:10,color:"rgba(245,245,240,0.2)",lineHeight:1.7,fontStyle:"italic"}}>
         Injury alerts are informational only and based on general training principles. They are not medical advice. Consult a healthcare professional for any pain or injury concerns.
@@ -1373,7 +1373,7 @@ function WeeklyNutritionCalendar({weekMacros,todayKey}) {
           const barH=maxCal>minCal?Math.max(8,Math.round(((d.calories-minCal)/(maxCal-minCal))*48)+8):28;
           return(
             <button key={d.day} onClick={()=>setExpandedDay(expandedDay===d.day?null:d.day)}
-              style={{background:"none",border:`1.5px solid ${isToday2?c:"rgba(232,52,28,0.06)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
+              style={{background:"none",border:`1.5px solid ${isToday2?c:"rgba(var(--accent-rgb),0.06)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
               <div style={{fontSize:8,fontWeight:700,color:isToday2?c:"rgba(245,245,240,0.35)",marginBottom:4,letterSpacing:1,textTransform:"uppercase"}}>{d.day}</div>
               <div style={{height:barH,background:isToday2?c:`${c}55`,borderRadius:3,margin:"0 2px 4px",minHeight:8}}/>
               <div style={{fontSize:8,fontWeight:700,color:isToday2?"#fff":"rgba(245,245,240,0.5)",lineHeight:1}}>{Math.round(d.calories/100)*100}</div>
@@ -1387,7 +1387,7 @@ function WeeklyNutritionCalendar({weekMacros,todayKey}) {
         if(!d)return null;
         const c=calColors[d.dayType]||"#374151";
         return(
-          <div style={{background:"rgba(232,52,28,0.03)",borderRadius:10,padding:"12px 14px",borderTop:"1px solid rgba(232,52,28,0.06)"}}>
+          <div style={{background:"rgba(var(--accent-rgb),0.03)",borderRadius:10,padding:"12px 14px",borderTop:"1px solid rgba(var(--accent-rgb),0.06)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <div>
                 <div style={{fontSize:10,color:c,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{d.day} — {d.label}</div>
@@ -1397,7 +1397,7 @@ function WeeklyNutritionCalendar({weekMacros,todayKey}) {
             </div>
             <div style={{display:"flex",gap:10}}>
               {[["P",d.protein,"g","var(--red)"],["C",d.carbs,"g","var(--blue)"],["F",d.fat,"g","var(--amber)"]].map(([l,v,u,c2])=>(
-                <div key={l} style={{flex:1,background:"rgba(232,52,28,0.04)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                <div key={l} style={{flex:1,background:"rgba(var(--accent-rgb),0.04)",borderRadius:8,padding:"8px",textAlign:"center"}}>
                   <div style={{fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{l}</div>
                   <div style={{fontSize:16,fontWeight:800,color:c2}}>{v}<span style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontWeight:400}}>{u}</span></div>
                 </div>
@@ -1420,12 +1420,12 @@ function PRFeed({dbPRs,wUnit}){
   const allTimePRs=Object.values(bestByExercise).sort((a,b)=>b.weight-a.weight);
   const displayPRs=prTab==='recent'?recentPRs:allTimePRs;
   return(
-    <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
+    <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// PERSONAL RECORDS</div>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// PERSONAL RECORDS</div>
         <div style={{display:"flex",gap:4}}>
           {['recent','all time'].map(t=>(
-            <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"#e8341c":"rgba(245,245,240,0.1)"}`,background:prTab===t?"rgba(232,52,28,0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:8,color:prTab===t?"#e8341c":"rgba(245,245,240,0.4)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
+            <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"var(--accent)":"rgba(245,245,240,0.1)"}`,background:prTab===t?"rgba(var(--accent-rgb),0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:8,color:prTab===t?"var(--accent)":"rgba(245,245,240,0.4)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
           ))}
         </div>
       </div>
@@ -1488,9 +1488,9 @@ function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLast
   const logDays=new Set([...(workoutLogsRaw||[]).filter(l=>l.date>=twStart).map(l=>l.date)]).size;
 
   return(
-    <div style={{margin:"0 16px 14px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14}}>
+    <div style={{margin:"0 16px 14px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:14}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase"}}>// WEEK IN REVIEW</div>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// WEEK IN REVIEW</div>
         <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)"}}>{dateRange}</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
@@ -1500,18 +1500,18 @@ function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLast
           {label:"PROTEIN",value:`${protPct}%`,delta:null,unit:'of target'},
           {label:"LOGGED",value:`${logDays}/7`,delta:null,unit:'days'},
         ].map(({label,value,delta,unit})=>(
-          <div key={label} style={{background:"rgba(232,52,28,0.04)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+          <div key={label} style={{background:"rgba(var(--accent-rgb),0.04)",borderRadius:10,padding:"12px",textAlign:"center"}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:1,marginBottom:2}}>{value}</div>
             {unit&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",marginBottom:4}}>{unit}</div>}
             {delta!==null&&delta!==0&&(
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:delta>0?"#22c55e":"#e8341c"}}>{delta>0?'+':''}{typeof delta==='number'&&Math.abs(delta)>999?`${(delta/1000).toFixed(1)}k`:delta} vs last wk</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:delta>0?"#22c55e":"var(--accent)"}}>{delta>0?'+':''}{typeof delta==='number'&&Math.abs(delta)>999?`${(delta/1000).toFixed(1)}k`:delta} vs last wk</div>
             )}
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:4}}>{label}</div>
           </div>
         ))}
       </div>
       {(insight||insightLoading)&&(
-        <div style={{borderLeft:"2px solid #e8341c",paddingLeft:12,marginTop:2}}>
+        <div style={{borderLeft:"2px solid var(--accent)",paddingLeft:12,marginTop:2}}>
           {insightLoading?(
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:15,color:"rgba(245,245,240,0.35)"}}>Analyzing your week...</div>
           ):(
@@ -3194,8 +3194,8 @@ Rules:
                 width:'36px',
                 height:'36px',
                 borderRadius:'10px',
-                background:'rgba(232,52,28,0.1)',
-                border:'1px solid rgba(232,52,28,0.2)',
+                background:'rgba(var(--accent-rgb),0.1)',
+                border:'1px solid rgba(var(--accent-rgb),0.2)',
                 display:'flex',
                 flexDirection:'column',
                 alignItems:'center',
@@ -3215,7 +3215,7 @@ Rules:
               >
                 <path
                   d="M7 0C7 0 9.5 3 9.5 5.5C9.5 5.5 11 4 11 4C11 4 14 7.5 14 10.5C14 13.5 11 17 7 17C3 17 0 13.5 0 10.5C0 7.5 2.5 5 2.5 5C2.5 5 3.5 7 4.5 7C4.5 7 2.5 4.5 7 0Z"
-                  fill="#e8341c"
+                  fill="var(--accent)"
                 />
                 <path
                   d="M7 8C7 8 8.5 9.5 8.5 11C8.5 12.5 7.8 13.5 7 13.5C6.2 13.5 5.5 12.5 5.5 11C5.5 9.5 7 8 7 8Z"
@@ -3225,7 +3225,7 @@ Rules:
               <span style={{
                 fontFamily:'DM Mono,monospace',
                 fontSize:'8px',
-                color:'#e8341c',
+                color:'var(--accent)',
                 lineHeight:'1',
                 fontWeight:'500',
                 userSelect:'none',
@@ -3378,12 +3378,12 @@ Rules:
         {trialExpiringSoon(profile)&&(()=>{
           const days=trialDaysRemaining(profile);
           return(
-            <div style={{margin:"0 20px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(232,52,28,0.15) 0%,rgba(232,52,28,0.05) 100%)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{margin:"0 20px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.15) 0%,rgba(var(--accent-rgb),0.05) 100%)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div>
-                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:4}}>// TRIAL ENDING</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:4}}>// TRIAL ENDING</div>
                 <div style={{fontSize:13,color:"#f5f5f0"}}>Your free trial ends in {days} day{days===1?"":"s"}.</div>
               </div>
-              <button onClick={()=>window.dispatchEvent(new CustomEvent("cm:subscription-required"))} style={{background:"#e8341c",border:"none",borderRadius:8,padding:"7px 12px",fontFamily:"var(--mono)",fontSize:9,color:"#fff",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0,marginLeft:12}}>UPGRADE →</button>
+              <button onClick={()=>window.dispatchEvent(new CustomEvent("cm:subscription-required"))} style={{background:"var(--accent)",border:"none",borderRadius:8,padding:"7px 12px",fontFamily:"var(--mono)",fontSize:9,color:"#fff",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0,marginLeft:12}}>UPGRADE →</button>
             </div>
           );
         })()}
@@ -3460,7 +3460,7 @@ Rules:
         <div style={{margin:"0 20px 12px"}}>
           {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
             briefExpanded
-              ?<div style={{padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
+              ?<div style={{padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
@@ -3480,9 +3480,9 @@ Rules:
                           {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
                           <div style={{display:"flex",flexDirection:"column",gap:8}}>
                             {b.yesterday&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div><div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div></div>)}
-                            <div style={{height:1,background:"rgba(232,52,28,0.08)"}}/>
+                            <div style={{height:1,background:"rgba(var(--accent-rgb),0.08)"}}/>
                             {b.today&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div><div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div></div>)}
-                            {b.coach_says&&(<div style={{padding:"8px 10px",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:6}}><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div><div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div></div>)}
+                            {b.coach_says&&(<div style={{padding:"8px 10px",background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:6}}><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div><div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div></div>)}
                           </div>
                           {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
                           {showCheckin&&!checkinDone&&(<SorenessCheckIn userId={user?.id} onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}} onSkip={()=>setShowCheckin(false)}/>)}
@@ -3503,22 +3503,22 @@ Rules:
                       const breakfastLogged=log.length>0;
                       if(todayType==="training"&&hour<12&&!sessionDoneToday){
                         return(
-                          <div style={{borderTop:"1px solid rgba(232,52,28,0.08)",paddingTop:12}}>
+                          <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
                             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
-                            <button onClick={()=>setSection("train")} style={{width:"100%",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>START YOUR SESSION →</button>
+                            <button onClick={()=>setSection("train")} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>START YOUR SESSION →</button>
                           </div>
                         );
                       }
                       if(!breakfastLogged){
                         return(
-                          <div style={{borderTop:"1px solid rgba(232,52,28,0.08)",paddingTop:12}}>
+                          <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
                             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
-                            <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{width:"100%",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
+                            <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
                           </div>
                         );
                       }
                       return(
-                        <div style={{borderTop:"1px solid rgba(232,52,28,0.08)",paddingTop:12}}>
+                        <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
                           <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// WHAT SHOULD I DO FIRST?</div>
                           <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",letterSpacing:"0.04em"}}>YOU'RE ON TRACK. KEEP GOING.</div>
                         </div>
@@ -3532,7 +3532,7 @@ Rules:
                 const coachSays=morningBriefLoading?"Loading brief...":(morningBriefError?"Couldn't load brief — tap to retry":(b?.coach_says||b?.greeting||""));
                 return(
                   <div onClick={()=>{setBriefExpanded(true);const today=new Date().toISOString().split("T")[0];localStorage.setItem("brief_expanded",today);}}
-                    style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderLeft:"2px solid #e8341c",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
+                    style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderLeft:"2px solid var(--accent)",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
                     <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:15,color:"#f5f5f0",lineHeight:1.4,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",textOverflow:"ellipsis"}}>
                       {coachSays}
                     </div>
@@ -3576,12 +3576,12 @@ Rules:
             ?{headline:"YOU TRAIN IN A FEW HOURS.",sub:`You need fuel before your session. You're ${Math.round(remaining.calories)} calories behind. Log your next meal now.`}
             :{headline:"STAYING ON TRACK?",sub:`You have ${Math.round(remaining.calories)} calories and ${Math.round(remaining.protein)}g protein left today. Don't let the day get away from you.`};
           return(
-            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderLeft:"3px solid #e8341c",borderRadius:12,padding:"14px 16px"}}>
+            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderLeft:"3px solid var(--accent)",borderRadius:12,padding:"14px 16px"}}>
               <button onClick={()=>{setMiddayDismissed(true);try{localStorage.setItem('midday_dismissed',Date.now().toString());}catch{}}} style={{position:"absolute",top:10,right:12,background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:16,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NUTRITION CHECK</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NUTRITION CHECK</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>{msg.headline}</div>
               <div style={{fontFamily:"var(--condensed)",fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>{msg.sub}</div>
-              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(232,52,28,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
             </div>
           );
         })()}
@@ -3612,9 +3612,9 @@ Rules:
           const daysSince=Math.floor((Date.now()-created.getTime())/86400000);
           if(daysSince<7||daysSince>14)return null;
           return(
-            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:"20px"}}>
+            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:14,padding:"20px"}}>
               <button onClick={()=>{setFirstWeekCardDismissed(true);try{localStorage.setItem('cm_1week_dismissed','1');}catch{}}} style={{position:"absolute",top:12,right:14,background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:16,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1,marginBottom:8}}>ONE WEEK IN<span style={{color:"#e8341c"}}>.</span></div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1,marginBottom:8}}>ONE WEEK IN<span style={{color:"var(--accent)"}}>.</span></div>
               <div style={{fontFamily:"var(--condensed)",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>You've been showing up. That's what separates the athletes who get results from the ones who don't.</div>
             </div>
           );
@@ -3662,7 +3662,7 @@ Rules:
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"var(--green)"}}>{pct}%</div>
                 <div style={{fontSize:11,color:"rgba(245,245,240,.5)"}}>{sessions} sessions last 30 days</div>
               </div>
-              <div style={{height:4,background:"rgba(232,52,28,0.08)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
+              <div style={{height:4,background:"rgba(var(--accent-rgb),0.08)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
                 <div style={{height:"100%",width:`${pct}%`,background:"var(--green)",borderRadius:2,transition:"width .6s"}}/>
               </div>
               <div style={{fontSize:12,color:"rgba(245,245,240,.6)",lineHeight:1.55,fontStyle:"italic"}}>Every session counts. Every time you show up is a win.</div>
@@ -3846,8 +3846,8 @@ Rules:
         {balanceCorrections.length>0&&balanceSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
           const primary=balanceCorrections[0];
           const isRisk=primary.severity==="risk";
-          const accent=isRisk?"#e8341c":"#FEA020";
-          const borderColor=isRisk?"rgba(232,52,28,0.2)":"rgba(254,160,32,0.2)";
+          const accent=isRisk?"var(--accent)":"#FEA020";
+          const borderColor=isRisk?"rgba(var(--accent-rgb),0.2)":"rgba(254,160,32,0.2)";
           const balanceSummary=`${primary.type==="push_pull"?"Push/pull":"Quad/posterior"} imbalance — fix ready`;
           return(
             <CollapsibleAlert color={accent} summary={balanceSummary} margin="0 20px 6px">
@@ -3867,7 +3867,7 @@ Rules:
                   const bPct=100-aPct;
                   const aLabel=isPP?"PUSH":"QUAD";
                   const bLabel=isPP?"PULL":"POST";
-                  const aColor=isRisk?"#e8341c":"#FEA020";
+                  const aColor=isRisk?"var(--accent)":"#FEA020";
                   const bColor="#60a5fa";
                   return(
                     <div key={ci} style={{marginBottom:ci<balanceCorrections.length-1?16:0}}>
@@ -3907,8 +3907,8 @@ Rules:
         {/* ── FATIGUE ALERT ── */}
         {fatigueAlert&&(fatigueAlert.overallFatigue==="high"||fatigueAlert.overallFatigue==="medium")&&fatigueSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
           const isHigh=fatigueAlert.overallFatigue==="high";
-          const accent=isHigh?"#e8341c":"#FEA020";
-          const borderColor=isHigh?"rgba(232,52,28,0.2)":"rgba(254,160,32,0.2)";
+          const accent=isHigh?"var(--accent)":"#FEA020";
+          const borderColor=isHigh?"rgba(var(--accent-rgb),0.2)":"rgba(254,160,32,0.2)";
           const headline=isHigh?"YOUR BODY IS TIRED.":"FATIGUE BUILDING.";
           const exerciseSignals=(fatigueAlert.fatigueSignals||[]).filter(s=>s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence");
           const fatigueSummary=isHigh?"High fatigue — lighter session today":"Fatigue building — monitor effort";
@@ -4009,21 +4009,21 @@ Rules:
             const coachQuote=(()=>{const tip=(morningBrief?.coach_tip||"").trim();if(tip)return tip.length>100?tip.substring(0,97)+"...":tip;return isRD?"Rest. Your body grows when you recover.":"Show up, do the work, trust the process.";})();
             if(isRD){
               return(
-                <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:10}}>REST<span style={{color:"#e8341c"}}>.</span></div>
+                <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:14,padding:16}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:10}}>REST<span style={{color:"var(--accent)"}}>.</span></div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:8}}>{coachQuote}</div>
                 </div>
               );
             }
             return(
-              <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:14,padding:16}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
+              <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:14,padding:16}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
-                  {focusLabel}<span style={{color:"#e8341c"}}>.</span>
+                  {focusLabel}<span style={{color:"var(--accent)"}}>.</span>
                 </div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:6,marginBottom:14}}>{coachQuote}</div>
-                <button onClick={()=>{setSection("train");startStructured(todayFocus);}} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
+                <button onClick={()=>{setSection("train");startStructured(todayFocus);}} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
                   START SESSION →
                 </button>
                 <div onClick={()=>setSessionExpandedToday(s=>!s)} style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:8}}>
@@ -4052,7 +4052,7 @@ Rules:
         {/* Compact Coach Score + macro ring row */}
         {coachScore&&(
           <div style={{margin:"0 20px 14px",display:"flex",gap:10}}>
-            <div onClick={()=>setSection("progress")} style={{flex:"0 0 auto",padding:"12px 14px",background:"var(--navy-card)",border:`1px solid ${coachScore.total>=90?"var(--red)":"var(--white-border)"}`,borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer",minWidth:88,boxShadow:coachScore.total>=90?"0 0 20px rgba(232,52,28,0.35)":"none",transition:"box-shadow 0.3s"}}>
+            <div onClick={()=>setSection("progress")} style={{flex:"0 0 auto",padding:"12px 14px",background:"var(--navy-card)",border:`1px solid ${coachScore.total>=90?"var(--red)":"var(--white-border)"}`,borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer",minWidth:88,boxShadow:coachScore.total>=90?"0 0 20px rgba(var(--accent-rgb),0.35)":"none",transition:"box-shadow 0.3s"}}>
               <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--white-faint)",textTransform:"uppercase"}}>Score</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:38,lineHeight:1,color:coachScore.total>=90?"#FFD700":coachScore.total>=85?"var(--green)":coachScore.total>=70?"var(--amber)":"var(--red)"}}>{coachScore.total}</div>
               <div style={{fontFamily:"var(--mono)",fontSize:7,color:"var(--white-faint)",letterSpacing:"0.1em"}}>TAP TO EXPAND</div>
@@ -4194,7 +4194,7 @@ Rules:
                           <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Strength</div>
                           <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>{goalTrajectories.strength.weeklyGainPct>0?"+":""}{goalTrajectories.strength.weeklyGainPct}% per session avg</div>
                         </div>
-                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.strength.trend==="up"?T.green:goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.strength.trend==="up"?"rgba(34,197,94,0.2)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(232,52,28,0.05)"}}>
+                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.strength.trend==="up"?T.green:goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.strength.trend==="up"?"rgba(34,197,94,0.2)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(var(--accent-rgb),0.05)"}}>
                           {goalTrajectories.strength.trend==="up"?"PROGRESSING":goalTrajectories.strength.trend==="down"?"DECLINING":"STABLE"}
                         </div>
                       </div>
@@ -4208,7 +4208,7 @@ Rules:
                             {goalTrajectories.bodyComp.weeksToGoal&&` · ~${goalTrajectories.bodyComp.weeksToGoal}w to goal`}
                           </div>
                         </div>
-                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.bodyComp.trend==="gaining"?T.fat:goalTrajectories.bodyComp.trend==="losing"?T.green:"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,0.2)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(232,52,28,0.05)"}}>
+                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.bodyComp.trend==="gaining"?T.fat:goalTrajectories.bodyComp.trend==="losing"?T.green:"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,0.2)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(var(--accent-rgb),0.05)"}}>
                           {goalTrajectories.bodyComp.trend==="gaining"?"GAINING":goalTrajectories.bodyComp.trend==="losing"?"LOSING":"STABLE"}
                         </div>
                       </div>
@@ -4239,7 +4239,7 @@ Rules:
             return(
               <div key={w.id||i} style={{borderBottom:i<Math.min(logs.length,20)-1?"1px solid rgba(245,245,240,0.06)":"none"}}>
                 <div onClick={()=>setExpandedIdx(expanded?null:i)} style={{display:"flex",alignItems:"center",padding:"12px 16px",cursor:"pointer",gap:12}}>
-                  <div style={{width:34,height:34,borderRadius:10,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>💪</div>
+                  <div style={{width:34,height:34,borderRadius:10,background:"rgba(var(--accent-rgb),0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>💪</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{focus}</div>
                     <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",marginTop:2}}>{dateLabel} · {dur} · {sets} sets</div>
@@ -4328,7 +4328,7 @@ Rules:
               {chartData.milestones.map(m=>(
                 <line key={m} x1={0} y1={chartData.py(m)} x2={chartData.W} y2={chartData.py(m)} stroke="rgba(245,245,240,0.06)" strokeWidth={1}/>
               ))}
-              <path d={chartData.line} fill="none" stroke="rgba(232,52,28,0.4)" strokeWidth={1.5}/>
+              <path d={chartData.line} fill="none" stroke="rgba(var(--accent-rgb),0.4)" strokeWidth={1.5}/>
               <path d={chartData.maLine} fill="none" stroke="var(--red)" strokeWidth={2} strokeLinecap="round"/>
               {logs.map((x,idx)=>{
                 const isMilestone=chartData.milestones.some(m=>Math.abs(x.weight-m)<0.5);
@@ -4550,7 +4550,7 @@ Rules:
     })();
 
     const scoreStatus=sc.total>=90?'PEAKING':sc.total>=80?'PRIMED':sc.total>=70?'BUILDING':sc.total>=50?'RECOVERING':'RECHARGING';
-    const ringColor=sc.total>=90?'#FFD700':sc.total>=80?'#22c55e':sc.total>=70?'#60a5fa':sc.total>=50?'#FEA020':'#e8341c';
+    const ringColor=sc.total>=90?'#FFD700':sc.total>=80?'#22c55e':sc.total>=70?'#60a5fa':sc.total>=50?'#FEA020':'var(--accent)';
 
     const isHyroxMode=wPrefs?.isHyrox;
     const isRunnerMode=!isHyroxMode&&(wPrefs?.isHybrid||(wPrefs?.splitType||'').toLowerCase().includes('run'));
@@ -4600,21 +4600,21 @@ Rules:
     let twRings,twInsight;
     if(isHyroxMode){
       twRings=[
-        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Training\nDays",color:"#e8341c"},
+        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Training\nDays",color:"var(--accent)"},
         {pct:Math.min(100,setsThisWeek/50*100),value:setsThisWeek,label:"Sets\nDone",color:"#FEA020"},
         {pct:Math.min(100,volumeThisWeek/20000*100),value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek),label:`Volume\n${profile?.wUnit||'lbs'}`,color:"#60a5fa"},
       ];
       twInsight=`${workoutsThisWeek} of ${targetSessions} sessions done. ${setsThisWeek} total sets this week.`;
     } else if(isRunnerMode){
       twRings=[
-        {pct:Math.min(100,runActsThisWeek.length/targetSessions*100),value:runActsThisWeek.length,label:"Runs",color:"#e8341c"},
+        {pct:Math.min(100,runActsThisWeek.length/targetSessions*100),value:runActsThisWeek.length,label:"Runs",color:"var(--accent)"},
         {pct:Math.min(100,runDistKm/50*100),value:displayDistance(runDistKm, profile?.wUnit||'lbs'),label:`${distanceLabel(profile?.wUnit||'lbs')} run`,color:"#22c55e"},
         {pct:Math.min(100,runTimeMins/300*100),value:runTimeMins>=60?`${Math.floor(runTimeMins/60)}h`:`${runTimeMins}m`,label:"Time",color:"#60a5fa"},
       ];
       twInsight=runActsThisWeek.length>0?`${runActsThisWeek.length} run${runActsThisWeek.length>1?'s':''} · ${displayDistance(runDistKm, profile?.wUnit||'lbs')} · ${runTimeMins} min this week`:"No runs logged yet this week.";
     } else {
       twRings=[
-        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Sessions",color:"#e8341c"},
+        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Sessions",color:"var(--accent)"},
         {pct:Math.min(100,setsThisWeek/40*100),value:setsThisWeek,label:"Sets",color:"#FEA020"},
         {pct:Math.min(100,Math.min(volumeThisWeek,20000)/20000*100),value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek||0),label:`Volume\n${profile?.wUnit||'lbs'}`,color:"#60a5fa"},
       ];
@@ -4624,8 +4624,8 @@ Rules:
 
     function PH({eyebrow,headline,body}){
       return(
-        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{eyebrow}</div>
+        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{eyebrow}</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#fff",marginBottom:6}}>{headline}</div>
           <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{body}</div>
         </div>
@@ -4653,8 +4653,8 @@ Rules:
     return (
       <div style={{background:"#000",minHeight:"100vh",position:"relative",overflow:"hidden"}} className="page-enter">
         {/* Atmospheric red glows */}
-        <div style={{position:"absolute",top:-80,left:-100,width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle, rgba(232,52,28,0.13) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
-        <div style={{position:"absolute",bottom:150,right:-120,width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle, rgba(232,52,28,0.07) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+        <div style={{position:"absolute",top:-80,left:-100,width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.13) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+        <div style={{position:"absolute",bottom:150,right:-120,width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
 
         <div style={{position:"relative",zIndex:1}}>
           {/* Header */}
@@ -4670,8 +4670,8 @@ Rules:
             {[{id:"overview",label:"OVERVIEW"},{id:"strength",label:"STRENGTH"},{id:"nutrition",label:"NUTRITION"},{id:"recovery",label:"RECOVERY"}].map(({id,label})=>(
               <button key={id} onClick={()=>setActiveTab(id)} style={{
                 flex:1,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,letterSpacing:"0.12em",
-                padding:"10px 4px",color:activeTab===id?"#e8341c":"rgba(245,245,240,0.35)",
-                border:"none",borderBottom:activeTab===id?"2px solid #e8341c":"2px solid transparent",
+                padding:"10px 4px",color:activeTab===id?"var(--accent)":"rgba(245,245,240,0.35)",
+                border:"none",borderBottom:activeTab===id?"2px solid var(--accent)":"2px solid transparent",
                 background:"none",cursor:"pointer"
               }}>{label}</button>
             ))}
@@ -4692,10 +4692,10 @@ Rules:
             />}
             {/* Empty state — fewer than 3 sessions */}
             {workoutLogsRaw.length<3&&(
-              <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.2)",borderRadius:16}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// PROGRESS UNLOCKS IN 3 SESSIONS</div>
+              <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:16}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// PROGRESS UNLOCKS IN 3 SESSIONS</div>
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
-                  YOUR DATA IS BUILDING<span style={{color:"#e8341c"}}>.</span>
+                  YOUR DATA IS BUILDING<span style={{color:"var(--accent)"}}>.</span>
                 </div>
                 <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5,marginBottom:16}}>
                   Complete {3-workoutLogsRaw.length} more session{3-workoutLogsRaw.length===1?"":"s"} to unlock your full progress dashboard. Coach Macro needs a baseline to start measuring your growth.
@@ -4703,25 +4703,25 @@ Rules:
                 <div style={{marginBottom:16}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
                     <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.12em"}}>Sessions completed</span>
-                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c"}}>{workoutLogsRaw.length}/3</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)"}}>{workoutLogsRaw.length}/3</span>
                   </div>
                   <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/3*100)}%`,background:"#e8341c",borderRadius:3,transition:"width 0.6s ease"}}/>
+                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/3*100)}%`,background:"var(--accent)",borderRadius:3,transition:"width 0.6s ease"}}/>
                   </div>
                   <div style={{display:"flex",gap:8,marginTop:8}}>
                     {[0,1,2].map(i=>(
-                      <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<workoutLogsRaw.length?"#e8341c":"rgba(245,245,240,0.07)"}}/>
+                      <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<workoutLogsRaw.length?"var(--accent)":"rgba(245,245,240,0.07)"}}/>
                     ))}
                   </div>
                 </div>
-                <button onClick={()=>setSection("train")} style={{width:"100%",padding:"13px 0",background:"#e8341c",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>
+                <button onClick={()=>setSection("train")} style={{width:"100%",padding:"13px 0",background:"var(--accent)",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>
                   START A SESSION →
                 </button>
               </div>
             )}
             {/* Coach Score Card */}
-            <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Coach Score</div>
+            <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Coach Score</div>
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:4}}>
                 {(()=>{
                   const sz=90,r=38,circ=2*Math.PI*r,filled=(sc.total/100)*circ;
@@ -4742,7 +4742,7 @@ Rules:
                   );
                 })()}
                 <div style={{flex:1}}>
-                  {[{l:"Training",v:sc.t,c:"#e8341c"},{l:"Nutrition",v:sc.n,c:"#22c55e"},{l:"Recovery",v:sc.r,c:"#60a5fa"},{l:"Streak",v:sc.c,c:"#FEA020"}].map(({l,v,c})=>(
+                  {[{l:"Training",v:sc.t,c:"var(--accent)"},{l:"Nutrition",v:sc.n,c:"#22c55e"},{l:"Recovery",v:sc.r,c:"#60a5fa"},{l:"Streak",v:sc.c,c:"#FEA020"}].map(({l,v,c})=>(
                     <div key={l} style={{marginBottom:8}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
                         <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{l}</span>
@@ -4804,14 +4804,14 @@ Rules:
                       <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Predicted</div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"#fff"}}>{pred.currentPrediction}</div>
                     </div>
-                    {pred.targetTime&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                    {pred.targetTime&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
                       <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Target</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.targetTime}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.targetTime}</div>
                     </div>}
                   </div>
-                  {pred.targetTime&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.04)",borderRadius:8}}>
+                  {pred.targetTime&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
                     <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
-                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
                   </div>}
                   {pred.topPriorities.length>0&&<>
                     <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>// Priority Stations</div>
@@ -4835,7 +4835,7 @@ Rules:
               const raceLabel=raceTypeLabels[profile.run_race_type]||(profile.run_race_type||"").toUpperCase().replace(/_/g," ");
               return(<>
                 <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}25`,borderRadius:16}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Race Day</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Race Day</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                     <div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:38,color:"#fff",lineHeight:1}}>{phase.weeksUntilRace}w</div>
@@ -4853,20 +4853,20 @@ Rules:
                   </div>
                 </div>
                 {(pred.currentPrediction||pred.previousTime)&&<div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}12`,borderRadius:16}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Predicted Finish</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Predicted Finish</div>
                   <div style={{display:"flex",gap:12,marginBottom:pred.targetTime?14:0}}>
                     <div style={{flex:1,background:`${phase.color}06`,borderRadius:10,padding:"12px",textAlign:"center"}}>
                       <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Predicted</div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"#fff"}}>{pred.currentPrediction||pred.previousTime}</div>
                     </div>
-                    {pred.targetTime&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                    {pred.targetTime&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
                       <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Target</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.targetTime}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.targetTime}</div>
                     </div>}
                   </div>
-                  {pred.targetTime&&pred.gap&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.04)",borderRadius:8}}>
+                  {pred.targetTime&&pred.gap&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
                     <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
-                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
                   </div>}
                 </div>}
               </>);
@@ -4881,7 +4881,7 @@ Rules:
               const federation=profile.strength_comp_federation;
               return(<>
                 <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}25`,borderRadius:16}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Competition</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Competition</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                     <div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:38,color:"#fff",lineHeight:1}}>{phase.weeksUntilRace}w</div>
@@ -4899,20 +4899,20 @@ Rules:
                   </div>
                 </div>
                 {pred.currentTotal>0&&<div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}12`,borderRadius:16}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Current Total</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Current Total</div>
                   <div style={{display:"flex",gap:12,marginBottom:pred.targetTotal?14:0}}>
                     <div style={{flex:1,background:`${phase.color}06`,borderRadius:10,padding:"12px",textAlign:"center"}}>
                       <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Current</div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"#fff"}}>{pred.currentTotal.toLocaleString()} {profile?.units==="metric"?"kg":"lbs"}</div>
                     </div>
-                    {pred.targetTotal&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                    {pred.targetTotal&&<div style={{flex:1,background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
                       <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Target</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.targetTotal.toLocaleString()} {profile?.units==="metric"?"kg":"lbs"}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.targetTotal.toLocaleString()} {profile?.units==="metric"?"kg":"lbs"}</div>
                     </div>}
                   </div>
-                  {pred.targetTotal&&pred.gapToTarget!==null&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:pred.topLiftToImprove?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(232,52,28,0.04)",borderRadius:8}}>
+                  {pred.targetTotal&&pred.gapToTarget!==null&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:pred.topLiftToImprove?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
                     <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"Target reached":"Gap to target"}</span>
-                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"#e8341c"}}>{pred.onTrack?"✓ On track":`${Math.abs(pred.gapToTarget)} to go`}</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ On track":`${Math.abs(pred.gapToTarget)} to go`}</span>
                   </div>}
                   {pred.topLiftToImprove&&<div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{width:6,height:6,borderRadius:1,background:phase.color,flexShrink:0}}/>
@@ -4923,14 +4923,14 @@ Rules:
             })()}
 
             {/* This Week Rings */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week</div>
+            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week</div>
               <div style={{display:"flex",gap:8,marginBottom:14}}>
                 {twRings.map(({pct,value,label,color})=>(
                   <MiniRing key={label} pct={pct} value={value} label={label} color={color}/>
                 ))}
               </div>
-              <div style={{background:"rgba(232,52,28,0.05)",borderLeft:"2px solid rgba(232,52,28,0.5)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:12}}>
+              <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.5)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:12}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:13,color:"rgba(245,245,240,0.7)",lineHeight:1.4}}>{twInsight}</div>
               </div>
               <div style={{display:"flex",borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12}}>
@@ -4944,10 +4944,10 @@ Rules:
             </div>
 
             {/* Performance Calendar */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Performance Calendar</div>
+            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Performance Calendar</div>
               <div style={{display:"flex",gap:12,marginBottom:10}}>
-                {[{c:"#e8341c",l:"Trained"},{c:"#60a5fa",l:"Macros"},{c:"#8b5cf6",l:"Both"}].map(({c,l})=>(
+                {[{c:"var(--accent)",l:"Trained"},{c:"#60a5fa",l:"Macros"},{c:"#8b5cf6",l:"Both"}].map(({c,l})=>(
                   <div key={l} style={{display:"flex",alignItems:"center",gap:4}}>
                     <div style={{width:8,height:8,borderRadius:2,background:c}}/>
                     <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{l}</span>
@@ -4962,11 +4962,11 @@ Rules:
               <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:10}}>
                 {calDays.map(({ds,hasWorkout,hasMacros,isFuture,isToday2})=>{
                   const both=hasWorkout&&hasMacros;
-                  const c=isFuture?"transparent":both?"#8b5cf6":hasWorkout?"#e8341c":hasMacros?"#60a5fa":"rgba(245,245,240,0.07)";
+                  const c=isFuture?"transparent":both?"#8b5cf6":hasWorkout?"var(--accent)":hasMacros?"#60a5fa":"rgba(245,245,240,0.07)";
                   return(
                     <div key={ds} style={{
                       aspectRatio:"1",borderRadius:4,background:c,
-                      border:isToday2?"1px solid #e8341c":"1px solid transparent",
+                      border:isToday2?"1px solid var(--accent)":"1px solid transparent",
                       boxShadow:(hasWorkout||hasMacros)&&!isFuture?`0 0 4px ${c}60`:"none",
                     }}/>
                   );
@@ -4979,8 +4979,8 @@ Rules:
                   const macroCount=wDays.filter(d=>d.hasMacros).length;
                   return(
                     <div key={w} style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
-                      <div style={{height:3,borderRadius:1,background:"rgba(232,52,28,0.2)"}}>
-                        <div style={{height:"100%",width:`${(trainCount/7)*100}%`,borderRadius:1,background:"#e8341c"}}/>
+                      <div style={{height:3,borderRadius:1,background:"rgba(var(--accent-rgb),0.2)"}}>
+                        <div style={{height:"100%",width:`${(trainCount/7)*100}%`,borderRadius:1,background:"var(--accent)"}}/>
                       </div>
                       <div style={{height:3,borderRadius:1,background:"rgba(96,165,250,0.15)"}}>
                         <div style={{height:"100%",width:`${(macroCount/7)*100}%`,borderRadius:1,background:"#60a5fa"}}/>
@@ -4997,7 +4997,7 @@ Rules:
                 <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16}}>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// ATHLETE DNA</div>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
-                    ATHLETE DNA FORMING<span style={{color:"#e8341c"}}>.</span>
+                    ATHLETE DNA FORMING<span style={{color:"var(--accent)"}}>.</span>
                   </div>
                   <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:14}}>
                     Your training profile unlocks after 10 sessions. {10-workoutLogsRaw.length} to go.
@@ -5016,8 +5016,8 @@ Rules:
             </div>
 
             {/* Coach Tips */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Coach</div>
+            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Coach</div>
               {doingWell.length>0&&(
                 <div style={{marginBottom:focusTips.length?14:0}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(34,197,94,0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// Doing Well</div>
@@ -5031,10 +5031,10 @@ Rules:
               )}
               {focusTips.length>0&&(
                 <div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(232,52,28,0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// Focus This Week</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(var(--accent-rgb),0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// Focus This Week</div>
                   {focusTips.map((t,i)=>(
                     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<focusTips.length-1?6:0}}>
-                      <span style={{color:"#e8341c",fontSize:11,marginTop:1,flexShrink:0}}>→</span>
+                      <span style={{color:"var(--accent)",fontSize:11,marginTop:1,flexShrink:0}}>→</span>
                       <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.75)",lineHeight:1.5}}>{t}</span>
                     </div>
                   ))}
@@ -5050,15 +5050,15 @@ Rules:
               const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
               const earnedSet=new Set(earned);
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:16}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MILESTONES</div>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MILESTONES</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                     {MILESTONES.map(m=>{
                       const isEarned=earnedSet.has(m.id);
                       return(
-                        <div key={m.id} style={{background:"#0d0d0d",border:`1px solid ${isEarned?"rgba(232,52,28,0.2)":"rgba(245,245,240,0.06)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.25}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:900,color:"#e8341c",marginBottom:4,letterSpacing:'-0.02em'}}>{isEarned?m.icon:"X"}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"#e8341c",letterSpacing:"0.1em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingTop:2}}>{m.title.replace(/\.$/, '')}</div>
+                        <div key={m.id} style={{background:"#0d0d0d",border:`1px solid ${isEarned?"rgba(var(--accent-rgb),0.2)":"rgba(245,245,240,0.06)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.25}}>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:900,color:"var(--accent)",marginBottom:4,letterSpacing:'-0.02em'}}>{isEarned?m.icon:"X"}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"var(--accent)",letterSpacing:"0.1em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingTop:2}}>{m.title.replace(/\.$/, '')}</div>
                         </div>
                       );
                     })}
@@ -5095,8 +5095,8 @@ Rules:
 
             <PRFeed dbPRs={dbPRs} wUnit={profile?.wUnit||"lbs"}/>
 
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Volume This Week</div>
+            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Volume This Week</div>
               {volumeThisWeek>0?(
                 <>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#fff",lineHeight:1}}>{volumeThisWeek.toLocaleString()} <span style={{fontSize:16,color:"rgba(245,245,240,0.45)"}}>{profile?.wUnit||"lbs"}</span></div>
@@ -5105,7 +5105,7 @@ Rules:
                       {volumeThisWeek>=volumeLastWeek?(
                         <><span style={{color:"#22c55e"}}>↑</span><span style={{color:"#22c55e"}}>{Math.round((volumeThisWeek/volumeLastWeek-1)*100)}% vs last week</span></>
                       ):(
-                        <><span style={{color:"#e8341c"}}>↓</span><span style={{color:"#e8341c"}}>{Math.round((1-volumeThisWeek/volumeLastWeek)*100)}% vs last week</span></>
+                        <><span style={{color:"var(--accent)"}}>↓</span><span style={{color:"var(--accent)"}}>{Math.round((1-volumeThisWeek/volumeLastWeek)*100)}% vs last week</span></>
                       )}
                     </div>
                   )}
@@ -5115,8 +5115,8 @@ Rules:
               )}
             </div>
 
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Workout Frequency</div>
+            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Workout Frequency</div>
               {(()=>{
                 const maxC=Math.max(...weeklyFreq.map(w=>w.count),1);
                 const hasDeloadWks=weeklyFreq.some(w=>w.isDeload);
@@ -5125,7 +5125,7 @@ Rules:
                     <div style={{display:"flex",alignItems:"flex-end",gap:4,height:72}}>
                       {weeklyFreq.map(({week,count,isCurrent,isDeload})=>{
                         const h=count>0?Math.max(8,Math.round((count/maxC)*72)):isDeload?20:4;
-                        const c=isDeload?(isCurrent?"#FEA020":"rgba(254,160,32,0.4)"):isCurrent?"#e8341c":count>0?"rgba(232,52,28,0.55)":"rgba(245,245,240,0.06)";
+                        const c=isDeload?(isCurrent?"#FEA020":"rgba(254,160,32,0.4)"):isCurrent?"var(--accent)":count>0?"rgba(var(--accent-rgb),0.55)":"rgba(245,245,240,0.06)";
                         return(
                           <div key={week} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                             <div style={{width:"100%",height:h,background:c,borderRadius:3,transition:"height 0.4s"}}/>
@@ -5151,11 +5151,11 @@ Rules:
               const split=wPrefs?.splitType||"My Program";
               const pct=Math.min(100,Math.round((programWeek/12)*100));
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Mesocycle Progress</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Mesocycle Progress</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:10}}>Week {programWeek} of 12 · {split}</div>
                   <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${pct}%`,background:"#e8341c",borderRadius:3,transition:"width 0.6s"}}/>
+                    <div style={{height:"100%",width:`${pct}%`,background:"var(--accent)",borderRadius:3,transition:"width 0.6s"}}/>
                   </div>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:6}}>{pct}% complete</div>
                 </div>
@@ -5201,10 +5201,10 @@ Rules:
                     const toX=i=>10+i*xStep;
                     const toY=rpe=>H-4-((rpe-minRPE)/(maxRPE-minRPE))*(H-8);
                     const trend=points[points.length-1].avgRPE-points[0].avgRPE;
-                    const trendColor=trend>0.5?"#e8341c":trend>0?"#FEA020":"#22c55e";
+                    const trendColor=trend>0.5?"var(--accent)":trend>0?"#FEA020":"#22c55e";
                     const trendLabel=trend>0.5?"↑ RPE rising":trend>0?"→ RPE stable (slight rise)":"→ RPE stable";
                     const pts=points.map((p,i)=>`${toX(i)},${toY(p.avgRPE)}`).join(" ");
-                    const rpeColor=(rpe)=>rpe<=7?"#22c55e":rpe<=8?"#FEA020":"#e8341c";
+                    const rpeColor=(rpe)=>rpe<=7?"#22c55e":rpe<=8?"#FEA020":"var(--accent)";
                     return(
                       <div key={exName} style={{marginBottom:14}}>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
@@ -5233,7 +5233,7 @@ Rules:
                     );
                   })}
                   <div style={{display:"flex",gap:12,marginTop:4}}>
-                    {[["≤7","#22c55e","Easy"],["8","#FEA020","Hard"],["≥9","#e8341c","Very Hard"]].map(([label,color,desc])=>(
+                    {[["≤7","#22c55e","Easy"],["8","#FEA020","Hard"],["≥9","var(--accent)","Very Hard"]].map(([label,color,desc])=>(
                       <div key={label} style={{display:"flex",alignItems:"center",gap:4}}>
                         <div style={{width:6,height:6,borderRadius:"50%",background:color,flexShrink:0}}/>
                         <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{label} {desc}</span>
@@ -5253,10 +5253,10 @@ Rules:
               const n=twDays.length;
               const avg=(key)=>Math.round(twDays.reduce((s,[,v])=>s+v[key],0)/n);
               const avgCal=avg('cal'),avgProt=avg('prot'),avgCarbs=avg('carbs'),avgFat=avg('fat');
-              function chipColor(actual,target){if(actual>=target*0.9&&actual<=target*1.1)return"#22c55e";if(actual>=target*0.75&&actual<=target*1.25)return"#FEA020";return"#e8341c";}
+              function chipColor(actual,target){if(actual>=target*0.9&&actual<=target*1.1)return"#22c55e";if(actual>=target*0.75&&actual<=target*1.25)return"#FEA020";return"var(--accent)";}
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week's Averages</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week's Averages</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     {[{l:"Calories",v:avgCal,t:calTarget,u:"kcal"},{l:"Protein",v:avgProt,t:protTarget,u:"g"},{l:"Carbs",v:avgCarbs,t:carbTarget,u:"g"},{l:"Fat",v:avgFat,t:fatTarget,u:"g"}].map(({l,v,t,u})=>(
                       <div key={l} style={{padding:"10px 12px",background:"rgba(245,245,240,0.03)",borderRadius:10,border:`1px solid ${chipColor(v,t)}30`}}>
@@ -5278,17 +5278,17 @@ Rules:
               });
               const hitCount=days14.filter(({fd})=>fd?.hasData&&fd.prot>=protTarget*0.9).length;
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Protein Consistency</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Protein Consistency</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:8}}>
                     {days14.slice(0,7).map(({ds,fd,dow})=>{
-                      const c=fd?.hasData?(fd.prot>=protTarget*0.9?"#22c55e":"#e8341c"):"rgba(245,245,240,0.12)";
+                      const c=fd?.hasData?(fd.prot>=protTarget*0.9?"#22c55e":"var(--accent)"):"rgba(245,245,240,0.12)";
                       return<div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><div style={{width:22,height:22,borderRadius:"50%",background:c}}/><div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div></div>;
                     })}
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:12}}>
                     {days14.slice(7).map(({ds,fd,dow})=>{
-                      const c=fd?.hasData?(fd.prot>=protTarget*0.9?"#22c55e":"#e8341c"):"rgba(245,245,240,0.12)";
+                      const c=fd?.hasData?(fd.prot>=protTarget*0.9?"#22c55e":"var(--accent)"):"rgba(245,245,240,0.12)";
                       return<div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><div style={{width:22,height:22,borderRadius:"50%",background:c}}/><div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div></div>;
                     })}
                   </div>
@@ -5311,14 +5311,14 @@ Rules:
               const polyPts=pts.filter(p=>p.y!==null).map(p=>`${p.x},${p.y}`).join(' ');
               const targetY=Math.round((1-calTarget/maxC)*H);
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Calorie Trend</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Calorie Trend</div>
                   <svg viewBox={`0 0 ${W} ${H+16}`} width="100%" style={{display:"block",overflow:"visible"}}>
                     <line x1="0" y1={targetY} x2={W} y2={targetY} stroke="rgba(245,245,240,0.15)" strokeWidth="1" strokeDasharray="4 4"/>
                     <text x={W-2} y={targetY-3} fontSize="7" fill="rgba(245,245,240,0.3)" textAnchor="end">target</text>
-                    {polyPts&&<polyline points={polyPts} fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>}
+                    {polyPts&&<polyline points={polyPts} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>}
                     {pts.filter(p=>p.y!==null).map(p=>(
-                      <circle key={p.ds} cx={p.x} cy={p.y} r="3" fill={p.cal>calTarget*1.1?"#e8341c":p.cal>=calTarget*0.9?"#22c55e":"#FEA020"}/>
+                      <circle key={p.ds} cx={p.x} cy={p.y} r="3" fill={p.cal>calTarget*1.1?"var(--accent)":p.cal>=calTarget*0.9?"#22c55e":"#FEA020"}/>
                     ))}
                   </svg>
                 </div>
@@ -5326,8 +5326,8 @@ Rules:
             })()}
 
             {weightProjection?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Weight Projection</div>
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Weight Projection</div>
                 {(()=>{
                   const{slope,intercept,data,projectedDelta}=weightProjection;
                   const W=320,H=70;
@@ -5354,17 +5354,17 @@ Rules:
                         <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:dir==="gaining"?"#FEA020":dir==="losing"?"#22c55e":"#60a5fa"}}>{dir} · ~{rate} {profile?.wUnit||"lbs"}/mo</span>
                       </div>
                       <svg viewBox={`0 0 ${W} ${H+10}`} width="100%" style={{display:"block",overflow:"visible"}}>
-                        <polyline points={histLine} fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
+                        <polyline points={histLine} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
                         <line x1={histPts[histPts.length-1].x} y1={histPts[histPts.length-1].y} x2={projX} y2={projY}
-                          stroke="rgba(232,52,28,0.5)" strokeWidth="1.5" strokeDasharray="4 4"/>
+                          stroke="rgba(var(--accent-rgb),0.5)" strokeWidth="1.5" strokeDasharray="4 4"/>
                         <polygon points={`${histPts[histPts.length-1].x},${histPts[histPts.length-1].y} ${projX},${Math.max(0,projY-8)} ${projX},${Math.min(H,projY+8)}`}
-                          fill="rgba(232,52,28,0.06)"/>
+                          fill="rgba(var(--accent-rgb),0.06)"/>
                         {goalW&&<line x1={0} y1={toY(goalW)} x2={W} y2={toY(goalW)} stroke="#22c55e" strokeWidth="1" strokeDasharray="4 3" opacity="0.55"/>}
                         {goalW&&<text x={W-2} y={toY(goalW)-3} textAnchor="end" fontFamily="'DM Mono',monospace" fontSize="7" fill="#22c55e" opacity="0.7">GOAL</text>}
                         {histPts.map((p,i)=>(
-                          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#e8341c"/>
+                          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="var(--accent)"/>
                         ))}
-                        <circle cx={projX} cy={projY} r="3" fill="rgba(232,52,28,0.7)"/>
+                        <circle cx={projX} cy={projY} r="3" fill="rgba(var(--accent-rgb),0.7)"/>
                       </svg>
                       <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Based on {data.length} weigh-ins · 7-day projection{goalW?` · Goal: ${goalW}${profile?.wUnit||'lbs'}`:''}</div>
                     </>
@@ -5399,12 +5399,12 @@ Rules:
               const noData=!b||(b.push_volume_lbs===0&&b.pull_volume_lbs===0&&b.quad_volume_lbs===0&&b.posterior_volume_lbs===0);
               const ppStatus=b?.push_pull_status||"balanced";
               const qpStatus=b?.quad_posterior_status||"balanced";
-              const statusColor=s=>s==="risk"?"#e8341c":s==="warning"?"#FEA020":"#22c55e";
+              const statusColor=s=>s==="risk"?"var(--accent)":s==="warning"?"#FEA020":"#22c55e";
               const ppTotal=(b?.push_volume_lbs||0)+(b?.pull_volume_lbs||0);
               const qpTotal=(b?.quad_volume_lbs||0)+(b?.posterior_volume_lbs||0);
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Muscle Balance</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Muscle Balance</div>
                   {noData?(
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)"}}>
                       COMPLETE MORE SESSIONS TO SEE BALANCE.
@@ -5418,7 +5418,7 @@ Rules:
                           <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>PUSH vs PULL</div>
                           <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(ppStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{ppStatus}</div>
                         </div>
-                        {[["PUSH",b?.push_volume_lbs||0,"#e8341c"],["PULL",b?.pull_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
+                        {[["PUSH",b?.push_volume_lbs||0,"var(--accent)"],["PULL",b?.pull_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
                           <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
                             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
                             <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
@@ -5438,7 +5438,7 @@ Rules:
                           <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>QUAD vs POSTERIOR</div>
                           <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(qpStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{qpStatus}</div>
                         </div>
-                        {[["QUAD",b?.quad_volume_lbs||0,"#e8341c"],["POST",b?.posterior_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
+                        {[["QUAD",b?.quad_volume_lbs||0,"var(--accent)"],["POST",b?.posterior_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
                           <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
                             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
                             <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
@@ -5464,10 +5464,10 @@ Rules:
               const split=wPrefs?.splitType||'';
               const optimal=split.includes('6')?1:split.includes('4')?3:4;
               const diff=restDaysThisWeek-optimal;
-              const c=Math.abs(diff)<=1?"#22c55e":Math.abs(diff)===2?"#FEA020":"#e8341c";
+              const c=Math.abs(diff)<=1?"#22c55e":Math.abs(diff)===2?"#FEA020":"var(--accent)";
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Rest Days This Week</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Rest Days This Week</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:c,lineHeight:1,marginBottom:6}}>{restDaysThisWeek} <span style={{fontSize:14,color:"rgba(245,245,240,0.45)"}}>rest days</span></div>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for {split||"your program"}: {optimal} rest day{optimal!==1?"s":""}</div>
                 </div>
@@ -5476,10 +5476,10 @@ Rules:
 
             {(()=>{
               const label=recoveryScore>=90?"RECOVERED":recoveryScore>=70?"PRIMED":recoveryScore>=50?"RECOVERING":"FATIGUED";
-              const color=recoveryScore>=90?"#22c55e":recoveryScore>=70?"#60a5fa":recoveryScore>=50?"#FEA020":"#e8341c";
+              const color=recoveryScore>=90?"#22c55e":recoveryScore>=70?"#60a5fa":recoveryScore>=50?"#FEA020":"var(--accent)";
               return(
                 <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"#0d0d0d",border:`1px solid ${color}30`,borderRadius:12,textAlign:"center"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Recovery Score</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Recovery Score</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:56,color,lineHeight:1,marginBottom:4}}>{recoveryScore}</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color,textTransform:"uppercase"}}>{label}</div>
                 </div>
@@ -5487,14 +5487,14 @@ Rules:
             })()}
 
             {healthSnap?.sleep!=null?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Avg Sleep This Week</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"#e8341c",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Avg Sleep This Week</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"var(--accent)",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for recovery: 7–9 hours</div>
               </div>
             ):(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Sleep Data</div>
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Sleep Data</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:6}}>CONNECT APPLE HEALTH.</div>
                 <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",marginBottom:12}}>Connect Apple Health to track sleep and recovery data automatically.</div>
                 <button onClick={()=>setShowHealthModal(true)} style={{background:"none",border:"1px solid rgba(245,245,240,0.2)",borderRadius:8,padding:"8px 14px",color:"rgba(245,245,240,0.65)",fontSize:12,cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",letterSpacing:"0.08em"}}>Connect Apple Health →</button>
@@ -5555,7 +5555,7 @@ Rules:
         <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#FEA020",letterSpacing:"0.1em"}}>NO INTERNET CONNECTION — DATA MAY BE OUTDATED</span>
       </div>}
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
-        {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
+        {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
@@ -5570,10 +5570,10 @@ Rules:
           {/* Transparent overlay — tap anywhere to dismiss */}
           <div onClick={()=>setPendingMilestone(null)} style={{position:'fixed',inset:0,background:'transparent',zIndex:10005}}/>
           {/* Bottom sheet card */}
-          <div onClick={e=>e.stopPropagation()} style={{position:'fixed',bottom:0,left:0,right:0,background:'#0d0d0d',borderRadius:'24px 24px 0 0',borderTop:'2px solid #e8341c',padding:'28px 24px 48px',zIndex:10006,animation:'cm-milestone-slide 0.35s cubic-bezier(.2,.9,.3,1) both'}}>
+          <div onClick={e=>e.stopPropagation()} style={{position:'fixed',bottom:0,left:0,right:0,background:'#0d0d0d',borderRadius:'24px 24px 0 0',borderTop:'2px solid var(--accent)',padding:'28px 24px 48px',zIndex:10006,animation:'cm-milestone-slide 0.35s cubic-bezier(.2,.9,.3,1) both'}}>
             {/* Top row */}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-              <div style={{background:'rgba(232,52,28,0.1)',border:'1px solid rgba(232,52,28,0.25)',borderRadius:20,padding:'4px 12px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase'}}>// MILESTONE</div>
+              <div style={{background:'rgba(var(--accent-rgb),0.1)',border:'1px solid rgba(var(--accent-rgb),0.25)',borderRadius:20,padding:'4px 12px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.16em',textTransform:'uppercase'}}>// MILESTONE</div>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.2)',letterSpacing:'0.1em'}}>TAP ANYWHERE TO CONTINUE</div>
             </div>
             {/* Main row */}
@@ -5581,8 +5581,8 @@ Rules:
               {/* Red ring with threshold number */}
               <div style={{width:72,height:72,flexShrink:0,position:'relative'}}>
                 <svg viewBox="0 0 72 72" width="72" height="72" style={{position:'absolute',top:0,left:0}}>
-                  <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(232,52,28,0.08)" strokeWidth="4"/>
-                  <circle cx="36" cy="36" r="30" fill="none" stroke="#e8341c" strokeWidth="4" strokeLinecap="round" strokeDasharray="188" strokeDashoffset="47" transform="rotate(-90 36 36)"/>
+                  <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(var(--accent-rgb),0.08)" strokeWidth="4"/>
+                  <circle cx="36" cy="36" r="30" fill="none" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" strokeDasharray="188" strokeDashoffset="47" transform="rotate(-90 36 36)"/>
                 </svg>
                 <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:28,color:'#f5f5f0',lineHeight:1}}>
                   {pendingMilestone.threshold>=1000?`${pendingMilestone.threshold/1000}k`:pendingMilestone.threshold}
@@ -5591,14 +5591,14 @@ Rules:
               {/* Title + sub */}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:32,color:'#f5f5f0',textTransform:'uppercase',lineHeight:0.9,marginBottom:6}}>
-                  {pendingMilestone.title.replace(/\.$/, '')}<span style={{color:'#e8341c'}}>.</span>
+                  {pendingMilestone.title.replace(/\.$/, '')}<span style={{color:'var(--accent)'}}>.</span>
                 </div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'rgba(245,245,240,0.45)',lineHeight:1.3}}>{pendingMilestone.sub}</div>
               </div>
             </div>
             {/* Buttons */}
             <div style={{display:'flex',gap:10,marginTop:4}}>
-              <button onClick={()=>setPendingMilestone(null)} style={{flex:2,background:'#e8341c',border:'none',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:'#fff',letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}>KEEP GOING</button>
+              <button onClick={()=>setPendingMilestone(null)} style={{flex:2,background:'var(--accent)',border:'none',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:'#fff',letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}>KEEP GOING</button>
               <button onClick={()=>{try{navigator.clipboard.writeText(pendingMilestone.title);}catch{}}} style={{flex:1,background:'transparent',border:'1px solid rgba(245,245,240,0.1)',borderRadius:12,padding:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>SHARE</button>
             </div>
           </div>
@@ -5607,17 +5607,17 @@ Rules:
       )}
 
       {showLocalRest&&ReactDOM.createPortal(
-        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10002,background:"#0d0d0d",borderTop:"2px solid #e8341c",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"max(env(safe-area-inset-bottom),40px)"}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8,textAlign:"center"}}>// REST</div>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10002,background:"#0d0d0d",borderTop:"2px solid var(--accent)",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"max(env(safe-area-inset-bottom),40px)"}}>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--accent)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8,textAlign:"center"}}>// REST</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:72,color:"#f5f5f0",textAlign:"center",lineHeight:1,marginBottom:16}}>
             {Math.floor(localRestSecs/60)}:{(localRestSecs%60).toString().padStart(2,'0')}
           </div>
           <div style={{height:3,background:"rgba(245,245,240,0.1)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
-            <div style={{height:"100%",background:"#e8341c",borderRadius:2,width:Math.max(0,Math.min(100,(localRestSecs/90)*100))+'%',transition:"width 1s linear"}}/>
+            <div style={{height:"100%",background:"var(--accent)",borderRadius:2,width:Math.max(0,Math.min(100,(localRestSecs/90)*100))+'%',transition:"width 1s linear"}}/>
           </div>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>setLocalRestSecs(s=>Math.max(0,s-30))} style={{flex:1,background:"transparent",border:"1px solid rgba(245,245,240,0.15)",borderRadius:12,padding:13,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",cursor:"pointer"}}>−30s</button>
-            <button onClick={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} style={{flex:2,background:"#e8341c",border:"none",borderRadius:12,padding:13,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
+            <button onClick={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} style={{flex:2,background:"var(--accent)",border:"none",borderRadius:12,padding:13,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
           </div>
         </div>,
         document.body

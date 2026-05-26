@@ -5,16 +5,16 @@ export const T = {
   s1:   "#0d0d0d",         // card surface
   s2:   "#0d0d0d",         // card surface
   s3:   "#0d0d0d",         // section background
-  bd:   "rgba(232,52,28,0.08)",   // border subtle — red-tinted
+  bd:   "rgba(var(--accent-rgb),0.08)",   // border subtle — red-tinted
   mu:   "rgba(245,245,240,0.4)",  // text tertiary
   dim:  "rgba(245,245,240,0.65)", // text secondary
-  prot: "#e8341c",         // brand red / protein
+  prot: "var(--accent)",         // brand red / protein
   carb: "#60a5fa",         // design blue — carbs + training ring
   fat:  "#f59e0b",         // design amber — fat + warnings
-  red:  "#e8341c",         // brand red
+  red:  "var(--accent)",         // brand red
   white:"#f5f5f0",
   txt:  "#f5f5f0",         // primary text
-  brand:"#e8341c",         // brand accent (alias for red)
+  brand:"var(--accent)",         // brand accent (alias for red)
   green:"#22c55e",         // design green — success, done states
   recovery: "#7E57C2",     // recovery/purple
   gold:     "#FFD700",     // achievement gold
@@ -51,7 +51,7 @@ export const BF_VISUAL=[
   {r:"18–24%", pct:21, c:"#f59e0b", l:"Average",   desc:"Soft, no visible abs"},
   {r:"25–30%", pct:27, c:"#FFA726", l:"Above avg", desc:"Rounded belly, soft arms"},
   {r:"31–40%", pct:35, c:"#EF6C00", l:"High",      desc:"Significant fat coverage"},
-  {r:"40+%",   pct:43, c:"#e8341c", l:"Obese",     desc:"High health risk range"},
+  {r:"40+%",   pct:43, c:"var(--accent)", l:"Obese",     desc:"High health risk range"},
 ];
 
 export const FOCUS_MUSCLES = {
@@ -227,28 +227,39 @@ export function useCountUp(target, dur=1400) {
 export const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   :root {
-    --navy: #000000;
-    --navy-mid: #0d0d0d;
-    --navy-light: #0d0d0d;
-    --navy-card: #0d0d0d;
-    --red: #e8341c;
+    --accent: #FF3B30;
+    --accent-rgb: 255,59,48;
+    --bg: #000000;
+    --bg-rgb: 0,0,0;
+    --card-bg: #0d0d0d;
+    --text: #f5f5f0;
+    --text-rgb: 245,245,240;
+    --text-dim: rgba(245,245,240,0.65);
+    --text-faint: rgba(245,245,240,0.40);
+    --text-ghost: rgba(245,245,240,0.20);
+    --card-border: rgba(245,245,240,0.07);
+    --navy: var(--bg);
+    --navy-mid: var(--card-bg);
+    --navy-light: var(--card-bg);
+    --navy-card: var(--card-bg);
+    --red: var(--accent);
     --red-dim: #c42d18;
     --green: #22c55e;
     --blue: #60a5fa;
     --amber: #f59e0b;
-    --white: #f5f5f0;
-    --white-dim: rgba(245,245,240,0.65);
-    --white-faint: rgba(245,245,240,0.4);
-    --white-border: rgba(232,52,28,0.08);
+    --white: var(--text);
+    --white-dim: var(--text-dim);
+    --white-faint: var(--text-faint);
+    --white-border: rgba(var(--accent-rgb),0.08);
     --recovery: #7E57C2;
     --recovery-hover: #673AB7;
     --recovery-bg: rgba(126,87,194,0.12);
     --gold: #FFD700;
     --gold-deep: #FFA000;
     --gold-bg: rgba(255,215,0,0.12);
-    --surface-1: #0d0d0d;
-    --surface-2: #0d0d0d;
-    --surface-3: #0d0d0d;
+    --surface-1: var(--card-bg);
+    --surface-2: var(--card-bg);
+    --surface-3: var(--card-bg);
     --border-subtle: rgba(245,245,240,0.06);
     --border-medium: rgba(245,245,240,0.12);
     --border-strong: rgba(245,245,240,0.20);
@@ -264,7 +275,7 @@ export const GLOBAL_CSS = `
   html,body,#root{height:100%}
   button,a,[role=button]{min-height:44px;min-width:44px}
   @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
-  body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:#000000;background-image:radial-gradient(ellipse at 30% 20%,rgba(232,52,28,0.06),transparent 50%)}
+  body{font-family:var(--body);color:var(--white);-webkit-font-smoothing:antialiased;background:var(--bg);background-image:radial-gradient(ellipse at 30% 20%,rgba(var(--accent-rgb),0.06),transparent 50%)}
   .grid-bg{background-image:linear-gradient(rgba(245,245,240,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(245,245,240,0.022) 1px,transparent 1px);background-size:32px 32px}
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
@@ -276,7 +287,7 @@ export const GLOBAL_CSS = `
   @keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
   @keyframes floatUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
   @keyframes glowPulse{0%,100%{opacity:.3}50%{opacity:.7}}
-  @keyframes fabPulse{0%,100%{box-shadow:0 12px 32px rgba(232,52,28,0.5)}50%{box-shadow:0 12px 48px rgba(232,52,28,0.75)}}
+  @keyframes fabPulse{0%,100%{box-shadow:0 12px 32px rgba(var(--accent-rgb),0.5)}50%{box-shadow:0 12px 48px rgba(var(--accent-rgb),0.75)}}
   @keyframes page-fade{0%{opacity:0.4;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
   @keyframes modal-in{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
   @keyframes sheet-in{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
@@ -301,7 +312,7 @@ export const GLOBAL_CSS = `
   .card-press{transition:transform 0.1s ease,box-shadow 0.1s ease}
   .card-press:active{transform:scale(0.98);}
   .swipe-row{transition:transform 0.2s ease;touch-action:pan-y}
-  .grad-text{background:linear-gradient(135deg,#e8341c 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .grad-text{background:linear-gradient(135deg,var(--accent) 0%,#ff8c42 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   .hero-title{animation:slideUp .9s cubic-bezier(.16,1,.3,1) forwards}
   .hero-sub{animation:slideUp .9s cubic-bezier(.16,1,.3,1) .15s both}
   .hero-cta{animation:slideUp .9s cubic-bezier(.16,1,.3,1) .3s both}
@@ -317,20 +328,20 @@ export const GLOBAL_CSS = `
   .header-title{font-family:var(--condensed);font-style:italic;font-weight:900;font-size:34px;letter-spacing:-0.01em;text-transform:uppercase;line-height:0.92;color:var(--white)}
   .icon-btn{width:36px;height:36px;border-radius:10px;background:rgba(245,245,240,0.06);border:1px solid rgba(245,245,240,0.08);display:flex;align-items:center;justify-content:center;color:var(--white);cursor:pointer}
   .section-title{font-family:var(--condensed);font-weight:800;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--white-dim);margin:18px 20px 10px}
-  .hero-card{background:linear-gradient(135deg,rgba(232,52,28,0.18) 0%,rgba(232,52,28,0.08) 30%,#0d0d0d 100%);border:1px solid rgba(232,52,28,0.15);border-radius:16px;position:relative;overflow:hidden}
-  .hero-card::before{content:'';position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle at top right,rgba(232,52,28,0.12),transparent 70%);pointer-events:none}
+  .hero-card{background:linear-gradient(135deg,rgba(var(--accent-rgb),0.18) 0%,rgba(var(--accent-rgb),0.08) 30%,#0d0d0d 100%);border:1px solid rgba(var(--accent-rgb),0.15);border-radius:16px;position:relative;overflow:hidden}
+  .hero-card::before{content:'';position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle at top right,rgba(var(--accent-rgb),0.12),transparent 70%);pointer-events:none}
   .coach-card{margin:0 20px 14px;padding:14px 16px;background:#0d0d0d;border-left:3px solid var(--red);border-radius:4px 14px 14px 4px}
   .coach-label{font-family:var(--mono);font-size:9px;letter-spacing:0.16em;color:var(--red);text-transform:uppercase;margin-bottom:6px}
   .coach-text{font-family:var(--body);font-size:13.5px;line-height:1.5;color:var(--white);font-style:italic}
-  .quick-btn{width:100%;padding:13px 16px;background:#0d0d0d;border:1px solid rgba(232,52,28,0.1);border-radius:12px;color:var(--white);font-family:var(--condensed);font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:12px}
-  .quick-btn:hover{border-color:rgba(232,52,28,0.3)}
+  .quick-btn{width:100%;padding:13px 16px;background:#0d0d0d;border:1px solid rgba(var(--accent-rgb),0.1);border-radius:12px;color:var(--white);font-family:var(--condensed);font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .quick-btn:hover{border-color:rgba(var(--accent-rgb),0.3)}
   .toggle{width:44px;height:26px;background:rgba(245,245,240,0.1);border-radius:13px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
   .toggle.on{background:var(--red)}
   .toggle-knob{position:absolute;top:2px;left:2px;width:22px;height:22px;background:var(--white);border-radius:50%;transition:left 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.3)}
   .toggle.on .toggle-knob{left:20px}
   .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:#000000;scrollbar-width:none}
   .app-screen::-webkit-scrollbar{display:none}
-  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,0,0,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(232,52,28,0.08);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
+  .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,0,0,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(var(--accent-rgb),0.08);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
   .ob-page{min-height:100vh;background:#000000;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .ob-inner{width:100%;max-width:480px;margin:0 auto;padding:max(env(safe-area-inset-top,0px),20px) 20px 60px}
   .rolodex-scroll::-webkit-scrollbar{display:none}
@@ -338,7 +349,7 @@ export const GLOBAL_CSS = `
   .app-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--white-faint);cursor:pointer;padding:8px 4px;transition:color 0.2s,transform 0.1s;position:relative}
   .app-tab:active{transform:scale(0.88)}
   .app-tab.active{color:var(--white)}
-  .app-tab.active .tab-icon-wrap::before{content:'';position:absolute;inset:-8px -14px;background:radial-gradient(circle,rgba(232,52,28,0.25),transparent 70%);z-index:-1}
+  .app-tab.active .tab-icon-wrap::before{content:'';position:absolute;inset:-8px -14px;background:radial-gradient(circle,rgba(var(--accent-rgb),0.25),transparent 70%);z-index:-1}
   .tab-icon-wrap{position:relative}
   .tab-label-txt{font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase}
   .app-tab.active .tab-label-txt{color:var(--red)}
@@ -476,7 +487,7 @@ export function Rolodex({items,sel,onChange,itemH=56}) {
         );})}<div style={{height:itemH}}/>
       </div>
       <div style={{position:"absolute",inset:0,background:`linear-gradient(${T.bg} 12%,transparent 36%,transparent 64%,${T.bg} 88%)`,pointerEvents:"none",zIndex:2}}/>
-      <div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(232,52,28,0.35)`,borderBottom:`1px solid rgba(232,52,28,0.35)`,pointerEvents:"none",zIndex:1}}/>
+      <div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(var(--accent-rgb),0.35)`,borderBottom:`1px solid rgba(var(--accent-rgb),0.35)`,pointerEvents:"none",zIndex:1}}/>
     </div>
   );
 }
@@ -548,10 +559,10 @@ export function InfoTip({title,content}) {
   const [open,setOpen]=React.useState(false);
   return (
     <>
-      <button onClick={()=>{hap();setOpen(true);}} style={{background:"none",border:"1px solid rgba(232,52,28,0.2)",borderRadius:"50%",width:18,height:18,color:"rgba(245,245,240,0.45)",fontSize:10,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1}}>?</button>
+      <button onClick={()=>{hap();setOpen(true);}} style={{background:"none",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:"50%",width:18,height:18,color:"rgba(245,245,240,0.45)",fontSize:10,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1}}>?</button>
       {open && (
         <div style={{position:"fixed",inset:0,zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)"}} onClick={()=>setOpen(false)}>
-          <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:20,padding:"24px 20px",maxWidth:320,width:"90%",animation:"toast-in 0.22s cubic-bezier(.2,.7,.3,1) forwards"}} onClick={e=>e.stopPropagation()}>
+          <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:20,padding:"24px 20px",maxWidth:320,width:"90%",animation:"toast-in 0.22s cubic-bezier(.2,.7,.3,1) forwards"}} onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:15,fontWeight:800,color:"#f5f5f0",marginBottom:10}}>{title}</div>
             <div style={{fontSize:14,color:"rgba(245,245,240,0.7)",lineHeight:1.6}}>{content}</div>
             <button onClick={()=>setOpen(false)} style={{marginTop:16,width:"100%",padding:"10px",background:T.bd,border:"none",borderRadius:12,color:T.txt,fontSize:14,fontWeight:600,cursor:"pointer"}}>Got it</button>
@@ -576,7 +587,7 @@ export class ErrorBoundary extends React.Component {
       const e=this.state.error;
       return (
         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,padding:"24px",background:"#0a0a0a",minHeight:200}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#e8341c",fontFamily:"monospace"}}>COMPONENT CRASH</div>
+          <div style={{fontSize:13,fontWeight:700,color:"var(--accent)",fontFamily:"monospace"}}>COMPONENT CRASH</div>
           <div style={{fontSize:12,color:"#f5f5f0",fontFamily:"monospace",wordBreak:"break-all"}}>{e?.message||"unknown error"}</div>
           <div style={{fontSize:10,color:"rgba(245,245,240,0.5)",fontFamily:"monospace",whiteSpace:"pre-wrap",wordBreak:"break-all"}}>{String(e?.stack||"").slice(0,400)}</div>
           <button onClick={()=>this.setState({hasError:false,error:null})} style={{padding:"8px 20px",background:T.prot,border:"none",borderRadius:20,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",marginTop:8}}>Retry</button>
@@ -712,7 +723,7 @@ export function Logo({size=32, text=true, textColor="#fff"}) {
   const y3 = h - h3;
 
   // Colors
-  const c1 = "#e8341c";   // red — primary
+  const c1 = "var(--accent)";   // red — primary
   const c2 = "#60a5fa";   // blue — carbs
   const c3 = "#f59e0b";   // amber — fat/energy
 
@@ -1096,7 +1107,7 @@ export function MuscleMap({dayFocus, isMobile}) {
             const pct=Math.min(sets/20,1);
             const optimal=sets>=10&&sets<=20;
             const low=sets>0&&sets<10;
-            const c=optimal?T.green:low?T.prot:sets===0?"rgba(245,245,240,0.08)":"rgba(232,52,28,0.5)";
+            const c=optimal?T.green:low?T.prot:sets===0?"rgba(245,245,240,0.08)":"rgba(var(--accent-rgb),0.5)";
             const isSel=selected===m;
             return(
               <div key={m} onClick={()=>setSelected(isSel?null:m)} style={{padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`,cursor:"pointer",background:isSel?`${T.prot}08`:"transparent",paddingLeft:isSel?8:0,transition:"all .15s",borderRadius:isSel?6:0}}>
@@ -1115,7 +1126,7 @@ export function MuscleMap({dayFocus, isMobile}) {
           })}
         </div>
         <div style={{marginTop:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
-          {[{c:T.green,l:"Optimal (10–20 sets)"},{c:T.prot,l:"Building (6–9)"},{c:"rgba(232,52,28,0.5)",l:"Low (1–5)"},{c:"rgba(245,245,240,0.12)",l:"Not trained"}].map(({c,l})=>(
+          {[{c:T.green,l:"Optimal (10–20 sets)"},{c:T.prot,l:"Building (6–9)"},{c:"rgba(var(--accent-rgb),0.5)",l:"Low (1–5)"},{c:"rgba(245,245,240,0.12)",l:"Not trained"}].map(({c,l})=>(
             <div key={l} style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{width:8,height:8,borderRadius:2,background:c,flexShrink:0}}/>
               <span style={{fontSize:10,color:T.mu}}>{l}</span>

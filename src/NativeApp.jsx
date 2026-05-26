@@ -16,6 +16,7 @@ import { PromoScreen, Paywall, UpgradeScreen, ExpiredPaywall } from "./sections.
 import { isExpired } from "./utils/subscription.js";
 import { checkEntitlements } from "./services/purchaseService.js";
 import { PrivacyPolicy, TermsOfService } from "./legal.jsx";
+import { loadAndApplyTheme, applyDefaultTheme } from "./utils/themeService.js";
 
 // ── Splash Screen ─────────────────────────────────────────────────────────────
 function SplashScreen({onDone}) {
@@ -422,6 +423,8 @@ function AuthScreen({onAuth, startView="welcome"}) {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function NativeApp() {
+  // Apply default theme immediately so UI never flashes wrong colors before profile loads
+  useEffect(() => { applyDefaultTheme(); }, []);
   const [phase,setPhase]=useState("splash");
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
@@ -469,6 +472,7 @@ export default function NativeApp() {
         const expired=tier==='expired';
         if(data.schedule)setSchedule(data.schedule);
         if(data.wprefs)setWPrefs(data.wprefs);
+        loadAndApplyTheme(data.wprefs);
         setAnalyticsEnabled(data.analytics_enabled!==false);
         initPushNotifications(uid);
         setPhase(expired?"expired":"app");
@@ -767,11 +771,11 @@ export default function NativeApp() {
         <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
           <div style={{fontSize:64,marginBottom:8}}>🎉</div>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.9,marginBottom:24,textTransform:"uppercase"}}>LET'S GO,<br/><span style={{color:"var(--red)"}}>{profile?.name?.toUpperCase()||"ATHLETE"}.</span></div>
-          <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.1)",borderRadius:18,padding:"20px 24px",marginBottom:16,textAlign:"left"}}>
+          <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:18,padding:"20px 24px",marginBottom:16,textAlign:"left"}}>
             <div style={{fontSize:10,color:"var(--red)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14,fontFamily:"var(--mono)"}}>Today's Targets</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
               {[["Cals",cMacros.calories,"kcal","var(--red)"],["Prot",cMacros.protein,"g","var(--red)"],["Carbs",cMacros.carbs,"g","#60a5fa"],["Fat",cMacros.fat,"g","#f59e0b"]].map(([l,v,u,c])=>(
-                <div key={l} style={{background:"rgba(232,52,28,0.06)",borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
+                <div key={l} style={{background:"rgba(var(--accent-rgb),0.06)",borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
                   <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,fontStyle:"italic",color:c,lineHeight:1}}>{v}</div>
                   <div style={{fontSize:9,color:"var(--white-dim)",marginTop:2,fontFamily:"var(--mono)"}}>{l}</div>
                 </div>

@@ -41,6 +41,7 @@ import { purchaseMonthly, purchaseAnnual, restorePurchases } from "./services/pu
 import { getTodaySoreness } from "./services/sorenessService.js";
 import { getProgramImage } from "./data/programImages.js";
 import { triggerEventUnlock } from "./services/featureUnlockService.js";
+import { ACCENT_COLORS, BG_COLORS, isCompatible, isLightBg, applyTheme } from "./utils/themeService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -518,33 +519,33 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
     .lib-wrap{padding:20px 0 40px;}
     .lib-cat-title{font-family:var(--condensed);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,245,240,.4);margin:28px 0 10px;}
     .lib-cat-title:first-child{margin-top:0;}
-    .lib-card{background:rgba(232,52,28,0.03);border:1px solid rgba(232,52,28,0.07);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
-    .lib-card.lib-current{border-color:rgba(232,52,28,.4);background:rgba(232,52,28,.06);}
+    .lib-card{background:rgba(var(--accent-rgb),0.03);border:1px solid rgba(var(--accent-rgb),0.07);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;}
+    .lib-card.lib-current{border-color:rgba(var(--accent-rgb),.4);background:rgba(var(--accent-rgb),.06);}
     .lib-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
     .lib-card-name{font-family:var(--condensed);font-size:18px;font-weight:700;letter-spacing:.01em;}
     .lib-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
-    .lib-badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:4px;background:rgba(232,52,28,0.07);color:rgba(245,245,240,.55);}
+    .lib-badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:4px;background:rgba(var(--accent-rgb),0.07);color:rgba(245,245,240,.55);}
     .lib-badge.beg{background:rgba(52,211,153,.12);color:#34D399;}
     .lib-badge.int{background:rgba(251,191,36,.12);color:#FBbF24;}
     .lib-badge.adv{background:rgba(248,113,113,.12);color:#F87171;}
     .lib-best{font-size:12px;color:rgba(245,245,240,.5);line-height:1.5;}
-    .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,.5);background:rgba(232,52,28,.1);color:var(--red);cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
-    .lib-switch-btn:hover{background:rgba(232,52,28,.2);border-color:var(--red);}
-    .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--red);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,.3);background:rgba(232,52,28,.06);}
-    .lib-soon{font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(245,245,240,.25);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(232,52,28,0.07);background:rgba(232,52,28,0.03);}
+    .lib-switch-btn{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:7px;border:1.5px solid rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.1);color:var(--red);cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;}
+    .lib-switch-btn:hover{background:rgba(var(--accent-rgb),.2);border-color:var(--red);}
+    .lib-current-badge{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--red);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(var(--accent-rgb),.3);background:rgba(var(--accent-rgb),.06);}
+    .lib-soon{font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(245,245,240,.25);padding:9px 14px;border-radius:7px;border:1.5px solid rgba(var(--accent-rgb),0.07);background:rgba(var(--accent-rgb),0.03);}
     .lib-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
-    .lib-modal{background:#0d0d0d;border:1px solid rgba(232,52,28,0.12);border-radius:14px 14px 0 0;padding:28px 24px 36px;max-width:480px;width:100%;}
+    .lib-modal{background:#0d0d0d;border:1px solid rgba(var(--accent-rgb),0.12);border-radius:14px 14px 0 0;padding:28px 24px 36px;max-width:480px;width:100%;}
     .lib-modal h3{margin:0 0 8px;font-family:var(--condensed);font-size:22px;font-weight:800;letter-spacing:.02em;}
     .lib-modal p{margin:0 0 24px;font-size:13px;color:rgba(245,245,240,.55);line-height:1.6;}
     .lib-modal-btns{display:flex;flex-direction:column;gap:10px;}
     .lib-confirm-btn{font-size:14px;font-weight:700;letter-spacing:.06em;padding:14px;border-radius:9px;border:none;background:var(--red);color:#fff;cursor:pointer;font-family:inherit;}
-    .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(232,52,28,0.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
+    .lib-cancel-btn{font-size:14px;font-weight:600;padding:14px;border-radius:9px;border:1.5px solid rgba(var(--accent-rgb),0.1);background:transparent;color:rgba(245,245,240,.5);cursor:pointer;font-family:inherit;}
     .lib-fav-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.15);border-radius:9px;margin-bottom:6px;}
     .lib-fav-name{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px;}
     .lib-fav-group{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(245,245,240,.35);}
     .lib-fav-remove{font-size:11px;color:rgba(245,245,240,.3);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:6px;}
     .lib-fav-remove:hover{color:rgba(255,77,109,.7);background:rgba(255,77,109,.08);}
-    .lib-fav-section{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(232,52,28,0.06);}
+    .lib-fav-section{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(var(--accent-rgb),0.06);}
   `;
 
   const libFavorites=wPrefs.favorites||[];
@@ -790,21 +791,21 @@ const ADAPT_CATEGORIES = [
 
 const ADAPT_CSS = `
   .adapt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:300;display:flex;flex-direction:column;overflow:hidden;}
-  .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(232,52,28,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(var(--accent-rgb),0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
   .adapt-title{font-family:var(--condensed);font-style:italic;font-size:24px;font-weight:900;letter-spacing:.04em;}
-  .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(232,52,28,0.12);background:rgba(232,52,28,0.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .adapt-body{flex:1;overflow-y:auto;padding:20px;}
   .adapt-cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
-  .adapt-cat-card{background:rgba(232,52,28,0.04);border:1.5px solid rgba(232,52,28,0.08);border-radius:14px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:6px;font-family:inherit;}
-  .adapt-cat-card.sel{border-color:rgba(232,52,28,.5);background:rgba(232,52,28,.08);}
-  .adapt-cat-card:hover{background:rgba(232,52,28,0.07);}
+  .adapt-cat-card{background:rgba(var(--accent-rgb),0.04);border:1.5px solid rgba(var(--accent-rgb),0.08);border-radius:14px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:6px;font-family:inherit;}
+  .adapt-cat-card.sel{border-color:rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.08);}
+  .adapt-cat-card:hover{background:rgba(var(--accent-rgb),0.07);}
   .adapt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
-  .adapt-chip{padding:9px 14px;border-radius:20px;border:1.5px solid rgba(232,52,28,0.12);background:rgba(232,52,28,0.04);color:rgba(245,245,240,.65);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
-  .adapt-chip.sel{border-color:var(--red);background:rgba(232,52,28,.12);color:var(--red);}
-  .adapt-footer{padding:16px 20px 28px;border-top:1px solid rgba(232,52,28,0.07);flex-shrink:0;}
+  .adapt-chip{padding:9px 14px;border-radius:20px;border:1.5px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.04);color:rgba(245,245,240,.65);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+  .adapt-chip.sel{border-color:var(--red);background:rgba(var(--accent-rgb),.12);color:var(--red);}
+  .adapt-footer{padding:16px 20px 28px;border-top:1px solid rgba(var(--accent-rgb),0.07);flex-shrink:0;}
   .adapt-primary{width:100%;padding:15px;border:none;border-radius:12px;background:var(--red);color:#fff;font-size:15px;font-weight:700;letter-spacing:.05em;cursor:pointer;font-family:inherit;}
   .adapt-primary:disabled{opacity:.35;cursor:not-allowed;}
-  .adapt-secondary{width:100%;padding:14px;border:1px solid rgba(232,52,28,0.1);border-radius:12px;background:transparent;color:rgba(245,245,240,.5);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
+  .adapt-secondary{width:100%;padding:14px;border:1px solid rgba(var(--accent-rgb),0.1);border-radius:12px;background:transparent;color:rgba(245,245,240,.5);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 `;
@@ -936,8 +937,8 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// WHERE DOES IT HURT?</div>
-          <div className="adapt-title" style={{fontSize:22}}>SHOW US WHERE<span style={{color:"#e8341c"}}>.</span></div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// WHERE DOES IT HURT?</div>
+          <div className="adapt-title" style={{fontSize:22}}>SHOW US WHERE<span style={{color:"var(--accent)"}}>.</span></div>
         </div>
         <button className="adapt-close" onClick={onClose}>✕</button>
       </div>
@@ -945,7 +946,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
           {PAIN_LOCATIONS.map(loc=>(
             <button key={loc.id} onClick={()=>handleInjuryLocationSelect(loc.id)}
-              style={{background:painLocation===loc.id?"rgba(232,52,28,0.1)":"rgba(245,245,240,0.04)",border:`1px solid ${painLocation===loc.id?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:10,padding:"10px",textAlign:"center",cursor:"pointer",fontFamily:"var(--mono)",fontSize:9,color:painLocation===loc.id?"#e8341c":"#f5f5f0",fontWeight:700,letterSpacing:"0.06em",transition:"all .15s"}}>
+              style={{background:painLocation===loc.id?"rgba(var(--accent-rgb),0.1)":"rgba(245,245,240,0.04)",border:`1px solid ${painLocation===loc.id?"rgba(var(--accent-rgb),0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:10,padding:"10px",textAlign:"center",cursor:"pointer",fontFamily:"var(--mono)",fontSize:9,color:painLocation===loc.id?"var(--accent)":"#f5f5f0",fontWeight:700,letterSpacing:"0.06em",transition:"all .15s"}}>
               {loc.label}
             </button>
           ))}
@@ -961,8 +962,8 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// HOW BAD IS IT?</div>
-          <div className="adapt-title" style={{fontSize:22}}>RATE THE PAIN<span style={{color:"#e8341c"}}>.</span></div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// HOW BAD IS IT?</div>
+          <div className="adapt-title" style={{fontSize:22}}>RATE THE PAIN<span style={{color:"var(--accent)"}}>.</span></div>
         </div>
         <button className="adapt-close" onClick={onClose}>✕</button>
       </div>
@@ -970,7 +971,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         {[
           {id:'mild',rating:'1-4',headline:'MILD — A BIT SORE.',sub:"Dull ache or stiffness. Doesn't stop movement.",accent:"#22c55e",bg:"rgba(34,197,94,0.06)",border:"rgba(34,197,94,0.2)"},
           {id:'moderate',rating:'5-7',headline:'MODERATE — IT HURTS.',sub:"Noticeable pain that affects how you move.",accent:"#FEA020",bg:"rgba(254,160,32,0.06)",border:"rgba(254,160,32,0.2)"},
-          {id:'sharp',rating:'8-10',headline:'SHARP — DURING REPS.',sub:"Pain during the movement itself. Something is wrong.",accent:"#e8341c",bg:"rgba(232,52,28,0.06)",border:"rgba(232,52,28,0.2)"},
+          {id:'sharp',rating:'8-10',headline:'SHARP — DURING REPS.',sub:"Pain during the movement itself. Something is wrong.",accent:"var(--accent)",bg:"rgba(var(--accent-rgb),0.06)",border:"rgba(var(--accent-rgb),0.2)"},
         ].map(s=>(
           <button key={s.id} onClick={()=>handleSeveritySelect(s.id)}
             style={{background:s.bg,border:`1px solid ${s.border}`,borderRadius:12,padding:14,cursor:"pointer",textAlign:"left",fontFamily:"inherit",transition:"all .15s"}}>
@@ -990,22 +991,22 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FORM COACHING</div>
-          <div className="adapt-title">STOP. LET'S FIX THIS<span style={{color:"#e8341c"}}>.</span></div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FORM COACHING</div>
+          <div className="adapt-title">STOP. LET'S FIX THIS<span style={{color:"var(--accent)"}}>.</span></div>
         </div>
         <button className="adapt-close" onClick={onClose}>✕</button>
       </div>
       <div className="adapt-body">
         <div style={{fontFamily:"var(--body)",fontSize:14,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:20}}>Sharp pain during reps is your body telling you something needs to change.</div>
         {formCoachingCards.length > 0 ? formCoachingCards.map((card,ci)=>(
-          <div key={ci} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:16,marginBottom:10}}>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:12}}>{card.exercise}<span style={{color:"#e8341c"}}>.</span></div>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// LIKELY CAUSE</div>
+          <div key={ci} style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:14,padding:16,marginBottom:10}}>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:12}}>{card.exercise}<span style={{color:"var(--accent)"}}>.</span></div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// LIKELY CAUSE</div>
             <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:14}}>{card.likely_cause}</div>
             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT TO DO</div>
             {(card.fix||[]).map((step,si)=>(
               <div key={si} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}>
-                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(232,52,28,0.8)",fontWeight:700,flexShrink:0,lineHeight:1.5}}>{String(si+1).padStart(2,'0')}</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(var(--accent-rgb),0.8)",fontWeight:700,flexShrink:0,lineHeight:1.5}}>{String(si+1).padStart(2,'0')}</span>
                 <span style={{fontFamily:"var(--body)",fontSize:13,color:"#f5f5f0",lineHeight:1.5}}>{step}</span>
               </div>
             ))}
@@ -1013,14 +1014,14 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
               <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4,marginTop:12}}>// AVOID TODAY</div>
               {card.avoid.map((a,ai)=>(
                 <div key={ai} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:4}}>
-                  <span style={{color:"#e8341c",fontSize:12,flexShrink:0}}>✕</span>
+                  <span style={{color:"var(--accent)",fontSize:12,flexShrink:0}}>✕</span>
                   <span style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)"}}>{a}</span>
                 </div>
               ))}
             </>}
           </div>
         )) : (
-          <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:16,marginBottom:10}}>
+          <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:14,padding:16,marginBottom:10}}>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:8}}>{(painLocation||'').replace(/_/g,' ').toUpperCase()} PAIN</div>
             <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>Sharp {(painLocation||'').replace(/_/g,' ')} pain detected. The adapted session will remove all exercises loading this area and replace them with safe alternatives. Stop any exercise that worsens the pain.</div>
           </div>
@@ -1049,7 +1050,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
   if (screen === "loading") return (
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40}}>
-        <div style={{width:52,height:52,border:"3px solid rgba(232,52,28,.15)",borderTop:"3px solid var(--red)",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+        <div style={{width:52,height:52,border:"3px solid rgba(var(--accent-rgb),.15)",borderTop:"3px solid var(--red)",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
         <div style={{fontFamily:"var(--condensed)",fontSize:26,fontWeight:900}}>ADAPTING SESSION</div>
         <div style={{fontSize:13,color:"rgba(245,245,240,.45)",textAlign:"center",maxWidth:280}}>{selectedReason}</div>
       </div>
@@ -1067,7 +1068,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
       </div>
       <div className="adapt-body" style={{animation:"slideUp .3s ease"}}>
         {result.session_note&&(
-          <div style={{background:"rgba(232,52,28,.06)",border:"1px solid rgba(232,52,28,.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
+          <div style={{background:"rgba(var(--accent-rgb),.06)",border:"1px solid rgba(var(--accent-rgb),.2)",borderRadius:12,padding:"14px 16px",marginBottom:18}}>
             <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:6}}>SESSION NOTE</div>
             <div style={{fontSize:13,color:"rgba(245,245,240,.85)",lineHeight:1.65}}>{result.session_note}</div>
           </div>
@@ -1082,7 +1083,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
           <div style={{marginBottom:20}}>
             <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:10}}>WHAT CHANGED</div>
             {result.changes.map((c,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(232,52,28,0.05)"}}>
+              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.05)"}}>
                 <span style={{fontSize:16,flexShrink:0,lineHeight:1.5}}>{ICONS[c.type]||"•"}</span>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:2}}>
@@ -1098,7 +1099,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         <div>
           <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:10}}>ADAPTED EXERCISES · {result.adapted_exercises?.length}</div>
           {(result.adapted_exercises||[]).map((ex,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(232,52,28,0.03)",borderRadius:8,marginBottom:6}}>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 12px",background:"rgba(var(--accent-rgb),0.03)",borderRadius:8,marginBottom:6}}>
               <span style={{fontSize:13,fontWeight:600}}>{ex.name}</span>
               <span style={{fontSize:11,color:"rgba(245,245,240,.45)",flexShrink:0,marginLeft:8}}>{ex.sets}×{ex.reps}</span>
             </div>
@@ -1183,7 +1184,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
             <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:12}}>{selectedCat.label}</div>
             {selectedCat.id==="other"
               ?<textarea value={customText} onChange={e=>setCustomText(e.target.value)} placeholder="Describe your situation..." rows={4}
-                  style={{width:"100%",background:"rgba(232,52,28,0.04)",border:"1.5px solid rgba(232,52,28,0.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:13,fontFamily:"inherit",resize:"none",outline:"none",boxSizing:"border-box"}}/>
+                  style={{width:"100%",background:"rgba(var(--accent-rgb),0.04)",border:"1.5px solid rgba(var(--accent-rgb),0.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:13,fontFamily:"inherit",resize:"none",outline:"none",boxSizing:"border-box"}}/>
               :<div className="adapt-chips">
                 {selectedCat.options.map(opt=>(
                   <button key={opt} className={`adapt-chip${subOption===opt?" sel":""}`} onClick={()=>setSubOption(opt)}>{opt}</button>
@@ -1212,7 +1213,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
   const ringColor = restTimer > 15 ? T.green : restTimer > 5 ? T.fat : T.prot;
 
   const badge = lls.isNewPR
-    ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill={T.prot}><path d="M12 2C9.5 2 8 4.5 8 7c0 2 1 3.5 2.5 4.5C9 13 8 15 8 17h8c0-2-1-4-2.5-5.5C15 10.5 16 9 16 7c0-2.5-1.5-5-4-5z"/><rect x="9" y="19" width="6" height="3" rx="1"/></svg>, text: "New PR", color: T.prot, bg: "rgba(232,52,28,0.1)", border: "rgba(232,52,28,0.25)" }
+    ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill={T.prot}><path d="M12 2C9.5 2 8 4.5 8 7c0 2 1 3.5 2.5 4.5C9 13 8 15 8 17h8c0-2-1-4-2.5-5.5C15 10.5 16 9 16 7c0-2.5-1.5-5-4-5z"/><rect x="9" y="19" width="6" height="3" rx="1"/></svg>, text: "New PR", color: T.prot, bg: "rgba(var(--accent-rgb),0.1)", border: "rgba(var(--accent-rgb),0.25)" }
     : lls.prevBestWeight != null && parseFloat(lls.weight) >= lls.prevBestWeight
       ? { icon: <svg width={11} height={11} viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke={T.green} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>, text: "On track", color: T.green, bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.22)" }
       : lls.prevBestWeight != null
@@ -1263,7 +1264,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
 
   return (
     <div style={{position:"fixed",inset:0,zIndex:10000,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div style={{width:"100%",maxWidth:480,background:"#0b1120",borderRadius:"22px 22px 0 0",padding:"0 24px 44px",border:"1px solid rgba(232,52,28,0.08)"}}>
+      <div style={{width:"100%",maxWidth:480,background:"#0b1120",borderRadius:"22px 22px 0 0",padding:"0 24px 44px",border:"1px solid rgba(var(--accent-rgb),0.08)"}}>
         <div style={{height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <div style={{width:36,height:4,borderRadius:2,background:"rgba(245,245,240,0.12)"}}/>
         </div>
@@ -1304,7 +1305,7 @@ function EnhancedRestTimer({ restTimer, restActive, lastLoggedSet: lls, onSkip, 
             </div>
           </div>
           {nextLine && (
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:12,padding:"8px 16px",borderRadius:10,background:"rgba(232,52,28,0.04)",border:"1px solid rgba(232,52,28,0.07)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:12,padding:"8px 16px",borderRadius:10,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.07)"}}>
               {nextLine.icon}
               <span style={{fontFamily:"var(--body)",fontSize:13,color:nextLine.color,lineHeight:1.4}}>{nextLine.text}</span>
             </div>
@@ -1393,7 +1394,7 @@ function PrevSessionRow({ exerciseName, history, wUnit = 'lbs' }) {
 function SetFlashOverlay({ flash }) {
   if (!flash) return null;
   const cfg = {
-    pr:       { bg:"rgba(232,52,28,0.18)",  border:T.prot, icon:"★",  title:"New PR!",                    color:T.prot },
+    pr:       { bg:"rgba(var(--accent-rgb),0.18)",  border:T.prot, icon:"★",  title:"New PR!",                    color:T.prot },
     complete: { bg:"rgba(34,197,94,0.14)",  border:T.green, icon:"✓",  title:"Set complete",               color:T.green },
     missed:   { bg:"rgba(245,158,11,0.14)",  border:T.fat, icon:"-",  title:`Missed ${flash.missedCount} rep${flash.missedCount===1?"":"s"}`, color:T.fat },
   }[flash.type] || { bg:"rgba(34,197,94,0.14)", border:T.green, icon:"✓", title:"Set complete", color:T.green };
@@ -1450,7 +1451,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
       </div>
 
       {/* Step 1 — General Warm-Up */}
-      <div style={{ background: 'linear-gradient(135deg,rgba(232,52,28,.08),rgba(232,52,28,.03))', border: '1px solid rgba(232,52,28,.22)', borderRadius: 16, padding: '16px 18px', marginBottom: 12 }}>
+      <div style={{ background: 'linear-gradient(135deg,rgba(var(--accent-rgb),.08),rgba(var(--accent-rgb),.03))', border: '1px solid rgba(var(--accent-rgb),.22)', borderRadius: 16, padding: '16px 18px', marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: T.prot, letterSpacing: '.18em', textTransform: 'uppercase', lineHeight: 1.4 }}>
             Step 1<br/>General Warm-Up
@@ -1460,17 +1461,17 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
         <div style={{ fontSize: 11, color: 'rgba(245,245,240,.45)', marginBottom: 10 }}>{GENERAL_WARMUP.instructions}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
           {GENERAL_WARMUP.options.map((opt, i) => (
-            <div key={i} style={{ background: 'rgba(232,52,28,0.04)', border: '1px solid rgba(232,52,28,0.07)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div key={i} style={{ background: 'rgba(var(--accent-rgb),0.04)', border: '1px solid rgba(var(--accent-rgb),0.07)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{opt.name}</div>
                 <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)' }}>{opt.detail}</div>
               </div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.65)', flexShrink: 0 }}>{opt.duration}</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(var(--accent-rgb),.65)', flexShrink: 0 }}>{opt.duration}</div>
             </div>
           ))}
         </div>
         {/* Coach note */}
-        <div style={{ borderLeft: '2px solid rgba(232,52,28,.4)', paddingLeft: 12, fontSize: 11, color: 'rgba(245,245,240,.45)', fontStyle: 'italic', lineHeight: 1.65 }}>
+        <div style={{ borderLeft: '2px solid rgba(var(--accent-rgb),.4)', paddingLeft: 12, fontSize: 11, color: 'rgba(245,245,240,.45)', fontStyle: 'italic', lineHeight: 1.65 }}>
           {GENERAL_WARMUP.coachNote}
         </div>
       </div>
@@ -1491,8 +1492,8 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
               onClick={() => { setTab(pt.id); setExpanded(null); }}
               style={{
                 padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                border: `1.5px solid ${tab === pt.id ? T.prot : 'rgba(232,52,28,0.1)'}`,
-                background: tab === pt.id ? `${T.prot}18` : 'none',
+                border: `1.5px solid ${tab === pt.id ? T.prot : 'rgba(var(--accent-rgb),0.1)'}`,
+                background: tab === pt.id ? `rgba(var(--accent-rgb),0.09)` : 'none',
                 color: tab === pt.id ? T.prot : 'rgba(245,245,240,.5)',
                 fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
                 transition: 'all 0.2s',
@@ -1510,8 +1511,8 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
                 key={`${tab}-${i}`}
                 onClick={() => setExpanded(isOpen ? null : i)}
                 style={{
-                  background: isOpen ? 'rgba(232,52,28,.05)' : 'rgba(232,52,28,0.03)',
-                  border: `1px solid ${isOpen ? 'rgba(232,52,28,.25)' : 'rgba(232,52,28,0.07)'}`,
+                  background: isOpen ? 'rgba(var(--accent-rgb),.05)' : 'rgba(var(--accent-rgb),0.03)',
+                  border: `1px solid ${isOpen ? 'rgba(var(--accent-rgb),.25)' : 'rgba(var(--accent-rgb),0.07)'}`,
                   borderRadius: 12, padding: '11px 14px', cursor: 'pointer',
                   transition: 'border-color 0.2s, background 0.2s',
                 }}
@@ -1521,7 +1522,7 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ex.name}</span>
                       {ex.requiresEquipment && (
-                        <span style={{ fontSize: 9, fontFamily: "var(--mono)", background: 'rgba(232,52,28,.1)', color: T.prot, borderRadius: 4, padding: '2px 6px', letterSpacing: '.06em', textTransform: 'uppercase', flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, fontFamily: "var(--mono)", background: 'rgba(var(--accent-rgb),.1)', color: T.prot, borderRadius: 4, padding: '2px 6px', letterSpacing: '.06em', textTransform: 'uppercase', flexShrink: 0 }}>
                           {EQUIP_LABELS[ex.requiresEquipment] || ex.requiresEquipment}
                         </span>
                       )}
@@ -1529,14 +1530,14 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
                     {setsReps && <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)', marginTop: 2 }}>{setsReps}</div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.6)' }}>{fmtDuration(ex.duration)}</div>
+                    <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(var(--accent-rgb),.6)' }}>{fmtDuration(ex.duration)}</div>
                     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.32s cubic-bezier(.2,.7,.3,1)', flexShrink: 0 }}>
                       <path d="M6 9l6 6 6-6" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                 </div>
                 {isOpen && (
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(232,52,28,0.06)', fontSize: 12, color: 'rgba(245,245,240,.6)', lineHeight: 1.65 }}>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(var(--accent-rgb),0.06)', fontSize: 12, color: 'rgba(245,245,240,.6)', lineHeight: 1.65 }}>
                     {ex.detail}
                   </div>
                 )}
@@ -1556,8 +1557,8 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
             {['strength', 'running'].map(ct => (
               <button key={ct} onClick={() => setCoolTab(ct)} style={{
                 padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                border: `1.5px solid ${coolTab === ct ? T.prot : 'rgba(232,52,28,0.1)'}`,
-                background: coolTab === ct ? `${T.prot}18` : 'none',
+                border: `1.5px solid ${coolTab === ct ? T.prot : 'rgba(var(--accent-rgb),0.1)'}`,
+                background: coolTab === ct ? `rgba(var(--accent-rgb),0.09)` : 'none',
                 color: coolTab === ct ? T.prot : 'rgba(245,245,240,.45)',
                 fontFamily: "var(--condensed)", textTransform: 'uppercase', letterSpacing: '.06em',
                 transition: 'all 0.2s',
@@ -1567,10 +1568,10 @@ function WarmupProtocolsViewer({ isMobile, setTrainScreen }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {(COOL_DOWN[coolTab] || []).map((ex, i) => (
-            <div key={`cd-${coolTab}-${i}`} style={{ background: 'rgba(232,52,28,0.03)', border: '1px solid rgba(232,52,28,0.07)', borderRadius: 12, padding: '11px 14px' }}>
+            <div key={`cd-${coolTab}-${i}`} style={{ background: 'rgba(var(--accent-rgb),0.03)', border: '1px solid rgba(var(--accent-rgb),0.07)', borderRadius: 12, padding: '11px 14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{ex.name}</div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(232,52,28,.6)', flexShrink: 0 }}>{ex.duration}</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: 'rgba(var(--accent-rgb),.6)', flexShrink: 0 }}>{ex.duration}</div>
               </div>
               <div style={{ fontSize: 11, color: 'rgba(245,245,240,.4)', lineHeight: 1.6 }}>{ex.detail}</div>
             </div>
@@ -1684,7 +1685,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {coolProtocol.map((step, i) => (
-                    <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(232,52,28,0.05)":"none"}}>
+                    <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<coolProtocol.length-1?"1px solid rgba(var(--accent-rgb),0.05)":"none"}}>
                       <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(52,211,153,0.15)",border:"1px solid rgba(52,211,153,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.green,flexShrink:0,marginTop:1}}>{i+1}</div>
                       <div>
                         <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>{step.name} <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(0,201,167,0.7)",fontWeight:400}}>· {step.duration}</span></div>
@@ -1713,7 +1714,7 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
 function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryMuscles: pmProp, secondaryMuscles: smProp }) {
   const md = getExerciseData(name);
   const mono = { fontFamily:"'DM Mono','SF Mono',monospace" };
-  const groupColorMap={'chest':'#e8341c','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
+  const groupColorMap={'chest':'var(--accent)','back':'#60a5fa','lats':'#60a5fa','shoulders':'#FEA020','arms':'#9C6FFF','biceps':'#9C6FFF','triceps':'#9C6FFF','legs':'#22c55e','glutes':'#22c55e','calves':'#22c55e','core':'#14C4B3','cardio':'#14C4B3'};
   const fallbackColor=groupColorMap[(muscleGroup||'').toLowerCase()]||'rgba(245,245,240,0.4)';
   // Resolve muscle arrays from all possible field shapes
   const fallbackPrimary = pmProp || (muscleGroup ? [muscleGroup] : []);
@@ -1805,7 +1806,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryM
             </div>
           )}
           {fallbackPrimary.length === 0 && (
-            <span style={{background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.15)',borderRadius:20,padding:'3px 10px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.35)',letterSpacing:'0.1em',textTransform:'uppercase',display:'inline-block',marginTop:4}}>
+            <span style={{background:'rgba(var(--accent-rgb),0.08)',border:'1px solid rgba(var(--accent-rgb),0.15)',borderRadius:20,padding:'3px 10px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.35)',letterSpacing:'0.1em',textTransform:'uppercase',display:'inline-block',marginTop:4}}>
               Compound Movement
             </span>
           )}
@@ -2461,14 +2462,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const target=todayRun?.duration?`TARGET: ${todayRun.duration} min`:todayRun?.distance?`TARGET: ${todayRun.distance} km`:'';
     return(
       <div style={{padding:"24px 0"}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S RUN</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S RUN</div>
         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:16,textTransform:"uppercase"}}>
-          {headline}<span style={{color:"#e8341c"}}>.</span>
+          {headline}<span style={{color:"var(--accent)"}}>.</span>
         </div>
         {target&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
         <div onClick={startGPSRun} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
-          <div style={{background:"rgba(232,52,28,0.1)",borderRadius:10,padding:12,flexShrink:0}}>
-            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <div style={{background:"rgba(var(--accent-rgb),0.1)",borderRadius:10,padding:12,flexShrink:0}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           </div>
           <div>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:4}}>TRACK WITH GPS.</div>
@@ -2491,8 +2492,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function renderGPSRunScreen(){
     return(
       <div style={{textAlign:"center",paddingTop:20,position:"relative"}}>
-        <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(232,52,28,0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
-        {runGpsError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(232,52,28,0.7)",marginBottom:12,padding:"6px 12px",background:"rgba(232,52,28,0.08)",borderRadius:8}}>GPS unavailable — tracking time only</div>}
+        <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(var(--accent-rgb),0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
+        {runGpsError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(var(--accent-rgb),0.7)",marginBottom:12,padding:"6px 12px",background:"rgba(var(--accent-rgb),0.08)",borderRadius:8}}>GPS unavailable — tracking time only</div>}
         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:64,color:"#f5f5f0",lineHeight:1,marginBottom:16,fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
         <div style={{display:"flex",justifyContent:"center",gap:32,marginBottom:32}}>
           <div>
@@ -2500,13 +2501,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /km</div>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#e8341c"}}>{runDistance.toFixed(2)}</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--accent)"}}>{runDistance.toFixed(2)}</div>
             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>km</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:28}}>
           {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:Math.round(runElapsed/60*8.5)},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
-            <div key={l} style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
+            <div key={l} style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
               <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0"}}>{v}</div>
             </div>
@@ -2514,7 +2515,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         </div>
         <div style={{display:"flex",gap:10}}>
           <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",color:"#f5f5f0",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>LAP</button>
-          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
         </div>
       </div>
     );
@@ -2523,10 +2524,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function renderManualRunScreen(){
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",lineHeight:1,marginBottom:8,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textAlign:"center",marginBottom:32}}>ELAPSED TIME</div>
-        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
       </div>
     );
   }
@@ -2534,8 +2535,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function renderManualRunFinishScreen(){
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"#e8341c"}}>?</span></div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"var(--accent)"}}>?</span></div>
         <div style={{marginBottom:16}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE (km)</div>
           <input
@@ -2544,19 +2545,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             placeholder="0.00"
             value={runManualDist}
             onChange={e=>setRunManualDist(e.target.value)}
-            style={{width:"100%",boxSizing:"border-box",background:"#0d0d0d",border:"1.5px solid rgba(232,52,28,0.3)",borderRadius:12,padding:"16px",color:"#f5f5f0",fontSize:24,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,outline:"none",textAlign:"center"}}
+            style={{width:"100%",boxSizing:"border-box",background:"#0d0d0d",border:"1.5px solid rgba(var(--accent-rgb),0.3)",borderRadius:12,padding:"16px",color:"#f5f5f0",fontSize:24,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,outline:"none",textAlign:"center"}}
           />
         </div>
         <div style={{marginBottom:24}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>EFFORT LEVEL</div>
           <div style={{display:"flex",gap:8}}>
             {[{v:1,l:"Easy"},{v:2,l:"Moderate"},{v:3,l:"Hard"},{v:4,l:"Max"}].map(({v,l})=>(
-              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(232,52,28,0.15)":"#0d0d0d",border:`1.5px solid ${runEffort===v?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:runEffort===v?"#e8341c":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase"}}>{l}</button>
+              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(var(--accent-rgb),0.15)":"#0d0d0d",border:`1.5px solid ${runEffort===v?"var(--accent)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:runEffort===v?"var(--accent)":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase"}}>{l}</button>
             ))}
           </div>
         </div>
         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:16,textAlign:"center"}}>Time: {fmtTime(runElapsed)}</div>
-        <button onClick={finishManualRun} style={{width:"100%",padding:"16px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE RUN →</button>
+        <button onClick={finishManualRun} style={{width:"100%",padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE RUN →</button>
       </div>
     );
   }
@@ -2566,9 +2567,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const {elapsed,distance,avgPace,calories,laps}=runSummary;
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// RUN COMPLETE</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// RUN COMPLETE</div>
         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:24}}>
-          NICE WORK<span style={{color:"#e8341c"}}>.</span>
+          NICE WORK<span style={{color:"var(--accent)"}}>.</span>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {[
@@ -2577,7 +2578,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {l:"AVG PACE",v:avgPace},
             {l:"CALORIES",v:`${calories} kcal`}
           ].map(({l,v})=>(
-            <div key={l} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,padding:"16px",textAlign:"center"}}>
+            <div key={l} style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,padding:"16px",textAlign:"center"}}>
               <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{l}</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0"}}>{v}</div>
             </div>
@@ -2592,12 +2593,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             return(
               <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
                 <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>KM {i+1}</span>
-                <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:isFaster?"#22c55e":"#e8341c"}}>{fmtTime(lapTime)}</span>
+                <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:isFaster?"#22c55e":"var(--accent)"}}>{fmtTime(lapTime)}</span>
               </div>
             );
           })}
         </>}
-        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
       </div>
     );
   }
@@ -2792,8 +2793,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         const opts=getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
         return(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:250,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
-            <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
-              <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+            <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
               <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SWAP EXERCISE</div>
               <div style={{fontSize:18,fontWeight:700,marginBottom:2}}>{swapModal.exerciseName}</div>
               <div style={{fontSize:12,color:"rgba(245,245,240,.4)",marginBottom:18}}>Choose a replacement — same muscle group</div>
@@ -2801,7 +2802,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ?<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
                   {opts.map((opt,i)=>(
                     <button key={i} onClick={()=>setSelectedSwap(selectedSwap===opt.name?null:opt.name)}
-                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(232,52,28,.12)":"rgba(232,52,28,0.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(232,52,28,.45)":"rgba(232,52,28,0.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
+                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(var(--accent-rgb),.12)":"rgba(var(--accent-rgb),0.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(var(--accent-rgb),.45)":"rgba(var(--accent-rgb),0.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
                       <span style={{fontSize:14,fontWeight:600,color:"#fff"}}>{opt.name}</span>
                       {selectedSwap===opt.name&&<span style={{fontSize:14,color:T.prot}}>✓</span>}
                     </button>
@@ -2809,20 +2810,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
                 :<div style={{fontSize:13,color:"rgba(245,245,240,.4)",textAlign:"center",padding:"16px 0",marginBottom:18}}>No alternatives for this equipment setup.</div>
               }
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(232,52,28,0.03)",borderRadius:10,border:"1px solid rgba(232,52,28,0.06)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(var(--accent-rgb),0.03)",borderRadius:10,border:"1px solid rgba(var(--accent-rgb),0.06)"}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Make permanent</div>
                   <div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Always replace this exercise in my plan</div>
                 </div>
-                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.prot:"rgba(232,52,28,0.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.prot:"rgba(var(--accent-rgb),0.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
                   <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:swapPermanent?19:3}}/>
                 </button>
               </div>
               <button onClick={()=>selectedSwap&&applySwap(swapModal.exerciseIdx,selectedSwap,swapPermanent,swapModal.originalName)} disabled={!selectedSwap}
-                style={{width:"100%",padding:15,background:selectedSwap?T.prot:"rgba(232,52,28,0.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
+                style={{width:"100%",padding:15,background:selectedSwap?T.prot:"rgba(var(--accent-rgb),0.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
                 Swap Exercise →
               </button>
-              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
             </div>
           </div>
         );
@@ -2831,8 +2832,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {/* Pre-session Readiness Modal */}
       {showReadiness&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
-          <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
-            <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+          <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+            <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"var(--mono)"}}>Pre-Session Check-In</div>
             <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,marginBottom:20}}>How are you feeling?</div>
             {/* Sleep */}
@@ -2840,7 +2841,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Sleep last night</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                 {["4","5","6","7","8","9+"].map(v=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,sleep:v}))} style={{padding:"8px 14px",borderRadius:9,border:`1.5px solid ${rdAnswers.sleep===v?T.prot:T.bd}`,background:rdAnswers.sleep===v?`${T.prot}18`:T.s2,color:rdAnswers.sleep===v?T.prot:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{v}h</button>
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,sleep:v}))} style={{padding:"8px 14px",borderRadius:9,border:`1.5px solid ${rdAnswers.sleep===v?T.prot:T.bd}`,background:rdAnswers.sleep===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.sleep===v?T.prot:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{v}h</button>
                 ))}
               </div>
             </div>
@@ -2849,7 +2850,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Stress level</div>
               <div style={{display:"flex",gap:8}}>
                 {[["low","Low"],["medium","Medium"],["high","High"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,stress:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.stress===v?T.prot:T.bd}`,background:rdAnswers.stress===v?`${T.prot}18`:T.s2,color:rdAnswers.stress===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,stress:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.stress===v?T.prot:T.bd}`,background:rdAnswers.stress===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.stress===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                 ))}
               </div>
             </div>
@@ -2858,7 +2859,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Energy</div>
               <div style={{display:"flex",gap:8}}>
                 {[["low","Low"],["normal","Normal"],["high","High"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,energy:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.energy===v?T.prot:T.bd}`,background:rdAnswers.energy===v?`${T.prot}18`:T.s2,color:rdAnswers.energy===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,energy:v}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.energy===v?T.prot:T.bd}`,background:rdAnswers.energy===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.energy===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                 ))}
               </div>
             </div>
@@ -2869,7 +2870,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {[["none","None"],["minor","Minor"],["significant","Significant"]].map(([v,l])=>(
                   <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))}
                     style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.painLevel===v?T.prot:T.bd}`,
-                    background:rdAnswers.painLevel===v?`${T.prot}18`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",
+                    background:rdAnswers.painLevel===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",
                     fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                 ))}
               </div>
@@ -2885,7 +2886,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     return(
                       <button key={r} onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})}
                         style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${sel?T.prot:T.bd}`,
-                        background:sel?`${T.prot}18`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,
+                        background:sel?`rgba(var(--accent-rgb),0.09)`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,
                         cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{label}</button>
                     );
                   })}
@@ -2900,7 +2901,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {[["soreness","Soreness"],["sharp_pain","Sharp Pain"],["stiffness","Stiffness"],["weakness","Weakness"],["swelling","Swelling"]].map(([v,l])=>(
                     <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))}
                       style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${rdAnswers.painType===v?T.prot:T.bd}`,
-                      background:rdAnswers.painType===v?`${T.prot}18`:T.s2,color:rdAnswers.painType===v?T.prot:"#fff",
+                      background:rdAnswers.painType===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painType===v?T.prot:"#fff",
                       fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
                   ))}
                 </div>
@@ -2922,16 +2923,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               );
             })()}
             <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy}
-              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(232,52,28,0.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
+              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(var(--accent-rgb),0.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
               Start Session →
             </button>
-            <button onClick={skipReadiness} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Skip Check-In</button>
+            <button onClick={skipReadiness} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Skip Check-In</button>
           </div>
         </div>
       )}
 
       {/* Toast */}
-      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0d0d0d",border:"1px solid rgba(232,52,28,.35)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
+      {adaptToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),.35)",borderRadius:12,padding:"12px 20px",fontSize:13,fontWeight:600,color:"#fff",zIndex:250,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,.6)"}}>{adaptToast}</div>}
 
       {/* ── PAGE HEADER ── */}
       {trainScreen!=="routine-builder"&&(
@@ -2955,7 +2956,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
         {/* ── Resume Workout Prompt ── */}
         {resumePrompt&&!activeWorkout&&(
-          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
+          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
             <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
             </div>
@@ -2993,7 +2994,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{todayFocus}</div>
                   {prescType==="lifting"&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
                     <span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span>
-                    {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span style={{padding:"4px 9px",borderRadius:6,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:"#e8341c",textTransform:"uppercase"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
+                    {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span style={{padding:"4px 9px",borderRadius:6,background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:"var(--accent)",textTransform:"uppercase"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
                   </div>}
                 </div>
               </div>
@@ -3044,7 +3045,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
                 const highLaxity=cp&&(cp.phase==="follicular"||cp.phase==="ovulation");
                 return(
-                  <div style={{background:"rgba(232,52,28,.06)",border:"1px solid rgba(232,52,28,.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
+                  <div style={{background:"rgba(var(--accent-rgb),.06)",border:"1px solid rgba(var(--accent-rgb),.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
                     <div style={{fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>ACL PREHAB · 5 MIN</div>
                     {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:T.fat}}>Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
                     <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -3080,14 +3081,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{background:T.s2,borderRadius:12,padding:"14px 16px",border:`1px solid ${T.bd}`,marginBottom:14}}>
                   <div style={{fontWeight:700,fontSize:14,marginBottom:8}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                    {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:`${T.prot}18`,color:T.prot,padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
+                    {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:`rgba(var(--accent-rgb),0.09)`,color:T.prot,padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
                     {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
                     {todayPrescription.distance&&<span style={{fontSize:10,fontWeight:700,background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
                     {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
                     {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                   </div>
                   {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
-                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(var(--accent-rgb),.05)",border:"1px solid rgba(var(--accent-rgb),.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
                     <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
                       {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
@@ -3104,7 +3105,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{postFuel}</div>
                   </div>}
                   {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
-                    <div style={{background:"rgba(232,52,28,.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(232,52,28,.15)"}}>
+                    <div style={{background:"rgba(var(--accent-rgb),.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(var(--accent-rgb),.15)"}}>
                       <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
                       <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
                     </div>
@@ -3124,7 +3125,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>;
               })()}
               {todayType==="training"&&!todayPrescription&&(
-                <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
+                <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--white)",marginBottom:6}}>No Program Selected</div>
                   <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
                   <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
@@ -3132,15 +3133,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               )}
               {todayType==="training"&&(
                 <div style={{marginTop:14}}>
-                  <button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} style={{width:"100%",background:"#e8341c",border:"none",borderRadius:12,padding:15,fontFamily:"DM Mono,monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
+                  <button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"DM Mono,monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
                   <div onClick={()=>setSessionDetailExpanded(s=>!s)} style={{textAlign:"center",fontFamily:"DM Mono,monospace",fontSize:10,color:"rgba(245,245,240,0.3)",marginTop:8,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>
                     SESSION DETAILS {sessionDetailExpanded?"↑":"↓"}
                   </div>
                   {sessionDetailExpanded&&Array.isArray(todayPrescription)&&(
                     <div style={{marginTop:10,padding:"4px 0",borderTop:"1px solid rgba(245,245,240,0.05)",display:"flex",flexDirection:"column"}}>
                       {todayPrescription.map((ex,i)=>(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid rgba(232,52,28,0.06)"}}>
-                          <div style={{width:28,height:28,borderRadius:"50%",background:"rgba(232,52,28,0.15)",border:"1px solid rgba(232,52,28,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",fontSize:11,color:"#e8341c",fontWeight:700,flexShrink:0}}>{i+1}</div>
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)"}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",fontSize:11,color:"var(--accent)",fontWeight:700,flexShrink:0}}>{i+1}</div>
                           <div style={{flex:1,fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase"}}>{ex.name}</div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:"#f5f5f0",letterSpacing:"0.08em"}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
                         </div>
@@ -3169,37 +3170,37 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:0,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
                   >
                     {/* Card 1 — YOUR PROGRAM */}
-                    <div onClick={()=>setTrainScreen("plan")} style={{...cardStyle,border:"1px solid rgba(232,52,28,0.2)"}}>
+                    <div onClick={()=>setTrainScreen("plan")} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.2)"}}>
                       <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// YOUR PROGRAM</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{progName}<span style={{color:"#e8341c"}}>.</span></div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// YOUR PROGRAM</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{progName}<span style={{color:"var(--accent)"}}>.</span></div>
                       </div>
                       <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Week {displayWeek} · {expLabel}</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"#e8341c",fontSize:18,lineHeight:1}}>→</div>
+                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
                     </div>
                     {/* Card 2 — EXERCISE LIBRARY */}
-                    <div onClick={()=>setTrainScreen("library")} style={{...cardStyle,border:"1px solid rgba(232,52,28,0.1)"}}>
+                    <div onClick={()=>setTrainScreen("library")} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.1)"}}>
                       <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FULL DATABASE</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY<span style={{color:"#e8341c"}}>.</span></div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FULL DATABASE</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY<span style={{color:"var(--accent)"}}>.</span></div>
                       </div>
                       <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>800+ exercises</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"#e8341c",fontSize:18,lineHeight:1}}>→</div>
+                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
                     </div>
                     {/* Card 3 — EXPLORE */}
-                    <div onClick={()=>setShowExploreSheet(true)} style={{...cardStyle,border:"1px solid rgba(232,52,28,0.1)"}}>
+                    <div onClick={()=>setShowExploreSheet(true)} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.1)"}}>
                       <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TOOLS & MORE</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXPLORE<span style={{color:"#e8341c"}}>.</span></div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TOOLS & MORE</div>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXPLORE<span style={{color:"var(--accent)"}}>.</span></div>
                       </div>
                       <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Programs · Routines · Warm-up · Favorites</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"#e8341c",fontSize:18,lineHeight:1}}>→</div>
+                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
                     </div>
                   </div>
                   {/* Scroll indicator dots */}
                   <div style={{display:"flex",gap:5,justifyContent:"center",marginBottom:16}}>
                     {[0,1,2].map(i=>(
-                      <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"#e8341c":"rgba(245,245,240,0.15)",transition:"background 0.2s"}}/>
+                      <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"var(--accent)":"rgba(245,245,240,0.15)",transition:"background 0.2s"}}/>
                     ))}
                   </div>
                 </>
@@ -3226,10 +3227,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {label:"CALORIES",val:String(adj.cal),...arrow(adj.cal,base.cal)},
               ];
               return(
-                <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.08)",borderRadius:12,padding:"12px 14px",marginBottom:10,display:"flex",gap:0,position:"relative",overflow:"hidden"}}>
-                  <div style={{width:3,background:"#e8341c",borderRadius:2,marginRight:12,flexShrink:0}}/>
+                <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,padding:"12px 14px",marginBottom:10,display:"flex",gap:0,position:"relative",overflow:"hidden"}}>
+                  <div style={{width:3,background:"var(--accent)",borderRadius:2,marginRight:12,flexShrink:0}}/>
                   <div style={{flex:1}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S NUTRITION</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S NUTRITION</div>
                     <div style={{display:"flex",gap:6,marginBottom:8}}>
                       {chips.map(c=>(
                         <div key={c.label} style={{flex:1,background:"rgba(245,245,240,0.03)",borderRadius:8,padding:"7px 6px",textAlign:"center"}}>
@@ -3256,9 +3257,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const isRest=!t||t==="rest";
                   const f=dayFocus[day];
                   const label=isRest?"REST":(f?.slice(0,6)||(DAY_CFG[t]?.label?.slice(0,6)||"Train"));
-                  const borderC=isToday?"#e8341c":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
-                  const bgC=isToday?"rgba(232,52,28,0.08)":isPast&&!isRest?"rgba(52,211,153,0.05)":"rgba(245,245,240,0.02)";
-                  const textC=isToday?"#e8341c":isPast&&!isRest?"#34d399":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.55)";
+                  const borderC=isToday?"var(--accent)":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
+                  const bgC=isToday?"rgba(var(--accent-rgb),0.08)":isPast&&!isRest?"rgba(52,211,153,0.05)":"rgba(245,245,240,0.02)";
+                  const textC=isToday?"var(--accent)":isPast&&!isRest?"#34d399":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.55)";
                   const icon=(()=>{
                     if(t==="run")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
                     if(t==="cardio")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
@@ -3269,15 +3270,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   return(
                     <div key={day} style={{flexShrink:0,width:42,display:"flex",flexDirection:"column",alignItems:"center",gap:5,background:bgC,border:`1.5px solid ${borderC}`,borderRadius:10,padding:"9px 4px"}}>
                       <div style={{fontFamily:"var(--mono)",fontSize:7,fontWeight:700,color:textC,letterSpacing:"0.1em"}}>{day.toUpperCase()}</div>
-                      <div style={{width:22,height:22,borderRadius:6,background:isToday?"rgba(232,52,28,0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)",display:"flex",alignItems:"center",justifyContent:"center",color:textC}}>{icon}</div>
+                      <div style={{width:22,height:22,borderRadius:6,background:isToday?"rgba(var(--accent-rgb),0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)",display:"flex",alignItems:"center",justifyContent:"center",color:textC}}>{icon}</div>
                       <div style={{fontFamily:"var(--condensed)",fontSize:8,fontWeight:700,textTransform:"uppercase",color:textC,lineHeight:1.1,textAlign:"center"}}>{label}</div>
                     </div>
                   );
                 })}
               </div>
             {sessionCount===0&&WDAYS.indexOf(todayKey)>1&&todayType==="training"&&(
-              <div style={{marginTop:10,background:"rgba(232,52,28,0.04)",border:"1px solid rgba(232,52,28,0.08)",borderRadius:10,padding:"12px 14px"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
+              <div style={{marginTop:10,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
                 <div style={{fontFamily:"var(--condensed)",fontSize:15,color:"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
               </div>
             )}
@@ -3291,7 +3292,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
                 <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
                   <div style={{width:36,height:4,background:"rgba(245,245,240,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"#e8341c",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>// EXPLORE</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>// EXPLORE</div>
                   {[
                     {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"plan"},
                     {title:"MY ROUTINES",sub:"Your custom workouts",screen:"routine-builder"},
@@ -3300,12 +3301,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     {title:"CUSTOM ROUTINE",sub:"Build your own workout",screen:"routine-builder"},
                     {title:"BROWSE EXERCISES",sub:"Search 800+ exercises",screen:"library"},
                   ].map(({title,sub,screen})=>(
-                    <div key={title} onClick={()=>{setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(232,52,28,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+                    <div key={title} onClick={()=>{setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
                       <div>
                         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{title}</div>
                         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
                       </div>
-                      <div style={{color:"#e8341c",fontSize:16,flexShrink:0}}>→</div>
+                      <div style={{color:"var(--accent)",fontSize:16,flexShrink:0}}>→</div>
                     </div>
                   ))}
                 </div>
@@ -3333,11 +3334,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <style>{`@keyframes wuFadeIn{from{opacity:0}to{opacity:1}}`}</style>
             {/* Header */}
             <div style={{padding:'max(env(safe-area-inset-top),48px) 24px 0'}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:'0.2em',color:'#e8341c',marginBottom:8}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:'0.2em',color:'var(--accent)',marginBottom:8}}>
                 {'// WARM-UP'}
               </div>
               <div style={{fontSize:36,fontWeight:900,fontStyle:'italic',color:'#f5f5f0',lineHeight:1,textTransform:'uppercase',marginBottom:14}}>
-                BEFORE {({'push':'PUSH SESSION','pull':'PULL SESSION','legs':'LEG SESSION','upper':'UPPER BODY SESSION','lower':'LOWER BODY SESSION','run':'RUN SESSION','hyrox':'HYROX SESSION'}[warmupSessionType||'push'])||'PUSH SESSION'}<span style={{color:'#e8341c'}}>.</span>
+                BEFORE {({'push':'PUSH SESSION','pull':'PULL SESSION','legs':'LEG SESSION','upper':'UPPER BODY SESSION','lower':'LOWER BODY SESSION','run':'RUN SESSION','hyrox':'HYROX SESSION'}[warmupSessionType||'push'])||'PUSH SESSION'}<span style={{color:'var(--accent)'}}>.</span>
               </div>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.4)',marginBottom:24,letterSpacing:'0.08em'}}>
                 COMPLETE BEFORE LOADING THE BAR
@@ -3400,7 +3401,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     {list.map((ex,i)=>(
                       <div key={i} style={{
                         background:'#0d0d0d',
-                        border:'1px solid rgba(232,52,28,0.08)',
+                        border:'1px solid rgba(var(--accent-rgb),0.08)',
                         borderRadius:12,
                         padding:'14px 16px',
                         marginBottom:8,
@@ -3416,7 +3417,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             {ex.note}
                           </div>
                         </div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'#e8341c',letterSpacing:'0.1em',flexShrink:0,marginLeft:12,textAlign:'right'}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'var(--accent)',letterSpacing:'0.1em',flexShrink:0,marginLeft:12,textAlign:'right'}}>
                           {ex.sets}
                         </div>
                       </div>
@@ -3425,7 +3426,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 );
               } catch(err) {
                 return(
-                  <div style={{padding:24,fontFamily:"'DM Mono',monospace",fontSize:12,color:'#e8341c'}}>
+                  <div style={{padding:24,fontFamily:"'DM Mono',monospace",fontSize:12,color:'var(--accent)'}}>
                     {'Error: '+err.message}
                   </div>
                 );
@@ -3446,7 +3447,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             }}>
               <button
                 onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
-                style={{width:'100%',padding:'16px 0',background:'#e8341c',border:'none',borderRadius:12,color:'#fff',fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}
+                style={{width:'100%',padding:'16px 0',background:'var(--accent)',border:'none',borderRadius:12,color:'#fff',fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}
               >
                 BEGIN SESSION →
               </button>
@@ -3481,7 +3482,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               'Upper Traps':'traps','Mid Traps':'traps','Lower Traps':'traps',
               'Lower Back':'lower-back',
             };
-            const BODYMAP_COLOR={chest:'#e8341c','shoulders-f':'#FEA020','rear-delts':'#FEA020',biceps:'#9C6FFF',triceps:'#9C6FFF','forearms-f':'#9C6FFF','forearms-b':'#9C6FFF',abs:'#14C4B3','hip-flexors':'#14C4B3',quads:'#22c55e',hamstrings:'#22c55e',glutes:'#22c55e','calves-f':'#22c55e','calves-b':'#22c55e',lats:'#60a5fa',traps:'#60a5fa','lower-back':'#60a5fa'};
+            const BODYMAP_COLOR={chest:'var(--accent)','shoulders-f':'#FEA020','rear-delts':'#FEA020',biceps:'#9C6FFF',triceps:'#9C6FFF','forearms-f':'#9C6FFF','forearms-b':'#9C6FFF',abs:'#14C4B3','hip-flexors':'#14C4B3',quads:'#22c55e',hamstrings:'#22c55e',glutes:'#22c55e','calves-f':'#22c55e','calves-b':'#22c55e',lats:'#60a5fa',traps:'#60a5fa','lower-back':'#60a5fa'};
             const REGION_LABELS={chest:'Chest','shoulders-f':'Shoulders','rear-delts':'Rear Delts',biceps:'Biceps',triceps:'Triceps','forearms-f':'Forearms',abs:'Core','hip-flexors':'Hip Flexors',quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes','calves-f':'Calves',lats:'Back',traps:'Traps','lower-back':'Lower Back'};
             const ALL_REGIONS=['chest','shoulders-f','biceps','forearms-f','abs','hip-flexors','quads','calves-f','traps','lats','rear-delts','triceps','forearms-b','lower-back','glutes','hamstrings','calves-b'];
             // Use completedWorkout for real done-set data; fallback to workoutSummary
@@ -3498,7 +3499,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             });
             const bodyColors={};
             ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?BODYMAP_COLOR[r]:'rgba(245,245,240,0.08)';});
-            const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:BODYMAP_COLOR[r]||'#e8341c'}));
+            const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:BODYMAP_COLOR[r]||'var(--accent)'}));
             const tomorrowIdx=(WDAYS.indexOf(todayKey)+1)%7;
             const tomorrowKey=WDAYS[tomorrowIdx];
             const tomorrowType=schedule?.[tomorrowKey]||'rest';
@@ -3514,16 +3515,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{position:'fixed',inset:0,background:'#000000',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
                 <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}`}</style>
                 {isFirstSession&&(
-                  <div style={{background:'linear-gradient(180deg,rgba(232,52,28,0.15) 0%,transparent 100%)',padding:'40px 24px 24px',textAlign:'center',maxWidth:480,margin:'0 auto',boxSizing:'border-box'}}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// FIRST SESSION COMPLETE'}</div>
+                  <div style={{background:'linear-gradient(180deg,rgba(var(--accent-rgb),0.15) 0%,transparent 100%)',padding:'40px 24px 24px',textAlign:'center',maxWidth:480,margin:'0 auto',boxSizing:'border-box'}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// FIRST SESSION COMPLETE'}</div>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:64,color:'#f5f5f0',lineHeight:0.88,marginBottom:16,textTransform:'uppercase'}}>YOU<br/>SHOWED<br/>UP.</div>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,color:'rgba(245,245,240,0.6)',lineHeight:1.4,marginBottom:24}}>That's the hardest part. Most people never start. You did.</div>
                     <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
                       {['FIRST SESSION','STREAK STARTED','COACH ACTIVE'].map(chip=>(
-                        <span key={chip} style={{background:'rgba(232,52,28,0.1)',border:'1px solid rgba(232,52,28,0.2)',borderRadius:20,padding:'6px 14px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'#e8341c',letterSpacing:'0.1em'}}>{chip} ✓</span>
+                        <span key={chip} style={{background:'rgba(var(--accent-rgb),0.1)',border:'1px solid rgba(var(--accent-rgb),0.2)',borderRadius:20,padding:'6px 14px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.1em'}}>{chip} ✓</span>
                       ))}
                     </div>
-                    <div style={{height:1,background:'rgba(232,52,28,0.08)',marginTop:24}}/>
+                    <div style={{height:1,background:'rgba(var(--accent-rgb),0.08)',marginTop:24}}/>
                   </div>
                 )}
                 <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:isFirstSession?'24px 24px 0':'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
@@ -3534,9 +3535,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
 
                   {/* Headline */}
-                  <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// SESSION COMPLETE'}</div>
+                  <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// SESSION COMPLETE'}</div>
                   <div style={{...cnd,fontSize:72,color:'#f5f5f0',lineHeight:0.9,textTransform:'uppercase',marginBottom:12,letterSpacing:'-0.01em'}}>
-                    SESSION<br/>COMPLETE<span style={{color:'#e8341c'}}>.</span>
+                    SESSION<br/>COMPLETE<span style={{color:'var(--accent)'}}>.</span>
                   </div>
                   <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.35)',marginBottom:36,letterSpacing:'0.08em'}}>
                     {dateStr} · {durStr}
@@ -3549,7 +3550,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       {val:totalVolumeLogged>0?(totalVolumeLogged>=1000?(totalVolumeLogged/1000).toFixed(1)+'K lbs':Math.round(totalVolumeLogged)+' lbs'):'—',label:'VOLUME'},
                       {val:exercisesWorked.length||0,label:'EXERCISES'},
                     ].map(({val,label})=>(
-                      <div key={label} style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
+                      <div key={label} style={{background:'#0d0d0d',border:'1px solid rgba(var(--accent-rgb),0.1)',borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
                         <div style={{...cnd,fontSize:32,color:'#f5f5f0',lineHeight:1}}>{val}</div>
                         <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',marginTop:4}}>{label}</div>
                       </div>
@@ -3559,7 +3560,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {/* Muscles worked */}
                   {workedRegions.size>0&&(
                     <div style={{marginBottom:32}}>
-                      <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
+                      <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
                       <BodyMap colors={bodyColors}/>
                       {workedChips.length>0&&(
                         <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:16}}>
@@ -3574,7 +3575,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {/* PRs */}
                   {workoutSummary?.prs?.length>0&&(
                     <div style={{marginBottom:32}}>
-                      <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEW RECORDS'}</div>
+                      <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEW RECORDS'}</div>
                       {workoutSummary.prs.map((pr,i)=>(
                         <div key={i} style={{background:'rgba(34,197,94,0.05)',border:'1px solid rgba(34,197,94,0.15)',borderRadius:12,padding:'14px 16px',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                           <div>
@@ -3591,8 +3592,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                   {/* Fuel up */}
                   <div style={{marginBottom:32}}>
-                    <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// FUEL UP'}</div>
-                    <div style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:16}}>
+                    <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// FUEL UP'}</div>
+                    <div style={{background:'#0d0d0d',border:'1px solid rgba(var(--accent-rgb),0.1)',borderRadius:12,padding:16}}>
                       <div style={{...cnd,fontSize:20,color:'#f5f5f0',textTransform:'uppercase',marginBottom:6}}>
                         {macros?`${Math.round((macros.protein||150)*0.35)}G PROTEIN · ${Math.round((macros.carbs||200)*0.3)}G CARBS`:'40–50G PROTEIN · MODERATE CARBS'}
                       </div>
@@ -3604,7 +3605,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                   {/* Next session */}
                   <div style={{marginBottom:48}}>
-                    <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEXT UP'}</div>
+                    <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEXT UP'}</div>
                     <div style={{...cnd,fontSize:28,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:8}}>
                       {tomorrowFullDay} · {tomorrowFocus}
                     </div>
@@ -3614,7 +3615,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
 
                   {/* Back to home */}
-                  <button onClick={clearWorkoutSummary} style={{width:'100%',padding:'18px 0',background:'#e8341c',border:'none',borderRadius:12,color:'#fff',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:16}}>
+                  <button onClick={clearWorkoutSummary} style={{width:'100%',padding:'18px 0',background:'var(--accent)',border:'none',borderRadius:12,color:'#fff',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:16}}>
                     BACK TO HOME →
                   </button>
 
@@ -3657,9 +3658,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {sessionMode==='hyrox-summary'&&renderHyroxSummary()}
 {!sessionMode&&(!activeWorkout
               ?<div style={{textAlign:"center",padding:"60px 24px",border:`1px dashed ${T.bd}`,borderRadius:20}}>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",textTransform:"uppercase",lineHeight:0.9,marginBottom:16}}>NO SESSION<br/>ACTIVE<span style={{color:"#e8341c"}}>.</span></div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",textTransform:"uppercase",lineHeight:0.9,marginBottom:16}}>NO SESSION<br/>ACTIVE<span style={{color:"var(--accent)"}}>.</span></div>
                 <div style={{fontFamily:"var(--mono)",fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.6}}>Head to the Train tab and tap Start Session to begin.</div>
-                <button onClick={()=>setTrainScreen("today")} style={{padding:"14px 28px",background:"#e8341c",color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.14em"}}>GO TO TRAIN →</button>
+                <button onClick={()=>setTrainScreen("today")} style={{padding:"14px 28px",background:"var(--accent)",color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.14em"}}>GO TO TRAIN →</button>
               </div>
               : workoutSummary
                 ? <WorkoutSummaryScreen
@@ -3672,17 +3673,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   />
                 : !activeWorkout.exercises?.length
                   ? <div style={{textAlign:"center",padding:"80px 24px"}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>// NO SESSION FOUND</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>// NO SESSION FOUND</div>
                       <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:12}}>NO WORKOUT<br/>SCHEDULED.</div>
                       <div style={{fontFamily:"var(--condensed)",fontSize:18,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:32,maxWidth:280,margin:"0 auto 32px"}}>Your program doesn't have a session assigned for today. Try Adapt Now to generate one.</div>
                       <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:280,margin:"0 auto"}}>
-                        <button onClick={()=>setShowAdapt(true)} style={{padding:"14px 28px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>ADAPT NOW →</button>
+                        <button onClick={()=>setShowAdapt(true)} style={{padding:"14px 28px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>ADAPT NOW →</button>
                         <button onClick={()=>setTrainScreen("today")} style={{padding:"13px 28px",background:"none",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>GO BACK</button>
                       </div>
                     </div>
                   :<div>
                 {/* Header */}
-                <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
+                <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
                   <button onClick={()=>setEndConfirm(true)} style={{background:"none",border:"none",cursor:"pointer",padding:"4px 8px",color:"#f5f5f0",fontSize:22,lineHeight:1,flexShrink:0}}>←</button>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{todayFocus}</div>
@@ -3691,11 +3692,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
                     {adaptLeft>0&&(
-                      <button onClick={()=>setShowAdapt(true)} title="Adapt session" style={{width:36,height:36,borderRadius:10,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)",cursor:"pointer",flexShrink:0}}>
+                      <button onClick={()=>setShowAdapt(true)} title="Adapt session" style={{width:36,height:36,borderRadius:10,background:"rgba(var(--accent-rgb),0.1)",border:"1px solid rgba(var(--accent-rgb),0.25)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)",cursor:"pointer",flexShrink:0}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
                       </button>
                     )}
-                    <button onClick={finishWorkout} style={{padding:"10px 16px",background:"#e8341c",color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:10,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.12em"}}>FINISH</button>
+                    <button onClick={finishWorkout} style={{padding:"10px 16px",background:"var(--accent)",color:"#fff",fontWeight:700,fontSize:11,border:"none",borderRadius:10,cursor:"pointer",fontFamily:"var(--mono)",textTransform:"uppercase",letterSpacing:"0.12em"}}>FINISH</button>
                   </div>
                 </div>
 
@@ -3703,7 +3704,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {activeWorkout.readinessTier&&(()=>{const cfg=READINESS_CONFIG[activeWorkout.readinessTier];const isOptimal=activeWorkout.readinessTier==="optimal";const badgeColor=isOptimal?"#22c55e":cfg.color;return(
                   <div style={{background:`${badgeColor}10`,border:`1.5px solid ${badgeColor}30`,borderRadius:14,padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
                     <div style={{flex:1}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#e8341c",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--accent)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",lineHeight:1.1}}>{cfg.label}</div>
                       <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:3}}>{cfg.sub}</div>
                     </div>
@@ -3731,9 +3732,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                           {factors.map((f,fi)=>(
                             <span key={fi} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
-                              background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(232,52,28,0.06)",
+                              background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(var(--accent-rgb),0.06)",
                               color:f.ok?T.green:f.ok===false?T.prot:"rgba(245,245,240,.4)",
-                              border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(232,52,28,0.1)"}`}}>
+                              border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(var(--accent-rgb),0.1)"}`}}>
                               {f.ok?"✓":f.ok===false?"✗":"—"} {f.label}
                             </span>
                           ))}
@@ -3745,7 +3746,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                 {/* Active workout ACWR risk banner */}
                 {acwrHighRisks?.length>0&&(
-                  <div style={{background:"rgba(232,52,28,0.08)",border:"1.5px solid rgba(232,52,28,0.25)",borderRadius:14,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                  <div style={{background:"rgba(var(--accent-rgb),0.08)",border:"1.5px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
                     <div>
                       <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:13,color:"var(--red)",letterSpacing:".06em",textTransform:"uppercase"}}>{acwrHighRisks[0].region.replace("_"," ").toUpperCase()} RISK ELEVATED</div>
                       <div style={{fontSize:11,color:"rgba(245,245,240,.5)",marginTop:2}}>Consider reducing sets by 1 for safety</div>
@@ -3774,7 +3775,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const nextLabel=nextEx?(nextEx.name.length>16?nextEx.name.slice(0,14)+'…':nextEx.name).toUpperCase():null;
                   return(
                     <>
-                    <div style={{background:"#0d0d0d",border:`1px solid ${allDone?"rgba(34,197,94,0.3)":"rgba(232,52,28,0.08)"}`,borderRadius:18,padding:"18px 20px",marginBottom:12,position:"relative",overflow:"hidden",transition:"border-color .3s"}}>
+                    <div style={{background:"#0d0d0d",border:`1px solid ${allDone?"rgba(34,197,94,0.3)":"rgba(var(--accent-rgb),0.08)"}`,borderRadius:18,padding:"18px 20px",marginBottom:12,position:"relative",overflow:"hidden",transition:"border-color .3s"}}>
                       {allDone&&<div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"#22c55e",borderRadius:"18px 18px 0 0"}}/>}
                       {/* Exercise header */}
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
@@ -3788,7 +3789,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             {(()=>{
                               const exMuscleData=getExerciseData(ex.name);
                               const rawMuscle=(exMuscleData?.primary?.[0]||ex.primaryMuscles?.[0]||ex.muscleGroup||ex.muscles?.primary?.[0]||ex.bodyPart||ex.category||'chest').toLowerCase();
-                              const MUSCLE_MAP={chest:{color:'#e8341c',letter:'C'},pec:{color:'#e8341c',letter:'C'},lat:{color:'#60a5fa',letter:'B'},back:{color:'#60a5fa',letter:'B'},rhomboid:{color:'#60a5fa',letter:'B'},trap:{color:'#60a5fa',letter:'B'},teres:{color:'#60a5fa',letter:'B'},serratus:{color:'#60a5fa',letter:'B'},delt:{color:'#FEA020',letter:'S'},shoulder:{color:'#FEA020',letter:'S'},femoris:{color:'#22c55e',letter:'L'},vastus:{color:'#22c55e',letter:'L'},rectus:{color:'#22c55e',letter:'L'},gluteus:{color:'#22c55e',letter:'L'},glute:{color:'#22c55e',letter:'L'},adductor:{color:'#22c55e',letter:'L'},leg:{color:'#22c55e',letter:'L'},calf:{color:'#22c55e',letter:'L'},calves:{color:'#22c55e',letter:'L'},bicep:{color:'#9C6FFF',letter:'A'},tricep:{color:'#9C6FFF',letter:'A'},arm:{color:'#9C6FFF',letter:'A'},forearm:{color:'#9C6FFF',letter:'A'},brachialis:{color:'#9C6FFF',letter:'A'},abs:{color:'#14C4B3',letter:'CO'},oblique:{color:'#14C4B3',letter:'CO'},core:{color:'#14C4B3',letter:'CO'},default:{color:'#e8341c',letter:'?'}};
+                              const MUSCLE_MAP={chest:{color:'var(--accent)',letter:'C'},pec:{color:'var(--accent)',letter:'C'},lat:{color:'#60a5fa',letter:'B'},back:{color:'#60a5fa',letter:'B'},rhomboid:{color:'#60a5fa',letter:'B'},trap:{color:'#60a5fa',letter:'B'},teres:{color:'#60a5fa',letter:'B'},serratus:{color:'#60a5fa',letter:'B'},delt:{color:'#FEA020',letter:'S'},shoulder:{color:'#FEA020',letter:'S'},femoris:{color:'#22c55e',letter:'L'},vastus:{color:'#22c55e',letter:'L'},rectus:{color:'#22c55e',letter:'L'},gluteus:{color:'#22c55e',letter:'L'},glute:{color:'#22c55e',letter:'L'},adductor:{color:'#22c55e',letter:'L'},leg:{color:'#22c55e',letter:'L'},calf:{color:'#22c55e',letter:'L'},calves:{color:'#22c55e',letter:'L'},bicep:{color:'#9C6FFF',letter:'A'},tricep:{color:'#9C6FFF',letter:'A'},arm:{color:'#9C6FFF',letter:'A'},forearm:{color:'#9C6FFF',letter:'A'},brachialis:{color:'#9C6FFF',letter:'A'},abs:{color:'#14C4B3',letter:'CO'},oblique:{color:'#14C4B3',letter:'CO'},core:{color:'#14C4B3',letter:'CO'},default:{color:'var(--accent)',letter:'?'}};
                               const muscleKey=Object.keys(MUSCLE_MAP).find(k=>k!=='default'&&rawMuscle.includes(k))||'default';
                               const {color:fallbackBg,letter:mLetter}=MUSCLE_MAP[muscleKey];
                               // Image source — check all possible field names
@@ -3805,7 +3806,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             <div style={{fontSize:16,fontWeight:700,flex:1,cursor:"pointer",userSelect:"none",minWidth:0}} onPointerDown={()=>startLongPress(ex.name,ei)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress}>
                               <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
                               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}>
-                                {ex.tier&&<span style={{fontSize:9,fontWeight:700,background:ex.tier==="A"?`${T.prot}20`:ex.tier==="B"?`${T.carb}20`:"rgba(232,52,28,0.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>{ex.tier}</span>}
+                                {ex.tier&&<span style={{fontSize:9,fontWeight:700,background:ex.tier==="A"?`rgba(var(--accent-rgb),0.12)`:ex.tier==="B"?`${T.carb}20`:"rgba(var(--accent-rgb),0.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>{ex.tier}</span>}
                                 {ex.priority&&<span style={{fontSize:9,fontWeight:700,background:"rgba(249,115,22,.15)",color:"#F97316",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",display:"inline-flex",alignItems:"center",gap:2}}><svg width={7} height={7} viewBox="0 0 24 24" fill="#F97316"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>PRIORITY</span>}
                                 {ex.mobilitySubstituted&&<span style={{fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>MODIFIED</span>}
                               </div>
@@ -3826,7 +3827,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {ex.isBalanceCorrection&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.08em",textTransform:"uppercase"}}>// BALANCE CORRECTION</span></div>}
                           {ex.priority&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.08em",textTransform:"uppercase"}}>// PRIORITY MUSCLE</span></div>}
                           {ex.mobilitySubstituted&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// MOBILITY ADAPTED</span></div>}
-                          {ex.isHealthAdapted&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.08em",textTransform:"uppercase"}}>// HEALTH ADAPTED</span></div>}
+                          {ex.isHealthAdapted&&<div style={{marginLeft:32,marginTop:4}}><span style={{display:"inline-block",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// HEALTH ADAPTED</span></div>}
                           <div style={{marginLeft:32,marginTop:4}}><MuscleChips name={ex.name} sugg={sugg} history={history} muscleGroup={ex.muscleGroup} primaryMuscles={ex.primaryMuscles} secondaryMuscles={ex.secondaryMuscles}/></div>
                           {(()=>{
                             const exFatigue=(fatigueAlert?.fatigueSignals||[]).find(s=>(s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence")&&s.exercise===ex.name);
@@ -3839,7 +3840,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           const dropPct=0.70;
                           const dropWeight=sugg?.weight?Math.round(parseFloat(sugg.weight)*dropPct/2.5)*2.5:null;
                           return(
-                            <div style={{background:`${T.prot}10`,border:`1px solid ${T.prot}25`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
+                            <div style={{background:`rgba(var(--accent-rgb),0.06)`,border:`1px solid rgba(var(--accent-rgb),0.15)`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
                               {sugg&&<><div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div><div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}{profile?.wUnit||'lbs'} × {sugg.reps}</div><div style={{fontSize:9,color:T.mu}}>{sugg.note}</div></>}
                               {exPlateau&&dropWeight&&exPlateau.strategy_prescribed==="DROP SET TECHNIQUE"&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.4}}>Drop set: {dropWeight}{profile?.wUnit||'lbs'} after final set</div>}
                               {exPlateau&&exPlateau.strategy_prescribed==="WAVE LOADING"&&sugg?.weight&&(()=>{const w=parseFloat(sugg.weight)||0;return(<div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.5}}>W1: {Math.round(w*0.85/2.5)*2.5}×3 · {Math.round(w*0.90/2.5)*2.5}×2<br/>W2: {Math.round(w*0.87/2.5)*2.5}×3 · {Math.round(w*0.92/2.5)*2.5}×2</div>);})()}
@@ -3850,7 +3851,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                       {/* Progress bar */}
                       <div style={{height:3,background:T.s3,borderRadius:2,marginBottom:12,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:allDone?"#22c55e":"#e8341c",borderRadius:2,transition:"background 0.4s, width .4s"}}/>
+                        <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:allDone?"#22c55e":"var(--accent)",borderRadius:2,transition:"background 0.4s, width .4s"}}/>
                       </div>
 
                       <PrevSessionRow exerciseName={ex.name} history={history} wUnit={profile?.wUnit||'lbs'}/>
@@ -3873,9 +3874,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                               {showHint&&<div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,marginLeft:44}}><svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.3)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.06em"}}>tap to edit</span></div>}
                               <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8,alignItems:"center"}}>
                                 <div style={{fontSize:13,color:s.done?"#22c55e":isActiveSt?"#f5f5f0":T.mu,fontWeight:700,textAlign:"center"}}>#{si+1}</div>
-                                <input defaultValue={s.weight||sugg?.weight||""} placeholder={profile?.wUnit||'lbs'} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
-                                <input defaultValue={s.reps||sugg?.reps||10} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(232,52,28,0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(232,52,28,0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
-                                <button onClick={()=>{if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);onStartLocalRest&&onStartLocalRest(90);}}} style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"#0d0d0d",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(245,245,240,0.5)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#e8341c":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}>{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
+                                <input defaultValue={s.weight||sugg?.weight||""} placeholder={profile?.wUnit||'lbs'} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].weight=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
+                                <input defaultValue={s.reps||sugg?.reps||10} style={{background:s.done&&!isEditing?"rgba(34,197,94,0.08)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.06)":"#0d0d0d",border:`1.5px solid ${s.done&&!isEditing?"rgba(34,197,94,0.25)":isActiveSt||isEditing?"rgba(var(--accent-rgb),0.3)":"rgba(245,245,240,0.08)"}`,borderRadius:9,padding:"10px",color:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"#f5f5f0":"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"inherit",textAlign:"center",width:"100%",boxSizing:"border-box"}} onChange={e=>{const u={...activeWorkout};u.exercises[ei].sets[si].reps=e.target.value;setActiveWorkout(u);}} onFocus={s.done?()=>{setEditingSet({ei,si});setEditHintDismissed(true);}:undefined}/>
+                                <button onClick={()=>{if(isEditing){editSet(ei,si,activeWorkout.exercises[ei].sets[si].reps,activeWorkout.exercises[ei].sets[si].weight);setEditingSet(null);}else{const u={...activeWorkout};logSet(ei,si,u.exercises[ei].sets[si].reps,u.exercises[ei].sets[si].weight);onStartLocalRest&&onStartLocalRest(90);}}} style={{padding:"10px 0",background:s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"var(--accent)":"#0d0d0d",color:s.done&&!isEditing?"#000":isActiveSt||isEditing?"#fff":"rgba(245,245,240,0.5)",border:`1.5px solid ${s.done&&!isEditing?"#22c55e":isActiveSt||isEditing?"var(--accent)":"rgba(245,245,240,0.08)"}`,borderRadius:9,cursor:"pointer",fontSize:13,fontWeight:800,fontFamily:"inherit",width:"100%",transition:"all .2s"}}>{isEditing?"UPDATE":s.done?"✓":"LOG"}</button>
                               </div>
                               {s.done&&(
                                 <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:44,marginBottom:6,marginTop:-2}}>
@@ -3891,9 +3892,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       })()}
 
                       {sessionPRs[ex.name]&&(
-                        <div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:8,padding:"8px 12px",display:"flex",gap:8,alignItems:"center",marginTop:6,marginBottom:4}}>
+                        <div style={{background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 12px",display:"flex",gap:8,alignItems:"center",marginTop:6,marginBottom:4}}>
                           <span style={{fontSize:14,flexShrink:0}}>🔥</span>
-                          <div><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:"#e8341c"}}>NEW PR.</div><div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{sessionPRs[ex.name].weight} {profile?.wUnit||"lbs"} × {sessionPRs[ex.name].reps} reps</div></div>
+                          <div><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--accent)"}}>NEW PR.</div><div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{sessionPRs[ex.name].weight} {profile?.wUnit||"lbs"} × {sessionPRs[ex.name].reps} reps</div></div>
                         </div>
                       )}
 
@@ -3911,26 +3912,26 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           <div>
                             <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginBottom:6}}>Challenge level?</div>
                             <div style={{display:"flex",gap:6}}>
-                              {[["easy","Easy"],["perfect","Perfect"],["hard","Hard"]].map(([v,l])=>(<button key={v} onClick={()=>{const u={...activeWorkout};if(!u.exercises[ei].feedback)u.exercises[ei].feedback={};u.exercises[ei].feedback.challenge=v;setActiveWorkout({...u});}} style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.challenge===v?T.prot:T.bd}`,background:ex.feedback?.challenge===v?`${T.prot}18`:T.s1,color:ex.feedback?.challenge===v?T.prot:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>))}
+                              {[["easy","Easy"],["perfect","Perfect"],["hard","Hard"]].map(([v,l])=>(<button key={v} onClick={()=>{const u={...activeWorkout};if(!u.exercises[ei].feedback)u.exercises[ei].feedback={};u.exercises[ei].feedback.challenge=v;setActiveWorkout({...u});}} style={{flex:1,padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:`1.5px solid ${ex.feedback?.challenge===v?T.prot:T.bd}`,background:ex.feedback?.challenge===v?`rgba(var(--accent-rgb),0.09)`:T.s1,color:ex.feedback?.challenge===v?T.prot:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>))}
                             </div>
                           </div>
-                          {ex.feedback?.feel==="no"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(232,52,28,.06)",border:"1px solid rgba(232,52,28,.18)",borderRadius:8,fontSize:11,color:T.prot}}>Mind-muscle tip: slow the eccentric, reduce weight 10%, focus on the squeeze at peak contraction.</div>}
+                          {ex.feedback?.feel==="no"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(var(--accent-rgb),.06)",border:"1px solid rgba(var(--accent-rgb),.18)",borderRadius:8,fontSize:11,color:T.prot}}>Mind-muscle tip: slow the eccentric, reduce weight 10%, focus on the squeeze at peak contraction.</div>}
                           {ex.feedback?.feel==="yes"&&ex.feedback?.challenge==="easy"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(52,211,153,.08)",border:"1px solid rgba(52,211,153,.2)",borderRadius:8,fontSize:11,color:T.green}}>Add 2.5–5 lbs next session.</div>}
-                          {ex.feedback?.feel==="somewhat"&&ex.feedback?.challenge==="perfect"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(232,52,28,.05)",border:"1px solid rgba(232,52,28,.15)",borderRadius:8,fontSize:11,color:T.prot}}>Focus on the target muscle before each set. Try a 2-second pause at peak.</div>}
+                          {ex.feedback?.feel==="somewhat"&&ex.feedback?.challenge==="perfect"&&<div style={{marginTop:10,padding:"8px 12px",background:"rgba(var(--accent-rgb),.05)",border:"1px solid rgba(var(--accent-rgb),.15)",borderRadius:8,fontSize:11,color:T.prot}}>Focus on the target muscle before each set. Try a 2-second pause at peak.</div>}
                         </div>
                       )}
                     </div>
 
                     {/* Prev / Counter / Next navigation bar */}
-                    <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                    <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                       {ei>0
-                        ?<button onClick={()=>setCurrentExerciseIdx(ei-1)} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,color:"#f5f5f0",cursor:"pointer",letterSpacing:"0.1em",minWidth:80}}>← PREV</button>
+                        ?<button onClick={()=>setCurrentExerciseIdx(ei-1)} style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,color:"#f5f5f0",cursor:"pointer",letterSpacing:"0.1em",minWidth:80}}>← PREV</button>
                         :<div style={{minWidth:80}}/>
                       }
                       <span style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em"}}>{ei+1} / {exList.length}</span>
                       {ei<exList.length-1
-                        ?<button onClick={()=>setCurrentExerciseIdx(ei+1)} style={{background:"#e8341c",border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em",maxWidth:170,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>NEXT: {nextLabel} →</button>
-                        :<button onClick={finishWorkout} style={{background:"#e8341c",border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em"}}>FINISH SESSION →</button>
+                        ?<button onClick={()=>setCurrentExerciseIdx(ei+1)} style={{background:"var(--accent)",border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em",maxWidth:170,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>NEXT: {nextLabel} →</button>
+                        :<button onClick={finishWorkout} style={{background:"var(--accent)",border:"none",borderRadius:10,padding:"10px 16px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer",letterSpacing:"0.08em"}}>FINISH SESSION →</button>
                       }
                     </div>
                     </>
@@ -3961,7 +3962,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             <SectionCard title="Training Mode">
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
                 {[["strength","Strength"],["run","Running"],["hyrox","Hyrox"],["hybrid","Hybrid"]].map(([k,l])=>(
-                  <button key={k} onClick={()=>setPlanMode(k)} style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${planMode===k?T.prot:T.bd}`,background:planMode===k?`${T.prot}15`:T.s3,color:planMode===k?T.prot:T.mu,fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{l}</button>
+                  <button key={k} onClick={()=>setPlanMode(k)} style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${planMode===k?T.prot:T.bd}`,background:planMode===k?`rgba(var(--accent-rgb),0.08)`:T.s3,color:planMode===k?T.prot:T.mu,fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
               {planMode==="hybrid"&&<div style={{borderTop:`1px solid ${T.bd}`,paddingTop:14}}>
@@ -3971,7 +3972,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <Toggle on={hybridMix.hyrox}    onChange={v=>setHybridMix(p=>({...p,hyrox:v}))}    label="Hyrox blocks"/>
               </div>}
               {planMode==="run"&&<div style={{borderTop:`1px solid ${T.bd}`,paddingTop:14}}>
-                {Object.entries(RUN_PLANS).map(([k,p])=>(<div key={k} onClick={()=>setRunPlan(k)} style={{background:runPlan===k?`${T.prot}15`:T.s3,border:`1.5px solid ${runPlan===k?T.prot:T.bd}`,borderRadius:10,padding:"11px 13px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between"}}>
+                {Object.entries(RUN_PLANS).map(([k,p])=>(<div key={k} onClick={()=>setRunPlan(k)} style={{background:runPlan===k?`rgba(var(--accent-rgb),0.08)`:T.s3,border:`1.5px solid ${runPlan===k?T.prot:T.bd}`,borderRadius:10,padding:"11px 13px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between"}}>
                   <div><div style={{fontSize:13,fontWeight:700,color:runPlan===k?T.prot:"#fff"}}>{k}</div><div style={{fontSize:11,color:T.mu,marginTop:2}}>{p.desc}</div></div>
                   {p.weeks>0&&<div style={{background:T.s2,borderRadius:7,padding:"3px 8px",fontSize:10,color:T.mu,fontWeight:700,alignSelf:"center"}}>{p.weeks}wk</div>}
                 </div>))}
@@ -4316,7 +4317,7 @@ function drawDNARadar(canvas,scores){
   // Inner rings
   [0.25,0.5,0.75].forEach(f=>{
     ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R*f);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
-    ctx.closePath();ctx.strokeStyle='rgba(232,52,28,0.09)';ctx.lineWidth=0.5;ctx.stroke();
+    ctx.closePath();ctx.strokeStyle='rgba(var(--accent-rgb),0.09)';ctx.lineWidth=0.5;ctx.stroke();
   });
   // Outer boundary
   ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
@@ -4336,7 +4337,7 @@ function drawDNARadar(canvas,scores){
   // Data polygon
   const vals=AXES.map(k=>scores[k]||0);
   ctx.beginPath();vals.forEach((v,i)=>{const p=pt(i,R*v/100);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});
-  ctx.closePath();ctx.strokeStyle='rgba(232,52,28,0.45)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='rgba(232,52,28,0.06)';ctx.fill();
+  ctx.closePath();ctx.strokeStyle='rgba(var(--accent-rgb),0.45)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='rgba(var(--accent-rgb),0.06)';ctx.fill();
   // Data points
   const maxV=Math.max(...vals);
   vals.forEach((v,i)=>{
@@ -4399,7 +4400,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
     );
   }
 
-  function heatColor(v){return v>=80?"#e8341c":v>=65?"#ff6414":v>=50?"#FEA020":v>=35?"#14c4b3":"#1D9BF0";}
+  function heatColor(v){return v>=80?"var(--accent)":v>=65?"#ff6414":v>=50?"#FEA020":v>=35?"#14c4b3":"#1D9BF0";}
   const RECS={
     "Strength":"Add one more strength day per week to compound your gains.",
     "Endurance":"Schedule a weekly long run to build your aerobic engine.",
@@ -4422,7 +4423,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
     <div style={{background:"#000",border:"1px solid rgba(245,245,240,0.08)",borderRadius:20,padding:isMobile?"18px 16px":"24px 24px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
         <div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:500}}>// TRAINING DNA</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:500}}>// TRAINING DNA</div>
           <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
         </div>
         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
@@ -4441,7 +4442,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
         <div style={{marginTop:16,borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12,display:"flex",flexDirection:"column",gap:5}}>
           <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strength:</span> {highest.label} ({highest.score})</div>
           <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#FEA020",fontWeight:700}}>Gap:</span> {lowest.label} ({lowest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#e8341c",fontWeight:700}}>Tip:</span> {RECS[lowest.label]}</div>
+          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"var(--accent)",fontWeight:700}}>Tip:</span> {RECS[lowest.label]}</div>
         </div>
       )}
     </div>
@@ -4616,7 +4617,7 @@ function AthleteWaveChart({waveData}){
   return(
     <div style={{marginTop:16,marginBottom:4}}>
       <div style={{fontSize:10,color:'rgba(245,245,240,0.35)',letterSpacing:2,textTransform:'uppercase',fontFamily:"var(--mono)",marginBottom:8}}>TRAINING WAVE — 8 WEEKS</div>
-      <div style={{borderRadius:10,overflow:'hidden',background:'rgba(232,52,28,0.03)',border:'1px solid rgba(232,52,28,0.07)'}}>
+      <div style={{borderRadius:10,overflow:'hidden',background:'rgba(var(--accent-rgb),0.03)',border:'1px solid rgba(var(--accent-rgb),0.07)'}}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',display:'block'}}>
           {[25,50,75].map(v=>{
             const y=(H-pad-(v/100)*(H-pad*2)).toFixed(1);
@@ -4691,7 +4692,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
     <div style={{paddingBottom:isMobile?20:0,padding:isMobile?"12px 18px":"0"}}>
       <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,marginBottom:4}}>CONNECT DEVICES</div>
       <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Burned calories automatically add to your Fuel budget</p>
-      {earnedCals>0&&<div style={{background:`${T.prot}12`,border:`1px solid ${T.prot}30`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase"}}>// Earned Today</div><div style={{fontSize:12,color:T.mu,marginTop:2}}>{todayActs.map(a=>`${a.title||a.type}`).join(" · ")}</div></div><div style={{color:T.prot,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22}}>+{earnedCals} kcal</div></div>}
+      {earnedCals>0&&<div style={{background:`rgba(var(--accent-rgb),0.07)`,border:`1px solid rgba(var(--accent-rgb),0.19)`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase"}}>// Earned Today</div><div style={{fontSize:12,color:T.mu,marginTop:2}}>{todayActs.map(a=>`${a.title||a.type}`).join(" · ")}</div></div><div style={{color:T.prot,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22}}>+{earnedCals} kcal</div></div>}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:14}}>
         {/* Strava */}
         <SectionCard title="🟠 Strava — Live Sync">
@@ -4710,7 +4711,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
             <p style={{fontSize:12,color:T.mu,marginBottom:10,lineHeight:1.6}}>{instructions}</p>
             {acts.length>0&&<div style={{background:`${T.carb}12`,borderRadius:9,padding:"7px 10px",marginBottom:10,fontSize:12,color:T.carb,fontWeight:700}}>✓ {acts.length} activities loaded</div>}
             <input ref={el=>fileRef.current[id]=el} type="file" accept={`.${ext}`} style={{display:"none"}} onChange={e=>handleFile(e,id)}/>
-            <button onClick={()=>fileRef.current[id]?.click()} style={{width:"100%",padding:"12px",background:acts.length>0?T.s3:T.s3,color:T.prot,fontWeight:700,fontSize:12,border:`1px solid ${T.prot}25`,borderRadius:9,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>{acts.length>0?`Re-import ${file}`:`Import ${file} →`}</button>
+            <button onClick={()=>fileRef.current[id]?.click()} style={{width:"100%",padding:"12px",background:acts.length>0?T.s3:T.s3,color:T.prot,fontWeight:700,fontSize:12,border:`1px solid rgba(var(--accent-rgb),0.15)`,borderRadius:9,cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase"}}>{acts.length>0?`Re-import ${file}`:`Import ${file} →`}</button>
             {importStatus[id]&&<div style={{fontSize:11,color:T.carb,marginTop:7}}>{importStatus[id]}</div>}
           </SectionCard>
         ))}
@@ -4797,11 +4798,11 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
       <div style={eyebrowStyle}>// Refer a Friend</div>
       <div style={{
         background: '#0d0d0d', borderRadius: 14, padding: 16,
-        border: '1px solid rgba(232,52,28,0.07)',
+        border: '1px solid rgba(var(--accent-rgb),0.07)',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Gradient */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, transparent 60%, rgba(232,52,28,0.04) 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, transparent 60%, rgba(var(--accent-rgb),0.04) 100%)', pointerEvents: 'none' }} />
 
         {/* Code label */}
         <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
@@ -4813,13 +4814,13 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
           <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 24, color: '#f5f5f0', flex: 1, letterSpacing: '0.08em' }}>
             {referralCode}
           </div>
-          <button onClick={copyCode} style={{ background: 'rgba(232,52,28,0.12)', border: '1px solid rgba(232,52,28,0.3)', borderRadius: 8, padding: '6px 12px', fontFamily: 'var(--mono)', fontSize: 9, color: '#e8341c', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
+          <button onClick={copyCode} style={{ background: 'rgba(var(--accent-rgb),0.12)', border: '1px solid rgba(var(--accent-rgb),0.3)', borderRadius: 8, padding: '6px 12px', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
             {codeCopied ? 'COPIED ✓' : 'COPY'}
           </button>
         </div>
 
         {/* Share button */}
-        <button onClick={shareCode} disabled={sharing} style={{ width: '100%', background: '#e8341c', border: 'none', borderRadius: 10, padding: 13, color: '#fff', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: sharing ? 0.7 : 1 }}>
+        <button onClick={shareCode} disabled={sharing} style={{ width: '100%', background: 'var(--accent)', border: 'none', borderRadius: 10, padding: 13, color: '#fff', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: sharing ? 0.7 : 1 }}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx={18} cy={5} r={3}/><circle cx={6} cy={12} r={3}/><circle cx={18} cy={19} r={3}/><line x1={8.59} y1={13.51} x2={15.42} y2={17.49}/><line x1={15.41} y1={6.51} x2={8.59} y2={10.49}/></svg>
           SHARE YOUR CODE
         </button>
@@ -4833,7 +4834,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
                 {tier === 0 ? 'NO TIER YET.' : `${tierDef.name}.`}
               </div>
             </div>
-            <div style={{ background: 'rgba(232,52,28,0.1)', border: '1px solid rgba(232,52,28,0.25)', borderRadius: 20, padding: '3px 10px', fontFamily: 'var(--mono)', fontSize: 9, color: '#e8341c' }}>
+            <div style={{ background: 'rgba(var(--accent-rgb),0.1)', border: '1px solid rgba(var(--accent-rgb),0.25)', borderRadius: 20, padding: '3px 10px', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)' }}>
               {referralCount} referral{referralCount !== 1 ? 's' : ''}
             </div>
           </div>
@@ -4895,7 +4896,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
           ) : null}
 
           {/* Feature unlocks */}
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: '#e8341c', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Feature unlocks</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Feature unlocks</div>
           {[
             { label: 'App icon customization',   unlockedAt: 1 },
             { label: 'Workout history export',    unlockedAt: 2 },
@@ -4918,7 +4919,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
           {/* Status perks */}
           {tierDef.perks.length > 0 && (
             <>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: '#e8341c', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>// Status perks</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>// Status perks</div>
               {tierDef.perks.map(p => (
                 <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
@@ -4950,6 +4951,191 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+// ─── APPEARANCE SECTION ──────────────────────────────────────────────────────
+function AppearanceSection({ user, wPrefs, setWPrefs }) {
+  const [tier, setTier] = useState(null);
+  const saved = wPrefs?.theme || { accent: 'red', bg: 'black' };
+  const [pendingAccent, setPendingAccent] = useState(saved.accent);
+  const [pendingBg,     setPendingBg]     = useState(saved.bg);
+  const [saving, setSaving] = useState(false);
+  const isDirty = pendingAccent !== saved.accent || pendingBg !== saved.bg;
+
+  useEffect(() => {
+    if (!user?.id) return;
+    sb.from('profiles').select('referral_tier').eq('id', user.id).maybeSingle()
+      .then(({ data }) => setTier(data?.referral_tier || 0));
+  }, [user?.id]);
+
+  const accentHex = ACCENT_COLORS.find(c => c.id === pendingAccent)?.hex || '#FF3B30';
+  const bgHex     = BG_COLORS.find(c => c.id === pendingBg)?.hex         || '#000000';
+  const lightBg   = isLightBg(bgHex);
+  const previewText   = lightBg ? '#1a1a1a' : '#f5f5f0';
+  const previewTextDim = lightBg ? 'rgba(0,0,0,0.50)' : 'rgba(245,245,240,0.50)';
+  const previewBorder = lightBg ? 'rgba(0,0,0,0.12)' : 'rgba(245,245,240,0.10)';
+  const previewCard   = lightBg ? '#ececec' : (() => {
+    const bg = BG_COLORS.find(c => c.id === pendingBg);
+    if (!bg) return '#0d0d0d';
+    const [r, g, b_] = bg.rgb.split(',').map(Number);
+    return `#${[r, g, b_].map(c => Math.min(255, Math.round(c + (255 - c) * 0.07)).toString(16).padStart(2, '0')).join('')}`;
+  })();
+
+  async function confirm() {
+    if (!user?.id) return;
+    setSaving(true);
+    applyTheme(pendingAccent, pendingBg);
+    const newWp = { ...wPrefs, theme: { accent: pendingAccent, bg: pendingBg } };
+    setWPrefs(newWp);
+    try {
+      await sb.from('profiles').upsert({ id: user.id, wprefs: newWp }, { onConflict: 'id' });
+      showToast('Theme saved', 'success');
+    } catch { showToast("Couldn't save theme", 'error'); }
+    setSaving(false);
+  }
+
+  function cancel() {
+    setPendingAccent(saved.accent);
+    setPendingBg(saved.bg);
+  }
+
+  // Always use default colors for the locked preview
+  const lockedAccentHex = '#FF3B30';
+  const lockedBgHex     = '#000000';
+
+  const isUnlocked = tier !== null && tier >= 3;
+  const isLoading  = tier === null;
+
+  function ColorSwatch({ colors, selected, onSelect, isAccentRow }) {
+    return (
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+        {colors.map(c => {
+          const isSel  = c.id === selected;
+          const incompatible = isAccentRow
+            ? !isCompatible(c.hex, bgHex)
+            : !isCompatible(accentHex, c.hex);
+          return (
+            <button
+              key={c.id}
+              disabled={incompatible}
+              onClick={() => isAccentRow ? setPendingAccent(c.id) : setPendingBg(c.id)}
+              title={incompatible ? `${c.name} — low contrast` : c.name}
+              style={{
+                width: 36, height: 36, borderRadius: '50%', border: 'none',
+                background: c.hex, cursor: incompatible ? 'not-allowed' : 'pointer',
+                opacity: incompatible ? 0.25 : 1,
+                boxShadow: isSel ? `0 0 0 2px var(--card-bg), 0 0 0 4px ${c.hex}` : 'none',
+                transition: 'box-shadow 0.15s, opacity 0.15s',
+                flexShrink: 0,
+                outline: 'none',
+                position: 'relative',
+              }}
+            >
+              {c.hex === '#FFFFFF' && (
+                <div style={{ position: 'absolute', inset: 2, borderRadius: '50%', border: '1px solid rgba(0,0,0,0.15)' }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function MiniPreview({ accentH, bgH }) {
+    const lt = isLightBg(bgH);
+    const ptxt  = lt ? '#1a1a1a' : '#f5f5f0';
+    const ptxtD = lt ? 'rgba(0,0,0,0.50)' : 'rgba(245,245,240,0.50)';
+    const pBord = lt ? 'rgba(0,0,0,0.12)'  : 'rgba(245,245,240,0.10)';
+    const pCard = lt ? '#ececec' : bgH === '#000000' ? '#0d0d0d' : '#' + (() => {
+      const bg = BG_COLORS.find(c => c.hex === bgH);
+      if (!bg) return '0d0d0d';
+      const [r,g,b2] = bg.rgb.split(',').map(Number);
+      return [r,g,b2].map(c => Math.min(255,Math.round(c+(255-c)*0.07)).toString(16).padStart(2,'0')).join('');
+    })();
+    return (
+      <div style={{ background: bgH, borderRadius: 12, overflow: 'hidden', border: `1px solid ${pBord}` }}>
+        {/* Mock header */}
+        <div style={{ background: pCard, padding: '10px 14px', borderBottom: `1px solid ${pBord}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: accentH }} />
+          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 14, color: ptxt }}>COACH MACRO</div>
+        </div>
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Mock stat card */}
+          <div style={{ background: pCard, borderRadius: 8, padding: '8px 10px', border: `1px solid ${pBord}` }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: accentH, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>// TODAY</div>
+            <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: ptxt, lineHeight: 1 }}>PUSH DAY.</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: ptxtD, marginTop: 2 }}>Chest · Shoulders · Triceps</div>
+          </div>
+          {/* Mock progress bar */}
+          <div style={{ background: pCard, borderRadius: 8, padding: '8px 10px', border: `1px solid ${pBord}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: ptxtD }}>Protein</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: accentH }}>142 / 180g</span>
+            </div>
+            <div style={{ height: 4, background: `rgba(${lt ? '0,0,0' : '245,245,240'},0.12)`, borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ width: '79%', height: '100%', background: accentH, borderRadius: 2 }} />
+            </div>
+          </div>
+          {/* Mock button */}
+          <button style={{ width: '100%', padding: '9px', background: accentH, border: 'none', borderRadius: 8, fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 13, color: lt && accentH === '#FFFFFF' ? '#1a1a1a' : '#fff', letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>
+            START SESSION →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {isLoading ? null : (
+        <>
+          {!isUnlocked ? (
+            /* ── LOCKED STATE ── */
+            <div style={{ background: '#0d0d0d', borderRadius: 12, border: '1px solid rgba(245,245,240,0.07)', overflow: 'hidden', padding: '16px 16px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(245,245,240,0.25)"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.40)', letterSpacing: '0.10em' }}>Unlock at 5 referrals</span>
+              </div>
+              <MiniPreview accentH={lockedAccentHex} bgH={lockedBgHex} />
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.25)', textAlign: 'center', marginTop: 12, letterSpacing: '0.08em' }}>
+                Invite 5 friends to unlock color themes.
+              </div>
+            </div>
+          ) : (
+            /* ── UNLOCKED STATE ── */
+            <div style={{ background: 'var(--card-bg)', borderRadius: 12, border: '1px solid var(--card-border)', overflow: 'hidden', padding: '16px' }}>
+              {/* Live preview */}
+              <MiniPreview accentH={accentHex} bgH={bgHex} />
+
+              {/* Accent picker */}
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--text-rgb),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Accent Color</div>
+                <ColorSwatch colors={ACCENT_COLORS} selected={pendingAccent} onSelect={setPendingAccent} isAccentRow />
+              </div>
+
+              {/* Background picker */}
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--text-rgb),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Background</div>
+                <ColorSwatch colors={BG_COLORS} selected={pendingBg} onSelect={setPendingBg} isAccentRow={false} />
+              </div>
+
+              {/* Confirm / Cancel — only when there are unsaved changes */}
+              {isDirty && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button onClick={cancel} style={{ flex: 1, padding: '11px', background: 'rgba(var(--text-rgb),0.06)', border: '1px solid rgba(var(--text-rgb),0.12)', borderRadius: 10, color: 'rgba(var(--text-rgb),0.60)', fontFamily: 'var(--condensed)', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                  <button onClick={confirm} disabled={saving} style={{ flex: 2, padding: '11px', background: accentHex, border: 'none', borderRadius: 10, color: lightBg && accentHex === '#FFFFFF' ? '#1a1a1a' : '#fff', fontFamily: 'var(--condensed)', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                    {saving ? 'Saving…' : 'Apply Theme'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }
@@ -5035,12 +5221,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const currentSkill=wPrefs?.liftExp||profile?.liftExp||"beginner";
   const wUnit=wPrefs?.wUnit||profile?.wUnit||"lbs";
 
-  const eyebrowStyle={fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,marginTop:24};
+  const eyebrowStyle={fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,marginTop:24};
   const cardStyle={background:"#0d0d0d",borderRadius:12,border:"1px solid rgba(245,245,240,0.07)",overflow:"hidden"};
   function MeRow({label:lbl,value:val,onPress,isLast,isDestructive,noChevron,rightEl}){
     return(
       <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
-        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"#e8341c":"#f5f5f0"}}>{lbl}</span>
+        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"var(--accent)":"#f5f5f0"}}>{lbl}</span>
         {rightEl||(!isDestructive&&(
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             {val&&<span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:"rgba(245,245,240,0.40)"}}>{val}</span>}
@@ -5096,7 +5282,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 setWPrefs(wp);
                 await saveSettings(wp,null);
                 if(user)sb.from("profiles").upsert({id:user.id,units:u==="kg"?"metric":"imperial"},{onConflict:"id"}).then(()=>{});
-              }} style={{padding:"6px 14px",background:wUnit===u?"#e8341c":"transparent",color:wUnit===u?"#fff":"rgba(245,245,240,0.4)",border:"none",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.08em"}}>{u}</button>
+              }} style={{padding:"6px 14px",background:wUnit===u?"var(--accent)":"transparent",color:wUnit===u?"#fff":"rgba(245,245,240,0.4)",border:"none",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.08em"}}>{u}</button>
             ))}
           </div>
         }/>
@@ -5116,7 +5302,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginBottom:10}}>Metabolism reset every N days in deficit</div>
             <div style={{display:"flex",gap:8}}>
               {[5,7,10].map(n=>(
-                <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(232,52,28,0.2)":"rgba(245,245,240,0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(232,52,28,0.5)":"rgba(245,245,240,0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"#e8341c":"rgba(245,245,240,0.6)",fontFamily:"var(--mono)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--accent-rgb),0.2)":"rgba(245,245,240,0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--accent-rgb),0.5)":"rgba(245,245,240,0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"var(--accent)":"rgba(245,245,240,0.6)",fontFamily:"var(--mono)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                   {n}d
                 </button>
               ))}
@@ -5141,7 +5327,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
                   showToast(`Display preferences updated for ${level} level.`,"success");
-                }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(245,245,240,0.15)",background:isActive?"#e8341c":"transparent",color:isActive?"#fff":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
+                }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(245,245,240,0.15)",background:isActive?"var(--accent)":"transparent",color:isActive?"#fff":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
                   {level}
                 </button>
               );
@@ -5170,7 +5356,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   const newWp={...wPrefs,displayPrefs:newDp};
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"#e8341c":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
                   <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                 </div>
               </div>
@@ -5194,7 +5380,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   const newWp={...wPrefs,displayPrefs:newDp};
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"#e8341c":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
                   <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                 </div>
               </div>
@@ -5219,7 +5405,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   const newWp={...wPrefs,displayPrefs:newDp};
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"#e8341c":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
                   <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                 </div>
               </div>
@@ -5228,12 +5414,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         </div>
       </div>
 
+      {/* ── APPEARANCE ── */}
+      <div style={eyebrowStyle}>// Appearance</div>
+      <AppearanceSection user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} />
+
       {/* ── SUBSCRIPTION ── */}
       <div style={eyebrowStyle}>// Subscription</div>
       <div style={cardStyle}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Plan</span>
-          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"#e8341c":"rgba(245,245,240,0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`}}>{subLabel}</span>
+          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"var(--accent)":"rgba(245,245,240,0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`}}>{subLabel}</span>
         </div>
         {subIsPaid?(
           <>
@@ -5242,7 +5432,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             <div style={{padding:"8px 16px",fontSize:10,color:"rgba(245,245,240,0.25)",fontFamily:"var(--mono)",letterSpacing:"0.06em",borderBottom:"1px solid rgba(245,245,240,0.04)"}}>Manage or cancel via the App Store settings.</div>
           </>
         ):(
-          <div style={{margin:"12px 16px",padding:"16px",background:"rgba(232,52,28,0.05)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:12}}>
+          <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--accent-rgb),0.05)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:12}}>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$9.99 / month</span></div>
@@ -5265,7 +5455,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {showPlansModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
-            <div style={{width:32,height:3,background:"rgba(232,52,28,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+            <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
             <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
             {[{id:"monthly",label:"MONTHLY",price:"$9.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"ANNUAL",price:"$79.99",per:"/year · $6.67/mo",badge:"BEST VALUE",saving:"Save 33% vs monthly",gradient:true}].map(plan=>(
@@ -5278,9 +5468,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 setPurchaseLoading(null);
                 if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
                 else showToast("Purchase failed. Try again.","error");
-              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(232,52,28,0.04))":"#0d0d0d",border:`1px solid ${plan.gradient?"#e8341c":"rgba(232,52,28,0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
-                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"#e8341c",borderRadius:20,padding:"3px 10px",fontFamily:"var(--mono)",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:plan.gradient?"#e8341c":"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:4}}>{plan.label}</div>
+              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--accent-rgb),0.04))":"#0d0d0d",border:`1px solid ${plan.gradient?"var(--accent)":"rgba(var(--accent-rgb),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--accent)",borderRadius:20,padding:"3px 10px",fontFamily:"var(--mono)",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:plan.gradient?"var(--accent)":"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:4}}>{plan.label}</div>
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"var(--mono)",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(245,245,240,0.4)"}}> {plan.per}</span></div>
                 {plan.saving&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
                 {purchaseLoading===plan.id&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:6}}>Processing...</div>}
@@ -5294,11 +5484,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── YOUR VOICE ── */}
       <div style={eyebrowStyle}>// Your Voice</div>
       {[
-        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>,title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(232,52,28,0.1)",bd:"rgba(232,52,28,0.2)",section:"feedback"},
+        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>,title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(var(--accent-rgb),0.1)",bd:"rgba(var(--accent-rgb),0.2)",section:"feedback"},
         {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>,title:"REPORT A PROBLEM.",sub:"Help us fix what's broken",bg:"rgba(254,160,32,0.1)",bd:"rgba(254,160,32,0.2)",section:"feedback"},
       ].map(({icon,title,sub,bg,bd,section})=>(
         <div key={title} onClick={()=>{if(window.uj)window.uj.showWidget({section});}} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
-          onPointerDown={e=>e.currentTarget.style.borderColor="rgba(232,52,28,0.3)"}
+          onPointerDown={e=>e.currentTarget.style.borderColor="rgba(var(--accent-rgb),0.3)"}
           onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
           onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
         >
@@ -5412,23 +5602,23 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
       {/* Delete confirmation */}
       {delStep>0&&(
-        <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:12,padding:16,marginTop:8}}>
+        <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:12,padding:16,marginTop:8}}>
           {delStep===1&&<>
-            <div style={{fontSize:13,color:"#e8341c",fontWeight:700,marginBottom:8}}>Delete your account?</div>
+            <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
             <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
-            <div style={{fontSize:11,color:"#e8341c",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
+            <div style={{fontSize:11,color:"var(--accent)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"#e8341c",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
+              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
             </div>
           </>}
           {delStep===2&&<>
-            <div style={{fontSize:13,color:"#e8341c",fontWeight:700,marginBottom:8}}>Final confirmation</div>
+            <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
             <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:12}}>Type <strong style={{color:"#f5f5f0"}}>DELETE</strong> to permanently delete your account.</div>
-            <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(245,245,240,0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"#e8341c":"rgba(245,245,240,0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
+            <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(245,245,240,0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--accent)":"rgba(245,245,240,0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"#e8341c":"rgba(232,52,28,0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
+              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--accent)":"rgba(var(--accent-rgb),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
             </div>
           </>}
           {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(245,245,240,0.5)"}}>Deleting your account...</div>}
@@ -5439,7 +5629,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {editModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setEditModal(null)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
             <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type={editModal==="name"?"text":"number"} placeholder={editModal==="name"?"Your name":editModal==="weight"?`Weight in ${wUnit}`:"Height in cm"}
               style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
             <div style={{display:"flex",gap:8}}>
@@ -5450,7 +5640,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 else if(editModal==="weight"){setLocalWeight(v);await saveProfileField("weight",v);}
                 else if(editModal==="height"){setLocalHeight(v);await saveProfileField("height",v);}
                 setEditModal(null);
-              }} style={{flex:1,padding:14,background:"#e8341c",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+              }} style={{flex:1,padding:14,background:"var(--accent)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
             </div>
           </div>
         </div>,
@@ -5461,10 +5651,10 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {showGoalSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowGoalSelector(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {Object.entries(GOAL_LABELS).map(([key,label])=>(
-                <button key={key} onClick={async()=>{const wp={...wPrefs,primaryGoal:key};setWPrefs(wp);await saveSettings(wp,null);setShowGoalSelector(false);}} style={{padding:"14px 16px",background:currentGoal===key?"rgba(232,52,28,0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentGoal===key?"rgba(232,52,28,0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentGoal===key?"#e8341c":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentGoal===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <button key={key} onClick={async()=>{const wp={...wPrefs,primaryGoal:key};setWPrefs(wp);await saveSettings(wp,null);setShowGoalSelector(false);}} style={{padding:"14px 16px",background:currentGoal===key?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentGoal===key?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentGoal===key?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentGoal===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   {label}{currentGoal===key&&<span>✓</span>}
                 </button>
               ))}
@@ -5478,10 +5668,10 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {showSkillSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowSkillSelector(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[{key:"beginner",label:"Beginner",sub:"Under 1 year"},{key:"intermediate",label:"Intermediate",sub:"1–4 years"},{key:"advanced",label:"Advanced",sub:"4+ years"}].map(({key,label,sub})=>(
-                <button key={key} onClick={async()=>{const wp={...wPrefs,liftExp:key};setWPrefs(wp);await saveSettings(wp,null);setShowSkillSelector(false);}} style={{padding:"14px 16px",background:currentSkill===key?"rgba(232,52,28,0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentSkill===key?"rgba(232,52,28,0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentSkill===key?"#e8341c":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentSkill===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <button key={key} onClick={async()=>{const wp={...wPrefs,liftExp:key};setWPrefs(wp);await saveSettings(wp,null);setShowSkillSelector(false);}} style={{padding:"14px 16px",background:currentSkill===key?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentSkill===key?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentSkill===key?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentSkill===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div><div>{label}</div><div style={{fontSize:12,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div></div>
                   {currentSkill===key&&<span>✓</span>}
                 </button>
@@ -5709,11 +5899,11 @@ export function UpgradeScreen({ profile, onContinue }) {
         </p>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
-          <div style={{ background:'rgba(232,52,28,0.07)', border:'1px solid rgba(232,52,28,0.2)', borderRadius:12, padding:'14px' }}>
-            <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.2, color:'rgba(232,52,28,0.75)', marginBottom:10 }}>AI PAUSED</div>
+          <div style={{ background:'rgba(var(--accent-rgb),0.07)', border:'1px solid rgba(var(--accent-rgb),0.2)', borderRadius:12, padding:'14px' }}>
+            <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.2, color:'rgba(var(--accent-rgb),0.75)', marginBottom:10 }}>AI PAUSED</div>
             {locked.map(f => (
               <div key={f} style={{ display:'flex', gap:8, padding:'5px 0', fontSize:12, color:'rgba(245,245,240,0.45)', alignItems:'flex-start' }}>
-                <span style={{ color:'rgba(232,52,28,0.5)', flexShrink:0 }}>✕</span>{f}
+                <span style={{ color:'rgba(var(--accent-rgb),0.5)', flexShrink:0 }}>✕</span>{f}
               </div>
             ))}
           </div>
@@ -5832,7 +6022,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
       {/* Loading overlay */}
       {loading && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-          <div style={{ width: 40, height: 40, border: '3px solid rgba(232,52,28,0.2)', borderTop: '3px solid #e8341c', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 40, height: 40, border: '3px solid rgba(var(--accent-rgb),0.2)', borderTop: '3px solid var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
       )}
 
@@ -5840,16 +6030,16 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
       {showExitOffer && (
         <div style={{ position: 'absolute', inset: 0, background: '#000', zIndex: 100, padding: '32px 24px', overflowY: 'auto' }}>
           {/* Atmospheric glow */}
-          <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(232,52,28,0.12)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(var(--accent-rgb),0.12)', pointerEvents: 'none' }} />
 
           {/* X — final exit, no subscription */}
           <button style={xBtnStyle} onClick={() => { setShowExitOffer(false); onDismiss?.(); }}>×</button>
 
           <div style={{ position: 'relative', zIndex: 1, paddingTop: 24 }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#e8341c', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>// WAIT. BEFORE YOU GO.</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>// WAIT. BEFORE YOU GO.</div>
 
             <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 46, lineHeight: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-              ONE MONTH.<br /><span style={{ color: '#e8341c' }}>ONE DOLLAR.</span>
+              ONE MONTH.<br /><span style={{ color: 'var(--accent)' }}>ONE DOLLAR.</span>
             </div>
 
             <div style={{ fontFamily: 'var(--condensed)', fontWeight: 400, fontSize: 17, color: 'rgba(245,245,240,0.6)', lineHeight: '24px', marginBottom: 20 }}>
@@ -5857,9 +6047,9 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
             </div>
 
             {/* Offer card */}
-            <div style={{ background: '#0d0d0d', border: '1px solid rgba(232,52,28,0.2)', borderRadius: 14, padding: 20, marginBottom: 16, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#e8341c', borderRadius: '14px 14px 0 0' }} />
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#e8341c', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10, marginTop: 8 }}>ONE-TIME OFFER</div>
+            <div style={{ background: '#0d0d0d', border: '1px solid rgba(var(--accent-rgb),0.2)', borderRadius: 14, padding: 20, marginBottom: 16, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--accent)', borderRadius: '14px 14px 0 0' }} />
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10, marginTop: 8 }}>ONE-TIME OFFER</div>
               <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 4, marginBottom: 4 }}>
                 <span style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 72, color: '#f5f5f0', lineHeight: '72px' }}>$1</span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'rgba(245,245,240,0.35)', paddingBottom: 8 }}>first month</span>
@@ -5870,7 +6060,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
               <button
                 onClick={purchaseDollarOfferFn}
                 disabled={loading}
-                style={{ background: '#e8341c', borderRadius: 12, padding: 15, width: '100%', border: 'none', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 11, color: '#fff', letterSpacing: 1.8, textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}
+                style={{ background: 'var(--accent)', borderRadius: 12, padding: 15, width: '100%', border: 'none', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 11, color: '#fff', letterSpacing: 1.8, textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}
               >GET 1 MONTH FOR $1 →</button>
             </div>
 
@@ -5889,16 +6079,16 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
       {/* ── SCREEN 1: TRIAL ENDED PAYWALL ──────────────────────────────── */}
       <div style={{ padding: '24px', overflowY: 'auto', minHeight: '100vh', position: 'relative' }}>
         {/* Atmospheric glow */}
-        <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(232,52,28,0.12)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(var(--accent-rgb),0.12)', pointerEvents: 'none' }} />
 
         {/* X button — opens exit offer */}
         <button style={xBtnStyle} onClick={() => setShowExitOffer(true)}>×</button>
 
         <div style={{ position: 'relative', zIndex: 1, paddingTop: 24 }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#e8341c', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>// 14-DAY FREE TRIAL</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>// 14-DAY FREE TRIAL</div>
 
           <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 52, lineHeight: '46px', textTransform: 'uppercase', marginBottom: 12 }}>
-            YOUR TRIAL<br /><span style={{ color: '#e8341c' }}>IS OVER.</span>
+            YOUR TRIAL<br /><span style={{ color: 'var(--accent)' }}>IS OVER.</span>
           </div>
 
           <div style={{ fontFamily: 'var(--condensed)', fontWeight: 400, fontSize: 17, color: 'rgba(245,245,240,0.6)', lineHeight: '24px', marginBottom: 20 }}>
@@ -5916,8 +6106,8 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
             'Restaurant AI — order smart wherever you eat',
           ].map((text, i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-              <div style={{ width: 18, height: 18, borderRadius: 9, background: 'rgba(232,52,28,0.15)', border: '1px solid rgba(232,52,28,0.3)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
-                <span style={{ color: '#e8341c', fontSize: 10 }}>✓</span>
+              <div style={{ width: 18, height: 18, borderRadius: 9, background: 'rgba(var(--accent-rgb),0.15)', border: '1px solid rgba(var(--accent-rgb),0.3)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                <span style={{ color: 'var(--accent)', fontSize: 10 }}>✓</span>
               </div>
               <span style={{ fontFamily: 'var(--condensed)', fontSize: 17, color: '#f5f5f0', lineHeight: '22px' }}>{text}</span>
             </div>
@@ -5940,15 +6130,15 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
             </div>
 
             {/* Annual */}
-            <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '2px solid #e8341c', padding: 16, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: -1, right: -1, background: '#e8341c', borderRadius: '0 12px 0 8px', padding: '4px 10px', fontFamily: 'var(--mono)', fontSize: 8, color: '#fff', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SAVE 33%</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: '#e8341c', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>ANNUAL</div>
+            <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '2px solid var(--accent)', padding: 16, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -1, right: -1, background: 'var(--accent)', borderRadius: '0 12px 0 8px', padding: '4px 10px', fontFamily: 'var(--mono)', fontSize: 8, color: '#fff', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SAVE 33%</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>ANNUAL</div>
               <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$6.67</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br />$79.99 billed yearly</div>
               <button
                 onClick={purchaseAnnualFn}
                 disabled={loading}
-                style={{ width: '100%', background: '#e8341c', border: 'none', borderRadius: 10, padding: 13, fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, color: '#fff', letterSpacing: 1.4, textTransform: 'uppercase', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}
+                style={{ width: '100%', background: 'var(--accent)', border: 'none', borderRadius: 10, padding: 13, fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, color: '#fff', letterSpacing: 1.4, textTransform: 'uppercase', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}
               >GET ANNUAL →</button>
             </div>
           </div>
