@@ -280,12 +280,10 @@ function Toggle({ on, onChange }) {
 // ── Badge ─────────────────────────────────────────────────────────────────────
 function PassportBadge({ type }) {
   const defs = {
-    PRO:    { bg: '#FEA020', color: '#000', label: 'PRO' },
-    VERIFIED: { bg: '#1D9BF0', color: '#fff', label: 'VERIFIED ✓' },
-    VIP:    { bg: '#FFD740', color: '#000', label: 'VIP' },
-    BRONZE: { bg: '#CD7F32', color: '#000', label: 'BRONZE' },
-    SILVER: { bg: '#C0C0C0', color: '#000', label: 'SILVER' },
-    GOLD:   { bg: '#FFD740', color: '#000', label: 'GOLD' },
+    PRO:             { bg: '#FEA020', color: '#000', label: 'PRO' },
+    VERIFIED:        { bg: '#1D9BF0', color: '#fff', label: 'VERIFIED ✓' },
+    VERIFIED_WHITE:  { bg: '#f5f5f0', color: '#000', label: 'VERIFIED ✓' },
+    VIP:             { bg: '#FFD740', color: '#000', label: 'VIP' },
   };
   const d = defs[type];
   if (!d) return null;
@@ -336,7 +334,7 @@ export default function AthletePassport({ userId }) {
   const isPro = !!profileData.is_pro || ['pro', 'plus', 'ultra'].includes(tier);
   const isVerified = workoutCount >= 1;
   const referralTier = profile?.referral_tier || 0;
-  const isVip = !!profileData.isVip || referralTier >= 3;
+  const isVip = !!profileData.isVip || referralTier >= 2;
 
   // ── Load data on mount ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -486,11 +484,9 @@ export default function AthletePassport({ userId }) {
   // ── Render ──────────────────────────────────────────────────────────────────
   const badges = [
     isPro && 'PRO',
-    isVerified && 'VERIFIED',
-    referralTier >= 1 && 'BRONZE',
-    referralTier >= 2 && 'SILVER',
-    referralTier >= 3 && 'GOLD',
+    (isVerified || referralTier >= 3) && 'VERIFIED',
     isVip && 'VIP',
+    referralTier >= 4 && 'VERIFIED_WHITE',
   ].filter(Boolean).slice(0, 4);
 
   const displayStats = selectedStats.slice(0, 5);

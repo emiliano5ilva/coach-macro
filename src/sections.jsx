@@ -4745,7 +4745,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
   const tier = refData?.referral_tier || 0;
   const tierDef = REFERRAL_TIERS[tier] || REFERRAL_TIERS[0];
   const tierColor = tierDef.color;
-  const nextTierDef = tier < 3 ? REFERRAL_TIERS[tier + 1] : null;
+  const nextTierDef = tier < 4 ? REFERRAL_TIERS[tier + 1] : null;
 
   const progressPct = nextTierDef
     ? Math.min(1, (referralCount - tierDef.min) / (nextTierDef.min - tierDef.min)) * 100
@@ -4824,7 +4824,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
             </div>
           </div>
 
-          {tier < 3 && nextTierDef && (
+          {tier < 4 && nextTierDef && (
             <>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginBottom: 6 }}>
                 {nextTierDef.min - referralCount} more to reach {nextTierDef.name}
@@ -4834,31 +4834,47 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
               </div>
             </>
           )}
-          {tier >= 3 && (
+          {tier >= 4 && (
             <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: '#FFD740', marginBottom: 12 }}>
               Maximum tier reached. You are a Coach Macro legend.
             </div>
           )}
 
-          {/* Perks */}
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: '#e8341c', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Your perks</div>
-          {tier === 0 ? (
+          {/* Feature unlocks */}
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: '#e8341c', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Feature unlocks</div>
+          {[
+            { label: 'App icon customization', unlockedAt: 1 },
+            { label: 'Workout history export', unlockedAt: 2 },
+            { label: 'Color scheme customization', unlockedAt: 3 },
+            { label: 'Dashboard layout options', unlockedAt: 4 },
+          ].map(({ label, unlockedAt }) => {
+            const unlocked = tier >= unlockedAt;
+            return (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                {unlocked
+                  ? <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
+                  : <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.2)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.2)" strokeWidth={1.7} strokeLinecap="round"/></svg>
+                }
+                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: unlocked ? '#f5f5f0' : 'rgba(245,245,240,0.3)' }}>{label}</span>
+                {!unlocked && <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.2)', marginLeft: 'auto' }}>{REFERRAL_TIERS[unlockedAt].min} refs</span>}
+              </div>
+            );
+          })}
+
+          {/* Status perks */}
+          {tierDef.perks.length > 0 && (
             <>
-              {REFERRAL_TIERS[1].perks.map(p => (
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: '#e8341c', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>// Status perks</div>
+              {tierDef.perks.map(p => (
                 <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.25)" strokeWidth={1.7} strokeLinecap="round"/></svg>
-                  <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: 'rgba(245,245,240,0.35)' }}>{p}</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
+                  <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>{p}</span>
                 </div>
               ))}
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)', marginTop: 6 }}>Refer 1 friend to unlock</div>
             </>
-          ) : (
-            tierDef.perks.map(p => (
-              <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
-                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>{p}</span>
-              </div>
-            ))
+          )}
+          {tier === 0 && (
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)', marginTop: 6 }}>Refer 1 friend to unlock first feature</div>
           )}
         </div>
 
