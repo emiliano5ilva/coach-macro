@@ -71,6 +71,7 @@ import { generateProactiveAdjustments } from "./services/predictiveService.js";
 import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory, exportMemories } from "./services/coachMemoryService.js";
 import { detectActivePatterns, generateIntervention, recordPatternDetection, dismissPattern, trackInterventionOutcome, FAILURE_PATTERNS } from "./services/failurePatternService.js";
 import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOverride, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
+import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META } from "./services/connectionsService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1950,6 +1951,337 @@ function buildCards(d, macros, profile) {
   return cards.filter(c => (c.items||[undefined]).length > 0 || c.body || c.headline);
 }
 
+// ── Connections Dashboard helpers ─────────────────────────────────────────────
+
+const CONN_NODE_R = 26;
+const CONN_W = 360, CONN_H = 310;
+
+function connInitNodes(ids, W, H) {
+  return ids.map((id, i) => {
+    const angle = (2 * Math.PI * i) / ids.length - Math.PI / 2;
+    return { id, x: W / 2 + (W * 0.38) * Math.cos(angle), y: H / 2 + (H * 0.38) * Math.sin(angle), vx: 0, vy: 0 };
+  });
+}
+
+function connBuildEdges(corrs, activeIds) {
+  const set = new Set(activeIds);
+  return corrs
+    .filter(c => set.has(c.a) && set.has(c.b) && c.correlation_strength > 0.12)
+    .map(c => ({ a: c.a, b: c.b, strength: c.correlation_strength, direction: c.direction, lag: c.lag, is_user_data: c.is_user_data }));
+}
+
+function connRunForce(nodes, edges, W, H) {
+  const n = nodes.map(nd => ({ ...nd }));
+  const k = Math.sqrt((W * H) / n.length) * 0.9;
+  let temp = W * 0.12;
+  for (let iter = 0; iter < 65; iter++) {
+    for (let i = 0; i < n.length; i++) { n[i].dx = 0; n[i].dy = 0; }
+    for (let i = 0; i < n.length; i++) {
+      for (let j = i + 1; j < n.length; j++) {
+        const dx = n[i].x - n[j].x, dy = n[i].y - n[j].y;
+        const d = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const f = (k * k) / d;
+        n[i].dx += (dx / d) * f; n[i].dy += (dy / d) * f;
+        n[j].dx -= (dx / d) * f; n[j].dy -= (dy / d) * f;
+      }
+    }
+    for (const e of edges) {
+      const ni = n.find(nd => nd.id === e.a), nj = n.find(nd => nd.id === e.b);
+      if (!ni || !nj) continue;
+      const dx = nj.x - ni.x, dy = nj.y - ni.y;
+      const d = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      const f = (d * d) / k * (0.4 + e.strength * 0.6);
+      ni.dx += (dx / d) * f; ni.dy += (dy / d) * f;
+      nj.dx -= (dx / d) * f; nj.dy -= (dy / d) * f;
+    }
+    // Gravity toward center
+    for (const nd of n) {
+      nd.dx += (W / 2 - nd.x) * 0.04;
+      nd.dy += (H / 2 - nd.y) * 0.04;
+    }
+    for (const nd of n) {
+      const d = Math.sqrt(nd.dx * nd.dx + nd.dy * nd.dy);
+      if (d > 0) {
+        nd.x += (nd.dx / d) * Math.min(d, temp);
+        nd.y += (nd.dy / d) * Math.min(d, temp);
+      }
+      nd.x = Math.max(CONN_NODE_R + 4, Math.min(W - CONN_NODE_R - 4, nd.x));
+      nd.y = Math.max(CONN_NODE_R + 4, Math.min(H - CONN_NODE_R - 4, nd.y));
+    }
+    temp *= 0.92;
+  }
+  return n;
+}
+
+function connBezierEdge(x1, y1, x2, y2, r) {
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const cx = mx - (dy / len) * (len * 0.18);
+  const cy = my + (dx / len) * (len * 0.18);
+  // Trim endpoints to node radius
+  const trim = r + 2;
+  const ax = x1 + (dx / len) * trim, ay = y1 + (dy / len) * trim;
+  const bx = x2 - (dx / len) * trim, by = y2 - (dy / len) * trim;
+  return `M ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`;
+}
+
+// ── NodeInfoPanel ─────────────────────────────────────────────────────────────
+
+function NodeInfoPanel({ nodeId, correlations }) {
+  if (!nodeId) return null;
+  const meta = METRIC_META[nodeId];
+  const influencers = identifyActiveInfluencers(nodeId, correlations).slice(0, 3);
+  const effects = predictDownstreamEffects(nodeId, 'up', correlations).slice(0, 3);
+  return (
+    <div style={{ padding: "12px 14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 10 }}>
+        {meta?.icon} {meta?.label} — connections
+      </div>
+      <div style={{ display: "flex", gap: 12 }}>
+        {/* Influencers */}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.4)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>influenced by</div>
+          {influencers.length === 0 && <div style={{ fontSize: 10, color: "rgba(245,245,240,0.3)" }}>—</div>}
+          {influencers.map(inf => (
+            <div key={inf.metric} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+              <span style={{ fontSize: 11 }}>{METRIC_META[inf.metric]?.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                  <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.7)" }}>{METRIC_META[inf.metric]?.label}</span>
+                  <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: inf.direction === 'positive' ? '#4ade80' : '#f87171' }}>{inf.direction === 'positive' ? '↑' : '↓'}</span>
+                </div>
+                <div style={{ height: 2, background: "rgba(255,255,255,0.08)", borderRadius: 1 }}>
+                  <div style={{ height: 2, width: `${Math.round(inf.strength * 100)}%`, background: inf.direction === 'positive' ? '#4ade80' : '#f87171', borderRadius: 1 }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Effects */}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.4)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>if you improve it</div>
+          {effects.length === 0 && <div style={{ fontSize: 10, color: "rgba(245,245,240,0.3)" }}>—</div>}
+          {effects.map(ef => (
+            <div key={ef.metric} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+              <span style={{ fontSize: 11 }}>{METRIC_META[ef.metric]?.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                  <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.7)" }}>{METRIC_META[ef.metric]?.label}</span>
+                  <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: ef.direction === 'up' ? '#4ade80' : '#f87171' }}>{ef.direction === 'up' ? '↑' : '↓'}{ef.lag > 0 ? ` +${ef.lag}d` : ''}</span>
+                </div>
+                <div style={{ height: 2, background: "rgba(255,255,255,0.08)", borderRadius: 1 }}>
+                  <div style={{ height: 2, width: `${Math.round(ef.strength * 100)}%`, background: ef.direction === 'up' ? '#4ade80' : '#f87171', borderRadius: 1 }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── InsightsTicker ─────────────────────────────────────────────────────────────
+
+function InsightsTicker({ insights }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (insights.length < 2) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % insights.length), 4200);
+    return () => clearInterval(t);
+  }, [insights.length]);
+  if (!insights.length) return null;
+  const item = insights[idx];
+  return (
+    <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 12, color: "rgba(245,245,240,0.65)", lineHeight: 1.4, minHeight: 34, transition: "opacity 0.3s" }}>
+        {item.text}
+      </div>
+      {insights.length > 1 && (
+        <div style={{ display: "flex", gap: 4, marginTop: 8, justifyContent: "center" }}>
+          {insights.map((_, i) => (
+            <div key={i} onClick={() => setIdx(i)} style={{ width: i === idx ? 14 : 4, height: 4, borderRadius: 2, background: i === idx ? "var(--accent)" : "rgba(255,255,255,0.2)", transition: "all 0.3s", cursor: "pointer" }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ConnectionsView (full-screen modal) ───────────────────────────────────────
+
+function ConnectionsView({ userId, onClose, healthSnap, workoutLogsRaw, bodyweightLogs, consumed, memberDays }) {
+  const [correlations, setCorrelations] = useState([]);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    getConnectionsData(userId)
+      .then(data => { setCorrelations(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [userId]);
+
+  const metricIds = Object.keys(METRIC_META);
+
+  // Current values for node labels
+  const currentValues = {
+    sleep:    healthSnap?.sleepHours ?? null,
+    hrv:      healthSnap?.hrv ?? null,
+    rhr:      healthSnap?.rhr ?? null,
+    steps:    healthSnap?.steps != null ? healthSnap.steps / 1000 : null,
+    calories: consumed?.calories ?? null,
+    volume:   workoutLogsRaw ? (() => { const t = new Date(); t.setHours(0,0,0,0); const ds = t.toISOString().split('T')[0]; const total = (workoutLogsRaw).filter(l => l.date === ds).reduce((s, l) => s + (l.volume_lbs || 0), 0); return total > 0 ? total / 1000 : null; })() : null,
+    weight:   bodyweightLogs?.[0]?.weight ?? null,
+    tdee:     null,
+  };
+
+  const nodes = React.useMemo(() => {
+    const raw = connInitNodes(metricIds, CONN_W, CONN_H);
+    const edges = connBuildEdges(correlations, metricIds);
+    return connRunForce(raw, edges, CONN_W, CONN_H);
+  }, [correlations]);
+
+  const edges = React.useMemo(() => connBuildEdges(correlations, metricIds), [correlations]);
+
+  const connectedIds = selectedNode
+    ? new Set([selectedNode, ...edges.filter(e => e.a === selectedNode || e.b === selectedNode).flatMap(e => [e.a, e.b])])
+    : null;
+
+  const insights = React.useMemo(() => getConnectionInsights(correlations, memberDays), [correlations, memberDays]);
+
+  const flowAnim = `@keyframes edgeFlow{to{stroke-dashoffset:-18}}`;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#070710", display: "flex", flexDirection: "column" }}>
+      <style>{flowAnim}</style>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", padding: "max(env(safe-area-inset-top),16px) 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: "6px 10px 6px 0", color: "rgba(245,245,240,0.6)", fontFamily: "'DM Mono',monospace", fontSize: 12 }}>← back</button>
+        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase" }}>// Your Connections</div>
+      </div>
+
+      {loading ? (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.3)" }}>calculating correlations…</div>
+      ) : (
+        <>
+          {/* SVG Graph */}
+          <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+            <svg viewBox={`0 0 ${CONN_W} ${CONN_H}`} style={{ width: "100%", height: "100%" }}>
+              {/* Edges */}
+              {edges.map(e => {
+                const na = nodes.find(n => n.id === e.a);
+                const nb = nodes.find(n => n.id === e.b);
+                if (!na || !nb) return null;
+                const isSelected = selectedNode && (e.a === selectedNode || e.b === selectedNode);
+                const dimmed = connectedIds && !isSelected;
+                const color = e.direction === 'positive' ? '#4ade80' : '#f97316';
+                const opacity = dimmed ? 0.04 : (isSelected ? 0.9 : 0.22 + e.strength * 0.4);
+                const strokeW = isSelected ? 1.8 + e.strength * 1.2 : 0.8 + e.strength * 0.8;
+                return (
+                  <path
+                    key={`${e.a}-${e.b}`}
+                    d={connBezierEdge(na.x, na.y, nb.x, nb.y, CONN_NODE_R)}
+                    stroke={color}
+                    strokeWidth={strokeW}
+                    fill="none"
+                    opacity={opacity}
+                    strokeDasharray={isSelected ? "6 12" : undefined}
+                    style={isSelected ? { animation: "edgeFlow 0.8s linear infinite" } : undefined}
+                  />
+                );
+              })}
+              {/* Nodes */}
+              {nodes.map(nd => {
+                const meta = METRIC_META[nd.id];
+                const val = currentValues[nd.id];
+                const status = getNodeStatus(nd.id, val);
+                const statusColor = status === 'green' ? '#4ade80' : status === 'yellow' ? '#fbbf24' : status === 'red' ? '#f87171' : '#555';
+                const isSelected = selectedNode === nd.id;
+                const dimmed = connectedIds && !connectedIds.has(nd.id);
+                const opacity = dimmed ? 0.15 : 1;
+                return (
+                  <g key={nd.id} transform={`translate(${nd.x},${nd.y})`} opacity={opacity} onClick={() => setSelectedNode(isSelected ? null : nd.id)} style={{ cursor: "pointer" }}>
+                    {/* Status ring */}
+                    <circle r={CONN_NODE_R + 3} fill="none" stroke={statusColor} strokeWidth={isSelected ? 2 : 1} opacity={isSelected ? 1 : 0.5} />
+                    {/* Node bg */}
+                    <circle r={CONN_NODE_R} fill={isSelected ? "rgba(255,255,255,0.1)" : "#111118"} stroke={meta?.color || "#555"} strokeWidth={isSelected ? 1.5 : 0.8} />
+                    {/* Emoji */}
+                    <text textAnchor="middle" dominantBaseline="middle" fontSize={14} y={val != null ? -5 : 0}>{meta?.icon}</text>
+                    {/* Label */}
+                    <text textAnchor="middle" y={val != null ? 8 : 12} fontFamily="'DM Mono',monospace" fontSize={6.5} fill="rgba(245,245,240,0.6)" letterSpacing="0.05em">{meta?.label}</text>
+                    {/* Value */}
+                    {val != null && (
+                      <text textAnchor="middle" y={18} fontFamily="'DM Mono',monospace" fontSize={7} fill={statusColor} fontWeight="600">{formatMetricValue(nd.id, val)}</text>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Bottom panel */}
+          <div style={{ background: "#0d0d14", borderTop: "1px solid rgba(255,255,255,0.08)", minHeight: 120, maxHeight: 200, overflowY: "auto" }}>
+            {selectedNode
+              ? <NodeInfoPanel nodeId={selectedNode} correlations={correlations} />
+              : <InsightsTicker insights={insights} />
+            }
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── ConnectionsInsightCard (Progress > Overview) ──────────────────────────────
+
+function ConnectionsInsightCard({ correlations, memberDays, onOpen }) {
+  if (!correlations?.length) return null;
+  const daysLeft = Math.max(0, 30 - memberDays);
+  const top3 = [...correlations].sort((a, b) => b.correlation_strength - a.correlation_strength).slice(0, 3);
+  return (
+    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "#0d0d0d", border: "1px solid rgba(var(--accent-rgb),0.08)", borderRadius: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase" }}>// How You Work</div>
+        <button onClick={onOpen} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(var(--accent-rgb),0.6)", letterSpacing: "0.08em" }}>View all →</button>
+      </div>
+      {daysLeft > 0 ? (
+        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 12, color: "rgba(245,245,240,0.4)", lineHeight: 1.4 }}>
+          {daysLeft} more days of data needed to reveal your personal patterns.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {top3.map(c => {
+            const aMeta = METRIC_META[c.a], bMeta = METRIC_META[c.b];
+            const color = c.direction === 'positive' ? '#4ade80' : '#f97316';
+            const arrow = c.direction === 'positive' ? '↑' : '↓';
+            const pct = Math.round(c.correlation_strength * 100);
+            return (
+              <div key={`${c.a}-${c.b}`} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 13 }}>{aMeta?.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.7)" }}>{aMeta?.label}</span>
+                    <span style={{ color, fontSize: 10 }}>{arrow}</span>
+                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.7)" }}>{bMeta?.label}</span>
+                    {c.lag > 0 && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.35)" }}>+{c.lag}d</span>}
+                    {c.is_user_data && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(var(--accent-rgb),0.5)", marginLeft: 2 }}>YOUR DATA</span>}
+                  </div>
+                  <div style={{ height: 2, background: "rgba(255,255,255,0.07)", borderRadius: 1 }}>
+                    <div style={{ height: 2, width: `${pct}%`, background: color, borderRadius: 1 }} />
+                  </div>
+                </div>
+                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.4)", minWidth: 28, textAlign: "right" }}>{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Coach Insights Card (Progress > Overview) ─────────────────────────────────
 function CoachInsightsCard({recall, userId}) {
   const [expanded, setExpanded] = useState(false);
@@ -2422,6 +2754,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
 
   // ── Personality Engine ────────────────────────────────────────────────────
   const [personalityProfile,setPersonalityProfile]=useState(null);
+
+  // ── Connections Dashboard ─────────────────────────────────────────────────
+  const [showConnectionsView,setShowConnectionsView]=useState(false);
 
   // ── Feature Unlock System ──────────────────────────────────────────────────
   const [showAppTour,setShowAppTour]=useState(false);
@@ -5363,6 +5698,12 @@ Rules:
         .catch(() => {});
     }, [validationInsights, insightLoading, user?.id]);
 
+    const [connectionData,setConnectionData]=useState([]);
+    useEffect(()=>{
+      if(!user?.id)return;
+      getConnectionsData(user.id).then(data=>setConnectionData(data)).catch(()=>{});
+    },[user?.id]);
+
     const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
     useEffect(()=>{
       if(!user?.id)return;
@@ -6177,6 +6518,13 @@ Rules:
             {/* Coach Memory — historical recall */}
             <CoachInsightsCard recall={coachRecall} userId={user?.id}/>
 
+            {/* Connections Dashboard */}
+            <ConnectionsInsightCard
+              correlations={connectionData}
+              memberDays={profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0}
+              onOpen={()=>setShowConnectionsView(true)}
+            />
+
             {/* This Week Rings */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week</div>
@@ -6817,6 +7165,17 @@ Rules:
           twStart={(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.toISOString().split('T')[0];})()}
           onClose={()=>setShowWeeklyReviewModal(false)}
           onApply={(newCals)=>{showToast(`Calorie target updated to ${newCals} kcal`,'success');}}
+        />
+      )}
+      {showConnectionsView&&(
+        <ConnectionsView
+          userId={user?.id}
+          onClose={()=>setShowConnectionsView(false)}
+          healthSnap={healthSnap}
+          workoutLogsRaw={workoutLogsRaw}
+          bodyweightLogs={bodyweightLogs}
+          consumed={consumed}
+          memberDays={profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0}
         />
       )}
       {!isOnline&&<div style={{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"rgba(254,160,32,0.12)",borderBottom:"1px solid rgba(254,160,32,0.2)",padding:"max(env(safe-area-inset-top),8px) 16px 8px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
