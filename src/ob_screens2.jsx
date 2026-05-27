@@ -66,6 +66,8 @@ import { getWin, checkStreakWins, markStreakWinShown } from "./services/winServi
 import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
 import { computeExpenditure, storeExpenditure, getExpenditureHistory, computeTodaysBurn, checkDataDrift } from "./services/expenditureService.js";
 import { runDailyValidationSuite, dismissInsight } from "./services/validationService.js";
+import { getAdaptiveFactors, detectSystematicBias, applyAdaptiveFactors, recalibrateFactors } from "./services/adaptiveLearningService.js";
+import { generateProactiveAdjustments } from "./services/predictiveService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1525,6 +1527,328 @@ function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLast
   );
 }
 
+// ── Confidence Dot ─────────────────────────────────────────────────────────────
+function ConfidenceDot({pct, explain}) {
+  const [show, setShow] = useState(false);
+  const color = pct >= 70 ? '#22c55e' : pct >= 40 ? '#f59e0b' : 'rgba(245,245,240,0.3)';
+  const label = pct >= 70 ? 'High confidence' : pct >= 40 ? 'Building confidence' : 'Low confidence';
+  return (
+    <span style={{position:'relative',display:'inline-flex',alignItems:'center',marginLeft:5}}>
+      <span onClick={()=>setShow(s=>!s)} style={{width:6,height:6,borderRadius:'50%',background:color,cursor:'pointer',flexShrink:0,display:'inline-block'}}/>
+      {show&&(
+        <span onClick={()=>setShow(false)} style={{position:'absolute',bottom:'calc(100% + 4px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',border:'1px solid rgba(245,245,240,0.1)',borderRadius:6,padding:'4px 8px',whiteSpace:'nowrap',zIndex:20,fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.7)',lineHeight:1.4,textAlign:'center',minWidth:110}}>
+          {label} · {pct}%{explain?`\n${explain}`:''}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ── Game Plan Card (Today tab) ─────────────────────────────────────────────────
+function GamePlanCard({items, onDismissItem}) {
+  if (!items?.length) return null;
+  const priorityColor = {high:'#f59e0b', medium:'var(--accent)', low:'rgba(245,245,240,0.35)'};
+  return (
+    <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:16}}>
+      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week's Game Plan</div>
+      {items.map((item, i) => (
+        <div key={i} style={{marginBottom: i < items.length - 1 ? 12 : 0}}>
+          {i > 0 && <div style={{height:1,background:'rgba(245,245,240,0.06)',marginBottom:12}}/>}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:15,color:'#f5f5f0',lineHeight:1.2,flex:1,paddingRight:8}}>{item.headline}</div>
+            <div style={{background:`${priorityColor[item.priority] || 'rgba(245,245,240,0.35)'}18`,border:`1px solid ${priorityColor[item.priority] || 'rgba(245,245,240,0.35)'}44`,borderRadius:4,padding:'1px 6px',fontFamily:"'DM Mono',monospace",fontSize:7,color:priorityColor[item.priority],textTransform:'uppercase',letterSpacing:'0.12em',flexShrink:0}}>{item.daysUntil===1?'tomorrow':`${item.daysUntil}d`}</div>
+          </div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:'rgba(245,245,240,0.65)',lineHeight:1.5,marginBottom:6}}>{item.body}</div>
+          <div style={{background:'rgba(var(--accent-rgb),0.06)',borderLeft:'2px solid rgba(var(--accent-rgb),0.4)',borderRadius:'0 6px 6px 0',padding:'6px 10px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:'rgba(245,245,240,0.7)',lineHeight:1.4,flex:1}}>{item.actionable}</span>
+            <button onClick={()=>onDismissItem&&onDismissItem(i)} style={{background:'none',border:'none',padding:'2px 6px',cursor:'pointer',fontFamily:"'DM Mono',monospace",fontSize:7,color:'rgba(245,245,240,0.25)',textTransform:'uppercase',letterSpacing:'0.1em',marginLeft:8,flexShrink:0}}>ok</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Weekly Review Modal ────────────────────────────────────────────────────────
+function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, onClose, onApply}) {
+  const [cardIdx, setCardIdx] = useState(0);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(false);
+  const touchStart = useRef(null);
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    const since = new Date(new Date(twStart).getTime() - 7 * 864e5).toISOString().split('T')[0];
+    const weekAgo = twStart;
+
+    Promise.all([
+      sb.from('food_logs').select('date,entries').eq('user_id', userId).gte('date', since),
+      sb.from('bodyweight_logs').select('weight,unit,created_at').eq('user_id', userId).gte('created_at', since).order('created_at'),
+      sb.from('validation_insights').select('*').eq('user_id', userId).gte('date_generated', weekAgo).order('created_at', {ascending: false}),
+      sb.from('personal_records').select('exercise_name,weight,reps,date').eq('user_id', userId).gte('date', weekAgo),
+    ]).then(([{data: food}, {data: bw}, {data: insights}, {data: prs}]) => {
+      setData(buildReviewData({food, bw, insights, prs, workoutLogsRaw, macros, profile, twStart}));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [userId, twStart]);
+
+  const cards = data ? buildCards(data, macros, profile) : [];
+  const total = cards.length;
+
+  function onTouchStart(e) { touchStart.current = e.touches[0].clientX; }
+  function onTouchEnd(e) {
+    if (!touchStart.current) return;
+    const dx = touchStart.current - e.changedTouches[0].clientX;
+    touchStart.current = null;
+    if (Math.abs(dx) < 40) return;
+    if (dx > 0 && cardIdx < total - 1) setCardIdx(i => i + 1);
+    else if (dx < 0 && cardIdx > 0) setCardIdx(i => i - 1);
+  }
+
+  async function handleApply() {
+    if (!data?.adjustment?.calorieDelta || !userId) { onClose(); return; }
+    setApplying(true);
+    try {
+      const newCals = (macros?.calories || 2000) + data.adjustment.calorieDelta;
+      await sb.from('profiles').upsert({
+        id: userId,
+        profile_data: { ...(profile || {}), goalCals: newCals },
+      }, { onConflict: 'id' });
+      onApply?.(newCals);
+    } catch {}
+    setApplying(false);
+    onClose();
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.96)',zIndex:10010,display:'flex',flexDirection:'column'}}
+      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'max(env(safe-area-inset-top),20px) 20px 16px'}}>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.16em',textTransform:'uppercase'}}>// Weekly Review</div>
+        <button onClick={onClose} style={{background:'none',border:'none',padding:4,cursor:'pointer',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',textTransform:'uppercase',letterSpacing:'0.1em'}}>close</button>
+      </div>
+
+      {/* Pip indicators */}
+      <div style={{display:'flex',gap:5,justifyContent:'center',marginBottom:16}}>
+        {Array.from({length: total}).map((_,i) => (
+          <div key={i} onClick={()=>setCardIdx(i)} style={{width: i===cardIdx?20:6,height:6,borderRadius:3,background: i===cardIdx?'var(--accent)':'rgba(245,245,240,0.15)',transition:'all 0.3s ease',cursor:'pointer'}}/>
+        ))}
+      </div>
+
+      {/* Card */}
+      <div style={{flex:1,overflowY:'auto',padding:'0 20px'}}>
+        {loading && (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh',flexDirection:'column',gap:12}}>
+            <div style={{width:24,height:24,borderRadius:'50%',border:'2px solid rgba(var(--accent-rgb),0.3)',borderTopColor:'var(--accent)',animation:'spin 0.9s linear infinite'}}/>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Loading your week…</div>
+          </div>
+        )}
+        {!loading && cards[cardIdx] && <ReviewCard card={cards[cardIdx]} isLast={cardIdx===total-1} onApply={handleApply} applying={applying} data={data}/>}
+      </div>
+
+      {/* Nav */}
+      {!loading && (
+        <div style={{display:'flex',justifyContent:'space-between',padding:'16px 20px max(env(safe-area-inset-bottom),24px)'}}>
+          <button onClick={()=>setCardIdx(i=>Math.max(0,i-1))} disabled={cardIdx===0}
+            style={{background:'none',border:'1px solid rgba(245,245,240,0.1)',borderRadius:8,padding:'8px 20px',cursor:cardIdx===0?'default':'pointer',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:700,fontSize:14,color:cardIdx===0?'rgba(245,245,240,0.15)':'rgba(245,245,240,0.5)'}}>
+            ← Back
+          </button>
+          {cardIdx < total - 1 ? (
+            <button onClick={()=>setCardIdx(i=>i+1)}
+              style={{background:'var(--accent)',border:'none',borderRadius:8,padding:'8px 24px',cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:14,color:'#000'}}>
+              Next →
+            </button>
+          ) : (
+            <button onClick={handleApply} disabled={applying}
+              style={{background:'var(--accent)',border:'none',borderRadius:8,padding:'8px 20px',cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:14,color:'#000'}}>
+              {applying ? 'Applying…' : data?.adjustment?.calorieDelta ? 'Apply Changes' : 'Done'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReviewCard({card, isLast, onApply, applying, data}) {
+  return (
+    <div style={{paddingBottom:20}}>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{card.eyebrow}</div>
+      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:28,color:'#f5f5f0',lineHeight:1.15,marginBottom:16}}>{card.headline}</div>
+      {card.body && <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:'rgba(245,245,240,0.75)',lineHeight:1.6,marginBottom:20}}>{card.body}</div>}
+      {(card.items||[]).map((item,i)=>(
+        <div key={i} style={{display:'flex',gap:10,marginBottom:10,alignItems:'flex-start'}}>
+          <div style={{width:6,height:6,borderRadius:'50%',background:item.color||'var(--accent)',marginTop:6,flexShrink:0}}/>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:'rgba(245,245,240,0.75)',lineHeight:1.5}}>{item.text}</div>
+        </div>
+      ))}
+      {card.stat && (
+        <div style={{display:'flex',gap:12,marginTop:16}}>
+          {card.stat.map(({label,value,color},i)=>(
+            <div key={i} style={{flex:1,background:'rgba(245,245,240,0.04)',borderRadius:10,padding:'12px 10px',textAlign:'center'}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:22,color:color||'#f5f5f0',lineHeight:1,marginBottom:4}}>{value}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:'rgba(245,245,240,0.3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {card.callout && (
+        <div style={{background:'rgba(var(--accent-rgb),0.07)',borderLeft:'3px solid var(--accent)',borderRadius:'0 10px 10px 0',padding:'12px 16px',marginTop:16}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:700,fontSize:15,color:'var(--accent)',marginBottom:4}}>{card.callout.label}</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:'rgba(245,245,240,0.75)',lineHeight:1.5}}>{card.callout.text}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function buildReviewData({food, bw, insights, prs, workoutLogsRaw, macros, profile, twStart}) {
+  const foodThisWeek  = (food||[]).filter(l => l.date >= twStart);
+  const bwThisWeek    = (bw||[]).filter(l => (l.created_at||'').slice(0,10) >= twStart);
+  const workThisWeek  = (workoutLogsRaw||[]).filter(l => l.date >= twStart);
+
+  const calTarget  = macros?.calories || 2000;
+  const protTarget = macros?.protein  || 150;
+
+  const dailyCals = foodThisWeek.map(l => (l.entries||[]).reduce((s,e)=>s+(e.calories||0),0)).filter(c=>c>0);
+  const dailyProt = foodThisWeek.map(l => (l.entries||[]).reduce((s,e)=>s+(e.protein||0),0));
+  const avgCals   = dailyCals.length ? dailyCals.reduce((s,v)=>s+v,0)/dailyCals.length : null;
+  const calHit    = dailyCals.filter(c => c >= calTarget*0.9).length;
+  const protHit   = dailyProt.filter(p => p >= protTarget*0.9).length;
+
+  const sessions    = workThisWeek.length;
+  const volumeTotal = workThisWeek.reduce((s,l)=>s+(l.volume_lbs||0),0);
+  const prCount     = (prs||[]).length;
+
+  // Weight trend
+  const wLbs = (bwThisWeek||[]).map(l => parseFloat(l.weight) * (l.unit==='kg'?2.205:1));
+  const wtChange = wLbs.length >= 2 ? wLbs[wLbs.length-1] - wLbs[0] : null;
+
+  // Top insight
+  const topInsight = (insights||[]).find(i => i.priority==='severe' || i.priority==='high') || (insights||[])[0];
+
+  // Single adjustment: calorie delta from top insight
+  let calorieDelta = null;
+  if (topInsight?.insight_type === 'calorie_intake') {
+    if (avgCals && avgCals < calTarget * 0.85) calorieDelta = 200;
+    else if (avgCals && avgCals > calTarget * 1.15) calorieDelta = -200;
+  } else if (topInsight?.insight_type === 'weight_trend') {
+    const goal = (profile?.goal||'').toLowerCase();
+    if (wtChange !== null && /cut|lose/.test(goal) && wtChange > 0) calorieDelta = -150;
+    else if (wtChange !== null && /gain|bulk/.test(goal) && wtChange < 0) calorieDelta = 200;
+  }
+
+  // Projected weight change for next week based on current TDEE
+  const projectedWeightChange = avgCals && calTarget
+    ? ((avgCals - calTarget) * 7 / 3500).toFixed(2)
+    : null;
+
+  return {sessions, volumeTotal, prCount, calHit, protHit, avgCals, calTarget, protTarget, wtChange,
+    topInsight, calorieDelta, projectedWeightChange, loggedDays: foodThisWeek.length,
+    insights: insights||[], prs: prs||[]};
+}
+
+function buildCards(d, macros, profile) {
+  const goal = (profile?.goal||'').toLowerCase();
+  const calDelta = d.calorieDelta;
+
+  // Card 1 — Headline
+  let headline, headlineBody;
+  const score = (d.calHit >= 5 ? 1 : 0) + (d.protHit >= 5 ? 1 : 0) + (d.sessions >= 3 ? 1 : 0) + (d.loggedDays >= 5 ? 1 : 0);
+  if (score >= 3) {
+    headline = "Strong week. Keep this going.";
+    headlineBody = `${d.sessions} training sessions, calories on target ${d.calHit} days, protein hit ${d.protHit} days. The compound effect of weeks like this is everything.`;
+  } else if (score === 2) {
+    headline = "Solid effort. One thing to tighten.";
+    headlineBody = d.topInsight
+      ? `${d.sessions} sessions logged. Main gap this week: ${d.topInsight.message?.slice(0,100)}`
+      : `${d.sessions} sessions logged. Consistency is the leverage — small improvements compound fast.`;
+  } else {
+    headline = d.sessions > 0 ? "Inconsistent week — but you showed up." : "Rough week. Reset starts now.";
+    headlineBody = "What you do this week determines next week's baseline. One consistent day at a time.";
+  }
+
+  const cards = [
+    { eyebrow: '01 / HEADLINE', headline, body: headlineBody,
+      stat: [
+        {label:'Sessions', value:d.sessions, color:d.sessions>=3?'#22c55e':'#f59e0b'},
+        {label:'Cal Days', value:`${d.calHit}/7`, color:d.calHit>=5?'#22c55e':'#f59e0b'},
+        {label:'PRs', value:d.prCount, color:d.prCount>0?'#22c55e':'rgba(245,245,240,0.4)'},
+      ]
+    },
+
+    // Card 2 — Wins
+    { eyebrow: '02 / WINS', headline: 'What went right.',
+      items: [
+        d.sessions >= 3 && {text:`${d.sessions} training sessions completed — consistency is the #1 driver of progress.`, color:'#22c55e'},
+        d.calHit >= 5  && {text:`Calorie target hit ${d.calHit}/7 days — nutritional compliance is excellent.`, color:'#22c55e'},
+        d.protHit >= 5 && {text:`Protein target hit ${d.protHit}/7 days — muscle is getting what it needs.`, color:'#22c55e'},
+        d.prCount > 0  && {text:`${d.prCount} new PR${d.prCount>1?'s':''} this week — progressive overload is working.`, color:'var(--accent)'},
+        d.loggedDays >= 6 && {text:`Logged ${d.loggedDays} days — data quality enables better coaching.`, color:'#22c55e'},
+      ].filter(Boolean).slice(0, 4)
+    },
+
+    // Card 3 — Friction
+    { eyebrow: '03 / FRICTION', headline: 'Where things slipped.',
+      items: [
+        d.sessions < 2   && {text:`Only ${d.sessions} sessions logged — ${d.sessions===0?'zero training means zero adaptation':'low frequency reduces stimulus below threshold'}.`, color:'#ef4444'},
+        d.calHit < 3     && {text:`Calorie target hit only ${d.calHit}/7 days — metabolic adaptation needs consistent fueling.`, color:'#f59e0b'},
+        d.protHit < 3    && {text:`Protein target hit only ${d.protHit}/7 days — insufficient for muscle retention during a cut.`, color:'#f59e0b'},
+        d.loggedDays < 4 && {text:`Only ${d.loggedDays} days logged — gaps in tracking make it impossible to optimize.`, color:'#f59e0b'},
+      ].filter(Boolean).slice(0, 4)
+    },
+
+    // Card 4 — Diagnosis
+    { eyebrow: '04 / DIAGNOSIS', headline: "What's actually happening.",
+      body: d.topInsight?.message || (
+        score >= 3
+          ? "All signals are aligned. Calorie balance, training load, and recovery are working together. No intervention needed — stay consistent."
+          : "Multiple variables are drifting slightly. No single point of failure, but small corrections across nutrition and training frequency would compound into significantly better outcomes."
+      ),
+      callout: d.topInsight ? {
+        label: 'Primary Signal',
+        text: d.topInsight.recommendation || 'Continue monitoring.'
+      } : null
+    },
+
+    // Card 5 — Adjustment (one change only)
+    { eyebrow: '05 / ADJUSTMENT', headline: 'One change for next week.',
+      body: calDelta
+        ? `${calDelta > 0 ? 'Increase' : 'Decrease'} daily calorie target by ${Math.abs(calDelta)} kcal. Current: ${macros?.calories||2000} kcal → Next week: ${(macros?.calories||2000) + calDelta} kcal.`
+        : d.protHit < 3
+          ? "Prioritize protein above everything else. Hit protein target before worrying about total calories or training. This is the highest-leverage change you can make."
+          : d.sessions < 2
+            ? "Add one more training session next week. Even 30 minutes counts. Frequency is more important than duration at this stage."
+            : "No caloric adjustment needed. The current target is appropriate — execution is the variable to improve.",
+      callout: calDelta ? {
+        label: calDelta > 0 ? 'Increase target' : 'Reduce target',
+        text: `Tap "Apply Changes" to update your calorie target to ${(macros?.calories||2000)+calDelta} kcal/day.`
+      } : null
+    },
+
+    // Card 6 — Forecast
+    { eyebrow: '06 / FORECAST', headline: 'What to expect next week.',
+      body: (() => {
+        const proj = parseFloat(d.projectedWeightChange||0);
+        const goal  = (profile?.goal||'').toLowerCase();
+        if (!d.projectedWeightChange) return "Not enough data yet to forecast. Log 7+ days of food and 3+ weight measurements for a personalized projection.";
+        const dir = proj > 0.1 ? 'gaining' : proj < -0.1 ? 'losing' : 'maintaining';
+        const rate = Math.abs(proj).toFixed(2);
+        const aligned = (/bulk|gain/.test(goal)&&proj>0) || (/cut|lose/.test(goal)&&proj<0) || /maintain/.test(goal);
+        return `Based on current intake vs TDEE, projecting ${dir} ~${rate} lbs next week. This is ${aligned ? 'aligned with' : 'opposite to'} your ${/bulk/.test(goal)?'bulk':/cut/.test(goal)?'cut':'recomp'} goal.${!aligned?' The calorie adjustment on the previous card addresses this.':''}`;
+      })(),
+      stat: d.projectedWeightChange !== null ? [
+        {label:'Proj. Change', value:`${parseFloat(d.projectedWeightChange)>0?'+':''}${d.projectedWeightChange} lbs`},
+        {label:'Cal Balance', value:`${d.avgCals&&d.calTarget?Math.round(d.avgCals-d.calTarget)>0?'+':''+(Math.round(d.avgCals-d.calTarget)):'—'} kcal/d`},
+      ] : []
+    },
+  ];
+
+  return cards.filter(c => (c.items||[undefined]).length > 0 || c.body || c.headline);
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -1642,6 +1966,13 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [metabolicAdaptation,setMetabolicAdaptation]=useState(null);
   const [showAdaptationModal,setShowAdaptationModal]=useState(false);
   const [adaptationChecking,setAdaptationChecking]=useState(false);
+
+  // ── Weekly Review Modal ────────────────────────────────────────────────────
+  const [showWeeklyReviewModal,setShowWeeklyReviewModal]=useState(false);
+
+  // ── Proactive Game Plan ───────────────────────────────────────────────────
+  const [gamePlanItems,setGamePlanItems]=useState(()=>{try{const k='cm_gameplan_'+new Date().toISOString().split('T')[0];return JSON.parse(localStorage.getItem(k)||'[]');}catch{return[];}});
+  const [dismissedGamePlan,setDismissedGamePlan]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('cm_gp_dismissed')||'[]'));}catch{return new Set();}});
 
   // ── Feature Unlock System ──────────────────────────────────────────────────
   const [showAppTour,setShowAppTour]=useState(false);
@@ -1994,7 +2325,34 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       }catch(e){console.error("[calendar]",e);}
     }
     loadCalendar();
+    // Proactive adjustments — game plan from calendar events
+    if(user?.id&&profile){
+      generateProactiveAdjustments(user.id,profile).then(items=>{
+        if(!items?.length)return;
+        const today=new Date().toISOString().split('T')[0];
+        try{localStorage.setItem('cm_gameplan_'+today,JSON.stringify(items));}catch{}
+        setGamePlanItems(items);
+      }).catch(()=>{});
+    }
   },[calendarConnected,user,schedule]);
+
+  // ── Weekly review trigger — Monday first open or Sunday evening ───────────
+  useEffect(()=>{
+    if(!user?.id||!workoutLogsRaw?.length)return;
+    const now=new Date();
+    const dow=now.getDay(); // 0=Sun, 1=Mon
+    const hour=now.getHours();
+    const isTriggerTime=(dow===1&&hour<12)||(dow===0&&hour>=17);
+    if(!isTriggerTime)return;
+    const twStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.toISOString().split('T')[0];})();
+    const seenKey='cm_wr_seen_'+twStart;
+    if(localStorage.getItem(seenKey)==='1')return;
+    // Only show if at least 3 sessions or 5 logged days this past week
+    const sessions=(workoutLogsRaw||[]).filter(l=>l.date>=twStart).length;
+    if(sessions<1)return;
+    localStorage.setItem(seenKey,'1');
+    setShowWeeklyReviewModal(true);
+  },[user?.id,workoutLogsRaw?.length]);
 
   async function generateTravelNutritionAdvice(travelEvent,prof){
     if(!prof)return null;
@@ -3322,6 +3680,23 @@ Rules:
           />
         )}
 
+        {/* ── PROACTIVE GAME PLAN ── */}
+        {gamePlanItems.filter((_,i)=>!dismissedGamePlan.has(i)).length>0&&(
+          <GamePlanCard
+            items={gamePlanItems.filter((_,i)=>!dismissedGamePlan.has(i))}
+            onDismissItem={(idx)=>{
+              const realIdx=gamePlanItems.findIndex((_,i)=>!dismissedGamePlan.has(i)&&gamePlanItems.indexOf(gamePlanItems.filter((_,j)=>!dismissedGamePlan.has(j))[idx])===i);
+              const next=new Set(dismissedGamePlan);
+              // find the actual index in the original array for this filtered-idx item
+              let count=0;
+              for(let i=0;i<gamePlanItems.length;i++){
+                if(!dismissedGamePlan.has(i)){if(count===idx){next.add(i);break;}count++;}
+              }
+              setDismissedGamePlan(next);
+              try{localStorage.setItem('cm_gp_dismissed',JSON.stringify([...next]));}catch{}
+            }}
+          />
+        )}
 
         {/* Morning Adjustment Banner — with Biological Algorithm personalization */}
         {healthSnap&&(()=>{
@@ -4415,25 +4790,37 @@ Rules:
     useEffect(() => {
       if (!user?.id || !profile) return;
       const todayStr = new Date().toISOString().split('T')[0];
-      const result = computeExpenditure(bodyweightLogs, progFoodLogs, profile);
+      const rawResult = computeExpenditure(bodyweightLogs, progFoodLogs, profile);
       const todayWorkouts = (workoutLogsRaw || []).filter(l => l.date === todayStr);
       const todayActivities = (allActs || []).filter(a => {
         const d = (a.date || '').split('T')[0];
         return d === todayStr;
       });
-      const burn = computeTodaysBurn(todayWorkouts, todayActivities, healthSnap, profile, result.tef);
-      setExpenditure({ ...result, todaysBurn: burn });
-      storeExpenditure(user.id, result, burn)
-        .then(() => getExpenditureHistory(user.id, 30))
+      const burn = computeTodaysBurn(todayWorkouts, todayActivities, healthSnap, profile, rawResult.tef);
+      const rawWithBurn = { ...rawResult, todaysBurn: burn };
+
+      // Load adaptive factors, apply, then store
+      getAdaptiveFactors(user.id).then(factors => {
+        setAdaptiveFactors(factors);
+        const adjusted = applyAdaptiveFactors(rawWithBurn, factors);
+        setExpenditure(adjusted);
+        return storeExpenditure(user.id, adjusted, adjusted.todaysBurn);
+      }).then(() => getExpenditureHistory(user.id, 30))
         .then(hist => {
           setExpenditureHistory(hist);
           setDataDrift(checkDataDrift(hist));
+          // Weekly adaptive recalibration (debounced to once/week inside the service)
+          recalibrateFactors(user.id).catch(() => {});
         })
-        .catch(() => {});
+        .catch(() => {
+          // Fallback: use raw without factors
+          setExpenditure(rawWithBurn);
+        });
     }, [user?.id, progFoodLogs, bodyweightLogs, healthSnap?.steps, workoutLogsRaw?.length]);
 
     const [validationInsights, setValidationInsights] = useState([]);
     const [insightLoading, setInsightLoading] = useState(false);
+    const [adaptiveFactors, setAdaptiveFactors] = useState(null);
 
     useEffect(() => {
       if (!user?.id || !profile) return;
@@ -4752,10 +5139,11 @@ Rules:
                 </>
               ) : (
                 <>
-                  <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1}}>
-                    {tdeeDisplay}<span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.45)",fontStyle:"normal",marginLeft:4}}>kcal/day</span>
+                  <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1,display:"flex",alignItems:"center",gap:6}}>
+                    {tdeeDisplay}<span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.45)",fontStyle:"normal"}}>kcal/day</span>
+                    <ConfidenceDot pct={exp.confidence.score??{building:15,low:35,medium:60,high:85}[exp.confidence.level]??50} explain={exp.factorsApplied?"Adaptive factors applied":"Based on logged data"}/>
                   </div>
-                  <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>14-day adaptive TDEE</div>
+                  <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>14-day adaptive TDEE{exp.factorsApplied?" · personalized":""}</div>
                 </>
               )}
             </div>
@@ -5015,6 +5403,13 @@ Rules:
               macros={macros}
               user={user}
             />}
+            {workoutLogsRaw.length>0&&(
+              <div style={{margin:"-4px 16px 14px",display:"flex",justifyContent:"flex-end"}}>
+                <button onClick={()=>setShowWeeklyReviewModal(true)} style={{background:"none",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"5px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--accent-rgb),0.7)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
+                  Full Weekly Review →
+                </button>
+              </div>
+            )}
             {/* Empty state — fewer than 3 sessions */}
             {workoutLogsRaw.length<3&&(
               <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:16}}>
@@ -5879,6 +6274,17 @@ Rules:
           adaptation={metabolicAdaptation}
           onStartProtocol={handleStartMetabolicProtocol}
           onDismiss={()=>setShowAdaptationModal(false)}
+        />
+      )}
+      {showWeeklyReviewModal&&(
+        <WeeklyReviewModal
+          userId={user?.id}
+          profile={profile}
+          macros={macros}
+          workoutLogsRaw={workoutLogsRaw}
+          twStart={(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.toISOString().split('T')[0];})()}
+          onClose={()=>setShowWeeklyReviewModal(false)}
+          onApply={(newCals)=>{showToast(`Calorie target updated to ${newCals} kcal`,'success');}}
         />
       )}
       {!isOnline&&<div style={{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"rgba(254,160,32,0.12)",borderBottom:"1px solid rgba(254,160,32,0.2)",padding:"max(env(safe-area-inset-top),8px) 16px 8px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
