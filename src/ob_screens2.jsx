@@ -72,6 +72,7 @@ import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMe
 import { detectActivePatterns, generateIntervention, recordPatternDetection, dismissPattern, trackInterventionOutcome, FAILURE_PATTERNS } from "./services/failurePatternService.js";
 import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOverride, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
 import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META } from "./services/connectionsService.js";
+import { runOutreachCheck, calibrateFrequency } from "./services/outreachService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -3133,6 +3134,19 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     if(!user?.id)return;
     detectPrimaryPersonality(user.id).then(p=>{if(p)setPersonalityProfile(p);}).catch(()=>{});
   },[user?.id]);
+
+  // ── Outreach intelligence — debounced 4h, fires on app foreground ──────────
+  useEffect(()=>{
+    if(!user?.id||!profile?.created_at)return;
+    const memberDays=Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5);
+    runOutreachCheck(user.id,{
+      workoutLogs: workoutLogsRaw||[],
+      bodyweightLogs: bodyweightLogs||[],
+      macros,
+      memberDays,
+    }).catch(()=>{});
+    calibrateFrequency(user.id).catch(()=>{});
+  },[user?.id,profile?.created_at]);
 
   // ── Failure pattern detection — runs once on load, needs 30+ member days ──
   useEffect(()=>{

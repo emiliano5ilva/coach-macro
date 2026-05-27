@@ -42,6 +42,7 @@ import { getTodaySoreness } from "./services/sorenessService.js";
 import { getProgramImage } from "./data/programImages.js";
 import { triggerEventUnlock } from "./services/featureUnlockService.js";
 import { ACCENT_COLORS, BG_COLORS, isCompatible, isLightBg, applyTheme } from "./utils/themeService.js";
+import { getOutreachPreferences, saveOutreachPreferences, TRIGGER_CATEGORIES, DEFAULT_PREFS } from "./services/outreachService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -5140,6 +5141,123 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
   );
 }
 
+// ─── COACH OUTREACH SECTION ───────────────────────────────────────────────────
+
+function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
+  const [prefs, setPrefs] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getOutreachPreferences(user.id).then(p => setPrefs({ ...DEFAULT_PREFS, ...p }));
+  }, [user?.id]);
+
+  async function save(newPrefs) {
+    if (!user?.id) return;
+    setPrefs(newPrefs);
+    setSaving(true);
+    await saveOutreachPreferences(user.id, newPrefs);
+    setSaving(false);
+    showToast("Saved", "success");
+  }
+
+  if (!prefs) return null;
+
+  const toggleSwitch = (val, key, nested) => {
+    const next = nested
+      ? { ...prefs, [nested]: { ...(prefs[nested] || {}), [key]: val } }
+      : { ...prefs, [key]: val };
+    save(next);
+  };
+
+  function ToggleRow({ label, value, onChange, isLast, sub }) {
+    return (
+      <div style={{ padding: "12px 16px", borderBottom: isLast ? "none" : "1px solid rgba(245,245,240,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0" }}>{label}</div>
+          {sub && <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.35)", marginTop: 2, letterSpacing: "0.06em" }}>{sub}</div>}
+        </div>
+        <div onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 12, background: value ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+          <div style={{ position: "absolute", top: 3, left: value ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+        </div>
+      </div>
+    );
+  }
+
+  const FREQ_LABELS = ["Off", "1/day", "2/day", "3/day"];
+  const hourLabel = h => { const ampm = h >= 12 ? "pm" : "am"; const h12 = h % 12 || 12; return `${h12}${ampm}`; };
+
+  return (
+    <>
+      <div style={eyebrowStyle}>// Coach Outreach</div>
+      {/* Master toggle */}
+      <div style={cardStyle}>
+        <ToggleRow
+          label="Coach Notifications"
+          sub="Intelligent, specific outreach — not generic reminders"
+          value={prefs.enabled}
+          onChange={v => toggleSwitch(v, 'enabled')}
+        />
+        {prefs.enabled && (
+          <>
+            {/* Frequency */}
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(245,245,240,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0" }}>Frequency</div>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "rgba(245,245,240,0.5)" }}>{FREQ_LABELS[prefs.max_per_day] || "Custom"}</span>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[0, 1, 2, 3].map(n => (
+                  <button key={n} onClick={() => save({ ...prefs, max_per_day: n })} style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: prefs.max_per_day === n ? "rgba(var(--accent-rgb),0.2)" : "rgba(245,245,240,0.06)", border: `1px solid ${prefs.max_per_day === n ? "rgba(var(--accent-rgb),0.5)" : "rgba(245,245,240,0.1)"}`, color: prefs.max_per_day === n ? "var(--accent)" : "rgba(245,245,240,0.5)", fontFamily: "var(--mono)", fontSize: 10, fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>
+                    {FREQ_LABELS[n]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Quiet hours */}
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(245,245,240,0.06)" }}>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0", marginBottom: 2 }}>Quiet Hours</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.35)", marginBottom: 10, letterSpacing: "0.06em" }}>No notifications during this window</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <select value={prefs.quiet_start} onChange={e => save({ ...prefs, quiet_start: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(245,245,240,0.06)", border: "1px solid rgba(245,245,240,0.12)", borderRadius: 8, color: "#f5f5f0", fontFamily: "var(--mono)", fontSize: 11, cursor: "pointer" }}>
+                  {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+                </select>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "rgba(245,245,240,0.35)" }}>to</span>
+                <select value={prefs.quiet_end} onChange={e => save({ ...prefs, quiet_end: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(245,245,240,0.06)", border: "1px solid rgba(245,245,240,0.12)", borderRadius: 8, color: "#f5f5f0", fontFamily: "var(--mono)", fontSize: 11, cursor: "pointer" }}>
+                  {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+                </select>
+              </div>
+            </div>
+            {/* Critical override */}
+            <ToggleRow
+              label="Critical Alerts Always On"
+              sub="Overtraining, dangerous patterns — bypasses quiet hours"
+              value={prefs.critical_override !== false}
+              onChange={v => toggleSwitch(v, 'critical_override')}
+            />
+            {/* Per-category toggles */}
+            <div style={{ padding: "10px 16px 6px", borderTop: "1px solid rgba(245,245,240,0.06)" }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(245,245,240,0.35)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8 }}>// Notification Types</div>
+              {Object.entries(TRIGGER_CATEGORIES).map(([key, label], i, arr) => {
+                const val = prefs.categories?.[key] ?? true;
+                return (
+                  <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: i < arr.length - 1 ? 10 : 4 }}>
+                    <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: "rgba(245,245,240,0.8)" }}>{label}</span>
+                    <div onClick={() => toggleSwitch(!val, key, 'categories')} style={{ width: 40, height: 22, borderRadius: 11, background: val ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: val ? 19 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+      {saving && <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.3)", textAlign: "center", marginTop: 4, letterSpacing: "0.1em" }}>saving…</div>}
+    </>
+  );
+}
+
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
 export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury}) {
   const [delStep,setDelStep]=useState(0);
@@ -5580,6 +5698,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </div>
         )}
       </div>
+
+      {/* ── COACH OUTREACH ── */}
+      <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
 
       {/* ── ACCOUNT ── */}
       <div style={eyebrowStyle}>// Account</div>
