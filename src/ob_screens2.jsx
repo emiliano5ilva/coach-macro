@@ -74,6 +74,8 @@ import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOv
 import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META } from "./services/connectionsService.js";
 import { runOutreachCheck, calibrateFrequency } from "./services/outreachService.js";
 import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, getPercentileLabel, interpolatePercentile } from "./services/peerComparisonService.js";
+import { getUserMode, getUserTier, getVisibleSections, getProgressTabs } from "./utils/dashboardResolver.js";
+import { COACH_SCORE_LABELS, RING_CONFIG } from "./config/dashboardConfig.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -2917,6 +2919,112 @@ function YourPatternsCard({userId}) {
   );
 }
 
+// ─── BodyStatusBar — tier-adaptive health strip ───────────────────────────────
+function BodyStatusBar({ tier, healthSnap }) {
+  if (!healthSnap) return null;
+  const hasAny = healthSnap.sleep != null || healthSnap.rhr != null || healthSnap.hrv != null || healthSnap.steps != null || healthSnap.calories != null;
+  if (!hasAny) return null;
+
+  if (tier === 'beginner') {
+    const sl = healthSnap.sleep;
+    const energyLevel = sl == null ? 'ok' : sl >= 7 ? 'good' : sl >= 6 ? 'ok' : 'low';
+    const dotColors  = { good: '#22c55e', ok: '#FEA020', low: '#EF4444' };
+    const bodyLabels = { good: 'Energy looks good — ready to train.', ok: 'Moderate energy. Train smart today.', low: 'Low energy today. Listen to your body.' };
+    return (
+      <div style={{margin:"0 20px 12px",padding:"10px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:8,height:8,borderRadius:"50%",background:dotColors[energyLevel],flexShrink:0}}/>
+        <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.6)"}}>{bodyLabels[energyLevel]}</div>
+      </div>
+    );
+  }
+
+  if (tier === 'intermediate') {
+    const sl = healthSnap.sleep;
+    const recoveryOk = sl == null ? null : sl >= 7;
+    const rhrOk = healthSnap.rhr == null ? null : healthSnap.rhr <= 65;
+    const metrics = [
+      sl   != null && { label:'Sleep',    value:`${sl}h`,                     ok: sl >= 7 },
+      healthSnap.rhr  != null && { label:'RHR',     value:`${healthSnap.rhr}bpm`,         ok: healthSnap.rhr <= 65 },
+      healthSnap.hrv  != null && { label:'HRV',     value:`${healthSnap.hrv}ms`,          ok: healthSnap.hrv >= 50 },
+    ].filter(Boolean).slice(0, 3);
+    if (!metrics.length) return null;
+    return (
+      <div style={{margin:"0 20px 12px",padding:"10px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,display:"flex",justifyContent:"space-around"}}>
+        {metrics.map(m => (
+          <div key={m.label} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,color:m.ok?"#22c55e":"#FEA020",lineHeight:1}}>{m.value}</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // advanced — full strip (identical to original Apple Health Strip)
+  return (
+    <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(255,69,58,0.06)",border:"1px solid rgba(255,69,58,0.18)",borderRadius:14,display:"flex",gap:0,overflowX:"auto"}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:0,display:"flex",gap:16,alignItems:"center",flexShrink:0}}>
+        {healthSnap.sleep!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
+          <span style={{fontSize:16}}>😴</span>
+          <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.sleep}h</span>
+          <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Sleep</span>
+        </div>}
+        {healthSnap.rhr!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
+          <span style={{fontSize:16}}>❤️</span>
+          <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.rhr}</span>
+          <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>RHR</span>
+        </div>}
+        {healthSnap.hrv!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
+          <span style={{fontSize:16}}>⚡</span>
+          <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.hrv}ms</span>
+          <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>HRV</span>
+        </div>}
+        {healthSnap.steps!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:52}}>
+          <span style={{fontSize:16}}>👟</span>
+          <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.steps>=1000?(healthSnap.steps/1000).toFixed(1)+"k":healthSnap.steps}</span>
+          <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Steps</span>
+        </div>}
+        {healthSnap.calories!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:52}}>
+          <span style={{fontSize:16}}>🔥</span>
+          <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.calories}</span>
+          <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Active</span>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── CoachAlertsStream — show top alert, collapse the rest ────────────────────
+function CoachAlertsStream({ userMode, children }) {
+  const [expanded, setExpanded] = useState(false);
+  const valid = React.Children.toArray(children).filter(Boolean);
+  if (!valid.length) return null;
+  const [top, ...rest] = valid;
+  return (
+    <>
+      {top}
+      {rest.length > 0 && !expanded && (
+        <div
+          onClick={() => setExpanded(true)}
+          style={{margin:"0 20px 6px",padding:"10px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:10,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}
+        >
+          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.12em"}}>{rest.length} more alert{rest.length>1?"s":""} below</span>
+          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>SHOW ↓</span>
+        </div>
+      )}
+      {expanded && rest}
+      {expanded && rest.length > 0 && (
+        <div
+          onClick={() => setExpanded(false)}
+          style={{margin:"0 20px 6px",padding:"8px 14px",cursor:"pointer",textAlign:"center"}}
+        >
+          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.12em"}}>COLLAPSE ↑</span>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -4649,6 +4757,10 @@ Rules:
     if (!dashboardLoaded && log.length === 0 && workoutLogsRaw.length === 0) {
       return <DashboardSkeleton/>;
     }
+    const userMode = getUserMode(profile, wPrefs);
+    const userTier = getUserTier(profile, wPrefs, userMode);
+    const _userData = { profile, wPrefs };
+    const visibleSections = getVisibleSections('today', userTier, userMode, _userData);
     let homStreak=0;
     for(let i=0;i<30;i++){
       const d=new Date();d.setDate(d.getDate()-i);
@@ -4716,38 +4828,8 @@ Rules:
           </div>
         </div>
 
-        {/* Apple Health Strip */}
-        {healthSnap&&(healthSnap.sleep!=null||healthSnap.rhr!=null||healthSnap.hrv!=null||healthSnap.steps!=null||healthSnap.calories!=null)&&(
-          <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(255,69,58,0.06)",border:"1px solid rgba(255,69,58,0.18)",borderRadius:14,display:"flex",gap:0,overflowX:"auto"}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:0,display:"flex",gap:16,alignItems:"center",flexShrink:0}}>
-              {healthSnap.sleep!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
-                <span style={{fontSize:16}}>😴</span>
-                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.sleep}h</span>
-                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Sleep</span>
-              </div>}
-              {healthSnap.rhr!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
-                <span style={{fontSize:16}}>❤️</span>
-                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.rhr}</span>
-                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>RHR</span>
-              </div>}
-              {healthSnap.hrv!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44}}>
-                <span style={{fontSize:16}}>⚡</span>
-                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.hrv}ms</span>
-                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>HRV</span>
-              </div>}
-              {healthSnap.steps!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:52}}>
-                <span style={{fontSize:16}}>👟</span>
-                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.steps>=1000?(healthSnap.steps/1000).toFixed(1)+"k":healthSnap.steps}</span>
-                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Steps</span>
-              </div>}
-              {healthSnap.calories!=null&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:52}}>
-                <span style={{fontSize:16}}>🔥</span>
-                <span style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,color:"var(--white)",lineHeight:1}}>{healthSnap.calories}</span>
-                <span style={{fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Active</span>
-              </div>}
-            </div>
-          </div>
-        )}
+        {/* BodyStatusBar — tier-adaptive health display */}
+        <BodyStatusBar tier={userTier} healthSnap={healthSnap} />
 
         {/* ── METABOLIC ADAPTATION BANNER ── */}
         {metabolicAdaptation&&metabolicAdaptation.status==="detected"&&(
@@ -4833,105 +4915,8 @@ Rules:
           />
         )}
 
-        {/* Morning Adjustment Banner — with Biological Algorithm personalization */}
-        {healthSnap&&(()=>{
-          const adj=getMorningAdjustment({sleep:healthSnap.sleep,hrv:healthSnap.hrv});
-          const sleepInsight=bioInsights?.sleep_performance?.insight_value;
-          const sleepHours=healthSnap.sleep;
 
-          // Personalized bio insight overrides generic banner when available
-          if(sleepInsight&&sleepHours!=null){
-            const sweet=sleepInsight.sweetSpotKey;
-            const belowSweet=(sweet==="over_8"&&sleepHours<8)||(sweet==="7_to_8"&&sleepHours<7)||(sweet==="6_to_7"&&sleepHours<6);
-            const perfImp=sleepInsight.performanceImprovement||0;
-            if(belowSweet&&perfImp>5){
-              const expectedDrop=Math.round(perfImp*((sleepInsight.sweetSpotKey==="over_8"?8:sleepInsight.sweetSpotKey==="7_to_8"?7.5:6.5)-sleepHours)/1.5);
-              return(
-                <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:12,display:"flex",gap:10,alignItems:"flex-start"}}>
-                  <span style={{fontSize:20,flexShrink:0}}>💤</span>
-                  <div>
-                    <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:"#EF4444"}}>Below YOUR Sleep Sweet Spot</div>
-                    <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>
-                      You slept {parseFloat(sleepHours).toFixed(1)}h — below your personal {sleepInsight.sweetSpot} sweet spot. Expect ~{Math.max(5,expectedDrop)}% lower performance today. Session adjusted.
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            if(!belowSweet&&adj.type==="normal"){
-              return(
-                <div style={{margin:"0 20px 12px",padding:"12px 14px",background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
-                  <span style={{fontSize:20}}>🧬</span>
-                  <div>
-                    <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:T.green}}>In Your Sweet Spot</div>
-                    <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>
-                      {parseFloat(sleepHours).toFixed(1)}h sleep — your personal optimal. Based on YOUR data: expect strong performance today.
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-          }
 
-          if(adj.type==="normal")return null;
-          const isReduce=adj.type==="reduce";
-          return(
-            <div style={{margin:"0 20px 12px",padding:"12px 14px",background:isReduce?"rgba(239,68,68,0.08)":"rgba(34,197,94,0.08)",border:`1px solid ${isReduce?"rgba(239,68,68,0.25)":"rgba(34,197,94,0.25)"}`,borderRadius:12,display:"flex",gap:10,alignItems:"center"}}>
-              <span style={{fontSize:20}}>{isReduce?"⚡":"🔥"}</span>
-              <div>
-                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:isReduce?"#EF4444":T.green}}>{isReduce?"Reduce Intensity Today":"Peak Recovery — Push Hard"}</div>
-                <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1}}>{adj.reason}</div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Trial expiry banner — shows 3 days before trial ends */}
-        {trialExpiringSoon(profile)&&(()=>{
-          const days=trialDaysRemaining(profile);
-          return(
-            <div style={{margin:"0 20px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(var(--accent-rgb),0.15) 0%,rgba(var(--accent-rgb),0.05) 100%)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div>
-                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:4}}>// TRIAL ENDING</div>
-                <div style={{fontSize:13,color:"#f5f5f0"}}>Your free trial ends in {days} day{days===1?"":"s"}.</div>
-              </div>
-              <button onClick={()=>window.dispatchEvent(new CustomEvent("cm:subscription-required"))} style={{background:"var(--accent)",border:"none",borderRadius:8,padding:"7px 12px",fontFamily:"var(--mono)",fontSize:9,color:"#fff",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0,marginLeft:12}}>UPGRADE →</button>
-            </div>
-          );
-        })()}
-
-        {/* Graduation Prompt */}
-        {(()=>{
-          if(graduationDismissed)return null;
-          const sl=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();
-          if(sl!=='beginner')return null;
-          if(workoutLogsRaw.length<10)return null;
-          const daysSince=profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at))/864e5):0;
-          if(daysSince<30)return null;
-          const key=`graduation_${user?.id}`;
-          if(localStorage.getItem(key))return null;
-          return(
-            <div style={{margin:"0 20px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(254,160,32,0.2)",borderRadius:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LEVEL UP?</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>YOU'VE BEEN AT THIS A MONTH<span style={{color:"#FEA020"}}>.</span></div>
-              <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:14}}>Want to unlock more advanced stats and coaching? You've earned it.</div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={async()=>{
-                  const newWp={...wPrefs,liftExp:"intermediate"};
-                  setWPrefs(newWp);
-                  if(user){await sb.from("profiles").upsert({id:user.id,wprefs:newWp},{onConflict:"id"});}
-                  setGraduationDismissed(true);
-                  if(user)localStorage.setItem(`graduation_${user.id}`,new Date().toISOString().split("T")[0]);
-                  showToast("Upgraded to Intermediate view!","success");
-                }} style={{flex:2,padding:"12px 0",background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>UPGRADE MY VIEW →</button>
-                <button onClick={()=>{
-                  setGraduationDismissed(true);
-                  if(user)localStorage.setItem(`graduation_${user.id}`,new Date(Date.now()+30*864e5).toISOString().split("T")[0]);
-                }} style={{flex:1,padding:"12px 0",background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>KEEP IT SIMPLE</button>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Streak counter + StreakCard */}
         {(()=>{
@@ -5182,6 +5167,9 @@ Rules:
           );
         })()}
 
+
+        {/* ── COACH ALERTS STREAM ── */}
+        <CoachAlertsStream userMode={userMode}>
 
         {/* ── DELOAD DETECTION ── */}
         {!deloadActive&&(()=>{
@@ -5478,6 +5466,8 @@ Rules:
           </div>
         ))}
 
+        </CoachAlertsStream>
+
         {/* Today's session — STATE B (deload active) or normal */}
         {deloadActive
           ?(
@@ -5561,29 +5551,6 @@ Rules:
           </div>
         </div>
 
-        {/* Compact Coach Score + macro ring row */}
-        {coachScore&&(
-          <div style={{margin:"0 20px 14px",display:"flex",gap:10}}>
-            <div onClick={()=>setSection("progress")} style={{flex:"0 0 auto",padding:"12px 14px",background:"var(--navy-card)",border:`1px solid ${coachScore.total>=90?"var(--red)":"var(--white-border)"}`,borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer",minWidth:88,boxShadow:coachScore.total>=90?"0 0 20px rgba(var(--accent-rgb),0.35)":"none",transition:"box-shadow 0.3s"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--white-faint)",textTransform:"uppercase"}}>Score</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:38,lineHeight:1,color:coachScore.total>=90?"#FFD700":coachScore.total>=85?"var(--green)":coachScore.total>=70?"var(--amber)":"var(--red)"}}>{coachScore.total}</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"var(--white-faint)",letterSpacing:"0.1em"}}>TAP TO EXPAND</div>
-            </div>
-            <div style={{flex:1,padding:"12px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,display:"flex",flexDirection:"column",gap:6,justifyContent:"center"}}>
-              {[["Recovery",coachScore.r],[" Nutrition",coachScore.n],["Training",coachScore.t],["Consistency",coachScore.c]].map(([l,v])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{l}</div>
-                  <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                    <div style={{width:48,height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${v}%`,background:v>=80?"var(--green)":v>=60?"var(--amber)":"var(--red)",borderRadius:2,transition:"width 0.6s"}}/>
-                    </div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",minWidth:20,textAlign:"right"}}>{v}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Dual rings */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"0 20px 14px"}}>
@@ -5617,22 +5584,34 @@ Rules:
           </div>
         </div>
 
-        {/* Weekly roadmap */}
-        <div className="section-title">This Week</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,margin:"0 20px 14px"}}>
-          {weekDays.map((day,i)=>{
-            const type=schedule[day]||"rest";
-            const isToday2=day===todayKey;
-            const colors={training:"var(--red)",cardio:"var(--blue)",run:"var(--blue)",hyrox:"var(--amber)",rest:"rgba(245,245,240,0.06)"};
-            const c=colors[type]||colors.rest;
-            return (
-              <div key={i} style={{aspectRatio:"1",borderRadius:10,background:isToday2?c:(type==="rest"?colors.rest:`${c}22`),border:"1px solid "+(isToday2?"transparent":(type==="rest"?"var(--white-border)":`${c}55`)),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:10,color:type==="rest"?"var(--white-faint)":"var(--white)",letterSpacing:"0.06em"}}>{weekDayLetters[i]}</div>
-                {isToday2&&<div style={{width:5,height:5,borderRadius:"50%",background:"white"}}/>}
+        {/* Weekly roadmap — intermediate/advanced: 7-day grid. beginner: next session hint */}
+        {userTier==='beginner'
+          ?(
+            <div style={{margin:"0 20px 14px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NEXT SESSION</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{todayFocus||"Training Day"}<span style={{color:"var(--accent)"}}>.</span></div>
+              <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",marginTop:4}}>Go to the Train tab to start your session.</div>
+            </div>
+          ):(
+            <>
+              <div className="section-title">This Week</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,margin:"0 20px 14px"}}>
+                {weekDays.map((day,i)=>{
+                  const type=schedule[day]||"rest";
+                  const isToday2=day===todayKey;
+                  const colors={training:"var(--red)",cardio:"var(--blue)",run:"var(--blue)",hyrox:"var(--amber)",rest:"rgba(245,245,240,0.06)"};
+                  const c=colors[type]||colors.rest;
+                  return (
+                    <div key={i} style={{aspectRatio:"1",borderRadius:10,background:isToday2?c:(type==="rest"?colors.rest:`${c}22`),border:"1px solid "+(isToday2?"transparent":(type==="rest"?"var(--white-border)":`${c}55`)),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:10,color:type==="rest"?"var(--white-faint)":"var(--white)",letterSpacing:"0.06em"}}>{weekDayLetters[i]}</div>
+                      {isToday2&&<div style={{width:5,height:5,borderRadius:"50%",background:"white"}}/>}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            </>
+          )
+        }
 
         {/* Macros */}
         <div className="section-title">Macros Today</div>
@@ -5650,8 +5629,8 @@ Rules:
           ))}
         </div>
 
-        {/* ── FUTURE SECTION ── */}
-        {(sessionPrediction||weeklyForecast.length>0||goalTrajectories.strength||goalTrajectories.bodyComp)&&(()=>{
+        {/* ── FUTURE SECTION — advanced only ── */}
+        {visibleSections.includes('predictive_intelligence')&&(sessionPrediction||weeklyForecast.length>0||goalTrajectories.strength||goalTrajectories.bodyComp)&&(()=>{
           const todayProb=sessionPrediction?.probability??weeklyForecast.find(d=>d.isTraining&&d.probability!=null)?.probability;
           const probColor=todayProb>=75?T.green:todayProb>=50?"#3b82f6":T.fat;
           const trainingDays=weeklyForecast.filter(d=>d.isTraining&&d.probability!=null);
@@ -5908,6 +5887,10 @@ Rules:
     const sc = coachScore;
     const activeTab = progressTab;
     const setActiveTab = setProgressTab;
+    const userMode = getUserMode(profile, wPrefs);
+    const userTier = getUserTier(profile, wPrefs, userMode);
+    const progressTabs = getProgressTabs(userTier, userMode);
+    const scoreLabels = COACH_SCORE_LABELS[userMode] || COACH_SCORE_LABELS.strength;
     const [progFoodLogs, setProgFoodLogs] = useState([]);
 
     useEffect(()=>{
@@ -6235,6 +6218,8 @@ Rules:
       const pctDone=Math.round(workoutsThisWeek/Math.max(1,targetSessions)*100);
       twInsight=workoutsThisWeek===0?"No sessions logged yet this week.":`${workoutsThisWeek} of ${targetSessions} sessions · ${pctDone}% weekly target`;
     }
+    // Tier-adaptive: beginners see 2 rings (less overwhelming)
+    if (userTier === 'beginner') twRings = twRings.slice(0, 2);
 
     function ExpenditureCard() {
       const [showInfo, setShowInfo] = useState(false);
@@ -6564,15 +6549,15 @@ Rules:
             </div>
           </div>
 
-          {/* Tab nav */}
-          <div style={{display:"flex",borderBottom:"1px solid rgba(245,245,240,0.07)",marginBottom:16}}>
-            {[{id:"overview",label:"OVERVIEW"},{id:"strength",label:"STRENGTH"},{id:"nutrition",label:"NUTRITION"},{id:"recovery",label:"RECOVERY"}].map(({id,label})=>(
+          {/* Tab nav — dynamic per tier + mode */}
+          <div style={{display:"flex",borderBottom:"1px solid rgba(245,245,240,0.07)",marginBottom:16,overflowX:"auto"}}>
+            {progressTabs.map(id=>(
               <button key={id} onClick={()=>setActiveTab(id)} style={{
                 flex:1,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,letterSpacing:"0.12em",
                 padding:"10px 4px",color:activeTab===id?"var(--accent)":"rgba(245,245,240,0.35)",
                 border:"none",borderBottom:activeTab===id?"2px solid var(--accent)":"2px solid transparent",
-                background:"none",cursor:"pointer"
-              }}>{label}</button>
+                background:"none",cursor:"pointer",whiteSpace:"nowrap"
+              }}>{id.toUpperCase()}</button>
             ))}
           </div>
 
@@ -6648,7 +6633,12 @@ Rules:
                   );
                 })()}
                 <div style={{flex:1}}>
-                  {[{l:"Training",v:sc.t,c:"var(--accent)"},{l:"Nutrition",v:sc.n,c:"#22c55e"},{l:"Recovery",v:sc.r,c:"#60a5fa"},{l:"Streak",v:sc.c,c:"#FEA020"}].map(({l,v,c})=>(
+                  {[
+                    {l:scoreLabels[0],v:sc.t,c:"var(--accent)"},
+                    {l:scoreLabels[1],v:sc.n,c:"#22c55e"},
+                    {l:scoreLabels[2],v:sc.r,c:"#60a5fa"},
+                    {l:scoreLabels[3],v:sc.c,c:"#FEA020"},
+                  ].map(({l,v,c})=>(
                     <div key={l} style={{marginBottom:8}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
                         <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{l}</span>
@@ -7430,6 +7420,72 @@ Rules:
               </div>
             )}
           </>}
+
+          {/* ── RUNNING TAB ── */}
+          {activeTab==="running"&&(()=>{
+            const allRuns=(allActs||[]).filter(a=>(a.type||'').toLowerCase().includes('run')).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+            const recentRuns=allRuns.slice(0,12);
+            const hasRace=!!(profile?.run_race_date||wPrefs?.hyroxRaceDate||profile?.hyrox_race_date);
+            const mono="'DM Mono','SF Mono',monospace";
+            const cond="'Barlow Condensed',sans-serif";
+
+            return(
+              <>
+                {/* Weekly mileage card */}
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+                  <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week's Running</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{runActsThisWeek.length}</div>
+                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Runs</div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--accent)",lineHeight:1}}>{displayDistance(runDistKm,profile?.wUnit||'lbs')}</div>
+                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>{distanceLabel(profile?.wUnit||'lbs')}</div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#60a5fa",lineHeight:1}}>{runTimeMins>=60?`${Math.floor(runTimeMins/60)}h${Math.round(runTimeMins%60)}m`:`${runTimeMins}m`}</div>
+                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Time</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent runs list */}
+                {recentRuns.length>0?(
+                  <div style={{margin:"0 16px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16,overflow:"hidden"}}>
+                    <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",padding:"14px 16px 10px"}}>// Recent Runs</div>
+                    {recentRuns.map((run,i)=>{
+                      const d=new Date((run.date||run.start_date_local||'').split('T')[0]+'T12:00:00');
+                      const dateLabel=isNaN(d.getTime())?'—':d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+                      const distKm=parseFloat(run.distanceKm)||0;
+                      const distLabel=displayDistance(distKm,profile?.wUnit||'lbs');
+                      const dur=parseInt(run.durationMins)||0;
+                      const paceSecKm=distKm>0&&dur>0?Math.round(dur*60/distKm):null;
+                      const paceStr=paceSecKm?`${Math.floor(paceSecKm/60)}:${String(paceSecKm%60).padStart(2,'0')}/km`:'—';
+                      return(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:i>0?"1px solid rgba(245,245,240,0.05)":"none"}}>
+                          <div style={{width:34,height:34,borderRadius:10,background:"rgba(34,197,94,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>🏃</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:cond,fontWeight:700,fontSize:14,color:"#f5f5f0",lineHeight:1}}>{run.name||'Run'}</div>
+                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{dateLabel}</div>
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:700,fontSize:14,color:"#22c55e"}}>{distLabel}</div>
+                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{paceStr}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ):(
+                  <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+                    <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",marginBottom:8}}>NO RUNS YET.</div>
+                    <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Log a run from the Train tab or sync Strava to see your running stats here.</div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           <div style={{height:24}}/>
         </div>
