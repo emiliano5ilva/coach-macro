@@ -70,6 +70,7 @@ import { getAdaptiveFactors, detectSystematicBias, applyAdaptiveFactors, recalib
 import { generateProactiveAdjustments } from "./services/predictiveService.js";
 import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory, exportMemories } from "./services/coachMemoryService.js";
 import { detectActivePatterns, generateIntervention, recordPatternDetection, dismissPattern, trackInterventionOutcome, FAILURE_PATTERNS } from "./services/failurePatternService.js";
+import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOverride, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1950,9 +1951,11 @@ function buildCards(d, macros, profile) {
 }
 
 // ── Coach Insights Card (Progress > Overview) ─────────────────────────────────
-function CoachInsightsCard({recall}) {
+function CoachInsightsCard({recall, userId}) {
   const [expanded, setExpanded] = useState(false);
   if (!recall || !recall.similar_past?.length) return null;
+  const _profile = getProfileSync(userId);
+  const suggestion = adaptMessageSync(recall.intelligent_suggestion, _profile, { addPrefix: false });
 
   const top = recall.similar_past[0];
   const priColor = top.still_applicable ? '#f59e0b' : '#60a5fa';
@@ -1966,9 +1969,9 @@ function CoachInsightsCard({recall}) {
         </div>
       </div>
 
-      {/* Intelligent suggestion */}
+      {/* Intelligent suggestion — personality-adapted */}
       <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.85)",lineHeight:1.6,marginBottom:12}}>
-        {recall.intelligent_suggestion}
+        {suggestion || recall.intelligent_suggestion}
       </div>
 
       {/* Similar past event chip */}
@@ -2022,6 +2025,140 @@ function CoachInsightsCard({recall}) {
           ))}
         </>
       )}
+    </div>
+  );
+}
+
+// ── Communication Style Section (Me tab) ─────────────────────────────────────
+function CommunicationStyleSection({ userId }) {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    getPersonalityProfile(userId).then(p => { setProfile(p); setLoading(false); });
+  }, [userId]);
+
+  async function handleOverride(type) {
+    setSaving(true);
+    await setManualOverride(userId, type);
+    const updated = await getPersonalityProfile(userId);
+    setProfile(updated);
+    setSaving(false);
+    setShowOptions(false);
+  }
+
+  const effectiveType = profile?.manualOverride || profile?.primaryType;
+  const typeInfo      = effectiveType && effectiveType !== 'balanced' ? PERSONALITY_TYPES[effectiveType] : null;
+  const isOverridden  = !!profile?.manualOverride;
+  const hasData       = profile && (profile.confidence || 0) >= 20;
+
+  return (
+    <div>
+      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",margin:"20px 16px 12px"}}>// Communication Style</div>
+      <div style={{margin:"0 16px 16px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14}}>
+        {loading ? (
+          <div style={{display:"flex",justifyContent:"center",height:48,alignItems:"center"}}>
+            <div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(var(--accent-rgb),0.3)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
+          </div>
+        ) : hasData ? (
+          <>
+            {/* Current style chip */}
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <span style={{fontSize:20,lineHeight:1}}>{typeInfo?.icon || '🔮'}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontStyle:"italic",fontSize:16,color:"#f5f5f0",lineHeight:1.2}}>
+                  {typeInfo?.label || 'Balanced'}
+                  {isOverridden && <span style={{fontFamily:"'DM Mono',monospace",fontSize:6,color:"var(--accent)",marginLeft:8,textTransform:"uppercase",letterSpacing:"0.1em",verticalAlign:"middle"}}>manual</span>}
+                </div>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.5)",lineHeight:1.4,marginTop:2}}>{typeInfo?.tagline || 'Balanced coaching style'}</div>
+              </div>
+              <div style={{background:"rgba(245,245,240,0.05)",borderRadius:8,padding:"3px 8px",textAlign:"center",flexShrink:0}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)"}}>{profile.confidence}%</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:6,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.06em"}}>match</div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:12}}>
+              {typeInfo?.description || 'The app blends coaching styles based on your usage patterns.'}
+            </div>
+
+            {/* Mini score bars */}
+            {profile.scores && Object.keys(profile.scores).length > 0 && (
+              <div style={{display:"flex",gap:4,marginBottom:12,alignItems:"flex-end",height:32}}>
+                {Object.entries(profile.scores).map(([k, v]) => {
+                  const isTop = effectiveType === k;
+                  return (
+                    <div key={k} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                      <div style={{width:"100%",background: isTop ? "var(--accent)" : "rgba(245,245,240,0.1)",borderRadius:"2px 2px 0 0",height:Math.max(4, Math.round((v/100)*22)),transition:"height 0.4s"}}/>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:5,color:isTop?"var(--accent)":"rgba(245,245,240,0.2)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{k.slice(0,4)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Customize toggle */}
+            <button onClick={() => setShowOptions(o => !o)}
+              style={{background:"none",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,padding:"7px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",width:"100%",marginBottom: showOptions ? 10 : 0}}>
+              {showOptions ? 'Cancel' : 'Customize coaching style'}
+            </button>
+
+            {showOptions && (
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {Object.entries(PERSONALITY_TYPES).map(([key, info]) => {
+                  const sel = effectiveType === key;
+                  return (
+                    <button key={key} onClick={() => handleOverride(key)} disabled={saving}
+                      style={{background: sel ? "rgba(var(--accent-rgb),0.1)" : "rgba(245,245,240,0.03)", border:`1px solid ${sel ? "rgba(var(--accent-rgb),0.3)" : "rgba(245,245,240,0.08)"}`, borderRadius:10, padding:"10px 12px", cursor:"pointer", display:"flex", alignItems:"center", gap:10, textAlign:"left"}}>
+                      <span style={{fontSize:16,lineHeight:1}}>{info.icon}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontStyle:"italic",fontSize:13,color:sel?"var(--accent)":"rgba(245,245,240,0.7)"}}>{info.label}</div>
+                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:10,color:"rgba(245,245,240,0.4)",lineHeight:1.3,marginTop:1}}>{info.tagline}</div>
+                      </div>
+                      {sel && <div style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",flexShrink:0}}/>}
+                    </button>
+                  );
+                })}
+                {isOverridden && (
+                  <button onClick={() => handleOverride('auto')} disabled={saving}
+                    style={{background:"none",border:"none",padding:"4px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.1em",textAlign:"center"}}>
+                    Reset to auto-detect
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(245,245,240,0.35)",marginBottom:6}}>BUILDING YOUR PROFILE.</div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.4)",lineHeight:1.5,marginBottom:14}}>
+              Your coaching style adapts automatically as you use the app. After 30 days, every recommendation is tuned to how you think. Or set a preference now.
+            </div>
+            <button onClick={() => setShowOptions(o => !o)}
+              style={{background:"none",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,padding:"7px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",width:"100%",marginBottom: showOptions ? 10 : 0}}>
+              {showOptions ? 'Cancel' : 'Set a preference now'}
+            </button>
+            {showOptions && (
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {Object.entries(PERSONALITY_TYPES).map(([key, info]) => (
+                  <button key={key} onClick={() => handleOverride(key)} disabled={saving}
+                    style={{background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:10,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
+                    <span style={{fontSize:16,lineHeight:1}}>{info.icon}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontStyle:"italic",fontSize:13,color:"rgba(245,245,240,0.7)"}}>{info.label}</div>
+                      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:10,color:"rgba(245,245,240,0.4)",lineHeight:1.3,marginTop:1}}>{info.tagline}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -2282,6 +2419,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
 
   // ── Failure Pattern Alert ─────────────────────────────────────────────────
   const [patternAlert,setPatternAlert]=useState(null);
+
+  // ── Personality Engine ────────────────────────────────────────────────────
+  const [personalityProfile,setPersonalityProfile]=useState(null);
 
   // ── Feature Unlock System ──────────────────────────────────────────────────
   const [showAppTour,setShowAppTour]=useState(false);
@@ -2651,6 +2791,12 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     updateMemoryOutcomes(user.id).catch(()=>{});
     detectRecurringPatterns(user.id).catch(()=>{});
     trackInterventionOutcome(user.id).catch(()=>{});
+  },[user?.id]);
+
+  // ── Personality detection — weekly, populates module cache for sync access ─
+  useEffect(()=>{
+    if(!user?.id)return;
+    detectPrimaryPersonality(user.id).then(p=>{if(p)setPersonalityProfile(p);}).catch(()=>{});
   },[user?.id]);
 
   // ── Failure pattern detection — runs once on load, needs 30+ member days ──
@@ -4022,6 +4168,7 @@ Rules:
               }
               setDismissedGamePlan(next);
               try{localStorage.setItem('cm_gp_dismissed',JSON.stringify([...next]));}catch{}
+              trackUserEvent(user?.id,'dismiss_gameplan').catch(()=>{});
             }}
           />
         )}
@@ -4032,10 +4179,12 @@ Rules:
             detection={patternAlert}
             onDismiss={()=>{
               dismissPattern(user.id,patternAlert.pattern);
+              trackUserEvent(user.id,'dismiss_pattern',{pattern:patternAlert.pattern,stage:patternAlert.stage}).catch(()=>{});
               setPatternAlert(null);
             }}
             onAction={(label,det)=>{
               recordPatternDetection(user.id,det.pattern,det.stage,label,det.signals).catch(()=>{});
+              trackUserEvent(user.id,'act_on_pattern',{pattern:det.pattern,stage:det.stage,label}).catch(()=>{});
             }}
           />
         )}
@@ -5477,7 +5626,7 @@ Rules:
           {/* Header row */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
             <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// Energy Expenditure</div>
-            <button onClick={()=>setShowInfo(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",background:"rgba(245,245,240,0.06)"}}>
+            <button onClick={()=>{ setShowInfo(v=>!v); if(!showInfo) trackUserEvent(user?.id,'view_expenditure_detail').catch(()=>{}); }} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",background:"rgba(245,245,240,0.06)"}}>
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.4)" strokeWidth={2.5} strokeLinecap="round">
                 <circle cx={12} cy={12} r={10}/><line x1={12} y1={8} x2={12} y2={8}/><line x1={12} y1={12} x2={12} y2={16}/>
               </svg>
@@ -5634,6 +5783,10 @@ Rules:
 
       if (!top) return null;
 
+      // Personality adaptation
+      const _persProfile = getProfileSync(user?.id);
+      const adaptedMessage = adaptMessageSync(top.message, _persProfile, { scenario: top.insight_type, addPrefix: false });
+
       const priorityColor = { severe: '#ef4444', high: '#f59e0b', medium: '#60a5fa', low: 'rgba(245,245,240,0.35)' };
       const priorityBg    = { severe: 'rgba(239,68,68,0.08)', high: 'rgba(245,158,11,0.08)', medium: 'rgba(96,165,250,0.08)', low: 'rgba(245,245,240,0.04)' };
       const typeLabel     = { calorie_intake: 'NUTRITION', weight_trend: 'BODY WEIGHT', training_progress: 'TRAINING', recovery: 'RECOVERY' };
@@ -5651,8 +5804,8 @@ Rules:
             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[top.insight_type] || top.insight_type}</div>
           </div>
 
-          {/* Message */}
-          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.85)",lineHeight:1.55,marginBottom:10}}>{top.message}</div>
+          {/* Message — personality-adapted */}
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.85)",lineHeight:1.55,marginBottom:10}}>{adaptedMessage || top.message}</div>
 
           {/* Confidence bar */}
           <div style={{marginBottom:10}}>
@@ -5683,7 +5836,7 @@ Rules:
 
           {/* Expandable recommendation */}
           {top.recommendation && (
-            <button onClick={() => setExpanded(e => !e)}
+            <button onClick={() => { setExpanded(e => !e); if (!expanded) trackUserEvent(user?.id, 'expand_validation_insight', { insight_type: top.insight_type }).catch(()=>{}); }}
               style={{background:"none",border:"none",padding:0,cursor:"pointer",width:"100%",textAlign:"left",marginBottom: expanded ? 8 : 0}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
@@ -5703,6 +5856,7 @@ Rules:
             <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{top.data_days_used}d of data</span>
             <button onClick={() => {
               dismissInsight(user?.id, top.insight_type).catch(()=>{});
+              trackUserEvent(user?.id, 'dismiss_validation_insight', { insight_type: top.insight_type }).catch(()=>{});
               setValidationInsights(prev => prev.filter(i => i.insight_type !== top.insight_type));
             }} style={{background:"none",border:"none",padding:"2px 8px",cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.1em"}}>dismiss</button>
           </div>
@@ -6021,7 +6175,7 @@ Rules:
             <ValidationInsightCard/>
 
             {/* Coach Memory — historical recall */}
-            <CoachInsightsCard recall={coachRecall}/>
+            <CoachInsightsCard recall={coachRecall} userId={user?.id}/>
 
             {/* This Week Rings */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
@@ -6676,7 +6830,7 @@ Rules:
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
-        {section==="me"&&<ErrorBoundary><><YourPatternsCard userId={user?.id}/><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></></ErrorBoundary>}
+        {section==="me"&&<ErrorBoundary><><CommunicationStyleSection userId={user?.id}/><YourPatternsCard userId={user?.id}/><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></></ErrorBoundary>}
       </div>
 
       {pendingMilestone&&ReactDOM.createPortal(
