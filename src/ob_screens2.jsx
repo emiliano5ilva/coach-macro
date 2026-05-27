@@ -64,7 +64,7 @@ import WinScreen from "./components/WinScreen.jsx";
 import StreakCard from "./components/StreakCard.jsx";
 import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
 import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
-import { computeExpenditure, storeExpenditure, getExpenditureHistory } from "./services/expenditureService.js";
+import { computeExpenditure, storeExpenditure, getExpenditureHistory, computeTodaysBurn, checkDataDrift } from "./services/expenditureService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -4409,16 +4409,27 @@ Rules:
 
     const [expenditure, setExpenditure] = useState(null);
     const [expenditureHistory, setExpenditureHistory] = useState([]);
+    const [dataDrift, setDataDrift] = useState(null);
 
     useEffect(() => {
       if (!user?.id || !profile) return;
+      const todayStr = new Date().toISOString().split('T')[0];
       const result = computeExpenditure(bodyweightLogs, progFoodLogs, profile);
-      setExpenditure(result);
-      storeExpenditure(user.id, result)
+      const todayWorkouts = (workoutLogsRaw || []).filter(l => l.date === todayStr);
+      const todayActivities = (allActs || []).filter(a => {
+        const d = (a.date || '').split('T')[0];
+        return d === todayStr;
+      });
+      const burn = computeTodaysBurn(todayWorkouts, todayActivities, healthSnap, profile, result.tef);
+      setExpenditure({ ...result, todaysBurn: burn });
+      storeExpenditure(user.id, result, burn)
         .then(() => getExpenditureHistory(user.id, 30))
-        .then(hist => setExpenditureHistory(hist))
+        .then(hist => {
+          setExpenditureHistory(hist);
+          setDataDrift(checkDataDrift(hist));
+        })
         .catch(() => {});
-    }, [user?.id, progFoodLogs, bodyweightLogs]);
+    }, [user?.id, progFoodLogs, bodyweightLogs, healthSnap?.steps, workoutLogsRaw?.length]);
 
     const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
     useEffect(()=>{
@@ -4637,75 +4648,108 @@ Rules:
     }
 
     function ExpenditureCard() {
-      const exp = expenditure;
+      const [showInfo, setShowInfo] = useState(false);
+      const exp  = expenditure;
       const hist = expenditureHistory;
+      const burn = exp?.todaysBurn;
+      const drift = dataDrift;
+
       const confColor = !exp ? "rgba(245,245,240,0.35)"
         : exp.confidence.level === 'high'   ? "#22c55e"
         : exp.confidence.level === 'medium' ? "#60a5fa"
         : exp.confidence.level === 'low'    ? "#FEA020"
         : "rgba(245,245,240,0.35)";
 
-      // Build sparkline from history + current estimate
+      // Sparkline from stored history
       const sparkPoints = hist.length > 1 ? hist : (exp ? [{ date: exp.date, calculated_tdee: exp.tdee }] : []);
       let sparklinePath = "";
       if (sparkPoints.length > 1) {
-        const vals = sparkPoints.map(p => p.calculated_tdee);
-        const min = Math.min(...vals);
-        const max = Math.max(...vals);
+        const vals  = sparkPoints.map(p => p.calculated_tdee);
+        const min   = Math.min(...vals);
+        const max   = Math.max(...vals);
         const range = max - min || 200;
         const W = 200, H = 32;
-        const pts = vals.map((v, i) => {
+        sparklinePath = vals.map((v, i) => {
           const x = (i / (vals.length - 1)) * W;
           const y = H - ((v - min) / range) * H;
           return `${x.toFixed(1)},${y.toFixed(1)}`;
-        });
-        sparklinePath = pts.join(" ");
+        }).join(" ");
       }
 
       if (!exp) return null;
 
-      const isBuilding = exp.confidence.level === 'building';
+      const isBuilding  = exp.confidence.level === 'building';
       const tdeeDisplay = isBuilding
         ? exp.formulaTDEE.toLocaleString()
         : exp.confidence.showRange
           ? `${(exp.tdee - 200).toLocaleString()}–${(exp.tdee + 200).toLocaleString()}`
           : exp.tdee.toLocaleString();
 
+      const mono = "'DM Mono','SF Mono',monospace";
+      const cond = "'Barlow Condensed',sans-serif";
+
       return (
         <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Energy Expenditure</div>
 
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
+          {/* Header row */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+            <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// Energy Expenditure</div>
+            <button onClick={()=>setShowInfo(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",background:"rgba(245,245,240,0.06)"}}>
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.4)" strokeWidth={2.5} strokeLinecap="round">
+                <circle cx={12} cy={12} r={10}/><line x1={12} y1={8} x2={12} y2={8}/><line x1={12} y1={12} x2={12} y2={16}/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Info panel */}
+          {showInfo && (
+            <div style={{background:"rgba(245,245,240,0.03)",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+              {[
+                ["TDEE",    "Total Daily Energy Expenditure — calories your body actually burned, derived from 14-day weight trend and food logs."],
+                ["BMR",     "Basal Metabolic Rate — calories burned at rest, just keeping organs running. Your metabolic floor."],
+                ["NEAT",    "Non-Exercise Activity Thermogenesis — calories from walking and daily movement, scaled by your step count."],
+                ["EAT",     "Exercise Activity Thermogenesis — calories from deliberate training. Strength uses mechanical work; cardio uses MET formulas."],
+                ["TEF",     "Thermic Effect of Food — energy cost of digestion. High-protein meals burn ~25% of their protein calories just to process."],
+              ].map(([term, def]) => (
+                <div key={term} style={{display:"flex",gap:8,marginBottom:8,alignItems:"flex-start"}}>
+                  <div style={{fontFamily:mono,fontSize:7,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.1em",paddingTop:2,minWidth:32}}>{term}</div>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{def}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* TDEE display + confidence badge */}
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}>
             <div>
               {isBuilding ? (
                 <>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:13,color:"rgba(245,245,240,0.5)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Formula estimate</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:36,color:"rgba(245,245,240,0.4)",lineHeight:1}}>
-                    {tdeeDisplay}
-                    <span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.3)",fontStyle:"normal",marginLeft:4}}>kcal</span>
+                  <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:11,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Formula estimate</div>
+                  <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:36,color:"rgba(245,245,240,0.35)",lineHeight:1}}>
+                    {tdeeDisplay}<span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.25)",fontStyle:"normal",marginLeft:4}}>kcal</span>
                   </div>
                 </>
               ) : (
                 <>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1}}>
-                    {tdeeDisplay}
-                    <span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.45)",fontStyle:"normal",marginLeft:4}}>kcal/day</span>
+                  <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1}}>
+                    {tdeeDisplay}<span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.45)",fontStyle:"normal",marginLeft:4}}>kcal/day</span>
                   </div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Total daily expenditure</div>
+                  <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>14-day adaptive TDEE</div>
                 </>
               )}
             </div>
-            <div style={{textAlign:"right"}}>
+            <div style={{textAlign:"right",flexShrink:0,marginLeft:8}}>
               <div style={{display:"inline-flex",alignItems:"center",gap:4,background:`${confColor}14`,border:`1px solid ${confColor}50`,borderRadius:6,padding:"4px 8px",marginBottom:6}}>
                 <div style={{width:5,height:5,borderRadius:"50%",background:confColor,flexShrink:0}}/>
-                <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:confColor,textTransform:"uppercase",letterSpacing:"0.1em",whiteSpace:"nowrap"}}>{exp.confidence.label}</span>
+                <span style={{fontFamily:mono,fontSize:7,color:confColor,textTransform:"uppercase",letterSpacing:"0.1em",whiteSpace:"nowrap"}}>{exp.confidence.label}</span>
               </div>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{exp.dataDays} days of data</div>
+              <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{exp.dataDays} days of data</div>
             </div>
           </div>
 
+          {/* Building baseline progress */}
           {isBuilding && (
-            <div style={{background:"rgba(245,245,240,0.04)",borderLeft:"2px solid rgba(var(--accent-rgb),0.3)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:14}}>
+            <div style={{background:"rgba(245,245,240,0.04)",borderLeft:"2px solid rgba(var(--accent-rgb),0.3)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:12}}>
               <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>
                 Log meals and weigh in daily to unlock your real TDEE. {Math.max(0, 7 - exp.dataDays)} more days needed.
               </div>
@@ -4717,8 +4761,44 @@ Rules:
             </div>
           )}
 
+          {/* Component breakdown: BMR · NEAT · Training · TEF */}
+          {burn && (
+            <div style={{display:"flex",flexWrap:"wrap",gap:"4px 8px",marginBottom:12}}>
+              {[
+                {k:"BMR",      v:burn.bmr,  c:"rgba(245,245,240,0.5)"},
+                {k:"NEAT",     v:burn.neat, c:"#60a5fa"},
+                {k:"Training", v:burn.eat,  c:"var(--accent)"},
+                {k:"TEF",      v:burn.tef,  c:"#22c55e"},
+              ].map(({k,v,c})=>(
+                <div key={k} style={{display:"flex",alignItems:"center",gap:3}}>
+                  <span style={{fontFamily:mono,fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{k}</span>
+                  <span style={{fontFamily:cond,fontStyle:"italic",fontWeight:700,fontSize:12,color:c}}>{(v||0).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Today's burn line */}
+          {burn && burn.total > 0 && (
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(var(--accent-rgb),0.05)",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:8,padding:"8px 12px",marginBottom:12}}>
+              <div>
+                <div style={{fontFamily:mono,fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:2}}>Today's projected burn</div>
+                <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",lineHeight:1}}>
+                  {burn.total.toLocaleString()} <span style={{fontSize:10,fontWeight:400,fontStyle:"normal",color:"rgba(245,245,240,0.45)"}}>kcal</span>
+                </div>
+              </div>
+              {burn.noHealthKit && (
+                <div style={{fontFamily:mono,fontSize:7,color:"rgba(96,165,250,0.7)",textTransform:"uppercase",letterSpacing:"0.08em",textAlign:"right",maxWidth:90,lineHeight:1.4}}>
+                  Connect Health<br/>for NEAT
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sparkline */}
           {sparkPoints.length > 1 && (
-            <div style={{marginBottom:14}}>
+            <div style={{marginBottom:12}}>
+              <div style={{fontFamily:mono,fontSize:7,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>30-day TDEE trend</div>
               <svg width="100%" height="32" viewBox="0 0 200 32" preserveAspectRatio="none" style={{display:"block"}}>
                 <polyline points={sparklinePath} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
                 <polyline points={`0,32 ${sparklinePath} 200,32`} fill="rgba(var(--accent-rgb),0.08)" stroke="none"/>
@@ -4726,18 +4806,27 @@ Rules:
             </div>
           )}
 
+          {/* Bottom stat row */}
           {!isBuilding && (
-            <div style={{display:"flex",borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12}}>
+            <div style={{display:"flex",borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:10}}>
               {[
                 {l:"14d Cal Avg", v:`${(exp.avgCalories||0).toLocaleString()} kcal`},
                 {l:"TEF Bonus",   v:`+${(exp.tef||0)} kcal`},
                 {l:"Trend Wt",    v:`${(exp.trendWeight||0).toFixed(1)} ${profile.wUnit||'lbs'}`},
               ].map(({l,v},i)=>(
                 <div key={l} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid rgba(245,245,240,0.06)":"none"}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:13,color:"#f5f5f0",lineHeight:1}}>{v}</div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.08em",marginTop:3}}>{l}</div>
+                  <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:700,fontSize:13,color:"#f5f5f0",lineHeight:1}}>{v}</div>
+                  <div style={{fontFamily:mono,fontSize:7,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.08em",marginTop:3}}>{l}</div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Data drift insight */}
+          {drift && (
+            <div style={{marginTop:10,background:"rgba(254,160,32,0.06)",border:"1px solid rgba(254,160,32,0.2)",borderRadius:8,padding:"8px 12px"}}>
+              <div style={{fontFamily:mono,fontSize:7,color:"#FEA020",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:4}}>// Data insight</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.65)",lineHeight:1.5}}>{drift.message}</div>
             </div>
           )}
         </div>
