@@ -68,6 +68,7 @@ import { computeExpenditure, storeExpenditure, getExpenditureHistory, computeTod
 import { runDailyValidationSuite, dismissInsight } from "./services/validationService.js";
 import { getAdaptiveFactors, detectSystematicBias, applyAdaptiveFactors, recalibrateFactors } from "./services/adaptiveLearningService.js";
 import { generateProactiveAdjustments } from "./services/predictiveService.js";
+import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory, exportMemories } from "./services/coachMemoryService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1849,6 +1850,212 @@ function buildCards(d, macros, profile) {
   return cards.filter(c => (c.items||[undefined]).length > 0 || c.body || c.headline);
 }
 
+// ── Coach Insights Card (Progress > Overview) ─────────────────────────────────
+function CoachInsightsCard({recall}) {
+  const [expanded, setExpanded] = useState(false);
+  if (!recall || !recall.similar_past?.length) return null;
+
+  const top = recall.similar_past[0];
+  const priColor = top.still_applicable ? '#f59e0b' : '#60a5fa';
+
+  return (
+    <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${priColor}22`,borderRadius:16}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// Coach Memory</div>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",background:"rgba(245,245,240,0.04)",borderRadius:4,padding:"2px 7px"}}>
+          {recall.confidence}% confidence
+        </div>
+      </div>
+
+      {/* Intelligent suggestion */}
+      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.85)",lineHeight:1.6,marginBottom:12}}>
+        {recall.intelligent_suggestion}
+      </div>
+
+      {/* Similar past event chip */}
+      <div style={{background:"rgba(245,245,240,0.04)",borderRadius:10,padding:"10px 12px",marginBottom: expanded ? 12 : 0}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:priColor,textTransform:"uppercase",letterSpacing:"0.12em"}}>{top.date}</div>
+          <div style={{background:`${priColor}18`,border:`1px solid ${priColor}44`,borderRadius:4,padding:"1px 7px",fontFamily:"'DM Mono',monospace",fontSize:7,color:priColor}}>
+            {top.still_applicable ? 'STILL RELEVANT' : 'DIFFERENT NOW'}
+          </div>
+        </div>
+        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:top.intervention?6:0}}>{top.description?.slice(0,140)}{top.description?.length>140?'…':''}</div>
+        {top.intervention && (
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>Fix applied: {top.intervention?.slice(0,80)}</div>
+        )}
+      </div>
+
+      {/* Expand for full recall */}
+      {recall.similar_past.length > 0 && (
+        <button onClick={()=>setExpanded(e=>!e)} style={{background:"none",border:"none",padding:"8px 0 0",cursor:"pointer",width:"100%",textAlign:"left"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded?"hide details":"tell me more"}</span>
+            <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
+          </div>
+        </button>
+      )}
+
+      {expanded && (
+        <>
+          {/* What's different */}
+          {recall.what_is_different?.length > 0 && (
+            <div style={{marginTop:12}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>What's different this time</div>
+              {recall.what_is_different.map((diff, i) => (
+                <div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
+                  <div style={{width:4,height:4,borderRadius:"50%",background:"#60a5fa",marginTop:5,flexShrink:0}}/>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.4}}>{diff}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Other similar events */}
+          {recall.similar_past.slice(1).map((mem, i) => (
+            <div key={i} style={{background:"rgba(245,245,240,0.03)",borderRadius:8,padding:"8px 10px",marginTop:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:mem.still_applicable?'#f59e0b':'rgba(245,245,240,0.35)',textTransform:"uppercase",letterSpacing:"0.1em"}}>{mem.date}</div>
+                {mem.effectiveness != null && <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{mem.effectiveness}% effective</div>}
+              </div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>{mem.description?.slice(0,100)}</div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Your Patterns Card (Me tab) ───────────────────────────────────────────────
+function YourPatternsCard({userId}) {
+  const [memories, setMemories] = useState([]);
+  const [patterns, setPatterns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    Promise.all([getAllMemories(userId, 30), getUserPatterns(userId)])
+      .then(([mems, pats]) => { setMemories(mems); setPatterns(pats); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  const nonPatternMemories = memories.filter(m => m.memory_type !== 'pattern');
+  const breakthroughs = memories.filter(m => m.memory_type === 'breakthrough').length;
+  const plateaus      = memories.filter(m => m.memory_type === 'plateau').length;
+  const setbacks      = memories.filter(m => m.memory_type === 'setback').length;
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const json = await exportMemories(userId);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = 'coach-memory.json'; a.click();
+      URL.revokeObjectURL(url);
+    } catch {}
+    setExporting(false);
+  }
+
+  async function handleDelete(memId) {
+    await deleteMemory(userId, memId);
+    setMemories(prev => prev.filter(m => m.id !== memId));
+  }
+
+  const typeColor = { plateau:'#f59e0b', breakthrough:'#22c55e', setback:'#ef4444', pattern:'#60a5fa', intervention:'var(--accent)', preference:'rgba(245,245,240,0.5)' };
+  const typeLabel = { plateau:'Plateau', breakthrough:'Breakthrough', setback:'Setback', pattern:'Pattern', intervention:'Intervention', preference:'Preference' };
+
+  return (
+    <div style={{margin:"0 0 0"}}>
+      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",margin:"20px 16px 12px"}}>// Your Patterns</div>
+
+      {loading ? (
+        <div style={{margin:"0 16px 16px",padding:16,background:"#0d0d0d",borderRadius:14,display:"flex",justifyContent:"center",alignItems:"center",height:60}}>
+          <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(var(--accent-rgb),0.3)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
+        </div>
+      ) : memories.length === 0 ? (
+        <div style={{margin:"0 16px 16px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"rgba(245,245,240,0.35)",marginBottom:6}}>NO PATTERNS YET.</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.4)",lineHeight:1.5}}>
+            Coach Memory builds as you use the app. Significant events — plateaus, breakthroughs, recovery dips — get logged automatically. After 30 days, patterns emerge.
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Summary stats */}
+          <div style={{margin:"0 16px 12px",display:"flex",gap:8}}>
+            {[
+              {label:'Events', value:nonPatternMemories.length},
+              {label:'Breakthroughs', value:breakthroughs, color:'#22c55e'},
+              {label:'Patterns', value:patterns.length, color:'#60a5fa'},
+            ].map(({label,value,color}) => (
+              <div key={label} style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:color||'#f5f5f0',lineHeight:1,marginBottom:3}}>{value}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Detected patterns */}
+          {patterns.length > 0 && (
+            <div style={{margin:"0 16px 12px",padding:"12px 14px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.15)",borderRadius:12}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#60a5fa",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>Detected patterns</div>
+              {patterns.slice(0,3).map((p, i) => (
+                <div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
+                  <div style={{width:4,height:4,borderRadius:"50%",background:"#60a5fa",marginTop:5,flexShrink:0}}/>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.7)",lineHeight:1.4}}>{p.description}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Recent memory log */}
+          <button onClick={()=>setExpanded(e=>!e)} style={{background:"none",border:"none",padding:"0 16px 10px",cursor:"pointer",width:"100%",textAlign:"left"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded?"Hide memory log":"View memory log"} ({nonPatternMemories.length})</span>
+              <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
+            </div>
+          </button>
+
+          {expanded && (
+            <div style={{margin:"0 16px 12px"}}>
+              {nonPatternMemories.slice(0,10).map((mem, i) => (
+                <div key={mem.id} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:10,padding:"10px 12px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:typeColor[mem.memory_type]||"rgba(245,245,240,0.3)"}}/>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:typeColor[mem.memory_type]||"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[mem.memory_type]||mem.memory_type}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{new Date(mem.date_observed).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+                    </div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.6)",lineHeight:1.4}}>{mem.description?.slice(0,120)}</div>
+                    {mem.effectiveness_score != null && (
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",marginTop:3}}>{mem.effectiveness_score}% effective</div>
+                    )}
+                  </div>
+                  <button onClick={()=>handleDelete(mem.id)} style={{background:"none",border:"none",padding:"2px 4px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.15)",flexShrink:0}}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Footer actions */}
+          <div style={{margin:"0 16px 20px",display:"flex",gap:8}}>
+            <button onClick={handleExport} disabled={exporting} style={{flex:1,background:"none",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>
+              {exporting?"Exporting…":"Export Memory"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -2335,6 +2542,13 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       }).catch(()=>{});
     }
   },[calendarConnected,user,schedule]);
+
+  // ── Coach Memory — weekly outcome updates + pattern detection ─────────────
+  useEffect(()=>{
+    if(!user?.id)return;
+    updateMemoryOutcomes(user.id).catch(()=>{});
+    detectRecurringPatterns(user.id).catch(()=>{});
+  },[user?.id]);
 
   // ── Weekly review trigger — Monday first open or Sunday evening ───────────
   useEffect(()=>{
@@ -4821,6 +5035,7 @@ Rules:
     const [validationInsights, setValidationInsights] = useState([]);
     const [insightLoading, setInsightLoading] = useState(false);
     const [adaptiveFactors, setAdaptiveFactors] = useState(null);
+    const [coachRecall, setCoachRecall] = useState(null);
 
     useEffect(() => {
       if (!user?.id || !profile) return;
@@ -4838,6 +5053,38 @@ Rules:
         .catch(() => {})
         .finally(() => setInsightLoading(false));
     }, [user?.id, profile?.goalCals]);
+
+    // Coach Memory — auto-record memories for high/severe insights + recall
+    useEffect(() => {
+      if (!user?.id || !validationInsights.length || insightLoading) return;
+      const severe = validationInsights.filter(i => i.priority === 'severe' || i.priority === 'high');
+      if (!severe.length) return;
+
+      const currentCtx = buildContextSnapshot({
+        weightLogs: bodyweightLogs,
+        foodLogs: progFoodLogs,
+        workoutLogs: workoutLogsRaw,
+        macros,
+        profile,
+        healthSnap,
+      });
+
+      // Auto-record top severe/high insight as a memory
+      const top = severe[0];
+      const memType = top.insight_type === 'weight_trend' ? 'plateau' : 'setback';
+      recordMemory(user.id, memType, currentCtx, top.message, top.recommendation, top.insight_type)
+        .catch(() => {});
+
+      // Only recall if user has been around 30+ days
+      const memberDays = profile?.created_at
+        ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 864e5)
+        : 0;
+      if (memberDays < 30) return;
+
+      recallApplicableLearnings(user.id, top.insight_type, currentCtx)
+        .then(recall => { if (recall?.similar_past?.length) setCoachRecall(recall); })
+        .catch(() => {});
+    }, [validationInsights, insightLoading, user?.id]);
 
     const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
     useEffect(()=>{
@@ -5645,6 +5892,9 @@ Rules:
             {/* Today's Insight */}
             <ValidationInsightCard/>
 
+            {/* Coach Memory — historical recall */}
+            <CoachInsightsCard recall={coachRecall}/>
+
             {/* This Week Rings */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week</div>
@@ -6298,7 +6548,7 @@ Rules:
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
-        {section==="me"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></ErrorBoundary>}
+        {section==="me"&&<ErrorBoundary><><YourPatternsCard userId={user?.id}/><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></></ErrorBoundary>}
       </div>
 
       {pendingMilestone&&ReactDOM.createPortal(
