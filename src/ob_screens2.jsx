@@ -65,6 +65,7 @@ import StreakCard from "./components/StreakCard.jsx";
 import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
 import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
 import { computeExpenditure, storeExpenditure, getExpenditureHistory, computeTodaysBurn, checkDataDrift } from "./services/expenditureService.js";
+import { runDailyValidationSuite, dismissInsight } from "./services/validationService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -4431,6 +4432,26 @@ Rules:
         .catch(() => {});
     }, [user?.id, progFoodLogs, bodyweightLogs, healthSnap?.steps, workoutLogsRaw?.length]);
 
+    const [validationInsights, setValidationInsights] = useState([]);
+    const [insightLoading, setInsightLoading] = useState(false);
+
+    useEffect(() => {
+      if (!user?.id || !profile) return;
+      setInsightLoading(true);
+      runDailyValidationSuite(user.id, profile)
+        .then(insights => {
+          setValidationInsights(insights);
+          const top = insights[0];
+          if (top?.priority === 'severe') {
+            import('./services/notifications.js')
+              .then(({ scheduleValidationAlert }) => scheduleValidationAlert(top.message))
+              .catch(() => {});
+          }
+        })
+        .catch(() => {})
+        .finally(() => setInsightLoading(false));
+    }, [user?.id, profile?.goalCals]);
+
     const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
     useEffect(()=>{
       if(!user?.id)return;
@@ -4833,6 +4854,99 @@ Rules:
       );
     }
 
+    function ValidationInsightCard() {
+      const [expanded, setExpanded] = useState(false);
+      const top = validationInsights[0];
+
+      if (insightLoading && !top) {
+        return (
+          <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Today's Insight</div>
+            <div style={{height:48,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{width:18,height:18,borderRadius:"50%",border:"2px solid rgba(var(--accent-rgb),0.3)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
+            </div>
+          </div>
+        );
+      }
+
+      if (!top) return null;
+
+      const priorityColor = { severe: '#ef4444', high: '#f59e0b', medium: '#60a5fa', low: 'rgba(245,245,240,0.35)' };
+      const priorityBg    = { severe: 'rgba(239,68,68,0.08)', high: 'rgba(245,158,11,0.08)', medium: 'rgba(96,165,250,0.08)', low: 'rgba(245,245,240,0.04)' };
+      const typeLabel     = { calorie_intake: 'NUTRITION', weight_trend: 'BODY WEIGHT', training_progress: 'TRAINING', recovery: 'RECOVERY' };
+      const pc = priorityColor[top.priority] || priorityColor.low;
+      const pb = priorityBg[top.priority] || priorityBg.low;
+
+      return (
+        <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${pc}22`,borderRadius:16}}>
+          {/* Header */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// Today's Insight</div>
+              <div style={{background:pb,border:`1px solid ${pc}44`,borderRadius:4,padding:"1px 6px",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:pc,textTransform:"uppercase",letterSpacing:"0.12em"}}>{top.priority}</div>
+            </div>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[top.insight_type] || top.insight_type}</div>
+          </div>
+
+          {/* Message */}
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.85)",lineHeight:1.55,marginBottom:10}}>{top.message}</div>
+
+          {/* Confidence bar */}
+          <div style={{marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Confidence</span>
+              <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.45)"}}>{top.confidence}%</span>
+            </div>
+            <div style={{height:3,background:"rgba(245,245,240,0.08)",borderRadius:2}}>
+              <div style={{height:3,width:`${top.confidence}%`,background:pc,borderRadius:2,transition:"width 0.6s ease"}}/>
+            </div>
+          </div>
+
+          {/* Signals */}
+          {(top.signals_aligned || []).length > 0 && (
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+              {(top.signals_aligned || []).map((s, i) => {
+                const sc = s.direction === 'good' ? '#22c55e' : s.direction === 'severe' ? '#ef4444' : s.direction === 'low' ? '#f59e0b' : 'rgba(245,245,240,0.35)';
+                return (
+                  <div key={i} style={{background:"rgba(245,245,240,0.04)",border:`1px solid rgba(245,245,240,0.08)`,borderRadius:6,padding:"4px 8px",display:"flex",alignItems:"center",gap:5}}>
+                    <div style={{width:4,height:4,borderRadius:"50%",background:sc,flexShrink:0}}/>
+                    <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)"}}>{s.signal}</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:11,color:sc}}>{String(s.value)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Expandable recommendation */}
+          {top.recommendation && (
+            <button onClick={() => setExpanded(e => !e)}
+              style={{background:"none",border:"none",padding:0,cursor:"pointer",width:"100%",textAlign:"left",marginBottom: expanded ? 8 : 0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
+                <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded ? "hide" : "recommendation"}</span>
+                <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
+              </div>
+            </button>
+          )}
+          {expanded && top.recommendation && (
+            <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.4)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:8}}>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.7)",lineHeight:1.5}}>{top.recommendation}</div>
+            </div>
+          )}
+
+          {/* Footer: data days + dismiss */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
+            <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{top.data_days_used}d of data</span>
+            <button onClick={() => {
+              dismissInsight(user?.id, top.insight_type).catch(()=>{});
+              setValidationInsights(prev => prev.filter(i => i.insight_type !== top.insight_type));
+            }} style={{background:"none",border:"none",padding:"2px 8px",cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.1em"}}>dismiss</button>
+          </div>
+        </div>
+      );
+    }
+
     function PH({eyebrow,headline,body}){
       return(
         <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
@@ -5132,6 +5246,9 @@ Rules:
                 </div>}
               </>);
             })()}
+
+            {/* Today's Insight */}
+            <ValidationInsightCard/>
 
             {/* This Week Rings */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>

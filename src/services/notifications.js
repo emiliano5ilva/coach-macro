@@ -173,6 +173,36 @@ export async function scheduleCoachingNotifications({ consumed, macros, todayTyp
   }
 }
 
+export async function scheduleValidationAlert(message) {
+  const today = new Date().toISOString().split('T')[0];
+  if (localStorage.getItem('cm_validation_alert_date') === today) return;
+
+  const Local = await getLocal();
+  if (!Local) return;
+
+  try {
+    const { display } = await Local.checkPermissions();
+    if (display !== 'granted') return;
+
+    const fireAt = new Date();
+    fireAt.setHours(fireAt.getHours() + 1, 0, 0, 0);
+    if (fireAt.getDate() !== new Date().getDate()) return;
+
+    await Local.schedule({
+      notifications: [{
+        id: 4001,
+        title: 'COACH INSIGHT.',
+        body: message.length > 120 ? message.slice(0, 117) + '…' : message,
+        schedule: { at: fireAt },
+        extra: { route: 'progress' },
+      }],
+    });
+    localStorage.setItem('cm_validation_alert_date', today);
+  } catch (e) {
+    console.warn('[LocalNotif] validation alert failed:', e.message);
+  }
+}
+
 export async function requestNotificationPermission() {
   const Push = await getPush();
   if (!Push) return false;
