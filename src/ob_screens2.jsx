@@ -64,6 +64,7 @@ import WinScreen from "./components/WinScreen.jsx";
 import StreakCard from "./components/StreakCard.jsx";
 import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
 import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
+import { computeExpenditure, storeExpenditure, getExpenditureHistory } from "./services/expenditureService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -4406,6 +4407,19 @@ Rules:
         .then(({data})=>setProgFoodLogs(data||[]));
     },[user?.id]);
 
+    const [expenditure, setExpenditure] = useState(null);
+    const [expenditureHistory, setExpenditureHistory] = useState([]);
+
+    useEffect(() => {
+      if (!user?.id || !profile) return;
+      const result = computeExpenditure(bodyweightLogs, progFoodLogs, profile);
+      setExpenditure(result);
+      storeExpenditure(user.id, result)
+        .then(() => getExpenditureHistory(user.id, 30))
+        .then(hist => setExpenditureHistory(hist))
+        .catch(() => {});
+    }, [user?.id, progFoodLogs, bodyweightLogs]);
+
     const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
     useEffect(()=>{
       if(!user?.id)return;
@@ -4620,6 +4634,114 @@ Rules:
       ];
       const pctDone=Math.round(workoutsThisWeek/Math.max(1,targetSessions)*100);
       twInsight=workoutsThisWeek===0?"No sessions logged yet this week.":`${workoutsThisWeek} of ${targetSessions} sessions · ${pctDone}% weekly target`;
+    }
+
+    function ExpenditureCard() {
+      const exp = expenditure;
+      const hist = expenditureHistory;
+      const confColor = !exp ? "rgba(245,245,240,0.35)"
+        : exp.confidence.level === 'high'   ? "#22c55e"
+        : exp.confidence.level === 'medium' ? "#60a5fa"
+        : exp.confidence.level === 'low'    ? "#FEA020"
+        : "rgba(245,245,240,0.35)";
+
+      // Build sparkline from history + current estimate
+      const sparkPoints = hist.length > 1 ? hist : (exp ? [{ date: exp.date, calculated_tdee: exp.tdee }] : []);
+      let sparklinePath = "";
+      if (sparkPoints.length > 1) {
+        const vals = sparkPoints.map(p => p.calculated_tdee);
+        const min = Math.min(...vals);
+        const max = Math.max(...vals);
+        const range = max - min || 200;
+        const W = 200, H = 32;
+        const pts = vals.map((v, i) => {
+          const x = (i / (vals.length - 1)) * W;
+          const y = H - ((v - min) / range) * H;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        });
+        sparklinePath = pts.join(" ");
+      }
+
+      if (!exp) return null;
+
+      const isBuilding = exp.confidence.level === 'building';
+      const tdeeDisplay = isBuilding
+        ? exp.formulaTDEE.toLocaleString()
+        : exp.confidence.showRange
+          ? `${(exp.tdee - 200).toLocaleString()}–${(exp.tdee + 200).toLocaleString()}`
+          : exp.tdee.toLocaleString();
+
+      return (
+        <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Energy Expenditure</div>
+
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
+            <div>
+              {isBuilding ? (
+                <>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:13,color:"rgba(245,245,240,0.5)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Formula estimate</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:36,color:"rgba(245,245,240,0.4)",lineHeight:1}}>
+                    {tdeeDisplay}
+                    <span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.3)",fontStyle:"normal",marginLeft:4}}>kcal</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1}}>
+                    {tdeeDisplay}
+                    <span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.45)",fontStyle:"normal",marginLeft:4}}>kcal/day</span>
+                  </div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Total daily expenditure</div>
+                </>
+              )}
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{display:"inline-flex",alignItems:"center",gap:4,background:`${confColor}14`,border:`1px solid ${confColor}50`,borderRadius:6,padding:"4px 8px",marginBottom:6}}>
+                <div style={{width:5,height:5,borderRadius:"50%",background:confColor,flexShrink:0}}/>
+                <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:confColor,textTransform:"uppercase",letterSpacing:"0.1em",whiteSpace:"nowrap"}}>{exp.confidence.label}</span>
+              </div>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{exp.dataDays} days of data</div>
+            </div>
+          </div>
+
+          {isBuilding && (
+            <div style={{background:"rgba(245,245,240,0.04)",borderLeft:"2px solid rgba(var(--accent-rgb),0.3)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:14}}>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>
+                Log meals and weigh in daily to unlock your real TDEE. {Math.max(0, 7 - exp.dataDays)} more days needed.
+              </div>
+              <div style={{display:"flex",gap:3,marginTop:8}}>
+                {Array.from({length:7},(_,i)=>(
+                  <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<exp.dataDays?"var(--accent)":"rgba(245,245,240,0.08)"}}/>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sparkPoints.length > 1 && (
+            <div style={{marginBottom:14}}>
+              <svg width="100%" height="32" viewBox="0 0 200 32" preserveAspectRatio="none" style={{display:"block"}}>
+                <polyline points={sparklinePath} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
+                <polyline points={`0,32 ${sparklinePath} 200,32`} fill="rgba(var(--accent-rgb),0.08)" stroke="none"/>
+              </svg>
+            </div>
+          )}
+
+          {!isBuilding && (
+            <div style={{display:"flex",borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12}}>
+              {[
+                {l:"14d Cal Avg", v:`${(exp.avgCalories||0).toLocaleString()} kcal`},
+                {l:"TEF Bonus",   v:`+${(exp.tef||0)} kcal`},
+                {l:"Trend Wt",    v:`${(exp.trendWeight||0).toFixed(1)} ${profile.wUnit||'lbs'}`},
+              ].map(({l,v},i)=>(
+                <div key={l} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid rgba(245,245,240,0.06)":"none"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:13,color:"#f5f5f0",lineHeight:1}}>{v}</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.08em",marginTop:3}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
     }
 
     function PH({eyebrow,headline,body}){
@@ -4942,6 +5064,9 @@ Rules:
                 ))}
               </div>
             </div>
+
+            {/* Expenditure / TDEE Card */}
+            <ExpenditureCard/>
 
             {/* Performance Calendar */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
