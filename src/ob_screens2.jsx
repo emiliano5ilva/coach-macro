@@ -69,6 +69,7 @@ import { runDailyValidationSuite, dismissInsight } from "./services/validationSe
 import { getAdaptiveFactors, detectSystematicBias, applyAdaptiveFactors, recalibrateFactors } from "./services/adaptiveLearningService.js";
 import { generateProactiveAdjustments } from "./services/predictiveService.js";
 import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory, exportMemories } from "./services/coachMemoryService.js";
+import { detectActivePatterns, generateIntervention, recordPatternDetection, dismissPattern, trackInterventionOutcome, FAILURE_PATTERNS } from "./services/failurePatternService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1570,6 +1571,104 @@ function GamePlanCard({items, onDismissItem}) {
   );
 }
 
+// ── Failure Pattern Alert Card ────────────────────────────────────────────────
+function PatternAlertCard({ detection, onDismiss, onAction }) {
+  const [expanded, setExpanded] = useState(false);
+  const [intervention, setIntervention] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  if (!detection) return null;
+
+  const meta  = FAILURE_PATTERNS[detection.pattern] || {};
+  const stage = detection.stage;
+  const stageInfo = meta.stages?.[stage] || { label: stage, color: '#F59E0B', bg: '#FEF3C7' };
+
+  const baseInterv = {
+    honeymoon_crash:    { headline: "The first month is the hardest.", body: "Momentum tends to drop — that's completely normal. Just show up today." },
+    plateau_panic:      { headline: "The scale hasn't moved — and that's data, not failure.", body: "A 14-day stall is physiologically normal. Stay the course." },
+    overtraining_spiral:{ headline: "You're training hard. Make sure you recover just as hard.", body: "Volume is climbing — watch your recovery markers this week." },
+    sleep_tax:          { headline: "Your sleep is costing you results.", body: "Under 7 hours slows fat loss and spikes hunger. Tonight, aim for 7." },
+    perfection_trap:    { headline: "One off-day doesn't break your progress.", body: "The only thing that matters now is getting back on track today." },
+    the_coaster:        { headline: "You're cycling — effort followed by coasting.", body: "Great weeks offset by coast weeks. Raise the floor on coasting weeks." },
+  }[detection.pattern] || { headline: "Pattern detected.", body: "Your coach noticed something worth addressing." };
+
+  const displayInterv = intervention || baseInterv;
+
+  function handleExpand() {
+    setExpanded(e => !e);
+    if (!expanded && !intervention) {
+      setLoading(true);
+      generateIntervention(null, detection.pattern, stage)
+        .then(i => { if (i) setIntervention(i); })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }
+
+  return (
+    <div style={{margin:'0 16px 14px',borderRadius:16,overflow:'hidden',border:`1px solid ${stageInfo.color}33`}}>
+      {/* Header */}
+      <div
+        onClick={handleExpand}
+        style={{background:`${stageInfo.color}12`,padding:'12px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}
+      >
+        <span style={{fontSize:18,lineHeight:1}}>{meta.emoji || '⚠️'}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:stageInfo.color,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:2}}>{stageInfo.label}</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontStyle:'italic',fontSize:14,color:'#f5f5f0',lineHeight:1.2}}>{meta.name}</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+          <div style={{width:6,height:6,borderRadius:'50%',background:stageInfo.color}}/>
+          <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>{expanded?'▲':'▼'}</span>
+        </div>
+      </div>
+
+      {/* Expanded body */}
+      {expanded && (
+        <div style={{background:'#0d0d0d',padding:'14px 14px 12px'}}>
+          {loading ? (
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:'rgba(245,245,240,0.4)',paddingBottom:10}}>Personalizing your insight…</div>
+          ) : (
+            <>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontStyle:'italic',fontSize:15,color:'#f5f5f0',marginBottom:6,lineHeight:1.3}}>{displayInterv.headline}</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:'rgba(245,245,240,0.65)',lineHeight:1.55,marginBottom:12}}>{displayInterv.body}</div>
+            </>
+          )}
+          {/* Action buttons */}
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {['Tell me more','Help me with this','I\'ve got this'].map((label, i) => (
+              <button
+                key={i}
+                onClick={() => { onAction?.(label, detection); if (label === "I've got this") onDismiss?.(); }}
+                style={{
+                  background: i === 0 ? `${stageInfo.color}18` : i === 1 ? `${stageInfo.color}10` : 'transparent',
+                  border: `1px solid ${i === 2 ? 'rgba(245,245,240,0.12)' : stageInfo.color + '44'}`,
+                  borderRadius: 8,
+                  padding: '6px 12px',
+                  fontFamily: "'Barlow',sans-serif",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  color: i === 2 ? 'rgba(245,245,240,0.35)' : stageInfo.color,
+                  cursor: 'pointer',
+                  letterSpacing: '0.02em',
+                }}
+              >{label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer dismiss */}
+      <div style={{background:'#0d0d0d',borderTop:'1px solid rgba(245,245,240,0.04)',padding:'6px 14px',display:'flex',justifyContent:'flex-end'}}>
+        <button
+          onClick={onDismiss}
+          style={{background:'none',border:'none',cursor:'pointer',fontFamily:"'DM Mono',monospace",fontSize:7,color:'rgba(245,245,240,0.2)',textTransform:'uppercase',letterSpacing:'0.12em',padding:'2px 4px'}}
+        >dismiss 7 days</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Weekly Review Modal ────────────────────────────────────────────────────────
 function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, onClose, onApply}) {
   const [cardIdx, setCardIdx] = useState(0);
@@ -2181,6 +2280,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [gamePlanItems,setGamePlanItems]=useState(()=>{try{const k='cm_gameplan_'+new Date().toISOString().split('T')[0];return JSON.parse(localStorage.getItem(k)||'[]');}catch{return[];}});
   const [dismissedGamePlan,setDismissedGamePlan]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('cm_gp_dismissed')||'[]'));}catch{return new Set();}});
 
+  // ── Failure Pattern Alert ─────────────────────────────────────────────────
+  const [patternAlert,setPatternAlert]=useState(null);
+
   // ── Feature Unlock System ──────────────────────────────────────────────────
   const [showAppTour,setShowAppTour]=useState(false);
   const [pendingUnlock,setPendingUnlock]=useState(null);
@@ -2548,7 +2650,19 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     if(!user?.id)return;
     updateMemoryOutcomes(user.id).catch(()=>{});
     detectRecurringPatterns(user.id).catch(()=>{});
+    trackInterventionOutcome(user.id).catch(()=>{});
   },[user?.id]);
+
+  // ── Failure pattern detection — runs once on load, needs 30+ member days ──
+  useEffect(()=>{
+    if(!user?.id||!profile?.created_at)return;
+    const memberDays=Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5);
+    if(memberDays<30)return;
+    detectActivePatterns(user.id,{workoutLogs:workoutLogsRaw||[],weightLogs:bodyweightLogs||[],profile})
+      .then(detection=>{
+        if(detection)setPatternAlert(detection);
+      }).catch(()=>{});
+  },[user?.id,profile?.created_at,workoutLogsRaw?.length,bodyweightLogs?.length]);
 
   // ── Weekly review trigger — Monday first open or Sunday evening ───────────
   useEffect(()=>{
@@ -3908,6 +4022,20 @@ Rules:
               }
               setDismissedGamePlan(next);
               try{localStorage.setItem('cm_gp_dismissed',JSON.stringify([...next]));}catch{}
+            }}
+          />
+        )}
+
+        {/* ── FAILURE PATTERN ALERT ── */}
+        {patternAlert&&(
+          <PatternAlertCard
+            detection={patternAlert}
+            onDismiss={()=>{
+              dismissPattern(user.id,patternAlert.pattern);
+              setPatternAlert(null);
+            }}
+            onAction={(label,det)=>{
+              recordPatternDetection(user.id,det.pattern,det.stage,label,det.signals).catch(()=>{});
             }}
           />
         )}
