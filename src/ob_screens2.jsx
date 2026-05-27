@@ -73,6 +73,7 @@ import { detectActivePatterns, generateIntervention, recordPatternDetection, dis
 import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOverride, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
 import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META } from "./services/connectionsService.js";
 import { runOutreachCheck, calibrateFrequency } from "./services/outreachService.js";
+import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, getPercentileLabel, interpolatePercentile } from "./services/peerComparisonService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -2283,6 +2284,297 @@ function ConnectionsInsightCard({ correlations, memberDays, onOpen }) {
   );
 }
 
+// ── Peer Comparison: PercentileCard ───────────────────────────────────────────
+
+function PercentileCard({ label, icon, pct, sublabel, expanded, onClick }) {
+  const info = getPercentileLabel(pct);
+  const arcPct = pct != null ? Math.round(pct) : null;
+  // SVG arc: 120° sweep from -150° to -30° at r=22
+  const R = 22, cx = 28, cy = 28;
+  const arcLen = 2 * Math.PI * R * (220 / 360);
+  const arcDash = arcPct != null ? (arcPct / 100) * arcLen : 0;
+  const strokeDasharray = `${arcLen}`;
+  const strokeDashoffset = arcLen - arcDash;
+  const angle = (deg) => { const r = (deg - 90) * Math.PI / 180; return { x: cx + R * Math.cos(r), y: cy + R * Math.sin(r) }; };
+  const start = angle(-110); const end = angle(110);
+  const arcPath = `M ${start.x} ${start.y} A ${R} ${R} 0 1 1 ${end.x} ${end.y}`;
+  return (
+    <div onClick={onClick} style={{ flex: 1, minWidth: 0, background: expanded ? "rgba(var(--accent-rgb),0.07)" : "#0d0d0d", border: `1px solid ${expanded ? "rgba(var(--accent-rgb),0.25)" : "rgba(245,245,240,0.07)"}`, borderRadius: 12, padding: "10px 8px 8px", cursor: "pointer", transition: "all 0.2s" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        {/* Gauge */}
+        <svg width={56} height={40} viewBox="0 0 56 56">
+          <path d={arcPath} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={5} strokeLinecap="round" />
+          {arcPct != null && (
+            <path d={arcPath} fill="none" stroke={info.color} strokeWidth={5} strokeLinecap="round"
+              strokeDasharray={strokeDasharray} strokeDashoffset={strokeDashoffset} />
+          )}
+          <text x={cx} y={cy + 4} textAnchor="middle" fontFamily="'DM Mono',monospace" fontSize={arcPct != null ? 11 : 8} fontWeight="700" fill={arcPct != null ? info.color : "rgba(245,245,240,0.3)"}>
+            {arcPct != null ? `${arcPct}` : '—'}
+          </text>
+        </svg>
+        <span style={{ fontSize: 13 }}>{icon}</span>
+        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.55)", letterSpacing: "0.06em", textAlign: "center", lineHeight: 1.3 }}>{label}</div>
+        {pct != null && <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: info.color, letterSpacing: "0.06em", textAlign: "center" }}>{info.short}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ── PeerInsightsView (full-screen modal) ─────────────────────────────────────
+
+function PeerInsightsView({ userId, profile, onClose }) {
+  const [tab, setTab] = useState(0);
+  const [comparison, setComparison] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [optedIn, setOptedIn] = useState(true);
+
+  useEffect(() => {
+    if (!userId || !profile) return;
+    Promise.all([
+      getPeerComparison(userId, profile),
+      getOptIn(userId),
+    ]).then(([comp, opt]) => {
+      setComparison(comp);
+      setOptedIn(opt ?? true);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [userId, profile?.goal, profile?.weight]);
+
+  async function handleOptToggle(val) {
+    setOptedIn(val);
+    await setPeerOptIn(userId, val);
+  }
+
+  const pct = comparison?.percentiles || {};
+  const userM = comparison?.user_metrics || {};
+
+  const METRIC_CARDS = [
+    { key: 'adherence',          label: 'Logging',    icon: '📋', format: v => v != null ? `${Math.round(v * 100)}%` : '—',  sublabel: 'days tracked' },
+    { key: 'training_frequency', label: 'Training',   icon: '🏋️', format: v => v != null ? `${v.toFixed(1)}/wk` : '—',     sublabel: 'sessions/wk' },
+    { key: 'sleep',              label: 'Sleep',      icon: '💤', format: v => v != null ? `${v.toFixed(1)}h` : '—',         sublabel: 'avg hours' },
+    { key: 'weight_velocity',    label: 'Progress',   icon: '⚖️', format: v => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(2)}` : '—', sublabel: 'lbs/wk' },
+  ];
+
+  const userValForKey = { adherence: userM.adherence, training_frequency: userM.trainingFrequency, sleep: userM.sleepAverage, weight_velocity: userM.weightVelocity };
+
+  const TABS = ['Where You Stand', 'What Works', 'Expectations'];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1001, background: "#070710", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", padding: "max(env(safe-area-inset-top),16px) 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: "6px 10px 6px 0", color: "rgba(245,245,240,0.6)", fontFamily: "'DM Mono',monospace", fontSize: 12 }}>← back</button>
+        <div style={{ flex: 1, fontFamily: "'DM Mono',monospace", fontSize: 11, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase" }}>// Similar Users</div>
+        {comparison && (
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.3)", letterSpacing: "0.08em" }}>
+            {comparison.is_research_based ? 'RESEARCH NORMS' : `${comparison.sample_size} USERS`}
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.3)" }}>calculating your cohort…</div>
+      ) : (
+        <>
+          {/* Tabs */}
+          <div style={{ display: "flex", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+            {TABS.map((t, i) => (
+              <button key={i} onClick={() => setTab(i)} style={{ flex: 1, padding: "10px 4px", background: "none", border: "none", borderBottom: `2px solid ${tab === i ? "var(--accent)" : "transparent"}`, cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 8.5, color: tab === i ? "var(--accent)" : "rgba(245,245,240,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", transition: "all 0.2s" }}>{t}</button>
+            ))}
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+            {/* Tab 0: Where You Stand */}
+            {tab === 0 && (
+              <>
+                {!optedIn && (
+                  <div style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 12, padding: 14, marginBottom: 14, fontFamily: "'DM Mono',monospace", fontSize: 10, color: "rgba(251,191,36,0.8)", lineHeight: 1.5 }}>
+                    Peer comparison is off. Showing research norms only. Toggle in Settings → Peer Comparison.
+                  </div>
+                )}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                  {METRIC_CARDS.map(m => (
+                    <PercentileCard
+                      key={m.key}
+                      label={m.label}
+                      icon={m.icon}
+                      pct={pct[m.key]}
+                      sublabel={m.format(userValForKey[m.key])}
+                      expanded={expandedCard === m.key}
+                      onClick={() => setExpandedCard(expandedCard === m.key ? null : m.key)}
+                    />
+                  ))}
+                </div>
+                {expandedCard && (() => {
+                  const mc = METRIC_CARDS.find(m => m.key === expandedCard);
+                  const cohortStat = comparison?.cohort_stats?.[expandedCard] || {};
+                  const userVal = userValForKey[expandedCard];
+                  const label = getPercentileLabel(pct[expandedCard]);
+                  return (
+                    <div style={{ background: "#0d0d0d", border: "1px solid rgba(var(--accent-rgb),0.12)", borderRadius: 14, padding: 16, marginBottom: 14, animation: "fadeIn 0.2s" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        <span style={{ fontSize: 16 }}>{mc.icon}</span>
+                        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{mc.label}</div>
+                        {pct[expandedCard] != null && <div style={{ marginLeft: "auto", fontFamily: "'DM Mono',monospace", fontSize: 9, color: label.color, background: `${label.color}18`, borderRadius: 6, padding: "2px 8px" }}>{label.long}</div>}
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                        {['25th', '50th', '75th'].map((label, i) => {
+                          const vals = [cohortStat.p25, cohortStat.p50, cohortStat.p75];
+                          const val = vals[i];
+                          return (
+                            <div key={label} style={{ textAlign: "center", flex: 1 }}>
+                              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.35)", marginBottom: 3 }}>{label}</div>
+                              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.7)" }}>{mc.format(val)}</div>
+                            </div>
+                          );
+                        })}
+                        <div style={{ textAlign: "center", flex: 1 }}>
+                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.35)", marginBottom: 3 }}>YOU</div>
+                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: getPercentileLabel(pct[expandedCard]).color, fontWeight: 700 }}>{mc.format(userVal)}</div>
+                        </div>
+                      </div>
+                      <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, position: "relative" }}>
+                        <div style={{ height: "100%", width: "25%", background: "rgba(255,255,255,0.12)", borderRadius: "2px 0 0 2px" }} />
+                        <div style={{ height: "100%", width: "25%", left: "25%", position: "absolute", top: 0, background: "rgba(255,255,255,0.18)" }} />
+                        <div style={{ height: "100%", width: "25%", left: "50%", position: "absolute", top: 0, background: "rgba(255,255,255,0.12)" }} />
+                        {pct[expandedCard] != null && (
+                          <div style={{ position: "absolute", top: -4, left: `${pct[expandedCard]}%`, transform: "translateX(-50%)", width: 12, height: 12, borderRadius: "50%", background: getPercentileLabel(pct[expandedCard]).color, border: "2px solid #070710" }} />
+                        )}
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.2)" }}>0%</span>
+                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.2)" }}>100%</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.25)", lineHeight: 1.6, textAlign: "center", marginTop: 8 }}>
+                  {comparison?.is_research_based
+                    ? 'Based on research data — cohort data will replace this as more similar users join.'
+                    : `Based on ${comparison?.sample_size} similar users. All data anonymous.`}
+                </div>
+              </>
+            )}
+
+            {/* Tab 1: What Works for Others */}
+            {tab === 1 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {(comparison?.pattern_insights || []).map((text, i) => (
+                  <div key={i} style={{ background: "#0d0d0d", border: "1px solid rgba(245,245,240,0.07)", borderRadius: 12, padding: 14 }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", marginTop: 5, flexShrink: 0 }} />
+                      <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 14, color: "rgba(245,245,240,0.75)", lineHeight: 1.45 }}>{text}</div>
+                    </div>
+                  </div>
+                ))}
+                {!comparison?.pattern_insights?.length && (
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.3)", textAlign: "center", marginTop: 40 }}>Log more data to unlock pattern insights.</div>
+                )}
+              </div>
+            )}
+
+            {/* Tab 2: Honest Expectations */}
+            {tab === 2 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.4)", letterSpacing: "0.1em", marginBottom: 4 }}>REALISTIC RANGES FOR USERS LIKE YOU</div>
+                {(comparison?.expectation_ranges || []).map((range, i) => (
+                  <div key={i} style={{ background: "#0d0d0d", border: "1px solid rgba(245,245,240,0.07)", borderRadius: 12, padding: 14 }}>
+                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>{range.metric}</div>
+                    <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                      {[['Conservative', range.conservative, '#60a5fa'], ['Realistic', range.realistic, '#4ade80'], ['Aggressive', range.aggressive, '#a78bfa']].map(([tier, val, color]) => (
+                        <div key={tier} style={{ flex: 1, background: `${color}10`, border: `1px solid ${color}30`, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.4)", marginBottom: 4, letterSpacing: "0.06em" }}>{tier.toUpperCase()}</div>
+                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color, fontWeight: 700 }}>{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {range.note && <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 12, color: "rgba(245,245,240,0.45)", lineHeight: 1.4 }}>{range.note}</div>}
+                  </div>
+                ))}
+
+                {/* Opt-in toggle */}
+                <div style={{ background: "#0d0d0d", border: "1px solid rgba(245,245,240,0.07)", borderRadius: 12, padding: 14, marginTop: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "rgba(245,245,240,0.7)" }}>Contribute my data</div>
+                    <div onClick={() => handleOptToggle(!optedIn)} style={{ width: 40, height: 22, borderRadius: 11, background: optedIn ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
+                      <div style={{ position: "absolute", top: 2, left: optedIn ? 19 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.3)", lineHeight: 1.5 }}>
+                    When on, your anonymized data helps refine insights for users like you. Individual data is never shared or exposed.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── CohortContextCard (Progress > Overview) ───────────────────────────────────
+
+function CohortContextCard({ peerData, memberDays, onOpen }) {
+  if (!peerData) return null;
+  const pct = peerData.percentiles;
+  const bestMetric = Object.entries(pct)
+    .filter(([, v]) => v != null)
+    .sort(([, a], [, b]) => b - a)[0];
+
+  const METRIC_LABELS = { adherence: 'Logging', training_frequency: 'Training freq.', sleep: 'Sleep', weight_velocity: 'Progress pace' };
+  const METRIC_ICONS  = { adherence: '📋', training_frequency: '🏋️', sleep: '💤', weight_velocity: '⚖️' };
+
+  return (
+    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "#0d0d0d", border: "1px solid rgba(var(--accent-rgb),0.08)", borderRadius: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase" }}>// Cohort Context</div>
+        <button onClick={onOpen} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(var(--accent-rgb),0.6)", letterSpacing: "0.08em" }}>View all →</button>
+      </div>
+
+      {memberDays < 14 ? (
+        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 12, color: "rgba(245,245,240,0.4)", lineHeight: 1.4 }}>
+          Your data is helping build context for users like you. Check back at 14 days.
+        </div>
+      ) : (
+        <div>
+          {/* Best percentile highlight */}
+          {bestMetric && (() => {
+            const [key, val] = bestMetric;
+            const label = getPercentileLabel(val);
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 16 }}>{METRIC_ICONS[key]}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.6)", marginBottom: 2 }}>{METRIC_LABELS[key]}</div>
+                  <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 14, color: label.color }}>{label.short} of similar users</div>
+                </div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 20, fontWeight: 700, color: label.color }}>{Math.round(val)}<span style={{ fontSize: 10, opacity: 0.6 }}>%</span></div>
+              </div>
+            );
+          })()}
+          {/* Mini percentile row */}
+          <div style={{ display: "flex", gap: 6 }}>
+            {Object.entries(pct).filter(([, v]) => v != null).slice(0, 4).map(([key, val]) => {
+              const label = getPercentileLabel(val);
+              return (
+                <div key={key} style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: label.color, fontWeight: 700 }}>{Math.round(val)}</div>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.3)", letterSpacing: "0.04em" }}>{METRIC_ICONS[key]}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.2)", textAlign: "right", marginTop: 6 }}>
+            {peerData.is_research_based ? 'vs. research norms' : `vs. ${peerData.sample_size} similar users`}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Coach Insights Card (Progress > Overview) ─────────────────────────────────
 function CoachInsightsCard({recall, userId}) {
   const [expanded, setExpanded] = useState(false);
@@ -2758,6 +3050,9 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
 
   // ── Connections Dashboard ─────────────────────────────────────────────────
   const [showConnectionsView,setShowConnectionsView]=useState(false);
+
+  // ── Peer Comparison ───────────────────────────────────────────────────────
+  const [showPeerView,setShowPeerView]=useState(false);
 
   // ── Feature Unlock System ──────────────────────────────────────────────────
   const [showAppTour,setShowAppTour]=useState(false);
@@ -5718,6 +6013,13 @@ Rules:
       getConnectionsData(user.id).then(data=>setConnectionData(data)).catch(()=>{});
     },[user?.id]);
 
+    const [peerData,setPeerData]=useState(null);
+    useEffect(()=>{
+      if(!user?.id||!profile)return;
+      assignCohort(user.id,profile).catch(()=>{});
+      getPeerComparison(user.id,profile).then(d=>{if(d)setPeerData(d);}).catch(()=>{});
+    },[user?.id,profile?.goal,profile?.weight]);
+
     const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
     useEffect(()=>{
       if(!user?.id)return;
@@ -6539,6 +6841,13 @@ Rules:
               onOpen={()=>setShowConnectionsView(true)}
             />
 
+            {/* Peer Comparison */}
+            <CohortContextCard
+              peerData={peerData}
+              memberDays={profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0}
+              onOpen={()=>setShowPeerView(true)}
+            />
+
             {/* This Week Rings */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week</div>
@@ -7190,6 +7499,13 @@ Rules:
           bodyweightLogs={bodyweightLogs}
           consumed={consumed}
           memberDays={profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0}
+        />
+      )}
+      {showPeerView&&(
+        <PeerInsightsView
+          userId={user?.id}
+          profile={profile}
+          onClose={()=>setShowPeerView(false)}
         />
       )}
       {!isOnline&&<div style={{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"rgba(254,160,32,0.12)",borderBottom:"1px solid rgba(254,160,32,0.2)",padding:"max(env(safe-area-inset-top),8px) 16px 8px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>

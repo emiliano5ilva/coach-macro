@@ -43,6 +43,7 @@ import { getProgramImage } from "./data/programImages.js";
 import { triggerEventUnlock } from "./services/featureUnlockService.js";
 import { ACCENT_COLORS, BG_COLORS, isCompatible, isLightBg, applyTheme } from "./utils/themeService.js";
 import { getOutreachPreferences, saveOutreachPreferences, TRIGGER_CATEGORIES, DEFAULT_PREFS } from "./services/outreachService.js";
+import { getOptIn, setOptIn as setPeerOptInSvc } from "./services/peerComparisonService.js";
 
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -5141,6 +5142,52 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
   );
 }
 
+// ─── PEER COMPARISON SECTION ─────────────────────────────────────────────────
+
+function PeerComparisonSection({ user, eyebrowStyle, cardStyle }) {
+  const [optIn, setOptIn] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getOptIn(user.id).then(v => { setOptIn(v ?? true); setLoading(false); });
+  }, [user?.id]);
+
+  async function toggle(val) {
+    setOptIn(val);
+    await setPeerOptInSvc(user.id, val);
+    showToast(val ? "Peer comparison enabled" : "Peer comparison disabled", "success");
+  }
+
+  if (loading) return null;
+
+  return (
+    <>
+      <div style={eyebrowStyle}>// Peer Comparison</div>
+      <div style={cardStyle}>
+        <div style={{ padding: "14px 16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <div style={{ flex: 1, paddingRight: 16 }}>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0", marginBottom: 3 }}>Anonymous Benchmarking</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.4)", lineHeight: 1.5, letterSpacing: "0.06em" }}>
+                Compare your progress with similar users anonymously. Helps set realistic expectations and surface what's working for others like you.
+              </div>
+            </div>
+            <div onClick={() => toggle(!optIn)} style={{ width: 44, height: 24, borderRadius: 12, background: optIn ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+              <div style={{ position: "absolute", top: 3, left: optIn ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+            </div>
+          </div>
+          <div style={{ background: "rgba(245,245,240,0.03)", border: "1px solid rgba(245,245,240,0.06)", borderRadius: 8, padding: "10px 12px" }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(245,245,240,0.35)", lineHeight: 1.6, letterSpacing: "0.05em" }}>
+              Your individual data is never shared with other users in any form. Only anonymized aggregate statistics are used. Groups require at least 10 users before any comparison is shown.
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── COACH OUTREACH SECTION ───────────────────────────────────────────────────
 
 function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
@@ -5700,6 +5747,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       </div>
 
       {/* ── COACH OUTREACH ── */}
+      <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
       <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
 
       {/* ── ACCOUNT ── */}
