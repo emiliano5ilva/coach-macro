@@ -4769,21 +4769,6 @@ Rules:
     }
     const streakCount=homStreak;
     function handleStreakPress(){setSection("train");setTrainScreen("progress");}
-    const [calHistory,setCalHistory]=useState([]);
-    useEffect(()=>{
-      if(!user?.id)return;
-      const cutoff=new Date(Date.now()-6*86400000).toISOString().split('T')[0];
-      sb.from('food_logs').select('date,entries').eq('user_id',user.id)
-        .gte('date',cutoff).order('date',{ascending:true})
-        .then(({data})=>{
-          if(!data?.length){setCalHistory([]);return;}
-          const map={};
-          data.forEach(row=>{map[row.date]=(row.entries||[]).reduce((s,e)=>s+(e.calories||0),0);});
-          const pts=[];
-          for(let i=6;i>=0;i--){const d=new Date(Date.now()-i*86400000);pts.push(map[d.toISOString().split('T')[0]]||0);}
-          setCalHistory(pts);
-        });
-    },[user?.id]);
     return (
       <div className="page-enter">
         {/* Header */}
@@ -4846,180 +4831,882 @@ Rules:
         {/* BodyStatusBar — tier-adaptive health display */}
         <BodyStatusBar tier={userTier} healthSnap={healthSnap} />
 
-        {/* ── // CALORIES ── */}
-        <div style={{margin:"0 20px 16px"}}>
-          <div className="section-marker">CALORIES</div>
-          <div className="card-hero" style={{position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,var(--accent-brand) 0%,transparent 70%)"}}/>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,letterSpacing:"0.10em",textTransform:"uppercase",color:"var(--accent-brand)"}}>// CALORIES</span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-tertiary)",letterSpacing:"0.04em"}}>{new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:true})}</span>
+        {/* ── METABOLIC ADAPTATION BANNER ── */}
+        {metabolicAdaptation&&metabolicAdaptation.status==="detected"&&(
+          <MetabolicAdaptationBanner
+            adaptation={metabolicAdaptation}
+            onView={()=>setShowAdaptationModal(true)}
+            onDismiss={handleDismissAdaptation}
+          />
+        )}
+
+        {/* ── METABOLIC RESET PROGRESS (while protocol active) ── */}
+        {metabolicAdaptation&&metabolicAdaptation.status==="active"&&(()=>{
+          const progress=getProtocolProgress(metabolicAdaptation);
+          if(!progress)return null;
+          return(
+            <div style={{margin:"0 20px 14px"}}>
+              <MetabolicResetProgressCard
+                progress={progress}
+                onComplete={handleCompleteAdaptation}
+              />
             </div>
-            {(()=>{
-              const calTarget=Math.max(macros.calories,1);
-              const calConsumed=consumed.calories;
-              const calRemaining=Math.max(calTarget-calConsumed,0);
-              const fill=Math.min(calConsumed/calTarget,1);
-              const over=calConsumed>calTarget+50;
-              const r=112,C=2*Math.PI*r;
-              const dashoffset=C*(1-fill);
-              const gradId=over?"ring-over-grad":"ring-normal-grad";
-              const pts=calHistory.length===7?calHistory:Array(7).fill(0);
-              const maxPt=Math.max(...pts,1),minPt=Math.min(...pts);
-              const rng=maxPt-minPt||1;
-              const W=200,H=32;
-              const xs=pts.map((_,i)=>(i/6)*W);
-              const ys=pts.map(v=>H-((v-minPt)/rng)*H*0.75-H*0.125);
-              const sparkPath=xs.map((x,i)=>`${i===0?"M":"L"} ${x.toFixed(1)} ${ys[i].toFixed(1)}`).join(" ");
-              const variance=calConsumed-macros.calories;
-              const varOver=variance>50;
-              return(
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
-                  <div style={{position:"relative",width:240,height:240}}>
-                    <svg width={240} height={240} style={{transform:"rotate(-90deg)"}}>
-                      <defs>
-                        <linearGradient id="ring-normal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#FF3B30"/>
-                          <stop offset="100%" stopColor="#FAFAF0"/>
-                        </linearGradient>
-                        <linearGradient id="ring-over-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#FF3B30"/>
-                          <stop offset="100%" stopColor="#FF6B5C"/>
-                        </linearGradient>
-                      </defs>
-                      <circle cx={120} cy={120} r={r} stroke="rgba(245,245,240,0.08)" strokeWidth={16} fill="none"/>
-                      {fill>0&&(
-                        <circle cx={120} cy={120} r={r} stroke={`url(#${gradId})`} strokeWidth={16} fill="none" strokeLinecap="round"
-                          strokeDasharray={C} strokeDashoffset={dashoffset}
-                          style={{transition:"stroke-dashoffset 0.8s cubic-bezier(0,0,0.2,1)",filter:"drop-shadow(0 0 6px rgba(255,59,48,0.35))"}}/>
-                      )}
-                    </svg>
-                    <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:500,letterSpacing:"0.04em",color:"var(--text-tertiary)",textTransform:"uppercase"}}>REMAINING</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontWeight:600,fontSize:48,lineHeight:1,letterSpacing:"-0.03em",color:"var(--text-primary)",fontVariantNumeric:"tabular-nums"}}>{calRemaining.toLocaleString()}</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-tertiary)",marginTop:2}}>of {calTarget.toLocaleString()} kcal</div>
+          );
+        })()}
+
+        {/* ── CALENDAR CONNECT PROMPT (first-time, native only) ── */}
+        {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()&&!calendarConnected&&!showCalendarPrompt&&localStorage.getItem("cal_prompt_dismissed")!=="1"&&workoutLogsRaw.length>=3&&(
+          <CalendarConnectPrompt
+            onConnect={handleConnectCalendar}
+            onDismiss={()=>{setShowCalendarPrompt(false);localStorage.setItem("cal_prompt_dismissed","1");}}
+          />
+        )}
+
+        {/* ── LIFE-AWARE TRAINING — Calendar alerts ── */}
+        {calendarAlerts.filter(a=>!dismissedAlerts.has(a.id)).map(alert=>(
+          <ScheduleAlertCard
+            key={alert.id}
+            alert={alert}
+            onAction={handleCalendarAction}
+            onDismiss={handleDismissAlert}
+          />
+        ))}
+
+        {/* ── TRAVEL DAY NUTRITION ── */}
+        {travelAdvice&&(
+          <TravelNutritionCard
+            travelAdvice={travelAdvice}
+            onDismiss={()=>setTravelAdvice(null)}
+          />
+        )}
+
+        {/* ── PROACTIVE GAME PLAN ── */}
+        {gamePlanItems.filter((_,i)=>!dismissedGamePlan.has(i)).length>0&&(
+          <GamePlanCard
+            items={gamePlanItems.filter((_,i)=>!dismissedGamePlan.has(i))}
+            onDismissItem={(idx)=>{
+              const realIdx=gamePlanItems.findIndex((_,i)=>!dismissedGamePlan.has(i)&&gamePlanItems.indexOf(gamePlanItems.filter((_,j)=>!dismissedGamePlan.has(j))[idx])===i);
+              const next=new Set(dismissedGamePlan);
+              // find the actual index in the original array for this filtered-idx item
+              let count=0;
+              for(let i=0;i<gamePlanItems.length;i++){
+                if(!dismissedGamePlan.has(i)){if(count===idx){next.add(i);break;}count++;}
+              }
+              setDismissedGamePlan(next);
+              try{localStorage.setItem('cm_gp_dismissed',JSON.stringify([...next]));}catch{}
+              trackUserEvent(user?.id,'dismiss_gameplan').catch(()=>{});
+            }}
+          />
+        )}
+
+        {/* ── FAILURE PATTERN ALERT ── */}
+        {patternAlert&&(
+          <PatternAlertCard
+            detection={patternAlert}
+            onDismiss={()=>{
+              dismissPattern(user.id,patternAlert.pattern);
+              trackUserEvent(user.id,'dismiss_pattern',{pattern:patternAlert.pattern,stage:patternAlert.stage}).catch(()=>{});
+              setPatternAlert(null);
+            }}
+            onAction={(label,det)=>{
+              recordPatternDetection(user.id,det.pattern,det.stage,label,det.signals).catch(()=>{});
+              trackUserEvent(user.id,'act_on_pattern',{pattern:det.pattern,stage:det.stage,label}).catch(()=>{});
+            }}
+          />
+        )}
+
+
+
+
+        {/* Streak counter + StreakCard */}
+        {(()=>{
+          const sl=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();
+          const streakWin=checkStreakWins(homStreak,sl);
+          return(
+            <>
+              {streakWin&&pendingStreakWin!=='dismissed'&&(
+                <StreakCard
+                  win={streakWin}
+                  streak={homStreak}
+                  onDismiss={()=>{markStreakWinShown(streakWin.key);setPendingStreakWin('dismissed');}}
+                />
+              )}
+            </>
+          );
+        })()}
+
+        {/* Feature Unlock Card */}
+        {pendingUnlock&&pendingUnlock.feature&&(
+          <div style={{margin:"0 20px 0"}}>
+            <FeatureUnlockCard
+              unlock={pendingUnlock}
+              onShowMe={()=>{
+                markUnlockShown(user?.id,pendingUnlock.feature_key).catch(()=>{});
+                handleFeatureShowMe(pendingUnlock.feature_key);
+                setPendingUnlock(null);
+              }}
+              onDismiss={()=>{
+                markUnlockShown(user?.id,pendingUnlock.feature_key).catch(()=>{});
+                setPendingUnlock(null);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Morning Brief + Comeback Protocol */}
+        <div style={{margin:"0 20px 12px"}}>
+          {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
+            briefExpanded
+              ?<div style={{padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase"}}>// Morning Brief</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",color:"rgba(245,245,240,0.35)"}}>
+                    {new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+                  </div>
+                </div>
+                {morningBriefLoading
+                  ?<div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    {[1,0.85,0.7,0.55].map((w,i)=><div key={i} className="skeleton" style={{height:12,width:`${w*100}%`,borderRadius:3,animationDelay:`${i*80}ms`}}/>)}
+                  </div>
+                  :morningBriefError
+                    ?<div style={{fontSize:12,color:"rgba(245,245,240,0.5)",fontStyle:"italic",lineHeight:1.5}}>{morningBriefError}</div>
+                    :morningBrief&&(()=>{
+                      const b=morningBrief;
+                      return(
+                        <div>
+                          {b.greeting&&<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:20,lineHeight:1.1,textTransform:"uppercase",marginBottom:10}}>{b.greeting}</div>}
+                          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                            {b.yesterday&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Yesterday</div><div style={{fontSize:12.5,lineHeight:1.55,color:"rgba(245,245,240,0.75)"}}>{b.yesterday}</div></div>)}
+                            <div style={{height:1,background:"rgba(var(--accent-rgb),0.08)"}}/>
+                            {b.today&&(<div><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:3}}>Today</div><div style={{fontSize:12.5,lineHeight:1.55}}>{b.today}</div></div>)}
+                            {b.coach_says&&(<div style={{padding:"8px 10px",background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:6}}><div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:"0.14em",color:"var(--red)",textTransform:"uppercase",marginBottom:3}}>Coach says</div><div style={{fontSize:12,lineHeight:1.55,fontStyle:"italic",color:"rgba(245,245,240,0.85)"}}>{b.coach_says}</div></div>)}
+                          </div>
+                          {b.sign_off&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginTop:10,letterSpacing:"0.06em"}}>{b.sign_off}</div>}
+                          {showCheckin&&!checkinDone&&(<SorenessCheckIn userId={user?.id} onComplete={(score,muscles)=>{setSorenessData({soreness_score:score,sore_muscles:muscles});setCheckinDone(true);setShowCheckin(false);}} onSkip={()=>setShowCheckin(false)}/>)}
+                          {checkinDone&&sorenessData&&(<SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>)}
+                        </div>
+                      );
+                    })()
+                }
+                {!morningBriefLoading&&(
+                  <div style={{marginTop:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                      <button onClick={()=>{setBriefExpanded(false);}} style={{background:"transparent",border:"none",color:"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
+                      <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{background:"transparent",border:"none",color:"var(--red)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
+                    </div>
+                    {(()=>{
+                      const hour=new Date().getHours();
+                      const sessionDoneToday=workoutLogsRaw.some(w=>w.date===todayKey)||!!completedWorkout;
+                      const breakfastLogged=log.length>0;
+                      if(todayType==="training"&&hour<12&&!sessionDoneToday){
+                        return(
+                          <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
+                            <button onClick={()=>setSection("train")} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>START YOUR SESSION →</button>
+                          </div>
+                        );
+                      }
+                      if(!breakfastLogged){
+                        return(
+                          <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
+                            <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
+                          </div>
+                        );
+                      }
+                      return(
+                        <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// WHAT SHOULD I DO FIRST?</div>
+                          <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",letterSpacing:"0.04em"}}>YOU'RE ON TRACK. KEEP GOING.</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+              :(()=>{
+                const b=morningBrief;
+                const coachSays=morningBriefLoading?"Loading brief...":(morningBriefError?"Couldn't load brief — tap to retry":(b?.coach_says||b?.greeting||""));
+                return(
+                  <div onClick={()=>{setBriefExpanded(true);const today=new Date().toISOString().split("T")[0];localStorage.setItem("brief_expanded",today);}}
+                    style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderLeft:"2px solid var(--accent)",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:15,color:"#f5f5f0",lineHeight:1.4,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      {coachSays}
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase"}}>// MORNING BRIEF</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase"}}>READ MORE ↓</div>
                     </div>
                   </div>
-                  <svg width={W} height={H} style={{overflow:"visible"}}>
-                    <path d={sparkPath} fill="none" stroke="rgba(245,245,240,0.35)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx={xs[6]} cy={ys[6]} r={3} fill="rgba(245,245,240,0.55)"/>
-                  </svg>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",width:"100%",paddingTop:12,borderTop:"1px solid rgba(245,245,240,0.06)"}}>
-                    {[
-                      {l:"INTAKE",  v:calConsumed.toLocaleString(),c:"var(--text-primary)"},
-                      {l:"TARGET",  v:calTarget.toLocaleString(),  c:"var(--text-secondary)"},
-                      {l:"VARIANCE",v:(variance>=0?"+":"")+variance.toLocaleString(),c:varOver?"var(--accent-brand)":"var(--text-secondary)"},
-                    ].map(({l,v,c})=>(
-                      <div key={l} style={{textAlign:"center"}}>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:9,fontWeight:500,letterSpacing:"0.08em",color:"var(--text-tertiary)",textTransform:"uppercase",marginBottom:4}}>{l}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:600,color:c,letterSpacing:"-0.01em",fontVariantNumeric:"tabular-nums"}}>{v}</div>
+                );
+              })()
+          )}
+          {showComebackProtocol&&(
+            <div style={{padding:"16px",background:"linear-gradient(135deg, #1a1208, var(--navy-card))",border:"1px solid rgba(245,158,11,0.3)",borderRadius:14,boxSizing:"border-box"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--amber)",textTransform:"uppercase",marginBottom:6}}>// {daysSinceWorkout} Days Out</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginTop:0,textTransform:"uppercase",marginBottom:10}}>Welcome Back, {firstName}.</div>
+              {["Muscles recovered — full intensity ready","Macros reset to maintenance this week",`Program resumes: Week ${programWeek}, ${todayFocus}`].map((t,i)=>(
+                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:13,marginBottom:6}}>
+                  <div style={{color:"var(--green)",marginTop:2}}>
+                    <svg width={16} height={16} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  <div>{t}</div>
+                </div>
+              ))}
+              <button onClick={()=>{setComebackDismissed(true);localStorage.setItem("comeback_dismissed",new Date().toISOString().split("T")[0]);setSection("train");}} style={{width:"100%",marginTop:12,padding:14,background:"var(--amber)",border:"none",borderRadius:12,color:"#0a0e1a",fontFamily:"var(--condensed)",fontWeight:800,fontSize:13,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Start Comeback Session →</button>
+            </div>
+          )}
+        </div>
+
+        {/* Mid-day check-in card */}
+        {(()=>{
+          const hour=new Date().getHours();
+          if(hour<11||hour>15)return null;
+          if(remaining.calories<=500)return null;
+          if(middayDismissed)return null;
+          const lastLogTime=(()=>{try{return parseInt(localStorage.getItem('last_food_log_time')||'0');}catch{return 0;}})();
+          const hoursSince=(Date.now()-lastLogTime)/3600000;
+          if(lastLogTime>0&&hoursSince<=3)return null;
+          const sessionStarted=trainScreen==="active"||!!completedWorkout;
+          const isAfternoon=hour>=14;
+          const msg=todayType==="training"&&!sessionStarted&&isAfternoon
+            ?{headline:"YOU TRAIN IN A FEW HOURS.",sub:`You need fuel before your session. You're ${Math.round(remaining.calories)} calories behind. Log your next meal now.`}
+            :{headline:"STAYING ON TRACK?",sub:`You have ${Math.round(remaining.calories)} calories and ${Math.round(remaining.protein)}g protein left today. Don't let the day get away from you.`};
+          return(
+            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderLeft:"3px solid var(--accent)",borderRadius:12,padding:"14px 16px"}}>
+              <button onClick={()=>{setMiddayDismissed(true);try{localStorage.setItem('midday_dismissed',Date.now().toString());}catch{}}} style={{position:"absolute",top:10,right:12,background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:16,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NUTRITION CHECK</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>{msg.headline}</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>{msg.sub}</div>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
+            </div>
+          );
+        })()}
+
+        {/* Post-workout window card */}
+        {(()=>{
+          const lastSession=(()=>{try{return parseInt(localStorage.getItem('cm_last_session_time')||'0');}catch{return 0;}})();
+          if(!lastSession)return null;
+          const hoursAgo=(Date.now()-lastSession)/3600000;
+          if(hoursAgo>3)return null;
+          const pwProtein=macros?.protein?Math.round(macros.protein*0.35):50;
+          const pwCarbs=macros?.carbs?Math.round(macros.carbs*0.4):80;
+          return(
+            <div style={{margin:"0 20px 12px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.2)",borderLeft:"3px solid #22c55e",borderRadius:12,padding:"14px 16px"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// POST-WORKOUT WINDOW</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>FUEL YOUR RECOVERY.</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:10}}>Your post-workout window is open. Hit {pwProtein}g protein and {pwCarbs}g carbs in the next 45 minutes to maximize recovery.</div>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#22c55e",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG POST-WORKOUT MEAL →</button>
+            </div>
+          );
+        })()}
+
+        {/* First week milestone card */}
+        {(()=>{
+          if(firstWeekCardDismissed)return null;
+          if(!profile?.created_at&&!profile?.createdAt)return null;
+          const created=new Date(profile.created_at||profile.createdAt);
+          const daysSince=Math.floor((Date.now()-created.getTime())/86400000);
+          if(daysSince<7||daysSince>14)return null;
+          return(
+            <div style={{margin:"0 20px 12px",position:"relative",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:14,padding:"20px"}}>
+              <button onClick={()=>{setFirstWeekCardDismissed(true);try{localStorage.setItem('cm_1week_dismissed','1');}catch{}}} style={{position:"absolute",top:12,right:14,background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:16,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",lineHeight:1,marginBottom:8}}>ONE WEEK IN<span style={{color:"var(--accent)"}}>.</span></div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>You've been showing up. That's what separates the athletes who get results from the ones who don't.</div>
+            </div>
+          );
+        })()}
+
+        {/* Cycle Insight Card (Part 10) */}
+        {profile?.sex==="female"&&profile?.cycleTracking&&(()=>{
+          const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+          const cn=getCycleNutrition(cp);
+          if(!cp)return null;
+          return(
+            <div style={{margin:"0 20px 12px",borderRadius:14,overflow:"hidden",border:`1.5px solid ${cn?.color||"#F472B6"}30`}}>
+              <div style={{background:`${cn?.color||"#F472B6"}12`,padding:"12px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:cn?.color||"#F472B6",marginBottom:4}}>// Cycle · Day {cp.day}</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase"}}>{cp.label}</div>
+                  </div>
+                  <div style={{fontSize:28}}>{cp.label.split(" ")[0]}</div>
+                </div>
+              </div>
+              <div style={{background:"var(--navy-card)",padding:"10px 16px 14px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,.4)",letterSpacing:".14em",textTransform:"uppercase",marginBottom:4}}>Training</div>
+                    <div style={{fontSize:11,lineHeight:1.55,color:"rgba(245,245,240,.8)"}}>{cp.cue}</div>
+                  </div>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,.4)",letterSpacing:".14em",textTransform:"uppercase",marginBottom:4}}>Nutrition</div>
+                    <div style={{fontSize:11,lineHeight:1.55,color:"rgba(245,245,240,.8)"}}>{cn?.focus||"Balanced fueling"}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Consistency Score for peri/menopause (replaces streak) */}
+        {showConsistencyScore(profile)&&(()=>{
+          const {sessions,pct}=getConsistencyScore(workoutLogsRaw||[]);
+          return(
+            <div style={{margin:"0 20px 12px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase",marginBottom:6}}>// Consistency Score</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:6}}>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"var(--green)"}}>{pct}%</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,.5)"}}>{sessions} sessions last 30 days</div>
+              </div>
+              <div style={{height:4,background:"rgba(var(--accent-rgb),0.08)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
+                <div style={{height:"100%",width:`${pct}%`,background:"var(--green)",borderRadius:2,transition:"width .6s"}}/>
+              </div>
+              <div style={{fontSize:12,color:"rgba(245,245,240,.6)",lineHeight:1.55,fontStyle:"italic"}}>Every session counts. Every time you show up is a win.</div>
+            </div>
+          );
+        })()}
+
+
+        {/* ── COACH ALERTS STREAM ── */}
+        <CoachAlertsStream userMode={userMode}>
+
+        {/* ── DELOAD DETECTION ── */}
+        {!deloadActive&&(()=>{
+          const todayStr=new Date().toISOString().split("T")[0];
+          const snoozedToday=deloadSnooze===todayStr;
+          if(snoozedToday)return null;
+
+          // Determine signals to display: prefer service result, fall back to local analyzeDeload
+          const svcSignals=upcomingDeload?.signals||null;
+          const localSignals=!svcSignals&&workoutLogsRaw.length>=5?analyzeDeload(workoutLogsRaw,profile,schedule):[];
+          if(!svcSignals&&localSignals.length<3)return null;
+
+          const deloadStartStr=upcomingDeload?.deloadStart||null;
+          const deloadEndStr=upcomingDeload?.deloadEnd||null;
+          const formattedRange=deloadStartStr&&deloadEndStr
+            ?`${new Date(deloadStartStr+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})} — ${new Date(deloadEndStr+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}`
+            :"Next week";
+
+          // Build top 2 signal lines
+          let signalLines=[];
+          if(svcSignals){
+            if(svcSignals.planned)signalLines.push(`You've trained hard for ${svcSignals.planned.weeks} weeks without a break.`);
+            if(svcSignals.soreness_high)signalLines.push(svcSignals.soreness_high.message+".");
+            if(svcSignals.performance_decline)signalLines.push(svcSignals.performance_decline.message+".");
+            if(svcSignals.rpe_high)signalLines.push(svcSignals.rpe_high.message+".");
+          } else {
+            signalLines=localSignals.slice(0,2).map(s=>s.label);
+          }
+          signalLines=signalLines.slice(0,2);
+
+          if(skipConfirmDeload){
+            const upcoming=upcomingDeload?.deload||deloadWeeksHistory.find(d=>d.status==="upcoming");
+            return(
+              <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// SKIP DELOAD?</div>
+                <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.7)",lineHeight:1.6,marginBottom:16}}>
+                  Skipping a deload increases injury risk and slows long-term progress. We strongly recommend you take it.
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={async()=>{
+                    const row=upcoming||upcomingDeload?.deload;
+                    if(row?.id){await sb.from("deload_weeks").update({status:"skipped"}).eq("id",row.id);setDeloadWeeksHistory(prev=>prev.map(d=>d.id===row.id?{...d,status:"skipped"}:d));}
+                    setUpcomingDeload(null);setSkipConfirmDeload(false);
+                    setDeloadSnooze(todayStr);localStorage.setItem("deload_snooze",todayStr);
+                  }} style={{flex:1,padding:12,background:"rgba(245,245,240,0.08)",border:"1px solid rgba(245,245,240,0.15)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>SKIP ANYWAY</button>
+                  <button onClick={()=>setSkipConfirmDeload(false)} style={{flex:2,padding:12,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>TAKE THE DELOAD</button>
+                </div>
+              </div>
+            );
+          }
+
+          const deloadSummary=`Rest week${formattedRange&&formattedRange!=="Next week"?" · "+formattedRange:""}`;
+          return(
+            <CollapsibleAlert color="#FEA020" summary={deloadSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(254,160,32,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
+                {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// REST WEEK COMING UP":"// DELOAD WEEK INCOMING"}</div>);})()}
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",marginBottom:10,textTransform:"uppercase",lineHeight:1}}>
+                  YOUR BODY NEEDS THIS<span style={{color:"#FEA020"}}>.</span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+                  {signalLines.map((l,i)=>(
+                    <div key={i} style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>{l}</div>
+                  ))}
+                </div>
+                <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>
+                  Next week: same exercises, 50% less volume and weight. This is where the gains you've built actually set in.
+                </div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",marginBottom:14}}>DELOAD WEEK: {formattedRange}</div>
+                <button onClick={startDeload} style={{width:"100%",padding:13,background:"#FEA020",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>GOT IT →</button>
+                <button onClick={()=>setSkipConfirmDeload(true)} style={{width:"100%",padding:10,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SKIP DELOAD</button>
+              </div>
+            </CollapsibleAlert>
+          );
+        })()}
+
+        {/* ── PROGRAM ADJUSTMENT NOTIFICATION ── */}
+        {weekAdjustment&&weekAdjustment.action!=="no_change"&&adjSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
+          const isAdvance=weekAdjustment.action==="advance";
+          const accent=isAdvance?"#22c55e":"#60a5fa";
+          const borderColor=isAdvance?"rgba(34,197,94,0.2)":"rgba(96,165,250,0.2)";
+          const title=isAdvance?"WEEK ADVANCED":"WEEK REPEATED";
+          const subtitle=isAdvance
+            ?"Your training signals are strong. Moving to the next week."
+            :"Your body needs more time here. Repeating this week.";
+          const reasons=(weekAdjustment.reason||"").split("; ").filter(Boolean);
+          const adjSummary=`Program ${isAdvance?"advanced":"repeated"} to Week ${weekAdjustment.new_week}`;
+          return(
+            <CollapsibleAlert color={accent} summary={adjSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// PROGRAM UPDATED</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
+                  {title}<span style={{color:accent}}>.</span>
+                </div>
+                <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>{subtitle}</div>
+                {reasons.length>0&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
+                    {reasons.map((r,i)=>(
+                      <div key={i} style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",lineHeight:1.6}}>{isAdvance?"✓ ":"⚡ "}{r}</div>
+                    ))}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:8,marginBottom:0}}>
+                  <div style={{flex:1,background:"rgba(245,245,240,0.04)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>WAS</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:16,color:"rgba(245,245,240,0.4)"}}>W{weekAdjustment.old_week}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",fontSize:16,color:"rgba(245,245,240,0.3)"}}>→</div>
+                  <div style={{flex:1,background:`${accent}12`,border:`1px solid ${accent}30`,borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:2}}>NOW</div>
+                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:16,color:accent}}>W{weekAdjustment.new_week}</div>
+                  </div>
+                </div>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setAdjSnooze(t);localStorage.setItem("adj_snooze",t);}} style={{width:"100%",marginTop:12,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+              </div>
+            </CollapsibleAlert>
+          );
+        })()}
+
+        {/* ── PLATEAU DETECTION ── */}
+        {activePlateaus.length>0&&plateauSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
+          const shown=activePlateaus.slice(0,2);
+          const extra=activePlateaus.length-shown.length;
+          const plateauNames=shown.map(p=>p.exercise_name).join(", ");
+          const plateauSummary=`${plateauNames} stalled — strateg${shown.length>1?"ies":"y"} ready`;
+          return(
+            <CollapsibleAlert color="#60a5fa" summary={plateauSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.2)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,rgba(96,165,250,0.06) 0%,transparent 70%)",pointerEvents:"none"}}/>
+                {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#60a5fa",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{sl2==='beginner'?"// LET'S MIX IT UP":"// PLATEAU DETECTED"}</div>);})()}
+                <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:14}}>
+                  {shown.map((p,i)=>{
+                    const strategy=getStrategyByName(p.strategy_prescribed);
+                    return(
+                      <div key={p.id||i}>
+                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>
+                          {p.exercise_name.toUpperCase()}<span style={{color:"#60a5fa"}}>.</span>
+                        </div>
+                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:10}}>
+                          {p.plateau_type==="weight"
+                            ?`Stuck at ${p.stalled_value} lbs for ${p.sessions_stalled} sessions.`
+                            :`Volume flat or declining for ${p.sessions_stalled} sessions.`}
+                        </div>
+                        {strategy&&(
+                          <>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// BREAK IT WITH</div>
+                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",marginBottom:4}}>
+                              {strategy.name}<span style={{color:"#60a5fa"}}>.</span>
+                            </div>
+                            <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:8}}>{strategy.description}</div>
+                            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                              {strategy.prescription.map((step,si)=>(
+                                <div key={si} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                                  <span style={{fontFamily:"var(--mono)",fontSize:8,color:"#60a5fa",minWidth:20,flexShrink:0,marginTop:1}}>0{si+1}</span>
+                                  <span style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5}}>{step}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {extra>0&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:12}}>and {extra} more exercise{extra>1?"s":""} need attention</div>}
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setPlateauSnooze(t);localStorage.setItem("plateau_snooze",t);}} style={{width:"100%",padding:13,background:"#60a5fa",border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+              </div>
+            </CollapsibleAlert>
+          );
+        })()}
+
+        {/* ── MUSCLE BALANCE WARNING ── */}
+        {balanceCorrections.length>0&&balanceSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
+          const primary=balanceCorrections[0];
+          const isRisk=primary.severity==="risk";
+          const accent=isRisk?"var(--accent)":"#FEA020";
+          const borderColor=isRisk?"rgba(var(--accent-rgb),0.2)":"rgba(254,160,32,0.2)";
+          const balanceSummary=`${primary.type==="push_pull"?"Push/pull":"Quad/posterior"} imbalance — fix ready`;
+          return(
+            <CollapsibleAlert color={accent} summary={balanceSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MUSCLE IMBALANCE DETECTED</div>
+                {balanceCorrections.map((c,ci)=>{
+                  const isPP=c.type==="push_pull";
+                  const pushPct=isPP&&(balanceCorrections[0]?.type==="push_pull")
+                    ? Math.round(100*(c.type==="push_pull"?(latestBalance?.push_volume_lbs||0)/Math.max(1,(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)):0))
+                    : 0;
+                  const totalVol=isPP
+                    ?(latestBalance?.push_volume_lbs||0)+(latestBalance?.pull_volume_lbs||0)
+                    :(latestBalance?.quad_volume_lbs||0)+(latestBalance?.posterior_volume_lbs||0);
+                  const aVol=isPP?(latestBalance?.push_volume_lbs||0):(latestBalance?.quad_volume_lbs||0);
+                  const bVol=isPP?(latestBalance?.pull_volume_lbs||0):(latestBalance?.posterior_volume_lbs||0);
+                  const aPct=totalVol>0?Math.round(aVol/totalVol*100):50;
+                  const bPct=100-aPct;
+                  const aLabel=isPP?"PUSH":"QUAD";
+                  const bLabel=isPP?"PULL":"POST";
+                  const aColor=isRisk?"var(--accent)":"#FEA020";
+                  const bColor="#60a5fa";
+                  return(
+                    <div key={ci} style={{marginBottom:ci<balanceCorrections.length-1?16:0}}>
+                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
+                        {isPP?"PUSH/PULL IMBALANCE":"QUAD/POSTERIOR IMBALANCE"}<span style={{color:accent}}>.</span>
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:10}}>
+                        {c.message}<br/>{c.risk}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
+                        {[[aLabel,aPct,aColor],[bLabel,bPct,bColor]].map(([label,pct,color])=>(
+                          <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",width:28,textAlign:"right",flexShrink:0}}>{pct}%</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>// FIX THIS WEEK</div>
+                      <div style={{fontSize:13,color:"#f5f5f0",lineHeight:1.5,marginBottom:8}}>{c.fix}</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                        {c.exercises.map((ex,ei)=>(
+                          <div key={ei} style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e"}}>+ {ex}</div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setBalanceSnooze(t);localStorage.setItem("balance_snooze",t);}} style={{width:"100%",marginTop:14,padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
+              </div>
+            </CollapsibleAlert>
+          );
+        })()}
+
+        {/* ── FATIGUE ALERT ── */}
+        {fatigueAlert&&(fatigueAlert.overallFatigue==="high"||fatigueAlert.overallFatigue==="medium")&&fatigueSnooze!==new Date().toISOString().split("T")[0]&&(()=>{
+          const isHigh=fatigueAlert.overallFatigue==="high";
+          const accent=isHigh?"var(--accent)":"#FEA020";
+          const borderColor=isHigh?"rgba(var(--accent-rgb),0.2)":"rgba(254,160,32,0.2)";
+          const headline=isHigh?"YOUR BODY IS TIRED.":"FATIGUE BUILDING.";
+          const exerciseSignals=(fatigueAlert.fatigueSignals||[]).filter(s=>s.type==="exercise_rpe_drift"||s.type==="rpe_performance_divergence");
+          const fatigueSummary=isHigh?"High fatigue — lighter session today":"Fatigue building — monitor effort";
+          return(
+            <CollapsibleAlert color={accent} summary={fatigueSummary} margin="0 20px 6px">
+              <div style={{padding:"16px",background:"#0d0d0d",border:`1px solid ${borderColor}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${accent}08 0%,transparent 70%)`,pointerEvents:"none"}}/>
+                {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:accent,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// YOUR BODY IS TIRED":"// FATIGUE DETECTED"}</div>);})()}
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                  {headline}<span style={{color:accent}}>.</span>
+                </div>
+                {fatigueAlert.topSignal&&(
+                  <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:10}}>{fatigueAlert.topSignal.message}</div>
+                )}
+                {exerciseSignals.length>0&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+                    {exerciseSignals.map((s,i)=>(
+                      <div key={i} style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)"}}>
+                        • {s.exercise}: RPE +{s.rpeDrift} over {s.sessions} sessions
                       </div>
                     ))}
                   </div>
+                )}
+                <div style={{borderLeft:`2px solid ${accent}`,paddingLeft:10,marginBottom:12}}>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:15,color:"#f5f5f0",lineHeight:1.4}}>
+                    {isHigh
+                      ?"Consider requesting a deload or taking an extra rest day before your next heavy session."
+                      :"Watch your RPE closely this week. If it keeps climbing a deload may be needed soon."}
+                  </div>
                 </div>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* ── // MACROS ── */}
-        <div style={{margin:"0 20px 16px"}}>
-          <div className="section-marker">MACROS</div>
-          <div className="card" style={{display:"flex",flexDirection:"column",gap:16}}>
-            {[
-              {label:"PROTEIN",c:consumed.protein,t:macros.protein,color:"var(--accent-brand)"},
-              {label:"CARBS",  c:consumed.carbs,  t:macros.carbs,  color:"rgba(96,165,250,0.9)"},
-              {label:"FATS",   c:consumed.fat,    t:macros.fat,    color:"rgba(245,158,11,0.9)"},
-            ].map(({label,c,t,color})=>(
-              <div key={label}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:500,letterSpacing:"0.08em",color:"var(--text-tertiary)",textTransform:"uppercase"}}>{label}</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:600,color:"var(--text-primary)",letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums"}}>
-                    {Math.round(c)}<span style={{fontWeight:400,color:"var(--text-tertiary)"}}>/{Math.round(t)}g</span>
-                  </span>
-                </div>
-                <div style={{height:4,background:"rgba(245,245,240,0.08)",borderRadius:2,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${Math.min(c/Math.max(t,1),1)*100}%`,background:color,borderRadius:2,transition:"width 0.6s cubic-bezier(0.16,1,0.3,1)"}}/>
-                </div>
+                <button onClick={()=>{const t=new Date().toISOString().split("T")[0];setFatigueSnooze(t);localStorage.setItem("fatigue_snooze",t);}} style={{width:"100%",padding:13,background:accent,border:"none",borderRadius:10,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT →</button>
               </div>
-            ))}
-          </div>
-        </div>
+            </CollapsibleAlert>
+          );
+        })()}
 
-        {/* ── // TODAY ── */}
-        <div style={{margin:"0 20px 16px"}}>
-          <div className="section-marker">TODAY</div>
-          {deloadActive
-            ?(
-              <div className="card" style={{borderLeft:"2px solid #FEA020",paddingLeft:20}}>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:9,fontWeight:600,letterSpacing:"0.10em",color:"#FEA020",textTransform:"uppercase",marginBottom:8}}>RECOVERY WEEK</div>
-                <div style={{fontFamily:"var(--font-condensed)",fontStyle:"italic",fontWeight:700,fontSize:28,color:"var(--text-primary)",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>RECOVERY WEEK<span style={{color:"#FEA020"}}>.</span></div>
-                <div style={{fontFamily:"var(--font-body)",fontSize:13,color:"var(--text-secondary)",lineHeight:1.5,marginBottom:16}}>Same movements. Half the volume. Trust the process.</div>
-                <button onClick={()=>setSection("train")} style={{width:"100%",height:48,background:"#FEA020",border:"none",borderRadius:8,color:"#000",fontFamily:"var(--font-body)",fontWeight:600,fontSize:15,letterSpacing:"0.02em",cursor:"pointer"}}>Start Deload Session →</button>
+        {/* ── INJURY PREVENTION ALERT ── */}
+        {activeInjuryRisks.length>0&&(
+          <InjuryAlertCard
+            risks={activeInjuryRisks}
+            onAdapt={()=>{setSection("train");}}
+            onDismiss={()=>dismissInjuryAlert(activeInjuryRisks[0].id)}
+          />
+        )}
+
+        {/* ── ACWR HIGH-RISK ALERTS ── */}
+        {acwrHighRisks.map(r=>(
+          <div key={r.region} onClick={()=>setShowInjuryRiskModal(r.region)} style={{margin:"0 20px 12px",padding:"14px 16px",background:"rgba(239,68,68,0.07)",border:"1.5px solid rgba(239,68,68,0.28)",borderLeft:"3px solid #EF4444",borderRadius:"4px 14px 14px 4px",cursor:"pointer"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.14em",color:"#EF4444",textTransform:"uppercase",fontWeight:700,marginBottom:6}}>⚠️ INJURY RISK ALERT — {r.region.replace("_"," ").toUpperCase()}</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.6,marginBottom:8}}>
+              Your {r.region.replace("_"," ")} training load is significantly above average this week (ACWR: {r.acwrRatio}).
+              {r.recentPain>0&&` You've also reported pain in this area recently.`}
+            </div>
+            <div style={{fontSize:11,color:"#EF4444",fontWeight:700}}>See My Recommendation →</div>
+          </div>
+        ))}
+
+        </CoachAlertsStream>
+
+        {/* Today's session — STATE B (deload active) or normal */}
+        {deloadActive
+          ?(
+            <div style={{margin:"0 20px 14px",padding:"16px",background:"linear-gradient(135deg,#0d0d0d 0%,#0a0d08 100%)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:14,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(254,160,32,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
+              {(()=>{const sl2=(wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner').toLowerCase();return(<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{sl2==='beginner'?"// REST WEEK COMING UP":"// DELOAD WEEK ACTIVE"}</div>);})()}
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>
+                RECOVERY WEEK<span style={{color:"#FEA020"}}>.</span>
               </div>
-            )
-            :(()=>{
-              const isRD=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
-              const focusLabel=(()=>{const raw=(todayFocus||"").replace(/\.$/,"");if(!raw||raw.toLowerCase()==="rest")return "Training";return raw;})();
-              const exCount=(activeWorkout?.exercises||[]).length;
-              const estMins=exCount?exCount*8+10:(wPrefs?.sessionLen||45);
-              if(isRD){
+              <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5,marginBottom:14}}>
+                Same movements. Half the volume. Trust the process.
+              </div>
+              {(()=>{
+                const daysLeft=deloadStartedAt?Math.max(0,7-Math.floor((new Date()-new Date(deloadStartedAt))/864e5)):7;
                 return(
-                  <div className="card">
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,fontWeight:600,letterSpacing:"0.10em",color:"var(--text-tertiary)",textTransform:"uppercase",marginBottom:8}}>REST DAY</div>
-                    <div style={{fontFamily:"var(--font-condensed)",fontStyle:"italic",fontWeight:700,fontSize:36,color:"var(--text-primary)",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>REST<span style={{color:"var(--accent-brand)"}}>.</span></div>
-                    <div style={{fontFamily:"var(--font-body)",fontSize:14,color:"var(--text-secondary)",lineHeight:1.5}}>{morningBrief?.coach_says||"Rest. Your body grows when you recover."}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.12em"}}>
+                      {daysLeft>0?`${daysLeft} day${daysLeft===1?"":"s"} remaining`:"Deload complete — great work."}
+                    </div>
+                    <div style={{flex:1,height:3,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${Math.round((7-Math.max(0,daysLeft))/7*100)}%`,background:"#FEA020",borderRadius:2,transition:"width 0.6s"}}/>
+                    </div>
                   </div>
                 );
-              }
+              })()}
+              <div style={{background:"rgba(254,160,32,0.06)",border:"1px solid rgba(254,160,32,0.15)",borderRadius:8,padding:"8px 12px",marginBottom:14,fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>
+                50% load · 50% volume · Full movement pattern
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setSection("train")} style={{flex:1,padding:14,background:"#FEA020",border:"none",borderRadius:12,color:"#000",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
+                  START DELOAD SESSION →
+                </button>
+                {deloadStartedAt&&Math.max(0,7-Math.floor((new Date()-new Date(deloadStartedAt))/864e5))<=0&&(
+                  <button onClick={handleDeloadComplete} style={{padding:14,background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:12,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",flexShrink:0}}>COMPLETE →</button>
+                )}
+              </div>
+            </div>
+          ):(()=>{
+            const isRD=todayType==="rest"||!todayType||(schedule[todayKey]==="rest");
+            const focusLabel=(()=>{const raw=(todayFocus||"").replace(/\.$/, "");if(!raw||raw.toLowerCase()==="rest")return DAY_CFG[todayType]?.label||"Training";return raw;})();
+            const coachQuote=(()=>{const tip=(morningBrief?.coach_tip||"").trim();if(tip)return tip.length>100?tip.substring(0,97)+"...":tip;return isRD?"Rest. Your body grows when you recover.":"Show up, do the work, trust the process.";})();
+            if(isRD){
               return(
-                <div className="card">
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:9,fontWeight:600,letterSpacing:"0.10em",color:"var(--accent-brand)",textTransform:"uppercase",marginBottom:8}}>TRAINING DAY</div>
-                  <div style={{fontFamily:"var(--font-condensed)",fontStyle:"italic",fontWeight:700,fontSize:28,color:"var(--text-primary)",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>{focusLabel}<span style={{color:"var(--accent-brand)"}}>.</span></div>
-                  {exCount>0&&(
-                    <div style={{display:"flex",gap:24,marginBottom:14}}>
-                      <div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-tertiary)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:2}}>EXERCISES</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:600,color:"var(--text-primary)",fontVariantNumeric:"tabular-nums"}}>{exCount}</div>
-                      </div>
-                      <div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-tertiary)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:2}}>EST. TIME</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:600,color:"var(--text-primary)",fontVariantNumeric:"tabular-nums"}}>{estMins}m</div>
-                      </div>
-                    </div>
-                  )}
-                  <button onClick={()=>{setSection("train");startStructured(todayFocus);}} style={{width:"100%",height:48,background:"var(--accent-brand)",border:"none",borderRadius:8,color:"#fff",fontFamily:"var(--font-body)",fontWeight:600,fontSize:15,letterSpacing:"0.02em",cursor:"pointer",marginBottom:8}}>Start Session →</button>
-                  <button onClick={()=>setSection("train")} style={{width:"100%",height:44,background:"transparent",border:"1px solid rgba(245,245,240,0.16)",borderRadius:8,color:"var(--text-primary)",fontFamily:"var(--font-body)",fontWeight:400,fontSize:14,cursor:"pointer"}}>View Workout</button>
+                <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:14,padding:16}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
+                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:10}}>REST<span style={{color:"var(--accent)"}}>.</span></div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:8}}>{coachQuote}</div>
                 </div>
               );
-            })()
-          }
+            }
+            return(
+              <div data-tour="start-session" style={{margin:"0 20px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:14,padding:16}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>
+                  {focusLabel}<span style={{color:"var(--accent)"}}>.</span>
+                </div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.45,marginTop:6,marginBottom:14}}>{coachQuote}</div>
+                <button onClick={()=>{setSection("train");startStructured(todayFocus);}} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:"14px 0",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",marginBottom:sessionExpandedToday?8:0}}>
+                  START SESSION →
+                </button>
+                <div onClick={()=>setSessionExpandedToday(s=>!s)} style={{textAlign:"center",fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:8}}>
+                  {sessionExpandedToday?"Session details ↑":"Session details ↓"}
+                </div>
+                {sessionExpandedToday&&(
+                  <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(245,245,240,0.05)"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",lineHeight:1.6}}>
+                      Go to Train tab to see the full exercise list, muscle chips, and set prescriptions.
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+
+        {/* ── PRESENT SECTION ── */}
+        <div data-tour="today-cards" style={{margin:"0 20px 8px"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+            <span>// THIS WEEK</span>
+            <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
+          </div>
         </div>
 
-        {/* ── // COACH ── */}
-        {(()=>{
-          const _today=new Date().toISOString().split('T')[0];
-          let a=null;
-          if(!a&&acwrHighRisks?.length>0){const r=acwrHighRisks[0];a={borderColor:"var(--accent-brand)",dotColor:"var(--accent-brand)",title:"INJURY RISK DETECTED",body:`Your ${(r.region||"training").replace("_"," ")} load is in the danger zone (ACWR: ${r.acwrRatio}). Reduce intensity today.`,action:null};}
-          if(!a&&fatigueAlert&&(fatigueAlert.overallFatigue==="high"||fatigueAlert.overallFatigue==="medium")&&fatigueSnooze!==_today){const hi=fatigueAlert.overallFatigue==="high";a={borderColor:hi?"var(--accent-brand)":"#FEA020",dotColor:hi?"var(--accent-brand)":"#FEA020",title:hi?"YOUR BODY IS TIRED.":"FATIGUE BUILDING.",body:fatigueAlert.topSignal?.message||"Training load is accumulating. Consider a lighter session.",action:{label:"GOT IT",fn:()=>{setFatigueSnooze(_today);localStorage.setItem("fatigue_snooze",_today);}}};}
-          if(!a&&!deloadActive&&upcomingDeload?.signals&&deloadSnooze!==_today){a={borderColor:"#FEA020",dotColor:"#FEA020",title:"REST WEEK COMING UP",body:"Training signals indicate you need recovery soon. 50% load, same movements.",action:{label:"GOT IT",fn:startDeload}};}
-          if(!a&&activePlateaus.length>0&&plateauSnooze!==_today){const p=activePlateaus[0];a={borderColor:"rgba(96,165,250,0.5)",dotColor:"#60a5fa",title:`${p.exercise_name.toUpperCase()} PLATEAU`,body:`Stuck at ${p.stalled_value||"current weight"} for ${p.sessions_stalled||"several"} sessions. New strategy ready.`,action:null};}
-          if(!a&&balanceCorrections.length>0&&balanceSnooze!==_today){const bc=balanceCorrections[0];a={borderColor:"rgba(245,245,240,0.16)",dotColor:"var(--text-secondary)",title:"MUSCLE IMBALANCE",body:bc.message||"Correct muscle imbalances to reduce long-term injury risk.",action:null};}
-          if(!a&&weekAdjustment&&weekAdjustment.action!=="no_change"&&adjSnooze!==_today){const isAdv=weekAdjustment.action==="advance";a={borderColor:isAdv?"rgba(34,197,94,0.5)":"rgba(96,165,250,0.5)",dotColor:isAdv?"#22c55e":"#60a5fa",title:isAdv?"WEEK ADVANCED":"WEEK REPEATED",body:isAdv?`Strong signals — moving to Week ${weekAdjustment.new_week}.`:`Repeating this week for better adaptation.`,action:{label:"GOT IT",fn:()=>{const t=new Date().toISOString().split('T')[0];setAdjSnooze(t);localStorage.setItem("adj_snooze",t);}}};}
-          if(!a)return null;
+
+        {/* Dual rings */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"0 20px 14px"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"14px 10px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase"}}>// Fuel Today</div>
+            <div style={{position:"relative",width:108,height:108,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width={108} height={108} style={{transform:"rotate(-90deg)"}}>
+                <circle cx={54} cy={54} r={46} stroke="rgba(245,245,240,0.08)" strokeWidth={8} fill="none"/>
+                <circle cx={54} cy={54} r={46} stroke="var(--red)" strokeWidth={8} fill="none" strokeLinecap="round"
+                  strokeDasharray={2*Math.PI*46} strokeDashoffset={2*Math.PI*46*(1-Math.min(consumed.calories/macros.calories,1))} style={{transition:"stroke-dashoffset 0.6s"}}/>
+              </svg>
+              <div style={{position:"absolute",textAlign:"center"}}>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:22,fontStyle:"italic",lineHeight:1}}>{consumed.calories.toLocaleString()}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.1em",textTransform:"uppercase"}}>{Math.max(0,macros.calories-consumed.calories)} left</div>
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"14px 10px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--white-dim)",textTransform:"uppercase"}}>// This Week</div>
+            <div style={{position:"relative",width:108,height:108,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width={108} height={108} style={{transform:"rotate(-90deg)"}}>
+                <circle cx={54} cy={54} r={46} stroke="rgba(245,245,240,0.08)" strokeWidth={8} fill="none"/>
+                <circle cx={54} cy={54} r={46} stroke="var(--green)" strokeWidth={8} fill="none" strokeLinecap="round"
+                  strokeDasharray={2*Math.PI*46} strokeDashoffset={2*Math.PI*46*(1-Math.min(workoutLogsRaw.filter(w=>{const d=new Date(w.date||w.logged_at);const now=new Date();return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());}).length/Math.max(1,Object.values(schedule).filter(v=>v==="training").length),1))} style={{transition:"stroke-dashoffset 0.6s"}}/>
+              </svg>
+              <div style={{position:"absolute",textAlign:"center"}}>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:800,fontSize:22,fontStyle:"italic",lineHeight:1}}>{workoutLogsRaw.filter(w=>{const d=new Date(w.date||w.logged_at);const now=new Date();return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());}).length}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--white-dim)",marginTop:3,letterSpacing:"0.1em",textTransform:"uppercase",textAlign:"center",lineHeight:1.3}}>SESSIONS<br/>THIS WEEK</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Weekly roadmap — intermediate/advanced: 7-day grid. beginner: next session hint */}
+        {userTier==='beginner'
+          ?(
+            <div style={{margin:"0 20px 14px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NEXT SESSION</div>
+              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{todayFocus||"Training Day"}<span style={{color:"var(--accent)"}}>.</span></div>
+              <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",marginTop:4}}>Go to the Train tab to start your session.</div>
+            </div>
+          ):(
+            <>
+              <div className="section-title">This Week</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,margin:"0 20px 14px"}}>
+                {weekDays.map((day,i)=>{
+                  const type=schedule[day]||"rest";
+                  const isToday2=day===todayKey;
+                  const colors={training:"var(--red)",cardio:"var(--blue)",run:"var(--blue)",hyrox:"var(--amber)",rest:"rgba(245,245,240,0.06)"};
+                  const c=colors[type]||colors.rest;
+                  return (
+                    <div key={i} style={{aspectRatio:"1",borderRadius:10,background:isToday2?c:(type==="rest"?colors.rest:`${c}22`),border:"1px solid "+(isToday2?"transparent":(type==="rest"?"var(--white-border)":`${c}55`)),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:10,color:type==="rest"?"var(--white-faint)":"var(--white)",letterSpacing:"0.06em"}}>{weekDayLetters[i]}</div>
+                      {isToday2&&<div style={{width:5,height:5,borderRadius:"50%",background:"white"}}/>}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )
+        }
+
+        {/* Macros */}
+        <div className="section-title">Macros Today</div>
+        <div style={{margin:"0 20px 14px",padding:"16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,display:"flex",flexDirection:"column",gap:12}}>
+          {[["Protein",consumed.protein,macros.protein,"var(--red)"],["Carbs",consumed.carbs,macros.carbs,"var(--blue)"],["Fat",consumed.fat,macros.fat,"var(--amber)"]].map(([label,val,target,color])=>(
+            <div key={label}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                <span style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--white-dim)"}}>{label}</span>
+                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>{val}<span style={{color:"var(--white-faint)"}}>/{target}g</span></span>
+              </div>
+              <div style={{height:4,background:"rgba(245,245,240,0.08)",borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.min(val/target,1)*100}%`,background:color,transition:"width 0.6s"}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── FUTURE SECTION — advanced only ── */}
+        {visibleSections.includes('predictive_intelligence')&&(sessionPrediction||weeklyForecast.length>0||goalTrajectories.strength||goalTrajectories.bodyComp)&&(()=>{
+          const todayProb=sessionPrediction?.probability??weeklyForecast.find(d=>d.isTraining&&d.probability!=null)?.probability;
+          const probColor=todayProb>=75?T.green:todayProb>=50?"#3b82f6":T.fat;
+          const trainingDays=weeklyForecast.filter(d=>d.isTraining&&d.probability!=null);
           return(
-            <div style={{margin:"0 20px 16px"}}>
-              <div className="section-marker">COACH</div>
-              <div className="card" style={{borderLeft:`2px solid ${a.borderColor}`,paddingLeft:20}}>
-                <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:a.dotColor,flexShrink:0,marginTop:6}}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontFamily:"var(--font-display)",fontSize:15,fontWeight:600,color:"var(--text-primary)",letterSpacing:"-0.02em",marginBottom:6}}>{a.title}</div>
-                    <div style={{fontFamily:"var(--font-body)",fontSize:13,color:"var(--text-secondary)",lineHeight:1.55}}>{a.body}</div>
-                    {a.action&&(<button onClick={a.action.fn} style={{marginTop:12,height:36,padding:"0 16px",background:"transparent",border:"1px solid rgba(245,245,240,0.16)",borderRadius:8,color:"var(--text-primary)",fontFamily:"var(--font-body)",fontWeight:600,fontSize:13,cursor:"pointer",letterSpacing:"0.02em"}}>{a.action.label} →</button>)}
+            <div style={{margin:"0 20px 14px"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                <span>// FUTURE</span>
+                <div style={{flex:1,height:1,background:"rgba(245,245,240,.06)"}}/>
+              </div>
+
+              {/* Today's PR probability */}
+              {todayProb!=null&&todayType==="training"&&(
+                <div style={{background:`${probColor}0d`,border:`1px solid ${probColor}25`,borderRadius:14,padding:"14px 16px",marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:20,color:probColor,textTransform:"uppercase",letterSpacing:".04em"}}>
+                      {todayProb>=75?"🔥 STRONG DAY":todayProb>=50?"💪 SOLID SESSION":"⚡ RECOVERY SESSION"}
+                    </div>
+                    <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:28,color:probColor}}>{todayProb}%</div>
+                  </div>
+                  <div style={{fontSize:11,color:"rgba(245,245,240,.45)"}}>PR probability · based on sleep, recovery, nutrition & your biology</div>
+                </div>
+              )}
+
+              {/* Weekly forecast grid */}
+              {trainingDays.length>0&&(
+                <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"12px 14px",marginBottom:10}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.14em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:10}}>This Week's Forecast</div>
+                  <div style={{display:"grid",gridTemplateColumns:`repeat(${trainingDays.length},1fr)`,gap:6}}>
+                    {trainingDays.map((d,i)=>{
+                      const c=d.probability>=75?T.green:d.probability>=50?"#3b82f6":T.fat;
+                      const isToday3=d.date===new Date().toISOString().split("T")[0];
+                      return(
+                        <div key={i} style={{textAlign:"center",background:`${c}12`,borderRadius:10,padding:"8px 4px",border:`1px solid ${isToday3?c+"50":"transparent"}`}}>
+                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,.45)",letterSpacing:".1em",marginBottom:4}}>{d.wday.toUpperCase()}</div>
+                          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:18,color:c,lineHeight:1}}>{d.probability}%</div>
+                          <div style={{fontSize:8,color:"rgba(245,245,240,.3)",marginTop:2}}>PR PROB</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Goal trajectories */}
+              {(goalTrajectories.strength||goalTrajectories.bodyComp)&&(
+                <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"12px 14px"}}>
+                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.14em",color:"rgba(245,245,240,.35)",textTransform:"uppercase",marginBottom:10}}>Goal Trajectories</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {goalTrajectories.strength&&(
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Strength</div>
+                          <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>{goalTrajectories.strength.weeklyGainPct>0?"+":""}{goalTrajectories.strength.weeklyGainPct}% per session avg</div>
+                        </div>
+                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.strength.trend==="up"?T.green:goalTrajectories.strength.trend==="down"?"#ef4444":"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.strength.trend==="up"?"rgba(34,197,94,0.2)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.strength.trend==="up"?"rgba(34,197,94,.1)":goalTrajectories.strength.trend==="down"?"rgba(239,68,68,.1)":"rgba(var(--accent-rgb),0.05)"}}>
+                          {goalTrajectories.strength.trend==="up"?"PROGRESSING":goalTrajectories.strength.trend==="down"?"DECLINING":"STABLE"}
+                        </div>
+                      </div>
+                    )}
+                    {goalTrajectories.bodyComp&&(
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:"rgba(245,245,240,.8)"}}>Body Comp</div>
+                          <div style={{fontSize:10,color:"rgba(245,245,240,.4)"}}>
+                            {Math.abs(goalTrajectories.bodyComp.weeklyChange)<0.05?"Weight stable":`${goalTrajectories.bodyComp.weeklyChange>0?"+":""}${goalTrajectories.bodyComp.weeklyChange.toFixed(1)}${goalTrajectories.bodyComp.wUnit}/wk`}
+                            {goalTrajectories.bodyComp.weeksToGoal&&` · ~${goalTrajectories.bodyComp.weeksToGoal}w to goal`}
+                          </div>
+                        </div>
+                        <div style={{fontFamily:"var(--mono)",fontWeight:500,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:goalTrajectories.bodyComp.trend==="gaining"?T.fat:goalTrajectories.bodyComp.trend==="losing"?T.green:"rgba(245,245,240,.5)",padding:"4px 12px",borderRadius:8,border:`1px solid ${goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,0.2)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,0.2)":"rgba(245,245,240,0.1)"}`,background:goalTrajectories.bodyComp.trend==="gaining"?"rgba(245,158,11,.1)":goalTrajectories.bodyComp.trend==="losing"?"rgba(34,197,94,.1)":"rgba(var(--accent-rgb),0.05)"}}>
+                          {goalTrajectories.bodyComp.trend==="gaining"?"GAINING":goalTrajectories.bodyComp.trend==="losing"?"LOSING":"STABLE"}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}

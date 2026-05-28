@@ -2161,6 +2161,9 @@ Reply with ONLY a valid JSON object, no markdown:
               const fillLen=parseFloat((calPct*circ).toFixed(1));
               const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
               const mno={fontFamily:"'DM Mono',monospace"};
+              const tipAngle=calPct*2*Math.PI-Math.PI/2;
+              const tipX=(110+100*Math.cos(tipAngle)).toFixed(2);
+              const tipY=(110+100*Math.sin(tipAngle)).toFixed(2);
               return(
                 <>
                   <style>{`
@@ -2169,13 +2172,34 @@ Reply with ONLY a valid JSON object, no markdown:
                   `}</style>
 
                   {/* Ring row: consumed | ring+remaining | target */}
-                  <div style={{position:'relative',height:220}}>
+                  <div style={{
+                    position:'relative',height:220,
+                    background:'rgba(245,245,240,0.03)',
+                    backgroundImage:'radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)',
+                    boxShadow:'0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)',
+                    borderRadius:'16px',
+                  }}>
                     <svg width="220" height="220" viewBox="0 0 220 220"
                       style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%) rotate(-90deg)',filter:'drop-shadow(0 0 16px rgba(232,52,28,0.10))'}}>
-                      <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(245,245,240,0.06)" strokeWidth="10"/>
-                      <circle cx="110" cy="110" r="100" fill="none" stroke="#e8341c" strokeWidth="10" strokeLinecap="round"
+                      <defs>
+                        <linearGradient id="calRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#FF3B30"/>
+                          <stop offset="100%" stopColor="#FAFAF0" stopOpacity="0.9"/>
+                        </linearGradient>
+                        <linearGradient id="calRingGradientOver" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#FF3B30"/>
+                          <stop offset="100%" stopColor="#FF6B5C"/>
+                        </linearGradient>
+                      </defs>
+                      <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth="14"/>
+                      {calOver&&<circle cx="110" cy="110" r="100" fill="none" stroke="rgba(255,59,48,0.3)" strokeWidth="14" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset="0"/>}
+                      <circle cx="110" cy="110" r="100" fill="none" stroke={`url(#${calOver?'calRingGradientOver':'calRingGradient'})`} strokeWidth="14" strokeLinecap="round"
                         strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
                         style={{animation:'fuelRingSweepN 0.8s cubic-bezier(.2,.7,.3,1) both'}}/>
+                      {calPct>0.02&&(
+                        <circle cx={tipX} cy={tipY} r="7" fill="#FF3B30"
+                          style={{filter:calOver?'drop-shadow(0 0 10px rgba(255,59,48,1.0))':'drop-shadow(0 0 6px rgba(255,59,48,0.8)) drop-shadow(0 0 12px rgba(255,59,48,0.4))'}}/>
+                      )}
                     </svg>
                     {/* Left — consumed */}
                     <div style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
@@ -2184,7 +2208,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     </div>
                     {/* Center — remaining */}
                     <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',textAlign:'center',pointerEvents:'none'}}>
-                      <div style={{...cnd,fontSize:48,color:calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em'}}>
+                      <div style={{...cnd,fontSize:48,color:calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em',textShadow:'0 0 30px rgba(245,245,240,0.15), 0 2px 24px rgba(0,0,0,0.8)'}}>
                         {calOver?`+${Math.abs(remaining.calories).toLocaleString()}`:calRemaining.toLocaleString()}
                       </div>
                       <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>

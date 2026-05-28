@@ -84,14 +84,16 @@ export default withLogging(async function handler(req, res) {
   // ── 1. Subscription check ──────────────────────────────────────────────────
   const { data: profile } = await sb
     .from('profiles')
-    .select('is_pro, profile_data')
+    .select('is_pro, subscription_tier, trial_ends_at, profile_data')
     .eq('id', userId)
     .maybeSingle();
 
   const now         = new Date();
-  const trialEndsAt = profile?.profile_data?.trialEndsAt;
+  const trialEndsAt = profile?.trial_ends_at || profile?.profile_data?.trialEndsAt;
   const trialActive = trialEndsAt && new Date(trialEndsAt) > now;
-  const isPro       = profile?.is_pro === true;
+  const isPro       = profile?.is_pro === true
+    || profile?.subscription_tier === 'monthly'
+    || profile?.subscription_tier === 'annual';
 
   if (!isPro && !trialActive) {
     return res.status(402).json({

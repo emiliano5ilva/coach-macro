@@ -231,6 +231,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
 
   const [devLoading,setDevLoading]=useState(false);
   const [devError,setDevError]=useState("");
+  if(import.meta.env.VITE_AUTO_DEVMODE==="true") localStorage.setItem("devmode","true");
   const showDevSkip=import.meta.env.DEV||localStorage.getItem("devmode")==="true";
   const logoTapCount=useRef(0);
   const logoTapTimer=useRef(null);
@@ -252,14 +253,14 @@ function AuthScreen({onAuth, startView="welcome"}) {
 
       // 1. Try signing in with the test account
       const{data:signInData,error:signInErr}=await sb.auth.signInWithPassword({
-        email:"test@dev.com",password:"devtest123",
+        email:"testuser@coachm.dev",password:"CoachTest123!",
       });
       if(!signInErr&&signInData?.user?.id){
         userData=signInData.user;
       } else {
         // 2. Account doesn't exist — create it
         const{data:signUpData,error:signUpErr}=await sb.auth.signUp({
-          email:"test@dev.com",password:"devtest123",
+          email:"testuser@coachm.dev",password:"CoachTest123!",
         });
         if(signUpErr)throw signUpErr;
         // If email confirmation is enabled the session may be null; re-try sign-in
@@ -267,7 +268,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
           userData=signUpData.user;
         } else {
           const{data:d2,error:e2}=await sb.auth.signInWithPassword({
-            email:"test@dev.com",password:"devtest123",
+            email:"testuser@coachm.dev",password:"CoachTest123!",
           });
           if(e2)throw e2;
           userData=d2?.user;
@@ -281,14 +282,16 @@ function AuthScreen({onAuth, startView="welcome"}) {
         id:userData.id,
         profile_data:{
           name:"Dev User",
-          email:"test@dev.com",
+          email:"testuser@coachm.dev",
           goal:"muscle_gain",
           liftExp:"intermediate",
           cardioExp:"intermediate",
-          subscription_tier:"tier3",
+          subscription_tier:"annual",
           startDate:new Date().toISOString().split("T")[0],
         },
-        subscription_tier:"tier3",
+        subscription_tier:"annual",
+        subscription_started_at:new Date().toISOString(),
+        is_pro:true,
       },{onConflict:"id"});
 
       onAuth(userData,null);
@@ -412,13 +415,6 @@ function AuthScreen({onAuth, startView="welcome"}) {
     <div style={outer}>
       <style>{GLOBAL_CSS}</style>
       <DebugOverlay/>
-      {/* DEBUG env + error display — remove before production */}
-      <div style={{position:"fixed",top:0,left:0,right:0,background:"rgba(0,0,0,0.85)",color:"#ff0",fontFamily:"monospace",fontSize:10,padding:"4px 8px",zIndex:99998,lineHeight:1.5}}>
-        URL:{import.meta.env.VITE_SUPABASE_URL?"✓":"✗MISSING"} KEY:{import.meta.env.VITE_SUPABASE_ANON_KEY?"✓":"✗MISSING"} sb:{typeof sb!=="undefined"?"✓":"✗"}
-      </div>
-      {rawDebugError&&<div style={{position:"fixed",top:20,left:0,right:0,background:"rgba(200,0,0,0.95)",color:"#fff",fontFamily:"monospace",fontSize:10,padding:"8px",zIndex:99997,whiteSpace:"pre-wrap",wordBreak:"break-all",maxHeight:"50vh",overflowY:"auto"}}>
-        {rawDebugError}
-      </div>}
       <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
         <button onClick={()=>{setView("welcome");setError("");}} style={{background:"none",border:"none",color:"var(--white-dim)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:32,display:"flex",alignItems:"center",gap:6,padding:0}}>
           <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
@@ -467,21 +463,6 @@ function AuthScreen({onAuth, startView="welcome"}) {
             </button>
           </div>
         )}
-        {/* DEBUG connection test — remove before production */}
-        <button onClick={async()=>{
-          const dbg=window.__debugPush||((m)=>console.log('[PING]',m));
-          dbg("ping: starting...");
-          try{
-            const r=await fetch("https://oxxihlwqukbakmnnavuy.supabase.co/rest/v1/",{headers:{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eGlobHdxdWtiYWttbm5hdnV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MTc3OTUsImV4cCI6MjA5MjQ5Mzc5NX0.IIK9gfRtgVidt6dShxAn6OCVNxIvdbFSFDYzWgVNFbk"}});
-            dbg(`ping: HTTP ${r.status}`);
-          }catch(e){dbg(`ping: FETCH FAILED — ${e?.message} (${e?.name})`);}
-          try{
-            const{data,error}=await sb.from("profiles").select("id").limit(1);
-            dbg(`ping: profiles query err=${error?.message||"none"} rows=${data?.length??"-"}`);
-          }catch(e){dbg(`ping: DB FAILED — ${e?.message}`);}
-        }} style={{width:"100%",padding:"10px",marginTop:16,background:"rgba(96,165,250,0.15)",border:"1px solid rgba(96,165,250,0.4)",borderRadius:10,color:"#60a5fa",fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.08em",cursor:"pointer",textTransform:"uppercase"}}>
-          DEBUG: Test Supabase Connection
-        </button>
       </div>
     </div>
     {showLegalModal&&(
@@ -529,7 +510,9 @@ export default function NativeApp() {
         const trialEnd=data.trial_ends_at||data.profile_data.trialEndsAt;
         // Derive subscription_tier from DB column; fall back to date-based check
         let tier=data.subscription_tier||'trial';
-        if(tier==='trial'&&trialEnd&&new Date(trialEnd)<=new Date())tier='expired';
+        // Dev account bypass — never expire or paywall the test account
+        const isDevAccount=data.profile_data?.email==="testuser@coachm.dev";
+        if(!isDevAccount&&tier==='trial'&&trialEnd&&new Date(trialEnd)<=new Date())tier='expired';
         setProfile({
           ...data.profile_data,
           // Dedicated columns override JSONB where they exist
@@ -785,7 +768,10 @@ export default function NativeApp() {
       if(event==="SIGNED_IN"&&session?.user)handleAuth(session.user,null);
       if(event==="PASSWORD_RECOVERY")setPhase("reset-password");
     });
-    const onSubRequired=()=>setPhase("upgrade");
+    const onSubRequired=()=>{
+      const devEmail=profile?.email==="testuser@coachm.dev"||user?.email==="testuser@coachm.dev";
+      if(!devEmail)setPhase("upgrade");
+    };
     window.addEventListener("cm:subscription-required",onSubRequired);
     const onDeepLink=(e)=>{
       const{route}=e.detail||{};
