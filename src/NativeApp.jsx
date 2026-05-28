@@ -231,6 +231,19 @@ function AuthScreen({onAuth, startView="welcome"}) {
 
   const [devLoading,setDevLoading]=useState(false);
   const [devError,setDevError]=useState("");
+  const showDevSkip=import.meta.env.DEV||localStorage.getItem("devmode")==="true";
+  const logoTapCount=useRef(0);
+  const logoTapTimer=useRef(null);
+  function handleLogoTap(){
+    logoTapCount.current+=1;
+    clearTimeout(logoTapTimer.current);
+    if(logoTapCount.current>=5){
+      localStorage.setItem("devmode","true");
+      window.location.reload();
+      return;
+    }
+    logoTapTimer.current=setTimeout(()=>{logoTapCount.current=0;},600);
+  }
 
   async function handleDevSkip(){
     setDevLoading(true);setDevError("");
@@ -375,9 +388,11 @@ function AuthScreen({onAuth, startView="welcome"}) {
     <div style={{minHeight:"100vh",background:"#000000",display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px 52px",position:"relative",overflow:"hidden"}}>
       <style>{GLOBAL_CSS}</style>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"18vh",width:"100%",maxWidth:420}}>
-        <div style={{marginBottom:28,display:"flex",justifyContent:"center"}}><Logo size={36} text={false}/></div>
-        <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:84,lineHeight:.84,color:"var(--white)",textAlign:"center",textTransform:"uppercase",letterSpacing:"-0.01em"}}>
-          YOUR COACH.
+        <div onClick={handleLogoTap} style={{cursor:"default"}}>
+          <div style={{marginBottom:28,display:"flex",justifyContent:"center"}}><Logo size={36} text={false}/></div>
+          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:84,lineHeight:.84,color:"var(--white)",textAlign:"center",textTransform:"uppercase",letterSpacing:"-0.01em"}}>
+            YOUR COACH.
+          </div>
         </div>
         <p style={{fontSize:13,color:"rgba(245,245,240,0.30)",marginTop:22,lineHeight:1.6,textAlign:"center",maxWidth:260}}>
           AI-powered macros and training built around your body, your goals, and your life.
@@ -444,7 +459,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
             :<span>New here? <button onClick={()=>{setView("signup");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Create Account</button></span>
           }
         </div>
-        {import.meta.env.DEV&&view==="signin"&&(
+        {showDevSkip&&view==="signin"&&(
           <div style={{marginTop:32,borderTop:"1px dashed rgba(245,245,240,0.08)",paddingTop:16,textAlign:"center"}}>
             {devError&&<div style={{fontSize:10,color:"#f87171",fontFamily:"var(--mono)",marginBottom:8}}>{devError}</div>}
             <button onClick={handleDevSkip} disabled={devLoading} style={{background:"none",border:"none",color:"rgba(245,245,240,0.25)",cursor:devLoading?"default":"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.10em",padding:"4px 8px"}}>
