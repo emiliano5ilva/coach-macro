@@ -229,6 +229,62 @@ function AuthScreen({onAuth, startView="welcome"}) {
     </button>
   );
 
+  const [devLoading,setDevLoading]=useState(false);
+  const [devError,setDevError]=useState("");
+
+  async function handleDevSkip(){
+    setDevLoading(true);setDevError("");
+    try{
+      let userData=null;
+
+      // 1. Try signing in with the test account
+      const{data:signInData,error:signInErr}=await sb.auth.signInWithPassword({
+        email:"test@dev.com",password:"devtest123",
+      });
+      if(!signInErr&&signInData?.user?.id){
+        userData=signInData.user;
+      } else {
+        // 2. Account doesn't exist — create it
+        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({
+          email:"test@dev.com",password:"devtest123",
+        });
+        if(signUpErr)throw signUpErr;
+        // If email confirmation is enabled the session may be null; re-try sign-in
+        if(signUpData?.session){
+          userData=signUpData.user;
+        } else {
+          const{data:d2,error:e2}=await sb.auth.signInWithPassword({
+            email:"test@dev.com",password:"devtest123",
+          });
+          if(e2)throw e2;
+          userData=d2?.user;
+        }
+      }
+
+      if(!userData?.id)throw new Error("Could not get dev user");
+
+      // 3. Upsert a minimal profile so loadProfile goes straight to app phase
+      await sb.from("profiles").upsert({
+        id:userData.id,
+        profile_data:{
+          name:"Dev User",
+          email:"test@dev.com",
+          goal:"muscle_gain",
+          liftExp:"intermediate",
+          cardioExp:"intermediate",
+          subscription_tier:"tier3",
+          startDate:new Date().toISOString().split("T")[0],
+        },
+        subscription_tier:"tier3",
+      },{onConflict:"id"});
+
+      onAuth(userData,null);
+    }catch(e){
+      setDevError(e?.message||"Dev skip failed");
+    }
+    setDevLoading(false);
+  }
+
   const [resendCooldown,setResendCooldown]=useState(0);
   async function handleResendVerification(){
     if(resendCooldown>0||!email)return;
@@ -388,6 +444,14 @@ function AuthScreen({onAuth, startView="welcome"}) {
             :<span>New here? <button onClick={()=>{setView("signup");setError("");}} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.08em",padding:0}}>Create Account</button></span>
           }
         </div>
+        {import.meta.env.DEV&&view==="signin"&&(
+          <div style={{marginTop:32,borderTop:"1px dashed rgba(245,245,240,0.08)",paddingTop:16,textAlign:"center"}}>
+            {devError&&<div style={{fontSize:10,color:"#f87171",fontFamily:"var(--mono)",marginBottom:8}}>{devError}</div>}
+            <button onClick={handleDevSkip} disabled={devLoading} style={{background:"none",border:"none",color:"rgba(245,245,240,0.25)",cursor:devLoading?"default":"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.10em",padding:"4px 8px"}}>
+              {devLoading?"…":"DEV SKIP →"}
+            </button>
+          </div>
+        )}
         {/* DEBUG connection test — remove before production */}
         <button onClick={async()=>{
           const dbg=window.__debugPush||((m)=>console.log('[PING]',m));
