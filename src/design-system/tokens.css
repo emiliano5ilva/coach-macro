@@ -1,0 +1,323 @@
+/* Coach Macro — Design System Tokens
+   Sections 1-4: Color, Typography, Spacing, Materials
+   ─────────────────────────────────────────────────── */
+
+:root {
+
+  /* ── 1. COLOR ─────────────────────────────────────────────────────────────── */
+
+  /* Foundation */
+  --bg-base:           #000000;
+  --bg-elevated:       #050505;
+  --bg-recessed:       #000000;
+
+  /* Text */
+  --text-primary:      #FAFAF0;
+  --text-secondary:    rgba(245, 245, 240, 0.55);
+  --text-tertiary:     rgba(245, 245, 240, 0.35);
+  --text-quaternary:   rgba(245, 245, 240, 0.20);
+
+  /* Brand & accent */
+  --accent-brand:           #FF3B30;
+  --accent-brand-hover:     #FF564C;
+  --accent-brand-pressed:   #E62E24;
+  --accent-brand-soft:      rgba(255, 59, 48, 0.12);
+  --accent-brand-glow:      rgba(255, 59, 48, 0.40);
+
+  /* Data tokens — charts only, never on text/chrome */
+  --data-positive:          #26A69A;
+  --data-positive-soft:     rgba(38, 166, 154, 0.15);
+  --data-negative:          #EF5350;
+  --data-negative-soft:     rgba(239, 83, 80, 0.15);
+  --data-neutral:           rgba(245, 245, 240, 0.50);
+
+  /* Surfaces & dividers */
+  --surface-card:           rgba(245, 245, 240, 0.04);
+  --surface-card-hover:     rgba(245, 245, 240, 0.06);
+  --surface-elevated:       rgba(245, 245, 240, 0.08);
+  --divider-subtle:         rgba(245, 245, 240, 0.06);
+  --divider-default:        rgba(245, 245, 240, 0.10);
+  --divider-strong:         rgba(245, 245, 240, 0.16);
+
+  /* Gradients */
+  --gradient-ring-stroke:        linear-gradient(135deg, #FF3B30 0%, #FAFAF0 100%);
+  --gradient-ring-stroke-over:   linear-gradient(135deg, #FF3B30 0%, #FF6B5C 100%);
+  --gradient-area-positive:      linear-gradient(180deg, rgba(38,166,154,0.30) 0%, rgba(38,166,154,0) 100%);
+  --gradient-area-negative:      linear-gradient(180deg, rgba(239,83,80,0.30) 0%, rgba(239,83,80,0) 100%);
+  --gradient-area-neutral:       linear-gradient(180deg, rgba(245,245,240,0.20) 0%, rgba(245,245,240,0) 100%);
+  --gradient-card-sheen:         linear-gradient(180deg, rgba(245,245,240,0.06) 0%, rgba(245,245,240,0.02) 100%);
+  --gradient-radial-spotlight:   radial-gradient(circle at top, rgba(245,245,240,0.04) 0%, transparent 60%);
+
+  /* Glows */
+  --glow-brand-soft:        0 0 24px rgba(255, 59, 48, 0.25);
+  --glow-brand-intense:     0 0 40px rgba(255, 59, 48, 0.45);
+  --glow-data-positive:     0 0 16px rgba(38, 166, 154, 0.30);
+  --glow-data-negative:     0 0 16px rgba(239, 83, 80, 0.30);
+  --glow-text-hero:         0 0 30px rgba(245, 245, 240, 0.10);
+
+  /* Shadows */
+  --shadow-card-rest:       0 1px 2px rgba(0,0,0,0.40), 0 0 0 1px rgba(245,245,240,0.04) inset;
+  --shadow-card-hover:      0 2px 8px rgba(0,0,0,0.60), 0 0 0 1px rgba(245,245,240,0.08) inset;
+  --shadow-modal:           0 16px 48px rgba(0,0,0,0.80), 0 0 0 1px rgba(245,245,240,0.08) inset;
+  --shadow-hero-number:     0 2px 24px rgba(0,0,0,0.80);
+
+  /* ── 2. TYPOGRAPHY ────────────────────────────────────────────────────────── */
+
+  /* Font families */
+  --font-display:    "Inter Tight", "SF Pro Display", -apple-system, sans-serif;
+  --font-body:       "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:       "SF Mono", "JetBrains Mono", "Menlo", monospace;
+  --font-condensed:  "Inter Tight", "SF Pro Display Condensed", sans-serif;
+
+  /* Weight tokens */
+  --weight-regular:   400;
+  --weight-medium:    500;
+  --weight-semibold:  600;
+  --weight-bold:      700;
+
+  /* Display & UI scale — CSS custom props for font-size, line-height used separately */
+  --text-hero-xl-size:        72px;
+  --text-hero-xl-lh:          64px;
+  --text-hero-xl-weight:      700;
+  --text-hero-xl-ls:          -0.04em;
+
+  --text-hero-size:           56px;
+  --text-hero-lh:             56px;
+  --text-hero-weight:         700;
+  --text-hero-ls:             -0.03em;
+
+  --text-display-lg-size:     40px;
+  --text-display-lg-lh:       44px;
+  --text-display-lg-weight:   700;
+  --text-display-lg-ls:       -0.03em;
+
+  --text-display-md-size:     28px;
+  --text-display-md-lh:       32px;
+  --text-display-md-weight:   700;
+  --text-display-md-ls:       -0.025em;
+
+  --text-display-sm-size:     22px;
+  --text-display-sm-lh:       28px;
+  --text-display-sm-weight:   600;
+  --text-display-sm-ls:       -0.02em;
+
+  --text-body-lg-size:        17px;
+  --text-body-lg-lh:          24px;
+  --text-body-lg-weight:      400;
+  --text-body-lg-ls:          -0.01em;
+
+  --text-body-size:           15px;
+  --text-body-lh:             22px;
+  --text-body-weight:         400;
+  --text-body-ls:             -0.005em;
+
+  --text-body-sm-size:        13px;
+  --text-body-sm-lh:          18px;
+  --text-body-sm-weight:      400;
+  --text-body-sm-ls:          0em;
+
+  --text-caption-size:        11px;
+  --text-caption-lh:          14px;
+  --text-caption-weight:      500;
+  --text-caption-ls:          0.04em;
+
+  --text-caption-sm-size:     10px;
+  --text-caption-sm-lh:       12px;
+  --text-caption-sm-weight:   500;
+  --text-caption-sm-ls:       0.06em;
+
+  /* Data/numeral scale */
+  --text-data-hero-size:      72px;
+  --text-data-hero-lh:        72px;
+  --text-data-hero-weight:    600;
+  --text-data-hero-ls:        -0.03em;
+
+  --text-data-lg-size:        40px;
+  --text-data-lg-lh:          44px;
+  --text-data-lg-weight:      600;
+  --text-data-lg-ls:          -0.025em;
+
+  --text-data-md-size:        24px;
+  --text-data-md-lh:          28px;
+  --text-data-md-weight:      600;
+  --text-data-md-ls:          -0.02em;
+
+  --text-data-size:           17px;
+  --text-data-lh:             22px;
+  --text-data-weight:         500;
+  --text-data-ls:             -0.01em;
+
+  --text-data-sm-size:        13px;
+  --text-data-sm-lh:          18px;
+  --text-data-sm-weight:      500;
+  --text-data-sm-ls:          0em;
+
+  --text-data-xs-size:        11px;
+  --text-data-xs-lh:          14px;
+  --text-data-xs-weight:      500;
+  --text-data-xs-ls:          0.02em;
+
+  --text-marker-size:         10px;
+  --text-marker-lh:           12px;
+  --text-marker-weight:       600;
+  --text-marker-ls:           0.10em;
+
+  /* ── 3. SPACING & GRID ────────────────────────────────────────────────────── */
+
+  --space-unit:  4px;
+
+  --space-0:     0px;
+  --space-1:     4px;
+  --space-2:     8px;
+  --space-3:     12px;
+  --space-4:     16px;
+  --space-5:     20px;
+  --space-6:     24px;
+  --space-8:     32px;
+  --space-10:    40px;
+  --space-12:    48px;
+  --space-16:    64px;
+  --space-20:    80px;
+
+  /* Screen-level grid */
+  --screen-padding-x:           20px;
+  --screen-padding-x-tablet:    32px;
+  --screen-padding-top:         16px;
+  --screen-padding-bottom:      120px;
+  --max-content-width:          640px;
+
+  /* Card spacing */
+  --card-padding-default:   16px;
+  --card-padding-hero:      24px;
+  --card-padding-compact:   12px;
+  --card-gap:               12px;
+  --card-gap-tight:         8px;
+
+  /* Grid */
+  --grid-gap:          12px;
+  --grid-gap-tight:    8px;
+
+  /* Touch targets */
+  --touch-target-min:     44px;
+  --touch-target-comfy:   48px;
+  --touch-target-large:   56px;
+
+  /* Border radius */
+  --radius-xs:     4px;
+  --radius-sm:     8px;
+  --radius-md:     12px;
+  --radius-lg:     16px;
+  --radius-xl:     24px;
+  --radius-pill:   999px;
+  --radius-circle: 50%;
+
+  /* ── 4. MATERIALS / MOTION ────────────────────────────────────────────────── */
+
+  /* Motion — easing */
+  --ease-standard:    cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decelerate:  cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate:  cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-precise:     cubic-bezier(0.85, 0, 0.15, 1);
+
+  /* Motion — durations */
+  --duration-instant:   80ms;
+  --duration-fast:      160ms;
+  --duration-default:   240ms;
+  --duration-moderate:  360ms;
+  --duration-slow:      560ms;
+  --duration-cinematic: 800ms;
+
+  /* Icon sizes */
+  --icon-xs:   12px;
+  --icon-sm:   16px;
+  --icon-md:   20px;
+  --icon-lg:   24px;
+  --icon-xl:   32px;
+}
+
+/* ── Base resets ─────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant:   0ms;
+    --duration-fast:      0ms;
+    --duration-default:   0ms;
+    --duration-moderate:  0ms;
+    --duration-slow:      0ms;
+    --duration-cinematic: 0ms;
+  }
+}
+
+/* ── 4. MATERIAL CLASSES ─────────────────────────────────────────────────────── */
+
+.card {
+  background: rgba(245, 245, 240, 0.04);
+  background-image: linear-gradient(
+    180deg,
+    rgba(245, 245, 240, 0.06) 0%,
+    rgba(245, 245, 240, 0.02) 100%
+  );
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(245, 245, 240, 0.06);
+  padding: var(--card-padding-default);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+
+.card-hero {
+  background: rgba(245, 245, 240, 0.04);
+  background-image:
+    radial-gradient(circle at top, rgba(245, 245, 240, 0.06) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(245, 245, 240, 0.04) 0%, rgba(245, 245, 240, 0.01) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.50),
+    inset 0 0 0 1px rgba(245, 245, 240, 0.08),
+    inset 0 1px 0 0 rgba(245, 245, 240, 0.12);
+  padding: var(--card-padding-hero);
+}
+
+/* ── SECTION MARKER ornament ─────────────────────────────────────────────────── */
+
+.section-marker {
+  font-family: var(--font-mono);
+  font-size: var(--text-marker-size);
+  font-weight: var(--text-marker-weight);
+  letter-spacing: var(--text-marker-ls);
+  text-transform: uppercase;
+  color: var(--accent-brand);
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+}
+
+.section-marker::before {
+  content: "// ";
+  margin-right: 4px;
+  opacity: 0.7;
+}
+
+.section-marker::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-brand) 0%, transparent 100%);
+  margin-left: 12px;
+  opacity: 0.4;
+}
+
+/* ── STATUS DOTS ─────────────────────────────────────────────────────────────── */
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-dot--active   { background: var(--accent-brand); box-shadow: var(--glow-brand-soft); }
+.status-dot--positive { background: var(--data-positive); }
+.status-dot--negative { background: var(--data-negative); }
+.status-dot--neutral  { background: var(--text-tertiary); }
