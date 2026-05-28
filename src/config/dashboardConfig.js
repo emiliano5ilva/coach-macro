@@ -127,7 +127,7 @@ export const DASHBOARD_CONFIG = {
         { id: 'strength_chart', tiers: ['beginner', 'intermediate', 'advanced'], modes: ['strength', 'hyrox', 'hybrid'] },
         { id: 'pr_table',       tiers: ['beginner', 'intermediate', 'advanced'], modes: ['strength', 'hyrox', 'hybrid'] },
         { id: 'volume_trend',   tiers: ['intermediate', 'advanced'],             modes: ['strength', 'hyrox', 'hybrid'] },
-        { id: 'muscle_map',     tiers: ['advanced'],                             modes: ['strength', 'hyrox', 'hybrid'] },
+        { id: 'muscle_map',     tiers: ['beginner', 'intermediate', 'advanced'], modes: ['strength', 'hyrox', 'hybrid', 'running'] },
       ],
       nutrition: [
         { id: 'macro_calendar', tiers: ['beginner', 'intermediate', 'advanced'], modes: ['strength', 'hyrox', 'running', 'hybrid'] },
