@@ -435,8 +435,8 @@ export function TermsOfService() {
           <p className="legal-p"><strong>Free Trial:</strong> New users and referral recipients may receive a 14-day free trial. No charge occurs during the trial. You may cancel before the trial ends without being charged.</p>
           <ul className="legal-ul">
             <li>Coach Macro offers free and paid subscription tiers</li>
-            <li>Monthly plan: $9.99 / month</li>
-            <li>Annual plan: $79.99 / year</li>
+            <li>Monthly plan: $12.99 / month</li>
+            <li>Annual plan: $49.99 / year (founding member price)</li>
             <li>Paid subscriptions are billed monthly or annually</li>
             <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
             <li>Prices may change with 30 days notice</li>

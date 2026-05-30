@@ -947,7 +947,7 @@ export function LandingPage({ onSignUp }) {
 
       <section className="lp-hero">
         <div className="lp-hero-content">
-          <div className="lp-hero-eyebrow">Coming Soon · Closed Beta</div>
+          <div className="lp-hero-eyebrow">Founding access — opening soon</div>
           <h1 className="lp-hero-headline">
             Your food and<br/>
             your training<br/>
@@ -961,7 +961,7 @@ export function LandingPage({ onSignUp }) {
               Join the Waitlist <span className="arrow">→</span>
             </button>
             <span className="lp-hero-proof">
-              <strong>47 athletes in closed beta</strong> · 30 days free at launch
+              <strong>Founding member access</strong> · $49.99/yr · locked for life
             </span>
           </div>
         </div>

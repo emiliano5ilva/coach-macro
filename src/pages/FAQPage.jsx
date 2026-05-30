@@ -113,7 +113,7 @@ const GROUPS = [
       },
       {
         q: 'How much does it cost?',
-        a: 'Coach Macro is $9.99 per month or $79.99 per year. The annual plan saves you roughly two months. Both plans include everything — no feature tiers, no add-ons.',
+        a: 'Founding members get Coach Macro for $49.99 per year ($4.17/month) — locked for life. Monthly is $12.99. The annual plan saves 68% vs monthly. Both plans include everything — no feature tiers, no add-ons.',
       },
       {
         q: 'Can I cancel anytime?',

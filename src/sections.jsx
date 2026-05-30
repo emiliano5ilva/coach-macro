@@ -5592,8 +5592,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--accent-rgb),0.05)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:12}}>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$9.99 / month</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$79.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700}}>SAVE 33%</span></div></div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$12.99 / month</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual · Founding</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700}}>SAVE 68%</span></div></div>
             </div>
             <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--red)",border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
           </div>
@@ -5615,7 +5615,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
             <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
-            {[{id:"monthly",label:"MONTHLY",price:"$9.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"ANNUAL",price:"$79.99",per:"/year · $6.67/mo",badge:"BEST VALUE",saving:"Save 33% vs monthly",gradient:true}].map(plan=>(
+            {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"FOUNDING ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:"FOUNDING MEMBER",saving:"Save 68% vs monthly · locked for life",gradient:true}].map(plan=>(
               <div key={plan.id} onClick={async()=>{
                 if(purchaseLoading)return;
                 setPurchaseLoading(plan.id);
@@ -5976,7 +5976,7 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
           Start 7-Day Free Trial →
         </button>
         <div style={{fontSize:12,color:T.mu,textAlign:'center',lineHeight:1.6}}>
-          No charge until day 8 · Cancel anytime · $4.99/mo or $19.99/yr
+          No charge until day 8 · Cancel anytime · $12.99/mo or $49.99/yr founding price
         </div>
       </div>
     </div>
@@ -5993,8 +5993,8 @@ const STRIPE = {
 export function Paywall({profile}) {
   const [plan, setPlan] = useState('annual');
   const plans = {
-    annual:  {label:'Yearly',  badge:'BEST VALUE — 67% OFF', price:'$19.99', per:'/yr',  sub:'$1.67/month · billed annually', note:'7 days free, then $19.99/yr', link:STRIPE.annual},
-    monthly: {label:'Monthly', badge:null,                   price:'$4.99',  per:'/mo',  sub:'billed monthly · cancel anytime', note:'7 days free, then $4.99/mo',  link:STRIPE.monthly},
+    annual:  {label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life', note:'7 days free, then $49.99/yr', link:STRIPE.annual},
+    monthly: {label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime',                    note:'7 days free, then $12.99/mo', link:STRIPE.monthly},
   };
   const p = plans[plan];
 
@@ -6062,8 +6062,8 @@ export function UpgradeScreen({ profile, onContinue }) {
   const [plan, setPlan] = useState('annual');
   const firstName = (profile?.name || '').split(' ')[0] || 'there';
   const plans = {
-    annual:  { label:'Yearly',  badge:'BEST VALUE — 67% OFF', price:'$19.99', per:'/yr',  sub:'$1.67/month · billed annually', link: STRIPE.annual },
-    monthly: { label:'Monthly', badge:null,                   price:'$4.99',  per:'/mo',  sub:'billed monthly · cancel anytime', link: STRIPE.monthly },
+    annual:  { label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life', link: STRIPE.annual },
+    monthly: { label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime',                    link: STRIPE.monthly },
   };
   const p = plans[plan];
 
@@ -6263,7 +6263,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'rgba(245,245,240,0.35)', paddingBottom: 8 }}>first month</span>
               </div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.35)', textAlign: 'center', lineHeight: 1.6, marginBottom: 16 }}>
-                Then $9.99/month automatically.<br />Cancel before then —<br />you owe nothing more.
+                Then $12.99/month automatically.<br />Cancel before then —<br />you owe nothing more.
               </div>
               <button
                 onClick={purchaseDollarOfferFn}
@@ -6328,7 +6328,7 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
             {/* Monthly */}
             <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '1px solid rgba(245,245,240,0.08)', padding: 16 }}>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.4)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>MONTHLY</div>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$9.99</div>
+              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$12.99</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br />billed monthly</div>
               <button
                 onClick={purchaseMonthlyFn}
@@ -6339,10 +6339,10 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
 
             {/* Annual */}
             <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '2px solid var(--accent)', padding: 16, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: -1, right: -1, background: 'var(--accent)', borderRadius: '0 12px 0 8px', padding: '4px 10px', fontFamily: 'var(--mono)', fontSize: 8, color: '#fff', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SAVE 33%</div>
+              <div style={{ position: 'absolute', top: -1, right: -1, background: 'var(--accent)', borderRadius: '0 12px 0 8px', padding: '4px 10px', fontFamily: 'var(--mono)', fontSize: 8, color: '#fff', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>FOUNDING</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>ANNUAL</div>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$6.67</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br />$79.99 billed yearly</div>
+              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$4.17</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br /><span style={{ textDecoration: 'line-through', opacity: 0.5 }}>$69.99</span> $49.99 billed yearly</div>
               <button
                 onClick={purchaseAnnualFn}
                 disabled={loading}
