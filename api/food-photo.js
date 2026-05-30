@@ -58,6 +58,7 @@ async function lookupUSDA(name, portion) {
 
 const ALLOWED_ORIGINS = [
   'https://coach-macro.com',
+  'https://www.coach-macro.com',
   'capacitor://localhost',
   'http://localhost:5173',
   'ionic://localhost',
