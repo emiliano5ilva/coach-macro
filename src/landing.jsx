@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import FeaturesSection from './components/FeaturesSection';
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800;1,900&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -467,109 +468,6 @@ function HeroPhone() {
       </div>
       <div className="lp-phone-home"/>
     </div>
-  );
-}
-
-function BentoSection() {
-  const r = 84, c = 2 * Math.PI * r;
-  return (
-    <section className="lp-bento" id="features">
-      <div style={{maxWidth:1280,margin:'0 auto 64px'}}>
-        <div className="lp-section-eyebrow">// The System</div>
-        <h2 className="lp-section-title">Every other app<br/>misses <span className="accent">this.</span></h2>
-      </div>
-      <div className="lp-bento-grid">
-        <div className="lp-tile span2 fade-up">
-          <div className="lp-tile-eye">// Adaptive Macros</div>
-          <div className="lp-tile-title">Dynamic Macros</div>
-          <div className="lp-tile-body">Your macros change every morning based on whether you train today. Not static targets — a system that responds to load.</div>
-          <div className="lp-ring-wrap">
-            <div className="lp-ring">
-              <svg width="180" height="180" viewBox="0 0 180 180" style={{transform:'rotate(-90deg)'}}>
-                <circle cx="90" cy="90" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8"/>
-                <circle cx="90" cy="90" r={r} fill="none" stroke="#2979FF" strokeWidth="8"
-                  strokeDasharray={`${0.32*c} ${c}`} strokeLinecap="round" style={{filter:'drop-shadow(0 0 8px #2979FF)'}}/>
-                <circle cx="90" cy="90" r={r-11} fill="none" stroke="#00E676" strokeWidth="7"
-                  strokeDasharray={`${0.55*2*Math.PI*(r-11)} ${2*Math.PI*(r-11)}`} strokeLinecap="round" style={{filter:'drop-shadow(0 0 8px #00E676)'}}/>
-                <circle cx="90" cy="90" r={r-22} fill="none" stroke="#FFD740" strokeWidth="7"
-                  strokeDasharray={`${0.74*2*Math.PI*(r-22)} ${2*Math.PI*(r-22)}`} strokeLinecap="round" style={{filter:'drop-shadow(0 0 8px #FFD740)'}}/>
-              </svg>
-              <div className="lp-ring-center">
-                <div className="lp-ring-cal">2,847</div>
-                <div className="lp-ring-of">today's target</div>
-              </div>
-            </div>
-            <div className="lp-ring-legend">
-              <div className="lp-leg-row"><span className="lp-leg-dot" style={{background:'#2979FF',color:'#2979FF'}}/><span>PROTEIN <span style={{color:'var(--white-dim)',marginLeft:8}}>195g</span></span></div>
-              <div className="lp-leg-row"><span className="lp-leg-dot" style={{background:'#00E676',color:'#00E676'}}/><span>CARBS <span style={{color:'var(--white-dim)',marginLeft:8}}>340g</span></span></div>
-              <div className="lp-leg-row"><span className="lp-leg-dot" style={{background:'#FFD740',color:'#FFD740'}}/><span>FAT <span style={{color:'var(--white-dim)',marginLeft:8}}>78g</span></span></div>
-            </div>
-          </div>
-          <div className="lp-tile-stat">Training day: <strong style={{color:'var(--red)'}}>2,847 kcal</strong> · Rest day: <strong>1,800 kcal</strong></div>
-        </div>
-
-        <div className="lp-tile fade-up">
-          <div className="lp-tile-eye">// Workouts Earn Calories</div>
-          <div className="lp-tile-bignum">+312</div>
-          <div className="lp-tile-body">calories earned from today's session — automatically added to your daily budget the moment you finish.</div>
-        </div>
-
-        <div className="lp-tile fade-up">
-          <div className="lp-tile-eye">// Restaurant AI</div>
-          <div className="lp-tile-title">Eat Out, Stay In Budget</div>
-          <div className="lp-ai-msg">
-            <div className="lp-ai-msg-l">// REMAINING</div>
-            412 kcal · 38g protein
-          </div>
-          <div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--white-dim)',marginTop:8}}><strong style={{color:'var(--white)',fontWeight:500}}>Chipotle</strong> → Burrito Bowl, chicken, no rice</div>
-        </div>
-
-        <div className="lp-tile fade-up">
-          <div className="lp-tile-eye">// Recovery Map</div>
-          <div className="lp-tile-title">Muscle Recovery</div>
-          <div style={{display:'flex',justifyContent:'center',margin:'12px 0'}}><MuscleMini/></div>
-          <div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--white)',textAlign:'center',letterSpacing:'0.04em'}}><span style={{color:'var(--red)'}}>Red</span> = optimal volume this week</div>
-        </div>
-
-        <div className="lp-tile fade-up">
-          <div className="lp-tile-eye">// Auto-Tracked</div>
-          <div className="lp-tile-title">Progressive Overload</div>
-          <div className="lp-overload-card">
-            <div className="lp-overload-arr">↑</div>
-            <div>
-              <div className="lp-overload-name">Bench Press</div>
-              <div className="lp-overload-delta">+5lbs from last week</div>
-            </div>
-          </div>
-          <div className="lp-tile-body">Automatically tracked every session. Every set. Every rep.</div>
-        </div>
-
-        <div className="lp-tile span3 fade-up">
-          <div className="lp-tile-eye">// One System</div>
-          <div className="lp-tile-title">Train + Fuel. One System.</div>
-          <div className="lp-tile-body" style={{maxWidth:720}}>Most apps treat food and fitness as two separate problems. They're not.</div>
-          <div className="lp-split-content">
-            <div className="lp-split-half">
-              <div className="lp-split-lbl">// FUEL</div>
-              <div className="lp-split-hl">Today's Plate</div>
-              <div className="lp-split-row"><span className="l">Calorie target</span><span className="v">3,240 kcal</span></div>
-              <div className="lp-split-row"><span className="l">Carbs (push day)</span><span className="v" style={{color:'#00E676'}}>↑ +65g</span></div>
-              <div className="lp-split-row"><span className="l">Logged so far</span><span className="v">1,393 kcal</span></div>
-              <div className="lp-split-row"><span className="l">Workout bonus</span><span className="v" style={{color:'var(--red)'}}>+312 kcal</span></div>
-            </div>
-            <div className="lp-split-div"/>
-            <div className="lp-split-half">
-              <div className="lp-split-lbl">// TRAIN</div>
-              <div className="lp-split-hl">Today's Session</div>
-              <div className="lp-split-row"><span className="l">Block</span><span className="v">Upper Hypertrophy A</span></div>
-              <div className="lp-split-row"><span className="l">Volume target</span><span className="v">12,400 kg</span></div>
-              <div className="lp-split-row"><span className="l">Est. session burn</span><span className="v" style={{color:'#00E676'}}>632 kcal</span></div>
-              <div className="lp-split-row"><span className="l">PRs queued</span><span className="v" style={{color:'var(--red)'}}>2 ready</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -1105,7 +1003,7 @@ export function LandingPage({ onSignUp }) {
         </div>
       </section>
 
-      <BentoSection/>
+      <FeaturesSection />
       <HowSection/>
       <CompareSection/>
       <ScreensSection/>
