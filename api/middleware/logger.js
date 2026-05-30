@@ -31,10 +31,13 @@ export const withLogging = (handler) => async (req, res) => {
       await log('warn', 'Slow request', { path: req.url, duration });
     }
   } catch (error) {
+    // userId may come from JWT Bearer token (AI routes) or x-user-id (legacy)
+    const bearerToken = req.headers['authorization']?.replace('Bearer ', '');
+    const legacyUserId = req.headers['x-user-id'] || null;
     await log('error', error.message, {
       path:   req.url,
       stack:  error.stack,
-      userId: req.headers['x-user-id'] || null,
+      userId: legacyUserId || (bearerToken ? '[jwt]' : null),
     });
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error' });

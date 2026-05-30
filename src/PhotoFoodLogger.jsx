@@ -724,12 +724,22 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose }) {
     setPhase("analyzing");
 
     try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session?.access_token) {
+        setErrorMsg("You need to be signed in to use photo logging.");
+        setPhase("error");
+        return;
+      }
+
       const body = { image: b64, mediaType: "image/jpeg" };
       if (description) body.userDescription = description;
 
       const resp = await fetch(`${API_BASE}/api/food-photo`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": user?.id || "" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify(body),
       });
 
@@ -741,10 +751,9 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose }) {
         const reason = data.reason;
         if (reason === "subscription_required") {
           setErrorMsg("Photo logging is a Pro feature. Upgrade to unlock.");
-        } else if (reason === "rate_limit") {
-          setErrorMsg("Too many photo logs this hour. Try again later.");
-        } else if (reason === "monthly_limit") {
-          setErrorMsg("Monthly AI limit reached. Resets on the 1st.");
+        } else if (reason === "daily_limit") {
+          // Coach-voiced — not an error alert, just a calm daily cap message
+          setErrorMsg(data.message || "You've used all your AI credits for today. They reset at midnight. Core tracking still works normally.");
         } else {
           setErrorMsg(data.error || "Analysis failed. Try again.");
         }

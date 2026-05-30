@@ -56,71 +56,94 @@ async function lookupUSDA(name, portion) {
   } catch { return null; }
 }
 
+const ALLOWED_ORIGINS = [
+  'https://coach-macro.com',
+  'capacitor://localhost',
+  'http://localhost:5173',
+  'ionic://localhost',
+];
+
 // ── Handler ──────────────────────────────────────────────────────────────────
 
 export default withLogging(async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // ── CORS — allowlist only ──────────────────────────────────────────────────
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!anthropicKey) return res.status(500).json({ error: 'API key not configured' });
-
-  const userId = req.headers['x-user-id'] || null;
-  if (!userId) return res.status(401).json({ error: 'Authentication required', reason: 'unauthenticated' });
-
-  const { image, mediaType = 'image/jpeg', userDescription } = req.body || {};
-  if (!image) return res.status(400).json({ error: 'No image provided' });
 
   const sb = createClient(
     'https://oxxihlwqukbakmnnavuy.supabase.co',
     process.env.SUPABASE_SERVICE_KEY
   );
 
-  // ── Subscription check ───────────────────────────────────────────────────────
+  // ── JWT verification — replaces x-user-id header trust ───────────────────
+  const token = req.headers['authorization']?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Authentication required', reason: 'unauthenticated' });
+  const { data: { user }, error: authError } = await sb.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ error: 'Invalid session', reason: 'unauthenticated' });
+  const userId = user.id;
+
+  const { image, mediaType = 'image/jpeg', userDescription } = req.body || {};
+  if (!image) return res.status(400).json({ error: 'No image provided' });
+
+  // ── Subscription check ────────────────────────────────────────────────────
   const { data: profile } = await sb.from('profiles')
-    .select('is_pro, profile_data').eq('id', userId).maybeSingle();
+    .select('is_pro, subscription_tier, trial_ends_at, profile_data').eq('id', userId).maybeSingle();
   const now = new Date();
-  const trialActive = profile?.profile_data?.trialEndsAt && new Date(profile.profile_data.trialEndsAt) > now;
-  if (!profile?.is_pro && !trialActive) {
+  const trialEndsAt = profile?.trial_ends_at || profile?.profile_data?.trialEndsAt;
+  const trialActive = trialEndsAt && new Date(trialEndsAt) > now;
+  const isPro = profile?.is_pro === true
+    || profile?.subscription_tier === 'monthly'
+    || profile?.subscription_tier === 'annual';
+  if (!isPro && !trialActive) {
     return res.status(402).json({
       error: 'Upgrade to Pro to use photo logging.',
       reason: 'subscription_required',
     });
   }
 
-  // ── Hourly rate limit ────────────────────────────────────────────────────────
-  const windowStart = Math.floor(Date.now() / 3600000);
-  const rateKey = `photo_food_${userId}_${windowStart}`;
-  try {
-    const { data: rateRow } = await sb.from('rate_limits')
-      .select('count').eq('key', rateKey).maybeSingle();
-    if (rateRow && rateRow.count >= HOURLY_LIMIT) {
-      return res.status(429).json({
-        error: 'Too many photo logs. Try again in an hour.',
-        reason: 'rate_limit',
-        resetIn: 3600 - (Math.floor(Date.now() / 1000) % 3600),
-      });
-    }
-    await sb.from('rate_limits').upsert({
-      key: rateKey, count: (rateRow?.count || 0) + 1,
-      window_start: windowStart,
-      expires_at: new Date((windowStart + 1) * 3600000).toISOString(),
-    }, { onConflict: 'key' });
-  } catch {}
+  // ── Daily AI usage limit (ai_usage table) ─────────────────────────────────
+  const DAILY_LIMIT = 40; // photo_call_count counts double → ~10 photo logs max
+  const today = new Date().toISOString().split('T')[0];
+  const { data: dailyUsage } = await sb
+    .from('ai_usage')
+    .select('call_count, photo_call_count')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .maybeSingle();
 
-  // ── Monthly token budget ─────────────────────────────────────────────────────
+  const effectiveCalls = (dailyUsage?.call_count || 0) + ((dailyUsage?.photo_call_count || 0) * 2);
+  if (effectiveCalls >= DAILY_LIMIT) {
+    return res.status(429).json({
+      error:       'daily_limit_reached',
+      reason:      'daily_limit',
+      calls_used:  effectiveCalls,
+      calls_limit: DAILY_LIMIT,
+      message:     "You've used all your AI credits for today. They reset at midnight. Core tracking (food search, barcode, workouts) still works normally.",
+    });
+  }
+
+  // ── Increment photo call count ─────────────────────────────────────────────
+  await sb.from('ai_usage').upsert({
+    user_id:          userId,
+    date:             today,
+    call_count:       dailyUsage?.call_count || 0,
+    photo_call_count: (dailyUsage?.photo_call_count || 0) + 1,
+    updated_at:       new Date().toISOString(),
+  }, { onConflict: 'user_id,date' }).catch(() => {});
+
+  // ── Token tracking (analytics — not a rate gate) ───────────────────────────
   const thisMonth = new Date().toISOString().slice(0, 7);
   const { data: usageRow } = await sb.from('token_usage')
     .select('tokens_used').eq('user_id', userId).eq('month', thisMonth).maybeSingle();
   const usedSoFar = usageRow?.tokens_used || 0;
-  if (usedSoFar >= MONTHLY_TOKEN_BUDGET) {
-    return res.status(429).json({
-      error: "You've reached your monthly AI limit. Resets on the 1st.",
-      reason: 'monthly_limit',
-    });
-  }
 
   // ── Load correction history for calibration ──────────────────────────────────
   let portionHints = '';

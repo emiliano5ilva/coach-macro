@@ -59,27 +59,40 @@ function truncateToTokenLimit(messages, maxInputTokens) {
   });
 }
 
+const ALLOWED_ORIGINS = [
+  'https://coach-macro.com',
+  'capacitor://localhost',
+  'http://localhost:5173',
+  'ionic://localhost',
+];
+
 export default withLogging(async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // ── CORS — allowlist only ──────────────────────────────────────────────────
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!anthropicKey) { res.status(500).json({ error: 'API key not configured' }); return; }
 
-  const userId  = req.headers['x-user-id'] || null;
-  const feature = req.body?.feature || 'default';
-  const limits  = TOKEN_LIMITS[feature] || TOKEN_LIMITS.default;
-
-  if (!userId) {
-    return res.status(401).json({ error: 'Authentication required', reason: 'unauthenticated' });
-  }
-
   const sb = createClient(
     'https://oxxihlwqukbakmnnavuy.supabase.co',
     process.env.SUPABASE_SERVICE_KEY
   );
+
+  // ── JWT verification — replaces x-user-id header trust ───────────────────
+  const token = req.headers['authorization']?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Authentication required', reason: 'unauthenticated' });
+  const { data: { user }, error: authError } = await sb.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ error: 'Invalid session', reason: 'unauthenticated' });
+  const userId = user.id;
+
+  const feature = req.body?.feature || 'default';
+  const limits  = TOKEN_LIMITS[feature] || TOKEN_LIMITS.default;
 
   // ── 1. Subscription check ──────────────────────────────────────────────────
   const { data: profile } = await sb
@@ -106,57 +119,45 @@ export default withLogging(async function handler(req, res) {
     });
   }
 
-  // ── 2. Per-feature hourly rate limit (anti-abuse only) ────────────────────
-  const hourlyLimit = FEATURE_HOURLY_LIMITS[feature] || FEATURE_HOURLY_LIMITS.default;
-  const windowStart = Math.floor(Date.now() / 3600000);
-  const rateKey     = `claude_${feature}_${userId}_${windowStart}`;
+  // ── 2. Daily AI usage limit (ai_usage table) ──────────────────────────────
+  const DAILY_LIMIT = 40; // covers ~10 photo logs + 20 text calls comfortably
+  const today = new Date().toISOString().split('T')[0];
+  const { data: dailyUsage } = await sb
+    .from('ai_usage')
+    .select('call_count, photo_call_count')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .maybeSingle();
 
-  try {
-    const { data: rateRow } = await sb
-      .from('rate_limits')
-      .select('count')
-      .eq('key', rateKey)
-      .maybeSingle();
-
-    if (rateRow && rateRow.count >= hourlyLimit) {
-      return res.status(429).json({
-        error:   'Rate limit exceeded',
-        reason:  'rate_limit',
-        message: "You're using AI features very quickly. Wait a few minutes and try again.",
-        resetIn: 3600 - (Math.floor(Date.now() / 1000) % 3600),
-      });
-    }
-
-    await sb.from('rate_limits').upsert({
-      key:          rateKey,
-      count:        (rateRow?.count || 0) + 1,
-      window_start: windowStart,
-      expires_at:   new Date((windowStart + 1) * 3600000).toISOString(),
-    }, { onConflict: 'key' });
-  } catch {
-    // If rate limit DB is down, allow the request rather than blocking the user
+  const effectiveCalls = (dailyUsage?.call_count || 0) + ((dailyUsage?.photo_call_count || 0) * 2);
+  if (effectiveCalls >= DAILY_LIMIT) {
+    return res.status(429).json({
+      error:       'daily_limit_reached',
+      reason:      'daily_limit',
+      calls_used:  effectiveCalls,
+      calls_limit: DAILY_LIMIT,
+      message:     "You've used all your AI credits for today. They reset at midnight. Core tracking (food search, barcode, workouts) still works normally.",
+    });
   }
 
-  // ── 3. Monthly token budget ────────────────────────────────────────────────
+  // ── 3. Increment daily call count ─────────────────────────────────────────
+  await sb.from('ai_usage').upsert({
+    user_id:          userId,
+    date:             today,
+    call_count:       (dailyUsage?.call_count || 0) + 1,
+    photo_call_count: dailyUsage?.photo_call_count || 0,
+    updated_at:       new Date().toISOString(),
+  }, { onConflict: 'user_id,date' }).catch(() => {});
+
+  // ── Token tracking (analytics — not a rate gate) ───────────────────────────
   const thisMonth = new Date().toISOString().slice(0, 7);
-  const { data: usageRow } = await sb
+  const { data: tokenRow } = await sb
     .from('token_usage')
     .select('tokens_used')
     .eq('user_id', userId)
     .eq('month', thisMonth)
     .maybeSingle();
-
-  const tokensUsedSoFar = usageRow?.tokens_used || 0;
-  if (tokensUsedSoFar >= MONTHLY_TOKEN_BUDGET) {
-    return res.status(429).json({
-      error:     'Monthly AI limit reached',
-      reason:    'monthly_limit',
-      message:   "You've reached your monthly AI limit. It resets on the 1st.",
-      resetDate: getFirstOfNextMonth(),
-      used:      tokensUsedSoFar,
-      budget:    MONTHLY_TOKEN_BUDGET,
-    });
-  }
+  const tokensUsedSoFar = tokenRow?.tokens_used || 0;
 
   const { feature: _f, stream: _streamFlag, ...bodyRest } = req.body;
   const messages = truncateToTokenLimit(bodyRest.messages || [], limits.input);

@@ -6,8 +6,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export async function streamAI(prompt, max = 900, feature = "default", onChunk, onComplete) {
   const { data: { session } } = await sb.auth.getSession();
-  const headers = { "Content-Type": "application/json" };
-  if (session?.user?.id) headers["x-user-id"] = session.user.id;
+  if (!session?.access_token) throw new Error("Not authenticated");
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`,
+  };
 
   const response = await fetch(`${API_BASE}/api/claude`, {
     method: "POST",
@@ -25,6 +28,11 @@ export async function streamAI(prompt, max = 900, feature = "default", onChunk, 
     const d = await response.json();
     window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));
     throw new Error(d.message || "Subscription required");
+  }
+  if (response.status === 429) {
+    const d = await response.json().catch(() => ({}));
+    window.dispatchEvent(new CustomEvent("cm:daily-limit-reached", { detail: d }));
+    throw Object.assign(new Error(d.message || "Daily AI limit reached"), { reason: d.reason, limitDetail: d });
   }
   if (!response.ok) {
     const d = await response.json().catch(() => ({}));
@@ -58,14 +66,17 @@ export async function streamAI(prompt, max = 900, feature = "default", onChunk, 
 
 export async function ai(prompt, max = 900, feature = "default") {
   const { data: { session } } = await sb.auth.getSession();
+  if (!session?.access_token) throw new Error("Not authenticated");
   const body = JSON.stringify({
     model: "claude-sonnet-4-6",
     max_tokens: max,
     feature,
     messages: [{ role: "user", content: prompt }],
   });
-  const headers = { "Content-Type": "application/json" };
-  if (session?.user?.id) headers["x-user-id"] = session.user.id;
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`,
+  };
   const response = await fetch(`${API_BASE}/api/claude`, {
     method: "POST",
     headers,
@@ -76,6 +87,10 @@ export async function ai(prompt, max = 900, feature = "default") {
   if (response.status === 402) {
     window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));
     throw new Error(d.message || "Subscription required");
+  }
+  if (response.status === 429) {
+    window.dispatchEvent(new CustomEvent("cm:daily-limit-reached", { detail: d }));
+    throw Object.assign(new Error(d.message || "Daily AI limit reached"), { reason: d.reason, limitDetail: d });
   }
   if (!response.ok || d.type === "error") {
     const msg = d.error?.message || d.error || JSON.stringify(d);
@@ -89,8 +104,11 @@ export async function ai(prompt, max = 900, feature = "default") {
 
 export async function aiWithVision(base64Image, mediaType, textPrompt, max = 900, feature = "default") {
   const { data: { session } } = await sb.auth.getSession();
-  const headers = { "Content-Type": "application/json" };
-  if (session?.user?.id) headers["x-user-id"] = session.user.id;
+  if (!session?.access_token) throw new Error("Not authenticated");
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`,
+  };
   const body = JSON.stringify({
     model: "claude-sonnet-4-6",
     max_tokens: max,
@@ -109,6 +127,10 @@ export async function aiWithVision(base64Image, mediaType, textPrompt, max = 900
   if (response.status === 402) {
     window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));
     throw new Error(d.message || "Subscription required");
+  }
+  if (response.status === 429) {
+    window.dispatchEvent(new CustomEvent("cm:daily-limit-reached", { detail: d }));
+    throw Object.assign(new Error(d.message || "Daily AI limit reached"), { reason: d.reason, limitDetail: d });
   }
   if (!response.ok || d.type === "error") {
     const msg = d.error?.message || d.error || JSON.stringify(d);
