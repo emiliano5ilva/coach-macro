@@ -133,22 +133,22 @@ export const RUN_PLANS_DETAIL = {
 export const HYBRID_TEMPLATES = {
   "Strength + Run": {
     desc:"3 lifting days + 2 run days. The classic hybrid. Builds muscle AND aerobic base.",
-    week:["🏋️ Lifting","🏃 Easy Run","🏋️ Lifting","😴 Rest","🏋️ Lifting","🏃 Long Run","😴 Rest"],
+    week:["Lifting","Easy Run","Lifting","Rest","Lifting","Long Run","Rest"],
     notes:"Lifting and running on separate days to prevent interference. Long run on Saturday gives full Sunday recovery.",
   },
   "PPL + Hyrox":   {
     desc:"Push/Pull/Legs with 2 Hyrox simulation sessions. Race-ready in 12 weeks.",
-    week:["🏋️ Push","🏋️ Pull","🔥 Hyrox Sim","🏋️ Legs","😴 Rest","🔥 Hyrox Race Sim","😴 Rest"],
+    week:["Push","Pull","Hyrox Sim","Legs","Rest","Hyrox Race Sim","Rest"],
     notes:"Hyrox simulations on Wednesday and Saturday. Keep lifting heavy — Hyrox rewards both strength and endurance.",
   },
   "Run + Strength": {
     desc:"Run-first athlete adding strength. 3 run days + 2 lift days.",
-    week:["🏃 Easy Run","🏋️ Upper","🏃 Tempo","😴 Rest","🏋️ Lower","🏃 Long Run","😴 Rest"],
+    week:["Easy Run","Upper","Tempo","Rest","Lower","Long Run","Rest"],
     notes:"Strength sessions on non-run days. Upper/Lower split minimizes recovery interference.",
   },
   "Hyrox Specific": {
     desc:"Full Hyrox prep. 8 stations + 1km runs between each.",
-    week:["🔥 Stations A","🏃 Run","💪 Strength","🔥 Stations B","😴 Rest","🔥 Full Race Sim","😴 Rest"],
+    week:["Stations A","Run","Strength","Stations B","Rest","Full Race Sim","Rest"],
     notes:"Stations A: sled push/pull, burpee broad jump, rowing. Stations B: wall balls, sandbag lunges, farmers carry, SkiErg.",
   },
 };
@@ -215,7 +215,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
         <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:T.dim,fontFamily:"var(--condensed)",marginBottom:16}}>What kind of training?</div>
         <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:12}}>
           {[
-            {v:"lifting",e:"🏋️",l:"Lifting",d:"Strength training splits — build muscle and get stronger"},
+            {v:"lifting",e:<svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 5v14"/><path d="M10 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><rect x="4" y="7" width="4" height="10" rx="1"/><rect x="16" y="7" width="4" height="10" rx="1"/><line x1="8" y1="12" x2="16" y2="12"/></svg>,l:"Lifting",d:"Strength training splits — build muscle and get stronger"},
             {v:"running",e:"🏃",l:"Running",d:"Structured run plans from 5K to marathon"},
             {v:"hybrid",e:"⚡",l:"Hybrid",d:"Mix lifting, running, and Hyrox in one program"},
             {v:"glute",e:"🍑",l:"Glute Focus",d:"Lower body & glute programs built for maximum growth"},
@@ -337,7 +337,7 @@ export function WorkoutBuilder({profile,wPrefs,setWPrefs,generateWorkout,startSt
                 {["M","T","W","T","F","S","S"].map((d,i)=>(
                   <div key={i} style={{background:T.s3,borderRadius:6,padding:"6px 2px",textAlign:"center"}}>
                     <div style={{fontSize:7,color:T.mu,marginBottom:2}}>{d}</div>
-                    <div style={{fontSize:11}}>{h.week[i]?.split(" ")[0]||"😴"}</div>
+                    <div style={{fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.week[i]?.split(" ")[0]||"—"}</div>
                   </div>
                 ))}
               </div>
@@ -782,12 +782,12 @@ function applyHealthConditionSubstitutions(exercises,healthConditions){
   });
 }
 const ADAPT_CATEGORIES = [
-  {id:"injury",   emoji:"🤕", label:"Injury / Pain",       options:[]},
-  {id:"travel",   emoji:"✈️", label:"Traveling / No Gym",   options:["Hotel gym only","Dumbbells only","Bodyweight only","Resistance bands only"]},
+  {id:"injury",   emoji:<svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.8)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.96-1.2c.42-.52 1.2-.52 1.62 0l1.96 2.45.96-1.2c.42-.52 1.2-.52 1.62 0L17 14h4"/></svg>, label:"Injury / Pain",       options:[]},
+  {id:"travel",   emoji:<svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.8)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2a1 1 0 0 0-.7 1.4L3.5 11l-2 3.3a1 1 0 0 0 .2 1.2l1.8 1.8a1 1 0 0 0 1.2.2l3.3-2 3.4 2.4a1 1 0 0 0 1.4-.7z"/></svg>, label:"Traveling / No Gym",   options:["Hotel gym only","Dumbbells only","Bodyweight only","Resistance bands only"]},
   {id:"recovery", emoji:"😴", label:"Recovery & Wellness",  options:["Poor sleep (under 5 hrs)","Feeling sick","High stress","Feeling great — increase intensity"]},
-  {id:"female",   emoji:"🩸", label:"Female Health",        options:["Menstrual phase (reduce intensity)","Follicular phase (increase intensity)","Ovulation (peak day)","Luteal phase (maintain)"]},
-  {id:"time",     emoji:"⏱️", label:"Time Constraint",      options:["Only 20 minutes","Only 30 minutes","Only 45 minutes"]},
-  {id:"other",    emoji:"✏️", label:"Other",                options:[]},
+  {id:"female",   emoji:<svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(232,52,28,0.8)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>, label:"Female Health",        options:["Menstrual phase (reduce intensity)","Follicular phase (increase intensity)","Ovulation (peak day)","Luteal phase (maintain)"]},
+  {id:"time",     emoji:<svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.8)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label:"Time Constraint",      options:["Only 20 minutes","Only 30 minutes","Only 45 minutes"]},
+  {id:"other",    emoji:<svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.8)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>, label:"Other",                options:[]},
 ];
 
 
@@ -1813,6 +1813,74 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryM
             </span>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+// ─── WEEK STRIP ───────────────────────────────────────────────────────────────
+function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType }) {
+  const todayIdx = WDAYS.indexOf(todayKey);
+  return (
+    <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
+      <style>{`
+        @keyframes weekPillIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes todayPillPulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
+      `}</style>
+      <div className="header-eyebrow" style={{marginBottom:12}}>// This Week</div>
+      <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none",WebkitOverflowScrolling:"touch"}}>
+        {WDAYS.map((day,idx)=>{
+          const t=schedule[day];
+          const isToday=day===todayKey;
+          const isCompleted=idx<todayIdx&&t&&t!=="rest";
+          const isRest=!t||t==="rest";
+          const f=dayFocus[day];
+          const label=isRest?"REST":(f?.slice(0,6)||(DAY_CFG[t]?.label?.slice(0,6)||"Train"));
+          const borderC=isToday?"rgba(232,52,28,0.5)":isCompleted?"rgba(38,166,154,0.25)":"rgba(245,245,240,0.08)";
+          const bgC=isToday?"rgba(232,52,28,0.08)":isCompleted?"rgba(38,166,154,0.06)":"rgba(245,245,240,0.02)";
+          const textC=isToday?"#e8341c":isCompleted?"#26A69A":isRest?"rgba(245,245,240,0.25)":"rgba(245,245,240,0.45)";
+          const iconBg=isToday?"rgba(232,52,28,0.12)":isCompleted?"rgba(38,166,154,0.1)":"rgba(245,245,240,0.05)";
+          const icon=(()=>{
+            if(t==="run")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
+            if(t==="cardio")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
+            if(t==="hyrox")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
+            if(isRest)return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
+            return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
+          })();
+          const entrDelay=idx*50;
+          const anim=isToday
+            ?`weekPillIn 0.35s cubic-bezier(.2,.7,.3,1) ${entrDelay}ms both,todayPillPulse 0.6s ease ${entrDelay+450}ms 1 both`
+            :`weekPillIn 0.35s cubic-bezier(.2,.7,.3,1) ${entrDelay}ms both`;
+          return(
+            <div key={day} style={{
+              flexShrink:0,
+              width:isToday?46:42,
+              display:"flex",
+              flexDirection:"column",
+              alignItems:"center",
+              gap:4,
+              background:bgC,
+              border:`1.5px solid ${borderC}`,
+              borderRadius:14,
+              padding:isToday?"8px 4px 9px":"8px 4px",
+              boxShadow:isToday
+                ?"inset 0 1px 0 0 rgba(245,245,240,0.08),0 0 12px rgba(232,52,28,0.3)"
+                :"inset 0 1px 0 0 rgba(245,245,240,0.08)",
+              animation:anim,
+            }}>
+              <div style={{fontFamily:"var(--mono)",fontSize:6,letterSpacing:"0.1em",textTransform:"uppercase",color:isToday?"rgba(232,52,28,0.75)":"transparent",lineHeight:1,height:7,flexShrink:0}}>TODAY</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:7,fontWeight:700,color:textC,letterSpacing:"0.08em"}}>{day.toUpperCase()}</div>
+              <div style={{width:isToday?24:22,height:isToday?24:22,borderRadius:6,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",color:textC,flexShrink:0}}>{icon}</div>
+              <div style={{fontFamily:"var(--condensed)",fontSize:8,fontWeight:700,textTransform:"uppercase",color:textC,lineHeight:1.1,textAlign:"center"}}>{label}</div>
+            </div>
+          );
+        })}
+      </div>
+      {sessionCount===0&&WDAYS.indexOf(todayKey)>1&&todayType==="training"&&(
+        <div style={{marginTop:10,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
+          <div style={{fontFamily:"var(--condensed)",fontSize:15,color:"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
+        </div>
       )}
     </div>
   );
@@ -3248,43 +3316,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             })()}
 
             {/* ── THIS WEEK ── */}
-            <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
-              <div className="header-eyebrow" style={{marginBottom:12}}>// This Week</div>
-              <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none",WebkitOverflowScrolling:"touch"}}>
-                {WDAYS.map((day,idx)=>{
-                  const todayIdx=WDAYS.indexOf(todayKey);
-                  const t=schedule[day];
-                  const isToday=day===todayKey;
-                  const isPast=idx<todayIdx;
-                  const isRest=!t||t==="rest";
-                  const f=dayFocus[day];
-                  const label=isRest?"REST":(f?.slice(0,6)||(DAY_CFG[t]?.label?.slice(0,6)||"Train"));
-                  const borderC=isToday?"var(--accent)":isPast&&!isRest?"rgba(52,211,153,0.35)":T.bd;
-                  const bgC=isToday?"rgba(var(--accent-rgb),0.08)":isPast&&!isRest?"rgba(52,211,153,0.05)":"rgba(245,245,240,0.02)";
-                  const textC=isToday?"var(--accent)":isPast&&!isRest?"#34d399":isRest?"rgba(245,245,240,0.2)":"rgba(245,245,240,0.55)";
-                  const icon=(()=>{
-                    if(t==="run")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
-                    if(t==="cardio")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
-                    if(t==="hyrox")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
-                    if(isRest)return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
-                    return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
-                  })();
-                  return(
-                    <div key={day} style={{flexShrink:0,width:42,display:"flex",flexDirection:"column",alignItems:"center",gap:5,background:bgC,border:`1.5px solid ${borderC}`,borderRadius:10,padding:"9px 4px"}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:7,fontWeight:700,color:textC,letterSpacing:"0.1em"}}>{day.toUpperCase()}</div>
-                      <div style={{width:22,height:22,borderRadius:6,background:isToday?"rgba(var(--accent-rgb),0.15)":isPast&&!isRest?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.05)",display:"flex",alignItems:"center",justifyContent:"center",color:textC}}>{icon}</div>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:8,fontWeight:700,textTransform:"uppercase",color:textC,lineHeight:1.1,textAlign:"center"}}>{label}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            {sessionCount===0&&WDAYS.indexOf(todayKey)>1&&todayType==="training"&&(
-              <div style={{marginTop:10,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
-                <div style={{fontFamily:"var(--condensed)",fontSize:15,color:"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
-              </div>
-            )}
-            </div>
+            <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={dayFocus} sessionCount={sessionCount} todayType={todayType}/>
 
             {/* ── MUSCLE RECOVERY ── */}
             <MuscleRecovery userId={user?.id}/>
@@ -4103,7 +4135,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
               </div>
               <div style={{textAlign:"center",padding:"24px",border:`1px dashed ${T.bd}`,borderRadius:12,color:T.mu,fontSize:12}}>
-                <div style={{fontSize:28,marginBottom:8}}>⚖️</div>
+                <div style={{marginBottom:8,display:"flex",justifyContent:"center"}}>
+                  <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+                    <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+                    <path d="M7 21H17"/>
+                    <path d="M12 3v18"/>
+                    <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
+                  </svg>
+                </div>
                 <div style={{fontWeight:600,marginBottom:4}}>Log daily weigh-ins in Settings</div>
                 <div style={{fontSize:11,color:T.dim}}>Your weight trend graph will appear here once you start logging</div>
               </div>
@@ -4394,7 +4434,13 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
       <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
         <div style={{fontFamily:"var(--condensed)",fontSize:20,fontWeight:900,marginBottom:8}}>YOUR TRAINING DNA</div>
         <div style={{textAlign:"center",padding:"24px",color:T.mu}}>
-          <div style={{fontSize:32,marginBottom:12}}>🧬</div>
+          <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}>
+              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/>
+                <path d="M8.5 2h7"/>
+                <path d="M7 16h10"/>
+              </svg>
+            </div>
           <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>Unlocks after 30 days</div>
           <div style={{fontSize:12,color:T.dim}}>Keep training — {30-daysSince} days to go</div>
         </div>
@@ -4697,7 +4743,7 @@ export function ConnectSection({stravaToken,setStravaToken,stravaStatus,stravaAt
       {earnedCals>0&&<div style={{background:`rgba(var(--accent-rgb),0.07)`,border:`1px solid rgba(var(--accent-rgb),0.19)`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase"}}>// Earned Today</div><div style={{fontSize:12,color:T.mu,marginTop:2}}>{todayActs.map(a=>`${a.title||a.type}`).join(" · ")}</div></div><div style={{color:T.prot,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22}}>+{earnedCals} kcal</div></div>}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:14}}>
         {/* Strava */}
-        <SectionCard title="🟠 Strava — Live Sync">
+        <SectionCard title={<span style={{display:"inline-flex",alignItems:"center",gap:7}}><span style={{width:10,height:10,borderRadius:"50%",background:"#FC4C02",flexShrink:0,display:"inline-block"}}/>Strava — Live Sync</span>}>
           {stravaStatus==="connected"&&stravaAthlete?<div style={{background:T.s3,borderRadius:9,padding:"10px 12px",marginBottom:10}}><div style={{fontSize:12,fontWeight:700}}>{stravaAthlete.firstname} {stravaAthlete.lastname}</div><div style={{fontSize:11,color:T.mu}}>{stravaActs.length} activities · Live</div></div>:null}
           {stravaStatus!=="connected"&&<>
             <p style={{fontSize:12,color:T.mu,marginBottom:10,lineHeight:1.6}}>Get your token at <span style={{color:T.fat}}>strava.com/settings/api</span> — needs <code style={{background:T.s3,padding:"1px 4px",borderRadius:3,fontSize:10}}>activity:read_all</code> scope.</p>
@@ -4968,6 +5014,8 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
 
   useEffect(() => {
     if (!user?.id) return;
+    // Dev accounts always get max tier so the theme picker is visible for testing
+    if (user.email?.endsWith('@coachm.dev')) { setTier(4); return; }
     sb.from('profiles').select('referral_tier').eq('id', user.id).maybeSingle()
       .then(({ data }) => setTier(data?.referral_tier || 0));
   }, [user?.id]);

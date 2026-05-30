@@ -61,6 +61,25 @@
 	<string>Coach Macro reads your calendar to detect travel, high-stress weeks, and busy days so it can automatically adjust your training schedule and nutrition targets around your real life.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Coach Macro sends rest-timer alerts between sets, your daily morning brief, and reminders to hit your nutrition targets.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>supabase.co</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSThirdPartyExceptionRequiresForwardSecrecy</key>
+				<false/>
+				<key>NSThirdPartyExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+			</dict>
+		</dict>
+	</dict>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

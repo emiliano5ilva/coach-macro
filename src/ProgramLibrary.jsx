@@ -24,10 +24,10 @@ const PROG_META = {
   "10k":        { emoji:"🎽", eq:"Running shoes", who:"5K runners ready to double their distance", schedule:["Easy Run","Progression Run","Rest","Intervals","Rest","Long Run","Rest"], sample:[{n:"Easy 5km",s:1,r:""},{n:"3×1km @threshold pace",s:1,r:""},{n:"Long Run 8-10km",s:1,r:""}], nuNote:"Glycogen depletion risk on long runs. Carb load night before long run. Protein helps recovery." },
   half:         { emoji:"🥇", eq:"Running shoes + GPS watch", who:"10K runners aiming for first half marathon or sub-2 hour", schedule:["Easy","Medium Long","Tempo","Rest","Easy","Long Run","Rest"], sample:[{n:"Easy 6km",s:1,r:""},{n:"Tempo 5km @LT pace",s:1,r:""},{n:"Long Run 16-20km",s:1,r:""}], nuNote:"Long runs 16km+ need carb fueling during the run. Add 200-300 cal on long run days." },
   hyrox_12w:   { emoji:"🔥", eq:"Full gym + SkiErg + sled + sandbag", who:"Athletes prepping for first Hyrox or improving race time", schedule:["Stations A","Run","Strength","Stations B","Rest","Full Race Sim","Rest"], sample:[{n:"1km Run",s:1,r:""},{n:"Sled Push 50m",s:4,r:""},{n:"SkiErg 1km",s:3,r:""},{n:"Burpee Broad Jump 80m",s:3,r:""},{n:"Wall Ball 75 reps",s:3,r:""}], nuNote:"Hyrox burns 800-1200 cal per session. Increase carbs significantly on race simulation days." },
-  strength_run: { emoji:"⚡", eq:"Full gym + running shoes", who:"Lifters adding aerobic capacity without losing muscle", schedule:["🏋️ Lift","🏃 Easy Run","🏋️ Lift","😴 Rest","🏋️ Lift","🏃 Long Run","😴 Rest"], sample:[{n:"Barbell Squat",s:4,r:"6-8"},{n:"Barbell Row",s:4,r:"6-8"},{n:"Easy Run 5km",s:1,r:""},{n:"Romanian Deadlift",s:3,r:"8-10"},{n:"Core Work",s:3,r:""}], nuNote:"Hybrid demands: extra 200 cal on combined lift+run days. Protein 0.9-1g/lb." },
-  upper_lower_run:{ emoji:"🏅", eq:"Full gym + running shoes", who:"Runners adding muscle to improve speed and reduce injury risk", schedule:["🏃 Easy Run","🏋️ Upper","🏃 Tempo","😴 Rest","🏋️ Lower","🏃 Long Run","😴 Rest"], sample:[{n:"Pull Up",s:4,r:"6-8"},{n:"Overhead Press",s:3,r:"8-10"},{n:"Barbell Squat",s:4,r:"8-10"},{n:"Hip Thrust",s:3,r:"12-15"},{n:"Tempo Run 5km",s:1,r:""}], nuNote:"6 sessions/week is high load. Ensure calories support both goals — don't under-eat." },
-  balanced_hybrid:{ emoji:"⚖️", eq:"Full gym + running shoes", who:"Athletes wanting equal strength and endurance gains", schedule:["🏋️ Push+Pull","🏃 Easy","🏋️ Legs","😴 Rest","🏋️ Upper","🏃 Long","😴 Rest"], sample:[{n:"Barbell Row",s:4,r:"8-10"},{n:"Barbell Bench",s:4,r:"8-10"},{n:"Easy Run 5km",s:1,r:""},{n:"Barbell Squat",s:4,r:"8-10"},{n:"Long Run 10km",s:1,r:""}], nuNote:"Keep calories slightly above maintenance. Protein supports muscle, carbs fuel running." },
-  ppl_hyrox:    { emoji:"🏆", eq:"Full gym + Hyrox-specific equipment", who:"Strength athletes preparing for a Hyrox race", schedule:["🏋️ Push","🏋️ Pull","🔥 Stations","🏋️ Legs","😴 Rest","🔥 Race Sim","😴 Rest"], sample:[{n:"Barbell Bench Press",s:4,r:"6-8"},{n:"Sled Push 50m",s:5,r:""},{n:"SkiErg 500m",s:4,r:""},{n:"Barbell Squat",s:4,r:"6-8"},{n:"Wall Ball 30 reps",s:5,r:""}], nuNote:"Highest calorie demand of any program. Eat 300-500 above maintenance. Carb cycle around race sim days." },
+  strength_run: { emoji:"⚡", eq:"Full gym + running shoes", who:"Lifters adding aerobic capacity without losing muscle", schedule:["Lift","Easy Run","Lift","Rest","Lift","Long Run","Rest"], sample:[{n:"Barbell Squat",s:4,r:"6-8"},{n:"Barbell Row",s:4,r:"6-8"},{n:"Easy Run 5km",s:1,r:""},{n:"Romanian Deadlift",s:3,r:"8-10"},{n:"Core Work",s:3,r:""}], nuNote:"Hybrid demands: extra 200 cal on combined lift+run days. Protein 0.9-1g/lb." },
+  upper_lower_run:{ emoji:"🏅", eq:"Full gym + running shoes", who:"Runners adding muscle to improve speed and reduce injury risk", schedule:["Easy Run","Upper","Tempo","Rest","Lower","Long Run","Rest"], sample:[{n:"Pull Up",s:4,r:"6-8"},{n:"Overhead Press",s:3,r:"8-10"},{n:"Barbell Squat",s:4,r:"8-10"},{n:"Hip Thrust",s:3,r:"12-15"},{n:"Tempo Run 5km",s:1,r:""}], nuNote:"6 sessions/week is high load. Ensure calories support both goals — don't under-eat." },
+  balanced_hybrid:{ emoji:"⚖️", eq:"Full gym + running shoes", who:"Athletes wanting equal strength and endurance gains", schedule:["Push+Pull","Easy","Legs","Rest","Upper","Long","Rest"], sample:[{n:"Barbell Row",s:4,r:"8-10"},{n:"Barbell Bench",s:4,r:"8-10"},{n:"Easy Run 5km",s:1,r:""},{n:"Barbell Squat",s:4,r:"8-10"},{n:"Long Run 10km",s:1,r:""}], nuNote:"Keep calories slightly above maintenance. Protein supports muscle, carbs fuel running." },
+  ppl_hyrox:    { emoji:"🏆", eq:"Full gym + Hyrox-specific equipment", who:"Strength athletes preparing for a Hyrox race", schedule:["Push","Pull","Stations","Legs","Rest","Race Sim","Rest"], sample:[{n:"Barbell Bench Press",s:4,r:"6-8"},{n:"Sled Push 50m",s:5,r:""},{n:"SkiErg 500m",s:4,r:""},{n:"Barbell Squat",s:4,r:"6-8"},{n:"Wall Ball 30 reps",s:5,r:""}], nuNote:"Highest calorie demand of any program. Eat 300-500 above maintenance. Carb cycle around race sim days." },
   glute_3:      { emoji:"🍑", eq:"Barbell/dumbbells + hip thrust bench", who:"Athletes wanting to develop glutes with 3 focused sessions", schedule:["Glute A","Rest","Glute B","Rest","Glute C","Rest","Rest"], sample:[{n:"Barbell Hip Thrust",s:4,r:"8-12"},{n:"Romanian Deadlift",s:3,r:"10-12"},{n:"Cable Kickback",s:3,r:"15-20"},{n:"Bulgarian Split Squat",s:3,r:"10-12"},{n:"Abduction Machine",s:3,r:"20-25"}], nuNote:"Glute growth requires a slight caloric surplus. Protein supports hypertrophy." },
   glute_4:      { emoji:"🍑", eq:"Barbell/dumbbells + cables + hip thrust bench", who:"Serious glute recomposition — lower body priority", schedule:["Heavy Glute","Upper","Glute Volume","Lower Vol","Rest","Rest","Rest"], sample:[{n:"Barbell Hip Thrust",s:5,r:"5-8"},{n:"Barbell Romanian Deadlift",s:4,r:"8-10"},{n:"Walking Lunge",s:3,r:"12/side"},{n:"Cable Kickback",s:4,r:"15-20"},{n:"Clamshell",s:3,r:"20-25"}], nuNote:"4 lower-body sessions → fuel with carbs. Avoid excessive restriction for optimal muscle growth." },
   lower_5:      { emoji:"🔥", eq:"Full gym required", who:"Advanced lower body athletes — maximum volume and frequency", schedule:["Quad Focus","Hamstring Focus","Glute Focus","Rest","Lower Volume","Rest","Rest"], sample:[{n:"Barbell Squat",s:5,r:"5-8"},{n:"Leg Press",s:4,r:"10-12"},{n:"Leg Extension",s:4,r:"15-20"},{n:"Hip Thrust",s:5,r:"8-10"},{n:"Nordic Curl",s:3,r:"6-8"}], nuNote:"5 lower body days is extreme. Carbs are critical — 200g+ daily for fuel and recovery." },
@@ -127,7 +127,11 @@ function FuelAwarenessModal({ prog, profile, onConfirm, onCancel, switching }) {
 
         {/* Mesocycle warning */}
         <div style={{ background:"rgba(251,191,36,.06)", border:"1px solid rgba(251,191,36,.2)", borderRadius:10, padding:"10px 14px", marginBottom:24, fontSize:12, color:"#FBbF24", display:"flex", gap:8, alignItems:"flex-start" }}>
-          <span style={{ fontSize:15, flexShrink:0 }}>⚠️</span>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}>
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
           <span>Switching resets your mesocycle to Week 1. Your workout history and PRs are kept.</span>
         </div>
 
@@ -170,7 +174,7 @@ function ProgramDetailModal({ prog, profile, ratings, userRating, onStart, onRat
       <div style={{ padding:"20px 20px 40px", maxWidth:520, margin:"0 auto", width:"100%" }}>
         {/* Hero */}
         <div style={{ textAlign:"center", marginBottom:24 }}>
-          <div style={{ fontSize:52, marginBottom:12 }}>{meta.emoji || CATEGORY_EMOJI[prog.category] || "🏋️"}</div>
+          <div style={{ marginBottom:12, display:"flex", justifyContent:"center" }}><ProgIcon prog={prog} size={52}/></div>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:34, fontWeight:900, letterSpacing:".02em", marginBottom:8 }}>{prog.name}</div>
           <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
             <span style={{ background:`${lvlColor}15`, border:`1px solid ${lvlColor}40`, borderRadius:8, padding:"4px 12px", fontSize:11, color:lvlColor, fontWeight:700 }}>{prog.level}</span>
@@ -459,6 +463,42 @@ export function CustomRoutineBuilder({ user, setTrainScreen, editRoutine, onSave
   );
 }
 
+// ─── PROGRAM TYPE ICON ───────────────────────────────────────────────────────
+function ProgIcon({prog, size=28}) {
+  const sw = "1.8";
+  const lc = "round";
+  const lj = "round";
+  const s = {fill:"none",stroke:"rgba(245,245,240,0.75)",strokeWidth:sw,strokeLinecap:lc,strokeLinejoin:lj};
+  const vb = "0 0 24 24";
+  if (prog.isRun || prog.category === "Running") return (
+    <svg width={size} height={size} viewBox={vb}><polyline {...s} points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+  );
+  if (prog.isHyrox || prog.category === "Hyrox") return (
+    <svg width={size} height={size} viewBox={vb}><polygon {...s} points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+  );
+  if (prog.isHybrid || prog.category === "Hybrid") return (
+    <svg width={size} height={size} viewBox={vb}><polyline {...s} points="17 1 21 5 17 9"/><path {...s} d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline {...s} points="7 23 3 19 7 15"/><path {...s} d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+  );
+  if (prog.isConditioning || prog.category === "Fat Loss & Conditioning") return (
+    <svg width={size} height={size} viewBox={vb}><path {...s} d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+  );
+  if (prog.category === "Glute Focus") return (
+    <svg width={size} height={size} viewBox={vb}><circle {...s} cx="12" cy="12" r="10"/><circle {...s} cx="12" cy="12" r="6"/><circle {...s} cx="12" cy="12" r="2"/></svg>
+  );
+  // Default: Dumbbell (Hypertrophy / Strength) — diagonal Lucide dumbbell
+  return (
+    <svg width={size} height={size} viewBox={vb} fill="none" stroke="rgba(245,245,240,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.5 6.5l11 11"/>
+      <path d="M21 21l-1-1"/>
+      <path d="M3 3l1 1"/>
+      <path d="M18 22l4-4"/>
+      <path d="M2 6l4-4"/>
+      <path d="M3 10l7-7"/>
+      <path d="M14 21l7-7"/>
+    </svg>
+  );
+}
+
 // ─── PROGRAM LIBRARY SCREEN ───────────────────────────────────────────────────
 const FILTER_TABS = [
   { id:"All",      cats:null },
@@ -661,28 +701,26 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         .plib-card{background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .15s,background .15s;}
         .plib-card:hover{border-color:rgba(41,121,255,.35);background:rgba(41,121,255,.04);}
         .plib-card.current{border-color:rgba(41,121,255,.5);background:rgba(41,121,255,.07);}
-        .plib-chip{padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:rgba(245,245,240,.6);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;}
-        .plib-chip.active{border-color:#2979FF;background:rgba(41,121,255,.12);color:#2979FF;}
+        .plib-chip{height:36px;padding:0 16px;border-radius:18px;border:1px solid rgba(245,245,240,.10);background:rgba(245,245,240,.04);color:rgba(245,245,240,.55);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;transition:background 150ms,border-color 150ms,color 150ms,transform 100ms;}
+        .plib-chip.active{border-color:#e8341c;background:rgba(232,52,28,.12);color:#e8341c;}
+        .plib-chip:active{transform:scale(0.96);}
         .plib-routine{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+        .plib-filter-row{overflow-x:scroll;-webkit-overflow-scrolling:touch;margin-left:-18px;margin-right:-18px;padding-left:18px;padding-right:18px;}
+        .plib-filter-row::-webkit-scrollbar{display:none;}
       `}</style>
 
-      {/* Category filter */}
-      <div style={{ display:"flex", gap:6, overflowX:"auto", padding:"0 0 8px", marginBottom:12 }}>
+      {/* Category filter — scrollable, no wrap */}
+      <div className="plib-filter-row" style={{ display:"flex", gap:6, flexWrap:"nowrap", paddingBottom:8, marginBottom:12 }}>
         {FILTER_TABS.map(t => (
           <button key={t.id} className={`plib-chip${catFilter===t.id?" active":""}`} onClick={() => setCatFilter(t.id)}>{t.id}</button>
         ))}
       </div>
 
-      {/* Level filter */}
-      <div style={{ display:"flex", gap:6, marginBottom:20 }}>
-        {["All","Beginner","Intermediate","Advanced"].map(l => {
-          const c = l==="Beginner"?"#34D399":l==="Intermediate"?"#FBbF24":l==="Advanced"?"#F87171":"rgba(245,245,240,.6)";
-          return (
-            <button key={l} onClick={() => setLevelFilter(l)} style={{ padding:"5px 12px", borderRadius:20, border:`1.5px solid ${levelFilter===l?c:"rgba(255,255,255,.1)"}`, background:levelFilter===l?`${c}12`:"rgba(255,255,255,.03)", color:levelFilter===l?c:"rgba(245,245,240,.5)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
-              {l}
-            </button>
-          );
-        })}
+      {/* Level filter — scrollable, no wrap */}
+      <div className="plib-filter-row" style={{ display:"flex", gap:6, flexWrap:"nowrap", marginBottom:20 }}>
+        {["All","Beginner","Intermediate","Advanced"].map(l => (
+          <button key={l} onClick={() => setLevelFilter(l)} className={`plib-chip${levelFilter===l?" active":""}`}>{l}</button>
+        ))}
       </div>
 
       {/* Program grid */}
@@ -696,11 +734,11 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
             <div key={prog.id} className={`plib-card${isCurrent?" current":""}`} onClick={() => setDetailProg(prog)} style={{overflow:"hidden"}}>
               {(()=>{ const img=getProgramImage(prog.id); return img?(
                 <div style={{position:"relative",width:"calc(100% + 32px)",height:100,margin:"-16px -16px 12px -16px",borderRadius:"12px 12px 0 0",overflow:"hidden"}}>
-                  <img src={img} alt={prog.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.style.display="none";}}/>
+                  <img src={img} alt={prog.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.parentElement.style.display="none";}}/>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,height:50,background:"linear-gradient(transparent,rgba(9,11,17,0.97))",pointerEvents:"none"}}/>
                 </div>
               ):null; })()}
-              <div style={{ fontSize:28, marginBottom:8 }}>{meta.emoji || CATEGORY_EMOJI[prog.category] || "🏋️"}</div>
+              <div style={{ marginBottom:10 }}><ProgIcon prog={prog} size={28}/></div>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:16, fontWeight:800, lineHeight:1.1, marginBottom:6 }}>{prog.name}</div>
               <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:8 }}>
                 <span style={{ fontSize:9, fontWeight:700, padding:"2px 7px", borderRadius:5, background:`${lvlColor}12`, color:lvlColor, letterSpacing:".06em" }}>{prog.level}</span>
@@ -738,7 +776,16 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           <div style={{ textAlign:"center", padding:20 }}><Spinner size={20} /></div>
         ) : customRoutines.length === 0 ? (
           <div style={{ background:"rgba(255,255,255,.02)", border:"1px dashed rgba(255,255,255,.1)", borderRadius:14, padding:"28px 20px", textAlign:"center" }}>
-            <div style={{ fontSize:28, marginBottom:10 }}>🔧</div>
+            <div style={{ marginBottom:10, display:"flex", justifyContent:"center" }}>
+              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.35)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="8" y="2" width="8" height="4" rx="1"/>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <line x1="12" y1="11" x2="16" y2="11"/>
+                <line x1="12" y1="16" x2="16" y2="16"/>
+                <circle cx="8" cy="11" r=".5" fill="rgba(245,245,240,0.35)"/>
+                <circle cx="8" cy="16" r=".5" fill="rgba(245,245,240,0.35)"/>
+              </svg>
+            </div>
             <div style={{ fontSize:14, fontWeight:600, color:"rgba(245,245,240,.6)", marginBottom:6 }}>No custom routines yet</div>
             <div style={{ fontSize:12, color:T.mu, marginBottom:16 }}>Build a personalized workout with your favorite exercises.</div>
             <button onClick={() => setTrainScreen("routine-builder")} style={{ padding:"10px 20px", background:"rgba(41,121,255,.12)", border:"1.5px solid rgba(41,121,255,.3)", borderRadius:10, color:"#2979FF", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>

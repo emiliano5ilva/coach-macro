@@ -759,11 +759,30 @@ export default function NativeApp() {
       try{const inv={code:params.get("code")||"",token:params.get("token")||"",freeWeeks:2,savedAt:Date.now()};localStorage.setItem("coachMacroInvite",JSON.stringify(inv));}catch{}
       window.history.replaceState({},"","/");
     }
-    // Check session after splash completes (splash auto-advances to session-check)
-    sb.auth.getSession().then(({data:{session}})=>{
-      if(session?.user)handleAuth(session.user,null);
-      else setTimeout(()=>setPhase("welcome-screen"),1600);
-    });
+    // Read session from localStorage — zero network calls at startup.
+    // Any Supabase auth method (getSession, setSession, signOut) hits the wire
+    // and hangs forever in WKWebView/simulator due to a QUIC OS-level bug.
+    // We read raw localStorage, check expiry locally, and either resume the
+    // session or go to welcome screen. The stored token is used automatically
+    // by the Supabase client for all subsequent API calls (it reads localStorage
+    // on every request), so no explicit setSession() is needed.
+    try {
+      const raw = localStorage.getItem('supabase.auth.token');
+      const cached = raw ? JSON.parse(raw) : null;
+      const sess   = cached?.currentSession ?? cached;
+      const user   = sess?.user ?? null;
+      const expiry = sess?.expires_at ?? 0;
+      const valid  = user && (expiry > Math.floor(Date.now() / 1000) + 30);
+      if (valid) {
+        handleAuth(user, null);
+      } else {
+        // Expired or absent — wipe local storage so next getSession returns null fast
+        try { localStorage.removeItem('supabase.auth.token'); } catch {}
+        setTimeout(()=>setPhase("welcome-screen"), 400);
+      }
+    } catch {
+      setTimeout(()=>setPhase("welcome-screen"), 400);
+    }
     const{data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       if(event==="SIGNED_IN"&&session?.user)handleAuth(session.user,null);
       if(event==="PASSWORD_RECOVERY")setPhase("reset-password");

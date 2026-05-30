@@ -822,17 +822,57 @@ function FoodContextMenu({item, slot, mealSlots, onDelete, onCopySlot, onClose})
   );
 }
 
-function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottleSize=16, isMobile}) {
+function buildWaterInfoText(profile, todayType, todayFocus, waterTarget) {
+  if (profile?.waterMode === 'custom' && profile?.waterGoalOz) {
+    return `Your daily water goal is set to ${waterTarget} oz (custom target). Adjust it any time in settings.`;
+  }
+  const wLbs = profile?.wUnit === 'kg'
+    ? Math.round(parseFloat(profile?.weight || 70) * 2.205)
+    : Math.round(parseFloat(profile?.weight || 160));
+  const baseOz = Math.round(wLbs * 0.55);
+  const focus = (todayFocus || '').toLowerCase();
+  const isRest = todayType === 'rest' || !todayType;
+  let adj, sessionLabel;
+  if (isRest)                    { adj = 0;  sessionLabel = null; }
+  else if (focus.includes('run'))    { adj = 24; sessionLabel = 'run'; }
+  else if (focus.includes('hyrox'))  { adj = 20; sessionLabel = 'Hyrox'; }
+  else if (focus.includes('cardio')) { adj = 20; sessionLabel = 'cardio'; }
+  else                               { adj = 12; sessionLabel = 'strength'; }
+  const adjPhrase = isRest
+    ? 'plus 0 oz — it\'s a rest day'
+    : `plus ${adj} oz for today's ${sessionLabel} session`;
+  let text = `Your ${waterTarget} oz goal is based on your ${wLbs} lb body weight (${wLbs} × 0.55 = ${baseOz} oz) ${adjPhrase}.`;
+  const extras = [];
+  if (profile?.hot_weather_mode) extras.push('+16 oz hot weather');
+  if (profile?.isPregnant)       extras.push('+10 oz pregnancy');
+  if (profile?.isBreastfeeding)  extras.push('+13 oz breastfeeding');
+  if (extras.length) text += `\n\n${extras.join(' · ')}`;
+  return text;
+}
+
+function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottleSize=16, isMobile, profile, dayType, todayFocus}) {
   const [showCustom, setShowCustom] = useState(false);
   const [customOz, setCustomOz] = useState("");
+  const [showInfo, setShowInfo] = useState(false);
   const [longPressId, setLongPressId] = useState(null);
   const pressTimer = useRef(null);
 
   const totalOz = waterLogs.reduce((s, l) => s + Number(l.amount_oz), 0);
   const pct = Math.min(1, totalOz / Math.max(1, waterTarget));
-  const drops = 8;
-  const filledDrops = Math.round(pct * drops);
   const ozLeft = Math.max(0, waterTarget - totalOz);
+  const isOver = totalOz >= waterTarget;
+
+  const waterInfoText = buildWaterInfoText(profile, dayType, todayFocus, waterTarget);
+
+  // Ring geometry — r=78, cx=cy=90, viewBox 180×180
+  const R = 78, CX = 90, CY = 90;
+  const circ = parseFloat((2 * Math.PI * R).toFixed(1));
+  const fillLen = parseFloat((pct * circ).toFixed(1));
+  const tipAngle = pct * 2 * Math.PI - Math.PI / 2;
+  const tipX = (CX + R * Math.cos(tipAngle)).toFixed(2);
+  const tipY = (CY + R * Math.sin(tipAngle)).toFixed(2);
+
+  const mno = {fontFamily:"'DM Mono',monospace"};
 
   function startPress(id) {
     pressTimer.current = setTimeout(() => setLongPressId(id), 500);
@@ -843,7 +883,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
     await onAddWater(oz);
     const newTotal = totalOz + oz;
     const left = Math.max(0, waterTarget - newTotal);
-    showToast(`+${oz} oz added${left > 0 ? ` · ${Math.round(left)} oz remaining` : " · Goal reached! 🎉"}`, "info");
+    showToast(`+${oz} oz added${left > 0 ? ` · ${Math.round(left)} oz remaining` : " · Goal reached! 💧"}`, "info");
   }
 
   async function handleCustom() {
@@ -852,7 +892,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
     await onAddWater(oz);
     const newTotal = totalOz + oz;
     const left = Math.max(0, waterTarget - newTotal);
-    showToast(`+${oz} oz added${left > 0 ? ` · ${Math.round(left)} oz remaining` : " · Goal reached! 🎉"}`, "info");
+    showToast(`+${oz} oz added${left > 0 ? ` · ${Math.round(left)} oz remaining` : " · Goal reached! 💧"}`, "info");
     setCustomOz("");
     setShowCustom(false);
   }
@@ -860,38 +900,108 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
   const lastFive = [...waterLogs].slice(-5).reverse();
 
   return (
-    <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px",marginBottom:12}}>
+    <div style={{
+      position:"relative",
+      background:"rgba(59,130,246,0.03)",
+      backgroundImage:"radial-gradient(circle at top, rgba(59,130,246,0.06) 0%, transparent 60%)",
+      boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(59,130,246,0.12), inset 0 1px 0 0 rgba(59,130,246,0.15)",
+      borderRadius:16,padding:"16px 18px",marginBottom:12,
+    }}>
+      <style>{`@keyframes hydRingSweep{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}`}</style>
+
+      {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontFamily:"var(--condensed)",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
-        <div style={{fontFamily:"var(--mono)",fontSize:11,color:T.carb,fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <div style={{...mno,fontSize:11,color:"#93C5FD",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
+          <button
+            onClick={()=>setShowInfo(v=>!v)}
+            style={{width:18,height:18,borderRadius:"50%",background:"rgba(59,130,246,0.10)",border:"1px solid rgba(59,130,246,0.4)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",padding:0,flexShrink:0}}
+          >
+            <span style={{fontFamily:"'SF Mono','DM Mono',monospace",fontSize:10,color:"#93C5FD",lineHeight:1,fontStyle:"normal",fontWeight:500}}>i</span>
+          </button>
+        </div>
       </div>
 
-      {/* 8-drop visual */}
-      <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:12}}>
-        {Array.from({length:drops}).map((_,i)=>(
-          <div key={i} style={{width:16,height:20,transition:"opacity 0.3s",opacity:i<filledDrops?1:0.15}}>
-            <svg width="16" height="20" viewBox="0 0 16 20" fill={T.carb}><path d="M8 2C6 5 2 9 2 13a6 6 0 0012 0C14 9 10 5 8 2z"/></svg>
+      {/* Info popover */}
+      {showInfo&&(
+        <>
+          <div onClick={()=>setShowInfo(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
+          <div style={{position:"absolute",top:44,right:0,zIndex:200,background:"#0d0d0d",border:"1px solid rgba(59,130,246,0.3)",borderRadius:12,padding:"12px 14px",maxWidth:280,boxShadow:"0 8px 24px rgba(0,0,0,0.6)"}}>
+            {waterInfoText.split('\n\n').map((para,i)=>(
+              <div key={i} style={{fontFamily:"var(--mono)",fontSize:11,color:i===0?"rgba(245,245,240,0.75)":"rgba(147,197,253,0.6)",lineHeight:1.55,marginTop:i>0?8:0}}>{para}</div>
+            ))}
           </div>
-        ))}
+        </>
+      )}
+
+
+      {/* Ring row: consumed | ring+center | target */}
+      <div style={{position:"relative",height:180,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
+        {/* Left — consumed */}
+        <div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",textAlign:"center",width:54}}>
+          <div style={{...mno,fontSize:22,fontWeight:700,color:"#f5f5f0",lineHeight:1}}>{Math.round(totalOz)}</div>
+          <div style={{...mno,fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>OZ</div>
+        </div>
+
+        {/* SVG ring */}
+        <svg width="180" height="180" viewBox="0 0 180 180"
+          style={{transform:"rotate(-90deg)",filter:"drop-shadow(0 0 16px rgba(59,130,246,0.10))"}}>
+          <defs>
+            <linearGradient id="hydRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3B82F6"/>
+              <stop offset="100%" stopColor="#93C5FD" stopOpacity="0.9"/>
+            </linearGradient>
+            <linearGradient id="hydRingGradientOver" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3B82F6"/>
+              <stop offset="100%" stopColor="#60A5FA"/>
+            </linearGradient>
+          </defs>
+          {/* Track */}
+          <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(59,130,246,0.15)" strokeWidth="12"/>
+          {/* Active arc */}
+          <circle cx={CX} cy={CY} r={R} fill="none"
+            stroke={`url(#${isOver?"hydRingGradientOver":"hydRingGradient"})`}
+            strokeWidth="12" strokeLinecap="round"
+            strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
+            style={{animation:"hydRingSweep 0.8s cubic-bezier(.2,.7,.3,1) both"}}/>
+          {/* Tip dot — only when fill > 2% */}
+          {pct>0.02&&(
+            <circle cx={tipX} cy={tipY} r="5" fill="#3B82F6"
+              style={{filter:isOver
+                ?"drop-shadow(0 0 10px rgba(59,130,246,1.0))"
+                :"drop-shadow(0 0 6px rgba(59,130,246,0.8)) drop-shadow(0 0 12px rgba(59,130,246,0.4))"}}/>
+          )}
+        </svg>
+
+        {/* Center labels */}
+        <div style={{position:"absolute",textAlign:"center",pointerEvents:"none"}}>
+          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>OZ LEFT</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:42,color:"#93C5FD",lineHeight:1,letterSpacing:"-0.02em",textShadow:"0 0 30px rgba(147,197,253,0.15), 0 2px 24px rgba(0,0,0,0.8)"}}>
+            {isOver?"0":Math.round(ozLeft)}
+          </div>
+          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em",marginTop:4}}>of {waterTarget} oz</div>
+        </div>
+
+        {/* Right — target */}
+        <div style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",textAlign:"center",width:54}}>
+          <div style={{...mno,fontSize:22,fontWeight:700,color:"rgba(245,245,240,0.5)",lineHeight:1}}>{waterTarget}</div>
+          <div style={{...mno,fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>OZ</div>
+        </div>
       </div>
 
-      {/* Progress bar */}
-      <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden",marginBottom:14}}>
-        <div style={{height:"100%",width:`${pct*100}%`,background:`linear-gradient(90deg,${T.carb},rgba(96,165,250,.6))`,borderRadius:2,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
-      </div>
-
-      {/* Quick-add buttons */}
+      {/* Quick-add buttons — all three inline, consistent blue style */}
       <div style={{display:"flex",gap:8,marginBottom:10}}>
-        <button onClick={()=>handleQuickAdd(bottleSize)} style={{flex:1,padding:"9px 0",background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.3)",borderRadius:10,color:"var(--red)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+{bottleSize} oz</button>
-        <button onClick={()=>handleQuickAdd(8)} style={{flex:1,padding:"9px 0",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.18)",borderRadius:10,color:"rgba(232,52,28,0.8)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+8 oz</button>
-        <button onClick={()=>setShowCustom(v=>!v)} style={{flex:1,padding:"9px 0",background:"none",border:"1px dashed rgba(245,245,240,0.2)",borderRadius:10,color:"var(--white-dim)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Custom</button>
+        <button onClick={()=>handleQuickAdd(bottleSize)} style={{flex:1,padding:"9px 0",background:"rgba(59,130,246,0.12)",border:"1px solid rgba(59,130,246,0.35)",borderRadius:10,color:"#93C5FD",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+{bottleSize} oz</button>
+        <button onClick={()=>handleQuickAdd(8)} style={{flex:1,padding:"9px 0",background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.25)",borderRadius:10,color:"rgba(147,197,253,0.85)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+8 oz</button>
+        <button onClick={()=>setShowCustom(v=>!v)} style={{flex:1,padding:"9px 0",background:"rgba(59,130,246,0.06)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:10,color:"rgba(147,197,253,0.7)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Custom</button>
       </div>
 
       {showCustom&&(
         <div style={{display:"flex",gap:8,marginBottom:10}}>
           <input type="number" value={customOz} onChange={e=>setCustomOz(e.target.value)} placeholder="oz" min={1} max={128}
-            style={{flex:1,background:"rgba(245,245,240,0.05)",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"var(--mono)",outline:"none"}}/>
-          <button onClick={handleCustom} style={{padding:"8px 18px",background:T.prot,border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
+            style={{flex:1,background:"rgba(59,130,246,0.06)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"var(--mono)",outline:"none"}}/>
+          <button onClick={handleCustom} style={{padding:"8px 18px",background:"rgba(59,130,246,0.25)",border:"1px solid rgba(59,130,246,0.5)",borderRadius:10,color:"#93C5FD",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
         </div>
       )}
 
@@ -900,11 +1010,11 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
         <div style={{display:"flex",flexDirection:"column",gap:4}}>
           {lastFive.map(log=>(
             <div key={log.id} onPointerDown={()=>startPress(log.id)} onPointerUp={()=>endPress()} onPointerLeave={()=>endPress()}
-              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(245,245,240,0.04)",borderRadius:8,position:"relative"}}>
-              <div style={{fontSize:11,color:"rgba(245,245,240,0.5)",fontFamily:"var(--mono)"}}>
+              style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(59,130,246,0.05)",borderRadius:8,position:"relative"}}>
+              <div style={{...mno,fontSize:11,color:"rgba(245,245,240,0.5)"}}>
                 {new Date(log.logged_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
               </div>
-              <div style={{fontSize:11,color:T.carb,fontWeight:700,fontFamily:"var(--mono)"}}>+{log.amount_oz} oz</div>
+              <div style={{...mno,fontSize:11,color:"#93C5FD",fontWeight:700}}>+{log.amount_oz} oz</div>
               {longPressId===log.id&&(
                 <div style={{position:"absolute",right:0,top:-2,zIndex:10,display:"flex",gap:6}}>
                   <button onClick={()=>{onDeleteWater(log.id);setLongPressId(null);}}
@@ -918,11 +1028,8 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
         </div>
       )}
 
-      {totalOz>=waterTarget&&(
-        <div style={{textAlign:"center",marginTop:10,fontSize:12,color:T.green,fontWeight:700}}>✓ Daily water goal met! 💪</div>
-      )}
-      {totalOz>0&&totalOz<waterTarget&&(
-        <div style={{textAlign:"center",marginTop:8,fontSize:11,color:"rgba(245,245,240,0.4)"}}>{Math.round(ozLeft)} oz to go</div>
+      {isOver&&(
+        <div style={{textAlign:"center",marginTop:10,fontSize:12,color:"#60A5FA",fontWeight:700}}>✓ Daily water goal met! 💧</div>
       )}
     </div>
   );
@@ -1261,6 +1368,8 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [logMode,setLogMode]=useState(null);
   const [aiEstimate,setAiEstimate]=useState(null);
   const [aiEstimating,setAiEstimating]=useState(false);
+  const [showQAExtras,setShowQAExtras]=useState(false);
+  useEffect(()=>{if(logMode===null)setShowQAExtras(false);},[logMode]);
 
   const [now,setNow]=useState(Date.now());
   useEffect(()=>{
@@ -1319,22 +1428,33 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [kitchenCard,setKitchenCard]=useState(0);
 
   // ── Meal Slots ─────────────────────────────────────────────────────────────
+  // Returns the array index of the most likely current meal based on hour of day.
+  function getTimeBasedSlotIdx(count){
+    const h=new Date().getHours();
+    if(count<=1)return 0;
+    if(count===2)return h<15?0:1;
+    if(count===3)return h<11?0:h<17?1:2;
+    if(count===4)return h<10?0:h<14?1:h<19?2:3;
+    if(count===5)return h<9?0:h<12?1:h<15?2:h<19?3:4;
+    return h<8?0:h<11?1:h<14?2:h<17?3:h<20?4:5;
+  }
   const [mealSlots,setMealSlots]=useState(()=>getSlotsForFreq(profile?.mealFreq));
-  const [activeSlotIdx,setActiveSlotIdx]=useState(0);
-  const [logSlotConfirmed,setLogSlotConfirmed]=useState(false);
+  const [activeSlotIdx,setActiveSlotIdx]=useState(()=>getTimeBasedSlotIdx(Math.min(parseInt(String(profile?.mealFreq))||3,6)));
+  const [logSlotConfirmed,setLogSlotConfirmed]=useState(true);
   const prevFuelScreenRef=useRef(fuelScreen);
   const pendingLogSlotRef=useRef(null);
   useEffect(()=>{
     if(fuelScreen==="log"&&prevFuelScreenRef.current!=="log"){
-      setLogSlotConfirmed(false);
+      if(pendingLogSlotRef.current!==null){
+        setActiveSlotIdx(pendingLogSlotRef.current);
+        pendingLogSlotRef.current=null;
+      }else{
+        setActiveSlotIdx(getTimeBasedSlotIdx(mealSlots.length));
+      }
+      setLogSlotConfirmed(true);
       setLogMode(null);
       setAiEstimate(null);
       setAiEstimating(false);
-      if(pendingLogSlotRef.current!==null){
-        setActiveSlotIdx(pendingLogSlotRef.current);
-        setLogSlotConfirmed(true);
-        pendingLogSlotRef.current=null;
-      }
     }
     prevFuelScreenRef.current=fuelScreen;
   },[fuelScreen]);
@@ -1944,6 +2064,14 @@ Reply with ONLY a valid JSON object, no markdown:
   const [qlRecentFoods,setQlRecentFoods]=useState([]);
   const [qlFrequentFoods,setQlFrequentFoods]=useState([]);
   const [qlRecentMeals,setQlRecentMeals]=useState([]);
+
+  // MY FOODS mode — persistent recent food history from the database
+  const [myFoodsHistory,setMyFoodsHistory]=useState([]);
+  useEffect(()=>{
+    if(logMode==="myfoods"&&user){
+      getRecentFoods(user.id).then(d=>setMyFoodsHistory(d||[]));
+    }
+  },[logMode,user]);
   useEffect(()=>{
     if(!user||!showQuickLog)return;
     getRecentFoods(user.id).then(d=>setQlRecentFoods(d||[]));
@@ -2152,6 +2280,32 @@ Reply with ONLY a valid JSON object, no markdown:
         {fuelScreen==="home"&&(()=>{
           try{return(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* MACRO MEMORY — shown first so the fastest re-log path is always above the fold */}
+            {wPrefs?.macroMemory!==false&&memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).length>0&&(
+              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <div>
+                    <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
+                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>Based on your {new Date().toLocaleDateString("en-US",{weekday:"long"})} patterns</div>
+                  </div>
+                  {memoryLoggedMsg&&<div style={{fontSize:11,color:T.green,fontWeight:700}}>{memoryLoggedMsg}</div>}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).map(({count,data})=>(
+                    <div key={data.food} style={{background:T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.food}</div>
+                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{data.calories} kcal · {data.protein}g protein</div>
+                      </div>
+                      <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        <button onClick={()=>{if(logEntry)logEntry(data);setMemoryLoggedMsg(`✓ Logged. ${remaining.calories-data.calories} kcal remaining.`);setTimeout(()=>setMemoryLoggedMsg(""),3000);}} style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Log</button>
+                        <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* ── MACRO RING ── */}
             {(()=>{
               const circ=parseFloat((2*Math.PI*100).toFixed(1));
@@ -2543,33 +2697,6 @@ Reply with ONLY a valid JSON object, no markdown:
               );
             })()}
 
-            {/* MACRO MEMORY */}
-            {wPrefs?.macroMemory!==false&&memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).length>0&&(
-              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div>
-                    <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
-                    <div style={{fontSize:11,color:T.mu,marginTop:2}}>Based on your {new Date().toLocaleDateString("en-US",{weekday:"long"})} patterns</div>
-                  </div>
-                  {memoryLoggedMsg&&<div style={{fontSize:11,color:T.green,fontWeight:700}}>{memoryLoggedMsg}</div>}
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).map(({count,data})=>(
-                    <div key={data.food} style={{background:T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.food}</div>
-                        <div style={{fontSize:11,color:T.mu,marginTop:2}}>{data.calories} kcal · {data.protein}g protein</div>
-                      </div>
-                      <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        <button onClick={()=>{if(logEntry)logEntry(data);setMemoryLoggedMsg(`✓ Logged. ${remaining.calories-data.calories} kcal remaining.`);setTimeout(()=>setMemoryLoggedMsg(""),3000);}} style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Log</button>
-                        <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* PERFORMANCE NUTRITION PATTERNS */}
             {perfCorrelations&&perfCorrelations.length>=2&&(
               <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
@@ -2714,6 +2841,9 @@ Reply with ONLY a valid JSON object, no markdown:
                 onDeleteWater={onDeleteWater}
                 bottleSize={profile?.water_bottle_size||16}
                 isMobile={isMobile}
+                profile={profile}
+                dayType={todayType}
+                todayFocus={todayFocus}
               />
               </>
             )}
@@ -2816,23 +2946,28 @@ Reply with ONLY a valid JSON object, no markdown:
                       ))}
                     </div>
                     {/* Row 2 */}
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
                       {[
                         {
-                          label:"MY FOODS",sub:"Saved foods & quick macros",
+                          label:"MY FOODS",sub:"Saved foods & recent logs",
                           icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1l2.5 5 5.5.8-4 3.9.9 5.5L9 13.5l-4.9 2.6.9-5.5-4-3.9 5.5-.8L9 1z"/></svg>,
                           action:()=>setLogMode("myfoods"),
                         },
                         {
-                          label:"QUICK ADD",sub:"Add protein, carbs, or fat directly",
+                          label:"QUICK ADD",sub:"Just calories or full macros",
                           icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><circle cx="9" cy="9" r="7.5"/><path d="M9 5.5v7M5.5 9h7"/></svg>,
                           action:()=>setLogMode("quick"),
                         },
+                        {
+                          label:"BARCODE",sub:"Scan any packaged food",
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><line x1="1" y1="3" x2="1" y2="15"/><line x1="3.5" y1="3" x2="3.5" y2="15"/><line x1="6" y1="3" x2="6" y2="15"/><line x1="7.5" y1="3" x2="7.5" y2="15"/><line x1="10" y1="3" x2="10" y2="15"/><line x1="13" y1="3" x2="13" y2="15"/><line x1="15.5" y1="3" x2="15.5" y2="15"/><line x1="17" y1="3" x2="17" y2="15"/></svg>,
+                          action:()=>setLogMode("barcode"),
+                        },
                       ].map(({label,sub,icon,action})=>(
-                        <button key={label} onClick={action} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"18px 14px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-                          <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{label}</div>
-                          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
+                        <button key={label} onClick={action} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                          <div style={{width:32,height:32,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
+                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{label}</div>
+                          <div style={{...mno,fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.06em",marginTop:1}}>{sub}</div>
                         </button>
                       ))}
                     </div>
@@ -2902,23 +3037,20 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
                 {logMode==="myfoods"&&(
                   <>
-                    {(()=>{
-                      const recentItems=[...new Map(log.filter(e=>e.food&&e.calories).slice(0,15).map(e=>[e.food.toLowerCase(),e])).values()].slice(0,5);
-                      return recentItems.length>0?(
-                        <>
-                          <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// RECENT FOODS</div>
-                          {recentItems.map((item,i)=>(
-                            <button key={i} onClick={()=>{logEntryWithUndo({...item,id:Date.now(),slot:mealSlots[activeSlotIdx]||1});setLogMode(null);}} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-                              <div>
-                                <div style={{fontSize:14,fontWeight:700,color:"#f5f5f0"}}>{item.food}</div>
-                                <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{item.calories} kcal · P {item.protein}g</div>
-                              </div>
-                              <div style={{color:"#e8341c",...mno,fontSize:12,flexShrink:0}}>+</div>
-                            </button>
-                          ))}
-                        </>
-                      ):null;
-                    })()}
+                    {myFoodsHistory.length>0&&(
+                      <>
+                        <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// RECENT FOODS</div>
+                        {myFoodsHistory.slice(0,5).map((f,i)=>(
+                          <button key={i} onClick={()=>{logEntryWithUndo({food:f.food_name,calories:f.food_data?.calories||0,protein:f.food_data?.protein||0,carbs:f.food_data?.carbs||0,fat:f.food_data?.fat||0,id:Date.now(),slot:mealSlots[activeSlotIdx]||1,source:f.food_data?.source||"usda"});setLogMode(null);}} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                            <div>
+                              <div style={{fontSize:14,fontWeight:700,color:"#f5f5f0"}}>{f.food_name}</div>
+                              <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{f.food_data?.calories} kcal · P {f.food_data?.protein}g</div>
+                            </div>
+                            <div style={{color:"#e8341c",...mno,fontSize:12,flexShrink:0}}>+</div>
+                          </button>
+                        ))}
+                      </>
+                    )}
                     <button onClick={()=>setFuelScreen("kitchen")} style={{width:"100%",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,marginTop:8}}>
                       <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:700,fontSize:14,color:"#f5f5f0",textTransform:"uppercase"}}>See all saved foods</div>
                       <div style={{color:"#e8341c",...mno,fontSize:10}}>→</div>
@@ -2938,14 +3070,33 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
                 {logMode==="quick"&&(
                   <>
-                    <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
-                      {[["Name (optional)","text","name","e.g. Protein shake"],["Calories","number","calories","0"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
-                        <div key={k} style={{marginBottom:12}}>
-                          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
-                          <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-                        </div>
-                      ))}
+                    {/* Calories — the only required field, shown prominently */}
+                    <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"20px 16px",marginBottom:10}}>
+                      <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Calories</div>
+                      <input
+                        autoFocus
+                        type="number"
+                        inputMode="numeric"
+                        value={quickFields.calories}
+                        onChange={e=>setQF(q=>({...q,calories:e.target.value}))}
+                        placeholder="0"
+                        style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"14px 12px",color:"#fff",fontSize:32,fontWeight:900,outline:"none",boxSizing:"border-box",fontFamily:"var(--condensed)",textAlign:"center"}}
+                      />
                     </div>
+                    {/* Expand toggle for name + macros */}
+                    <button onClick={()=>setShowQAExtras(v=>!v)} style={{background:"none",border:"none",...mno,fontSize:9,color:showQAExtras?"#e8341c":"rgba(245,245,240,0.4)",cursor:"pointer",padding:"4px 0 14px",letterSpacing:"0.12em",display:"block",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                      {showQAExtras?"▼ HIDE DETAILS":"▶ ADD NAME & MACROS (optional)"}
+                    </button>
+                    {showQAExtras&&(
+                      <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
+                        {[["Name (optional)","text","name","e.g. Protein shake"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
+                          <div key={k} style={{marginBottom:12}}>
+                            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
+                            <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <PrimaryBtn onClick={addQuick} label="Add Entry →" disabled={!quickFields.calories}/>
                   </>
                 )}
@@ -3998,10 +4149,6 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         )}
 
-        {/* Floating log button */}
-        {fuelScreen==="home"&&(
-          <button onClick={()=>setFuelScreen("log")} style={{position:"fixed",bottom:90,right:20,width:52,height:52,borderRadius:"50%",background:"#e8341c",boxShadow:"0 4px 20px rgba(232,52,28,0.4)",border:"none",color:"#fff",fontSize:24,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,fontWeight:300,lineHeight:1}}>+</button>
-        )}
       </div>
     </div>
   );

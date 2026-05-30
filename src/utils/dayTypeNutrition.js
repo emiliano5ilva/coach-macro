@@ -437,18 +437,23 @@ const TRAINING_DAY_TYPES = [
   'hyrox_station','hyrox_race','hybrid',
 ];
 
-export function getDailyWaterTarget(profile, dayType) {
+export function getDailyWaterTarget(profile, todayType, todayFocus) {
   if (profile?.waterMode === 'custom' && profile?.waterGoalOz) {
     return Math.round(parseFloat(profile.waterGoalOz));
   }
   const wLbs = profile?.wUnit === 'kg'
     ? (parseFloat(profile?.weight || 70) * 2.205)
     : parseFloat(profile?.weight || 160);
-  let oz = Math.round(wLbs * 0.67);
-  if (TRAINING_DAY_TYPES.includes(dayType)) oz += 16;
-  else if (['easy_run','active_recovery'].includes(dayType)) oz += 8;
+  const baseOz = Math.round(wLbs * 0.55);
+  const focus = (todayFocus || '').toLowerCase();
+  const trainingAdj = (todayType === 'rest' || !todayType) ? 0
+    : focus.includes('run')    ? 24
+    : focus.includes('hyrox')  ? 20
+    : focus.includes('cardio') ? 20
+    : 12;
+  let oz = baseOz + trainingAdj;
   if (profile?.sex === 'female') {
-    if (profile?.isPregnant) oz += 10;
+    if (profile?.isPregnant)      oz += 10;
     if (profile?.isBreastfeeding) oz += 13;
   }
   if (profile?.hot_weather_mode) oz += 16;

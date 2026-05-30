@@ -54,7 +54,7 @@ export default function SpotlightTour({ steps, onComplete, onSkip }) {
       {/* Dark overlay with spotlight cutout */}
       {r ? (
         <svg
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'all' }}
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
@@ -84,8 +84,11 @@ export default function SpotlightTour({ steps, onComplete, onSkip }) {
           />
         </svg>
       ) : (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', pointerEvents: 'all' }} />
       )}
+
+      {/* Uniform dim layer — dims spotlight hole so background buttons look inactive */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1, pointerEvents: 'none' }} />
 
       {/* Tooltip card */}
       <div style={tooltipStyle}>

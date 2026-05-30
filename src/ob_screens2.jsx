@@ -808,6 +808,551 @@ function ScoreRing({score}) {
   );
 }
 
+function CoachScoreRing({score, ringColor, scoreStatus, scoreLabels, sc}) {
+  const [displayScore, setDisplayScore] = useState(0);
+
+  useEffect(() => {
+    let raf;
+    const start = performance.now();
+    const tick = now => {
+      const p = Math.min(1, (now - start) / 800);
+      setDisplayScore(Math.round((1 - Math.pow(1 - p, 3)) * score));
+      if (p < 1) { raf = requestAnimationFrame(tick); }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [score]);
+
+  const sz = 90, r = 38, sw = 14;
+  const circ = parseFloat((2 * Math.PI * r).toFixed(1));
+  const pct = Math.min(1, score / 100);
+  const fillLen = parseFloat((pct * circ).toFixed(1));
+  // Arc uses rotate(-90 cx cy) on the circle, so arc starts at 12-o'clock;
+  // tip angle is in global SVG coords (CCW from right, y-down)
+  const tipAngle = pct * 2 * Math.PI - Math.PI / 2;
+  const tipX = (sz / 2 + r * Math.cos(tipAngle)).toFixed(2);
+  const tipY = (sz / 2 + r * Math.sin(tipAngle)).toFixed(2);
+
+  const rc = ringColor === 'var(--accent)' ? '#e8341c' : ringColor;
+  const tintMap = {'#FFD700':'#FFF59D','#22c55e':'#86efac','#60a5fa':'#bfdbfe','#FEA020':'#fde68a','#e8341c':'#fca5a5'};
+  const tint = tintMap[rc] || '#f5f5f0';
+  const mno = {fontFamily:"'DM Mono','SF Mono',monospace"};
+  const cnd = {fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900};
+
+  return (
+    <>
+      <style>{`
+        @keyframes csRingSweep{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}
+        @keyframes csBarGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+      `}</style>
+      <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:4}}>
+        {/* Ring */}
+        <div style={{position:"relative",width:sz,height:sz,flexShrink:0}}>
+          <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{overflow:"visible",display:"block"}}>
+            <defs>
+              <linearGradient id="csRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={rc}/>
+                <stop offset="100%" stopColor={tint} stopOpacity="0.85"/>
+              </linearGradient>
+            </defs>
+            {/* Track */}
+            <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth={sw}/>
+            {/* Active arc */}
+            <circle cx={sz/2} cy={sz/2} r={r} fill="none"
+              stroke="url(#csRingGrad)" strokeWidth={sw} strokeLinecap="round"
+              strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
+              transform={`rotate(-90 ${sz/2} ${sz/2})`}
+              style={{animation:'csRingSweep 0.8s cubic-bezier(.2,.7,.3,1) both'}}/>
+            {/* Tip glow dot */}
+            {pct>0.02&&(
+              <circle cx={tipX} cy={tipY} r={6} fill={rc}
+                style={{filter:`drop-shadow(0 0 6px ${rc}) drop-shadow(0 0 12px ${rc}66)`}}/>
+            )}
+          </svg>
+          {/* Center labels — HTML overlay for textShadow */}
+          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+            <div style={{...cnd,fontSize:22,color:"#f5f5f0",lineHeight:1,textShadow:"0 0 30px rgba(245,245,240,0.12), 0 2px 24px rgba(0,0,0,0.8)"}}>{displayScore}</div>
+            <div style={{...mno,fontSize:8,color:rc,letterSpacing:"0.1em",marginTop:2}}>{scoreStatus}</div>
+          </div>
+        </div>
+
+        {/* Sub-score bars */}
+        <div style={{flex:1}}>
+          {[
+            {l:scoreLabels[0],v:sc.t,c:"var(--accent)",r60:"rgba(232,52,28,0.6)"},
+            {l:scoreLabels[1],v:sc.n,c:"#22c55e",r60:"rgba(34,197,94,0.6)"},
+            {l:scoreLabels[2],v:sc.r,c:"#60a5fa",r60:"rgba(96,165,250,0.6)"},
+            {l:scoreLabels[3],v:sc.c,c:"#FEA020",r60:"rgba(254,160,32,0.6)"},
+          ].map(({l,v,c,r60},i)=>(
+            <div key={l} style={{marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                <span style={{...mno,fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{l}</span>
+                <span style={{...mno,fontSize:9,color:v>=70?"#f5f5f0":"rgba(245,245,240,0.45)"}}>{v}%</span>
+              </div>
+              <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
+                <div style={{
+                  height:"100%",width:`${v}%`,
+                  background:`linear-gradient(90deg,${c},${r60})`,
+                  borderRadius:2,
+                  transformOrigin:"left center",
+                  animation:`csBarGrow 0.7s cubic-bezier(.2,.7,.3,1) ${80*i}ms both`,
+                }}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── RING + GAUGE COMPONENTS ────────────────────────────────────────────────
+
+function MiniRing({pct, value, label, color, index=0}) {
+  const isNum = typeof value === 'number';
+  const [display, setDisplay] = useState(isNum ? 0 : value);
+  useEffect(()=>{
+    if(!isNum){setDisplay(value);return;}
+    let raf;
+    const to = setTimeout(()=>{
+      const start=performance.now();
+      const tick=now=>{
+        const p=Math.min(1,(now-start)/700);
+        setDisplay(Math.round((1-Math.pow(1-p,3))*value));
+        if(p<1){raf=requestAnimationFrame(tick);}
+      };
+      raf=requestAnimationFrame(tick);
+    },index*100);
+    return()=>{clearTimeout(to);cancelAnimationFrame(raf);};
+  },[value,index,isNum]);
+
+  const sz=72,r=28,sw=9;
+  const circ=parseFloat((2*Math.PI*r).toFixed(1));
+  const pctDec=Math.min(1,Math.max(0,pct/100));
+  const fillLen=parseFloat((pctDec*circ).toFixed(1));
+  const tipAngle=pctDec*2*Math.PI-Math.PI/2;
+  const tipX=(sz/2+r*Math.cos(tipAngle)).toFixed(2);
+  const tipY=(sz/2+r*Math.sin(tipAngle)).toFixed(2);
+  const rc=color==='var(--accent)'?'#e8341c':color;
+  const animName=`mrSweep${index}`;
+  const mno={fontFamily:"'DM Mono','SF Mono',monospace"};
+  const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900};
+  return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1}}>
+      <style>{`@keyframes ${animName}{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}`}</style>
+      <div style={{position:"relative",width:sz,height:sz}}>
+        <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{overflow:"visible",display:"block"}}>
+          <defs>
+            <linearGradient id={`mrGrad${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#e8341c"/>
+              <stop offset="100%" stopColor="#ff6b5c" stopOpacity="0.9"/>
+            </linearGradient>
+          </defs>
+          <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth={sw}/>
+          <circle cx={sz/2} cy={sz/2} r={r} fill="none"
+            stroke={`url(#mrGrad${index})`} strokeWidth={sw} strokeLinecap="round"
+            strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
+            transform={`rotate(-90 ${sz/2} ${sz/2})`}
+            style={{animation:`${animName} 0.8s cubic-bezier(.2,.7,.3,1) ${index*100}ms both`}}/>
+          {pctDec>0.02&&(
+            <circle cx={tipX} cy={tipY} r={4} fill="#e8341c"
+              style={{filter:'drop-shadow(0 0 5px rgba(232,52,28,0.8)) drop-shadow(0 0 10px rgba(232,52,28,0.4))'}}/>
+          )}
+        </svg>
+        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+          <div style={{...cnd,fontSize:13,color:"#f5f5f0",lineHeight:1}}>{display}</div>
+        </div>
+      </div>
+      <div style={{...mno,fontSize:8,color:rc,textTransform:"uppercase",letterSpacing:"0.1em",textAlign:"center",lineHeight:1.3,whiteSpace:"pre-line"}}>{label}</div>
+    </div>
+  );
+}
+
+function RecoveryGauge({score}) {
+  const [display,setDisplay]=useState(0);
+  useEffect(()=>{
+    let raf;
+    const start=performance.now();
+    const tick=now=>{
+      const p=Math.min(1,(now-start)/800);
+      setDisplay(Math.round((1-Math.pow(1-p,3))*score));
+      if(p<1){raf=requestAnimationFrame(tick);}
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  },[score]);
+
+  const label=score>=90?"RECOVERED":score>=70?"PRIMED":score>=50?"RECOVERING":"FATIGUED";
+  const rc=score>=90?"#22c55e":score>=70?"#60a5fa":score>=50?"#FEA020":"#e8341c";
+  const tintMap={"#22c55e":"#86efac","#60a5fa":"#bfdbfe","#FEA020":"#fde68a","#e8341c":"#fca5a5"};
+  const tint=tintMap[rc]||'#f5f5f0';
+  const sz=90,r=38,sw=14;
+  const circ=parseFloat((2*Math.PI*r).toFixed(1));
+  const pct=Math.min(1,score/100);
+  const fillLen=parseFloat((pct*circ).toFixed(1));
+  const tipAngle=pct*2*Math.PI-Math.PI/2;
+  const tipX=(sz/2+r*Math.cos(tipAngle)).toFixed(2);
+  const tipY=(sz/2+r*Math.sin(tipAngle)).toFixed(2);
+  const mno={fontFamily:"'DM Mono','SF Mono',monospace"};
+  const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900};
+  return(
+    <>
+      <style>{`@keyframes recGaugeSweep{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}`}</style>
+      <div style={{display:"flex",justifyContent:"center",marginBottom:4}}>
+        <div style={{position:"relative",width:sz,height:sz}}>
+          <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{overflow:"visible",display:"block"}}>
+            <defs>
+              <linearGradient id="recGaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={rc}/>
+                <stop offset="100%" stopColor={tint} stopOpacity="0.85"/>
+              </linearGradient>
+            </defs>
+            <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth={sw}/>
+            <circle cx={sz/2} cy={sz/2} r={r} fill="none"
+              stroke="url(#recGaugeGrad)" strokeWidth={sw} strokeLinecap="round"
+              strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
+              transform={`rotate(-90 ${sz/2} ${sz/2})`}
+              style={{animation:'recGaugeSweep 0.8s cubic-bezier(.2,.7,.3,1) both'}}/>
+            {pct>0.02&&(
+              <circle cx={tipX} cy={tipY} r={6} fill={rc}
+                style={{filter:`drop-shadow(0 0 6px ${rc}) drop-shadow(0 0 12px ${rc}66)`}}/>
+            )}
+          </svg>
+          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+            <div style={{...cnd,fontSize:22,color:"#f5f5f0",lineHeight:1,textShadow:"0 0 30px rgba(245,245,240,0.12), 0 2px 24px rgba(0,0,0,0.8)"}}>{display}</div>
+            <div style={{...mno,fontSize:8,color:rc,letterSpacing:"0.1em",marginTop:2}}>{label}</div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── BAR + GRID COMPONENTS ──────────────────────────────────────────────────
+
+function WorkoutFreqBars({weeklyFreq}) {
+  const maxC=Math.max(...weeklyFreq.map(w=>w.count),1);
+  const hasDeload=weeklyFreq.some(w=>w.isDeload);
+  return(
+    <>
+      <style>{`@keyframes wfBarUp{from{transform:scaleY(0)}to{transform:scaleY(1)}}`}</style>
+      <div style={{position:"relative",height:72,display:"flex",alignItems:"flex-end",gap:4,marginBottom:2}}>
+        {/* Baseline axis at bar floor */}
+        <div style={{position:"absolute",bottom:13,left:0,right:0,height:1,background:"rgba(245,245,240,0.06)",pointerEvents:"none"}}/>
+        {weeklyFreq.map(({week,count,isCurrent,isDeload},i)=>{
+          const h=count>0?Math.max(8,Math.round((count/maxC)*58)):isDeload?14:3;
+          const barBg=isDeload
+            ?'rgba(245,245,240,0.25)'
+            :count===0
+              ?'rgba(245,245,240,0.06)'
+              :isCurrent
+                ?'linear-gradient(to bottom,#e8341c,rgba(232,52,28,0.5))'
+                :'linear-gradient(to bottom,rgba(232,52,28,0.65),rgba(232,52,28,0.25))';
+          return(
+            <div key={week} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <div style={{
+                width:"100%",height:h,
+                background:barBg,
+                borderRadius:'3px 3px 0 0',
+                transformOrigin:'bottom center',
+                animation:`wfBarUp 0.5s cubic-bezier(.2,.7,.3,1) ${i*60}ms both`,
+                filter:isCurrent&&!isDeload?'drop-shadow(0 0 6px rgba(232,52,28,0.6))':'none',
+              }}/>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:isCurrent?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.25)",textAlign:"center",lineHeight:1.2}}>
+                {isDeload?"DELOAD":isCurrent?"NOW":`W${week}`}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {hasDeload&&(
+        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+          <div style={{width:8,height:8,borderRadius:2,background:"rgba(245,245,240,0.25)"}}/>
+          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Deload week</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+function PerformanceCalendarGrid({calDays}) {
+  return(
+    <>
+      <style>{`@keyframes calCellIn{from{opacity:0;transform:scale(0.7)}to{opacity:1;transform:scale(1)}}@keyframes smBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}`}</style>
+      {/* Legend */}
+      <div style={{display:"flex",gap:12,marginBottom:10}}>
+        {[
+          {c:"rgba(232,52,28,0.45)",l:"Trained"},
+          {c:"rgba(245,245,240,0.20)",l:"Macros"},
+          {c:"rgba(232,52,28,0.85)",l:"Both"},
+        ].map(({c,l})=>(
+          <div key={l} style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{width:8,height:8,borderRadius:2,background:c}}/>
+            <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{l}</span>
+          </div>
+        ))}
+      </div>
+      {/* DOW header */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:4}}>
+        {["S","M","T","W","T","F","S"].map((d,i)=>(
+          <div key={i} style={{textAlign:"center",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{d}</div>
+        ))}
+      </div>
+      {/* 35-day grid with diagonal stagger */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:10}}>
+        {calDays.map(({ds,hasWorkout,hasMacros,isFuture,isToday2},i)=>{
+          const row=Math.floor(i/7),col=i%7;
+          const both=hasWorkout&&hasMacros;
+          const bg=isFuture?"transparent"
+            :both?"rgba(232,52,28,0.85)"
+            :hasWorkout?"rgba(232,52,28,0.45)"
+            :hasMacros?"rgba(245,245,240,0.20)"
+            :"rgba(245,245,240,0.04)";
+          return(
+            <div key={ds} style={{
+              aspectRatio:"1",
+              borderRadius:6,
+              background:bg,
+              border:isToday2?"1px solid rgba(232,52,28,1)":"1px solid transparent",
+              boxShadow:isToday2?"0 0 6px rgba(232,52,28,0.4)":"none",
+              animation:`calCellIn 0.3s ease-out ${(row+col)*12}ms both`,
+            }}/>
+          );
+        })}
+      </div>
+      {/* 5-week summary bars */}
+      <div style={{display:"flex",gap:3}}>
+        {Array.from({length:5},(_,w)=>{
+          const wDays=calDays.slice(w*7,w*7+7);
+          const trainPct=(wDays.filter(d=>d.hasWorkout).length/7)*100;
+          const macroPct=(wDays.filter(d=>d.hasMacros).length/7)*100;
+          return(
+            <div key={w} style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
+              <div style={{height:3,borderRadius:1,background:"rgba(232,52,28,0.12)",overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${trainPct}%`,borderRadius:1,background:"linear-gradient(90deg,#e8341c,rgba(232,52,28,0.5))",transformOrigin:"left center",animation:`smBar 0.5s cubic-bezier(.2,.7,.3,1) ${w*60+200}ms both`}}/>
+              </div>
+              <div style={{height:3,borderRadius:1,background:"rgba(245,245,240,0.06)",overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${macroPct}%`,borderRadius:1,background:"rgba(245,245,240,0.40)",transformOrigin:"left center",animation:`smBar 0.5s cubic-bezier(.2,.7,.3,1) ${w*60+260}ms both`}}/>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function ProteinGrid({days14,hitCount,protTarget}) {
+  const [displayCount,setDisplayCount]=useState(0);
+  useEffect(()=>{
+    let raf;
+    const start=performance.now();
+    const tick=now=>{
+      const p=Math.min(1,(now-start)/600);
+      setDisplayCount(Math.round((1-Math.pow(1-p,3))*hitCount));
+      if(p<1){raf=requestAnimationFrame(tick);}
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  },[hitCount]);
+  const mno={fontFamily:"'DM Mono','SF Mono',monospace"};
+  const circleStyle=(fd,i)=>{
+    const hit=fd?.hasData&&fd.prot>=protTarget*0.9;
+    const miss=fd?.hasData&&!hit;
+    return{
+      width:22,height:22,borderRadius:"50%",
+      background:hit?'#e8341c':!fd?.hasData?'rgba(245,245,240,0.08)':'transparent',
+      border:miss?'1.5px solid rgba(245,245,240,0.20)':'none',
+      filter:hit?'drop-shadow(0 0 4px rgba(232,52,28,0.5)) drop-shadow(0 0 8px rgba(232,52,28,0.25))':'none',
+      animation:`dotFade 0.3s ease-out ${i*30}ms both`,
+    };
+  };
+  return(
+    <>
+      <style>{`@keyframes dotFade{from{opacity:0;transform:scale(0.6)}to{opacity:1;transform:scale(1)}}`}</style>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:8}}>
+        {days14.slice(0,7).map(({ds,fd,dow},i)=>(
+          <div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+            <div style={circleStyle(fd,i)}/>
+            <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:12}}>
+        {days14.slice(7).map(({ds,fd,dow},i)=>(
+          <div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+            <div style={circleStyle(fd,i+7)}/>
+            <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{...mno,fontSize:10,color:"rgba(245,245,240,0.5)"}}>
+        {displayCount} of 14 days protein target hit
+      </div>
+    </>
+  );
+}
+
+// ─── CHART COMPONENTS ───────────────────────────────────────────────────────
+
+function RPELineChart({points, exName, trendColor, trendLabel}) {
+  const W=240,H=70,minRPE=6,maxRPE=10,PAD_L=22;
+  const xStep=(W-PAD_L-8)/Math.max(1,points.length-1);
+  const toX=i=>PAD_L+i*xStep;
+  const toY=rpe=>4+(1-(rpe-minRPE)/(maxRPE-minRPE))*(H-8);
+  const rpeColor=rpe=>rpe<=7?'#22c55e':rpe<=8?'#FEA020':'#e8341c';
+  const gradId=`rpeGrad${exName.replace(/[^a-zA-Z0-9]/g,'')}`;
+  const pathD=points.map((p,i)=>`${i===0?'M':'L'} ${toX(i).toFixed(1)} ${toY(p.avgRPE).toFixed(1)}`).join(' ');
+  const areaD=`${pathD} L ${toX(points.length-1).toFixed(1)} ${H} L ${toX(0).toFixed(1)} ${H} Z`;
+  const mno={fontFamily:"'DM Mono','SF Mono',monospace"};
+  return(
+    <div style={{marginBottom:14}}>
+      <style>{`@keyframes rpeLineDraw{from{stroke-dashoffset:2000}to{stroke-dashoffset:0}}@keyframes rpeAreaFill{from{opacity:0}to{opacity:1}}`}</style>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,color:"rgba(245,245,240,0.7)"}}>{exName}</div>
+        <div style={{...mno,fontSize:7,color:trendColor,letterSpacing:"0.08em"}}>{trendLabel}</div>
+      </div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible",display:"block"}}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={trendColor} stopOpacity="0.30"/>
+            <stop offset="100%" stopColor={trendColor} stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        {[[6,'6'],[8,'8'],[10,'10']].map(([rpe,lbl])=>(
+          <g key={rpe}>
+            <line x1={PAD_L} y1={toY(rpe)} x2={W} y2={toY(rpe)} stroke="rgba(245,245,240,0.06)" strokeWidth="1"/>
+            <text x={PAD_L-4} y={toY(rpe)+3} textAnchor="end" fill="rgba(245,245,240,0.35)" fontSize="8" fontFamily="'DM Mono',monospace">{lbl}</text>
+          </g>
+        ))}
+        <path d={areaD} fill={`url(#${gradId})`} style={{animation:"rpeAreaFill 0.4s ease-out 0.3s both"}}/>
+        <path d={pathD} fill="none" stroke={trendColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{strokeDasharray:2000,strokeDashoffset:0,animation:"rpeLineDraw 1s ease-out both"}}/>
+        {points.map((p,i)=>{
+          const last=i===points.length-1;
+          const c=rpeColor(p.avgRPE);
+          return(
+            <g key={i}>
+              <circle cx={toX(i)} cy={toY(p.avgRPE)} r={last?5:3} fill={c}
+                style={{filter:`drop-shadow(0 0 4px ${c}) drop-shadow(0 0 8px ${c}66)`}}/>
+              {last&&<text x={toX(i)+7} y={toY(p.avgRPE)+3} fill={c} fontSize="7" fontFamily="monospace">{p.avgRPE}</text>}
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
+        <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[0].date.slice(5)}</div>
+        <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[points.length-1].date.slice(5)}</div>
+      </div>
+    </div>
+  );
+}
+
+function CalorieTrendChart({days14,calTarget}) {
+  const W=320,H=90;
+  const validDays=days14.filter(d=>d.hasData);
+  const maxC=Math.max(calTarget*1.25,...validDays.map(d=>d.cal));
+  const pts=days14.map((d,i)=>({...d,x:Math.round((i/13)*W),y:d.hasData?Math.round((1-d.cal/maxC)*H):null}));
+  const dataPts=pts.filter(p=>p.y!==null);
+  if(!dataPts.length)return null;
+  const targetY=Math.round((1-calTarget/maxC)*H);
+  const pathD=dataPts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
+  const areaD=`${pathD} L ${dataPts[dataPts.length-1].x} ${H} L ${dataPts[0].x} ${H} Z`;
+  const ptColor=cal=>cal>calTarget*1.1?'#e8341c':cal>=calTarget*0.9?'#22c55e':'#FEA020';
+  return(
+    <>
+      <style>{`@keyframes calLineDraw{from{stroke-dashoffset:2000}to{stroke-dashoffset:0}}@keyframes calAreaFill{from{opacity:0}to{opacity:1}}`}</style>
+      <svg viewBox={`0 0 ${W} ${H+16}`} width="100%" style={{display:"block",overflow:"visible"}}>
+        <defs>
+          <linearGradient id="calTrendAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#e8341c" stopOpacity="0.25"/>
+            <stop offset="100%" stopColor="#e8341c" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        {[H*0.25,H*0.5,H*0.75].map((y,i)=>(
+          <line key={i} x1={0} y1={y} x2={W} y2={y} stroke="rgba(245,245,240,0.06)" strokeWidth="1"/>
+        ))}
+        <line x1="0" y1={targetY} x2={W} y2={targetY} stroke="rgba(245,245,240,0.4)" strokeWidth="1" strokeDasharray="4 4"/>
+        <text x={W-4} y={targetY-4} fontSize="8" fontFamily="'DM Mono',monospace" fill="rgba(245,245,240,0.4)" textAnchor="end" letterSpacing="1">TARGET</text>
+        <path d={areaD} fill="url(#calTrendAreaGrad)" style={{animation:"calAreaFill 0.4s ease-out 0.3s both"}}/>
+        <path d={pathD} fill="none" stroke="#e8341c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{strokeDasharray:2000,strokeDashoffset:0,animation:"calLineDraw 1s ease-out both"}}/>
+        {dataPts.map((p,i)=>{
+          const last=i===dataPts.length-1;
+          const c=ptColor(p.cal);
+          return(
+            <circle key={p.ds} cx={p.x} cy={p.y} r={last?5:3} fill={c}
+              style={{filter:`drop-shadow(0 0 ${last?'6':'4'}px ${c}) drop-shadow(0 0 ${last?'12':'8'}px ${c}66)`}}/>
+          );
+        })}
+      </svg>
+    </>
+  );
+}
+
+function WeightChart({weightProjection,goalW,profile}) {
+  const{slope,intercept,data,projectedDelta}=weightProjection;
+  const W=320,H=80;
+  const allW=data.map(l=>parseFloat(l.weight));
+  const projW14=intercept+slope*(data.length-1)+slope*7;
+  const minW=Math.min(...allW,projW14,...(goalW?[goalW]:[]))-1;
+  const maxW=Math.max(...allW,projW14,...(goalW?[goalW]:[]))+1;
+  const range=maxW-minW||1;
+  const toY=w=>Math.round((1-(w-minW)/range)*H);
+  const toX=(i,len)=>Math.round((i/(len+6))*W);
+  const histPts=data.map((l,i)=>({x:toX(i,data.length),y:toY(parseFloat(l.weight))}));
+  const projX=toX(data.length+6,data.length);
+  const projY=toY(projW14);
+  const lastH=histPts[histPts.length-1];
+  const curW=(intercept+slope*(data.length-1)).toFixed(1);
+  const dir=projectedDelta>0.2?"gaining":projectedDelta<-0.2?"losing":"maintaining";
+  const rate=Math.abs(projectedDelta*4).toFixed(1);
+  const histPathD=histPts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
+  const histAreaD=`${histPathD} L ${lastH.x} ${H} L ${histPts[0].x} ${H} Z`;
+  const mno={fontFamily:"'DM Mono','SF Mono',monospace"};
+  return(
+    <>
+      <style>{`@keyframes wtLineDraw{from{stroke-dashoffset:2000}to{stroke-dashoffset:0}}@keyframes wtAreaFill{from{opacity:0}to{opacity:1}}`}</style>
+      <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
+        <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",lineHeight:1}}>{curW}</span>
+        <span style={{...mno,fontSize:11,color:"rgba(245,245,240,0.45)"}}>{profile?.wUnit||"lbs"}</span>
+        <span style={{...mno,fontSize:9,color:dir==="gaining"?"#FEA020":dir==="losing"?"#22c55e":"#60a5fa"}}>{dir} · ~{rate} {profile?.wUnit||"lbs"}/mo</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H+10}`} width="100%" style={{display:"block",overflow:"visible"}}>
+        <defs>
+          <linearGradient id="wtAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#e8341c" stopOpacity="0.25"/>
+            <stop offset="100%" stopColor="#e8341c" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        {[minW,(minW+maxW)/2,maxW].map((w,i)=>(
+          <line key={i} x1={0} y1={toY(w)} x2={W} y2={toY(w)} stroke="rgba(245,245,240,0.06)" strokeWidth="1"/>
+        ))}
+        {goalW&&<>
+          <line x1={0} y1={toY(goalW)} x2={W} y2={toY(goalW)} stroke="rgba(245,245,240,0.4)" strokeWidth="1" strokeDasharray="4 3"/>
+          <text x={W-4} y={toY(goalW)-4} textAnchor="end" fontFamily="'DM Mono',monospace" fontSize="8" fill="rgba(245,245,240,0.4)" letterSpacing="1">GOAL</text>
+        </>}
+        <path d={histAreaD} fill="url(#wtAreaGrad)" style={{animation:"wtAreaFill 0.4s ease-out 0.3s both"}}/>
+        <path d={histPathD} fill="none" stroke="#e8341c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{strokeDasharray:2000,strokeDashoffset:0,animation:"wtLineDraw 1s ease-out both"}}/>
+        <path d={`M ${lastH.x} ${lastH.y} L ${projX} ${projY}`} fill="none" stroke="rgba(232,52,28,0.6)" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round"/>
+        {histPts.map((p,i)=>{
+          const last=i===histPts.length-1;
+          return(
+            <circle key={i} cx={p.x} cy={p.y} r={last?5:3} fill="#e8341c"
+              style={{filter:last?'drop-shadow(0 0 6px #e8341c) drop-shadow(0 0 12px rgba(232,52,28,0.4))':'drop-shadow(0 0 4px #e8341c) drop-shadow(0 0 8px rgba(232,52,28,0.3))'}}/>
+          );
+        })}
+        <circle cx={projX} cy={projY} r={5} fill="rgba(232,52,28,0.6)"
+          style={{filter:'drop-shadow(0 0 5px rgba(232,52,28,0.6)) drop-shadow(0 0 10px rgba(232,52,28,0.3))'}}/>
+      </svg>
+      <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Based on {data.length} weigh-ins · 7-day projection{goalW?` · Goal: ${goalW}${profile?.wUnit||'lbs'}`:''}</div>
+    </>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 function ScoreExplanationModal({sc, onClose}) {
   const comps=[
     {label:"Recovery",pct:40,val:sc.r,color:T.carb,desc:"Based on sleep duration and quality, heart rate variability, and resting heart rate from Apple Health."},
@@ -1432,7 +1977,7 @@ function PRFeed({dbPRs,wUnit}){
   const allTimePRs=Object.values(bestByExercise).sort((a,b)=>b.weight-a.weight);
   const displayPRs=prTab==='recent'?recentPRs:allTimePRs;
   return(
-    <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+    <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// PERSONAL RECORDS</div>
         <div style={{display:"flex",gap:4}}>
@@ -2245,7 +2790,7 @@ function ConnectionsInsightCard({ correlations, memberDays, onOpen }) {
   const daysLeft = Math.max(0, 30 - memberDays);
   const top3 = [...correlations].sort((a, b) => b.correlation_strength - a.correlation_strength).slice(0, 3);
   return (
-    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "#0d0d0d", border: "1px solid rgba(var(--accent-rgb),0.08)", borderRadius: 16 }}>
+    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "rgba(245,245,240,0.03)", backgroundImage: "radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)", boxShadow: "0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)", borderRadius: 16, animation: "cardIn 0.4s ease-out both" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase" }}>// How You Work</div>
         <button onClick={onOpen} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(var(--accent-rgb),0.6)", letterSpacing: "0.08em" }}>View all →</button>
@@ -2529,7 +3074,7 @@ function CohortContextCard({ peerData, memberDays, onOpen }) {
   const METRIC_ICONS  = { adherence: '📋', training_frequency: '🏋️', sleep: '💤', weight_velocity: '⚖️' };
 
   return (
-    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "#0d0d0d", border: "1px solid rgba(var(--accent-rgb),0.08)", borderRadius: 16 }}>
+    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "rgba(245,245,240,0.03)", backgroundImage: "radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)", boxShadow: "0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)", borderRadius: 16, animation: "cardIn 0.4s ease-out both" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase" }}>// Cohort Context</div>
         <button onClick={onOpen} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(var(--accent-rgb),0.6)", letterSpacing: "0.08em" }}>View all →</button>
@@ -2588,7 +3133,7 @@ function CoachInsightsCard({recall, userId}) {
   const priColor = top.still_applicable ? '#f59e0b' : '#60a5fa';
 
   return (
-    <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${priColor}22`,borderRadius:16}}>
+    <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${priColor}22, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
         <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// Coach Memory</div>
         <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",background:"rgba(245,245,240,0.04)",borderRadius:4,padding:"2px 7px"}}>
@@ -3856,7 +4401,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
   },[user?.id,macros?.calories,workoutLogsRaw?.length]);
 
   // ── Water tracking ──────────────────────────────────────────────────────────
-  const waterTarget=getDailyWaterTarget(_profileWithDeload,todayDayType);
+  const waterTarget=getDailyWaterTarget(_profileWithDeload,todayType,todayFocus);
   const waterLoggedOz=waterLogs.reduce((s,l)=>s+Number(l.amount_oz),0);
   const hydrationBonus=getHydrationBonus(waterLoggedOz,waterTarget);
 
@@ -6263,7 +6808,7 @@ Rules:
       const cond = "'Barlow Condensed',sans-serif";
 
       return (
-        <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+        <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
 
           {/* Header row */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
@@ -6414,7 +6959,7 @@ Rules:
 
       if (insightLoading && !top) {
         return (
-          <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+          <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Today's Insight</div>
             <div style={{height:48,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <div style={{width:18,height:18,borderRadius:"50%",border:"2px solid rgba(var(--accent-rgb),0.3)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
@@ -6436,7 +6981,7 @@ Rules:
       const pb = priorityBg[top.priority] || priorityBg.low;
 
       return (
-        <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${pc}22`,borderRadius:16}}>
+        <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${pc}22, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -6508,7 +7053,7 @@ Rules:
 
     function PH({eyebrow,headline,body}){
       return(
-        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
           <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{eyebrow}</div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#fff",marginBottom:6}}>{headline}</div>
           <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{body}</div>
@@ -6516,26 +7061,9 @@ Rules:
       );
     }
 
-    function MiniRing({pct,value,label,color}){
-      const sz=72,r=28,circ=2*Math.PI*r,filled=Math.min(1,Math.max(0,pct/100))*circ;
-      return(
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1}}>
-          <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`}>
-            <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="rgba(245,245,240,0.07)" strokeWidth={6}/>
-            <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={color} strokeWidth={6}
-              strokeDasharray={`${filled} ${circ-filled}`} strokeLinecap="round"
-              transform={`rotate(-90 ${sz/2} ${sz/2})`}/>
-            <text x={sz/2} y={sz/2+1} textAnchor="middle" dominantBaseline="middle"
-              fontSize="13" fontWeight="900" fontStyle="italic"
-              fontFamily="'Barlow Condensed',sans-serif" fill="#f5f5f0">{value}</text>
-          </svg>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",textAlign:"center",lineHeight:1.3,whiteSpace:"pre-line"}}>{label}</div>
-        </div>
-      );
-    }
-
     return (
       <div style={{background:"#000",minHeight:"100vh",position:"relative",overflow:"hidden"}} className="page-enter">
+        <style>{`@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
         {/* Atmospheric red glows */}
         <div style={{position:"absolute",top:-80,left:-100,width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.13) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
         <div style={{position:"absolute",bottom:150,right:-120,width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
@@ -6583,7 +7111,7 @@ Rules:
             )}
             {/* Empty state — fewer than 3 sessions */}
             {workoutLogsRaw.length<3&&(
-              <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:16}}>
+              <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// PROGRESS UNLOCKS IN 3 SESSIONS</div>
                 <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
                   YOUR DATA IS BUILDING<span style={{color:"var(--accent)"}}>.</span>
@@ -6611,46 +7139,15 @@ Rules:
               </div>
             )}
             {/* Coach Score Card */}
-            <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+            <div style={{
+              margin:"0 16px 14px",padding:"20px 16px",
+              background:"rgba(245,245,240,0.03)",
+              backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",
+              boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",
+              borderRadius:16,
+            }}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Coach Score</div>
-              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:4}}>
-                {(()=>{
-                  const sz=90,r=38,circ=2*Math.PI*r,filled=(sc.total/100)*circ;
-                  return(
-                    <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{flexShrink:0}}>
-                      <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="rgba(245,245,240,0.07)" strokeWidth={7}/>
-                      <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={ringColor} strokeWidth={7}
-                        strokeDasharray={`${filled} ${circ-filled}`} strokeLinecap="round"
-                        transform={`rotate(-90 ${sz/2} ${sz/2})`}
-                        style={{transition:"stroke-dasharray 0.8s ease"}}/>
-                      <text x={sz/2} y={sz/2-6} textAnchor="middle" dominantBaseline="middle"
-                        fontSize="22" fontWeight="900" fontStyle="italic"
-                        fontFamily="'Barlow Condensed',sans-serif" fill="#f5f5f0">{sc.total}</text>
-                      <text x={sz/2} y={sz/2+11} textAnchor="middle" dominantBaseline="middle"
-                        fontSize="8" fontFamily="'DM Mono','SF Mono',monospace" fill={ringColor}
-                        letterSpacing="1">{scoreStatus}</text>
-                    </svg>
-                  );
-                })()}
-                <div style={{flex:1}}>
-                  {[
-                    {l:scoreLabels[0],v:sc.t,c:"var(--accent)"},
-                    {l:scoreLabels[1],v:sc.n,c:"#22c55e"},
-                    {l:scoreLabels[2],v:sc.r,c:"#60a5fa"},
-                    {l:scoreLabels[3],v:sc.c,c:"#FEA020"},
-                  ].map(({l,v,c})=>(
-                    <div key={l} style={{marginBottom:8}}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{l}</span>
-                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:v>=70?"#f5f5f0":"rgba(245,245,240,0.45)"}}>{v}%</span>
-                      </div>
-                      <div style={{height:3,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${v}%`,background:c,borderRadius:2,transition:"width 0.7s ease"}}/>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <CoachScoreRing score={sc.total} ringColor={ringColor} scoreStatus={scoreStatus} scoreLabels={scoreLabels} sc={sc}/>
             </div>
 
             {/* Feature Strip */}
@@ -6673,7 +7170,7 @@ Rules:
               const pred=getRaceTimePredictor(hProf,(workoutLogsRaw||[]).slice(0,30));
               return(<>
                 {/* Race Countdown */}
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}25`,borderRadius:16}}>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${phase.color}25, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Race Countdown</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                     <div>
@@ -6693,7 +7190,7 @@ Rules:
                 </div>
 
                 {/* Predictor */}
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.12)",borderRadius:16}}>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(252,76,2,0.15), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Finish Time Predictor</div>
                   <div style={{display:"flex",gap:12,marginBottom:14}}>
                     <div style={{flex:1,background:"rgba(252,76,2,0.06)",borderRadius:10,padding:"12px",textAlign:"center"}}>
@@ -6730,7 +7227,7 @@ Rules:
               const raceTypeLabels={_5k:"5K","5k":"5K",_10k:"10K","10k":"10K",half_marathon:"HALF MARATHON",marathon:"MARATHON",ultra:"ULTRA",obstacle:"OBSTACLE / OCR"};
               const raceLabel=raceTypeLabels[profile.run_race_type]||(profile.run_race_type||"").toUpperCase().replace(/_/g," ");
               return(<>
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}25`,borderRadius:16}}>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${phase.color}25, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Race Day</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                     <div>
@@ -6748,7 +7245,7 @@ Rules:
                     <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.5}}>{phase.description}</div>
                   </div>
                 </div>
-                {(pred.currentPrediction||pred.previousTime)&&<div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}12`,borderRadius:16}}>
+                {(pred.currentPrediction||pred.previousTime)&&<div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${phase.color}12, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Predicted Finish</div>
                   <div style={{display:"flex",gap:12,marginBottom:pred.targetTime?14:0}}>
                     <div style={{flex:1,background:`${phase.color}06`,borderRadius:10,padding:"12px",textAlign:"center"}}>
@@ -6776,7 +7273,7 @@ Rules:
               const compTypeLabel=(profile.strength_comp_type||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
               const federation=profile.strength_comp_federation;
               return(<>
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}25`,borderRadius:16}}>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${phase.color}25, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Competition</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                     <div>
@@ -6794,7 +7291,7 @@ Rules:
                     <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.65)",lineHeight:1.5}}>{phase.description}</div>
                   </div>
                 </div>
-                {pred.currentTotal>0&&<div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:`1px solid ${phase.color}12`,borderRadius:16}}>
+                {pred.currentTotal>0&&<div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${phase.color}12, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Current Total</div>
                   <div style={{display:"flex",gap:12,marginBottom:pred.targetTotal?14:0}}>
                     <div style={{flex:1,background:`${phase.color}06`,borderRadius:10,padding:"12px",textAlign:"center"}}>
@@ -6839,11 +7336,11 @@ Rules:
             />
 
             {/* This Week Rings */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+            <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week</div>
               <div style={{display:"flex",gap:8,marginBottom:14}}>
-                {twRings.map(({pct,value,label,color})=>(
-                  <MiniRing key={label} pct={pct} value={value} label={label} color={color}/>
+                {twRings.map(({pct,value,label,color},i)=>(
+                  <MiniRing key={label} pct={pct} value={value} label={label} color={color} index={i}/>
                 ))}
               </div>
               <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.5)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:12}}>
@@ -6865,49 +7362,7 @@ Rules:
             {/* Performance Calendar */}
             <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Performance Calendar</div>
-              <div style={{display:"flex",gap:12,marginBottom:10}}>
-                {[{c:"var(--accent)",l:"Trained"},{c:"#60a5fa",l:"Macros"},{c:"#8b5cf6",l:"Both"}].map(({c,l})=>(
-                  <div key={l} style={{display:"flex",alignItems:"center",gap:4}}>
-                    <div style={{width:8,height:8,borderRadius:2,background:c}}/>
-                    <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{l}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:4}}>
-                {["S","M","T","W","T","F","S"].map((d,i)=>(
-                  <div key={i} style={{textAlign:"center",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{d}</div>
-                ))}
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:10}}>
-                {calDays.map(({ds,hasWorkout,hasMacros,isFuture,isToday2})=>{
-                  const both=hasWorkout&&hasMacros;
-                  const c=isFuture?"transparent":both?"#8b5cf6":hasWorkout?"var(--accent)":hasMacros?"#60a5fa":"rgba(245,245,240,0.07)";
-                  return(
-                    <div key={ds} style={{
-                      aspectRatio:"1",borderRadius:4,background:c,
-                      border:isToday2?"1px solid var(--accent)":"1px solid transparent",
-                      boxShadow:(hasWorkout||hasMacros)&&!isFuture?`0 0 4px ${c}60`:"none",
-                    }}/>
-                  );
-                })}
-              </div>
-              <div style={{display:"flex",gap:3}}>
-                {Array.from({length:5},(_,w)=>{
-                  const wDays=calDays.slice(w*7,w*7+7);
-                  const trainCount=wDays.filter(d=>d.hasWorkout).length;
-                  const macroCount=wDays.filter(d=>d.hasMacros).length;
-                  return(
-                    <div key={w} style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
-                      <div style={{height:3,borderRadius:1,background:"rgba(var(--accent-rgb),0.2)"}}>
-                        <div style={{height:"100%",width:`${(trainCount/7)*100}%`,borderRadius:1,background:"var(--accent)"}}/>
-                      </div>
-                      <div style={{height:3,borderRadius:1,background:"rgba(96,165,250,0.15)"}}>
-                        <div style={{height:"100%",width:`${(macroCount/7)*100}%`,borderRadius:1,background:"#60a5fa"}}/>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <PerformanceCalendarGrid calDays={calDays}/>
             </div>
 
             {/* Training DNA */}
@@ -6935,7 +7390,7 @@ Rules:
             </div>
 
             {/* Coach Tips */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+            <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 60ms both"}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Coach</div>
               {doingWell.length>0&&(
                 <div style={{marginBottom:focusTips.length?14:0}}>
@@ -6969,13 +7424,13 @@ Rules:
               const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
               const earnedSet=new Set(earned);
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MILESTONES</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                    {MILESTONES.map(m=>{
+                    {MILESTONES.map((m,mi)=>{
                       const isEarned=earnedSet.has(m.id);
                       return(
-                        <div key={m.id} style={{background:"#0d0d0d",border:`1px solid ${isEarned?"rgba(var(--accent-rgb),0.2)":"rgba(245,245,240,0.06)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.25}}>
+                        <div key={m.id} style={{background:"rgba(245,245,240,0.02)",border:`1px solid ${isEarned?"rgba(var(--accent-rgb),0.2)":"rgba(245,245,240,0.06)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.25,animation:`cardIn 0.3s ease-out ${mi*20}ms both`}}>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:900,color:"var(--accent)",marginBottom:4,letterSpacing:'-0.02em'}}>{isEarned?m.icon:"X"}</div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"var(--accent)",letterSpacing:"0.1em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingTop:2}}>{m.title.replace(/\.$/, '')}</div>
                         </div>
@@ -6989,7 +7444,7 @@ Rules:
 
           {/* ── STRENGTH ── */}
           {activeTab==="strength"&&<>
-            <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.12)",borderRadius:12}}>
+            <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>// ACTIVE PLATEAUS</div>
               {activePlateaus.length>0?(
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -7002,7 +7457,7 @@ Rules:
                         </div>
                       </div>
                       {p.strategy_prescribed&&(
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#60a5fa",textAlign:"right",flexShrink:0,maxWidth:110,lineHeight:1.3}}>{p.strategy_prescribed}</div>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.55)",textAlign:"right",flexShrink:0,maxWidth:110,lineHeight:1.3}}>{p.strategy_prescribed}</div>
                       )}
                     </div>
                   ))}
@@ -7014,7 +7469,7 @@ Rules:
 
             <PRFeed dbPRs={dbPRs} wUnit={profile?.wUnit||"lbs"}/>
 
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 60ms both"}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Volume This Week</div>
               {volumeThisWeek>0?(
                 <>
@@ -7036,45 +7491,18 @@ Rules:
 
             <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
               <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Workout Frequency</div>
-              {(()=>{
-                const maxC=Math.max(...weeklyFreq.map(w=>w.count),1);
-                const hasDeloadWks=weeklyFreq.some(w=>w.isDeload);
-                return(
-                  <>
-                    <div style={{display:"flex",alignItems:"flex-end",gap:4,height:72}}>
-                      {weeklyFreq.map(({week,count,isCurrent,isDeload})=>{
-                        const h=count>0?Math.max(8,Math.round((count/maxC)*72)):isDeload?20:4;
-                        const c=isDeload?(isCurrent?"#FEA020":"rgba(254,160,32,0.4)"):isCurrent?"var(--accent)":count>0?"rgba(var(--accent-rgb),0.55)":"rgba(245,245,240,0.06)";
-                        return(
-                          <div key={week} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                            <div style={{width:"100%",height:h,background:c,borderRadius:3,transition:"height 0.4s"}}/>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:isDeload?"#FEA020":isCurrent?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.25)",textAlign:"center",lineHeight:1.2}}>
-                              {isDeload?"DELOAD":isCurrent?"NOW":`W${week}`}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {hasDeloadWks&&(
-                      <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
-                        <div style={{width:8,height:8,borderRadius:2,background:"rgba(254,160,32,0.4)"}}/>
-                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Deload week</span>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+              <WorkoutFreqBars weeklyFreq={weeklyFreq}/>
             </div>
 
             {(()=>{
               const split=wPrefs?.splitType||"My Program";
               const pct=Math.min(100,Math.round((programWeek/12)*100));
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Mesocycle Progress</div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:10}}>Week {programWeek} of 12 · {split}</div>
                   <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${pct}%`,background:"var(--accent)",borderRadius:3,transition:"width 0.6s"}}/>
+                    <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#e8341c,rgba(232,52,28,0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
                   </div>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:6}}>{pct}% complete</div>
                 </div>
@@ -7114,42 +7542,10 @@ Rules:
                   {topExercises.map(([exName,exHistory])=>{
                     const points=exHistory.slice(-8);
                     if(points.length<2)return null;
-                    const W=240,H=50;
-                    const minRPE=6,maxRPE=10;
-                    const xStep=(W-20)/(points.length-1);
-                    const toX=i=>10+i*xStep;
-                    const toY=rpe=>H-4-((rpe-minRPE)/(maxRPE-minRPE))*(H-8);
                     const trend=points[points.length-1].avgRPE-points[0].avgRPE;
-                    const trendColor=trend>0.5?"var(--accent)":trend>0?"#FEA020":"#22c55e";
+                    const trendColor=trend>0.5?'#e8341c':trend>0?'#FEA020':'#22c55e';
                     const trendLabel=trend>0.5?"↑ RPE rising":trend>0?"→ RPE stable (slight rise)":"→ RPE stable";
-                    const pts=points.map((p,i)=>`${toX(i)},${toY(p.avgRPE)}`).join(" ");
-                    const rpeColor=(rpe)=>rpe<=7?"#22c55e":rpe<=8?"#FEA020":"var(--accent)";
-                    return(
-                      <div key={exName} style={{marginBottom:14}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,color:"rgba(245,245,240,0.7)"}}>{exName}</div>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:trendColor,letterSpacing:"0.08em"}}>{trendLabel}</div>
-                        </div>
-                        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible"}}>
-                          <polyline points={pts} fill="none" stroke={trendColor} strokeWidth={1.5} strokeOpacity={0.6}/>
-                          {points.map((p,i)=>(
-                            <g key={i}>
-                              <circle cx={toX(i)} cy={toY(p.avgRPE)} r={3} fill={rpeColor(p.avgRPE)}/>
-                              {i===points.length-1&&(
-                                <text x={toX(i)+5} y={toY(p.avgRPE)+3} fill={rpeColor(p.avgRPE)} fontSize={7} fontFamily="monospace">{p.avgRPE}</text>
-                              )}
-                            </g>
-                          ))}
-                          {[7,8,9].map(r=>(
-                            <line key={r} x1={0} y1={toY(r)} x2={W} y2={toY(r)} stroke="rgba(245,245,240,0.05)" strokeWidth={1}/>
-                          ))}
-                        </svg>
-                        <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[0].date.slice(5)}</div>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[points.length-1].date.slice(5)}</div>
-                        </div>
-                      </div>
-                    );
+                    return <RPELineChart key={exName} points={points} exName={exName} trendColor={trendColor} trendLabel={trendLabel}/>;
                   })}
                   <div style={{display:"flex",gap:12,marginTop:4}}>
                     {[["≤7","#22c55e","Easy"],["8","#FEA020","Hard"],["≥9","var(--accent)","Very Hard"]].map(([label,color,desc])=>(
@@ -7174,7 +7570,7 @@ Rules:
               const avgCal=avg('cal'),avgProt=avg('prot'),avgCarbs=avg('carbs'),avgFat=avg('fat');
               function chipColor(actual,target){if(actual>=target*0.9&&actual<=target*1.1)return"#22c55e";if(actual>=target*0.75&&actual<=target*1.25)return"#FEA020";return"var(--accent)";}
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week's Averages</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     {[{l:"Calories",v:avgCal,t:calTarget,u:"kcal"},{l:"Protein",v:avgProt,t:protTarget,u:"g"},{l:"Carbs",v:avgCarbs,t:carbTarget,u:"g"},{l:"Fat",v:avgFat,t:fatTarget,u:"g"}].map(({l,v,t,u})=>(
@@ -7199,19 +7595,7 @@ Rules:
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Protein Consistency</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:8}}>
-                    {days14.slice(0,7).map(({ds,fd,dow})=>{
-                      const c=fd?.hasData?(fd.prot>=protTarget*0.9?"#22c55e":"var(--accent)"):"rgba(245,245,240,0.12)";
-                      return<div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><div style={{width:22,height:22,borderRadius:"50%",background:c}}/><div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div></div>;
-                    })}
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:12}}>
-                    {days14.slice(7).map(({ds,fd,dow})=>{
-                      const c=fd?.hasData?(fd.prot>=protTarget*0.9?"#22c55e":"var(--accent)"):"rgba(245,245,240,0.12)";
-                      return<div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><div style={{width:22,height:22,borderRadius:"50%",background:c}}/><div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div></div>;
-                    })}
-                  </div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.5)"}}>{hitCount} of 14 days protein target hit</div>
+                  <ProteinGrid days14={days14} hitCount={hitCount} protTarget={protTarget}/>
                 </div>
               );
             })()}
@@ -7224,22 +7608,10 @@ Rules:
               });
               const daysWithData=days14.filter(d=>d.hasData).length;
               if(daysWithData<3)return<PH eyebrow="// Calorie Trend" headline="KEEP LOGGING." body="Log 3 days of meals to see your calorie trend."/>;
-              const maxC=Math.max(calTarget*1.25,...days14.filter(d=>d.hasData).map(d=>d.cal));
-              const W=320,H=80;
-              const pts=days14.map((d,i)=>({x:Math.round((i/13)*W),y:d.hasData?Math.round((1-d.cal/maxC)*H):null,...d}));
-              const polyPts=pts.filter(p=>p.y!==null).map(p=>`${p.x},${p.y}`).join(' ');
-              const targetY=Math.round((1-calTarget/maxC)*H);
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Calorie Trend</div>
-                  <svg viewBox={`0 0 ${W} ${H+16}`} width="100%" style={{display:"block",overflow:"visible"}}>
-                    <line x1="0" y1={targetY} x2={W} y2={targetY} stroke="rgba(245,245,240,0.15)" strokeWidth="1" strokeDasharray="4 4"/>
-                    <text x={W-2} y={targetY-3} fontSize="7" fill="rgba(245,245,240,0.3)" textAnchor="end">target</text>
-                    {polyPts&&<polyline points={polyPts} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>}
-                    {pts.filter(p=>p.y!==null).map(p=>(
-                      <circle key={p.ds} cx={p.x} cy={p.y} r="3" fill={p.cal>calTarget*1.1?"var(--accent)":p.cal>=calTarget*0.9?"#22c55e":"#FEA020"}/>
-                    ))}
-                  </svg>
+                  <CalorieTrendChart days14={days14} calTarget={calTarget}/>
                 </div>
               );
             })()}
@@ -7247,48 +7619,11 @@ Rules:
             {weightProjection?(
               <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Weight Projection</div>
-                {(()=>{
-                  const{slope,intercept,data,projectedDelta}=weightProjection;
-                  const W=320,H=70;
-                  const allW=data.map(l=>parseFloat(l.weight));
-                  const projW14=intercept+slope*(data.length-1)+slope*7;
-                  const goalW=profile?.goalWeight?parseFloat(profile.goalWeight):null;
-                  const minW=Math.min(...allW,projW14,...(goalW?[goalW]:[]))-1;
-                  const maxW=Math.max(...allW,projW14,...(goalW?[goalW]:[]))+1;
-                  const range=maxW-minW||1;
-                  const toY=(w)=>Math.round((1-(w-minW)/range)*H);
-                  const toX=(i,len)=>Math.round((i/(len+6))*W);
-                  const histPts=data.map((l,i)=>({x:toX(i,data.length),y:toY(parseFloat(l.weight)),ds:l.date}));
-                  const histLine=histPts.map(p=>`${p.x},${p.y}`).join(' ');
-                  const projX=toX(data.length+6,data.length);
-                  const projY=toY(projW14);
-                  const dir=projectedDelta>0.2?"gaining":projectedDelta<-0.2?"losing":"maintaining";
-                  const rate=Math.abs(projectedDelta*4).toFixed(1);
-                  const curW=(intercept+slope*(data.length-1)).toFixed(1);
-                  return(
-                    <>
-                      <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
-                        <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",lineHeight:1}}>{curW}</span>
-                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:"rgba(245,245,240,0.45)"}}>{profile?.wUnit||"lbs"}</span>
-                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:dir==="gaining"?"#FEA020":dir==="losing"?"#22c55e":"#60a5fa"}}>{dir} · ~{rate} {profile?.wUnit||"lbs"}/mo</span>
-                      </div>
-                      <svg viewBox={`0 0 ${W} ${H+10}`} width="100%" style={{display:"block",overflow:"visible"}}>
-                        <polyline points={histLine} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
-                        <line x1={histPts[histPts.length-1].x} y1={histPts[histPts.length-1].y} x2={projX} y2={projY}
-                          stroke="rgba(var(--accent-rgb),0.5)" strokeWidth="1.5" strokeDasharray="4 4"/>
-                        <polygon points={`${histPts[histPts.length-1].x},${histPts[histPts.length-1].y} ${projX},${Math.max(0,projY-8)} ${projX},${Math.min(H,projY+8)}`}
-                          fill="rgba(var(--accent-rgb),0.06)"/>
-                        {goalW&&<line x1={0} y1={toY(goalW)} x2={W} y2={toY(goalW)} stroke="#22c55e" strokeWidth="1" strokeDasharray="4 3" opacity="0.55"/>}
-                        {goalW&&<text x={W-2} y={toY(goalW)-3} textAnchor="end" fontFamily="'DM Mono',monospace" fontSize="7" fill="#22c55e" opacity="0.7">GOAL</text>}
-                        {histPts.map((p,i)=>(
-                          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="var(--accent)"/>
-                        ))}
-                        <circle cx={projX} cy={projY} r="3" fill="rgba(var(--accent-rgb),0.7)"/>
-                      </svg>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Based on {data.length} weigh-ins · 7-day projection{goalW?` · Goal: ${goalW}${profile?.wUnit||'lbs'}`:''}</div>
-                    </>
-                  );
-                })()}
+                <WeightChart
+                  weightProjection={weightProjection}
+                  goalW={profile?.goalWeight?parseFloat(profile.goalWeight):null}
+                  profile={profile}
+                />
               </div>
             ):(
               <PH eyebrow="// Weight Projection" headline="LOG YOUR WEIGHT." body="Log your weight for 5+ days to see trend projection and forecast."/>
@@ -7298,9 +7633,9 @@ Rules:
               const trendLabel={losing:"Losing",gaining:"Gaining",stable:"Stable",notsure:"Trend unclear"}[profile.wTrend]||null;
               if(!histLabel&&!trendLabel)return null;
               return(
-                <div style={{margin:"0 16px 14px",padding:"10px 14px",background:"rgba(96,165,250,0.04)",border:"1px solid rgba(96,165,250,0.1)",borderRadius:10,display:"flex",gap:12,flexWrap:"wrap"}}>
-                  {histLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{histLabel}</span>}
-                  {trendLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Trend: {trendLabel}</span>}
+                <div style={{margin:"0 16px 14px",padding:"10px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap",animation:"cardIn 0.4s ease-out both"}}>
+                  {histLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{histLabel}</span>}
+                  {trendLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Trend: {trendLabel}</span>}
                 </div>
               );
             })()}
@@ -7393,17 +7728,10 @@ Rules:
               );
             })()}
 
-            {(()=>{
-              const label=recoveryScore>=90?"RECOVERED":recoveryScore>=70?"PRIMED":recoveryScore>=50?"RECOVERING":"FATIGUED";
-              const color=recoveryScore>=90?"#22c55e":recoveryScore>=70?"#60a5fa":recoveryScore>=50?"#FEA020":"var(--accent)";
-              return(
-                <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"#0d0d0d",border:`1px solid ${color}30`,borderRadius:12,textAlign:"center"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Recovery Score</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:56,color,lineHeight:1,marginBottom:4}}>{recoveryScore}</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color,textTransform:"uppercase"}}>{label}</div>
-                </div>
-              );
-            })()}
+            <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,textAlign:"center"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Recovery Score</div>
+              <RecoveryGauge score={recoveryScore}/>
+            </div>
 
             {healthSnap?.sleep!=null?(
               <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
@@ -7568,7 +7896,7 @@ Rules:
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#FEA020" strokeWidth="1.5"/><path d="M7 4v3M7 9.5v.5" stroke="#FEA020" strokeWidth="1.5" strokeLinecap="round"/></svg>
         <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#FEA020",letterSpacing:"0.1em"}}>NO INTERNET CONNECTION — DATA MAY BE OUTDATED</span>
       </div>}
-      <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined}}>
+      <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
