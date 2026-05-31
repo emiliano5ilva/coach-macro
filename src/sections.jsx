@@ -5983,19 +5983,27 @@ export function PromoScreen({profile, onValidCode, onNoCode}) {
   );
 }
 
-// ─── STRIPE PAYMENT LINKS ─────────────────────────────────────────────────────
-const STRIPE = {
-  annual:  "https://buy.stripe.com/test_4gM8wQaGPepKaiQ83l7wA00",
-  monthly: "https://buy.stripe.com/test_6oU6oI4ir4PafDa5Vd7wA01",
-};
-
 // ─── PAYWALL ──────────────────────────────────────────────────────────────────
 export function Paywall({profile}) {
   const [plan, setPlan] = useState('annual');
+  const [purchasing, setPurchasing] = useState(false);
   const plans = {
-    annual:  {label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life', note:'7 days free, then $49.99/yr', link:STRIPE.annual},
-    monthly: {label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime',                    note:'7 days free, then $12.99/mo', link:STRIPE.monthly},
+    annual:  {label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life', note:'7 days free, then $49.99/yr'},
+    monthly: {label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime',                    note:'7 days free, then $12.99/mo'},
   };
+
+  async function handlePurchase() {
+    if (purchasing) return;
+    setPurchasing(true);
+    try {
+      const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
+      if (!u) { showToast('Please sign in to continue.', 'error'); return; }
+      const ok = plan === 'annual' ? await purchaseAnnual(u.id) : await purchaseMonthly(u.id);
+      if (ok) window.location.reload();
+      else showToast('Purchase failed. Try again.', 'error');
+    } catch { showToast('Purchase failed. Try again.', 'error'); }
+    finally { setPurchasing(false); }
+  }
   const p = plans[plan];
 
   return (
@@ -6045,9 +6053,9 @@ export function Paywall({profile}) {
               </div>
             ))}
           </div>
-          <a href={p.link} style={{display:'block',textAlign:'center',padding:'16px',background:T.prot,color:'#fff',fontWeight:700,fontSize:16,borderRadius:10,textDecoration:'none',letterSpacing:.3,transition:'opacity .2s'}}>
-            Start Free Trial →
-          </a>
+          <button onClick={handlePurchase} disabled={purchasing} style={{display:'block',width:'100%',textAlign:'center',padding:'16px',background:purchasing?'rgba(234,93,67,0.5)':T.prot,color:'#fff',fontWeight:700,fontSize:16,borderRadius:10,border:'none',cursor:purchasing?'default':'pointer',letterSpacing:.3,transition:'opacity .2s',fontFamily:'inherit'}}>
+            {purchasing ? 'Processing…' : 'Start Free Trial →'}
+          </button>
         </div>
         <div style={{fontSize:12,color:T.mu,textAlign:'center'}}>
           Secure checkout · Cancel anytime · No charge for 7 days
@@ -6060,11 +6068,25 @@ export function Paywall({profile}) {
 // ─── UPGRADE SCREEN (mid-app trial expiry) ────────────────────────────────────
 export function UpgradeScreen({ profile, onContinue }) {
   const [plan, setPlan] = useState('annual');
+  const [purchasing, setPurchasing] = useState(false);
   const firstName = (profile?.name || '').split(' ')[0] || 'there';
   const plans = {
-    annual:  { label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life', link: STRIPE.annual },
-    monthly: { label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime',                    link: STRIPE.monthly },
+    annual:  { label:'Founding Annual', badge:'FOUNDING — SAVE 68%', price:'$49.99', per:'/yr',  sub:'$4.17/month · billed annually · locked for life' },
+    monthly: { label:'Monthly',         badge:null,                   price:'$12.99', per:'/mo',  sub:'billed monthly · cancel anytime' },
   };
+
+  async function handlePurchase() {
+    if (purchasing) return;
+    setPurchasing(true);
+    try {
+      const { data: { user: u } } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
+      if (!u) { showToast('Please sign in to continue.', 'error'); return; }
+      const ok = plan === 'annual' ? await purchaseAnnual(u.id) : await purchaseMonthly(u.id);
+      if (ok) onContinue?.();
+      else showToast('Purchase failed. Try again.', 'error');
+    } catch { showToast('Purchase failed. Try again.', 'error'); }
+    finally { setPurchasing(false); }
+  }
   const p = plans[plan];
 
   const locked = [
@@ -6144,9 +6166,9 @@ export function UpgradeScreen({ profile, onContinue }) {
             <div style={{ fontSize:18, color:T.mu }}>{p.per}</div>
           </div>
           <div style={{ fontSize:13, color:T.mu, marginBottom:20 }}>{p.sub}</div>
-          <a href={p.link} style={{ display:'block', textAlign:'center', padding:'16px', background:T.prot, color:'#fff', fontWeight:700, fontSize:16, borderRadius:10, textDecoration:'none', letterSpacing:.3 }}>
-            Upgrade to Pro →
-          </a>
+          <button onClick={handlePurchase} disabled={purchasing} style={{ display:'block', width:'100%', textAlign:'center', padding:'16px', background:purchasing?'rgba(234,93,67,0.5)':T.prot, color:'#fff', fontWeight:700, fontSize:16, borderRadius:10, border:'none', cursor:purchasing?'default':'pointer', letterSpacing:.3, fontFamily:'inherit' }}>
+            {purchasing ? 'Processing…' : 'Upgrade to Pro →'}
+          </button>
         </div>
 
         <div style={{ fontSize:12, color:T.mu, textAlign:'center' }}>

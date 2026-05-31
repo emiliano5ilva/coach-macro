@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES,
   Logo, getDayMacros, getTodayKey, autoFocus,
   calcTDEE, FOCUS_MUSCLES } from "./components.jsx";
+import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
+import { Capacitor } from '@capacitor/core';
 import { Onboarding } from "./ob_screens.jsx";
 import { App } from "./ob_screens2.jsx";
 import { getAge } from "./utils/safety.js";
@@ -633,6 +635,17 @@ export default function NativeApp() {
   async function handleAuth(authUser,name=""){
     setPhase("loading");setUser(authUser);
     if(name)setSignupName(name);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+        await Purchases.configure({
+          apiKey: 'appl_aaBsADfHAbKGkrQPVgOETrpJMdV',
+          appUserID: authUser.id,
+        });
+      } catch (e) {
+        console.warn('RevenueCat configure failed:', e);
+      }
+    }
     await loadProfile(authUser.id);
   }
 

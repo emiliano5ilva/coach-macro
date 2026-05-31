@@ -119,14 +119,14 @@ function NativeScanner({ onDetected, onCancel }) {
       // Request camera permission (shows system dialog if needed)
       let status;
       try {
-        status = await Scanner.checkPermission({ force: true });
+        status = await Scanner.requestPermissions();
       } catch {
         if (activeRef.current) setPhase("denied");
         return;
       }
 
       if (!activeRef.current) return;
-      if (!status.granted) { setPhase("denied"); return; }
+      if (status.camera !== 'granted') { setPhase("denied"); return; }
 
       // Make WebView transparent so native camera shows through
       makeTransparent();
@@ -139,7 +139,7 @@ function NativeScanner({ onDetected, onCancel }) {
       let result;
       try {
         result = await Scanner.startScan({
-          targetedFormats: ["EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128", "CODE_39"],
+          formats: ["EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128", "CODE_39"],
         });
       } catch {
         if (activeRef.current) { cleanup(); onCancel(); }
@@ -149,8 +149,8 @@ function NativeScanner({ onDetected, onCancel }) {
       if (!activeRef.current) { cleanup(); return; }
       await cleanup();
 
-      if (result?.hasContent) {
-        onDetected(result.content);
+      if (result?.barcodes?.[0]?.rawValue) {
+        onDetected(result.barcodes[0].rawValue);
       }
     }
 
