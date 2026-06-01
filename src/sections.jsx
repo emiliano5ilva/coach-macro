@@ -19,6 +19,7 @@ import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
+import { renderWithPaces } from "./services/paceService.js";
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle, getLifeFactorMod } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
@@ -45,6 +46,21 @@ import { ACCENT_COLORS, BG_COLORS, isCompatible, isLightBg, applyTheme } from ".
 import { getOutreachPreferences, saveOutreachPreferences, TRIGGER_CATEGORIES, DEFAULT_PREFS } from "./services/outreachService.js";
 import { getOptIn, setOptIn as setPeerOptInSvc } from "./services/peerComparisonService.js";
 
+
+// ─── HYROX SESSION ENRICHER ───────────────────────────────────────────────────
+function enrichHyroxDesc(text, hyroxProfile) {
+  if (!hyroxProfile?.stationTargets || !text) return text;
+  const tgt = hyroxProfile.stationTargets;
+  const fmtS = (s) => !s ? '' : `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  return text
+    .replace(/\bsled push\b/gi,  (m) => tgt.sled_push?.goal  ? `${m} (target: ${fmtS(tgt.sled_push.goal)})` : m)
+    .replace(/\bsled pull\b/gi,  (m) => tgt.sled_pull?.goal  ? `${m} (target: ${fmtS(tgt.sled_pull.goal)})` : m)
+    .replace(/\bskierg\b|\bski erg\b/gi, (m) => tgt.skiErg?.goal ? `${m} (target: ${fmtS(tgt.skiErg.goal)})` : m)
+    .replace(/\bwall ball/gi,    (m) => tgt.wall_balls?.goal  ? `${m} (target: ${fmtS(tgt.wall_balls.goal)})` : m)
+    .replace(/\bfarmer/gi,       (m) => tgt.farmers?.goal     ? `${m} (target: ${fmtS(tgt.farmers.goal)})` : m)
+    .replace(/\bsandbag/gi,      (m) => tgt.sandbag?.goal     ? `${m} (target: ${fmtS(tgt.sandbag.goal)})` : m)
+    .replace(/\browingerg\b|\browing\b/gi, (m) => tgt.rowing?.goal ? `${m} (target: ${fmtS(tgt.rowing.goal)})` : m);
+}
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
 export const LIFTING_SPLITS = {
@@ -2165,17 +2181,36 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     if(todayPrescription){
       todayPrescription=enrichRunSession(todayPrescription);
       if(runPaces) todayPrescription={...todayPrescription,description:resolvePaceTokens(todayPrescription.description||"",runPaces)};
+      // Phase 4: apply VDOT-derived paces on top of old token system
+      const _vdotPaces=profile?.runProfile?.paces??null;
+      if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
     }
   }else if(prescType==="hyrox"){
     todayProgObj=HYROX_PROGRAM;
     todayPrescription=getTodayHyroxWorkout(todayProgObj,weekNum,todayKey);
+    if(todayPrescription){
+      const _vdotPaces=profile?.runProfile?.paces??null;
+      if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+      const _hp=profile?.hyroxProfile??null;
+      if(_hp) todayPrescription={...todayPrescription,description:enrichHyroxDesc(todayPrescription.description||"",_hp)};
+    }
   }else if(prescType==="hybrid-hyrox"){
     todayProgObj=HYBRID_PROGRAMS["Hyrox Hybrid"];
     todayPrescription=getTodayHybridWorkout("Hyrox Hybrid",todayKey,weekNum);
+    if(todayPrescription){
+      const _vdotPaces=profile?.runProfile?.paces??null;
+      if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+      const _hp=profile?.hyroxProfile??null;
+      if(_hp) todayPrescription={...todayPrescription,description:enrichHyroxDesc(todayPrescription.description||"",_hp)};
+    }
   }else if(prescType==="hybrid"){
     const _hybridTemplate=wPrefs.hybridTemplate||"Balanced Hybrid";
     todayProgObj=HYBRID_PROGRAMS[_hybridTemplate];
     todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
+    if(todayPrescription){
+      const _vdotPaces=profile?.runProfile?.paces??null;
+      if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+    }
   }
 
   function startFromProgram(){
@@ -2206,7 +2241,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         const restSecs=rx?rx.restSeconds:(ex.restSecs||120);
         const restReason=goalLabel?`${goalLabel} · ${Math.round(restSecs/60*10)/10} min rest`:null;
         return {
-          name:ex.name,notes:ex.notes||"",
+          name:ex.name,notes:renderWithPaces(ex.notes||"",profile?.runProfile?.paces??null),
           originalName:ex.originalName||ex.name,
           isFavorite:ex.isFavorite,
           swappedFrom:ex.swappedFrom,

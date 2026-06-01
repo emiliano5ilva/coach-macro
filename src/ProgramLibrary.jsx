@@ -5,6 +5,9 @@ import { PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramImage } from "./data/programImages.js";
 import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
+import RunProgramSetup from "./RunProgramSetup.jsx";
+
+const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 
 // ─── PROGRAM ENRICHMENT ────────────────────────────────────────────────────────
 const PROG_META = {
@@ -503,6 +506,7 @@ function ProgIcon({prog, size=28}) {
 const FILTER_TABS = [
   { id:"All",        cats:null },
   { id:"Strength",   cats:["Hypertrophy","Strength"] },
+  { id:"Sculpt",     cats:["Sculpt"] },
   { id:"Golden Era", cats:["Golden Era"] },
   { id:"Running",    cats:["Running"] },
   { id:"Hyrox",      cats:["Hyrox"] },
@@ -546,6 +550,13 @@ function isSessionCompatible(prog, profileSessionLength) {
   return prog.sessionMins <= maxMins;
 }
 
+function isFreqCompatible(prog, profileFreq) {
+  const userMaxDays = { "n0": 0, "1-3": 3, "4-6": 6, "7+": 7 }[profileFreq] ?? 7;
+  if (userMaxDays === 7) return true;                  // trains every day — show everything
+  if (prog.days == null) return true;                  // running/hyrox use week structures — always show
+  return prog.days <= userMaxDays;
+}
+
 export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScreen, user }) {
   const defaultCategory = TRAINTYPE_DEFAULT_TAB[profile?.trainType] || "All";
   const [catFilter, setCatFilter] = useState(defaultCategory);
@@ -560,6 +571,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
   const [editRoutine, setEditRoutine] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [mpPendingProg, setMpPendingProg] = useState(null);
+  const [setupProgram, setSetupProgram] = useState(null);
 
   const currentId = wPrefs._libraryId || null;
 
@@ -608,7 +620,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     return true;
   });
 
-  // "BUILT FOR YOU" — programs matching trainType + equipment + sessionLength
+  // "BUILT FOR YOU" — programs matching trainType + equipment + sessionLength + frequency
   const recommended = PROGRAM_LIBRARY.filter(p => {
     const tabMatch = TRAINTYPE_DEFAULT_TAB[profile?.trainType];
     if (!tabMatch) return false;
@@ -616,6 +628,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     if (tab?.cats && !tab.cats.includes(p.category)) return false;
     if (!isEquipmentCompatible(p, profile?.equipment)) return false;
     if (!isSessionCompatible(p, profile?.sessionLength)) return false;
+    if (!isFreqCompatible(p, profile?.freq)) return false;
     return true;
   }).slice(0, 3);
 
@@ -686,6 +699,16 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     finally { setDeletingId(null); }
   }
 
+  async function handleSetupConfirm(prog) {
+    setSetupProgram(null);
+    setDetailProg(null);
+    await confirmSwitch(prog);
+  }
+
+  function handleSetupCancel() {
+    setSetupProgram(null);
+  }
+
   async function startCustomRoutine(routine) {
     // Navigate to active session with custom routine exercises
     const activeEx = (routine.exercises || []).map(ex => ({
@@ -725,7 +748,14 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           profile={profile}
           ratings={ratings}
           userRating={userRatings[detailProg.id] || 0}
-          onStart={() => !detailProg.comingSoon && setConfirmProg(detailProg)}
+          onStart={() => {
+            if (detailProg.comingSoon) return;
+            if (SETUP_CATEGORIES.has(detailProg.category)) {
+              setSetupProgram(detailProg);
+            } else {
+              setConfirmProg(detailProg);
+            }
+          }}
           onRate={rating => rateProgram(detailProg.id, rating)}
           onClose={() => setDetailProg(null)}
         />
@@ -739,6 +769,14 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           />
         )}
         {MpSwitchWarnModal}
+        {setupProgram && (
+          <RunProgramSetup
+            program={setupProgram}
+            user={user}
+            onConfirm={handleSetupConfirm}
+            onCancel={handleSetupCancel}
+          />
+        )}
       </>
     );
   }
@@ -898,6 +936,14 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         />
       )}
       {MpSwitchWarnModal}
+      {setupProgram && (
+        <RunProgramSetup
+          program={setupProgram}
+          user={user}
+          onConfirm={handleSetupConfirm}
+          onCancel={handleSetupCancel}
+        />
+      )}
     </div>
   );
 }

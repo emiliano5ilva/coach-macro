@@ -679,6 +679,8 @@ export default function NativeApp() {
       healthConditions:od.healthConditions||[],
       is_youth:a!==null&&a>=13&&a<18,
       is_older_adult:a!==null&&a>=65,
+      runProfile:null,
+      hyroxProfile:null,
     };
     if(NEW_ONBOARDING){
       // Augment with fuel + training fields collected by the new single-flow onboarding.
