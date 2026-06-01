@@ -8,6 +8,12 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
+  const authHeader = req.headers['authorization'];
+  const expectedSecret = process.env.REVENUECAT_WEBHOOK_SECRET;
+  if (!authHeader || authHeader !== expectedSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   const event = req.body?.event;
   const eventType = event?.type;
   const userId = event?.app_user_id;
