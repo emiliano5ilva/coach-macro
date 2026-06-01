@@ -5525,6 +5525,8 @@ Rules:
               userId={user.id}
               onComplete={()=>setMorningCheckinDone(true)}
               onSkip={()=>setMorningCheckinDone(true)}
+              profile={profile}
+              workoutLogs={workoutLogsRaw}
             />
           )}
           {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(

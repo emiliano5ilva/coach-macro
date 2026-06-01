@@ -3396,8 +3396,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                   {(()=>{
                                     const prog=adaptiveSession?.progressions?.[ex.name];
                                     const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
+                                    const domsConflict=adaptiveSession?.domsConflicts?.find(c=>c.exercise===ex.name);
                                     return(<>
                                       {conflict&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {conflict.zone.replace(/_/g,' ')} still recovering</div>}
+                                      {!conflict&&domsConflict&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {domsConflict.zone} predicted soreness peak in {Math.abs(domsConflict.prediction.hoursToPeak)}h — consider reducing range of motion</div>}
                                       {prog&&prog.action!=='new'&&<WeightSuggestion prog={prog}/>}
                                     </>);
                                   })()}

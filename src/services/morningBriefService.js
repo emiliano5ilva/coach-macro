@@ -10,6 +10,8 @@ import { getRecentAdjustments } from './periodisationService.js';
 import { analyseRPETrends } from './rpeTrendingService.js';
 import { getPreLoadingNote, getProteinDistributionInsight } from './nutritionTimingService.js';
 import { computeLoadMetrics } from './trainingLoadService.js';
+import { predictSoreness } from './domsLearningService.js';
+import { getCycleAdjustment } from './cyclePatternService.js';
 import { getWeatherPaceAdjustment } from './weatherService.js';
 
 export async function gatherBriefContext(userId) {
@@ -170,6 +172,28 @@ export async function gatherBriefContext(userId) {
   const proteinTarget = Math.round(((p.goalCals || 2200) * 0.30) / 4);
   ctx.proteinInsight = getProteinDistributionInsight(foodHistoryRows ?? [], proteinTarget);
 
+  // DOMS predictions for brief context
+  const { data: recentLogsForDoms } = await sb.from('workout_logs')
+    .select('date,workout').eq('user_id', userId).order('date', { ascending: false }).limit(30);
+  const domsProfile = adaptiveProfileRow?.domsProfile ?? null;
+  const domsPreds = predictSoreness(recentLogsForDoms ?? [], domsProfile, 1);
+  // Cycle pattern context
+  const profileForCycle = { profile_data: p };
+  const cycleAdj = getCycleAdjustment(profileForCycle, adaptiveProfileRow);
+  const cp = adaptiveProfileRow?.cycleProfile;
+  ctx.cycleInsight = cycleAdj?.insight ?? null;
+  ctx.cycleDataProgress = (cp && !cp.hasEnoughData)
+    ? `${cp.observations?.length ?? 0} days of cycle data collected — personalised cycle insights unlock at ${cp.observationsNeeded} more days`
+    : null;
+
+  ctx.domsPredictions = Object.entries(domsPreds)
+    .filter(([, p]) => p.isPeaking || (p.isBuilding && p.hoursToPeak < 12))
+    .map(([zone, p]) => ({
+      zone,
+      status: p.isPeaking ? 'peaking' : 'building',
+      hoursToRecovery: p.hoursToRecovery,
+    }));
+
   // Weather — only relevant for run days
   const isRunDay = tomorrowType === 'training' || todayType === 'training';
   if (isRunDay && (wp.isHybrid || wp.isHyrox || (wp.splitType||'').toLowerCase().includes('run'))) {
@@ -316,6 +340,14 @@ Use this data to make the brief feel like a real coach who knows this athlete in
   const hrvBlock = ctx.hrvNote
     ? `\n\nHRV NOTE: ${ctx.hrvNote}. Reference this in coach_says if it meaningfully affects today's training recommendation.`
     : '';
+  const cycleBlock = ctx.cycleInsight
+    ? `\n\nCYCLE INSIGHT: ${ctx.cycleInsight} Reference this in session framing.`
+    : '';
+
+  const domsBlock = ctx.domsPredictions?.length
+    ? `\n\nDOMS PREDICTIONS: Based on this athlete's personal soreness timeline:\n${ctx.domsPredictions.map(d => `${d.zone}: ${d.status}, recovers in ~${d.hoursToRecovery}h`).join(', ')}\nReference this when recommending today's focus.`
+    : '';
+
   const weatherBlock = ctx.weatherNote
     ? `\n\nWEATHER NOTE: ${ctx.weatherNote} Warn the athlete explicitly in coach_says before they head out.`
     : '';
@@ -326,7 +358,7 @@ Use this data to make the brief feel like a real coach who knows this athlete in
     ? `\n\nPROTEIN INSIGHT: ${ctx.proteinInsight.message}`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}${tsbBlock}${hrvBlock}${weatherBlock}${preLoadBlock}${proteinBlock}
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}${tsbBlock}${hrvBlock}${cycleBlock}${domsBlock}${weatherBlock}${preLoadBlock}${proteinBlock}
 
 Context:
 - Name: ${ctx.name}

@@ -2,6 +2,7 @@ import { sb } from '../client';
 import { musclesToSvgIds, svgIdsToMuscleGroups } from '../data/muscleMapping';
 import { EXERCISE_MUSCLE_GROUP } from '../exercise_database';
 import { computeLoadMetrics } from './trainingLoadService';
+import { getCycleAdjustment } from './cyclePatternService';
 
 const GROUP_TO_SVG = {
   chest:     ['chest'],
@@ -260,6 +261,13 @@ export function getReadinessModifier(profile, checkin, recentFoodLogs, workoutLo
       volume = Math.min(volume * 1.05, 1.10);
       reasons.push('HRV elevated — primed to perform');
     }
+  }
+
+  // Personal cycle pattern adjustment (female athletes only, requires 3+ cycles of data)
+  const cycleAdj = getCycleAdjustment(profile, profile?.adaptive_profile);
+  if (cycleAdj) {
+    volume = Math.min(volume * cycleAdj.multiplier, 1.10);
+    if (cycleAdj.label !== 'neutral') reasons.push(cycleAdj.insight);
   }
 
   const label = volume < 0.75 ? 'recovery' : volume < 0.90 ? 'reduced' : 'full';

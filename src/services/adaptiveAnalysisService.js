@@ -142,6 +142,11 @@ export async function runWeeklyAnalysis(userId, profile) {
       mostFrequentPrimarySoreness: getMostFrequent(checkins.flatMap(c => c.primary_soreness ?? [])),
       exerciseProgression: getExerciseProgression(workoutLogs),
       loadMetrics: computeLoadMetrics(workoutLogs),
+      cyclePattern: (() => {
+        const cp = profile?.adaptive_profile?.cycleProfile;
+        if (!cp?.pattern) return null;
+        return { highWindow: cp.pattern.highPhrase, lowWindow: cp.pattern.lowPhrase, confident: cp.pattern.confident };
+      })(),
     },
     previousAnalysis: profile?.adaptive_profile?.lastAnalysis ?? null,
   };

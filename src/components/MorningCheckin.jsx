@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { sb } from '../client.js';
 import InteractiveBodyMap from './InteractiveBodyMap.jsx';
+import { processDomsMorningCheckin } from '../services/domsLearningService.js';
+import { processCycleMorningCheckin } from '../services/cyclePatternService.js';
 
 const READINESS = [
   { key: 'great', emoji: '😁', label: 'Great'  },
@@ -10,7 +12,7 @@ const READINESS = [
   { key: 'rough', emoji: '💀', label: 'Rough'  },
 ];
 
-export default function MorningCheckin({ userId, onComplete, onSkip }) {
+export default function MorningCheckin({ userId, onComplete, onSkip, profile, workoutLogs }) {
   const [readiness, setReadiness]       = useState(null);
   const [soreness, setSoreness]         = useState(0);
   const [primaryZones, setPrimaryZones] = useState([]);
@@ -37,6 +39,9 @@ export default function MorningCheckin({ userId, onComplete, onSkip }) {
       };
       const { error } = await sb.from('morning_checkins').upsert(row, { onConflict: 'user_id,date' });
       if (error) console.error('[MorningCheckin] save error:', error.message);
+      // DOMS + cycle learning — fire-and-forget, never blocks the UI
+      processDomsMorningCheckin(userId, row, workoutLogs ?? [], profile).catch(() => {});
+      processCycleMorningCheckin(userId, row, profile).catch(() => {});
       onComplete?.(row);
     } catch (e) {
       console.error('[MorningCheckin] error:', e);

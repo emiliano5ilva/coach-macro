@@ -1,6 +1,7 @@
 import { computeNextWeight, detectPlateau, estimateTrainingAge } from './progressionService';
 import { getReadinessModifier, applyReadinessToSession, getSorenessMuscleConflicts } from './recoveryService';
 import { computeLoadMetrics } from './trainingLoadService';
+import { predictSoreness, getSchedulingConflicts } from './domsLearningService';
 
 export function getSessionSpacingAlert(workoutLogs, todaySession) {
   if (!workoutLogs?.length) return null;
@@ -84,6 +85,11 @@ export function buildAdaptiveSession(
 
   const loadMetrics = computeLoadMetrics(workoutLogs);
 
+  // DOMS predictions from personal history
+  const domsProfile   = profile?.adaptive_profile?.domsProfile;
+  const domsPredictions = predictSoreness(workoutLogs, domsProfile);
+  const domsConflicts   = getSchedulingConflicts(domsPredictions, { exercises });
+
   // Session spacing
   const spacingAlert = getSessionSpacingAlert(workoutLogs, exercises[0]);
   // Apply layoff deload factor on top of existing modifier
@@ -112,5 +118,7 @@ export function buildAdaptiveSession(
     injuryRisk:        analysis?.injuryRisk ?? 'none',
     injuryNote:        analysis?.injuryNote ?? null,
     spacingAlert,
+    domsPredictions,
+    domsConflicts,
   };
 }
