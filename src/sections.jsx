@@ -1819,65 +1819,56 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryM
 }
 
 // ─── WEEK STRIP ───────────────────────────────────────────────────────────────
-function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType }) {
+export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType }) {
   const todayIdx = WDAYS.indexOf(todayKey);
+  // First upcoming training day after today
+  const firstUpNextIdx = WDAYS.findIndex((day,idx) => idx > todayIdx && schedule[day] && schedule[day] !== "rest");
+
   return (
     <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
-      <style>{`
-        @keyframes weekPillIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes todayPillPulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
-      `}</style>
-      <div className="header-eyebrow" style={{marginBottom:12}}>// This Week</div>
-      <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",msOverflowStyle:"none",WebkitOverflowScrolling:"touch"}}>
+      <div className="header-eyebrow" style={{marginBottom:10}}>// This Week</div>
+      <div style={{display:"flex",flexDirection:"column"}}>
         {WDAYS.map((day,idx)=>{
-          const t=schedule[day];
-          const isToday=day===todayKey;
-          const isCompleted=idx<todayIdx&&t&&t!=="rest";
-          const isRest=!t||t==="rest";
-          const f=dayFocus[day];
-          const label=isRest?"REST":(f?.slice(0,6)||(DAY_CFG[t]?.label?.slice(0,6)||"Train"));
-          const borderC=isToday?"rgba(232,52,28,0.5)":isCompleted?"rgba(38,166,154,0.25)":"rgba(245,245,240,0.08)";
-          const bgC=isToday?"rgba(232,52,28,0.08)":isCompleted?"rgba(38,166,154,0.06)":"rgba(245,245,240,0.02)";
-          const textC=isToday?"#e8341c":isCompleted?"#26A69A":isRest?"rgba(245,245,240,0.25)":"rgba(245,245,240,0.45)";
-          const iconBg=isToday?"rgba(232,52,28,0.12)":isCompleted?"rgba(38,166,154,0.1)":"rgba(245,245,240,0.05)";
-          const icon=(()=>{
-            if(t==="run")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="15" cy="5" r="2"/><path d="M9 20l2-5 3 2 3-7"/><path d="M7 12l2-4 4 2"/></svg>);
-            if(t==="cardio")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>);
-            if(t==="hyrox")return(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/><path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round"/></svg>);
-            if(isRest)return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="4" height="12" rx="2"/><rect x="14" y="6" width="4" height="12" rx="2"/></svg>);
-            return(<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="12" height="8" rx="2" opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1"/></svg>);
-          })();
-          const entrDelay=idx*50;
-          const anim=isToday
-            ?`weekPillIn 0.35s cubic-bezier(.2,.7,.3,1) ${entrDelay}ms both,todayPillPulse 0.6s ease ${entrDelay+450}ms 1 both`
-            :`weekPillIn 0.35s cubic-bezier(.2,.7,.3,1) ${entrDelay}ms both`;
-          return(
+          const t = schedule[day];
+          const isToday = day === todayKey;
+          const isRest = !t || t === "rest";
+          const isDone = idx < todayIdx && !isRest;
+          const isUpNext = idx === firstUpNextIdx;
+          const label = dayFocus[day] || (isRest ? "Rest" : DAY_CFG[t]?.label || "Training");
+
+          // Status text lives in the word — color is reinforcement only
+          const statusText = isToday ? "today" : isDone ? "done" : isUpNext ? "up next" : "";
+          const rowBg = isToday ? "rgba(var(--accent-rgb),0.06)" : isDone ? "rgba(34,197,94,0.04)" : "transparent";
+          const dayCol = isToday ? "var(--accent)" : isDone ? "#22c55e" : "rgba(245,245,240,0.28)";
+          const labelCol = isToday ? "#ffffff" : isDone ? "rgba(245,245,240,0.85)" : isRest ? "rgba(245,245,240,0.22)" : "rgba(245,245,240,0.55)";
+          const statusCol = isToday ? "var(--accent)" : isDone ? "#22c55e" : isUpNext ? "rgba(245,245,240,0.4)" : "transparent";
+
+          return (
             <div key={day} style={{
-              flexShrink:0,
-              width:isToday?46:42,
-              display:"flex",
-              flexDirection:"column",
-              alignItems:"center",
-              gap:4,
-              background:bgC,
-              border:`1.5px solid ${borderC}`,
-              borderRadius:14,
-              padding:isToday?"8px 4px 9px":"8px 4px",
-              boxShadow:isToday
-                ?"inset 0 1px 0 0 rgba(245,245,240,0.08),0 0 12px rgba(232,52,28,0.3)"
-                :"inset 0 1px 0 0 rgba(245,245,240,0.08)",
-              animation:anim,
+              display:"flex", alignItems:"center", gap:12,
+              padding:"9px 10px",
+              borderRadius:8,
+              background:rowBg,
+              borderBottom: idx < 6 ? "1px solid rgba(245,245,240,0.04)" : "none",
             }}>
-              <div style={{fontFamily:"var(--mono)",fontSize:6,letterSpacing:"0.1em",textTransform:"uppercase",color:isToday?"rgba(232,52,28,0.75)":"transparent",lineHeight:1,height:7,flexShrink:0}}>TODAY</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:7,fontWeight:700,color:textC,letterSpacing:"0.08em"}}>{day.toUpperCase()}</div>
-              <div style={{width:isToday?24:22,height:isToday?24:22,borderRadius:6,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",color:textC,flexShrink:0}}>{icon}</div>
-              <div style={{fontFamily:"var(--condensed)",fontSize:8,fontWeight:700,textTransform:"uppercase",color:textC,lineHeight:1.1,textAlign:"center"}}>{label}</div>
+              {/* Day abbreviation */}
+              <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
+                {day.toUpperCase()}
+              </div>
+              {/* Focus label */}
+              <div style={{flex:1,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
+                {label}
+              </div>
+              {/* Status word */}
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:statusCol,flexShrink:0,minWidth:44,textAlign:"right"}}>
+                {statusText}
+              </div>
             </div>
           );
         })}
       </div>
-      {sessionCount===0&&WDAYS.indexOf(todayKey)>1&&todayType==="training"&&(
-        <div style={{marginTop:10,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
+      {sessionCount===0&&todayIdx>1&&todayType==="training"&&(
+        <div style={{marginTop:12,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
           <div style={{fontFamily:"var(--condensed)",fontSize:15,color:"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
         </div>
@@ -3203,20 +3194,32 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               )}
               {todayType==="training"&&(
                 <div style={{marginTop:14}}>
-                  <button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"DM Mono,monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
-                  <div onClick={()=>setSessionDetailExpanded(s=>!s)} style={{textAlign:"center",fontFamily:"DM Mono,monospace",fontSize:10,color:"rgba(245,245,240,0.3)",marginTop:8,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>
-                    SESSION DETAILS {sessionDetailExpanded?"↑":"↓"}
-                  </div>
-                  {sessionDetailExpanded&&Array.isArray(todayPrescription)&&(
-                    <div style={{marginTop:10,padding:"4px 0",borderTop:"1px solid rgba(245,245,240,0.05)",display:"flex",flexDirection:"column"}}>
-                      {todayPrescription.map((ex,i)=>(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)"}}>
-                          <div style={{width:28,height:28,borderRadius:"50%",background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",fontSize:11,color:"var(--accent)",fontWeight:700,flexShrink:0}}>{i+1}</div>
-                          <div style={{flex:1,fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase"}}>{ex.name}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:"#f5f5f0",letterSpacing:"0.08em"}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
+                  {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
+                    <>
+                      {/* See more / Hide toggle */}
+                      <div onClick={()=>setSessionDetailExpanded(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
+                        <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See more ↓"}</span>
+                        <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em"}}>{exCount} exercises · {totalSets} sets</span>
+                      </div>
+                      {/* Expanded: numbered exercise list + Start Session */}
+                      {sessionDetailExpanded&&(
+                        <div>
+                          <div style={{display:"flex",flexDirection:"column",marginBottom:12}}>
+                            {todayPrescription.map((ex,i)=>(
+                              <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)"}}>
+                                <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--mono)",fontSize:10,color:"var(--accent)",fontWeight:700,flexShrink:0}}>{i+1}</div>
+                                <div style={{flex:1,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                <div style={{fontFamily:"var(--mono)",fontSize:12,color:"rgba(245,245,240,0.7)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <button onClick={()=>startFromProgram()} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
+                  ):(
+                    /* No exercise list (non-lifting or no program) — Start Session always visible */
+                    <button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
                   )}
                 </div>
               )}
@@ -3321,8 +3324,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {/* ── MUSCLE RECOVERY ── */}
             <MuscleRecovery userId={user?.id}/>
 
-            {/* ── EXPLORE BOTTOM SHEET ── */}
-            {showExploreSheet&&(
+            {/* ── EXPLORE BOTTOM SHEET — portalled so position:fixed works on iOS ── */}
+            {showExploreSheet&&ReactDOM.createPortal(
               <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
                 <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
                   <div style={{width:36,height:4,background:"rgba(245,245,240,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
@@ -3344,7 +3347,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </div>
                   ))}
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         )}
@@ -6184,34 +6188,50 @@ export function UpgradeScreen({ profile, onContinue }) {
 // Screen 2: Exit offer ($1 first month). X → dismiss entirely (onDismiss).
 export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
   const [loading, setLoading] = useState(false);
-  const [showExitOffer, setShowExitOffer] = useState(false);
+  const [plan, setPlan] = useState("annual");
+  const [purchaseError, setPurchaseError] = useState("");
 
+  // ── Dynamic values ──────────────────────────────────────────────────────
+  const trialDays = (() => {
+    if (!profile?.trial_started_at || !profile?.trial_ends_at) return 7;
+    const start = new Date(profile.trial_started_at);
+    const end   = new Date(profile.trial_ends_at);
+    const days  = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    return days >= 10 ? 14 : 7;
+  })();
+
+  const eyebrow   = trialDays === 14 ? "// your two weeks are up" : "// your free week is up";
+  const firstName = profile?.first_name || profile?.name?.split(" ")[0] || null;
+
+  // ── Purchase handlers ───────────────────────────────────────────────────
   async function getUid() {
     const { data: { user } } = await sb.auth.getUser();
     return user?.id;
   }
 
   async function purchaseMonthlyFn() {
+    setPurchaseError("");
     try {
       setLoading(true);
       const uid = await getUid();
       if (!uid) return;
       const ok = await purchaseMonthly(uid);
       if (ok) onSubscribed?.();
-      else showToast('Purchase failed. Try again.', 'error');
-    } catch { showToast('Purchase failed. Try again.', 'error'); }
+      else setPurchaseError("Purchase failed. Try again.");
+    } catch { setPurchaseError("Purchase failed. Try again."); }
     finally { setLoading(false); }
   }
 
   async function purchaseAnnualFn() {
+    setPurchaseError("");
     try {
       setLoading(true);
       const uid = await getUid();
       if (!uid) return;
       const ok = await purchaseAnnual(uid);
       if (ok) onSubscribed?.();
-      else showToast('Purchase failed. Try again.', 'error');
-    } catch { showToast('Purchase failed. Try again.', 'error'); }
+      else setPurchaseError("Purchase failed. Try again.");
+    } catch { setPurchaseError("Purchase failed. Try again."); }
     finally { setLoading(false); }
   }
 
@@ -6223,166 +6243,181 @@ export function ExpiredPaywall({ profile, onSubscribed, onDismiss }) {
   }
 
   async function doRestore() {
+    setPurchaseError("");
     try {
       setLoading(true);
       const uid = await getUid();
       if (!uid) return;
       const tier = await restorePurchases(uid);
       if (tier) onSubscribed?.();
-      else showToast('No active purchases found.', 'info');
-    } catch { showToast('Restore failed. Try again.', 'error'); }
+      else setPurchaseError("No active purchases found.");
+    } catch { setPurchaseError("Restore failed. Try again."); }
     finally { setLoading(false); }
   }
 
-  const xBtnStyle = {
-    position: 'absolute', top: 24, right: 24,
-    width: 32, height: 32, borderRadius: '50%',
-    background: 'rgba(245,245,240,0.06)',
-    border: '1px solid rgba(245,245,240,0.1)',
-    color: 'rgba(245,245,240,0.5)',
-    fontSize: 16, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 10, lineHeight: 1,
-  };
+  // ── Shared style tokens ─────────────────────────────────────────────────
+  const mono      = { fontFamily: 'var(--mono)' };
+  const condensed = { fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900 };
+  const body      = { fontFamily: 'var(--body, var(--condensed))' };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: '#000', position: 'relative' }}>
       <style>{GLOBAL_CSS}</style>
 
       {/* Loading overlay */}
       {loading && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-          <div style={{ width: 40, height: 40, border: '3px solid rgba(var(--accent-rgb),0.2)', borderTop: '3px solid var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ width: 40, height: 40, border: '3px solid rgba(232,52,28,0.2)', borderTop: '3px solid var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
       )}
 
-      {/* ── SCREEN 2: EXIT OFFER OVERLAY ───────────────────────────────── */}
-      {showExitOffer && (
-        <div style={{ position: 'absolute', inset: 0, background: '#000', zIndex: 100, padding: '32px 24px', overflowY: 'auto' }}>
-          {/* Atmospheric glow */}
-          <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(var(--accent-rgb),0.12)', pointerEvents: 'none' }} />
+      <div style={{ padding: '28px 24px 48px', overflowY: 'auto', minHeight: '100vh', position: 'relative', maxWidth: 480, margin: '0 auto' }}>
 
-          {/* X — final exit, no subscription */}
-          <button style={xBtnStyle} onClick={() => { setShowExitOffer(false); onDismiss?.(); }}>×</button>
-
-          <div style={{ position: 'relative', zIndex: 1, paddingTop: 24 }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>// WAIT. BEFORE YOU GO.</div>
-
-            <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 46, lineHeight: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-              ONE MONTH.<br /><span style={{ color: 'var(--accent)' }}>ONE DOLLAR.</span>
-            </div>
-
-            <div style={{ fontFamily: 'var(--condensed)', fontWeight: 400, fontSize: 17, color: 'rgba(245,245,240,0.6)', lineHeight: '24px', marginBottom: 20 }}>
-              Try Coach Macro for real.<br />30 days. Full access.<br />No shortcuts.
-            </div>
-
-            {/* Offer card */}
-            <div style={{ background: '#0d0d0d', border: '1px solid rgba(var(--accent-rgb),0.2)', borderRadius: 14, padding: 20, marginBottom: 16, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--accent)', borderRadius: '14px 14px 0 0' }} />
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10, marginTop: 8 }}>ONE-TIME OFFER</div>
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 4, marginBottom: 4 }}>
-                <span style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 72, color: '#f5f5f0', lineHeight: '72px' }}>$1</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'rgba(245,245,240,0.35)', paddingBottom: 8 }}>first month</span>
-              </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.35)', textAlign: 'center', lineHeight: 1.6, marginBottom: 16 }}>
-                Then $12.99/month automatically.<br />Cancel before then —<br />you owe nothing more.
-              </div>
-              <button
-                onClick={purchaseDollarOfferFn}
-                disabled={loading}
-                style={{ background: 'var(--accent)', borderRadius: 12, padding: 15, width: '100%', border: 'none', cursor: 'pointer', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 11, color: '#fff', letterSpacing: 1.8, textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}
-              >GET 1 MONTH FOR $1 →</button>
-            </div>
-
-            <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontSize: 16, color: 'rgba(245,245,240,0.4)', textAlign: 'center', lineHeight: '22px', marginBottom: 16 }}>
-              "If you're serious about your training — $1 is not the reason to stop."
-            </div>
-
-            <button
-              onClick={() => setShowExitOffer(false)}
-              style={{ display: 'block', width: '100%', background: 'none', border: 'none', fontFamily: 'var(--mono)', fontSize: 11, color: 'rgba(245,245,240,0.3)', textDecoration: 'underline', textAlign: 'center', cursor: 'pointer' }}
-            >← Back to plans</button>
-          </div>
+        {/* 1 ── LOGO ROW */}
+        <div style={{ marginBottom: 28 }}>
+          <Logo size={26} text={true} textColor="#fff" />
         </div>
-      )}
 
-      {/* ── SCREEN 1: TRIAL ENDED PAYWALL ──────────────────────────────── */}
-      <div style={{ padding: '24px', overflowY: 'auto', minHeight: '100vh', position: 'relative' }}>
-        {/* Atmospheric glow */}
-        <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: 150, background: 'rgba(var(--accent-rgb),0.12)', pointerEvents: 'none' }} />
+        {/* 2 ── EYEBROW */}
+        <div style={{ ...mono, fontSize: 11, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+          {eyebrow}
+        </div>
 
-        {/* X button — opens exit offer */}
-        <button style={xBtnStyle} onClick={() => setShowExitOffer(true)}>×</button>
+        {/* 3 ── HEADLINE */}
+        <div style={{ ...condensed, fontSize: 'clamp(44px, 11vw, 60px)', lineHeight: 1, textTransform: 'uppercase', marginBottom: 16 }}>
+          <span style={{ color: '#fff' }}>KEEP YOUR</span><br />
+          <span style={{ color: 'var(--accent)' }}>COACH.</span>
+        </div>
 
-        <div style={{ position: 'relative', zIndex: 1, paddingTop: 24 }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>// 14-DAY FREE TRIAL</div>
+        {/* 4 ── SUBHEAD */}
+        <p style={{ ...body, fontSize: 15, color: '#fff', lineHeight: 1.5, marginBottom: 28, marginTop: 0 }}>
+          {firstName ? `${firstName}, your` : 'Your'} coach learned how you train, eat, and recover — and built your Coach Score, Training DNA, and a plan that adapts every day. Lock it in before you lose it.
+        </p>
 
-          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 52, lineHeight: '46px', textTransform: 'uppercase', marginBottom: 12 }}>
-            YOUR TRIAL<br /><span style={{ color: 'var(--accent)' }}>IS OVER.</span>
+        {/* 5 ── WHAT YOU KEEP */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ ...mono, fontSize: 10.5, color: 'var(--accent)', letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 14 }}>
+            // what your coach keeps doing
           </div>
-
-          <div style={{ fontFamily: 'var(--condensed)', fontWeight: 400, fontSize: 17, color: 'rgba(245,245,240,0.6)', lineHeight: '24px', marginBottom: 20 }}>
-            Don't lose your coach. Everything that made the last 14 days work — gone without a plan.
-          </div>
-
-          <div style={{ height: 1, background: 'rgba(245,245,240,0.06)', marginBottom: 16 }} />
-
-          {/* Outcomes */}
           {[
-            'Macros that adjust to your training automatically',
-            'A coach in your pocket every morning',
-            'Plateau detection before you even notice it',
-            'Full muscle recovery map after every session',
-            'Restaurant AI — order smart wherever you eat',
+            "A plan that rewrites itself around every workout and every night of sleep",
+            "Snap a photo, get full macros in 3 seconds",
+            "Restaurant orders, recipes, and a morning brief on tap",
+            "Coach Score & Training DNA, recalculated daily",
           ].map((text, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-              <div style={{ width: 18, height: 18, borderRadius: 9, background: 'rgba(var(--accent-rgb),0.15)', border: '1px solid rgba(var(--accent-rgb),0.3)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
-                <span style={{ color: 'var(--accent)', fontSize: 10 }}>✓</span>
-              </div>
-              <span style={{ fontFamily: 'var(--condensed)', fontSize: 17, color: '#f5f5f0', lineHeight: '22px' }}>{text}</span>
+            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
+              <span style={{ color: 'var(--accent)', fontSize: 15, fontWeight: 700, lineHeight: '22px', flexShrink: 0 }}>→</span>
+              <span style={{ ...body, fontSize: 14.5, color: '#fff', lineHeight: '22px' }}>{text}</span>
             </div>
           ))}
-
-          <div style={{ marginBottom: 20 }} />
-
-          {/* Pricing — side by side */}
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-            {/* Monthly */}
-            <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '1px solid rgba(245,245,240,0.08)', padding: 16 }}>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.4)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>MONTHLY</div>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$12.99</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br />billed monthly</div>
-              <button
-                onClick={purchaseMonthlyFn}
-                disabled={loading}
-                style={{ width: '100%', background: 'transparent', border: '1px solid rgba(245,245,240,0.15)', borderRadius: 10, padding: 11, fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, color: '#f5f5f0', letterSpacing: 1.4, textTransform: 'uppercase', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}
-              >GET MONTHLY →</button>
-            </div>
-
-            {/* Annual */}
-            <div style={{ flex: 1, background: '#0d0d0d', borderRadius: 14, border: '2px solid var(--accent)', padding: 16, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: -1, right: -1, background: 'var(--accent)', borderRadius: '0 12px 0 8px', padding: '4px 10px', fontFamily: 'var(--mono)', fontSize: 8, color: '#fff', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>FOUNDING</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>ANNUAL</div>
-              <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 36, color: '#f5f5f0', lineHeight: 1 }}>$4.17</div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.35)', marginTop: 3, marginBottom: 12, lineHeight: 1.6 }}>per month<br /><span style={{ textDecoration: 'line-through', opacity: 0.5 }}>$69.99</span> $49.99 billed yearly</div>
-              <button
-                onClick={purchaseAnnualFn}
-                disabled={loading}
-                style={{ width: '100%', background: 'var(--accent)', border: 'none', borderRadius: 10, padding: 13, fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, color: '#fff', letterSpacing: 1.4, textTransform: 'uppercase', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}
-              >GET ANNUAL →</button>
-            </div>
-          </div>
-
-          {/* Bottom */}
-          <div style={{ textAlign: 'center', marginTop: 4 }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Cancel anytime · No hidden fees</div>
-            <button
-              onClick={doRestore}
-              disabled={loading}
-              style={{ background: 'none', border: 'none', fontFamily: 'var(--mono)', fontSize: 11, color: 'rgba(245,245,240,0.3)', textDecoration: 'underline', cursor: 'pointer' }}
-            >Restore Purchase</button>
-          </div>
         </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,59,48,0.25)', marginBottom: 24 }} />
+
+        {/* 6 ── PLAN TOGGLE */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          {/* Annual */}
+          <button
+            onClick={() => setPlan("annual")}
+            style={{
+              flex: 1, padding: '14px 12px', borderRadius: 12, cursor: 'pointer',
+              background: plan === "annual" ? 'rgba(255,59,48,0.1)' : 'transparent',
+              border: plan === "annual" ? '2px solid var(--accent)' : '2px solid rgba(255,255,255,0.15)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ ...condensed, fontSize: 18, color: '#fff', lineHeight: 1, marginBottom: 4 }}>Annual</div>
+            <div style={{ ...mono, fontSize: 10.5, color: 'var(--accent)', letterSpacing: 1 }}>67% off</div>
+          </button>
+
+          {/* Monthly */}
+          <button
+            onClick={() => setPlan("monthly")}
+            style={{
+              flex: 1, padding: '14px 12px', borderRadius: 12, cursor: 'pointer',
+              background: 'transparent',
+              border: plan === "monthly" ? '2px solid var(--accent)' : '2px solid rgba(255,255,255,0.15)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ ...condensed, fontSize: 18, color: '#fff', lineHeight: 1, marginBottom: 4 }}>Monthly</div>
+            <div style={{ ...mono, fontSize: 10.5, color: '#fff', letterSpacing: 1 }}>$12.99/mo</div>
+          </button>
+        </div>
+
+        {/* 7 ── OFFER CARD */}
+        <div style={{ background: '#0d0d0d', border: '1.5px solid rgba(255,59,48,0.35)', borderRadius: 16, padding: '20px 20px 22px', marginBottom: 16, position: 'relative' }}>
+          {/* Top accent line */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--accent)', borderRadius: '16px 16px 0 0' }} />
+
+          {plan === "annual" && (
+            <>
+              {/* Badge */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--accent)', borderRadius: 20, padding: '4px 12px', marginBottom: 18, marginTop: 4 }}>
+                <span style={{ ...mono, fontSize: 9.5, color: 'var(--accent)', letterSpacing: 1.8, textTransform: 'uppercase' }}>FOUNDING · LOCKED FOR LIFE</span>
+              </div>
+
+              {/* Price row */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
+                <span style={{ ...condensed, fontStyle: 'italic', fontSize: 24, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through', textDecorationColor: 'var(--accent)', lineHeight: 1 }}>$69.99</span>
+                <span style={{ ...condensed, fontSize: 58, color: 'var(--accent)', lineHeight: 1 }}>$49.99</span>
+                <span style={{ ...body, fontSize: 18, color: '#fff', paddingBottom: 6 }}>/yr</span>
+              </div>
+
+              {/* Reframe */}
+              <div style={{ ...body, fontSize: 14, color: '#fff', marginBottom: 6 }}>Less than $1 a week after your trial</div>
+
+              {/* Competitor */}
+              <div style={{ ...body, fontSize: 12.5, color: '#fff' }}>MacroFactor charges $71.99 for less.</div>
+            </>
+          )}
+
+          {plan === "monthly" && (
+            <>
+              {/* Price row */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 10, marginTop: 4 }}>
+                <span style={{ ...condensed, fontSize: 58, color: 'var(--accent)', lineHeight: 1 }}>$12.99</span>
+                <span style={{ ...body, fontSize: 18, color: '#fff', paddingBottom: 6 }}>/mo</span>
+              </div>
+              <div style={{ ...body, fontSize: 14, color: '#fff' }}>Billed monthly. Cancel anytime.</div>
+            </>
+          )}
+        </div>
+
+        {/* 8 ── CTA BUTTON */}
+        <button
+          onClick={plan === "annual" ? purchaseAnnualFn : purchaseMonthlyFn}
+          disabled={loading}
+          style={{
+            width: '100%', padding: 18, background: 'var(--accent)', border: 'none',
+            borderRadius: 16, cursor: loading ? 'default' : 'pointer',
+            ...condensed, fontSize: 21, color: '#fff', letterSpacing: 1,
+            opacity: loading ? 0.7 : 1, marginBottom: 8,
+          }}
+        >
+          {loading ? '…' : plan === "annual" ? "Keep My Coach →" : "Start Monthly →"}
+        </button>
+
+        {/* Inline error */}
+        {purchaseError ? (
+          <div style={{ ...mono, fontSize: 12, color: '#fff', textAlign: 'center', marginBottom: 12 }}>{purchaseError}</div>
+        ) : null}
+
+        {/* 9 ── TRUST ROW */}
+        <div style={{ ...mono, fontSize: 10.5, color: '#fff', letterSpacing: 1.4, textTransform: 'uppercase', textAlign: 'center', marginBottom: 12 }}>
+          $0.00 TODAY · CANCEL ANYTIME · LOCKED FOR LIFE
+        </div>
+
+        {/* 10 ── RESTORE LINK */}
+        <div style={{ textAlign: 'center' }}>
+          <button
+            onClick={doRestore}
+            disabled={loading}
+            style={{ background: 'none', border: 'none', ...mono, fontSize: 11, color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}
+          >Restore purchase</button>
+        </div>
+
       </div>
     </div>
   );

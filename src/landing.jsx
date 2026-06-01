@@ -754,11 +754,11 @@ function ProofSection() {
       </div>
       <div className="lp-proof-stats">
         {[
-          {num:'47',label:'athletes in closed beta'},
+          {label:'Founding member access'},
           {num:'12',suffix:'wk',label:'data window per profile'},
           {num:'$0',red:true,label:'charged in trial · ever'},
-        ].map(s => (
-          <div className="lp-proof-stat fade-up" key={s.num}>
+        ].map((s, i) => (
+          <div className="lp-proof-stat fade-up" key={i}>
             <div className="lp-proof-num">
               <span className={s.red?'red':''}>{s.num}</span>
               {s.suffix && <span style={{fontSize:'0.5em',color:'var(--red)'}}>{s.suffix}</span>}
@@ -821,24 +821,8 @@ function WaitlistSection() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [count, setCount] = useState(28);
 
-  useEffect(() => {
-    const el = document.getElementById('waitlist');
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) {
-        let n = 28;
-        const tick = setInterval(() => {
-          n += Math.ceil((47 - n) / 12);
-          if (n >= 47) { n = 47; clearInterval(tick); }
-          setCount(n);
-        }, 60);
-      }
-    }, { threshold: 0.3 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
+  // Counter animation removed — no fake social proof numbers.
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -880,7 +864,7 @@ function WaitlistSection() {
           <>
             <h2 className="lp-wl-hl">Be First.</h2>
             <p className="lp-wl-sub">Join the waitlist. Get <strong>30 days free at launch</strong>. No credit card ever.</p>
-            <div className="lp-wl-counter">{count.toLocaleString()} athletes already waiting</div>
+            <div className="lp-wl-counter">Founding member access</div>
             <form className="lp-wl-form" onSubmit={handleSubmit}>
               <input className="lp-wl-input" type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name"/>
               <input className="lp-wl-input" type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"/>

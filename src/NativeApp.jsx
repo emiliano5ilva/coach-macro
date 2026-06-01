@@ -5,6 +5,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES,
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { Capacitor } from '@capacitor/core';
 import { Onboarding } from "./ob_screens.jsx";
+import { NewOnboarding, NEW_ONBOARDING } from "./ob_new.jsx";
 import { App } from "./ob_screens2.jsx";
 import { getAge } from "./utils/safety.js";
 import { getErrorMessage } from "./utils/errors.js";
@@ -248,27 +249,23 @@ function AuthScreen({onAuth, startView="welcome"}) {
     logoTapTimer.current=setTimeout(()=>{logoTapCount.current=0;},600);
   }
 
+  // Signs in as testuser AND upserts a complete profile → lands in the main app.
   async function handleDevSkip(){
     setDevLoading(true);setDevError("");
     try{
       let userData=null;
-
-      // 1. Try signing in with the test account
       const{data:signInData,error:signInErr}=await sb.auth.signInWithPassword({
         email:"testuser@coachm.dev",password:"CoachTest123!",
       });
       if(!signInErr&&signInData?.user?.id){
         userData=signInData.user;
-      } else {
-        // 2. Account doesn't exist — create it
+      }else{
         const{data:signUpData,error:signUpErr}=await sb.auth.signUp({
           email:"testuser@coachm.dev",password:"CoachTest123!",
         });
         if(signUpErr)throw signUpErr;
-        // If email confirmation is enabled the session may be null; re-try sign-in
-        if(signUpData?.session){
-          userData=signUpData.user;
-        } else {
+        if(signUpData?.session){userData=signUpData.user;}
+        else{
           const{data:d2,error:e2}=await sb.auth.signInWithPassword({
             email:"testuser@coachm.dev",password:"CoachTest123!",
           });
@@ -276,31 +273,28 @@ function AuthScreen({onAuth, startView="welcome"}) {
           userData=d2?.user;
         }
       }
-
       if(!userData?.id)throw new Error("Could not get dev user");
-
-      // 3. Upsert a minimal profile so loadProfile goes straight to app phase
       await sb.from("profiles").upsert({
         id:userData.id,
-        profile_data:{
-          name:"Dev User",
-          email:"testuser@coachm.dev",
-          goal:"muscle_gain",
-          liftExp:"intermediate",
-          cardioExp:"intermediate",
-          subscription_tier:"annual",
-          startDate:new Date().toISOString().split("T")[0],
-        },
-        subscription_tier:"annual",
-        subscription_started_at:new Date().toISOString(),
-        is_pro:true,
+        profile_data:{name:"Dev User",email:"testuser@coachm.dev",goal:"muscle_gain",liftExp:"intermediate",cardioExp:"intermediate",subscription_tier:"annual",startDate:new Date().toISOString().split("T")[0]},
+        subscription_tier:"annual",subscription_started_at:new Date().toISOString(),is_pro:true,
       },{onConflict:"id"});
-
       onAuth(userData,null);
-    }catch(e){
-      setDevError(e?.message||"Dev skip failed");
-    }
+    }catch(e){setDevError(e?.message||"Dev skip failed");}
     setDevLoading(false);
+  }
+
+  // Dev-only: bypasses ALL network calls. Injects a fake user object directly
+  // and calls onAuth, which calls loadProfile. loadProfile will find no profile
+  // row (deleted from Supabase already) and set phase="onboarding" → ob_new.jsx.
+  // If the DB call itself fails due to network/RLS, the catch block in loadProfile
+  // also sets phase="onboarding" — either path lands in onboarding.
+  function handleOnboardingTest(){
+    const fakeUser={
+      id:"85e58fe7-f2f3-4597-a4a9-9b0ea90121dc",
+      email:"testuser@coachm.dev",
+    };
+    onAuth(fakeUser,null);
   }
 
   const [resendCooldown,setResendCooldown]=useState(0);
@@ -399,15 +393,27 @@ function AuthScreen({onAuth, startView="welcome"}) {
             YOUR COACH.
           </div>
         </div>
-        <p style={{fontSize:13,color:"rgba(245,245,240,0.30)",marginTop:22,lineHeight:1.6,textAlign:"center",maxWidth:260}}>
+        <p style={{fontSize:13,color:"#FFFFFF",marginTop:22,lineHeight:1.6,textAlign:"center",maxWidth:260}}>
           AI-powered macros and training built around your body, your goals, and your life.
         </p>
       </div>
       <div style={{width:"100%",maxWidth:420}}>
         <button onClick={()=>setView("signup")} style={{width:"100%",padding:"17px",background:"var(--red)",color:"white",fontWeight:800,fontSize:15,letterSpacing:"0.1em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:10}}>Get Started →</button>
-        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"15px",background:"transparent",color:"rgba(245,245,240,0.55)",fontWeight:600,fontSize:14,letterSpacing:"0.08em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:4}}>Sign In</button>
-        {socialDivider}{appleBtn}{googleBtn}
+        <button onClick={()=>setView("signin")} style={{width:"100%",padding:"15px",background:"transparent",color:"#FFFFFF",fontWeight:600,fontSize:14,letterSpacing:"0.08em",border:"none",borderRadius:14,cursor:"pointer",textTransform:"uppercase",fontFamily:"var(--condensed)",marginBottom:4}}>Sign In</button>
         {error&&<ErrorMessage error={error} style={{marginTop:8}}/>}
+        {showDevSkip&&(
+          <div style={{marginTop:20,borderTop:"1px dashed rgba(245,245,240,0.08)",paddingTop:14,textAlign:"center"}}>
+            {devError&&<div style={{fontSize:10,color:"#f87171",fontFamily:"var(--mono)",marginBottom:6}}>{devError}</div>}
+            <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+              <button onClick={handleDevSkip} disabled={devLoading} style={{background:"none",border:"none",color:"rgba(245,245,240,0.22)",cursor:devLoading?"default":"pointer",fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.1em",padding:"4px 8px"}}>
+                {devLoading?"…":"DEV SKIP →"}
+              </button>
+              <button onClick={handleOnboardingTest} style={{background:"none",border:"1px dashed rgba(245,245,240,0.15)",borderRadius:6,color:"rgba(245,245,240,0.35)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:10,letterSpacing:"0.1em",padding:"4px 8px"}}>
+                ONBOARDING →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -460,9 +466,14 @@ function AuthScreen({onAuth, startView="welcome"}) {
         {showDevSkip&&view==="signin"&&(
           <div style={{marginTop:32,borderTop:"1px dashed rgba(245,245,240,0.08)",paddingTop:16,textAlign:"center"}}>
             {devError&&<div style={{fontSize:10,color:"#f87171",fontFamily:"var(--mono)",marginBottom:8}}>{devError}</div>}
-            <button onClick={handleDevSkip} disabled={devLoading} style={{background:"none",border:"none",color:"rgba(245,245,240,0.25)",cursor:devLoading?"default":"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.10em",padding:"4px 8px"}}>
-              {devLoading?"…":"DEV SKIP →"}
-            </button>
+            <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+              <button onClick={handleDevSkip} disabled={devLoading} style={{background:"none",border:"none",color:"rgba(245,245,240,0.25)",cursor:devLoading?"default":"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.10em",padding:"4px 8px"}}>
+                {devLoading?"…":"DEV SKIP →"}
+              </button>
+              <button onClick={handleOnboardingTest} style={{background:"none",border:"1px dashed rgba(245,245,240,0.15)",borderRadius:6,color:"rgba(245,245,240,0.35)",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.10em",padding:"4px 8px"}}>
+                ONBOARDING →
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -649,7 +660,7 @@ export default function NativeApp() {
     await loadProfile(authUser.id);
   }
 
-  function handleProfileDone(od,tdee){
+  async function handleProfileDone(od,tdee){
     const a=getAge(od.dobYear,od.dobMonth,od.dobDay);
     const baseProf={
       name:od.name,email:od.email||user?.email||"",
@@ -669,7 +680,40 @@ export default function NativeApp() {
       is_youth:a!==null&&a>=13&&a<18,
       is_older_adult:a!==null&&a>=65,
     };
-    setProfile(baseProf);setPhase("onboarding-fuel");
+    if(NEW_ONBOARDING){
+      // Augment with fuel + training fields collected by the new single-flow onboarding.
+      // In the old flow these were added by handleFuelDone + handleTrainDone.
+      const _rateMap={"−500":-500,"−250":-250,"−125":-125,"+125":125,"+250":250,"+500":500};
+      const _rateOffset=_rateMap[od.goalRate]||0;
+      const _goalCap=od.goal?(od.goal.charAt(0).toUpperCase()+od.goal.slice(1).toLowerCase()):"Maintain";
+      const _goalCals=(od.goal==="maintain"||od.goal==="recomp")?tdee.total:Math.max(1200,tdee.total+_rateOffset);
+      Object.assign(baseProf,{
+        goal:_goalCap,
+        goalRate:od.goalRate||"",
+        goalCals:_goalCals,
+        freq:od.freq||"",
+        trainType:od.trainType||"",
+        liftExp:od.liftExp||od.experience||"",
+        cardioExp:od.cardioExp||od.experience||"",
+        why:od.why||"",
+        trialEndsAt:new Date(Date.now()+14*86400000).toISOString(),
+        trialStartAt:new Date().toISOString(),
+      });
+    }
+    setProfile(baseProf);
+    // New flow: stay on "onboarding" — NewOnboarding continues to crescendo+paywall.
+    // Old flow: advance to fuel onboarding.
+    setPhase(NEW_ONBOARDING ? "onboarding" : "onboarding-fuel");
+    if(NEW_ONBOARDING&&user?.id){
+      console.log("[handleProfileDone] saving profile to Supabase…");
+      try{
+        const saved=await saveProfile(user.id,baseProf,schedule,wPrefs);
+        if(saved)console.log("[handleProfileDone] profile saved ✓");
+        else console.error("[handleProfileDone] saveProfile returned false — check Supabase");
+      }catch(e){
+        console.error("[handleProfileDone] saveProfile threw:",e);
+      }
+    }
   }
 
   function handleFuelDone(fuelData){
@@ -859,7 +903,11 @@ export default function NativeApp() {
     </div>
   );
 
-  if(phase==="onboarding")return<Onboarding onComplete={(d,tdee)=>handleProfileDone(d,tdee)} user={user} signupName={signupName}/>;
+  if(phase==="onboarding"){
+    if(NEW_ONBOARDING)return<NewOnboarding onComplete={(d,tdee)=>handleProfileDone(d,tdee)} user={user} signupName={signupName}/>;
+    return<Onboarding onComplete={(d,tdee)=>handleProfileDone(d,tdee)} user={user} signupName={signupName}/>;
+  }
+  // Old fuel+train onboarding (only reachable when NEW_ONBOARDING=false)
   if(phase==="onboarding-fuel")return<FuelOnboarding d={profile} onComplete={handleFuelDone} onBack={()=>setPhase("onboarding")}/>;
   if(phase==="onboarding-train")return<TrainOnboarding d={profile} onComplete={handleTrainDone} onBack={()=>setPhase("onboarding-fuel")}/>;
 

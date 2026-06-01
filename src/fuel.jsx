@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import FoodIcon from "./FoodIcon.jsx";
+import { getFoodIcon } from "./iconMap.js";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import BarcodeScanner from "./BarcodeScanner.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
@@ -617,6 +619,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {recentFoods.map((f, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+                      <FoodIcon name={f.food_name} size={28} userId={user?.id} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.food_name}</div>
                         <div style={{ fontSize: 10, color: T.mu }}>
@@ -640,6 +643,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {frequentFoods.map((f, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+                      <FoodIcon name={f.food_name} size={28} userId={user?.id} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.food_name}</div>
                         <div style={{ fontSize: 10, color: T.mu }}>
@@ -1101,12 +1105,14 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
     if(!selectedFood)return;
     const grams=portionMode==="custom"?(parseFloat(customPortionInput)||portionGrams):portionGrams;
     const m=calcMacros(selectedFood,grams);
+    const foodLabel=selectedFood.name+(selectedFood.brand?` (${selectedFood.brand})`:"");
     const entry={
       id:Date.now(),
-      food:selectedFood.name+(selectedFood.brand?` (${selectedFood.brand})`:""),
+      food:foodLabel,
       ...m,grams,
       slot:mealSlots[activeSlotIdx]||1,
       source:selectedFood.source||"usda",
+      icon:getFoodIcon(foodLabel),
     };
     logEntry(entry);
     if(user)saveFoodToHistory(user.id,selectedFood).catch(()=>{});
@@ -1239,15 +1245,18 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       {!searching&&results.length>0&&(
         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,marginBottom:16,overflow:"hidden"}}>
           {results.slice(0,12).map((food,i)=>(
-            <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit"}}>
-              <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>{food.name}</div>
-              <div style={{fontSize:11,color:T.mu,display:"flex",gap:10,flexWrap:"wrap"}}>
-                {food.brand&&<span>{food.brand} ·</span>}
-                <span>{food.calories} kcal</span>
-                <span style={{color:T.prot}}>P {food.protein}g</span>
-                <span style={{color:T.carb}}>C {food.carbs}g</span>
-                <span style={{color:T.fat}}>F {food.fat}g</span>
-                <span style={{color:"rgba(245,245,240,0.2)",marginLeft:"auto",fontSize:9,textTransform:"uppercase",letterSpacing:1}}>{food.source==="off"?"Open FF":"USDA"}</span>
+            <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10}}>
+              <FoodIcon name={food.name} size={28} userId={user?.id} />
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>{food.name}</div>
+                <div style={{fontSize:11,color:T.mu,display:"flex",gap:10,flexWrap:"wrap"}}>
+                  {food.brand&&<span>{food.brand} ·</span>}
+                  <span>{food.calories} kcal</span>
+                  <span style={{color:T.prot}}>P {food.protein}g</span>
+                  <span style={{color:T.carb}}>C {food.carbs}g</span>
+                  <span style={{color:T.fat}}>F {food.fat}g</span>
+                  <span style={{color:"rgba(245,245,240,0.2)",marginLeft:"auto",fontSize:9,textTransform:"uppercase",letterSpacing:1}}>{food.source==="off"?"Open FF":"USDA"}</span>
+                </div>
               </div>
             </button>
           ))}
@@ -1339,6 +1348,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {(myFoodsExpanded?myFoods:myFoods.slice(0,6)).map((food,i)=>(
                   <button key={food.id||i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                    <FoodIcon name={food.name} size={28} userId={user?.id} />
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:13,marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{food.name}</div>
                       <div style={{fontSize:10,color:T.mu}}>{food.calories} kcal · <span style={{color:T.prot}}>P {food.protein}g</span> · <span style={{color:T.carb}}>C {food.carbs}g</span> · <span style={{color:T.fat}}>F {food.fat}g</span></div>
@@ -1952,9 +1962,10 @@ Reply with ONLY a valid JSON object, no markdown:
 
   function handleQuickLog(food, grams, slot, isQuick){
     const fg = grams != null ? grams / 100 : 1;
+    const foodLabel = food.name + (food.brand ? ` (${food.brand})` : "");
     const entry = grams != null ? {
       id: Date.now(),
-      food: food.name + (food.brand ? ` (${food.brand})` : ""),
+      food: foodLabel,
       calories: Math.round((food.calories||0)*fg),
       protein: Math.round((food.protein||0)*fg*10)/10,
       carbs: Math.round((food.carbs||0)*fg*10)/10,
@@ -1962,6 +1973,7 @@ Reply with ONLY a valid JSON object, no markdown:
       grams,
       slot: slot || mealSlots[activeSlotIdx] || 1,
       source: food.source || "usda",
+      icon: getFoodIcon(foodLabel),
     } : {
       id: Date.now(),
       food: food.name,
@@ -1971,6 +1983,7 @@ Reply with ONLY a valid JSON object, no markdown:
       fat: food.fat||0,
       slot: slot || mealSlots[activeSlotIdx] || 1,
       source: "quick",
+      icon: getFoodIcon(food.name),
     };
     logEntryWithUndo(entry);
     if(user && food.id && grams != null) {
@@ -2526,11 +2539,10 @@ Reply with ONLY a valid JSON object, no markdown:
                                 style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
                               >
                                 <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                                  <div style={{width:30,height:30,borderRadius:8,background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0,overflow:"hidden"}}>
-                                    {item.photo_url
-                                      ?<img src={item.photo_url} style={{width:30,height:30,borderRadius:8,objectFit:"cover"}} alt=""/>
-                                      :item.method==="photo"?"📸":item.method==="barcode"?"🔲":item.method==="quick"?"✏️":"🧠"}
-                                  </div>
+                                  {item.photo_url
+                                    ? <div style={{width:32,height:32,borderRadius:8,overflow:"hidden",flexShrink:0}}><img src={item.photo_url} style={{width:32,height:32,objectFit:"cover"}} alt=""/></div>
+                                    : <FoodIcon name={item} method={item.method} size={32} userId={user?.id} />
+                                  }
                                   <div style={{flex:1,minWidth:0}}>
                                     <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
                                     <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"var(--mono)"}}>

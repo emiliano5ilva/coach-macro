@@ -10,7 +10,8 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
 import { showToast, subscribeToast } from "./utils/toast.js";
 import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES,
-  PROMOS, AthletePassport, TrainingDNA, PerformanceCalendar, RacePredictor } from "./sections.jsx";
+  PROMOS, AthletePassport, TrainingDNA, PerformanceCalendar, RacePredictor,
+  WeekStrip } from "./sections.jsx";
 import { getWorkoutForDay } from "./programs.js";
 import { FuelSection } from "./fuel.jsx";
 import { sb, ai, streamAI } from "./client.js";
@@ -6129,34 +6130,10 @@ Rules:
           </div>
         </div>
 
-        {/* Weekly roadmap — intermediate/advanced: 7-day grid. beginner: next session hint */}
-        {userTier==='beginner'
-          ?(
-            <div style={{margin:"0 20px 14px",padding:"14px 16px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NEXT SESSION</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{todayFocus||"Training Day"}<span style={{color:"var(--accent)"}}>.</span></div>
-              <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",marginTop:4}}>Go to the Train tab to start your session.</div>
-            </div>
-          ):(
-            <>
-              <div className="section-title">This Week</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,margin:"0 20px 14px"}}>
-                {weekDays.map((day,i)=>{
-                  const type=schedule[day]||"rest";
-                  const isToday2=day===todayKey;
-                  const colors={training:"var(--red)",cardio:"var(--blue)",run:"var(--blue)",hyrox:"var(--amber)",rest:"rgba(245,245,240,0.06)"};
-                  const c=colors[type]||colors.rest;
-                  return (
-                    <div key={i} style={{aspectRatio:"1",borderRadius:10,background:isToday2?c:(type==="rest"?colors.rest:`${c}22`),border:"1px solid "+(isToday2?"transparent":(type==="rest"?"var(--white-border)":`${c}55`)),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:10,color:type==="rest"?"var(--white-faint)":"var(--white)",letterSpacing:"0.06em"}}>{weekDayLetters[i]}</div>
-                      {isToday2&&<div style={{width:5,height:5,borderRadius:"50%",background:"white"}}/>}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )
-        }
+        {/* Weekly roadmap — WeekStrip reuses the same component as the Train tab */}
+        <div style={{margin:"0 20px 14px"}}>
+          <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={dayFocus} sessionCount={workoutLogsRaw.length} todayType={todayType}/>
+        </div>
 
         {/* Macros */}
         <div className="section-title">Macros Today</div>
