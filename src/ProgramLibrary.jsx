@@ -501,17 +501,54 @@ function ProgIcon({prog, size=28}) {
 
 // ─── PROGRAM LIBRARY SCREEN ───────────────────────────────────────────────────
 const FILTER_TABS = [
-  { id:"All",      cats:null },
-  { id:"Strength", cats:["Hypertrophy","Strength"] },
-  { id:"Running",  cats:["Running"] },
-  { id:"Hyrox",    cats:["Hyrox"] },
-  { id:"Hybrid",   cats:["Hybrid"] },
-  { id:"Glute",    cats:["Glute Focus"] },
-  { id:"Fat Loss", cats:["Fat Loss & Conditioning"] },
+  { id:"All",        cats:null },
+  { id:"Strength",   cats:["Hypertrophy","Strength"] },
+  { id:"Golden Era", cats:["Golden Era"] },
+  { id:"Running",    cats:["Running"] },
+  { id:"Hyrox",      cats:["Hyrox"] },
+  { id:"Hybrid",     cats:["Hybrid"] },
+  { id:"MetCon",     cats:["MetCon"] },
+  { id:"Glute",      cats:["Glute Focus"] },
+  { id:"Fat Loss",   cats:["Fat Loss & Conditioning"] },
+  { id:"Sport",      cats:["Sport"] },
 ];
 
+// Equipment compatibility — what equipment tags each profile setting unlocks
+const EQUIPMENT_COMPAT = {
+  minimal:   ["minimal","bodyweight","dumbbell"],
+  dumbbells: ["dumbbell","minimal","cable","dumbbells"],
+  home_bar:  ["barbell","dumbbell","minimal","cable","home_bar"],
+  full:      null, // all
+};
+
+// trainType → default filter tab
+const TRAINTYPE_DEFAULT_TAB = {
+  strength: "Strength",
+  run:      "Running",
+  hyrox:    "Hyrox",
+  hybrid:   "Hybrid",
+  metcon:   "MetCon",
+  sport:    "Sport",
+};
+
+function isEquipmentCompatible(prog, profileEquipment) {
+  if (!profileEquipment || profileEquipment === "full") return true;
+  const allowed = EQUIPMENT_COMPAT[profileEquipment];
+  if (!allowed) return true;
+  if (!prog.equipment || prog.equipment.length === 0) return true;
+  return prog.equipment.some(e => allowed.includes(e));
+}
+
+function isSessionCompatible(prog, profileSessionLength) {
+  if (!profileSessionLength || profileSessionLength === "90") return true;
+  const maxMins = { "20": 30, "45": 50, "60": 70 }[profileSessionLength];
+  if (!maxMins || !prog.sessionMins) return true;
+  return prog.sessionMins <= maxMins;
+}
+
 export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScreen, user }) {
-  const [catFilter, setCatFilter] = useState("All");
+  const defaultCategory = TRAINTYPE_DEFAULT_TAB[profile?.trainType] || "All";
+  const [catFilter, setCatFilter] = useState(defaultCategory);
   const [levelFilter, setLevelFilter] = useState("All");
   const [detailProg, setDetailProg] = useState(null);
   const [confirmProg, setConfirmProg] = useState(null);
@@ -570,6 +607,17 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
     if (levelFilter !== "All" && p.level !== levelFilter) return false;
     return true;
   });
+
+  // "BUILT FOR YOU" — programs matching trainType + equipment + sessionLength
+  const recommended = PROGRAM_LIBRARY.filter(p => {
+    const tabMatch = TRAINTYPE_DEFAULT_TAB[profile?.trainType];
+    if (!tabMatch) return false;
+    const tab = FILTER_TABS.find(t => t.id === tabMatch);
+    if (tab?.cats && !tab.cats.includes(p.category)) return false;
+    if (!isEquipmentCompatible(p, profile?.equipment)) return false;
+    if (!isSessionCompatible(p, profile?.sessionLength)) return false;
+    return true;
+  }).slice(0, 3);
 
   async function rateProgram(progId, rating) {
     try {
@@ -723,6 +771,30 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         ))}
       </div>
 
+      {/* BUILT FOR YOU */}
+      {recommended.length > 0 && catFilter === "All" && (
+        <div style={{ marginBottom:24 }}>
+          <div style={{ fontFamily:"var(--mono)", fontSize:10, color:"var(--accent)", letterSpacing:"0.16em", textTransform:"uppercase", marginBottom:10 }}>// Built For You</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {recommended.map(prog => {
+              const isCurrent = currentId === prog.id;
+              const lvlColor = prog.level==="Beginner"?"#34D399":prog.level==="Advanced"?"#F87171":"#FBbF24";
+              return (
+                <button key={prog.id} onClick={() => setDetailProg(prog)}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"12px 14px", background:isCurrent?"rgba(var(--accent-rgb),.08)":"rgba(245,245,240,.03)", border:`1px solid ${isCurrent?"var(--accent)":"rgba(245,245,240,.08)"}`, borderRadius:12, cursor:"pointer", textAlign:"left", color:"#fff", fontFamily:"inherit" }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily:"var(--condensed)", fontStyle:"italic", fontWeight:900, fontSize:16, color:"#fff", lineHeight:1, marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{prog.name}</div>
+                    <div style={{ fontFamily:"var(--mono)", fontSize:9, color:lvlColor, letterSpacing:"0.1em", textTransform:"uppercase" }}>{prog.level} · {prog.days}d/wk{prog.weeks ? ` · ${prog.weeks}wk` : ""}</div>
+                  </div>
+                  <div style={{ fontFamily:"var(--mono)", fontSize:9, color:"var(--accent)", letterSpacing:"0.08em", flexShrink:0 }}>VIEW →</div>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ height:1, background:"rgba(245,245,240,.06)", margin:"16px 0 4px" }} />
+        </div>
+      )}
+
       {/* Program grid */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:32 }}>
         {filtered.map(prog => {
@@ -730,8 +802,9 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           const isCurrent = currentId === prog.id;
           const r = ratings[prog.id] || { avg: 0, count: 0 };
           const lvlColor = prog.level==="Beginner"?"#34D399":prog.level==="Advanced"?"#F87171":"#FBbF24";
+          const equipOk = isEquipmentCompatible(prog, profile?.equipment);
           return (
-            <div key={prog.id} className={`plib-card${isCurrent?" current":""}`} onClick={() => setDetailProg(prog)} style={{overflow:"hidden"}}>
+            <div key={prog.id} className={`plib-card${isCurrent?" current":""}`} onClick={() => setDetailProg(prog)} style={{overflow:"hidden", opacity: equipOk ? 1 : 0.75}}>
               {(()=>{ const img=getProgramImage(prog.id); return img?(
                 <div style={{position:"relative",width:"calc(100% + 32px)",height:100,margin:"-16px -16px 12px -16px",borderRadius:"12px 12px 0 0",overflow:"hidden"}}>
                   <img src={img} alt={prog.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}} onError={e=>{e.target.parentElement.style.display="none";}}/>
@@ -754,6 +827,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
               )}
               {isCurrent && <div style={{ fontSize:10, fontWeight:700, color:"#2979FF", letterSpacing:".08em", marginTop:6 }}>▶ CURRENT</div>}
               {prog.comingSoon && <div style={{ fontSize:10, fontWeight:700, color:T.mu, letterSpacing:".08em", marginTop:6 }}>COMING SOON</div>}
+              {!equipOk && <div style={{ fontSize:9, color:"rgba(245,245,240,.35)", letterSpacing:".06em", marginTop:4 }}>Requires: full gym</div>}
             </div>
           );
         })}

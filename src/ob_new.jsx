@@ -426,6 +426,8 @@ function initData(user, signupName) {
     activity: "moderate",
     conditions_old: [],
     healthConditions: [],
+    equipment: "",
+    sessionLength: "",
   };
 }
 
@@ -485,7 +487,7 @@ export function NewOnboarding({ onComplete, user, signupName }) {
   // FIX 1 + 4: removed screens 1 (name ask) and 2 (Apple Health).
   // FIX 2: goalWeight (25) moved to immediately after current weight (6).
   function getScreenList() {
-    const base = [3,4,5,6,25,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+    const base = [3,4,5,6,25,7,8,9,10,11,12,"12b","12c",13,14,15,16,17,18,19,20,21];
     if (isFemale) base.push("21b");
     base.push(22,23,24,26,27,28,29,30,31);
     return base;
@@ -878,8 +880,39 @@ export function NewOnboarding({ onComplete, user, signupName }) {
             { v: "run", l: "Running / Cardio", e: "🏃" },
             { v: "hyrox", l: "Hyrox / CrossFit", e: "🔥" },
             { v: "hybrid", l: "Hybrid — mix of types", e: "⚡" },
+            { v: "metcon", l: "MetCon", e: "💥", sub: "Metabolic conditioning — mixed modal high intensity" },
             { v: "sport", l: "Sport specific", e: "🏅" },
           ].map(o => <TapCard key={o.v} {...o} selected={d.trainType === o.v} onClick={() => auto("trainType", o.v)} />)}
+        </div>
+      );
+
+      // ── 12b — Equipment access ─────────────────────────────────────────────
+      case "12b": return (
+        <div style={{ animation: "fadeIn 0.25s ease" }}>
+          <Eyebrow>// Equipment</Eyebrow>
+          <Headline>What equipment do you <span style={{ color: "var(--accent)" }}>train with?</span></Headline>
+          <Sub>This filters programs to only show what actually works for you.</Sub>
+          {[
+            { v: "full",      l: "Full commercial gym",     e: "🏛️", sub: "Barbells, cables, machines — everything" },
+            { v: "home_bar",  l: "Home gym with barbell",   e: "🏋️", sub: "Barbell, rack, dumbbells" },
+            { v: "dumbbells", l: "Dumbbells and cables only", e: "💪", sub: "No barbell available" },
+            { v: "minimal",   l: "Bodyweight / minimal",    e: "🌿", sub: "Bands, bodyweight, light weights" },
+          ].map(o => <TapCard key={o.v} {...o} selected={d.equipment === o.v} onClick={() => auto("equipment", o.v)} />)}
+        </div>
+      );
+
+      // ── 12c — Session length ──────────────────────────────────────────────
+      case "12c": return (
+        <div style={{ animation: "fadeIn 0.25s ease" }}>
+          <Eyebrow>// Session Length</Eyebrow>
+          <Headline>How long are your <span style={{ color: "var(--accent)" }}>sessions?</span></Headline>
+          <Sub>Your typical training session — warm-up to done.</Sub>
+          {[
+            { v: "20",  l: "20–30 minutes",    e: "⚡" },
+            { v: "45",  l: "Around 45 minutes", e: "🔥" },
+            { v: "60",  l: "About an hour",     e: "💪" },
+            { v: "90",  l: "90 minutes or more", e: "🏛️" },
+          ].map(o => <TapCard key={o.v} {...o} selected={d.sessionLength === o.v} onClick={() => auto("sessionLength", o.v)} />)}
         </div>
       );
 

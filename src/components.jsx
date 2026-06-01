@@ -133,7 +133,7 @@ export function calcTDEE(p) {
   const im = {light:.03,moderate:.06,hard:.10,extreme:.14}[p.intensity]??0;
   const am = {sedentary:0,moderate:.04,very:.09}[p.activity]??0;
   const fs = p.freq==="7+"?1:p.freq==="4-6"?.85:p.freq==="1-3"?.5:0;
-  const tm = {strength:0,cardio:.03,hybrid:.05,hyrox:.07,run:.04,sport:.03}[p.trainType]??0;
+  const tm = {strength:0,cardio:.03,hybrid:.05,hyrox:.07,metcon:.07,run:.04,sport:.03}[p.trainType]??0;
   let mult = Math.min(1.2+jm+sm+fm+(im*fs)+am+tm, 1.90);
   let tdee = bmr*mult;
   if(p.sleep==="u5")tdee*=0.93; else if(p.sleep==="5-6")tdee*=0.96;
@@ -150,6 +150,7 @@ export function getDayMacros(baseCals, goal, dayType, earnedCals=0, opts={}) {
     cardio:  {Bulk:1.00,Cut:0.90,Maintain:0.95},
     run:     {Bulk:1.00,Cut:0.90,Maintain:0.95},
     hyrox:   {Bulk:1.05,Cut:0.95,Maintain:1.00},
+    metcon:  {Bulk:1.05,Cut:0.95,Maintain:1.00},
     rest:    {Bulk:0.85,Cut:0.75,Maintain:0.85},
   };
   const splits = {
@@ -157,6 +158,7 @@ export function getDayMacros(baseCals, goal, dayType, earnedCals=0, opts={}) {
     cardio:  {Bulk:[.38,.35,.27],Cut:[.30,.45,.25],Maintain:[.35,.38,.27]},
     run:     {Bulk:[.38,.35,.27],Cut:[.30,.45,.25],Maintain:[.35,.38,.27]},
     hyrox:   {Bulk:[.42,.33,.25],Cut:[.32,.43,.25],Maintain:[.38,.37,.25]},
+    metcon:  {Bulk:[.42,.33,.25],Cut:[.32,.43,.25],Maintain:[.38,.37,.25]},
     rest:    {Bulk:[.25,.45,.30],Cut:[.20,.50,.30],Maintain:[.25,.40,.35]},
   };
   const g=goal||"Maintain", dt=(dayType&&mult[dayType])?dayType:"rest";
