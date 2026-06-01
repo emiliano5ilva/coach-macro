@@ -214,6 +214,32 @@ export async function saveWorkoutToHealth({ durationMinutes, activeCalories, wor
   }
 }
 
+export async function getHRVBaseline(days = 30) {
+  const kit = await hk();
+  if (!kit) return null;
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const result = await kit.querySampleType({
+      sampleName: "heartRateVariabilitySDNN",
+      startDate: since.toISOString(),
+      endDate: isoNow(),
+      limit: 200,
+      ascending: true,
+    });
+    const samples = result?.output ?? [];
+    if (samples.length < 5) return null; // not enough data for a baseline
+    const values = samples.map(s => {
+      const raw = Number(s.value);
+      return raw < 1 ? raw * 1000 : raw; // convert s→ms if needed
+    }).filter(v => v > 5 && v < 300); // sanity bounds
+    if (!values.length) return null;
+    return Math.round(values.reduce((a, b) => a + b, 0) / values.length * 10) / 10;
+  } catch {
+    return null;
+  }
+}
+
 export async function getDailyHealthSnapshot() {
   const [sleep, steps, rhr, hrv, calories] = await Promise.all([
     getLastNightSleep(),

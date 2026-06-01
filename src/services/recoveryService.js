@@ -1,6 +1,7 @@
 import { sb } from '../client';
 import { musclesToSvgIds, svgIdsToMuscleGroups } from '../data/muscleMapping';
 import { EXERCISE_MUSCLE_GROUP } from '../exercise_database';
+import { computeLoadMetrics } from './trainingLoadService';
 
 const GROUP_TO_SVG = {
   chest:     ['chest'],
@@ -192,7 +193,7 @@ export async function getRecentCheckins(userId, days = 14) {
   return data ?? [];
 }
 
-export function getReadinessModifier(profile, checkin, recentFoodLogs) {
+export function getReadinessModifier(profile, checkin, recentFoodLogs, workoutLogs) {
   const coachScore = profile?.coach_score ?? 75;
   const readiness  = checkin?.readiness ?? 'good';
   const soreness   = checkin?.overall_soreness ?? 0;
@@ -229,6 +230,36 @@ export function getReadinessModifier(profile, checkin, recentFoodLogs) {
   if (adherence < 0.75) {
     intensity = Math.min(intensity, 0.85);
     reasons.push('Under-fuelled this week');
+  }
+
+  // CTL/ATL/TSB training load signal
+  if (workoutLogs?.length) {
+    const load = computeLoadMetrics(workoutLogs);
+    if (load.trend === 'overreached') {
+      volume    = Math.min(volume, 0.65);
+      intensity = Math.min(intensity, 0.75);
+      reasons.push('Training load very high — form score critically negative');
+    } else if (load.trend === 'fatigued') {
+      volume = Math.min(volume, 0.85);
+      reasons.push('Accumulated fatigue high');
+    } else if (load.trend === 'fresh') {
+      reasons.push('Form positive — primed to perform');
+    }
+  }
+
+  // HRV signal — uses ratio vs personal 30-day baseline
+  const latestHRV  = profile?.profile_data?.latestHRV;
+  const hrvBaseline = profile?.profile_data?.hrvBaseline;
+  if (latestHRV && hrvBaseline) {
+    const hrvRatio = latestHRV.value / hrvBaseline;
+    if (hrvRatio < 0.85) {
+      volume    = Math.min(volume, 0.80);
+      intensity = Math.min(intensity, 0.85);
+      reasons.push(`HRV ${Math.round((1 - hrvRatio) * 100)}% below your baseline — autonomic recovery incomplete`);
+    } else if (hrvRatio > 1.10) {
+      volume = Math.min(volume * 1.05, 1.10);
+      reasons.push('HRV elevated — primed to perform');
+    }
   }
 
   const label = volume < 0.75 ? 'recovery' : volume < 0.90 ? 'reduced' : 'full';

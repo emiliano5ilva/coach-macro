@@ -1,5 +1,59 @@
-import { sb } from '../client';
-import { ai } from '../client';
+import { sb, ai } from '../client';
+import { computeLoadMetrics } from './trainingLoadService';
+
+// ── RED-S + Overreaching detectors ────────────────────────────────────────────
+
+export function detectREDS(foodLogs, workoutLogs, checkins, profile) {
+  if (!foodLogs?.length || foodLogs.length < 14) return null;
+
+  const tdee = profile?.profile_data?.baseTDEE ?? profile?.profile_data?.tdee ?? 2500;
+  const recentFood = foodLogs.slice(0, 21);
+  const avgCalories = recentFood.reduce((s, l) => s + (l.calories ?? 0), 0) / recentFood.length;
+  const avgAdherence = avgCalories / tdee;
+  const chronicallyUnderfuelled = avgAdherence < 0.80;
+
+  const recentVolume = workoutLogs.slice(0, 7).reduce((s, l) => s + (l.volume_lbs ?? 0), 0) / 7;
+  const olderVolume  = workoutLogs.slice(14, 21).reduce((s, l) => s + (l.volume_lbs ?? 0), 0) / 7;
+  const performanceDeclining = olderVolume > 0 && recentVolume < olderVolume * 0.85;
+
+  const recentCheckins = checkins.slice(0, 14);
+  const avgSoreness = recentCheckins.reduce((s, c) => s + (c.overall_soreness ?? 0), 0) / (recentCheckins.length || 1);
+  const poorRecovery = avgSoreness > 6 ||
+    recentCheckins.filter(c => c.readiness === 'tired' || c.readiness === 'rough').length > recentCheckins.length * 0.5;
+
+  if (chronicallyUnderfuelled && performanceDeclining && poorRecovery) {
+    return {
+      detected: true,
+      severity: avgAdherence < 0.70 ? 'high' : 'moderate',
+      message: `Energy availability has been below recommended levels for 3+ weeks (avg ${Math.round(avgCalories)} vs ${Math.round(tdee)} target). Combined with declining performance and elevated soreness, this matches a pattern associated with RED-S (relative energy deficiency in sport). We strongly recommend reviewing nutrition with a sports dietitian.`,
+    };
+  }
+  return { detected: false };
+}
+
+export function detectOverreaching(workoutLogs, checkins, profile) {
+  if (!workoutLogs?.length || workoutLogs.length < 21) return null;
+
+  const recentAvgVolume = workoutLogs.slice(0, 7).reduce((s, l) => s + (l.volume_lbs ?? 0), 0) / 7;
+  const olderAvgVolume  = workoutLogs.slice(14, 21).reduce((s, l) => s + (l.volume_lbs ?? 0), 0) / 7;
+  const performanceDeclining = olderAvgVolume > 0 && recentAvgVolume < olderAvgVolume * 0.90;
+
+  const recentPRs = workoutLogs.slice(0, 21).reduce((s, l) => s + (l.pr_count ?? 0), 0);
+  const noProgress = recentPRs === 0;
+
+  const recentCheckins = (checkins ?? []).slice(0, 14);
+  const consistentlyTired = recentCheckins.filter(c =>
+    c.readiness === 'tired' || c.readiness === 'rough'
+  ).length > recentCheckins.length * 0.4;
+
+  if (performanceDeclining && noProgress && consistentlyTired) {
+    return {
+      detected: true,
+      message: `Performance has declined for 3+ weeks despite consistent training. This is a sign of non-functional overreaching — the body isn't adapting, it's accumulating fatigue. We recommend 5-7 days of complete rest or very light activity only. This is not a setback — it's a required investment in the next block of progress.`,
+    };
+  }
+  return { detected: false };
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -87,11 +141,22 @@ export async function runWeeklyAnalysis(userId, profile) {
         : 0,
       mostFrequentPrimarySoreness: getMostFrequent(checkins.flatMap(c => c.primary_soreness ?? [])),
       exerciseProgression: getExerciseProgression(workoutLogs),
+      loadMetrics: computeLoadMetrics(workoutLogs),
     },
     previousAnalysis: profile?.adaptive_profile?.lastAnalysis ?? null,
   };
 
-  const prompt = `You are an elite strength and conditioning coach analyzing an athlete's training data.
+  // Run detectors and inject as high-priority signals
+  const redsCheck = detectREDS(foodLogs, workoutLogs, checkins, profile);
+  const overreachCheck = detectOverreaching(workoutLogs, checkins, profile);
+  const redsSignal = redsCheck?.detected
+    ? `\n⚠️ RED-S PATTERN DETECTED. This is the highest priority finding. Reference it explicitly in keyInsight and morningBriefNote. Recommend professional nutrition consultation. Set injuryRisk to "high".`
+    : '';
+  const overreachSignal = overreachCheck?.detected
+    ? `\n⚠️ OVERREACHING DETECTED. Set nextWeekPhase to "deload" and deloadRecommended to true. Reference it in keyInsight.`
+    : '';
+
+  const prompt = `You are an elite strength and conditioning coach analyzing an athlete's training data.${redsSignal}${overreachSignal}
 Return ONLY valid JSON, no markdown, no explanation.
 You understand periodization, progressive overload, recovery science, and nutrition timing.
 Be direct, honest, and specific to this athlete's data. Never give generic advice.
@@ -139,6 +204,8 @@ Return this exact JSON structure:
     ...(profile?.adaptive_profile ?? {}),
     lastAnalysis:     analysis,
     lastAnalysisDate: new Date().toISOString().split('T')[0],
+    redsDetected:     redsCheck?.detected ? redsCheck : null,
+    overreachDetected: overreachCheck?.detected ? overreachCheck : null,
     analysisHistory:  [
       analysis,
       ...((profile?.adaptive_profile?.analysisHistory ?? []).slice(0, 11)),

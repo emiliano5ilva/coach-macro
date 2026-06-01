@@ -42,7 +42,9 @@ export function getConsecutiveFailures(exerciseName, workoutLogs) {
   return failures;
 }
 
-export function computeNextWeight(exerciseName, workoutLogs, programId) {
+export function computeNextWeight(exerciseName, workoutLogs, programId, profile) {
+  const goal = profile?.profile_data?.goal;
+  const isCutting = goal === 'lose_weight' || goal === 'cut' || goal === 'fat_loss' || goal === 'Lose Weight';
   const isUpper = /bench|press|row|curl|fly|raise|dip|pulldown|push|extension|skullcrusher|overhead/i.test(exerciseName);
   const isBodyweight = /pull.?up|chin.?up|dip|push.?up|plank|lunge|squat.*body/i.test(exerciseName);
   const isCardio = /run|row|ski|erg|carry|walk|bike/i.test(exerciseName);
@@ -77,10 +79,17 @@ export function computeNextWeight(exerciseName, workoutLogs, programId) {
   }
 
   if (!last.allCompleted) {
+    const holdMsg = isCutting
+      ? `Holding at ${last.weight}kg — strength preservation during a cut is the goal, not progression. This is correct.`
+      : `Hold at ${last.weight}kg — hit all sets before adding weight`;
+    return { weight: last.weight, action: 'hold', message: holdMsg };
+  }
+
+  if (isCutting && failures >= 2) {
     return {
       weight: last.weight,
       action: 'hold',
-      message: `Hold at ${last.weight}kg — hit all sets before adding weight`,
+      message: `Holding at ${last.weight}kg — strength preservation during a cut is the goal, not progression. This is correct.`,
     };
   }
 
@@ -91,9 +100,12 @@ export function computeNextWeight(exerciseName, workoutLogs, programId) {
   };
 }
 
-export function detectPlateau(exerciseName, workoutLogs) {
+export function detectPlateau(exerciseName, workoutLogs, profile) {
+  const goal = profile?.profile_data?.goal;
+  const isCutting = goal === 'lose_weight' || goal === 'cut' || goal === 'fat_loss' || goal === 'Lose Weight';
+  const lookbackDays = isCutting ? 42 : 28; // 6 weeks vs 4 for cutting athletes
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 28);
+  cutoff.setDate(cutoff.getDate() - lookbackDays);
   const recent = workoutLogs.filter(l =>
     new Date(l.date) >= cutoff &&
     l.workout?.exercises?.some(e => e.name?.toLowerCase() === exerciseName?.toLowerCase())

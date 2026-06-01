@@ -229,6 +229,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   const [goalH, setGoalH] = useState("1");
   const [goalM, setGoalM] = useState("00");
   const [goalS, setGoalS] = useState("00");
+  const [raceDate, setRaceDate] = useState("");
   const [realisticSug, setRealisticSug] = useState(null);
   const [goalError, setGoalError] = useState("");
 
@@ -330,6 +331,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
           goalDistance: goalDist,
           goalTime: gs,
           goalDate: null,
+          raceDate: raceDate || null,
           planWeeks: recommendPlanWeeks(vdot, goalVdot),
           planStartDate: today,
           paces: trainingPaces(vdot),
@@ -645,6 +647,19 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             <div style={{ fontSize:11, color:"rgba(245,245,240,.45)" }}>{DIST_LABELS[goalDist]} · already applied to the fields above</div>
           </div>
         )}
+
+        {/* Optional race date */}
+        <div style={{ marginTop:20, marginBottom:4 }}>
+          <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:6 }}>Race date <span style={{ color:"rgba(245,245,240,.35)" }}>(optional)</span></div>
+          <div style={{ fontSize:11, color:"rgba(245,245,240,.4)", marginBottom:8 }}>If you have a race booked, we'll build your peak fitness around it.</div>
+          <input
+            type="date"
+            value={raceDate}
+            onChange={e => setRaceDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+            style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 14px", color:"#fff", fontSize:15, ...MONO, outline:"none", boxSizing:"border-box", colorScheme:"dark" }}
+          />
+        </div>
 
         {goalError && <div style={{ color:"#F87171", fontSize:12, marginTop:10 }}>{goalError}</div>}
         <CTABtn onClick={proceedToConfirm} disabled={!(parseInt(gMin)||parseInt(gSec))}>See My Plan →</CTABtn>

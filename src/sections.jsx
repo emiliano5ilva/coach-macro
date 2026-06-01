@@ -23,6 +23,7 @@ import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
 import { shouldRunAnalysis, runWeeklyAnalysis } from "./services/adaptiveAnalysisService.js";
 import { getTodayCheckin } from "./services/recoveryService.js";
+import { getWeatherPaceAdjustment, applyWeatherToPaces } from "./services/weatherService.js";
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle, getLifeFactorMod } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
@@ -1951,6 +1952,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [adaptiveSession,setAdaptiveSession]=useState(null);
   const [todayCheckin,setTodayCheckin]=useState(null);
   const [recentFoodLogs,setRecentFoodLogs]=useState([]);
+  const [weatherAdjustment,setWeatherAdjustment]=useState(null);
   useEffect(()=>{
     if(!user?.id)return;
     // Load today's check-in
@@ -1964,6 +1966,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     shouldRunAnalysis(user.id).then(should=>{
       if(should)runWeeklyAnalysis(user.id,profile).catch(()=>{});
     }).catch(()=>{});
+    // Weather adjustment for run sessions — fire once
+    if(wPrefs?.isHybrid||wPrefs?.isHyrox||(wPrefs?.splitType||'').toLowerCase().includes('run')){
+      if(navigator?.geolocation){
+        navigator.geolocation.getCurrentPosition(pos=>{
+          getWeatherPaceAdjustment(pos.coords.latitude,pos.coords.longitude)
+            .then(w=>setWeatherAdjustment(w)).catch(()=>{});
+        },()=>{},{timeout:4000,maximumAge:3600000});
+      }
+    }
   },[user?.id]);
 
   useEffect(()=>{
@@ -2259,9 +2270,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     if(todayPrescription){
       todayPrescription=enrichRunSession(todayPrescription);
       if(runPaces) todayPrescription={...todayPrescription,description:resolvePaceTokens(todayPrescription.description||"",runPaces)};
-      // Phase 4: apply VDOT-derived paces on top of old token system
-      const _vdotPaces=profile?.runProfile?.paces??null;
+      // Phase 4: apply VDOT-derived paces (with weather adjustment for hot days)
+      const _rawPaces=profile?.runProfile?.paces??null;
+      const _vdotPaces=weatherAdjustment?.adjustmentFactor>1.0?applyWeatherToPaces(_rawPaces,weatherAdjustment.adjustmentFactor):_rawPaces;
       if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+      if(weatherAdjustment?.note&&todayPrescription) todayPrescription={...todayPrescription,description:`⚠️ ${weatherAdjustment.note}\n`+(todayPrescription.description||"")};
     }
   }else if(prescType==="hyrox"){
     todayProgObj=HYROX_PROGRAM;
@@ -3148,6 +3161,22 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {/* ── TODAY ── */}
         {trainScreen==="today"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Race periodization banner */}
+            {(()=>{
+              const rp=profile?.runProfile;
+              if(!rp?.raceDate)return null;
+              const today=new Date(),race=new Date(rp.raceDate);
+              const weeksToRace=Math.ceil((race-today)/(7*24*60*60*1000));
+              const total=rp.planWeeks??12;
+              const done=total-weeksToRace;
+              const phase=weeksToRace>total*0.6?'Base':weeksToRace>total*0.3?'Build':weeksToRace>total*0.15?'Peak':weeksToRace>0?'Taper':'Race Week';
+              const phaseColor=phase==='Taper'?'#FF9500':phase==='Race Week'?'#FF3B30':'rgba(245,245,240,0.6)';
+              return(
+                <div style={{fontFamily:"var(--mono)",fontSize:11,color:phaseColor,letterSpacing:"0.14em",textTransform:"uppercase",padding:"4px 0"}}>
+                  Week {Math.max(1,done)} of {total} — {phase}
+                </div>
+              );
+            })()}
             {/* TODAY HERO CARD */}
             {(()=>{
               const heroLvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
@@ -3181,6 +3210,26 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
               )}
               {/* ── Adaptive coaching banners ── */}
+              {/* RED-S / Overreaching priority alert */}
+              {(()=>{
+                const reds=profile?.adaptive_profile?.redsDetected;
+                const over=profile?.adaptive_profile?.overreachDetected;
+                const alert=reds||over;
+                if(!alert)return null;
+                const [expanded,setExpanded]=React.useState(false);
+                const title=reds?'RED-S Pattern Detected':'Overreaching Detected';
+                const msg=reds?reds.message:over.message;
+                return(
+                  <div style={{background:'#1a0000',border:'2px solid #FF3B30',borderRadius:12,padding:'14px 16px',marginTop:10}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
+                      <span style={{fontSize:18}}>⚠️</span>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
+                      <span style={{marginLeft:'auto',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,.4)'}}>{expanded?'▲':'▼'}</span>
+                    </div>
+                    {expanded&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,.75)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,.2)',paddingTop:10,marginTop:4}}>{msg}</div>}
+                  </div>
+                );
+              })()}
               {adaptiveSession?.injuryRisk==="high"&&adaptiveSession?.injuryNote&&(
                 <div style={{background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.35)",borderRadius:10,padding:"10px 14px",marginTop:10,display:"flex",gap:10,alignItems:"flex-start"}}>
                   <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
@@ -3193,6 +3242,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               )}
               {adaptiveSession?.modifier?.label&&adaptiveSession.modifier.label!=="full"&&(
                 <AdaptiveBanner modifier={adaptiveSession.modifier} analysis={adaptiveSession?.analysisInsight}/>
+              )}
+              {/* Session spacing alert */}
+              {adaptiveSession?.spacingAlert&&(
+                <div style={{background:adaptiveSession.spacingAlert.severity==='high'?'rgba(255,149,0,0.10)':'rgba(255,255,255,.04)',border:`1.5px solid ${adaptiveSession.spacingAlert.severity==='high'?'#FF9500':'rgba(255,255,255,.15)'}`,borderRadius:10,padding:'10px 14px',marginTop:8,display:'flex',gap:8,alignItems:'flex-start'}}>
+                  <span style={{fontSize:15,flexShrink:0}}>{adaptiveSession.spacingAlert.type==='conflict'?'⚠️':'💤'}</span>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,.75)',lineHeight:1.55}}>{adaptiveSession.spacingAlert.message}</div>
+                </div>
               )}
               {/* Pregnancy permanent safety banner */}
               {profile?.lifeStage==="pregnant"&&(

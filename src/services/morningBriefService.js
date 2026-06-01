@@ -8,6 +8,9 @@ import { getActivePlateaus } from './plateauService.js';
 import { getLatestBalance, getBalanceCorrections } from './muscleBalanceService.js';
 import { getRecentAdjustments } from './periodisationService.js';
 import { analyseRPETrends } from './rpeTrendingService.js';
+import { getPreLoadingNote, getProteinDistributionInsight } from './nutritionTimingService.js';
+import { computeLoadMetrics } from './trainingLoadService.js';
+import { getWeatherPaceAdjustment } from './weatherService.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
@@ -147,7 +150,56 @@ export async function gatherBriefContext(userId) {
     // Adaptive coaching
     todayCheckin: todayCheckinRow ?? null,
     weeklyAnalysis: adaptiveProfileRow?.lastAnalysis ?? null,
+    preLoadingNote: null,   // computed below
+    proteinInsight: null,   // computed below
+    hrvNote: null,          // computed below
   };
+
+  // Derive tomorrow's session from the schedule for pre-loading
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][tomorrow.getDay()];
+  const tomorrowType = (wp.schedule || {})[tomorrowKey] || 'rest';
+  const tomorrowFocus = (wp.dayFocus || {})[tomorrowKey] || null;
+  const tomorrowSession = tomorrowType === 'training'
+    ? { type: tomorrowFocus || 'Strength', exercises: null }
+    : null;
+  ctx.preLoadingNote = getPreLoadingNote(tomorrowSession, p);
+
+  // Protein distribution from food_history (use richer food_history table)
+  const { data: foodHistoryRows } = await sb.from('food_history').select('date,calories,protein').eq('user_id', userId).order('date', { ascending: false }).limit(7);
+  const proteinTarget = Math.round(((p.goalCals || 2200) * 0.30) / 4);
+  ctx.proteinInsight = getProteinDistributionInsight(foodHistoryRows ?? [], proteinTarget);
+
+  // Weather — only relevant for run days
+  const isRunDay = tomorrowType === 'training' || todayType === 'training';
+  if (isRunDay && (wp.isHybrid || wp.isHyrox || (wp.splitType||'').toLowerCase().includes('run'))) {
+    const coords = await new Promise(resolve => {
+      if (!navigator?.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => resolve(null),
+        { timeout: 4000, maximumAge: 3600000 }
+      );
+    });
+    if (coords) {
+      const weather = await getWeatherPaceAdjustment(coords.lat, coords.lon).catch(() => null);
+      ctx.weatherNote = weather?.note ?? null;
+    }
+  }
+  if (!ctx.weatherNote) ctx.weatherNote = null;
+
+  // HRV note — only when HRV differs meaningfully from baseline
+  const latestHRV  = p?.latestHRV ?? adaptiveProfileRow?.lastAnalysis?.latestHRV ?? null;
+  const hrvBaseline = p?.hrvBaseline ?? null;
+  if (latestHRV && hrvBaseline) {
+    const ratio = latestHRV.value / hrvBaseline;
+    if (Math.abs(ratio - 1) > 0.10) {
+      const direction = ratio < 1 ? 'below' : 'above';
+      ctx.hrvNote = `HRV: ${latestHRV.value.toFixed(0)}ms (baseline ${hrvBaseline.toFixed(0)}ms — ${Math.round(Math.abs(ratio - 1) * 100)}% ${direction} normal)`;
+    }
+  }
+
+  return ctx;
 }
 
 export async function generateBriefContent(ctx) {
@@ -252,7 +304,29 @@ ${JSON.stringify({
 
 Use this data to make the brief feel like a real coach who knows this athlete intimately. Reference soreness by muscle name if reported. Acknowledge what is progressing. Be specific about today's session adjustments. Never be generic.` : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}
+  // Training load block
+  const { data: loadLogs } = await sb.from('workout_logs').select('date,session_duration_mins,workout,volume_lbs').eq('user_id', (await sb.auth.getUser()).data.user?.id ?? 'x').gte('date', (() => { const d=new Date(); d.setDate(d.getDate()-60); return d.toISOString().split('T')[0]; })()).order('date',{ascending:false}).limit(60).catch(()=>({data:[]}));
+  const load = computeLoadMetrics(ctx._workoutLogs ?? loadLogs ?? []);
+  const tsbBlock = load.tsb < -20
+    ? `\n\nLOAD ALERT: Training stress balance is critically negative (TSB: ${load.tsb}). Athlete is likely overreached. Recommend recovery focus today.`
+    : (load.tsb > 10 && ctx.runProfile?.raceDate)
+    ? `\n\nFORM PEAK: Athlete is in optimal form (TSB: +${load.tsb}). Race-ready.`
+    : '';
+
+  const hrvBlock = ctx.hrvNote
+    ? `\n\nHRV NOTE: ${ctx.hrvNote}. Reference this in coach_says if it meaningfully affects today's training recommendation.`
+    : '';
+  const weatherBlock = ctx.weatherNote
+    ? `\n\nWEATHER NOTE: ${ctx.weatherNote} Warn the athlete explicitly in coach_says before they head out.`
+    : '';
+  const preLoadBlock = ctx.preLoadingNote
+    ? `\n\nTONIGHT'S NUTRITION NOTE: ${ctx.preLoadingNote.message} Adjust the evening meal recommendation accordingly.`
+    : '';
+  const proteinBlock = ctx.proteinInsight
+    ? `\n\nPROTEIN INSIGHT: ${ctx.proteinInsight.message}`
+    : '';
+
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}${tsbBlock}${hrvBlock}${weatherBlock}${preLoadBlock}${proteinBlock}
 
 Context:
 - Name: ${ctx.name}

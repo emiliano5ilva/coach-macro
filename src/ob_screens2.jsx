@@ -78,6 +78,7 @@ import { runOutreachCheck, calibrateFrequency } from "./services/outreachService
 import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, getPercentileLabel, interpolatePercentile } from "./services/peerComparisonService.js";
 import { getUserMode, getUserTier, getVisibleSections, getProgressTabs } from "./utils/dashboardResolver.js";
 import { COACH_SCORE_LABELS, RING_CONFIG } from "./config/dashboardConfig.js";
+import { getPostWorkoutWindow } from "./services/nutritionTimingService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -3676,6 +3677,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [checkinDone,setCheckinDone]=useState(false);
   const [morningCheckinDone,setMorningCheckinDone]=useState(false);
   const [morningCheckinChecked,setMorningCheckinChecked]=useState(false);
+  const [postWorkoutPrompt,setPostWorkoutPrompt]=useState(null);
 
   // ── Biological Algorithm ───────────────────────────────────────────────────
   const [bioInsights,setBioInsights]=useState({});
@@ -4791,6 +4793,8 @@ Rules:
             });
           }
           recordWorkoutRecovery(user.id, setsLogged).catch(() => {});
+          const pwWindow=getPostWorkoutWindow(activeWorkout);
+          if(pwWindow)setPostWorkoutPrompt(pwWindow);
           window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
