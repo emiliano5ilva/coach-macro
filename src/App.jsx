@@ -1,7 +1,7 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { LandingPage } from './landing.jsx';
 import { PrivacyPolicy, TermsOfService, HealthDisclaimer, HealthDataNotice,
-  WashingtonPrivacy, CaliforniaPrivacy, SupportPage } from './legal.jsx';
+  WashingtonPrivacy, CaliforniaPrivacy, TexasPrivacy, SupportPage } from './legal.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import FAQPage from './pages/FAQPage.jsx';
 
@@ -32,6 +32,7 @@ function WebApp() {
   if (path === '/health-data-notice') return <HealthDataNotice />;
   if (path === '/washington-privacy') return <WashingtonPrivacy />;
   if (path === '/california-privacy') return <CaliforniaPrivacy />;
+  if (path === '/texas-privacy')      return <TexasPrivacy />;
   if (path === '/support')            return <SupportPage />;
   if (path === '/about')              return <AboutPage />;
   if (path === '/faq')                return <FAQPage />;
