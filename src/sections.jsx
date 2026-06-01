@@ -20,6 +20,9 @@ import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
+import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
+import { shouldRunAnalysis, runWeeklyAnalysis } from "./services/adaptiveAnalysisService.js";
+import { getTodayCheckin } from "./services/recoveryService.js";
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle, getLifeFactorMod } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
 import { getAge, getAgeAppropriateProgram, applyOlderAdultProgram, HEALTH_CONDITIONS_SAFETY } from "./utils/safety.js";
@@ -60,6 +63,46 @@ function enrichHyroxDesc(text, hyroxProfile) {
     .replace(/\bfarmer/gi,       (m) => tgt.farmers?.goal     ? `${m} (target: ${fmtS(tgt.farmers.goal)})` : m)
     .replace(/\bsandbag/gi,      (m) => tgt.sandbag?.goal     ? `${m} (target: ${fmtS(tgt.sandbag.goal)})` : m)
     .replace(/\browingerg\b|\browing\b/gi, (m) => tgt.rowing?.goal ? `${m} (target: ${fmtS(tgt.rowing.goal)})` : m);
+}
+
+// ─── ADAPTIVE COACHING UI COMPONENTS ─────────────────────────────────────────
+function AdaptiveBanner({ modifier, analysis }) {
+  const [expanded,setExpanded]=React.useState(false);
+  const isRecovery=modifier.label==='recovery';
+  const icon=isRecovery?'🔄':'⬇️';
+  const title=isRecovery?'Recovery session':'Reduced volume';
+  return(
+    <div onClick={()=>setExpanded(e=>!e)} style={{background:'#1a1a1a',borderLeft:'3px solid #FF3B30',borderRadius:'4px 10px 10px 4px',padding:'12px 16px',marginTop:10,cursor:'pointer'}}>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:18,flexShrink:0}}>{icon}</span>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'#f5f5f0',textTransform:'uppercase'}}>{title}</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.65)',marginTop:2}}>{modifier.reasons?.join(' · ')}</div>
+        </div>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.35)'}}>{expanded?'▲':'▼'}</span>
+      </div>
+      {expanded&&(
+        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.55)',lineHeight:1.6}}>
+            Volume target: <span style={{color:'#f5f5f0'}}>{Math.round(modifier.volumeMultiplier*100)}%</span> of normal.{' '}
+            Intensity: <span style={{color:'#f5f5f0'}}>{Math.round(modifier.intensityMultiplier*100)}%</span>.
+          </div>
+          {analysis&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.45)',marginTop:6,lineHeight:1.55}}>Weekly insight: {analysis}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WeightSuggestion({ prog }) {
+  if(!prog)return null;
+  const colorMap={increase:'#34C759',hold:'rgba(245,245,240,0.75)',deload:'#FF9500',new:'rgba(245,245,240,0.5)'};
+  const prefixMap={increase:'↑',hold:'→',deload:'↓',new:''};
+  return(
+    <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:colorMap[prog.action]||'rgba(245,245,240,0.6)',marginTop:4,lineHeight:1.4}}>
+      {prefixMap[prog.action]} {prog.weight?`${prog.weight}kg`:''}{prog.action==='increase'?' today':prog.action==='hold'?' (hold)':prog.action==='deload'?' (reset)':''}{prog.message?` — ${prog.message}`:''}
+    </div>
+  );
 }
 
 // ─── WORKOUT BUILDER ──────────────────────────────────────────────────────────
@@ -1904,6 +1947,41 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     getTodaySoreness(user.id).then(s=>setTodaySoreness(s)).catch(()=>{});
   },[user?.id]);
 
+  // ── Adaptive session ─────────────────────────────────────────────────────────
+  const [adaptiveSession,setAdaptiveSession]=useState(null);
+  const [todayCheckin,setTodayCheckin]=useState(null);
+  const [recentFoodLogs,setRecentFoodLogs]=useState([]);
+  useEffect(()=>{
+    if(!user?.id)return;
+    // Load today's check-in
+    getTodayCheckin(user.id).then(c=>setTodayCheckin(c??null)).catch(()=>{});
+    // Load recent food logs
+    const since=new Date();since.setDate(since.getDate()-7);
+    sb.from('food_history').select('date,calories,protein').eq('user_id',user.id)
+      .gte('date',since.toISOString().split('T')[0]).order('date',{ascending:false}).limit(7)
+      .then(({data})=>setRecentFoodLogs(data??[])).catch(()=>{});
+    // Weekly analysis fire-and-forget
+    shouldRunAnalysis(user.id).then(should=>{
+      if(should)runWeeklyAnalysis(user.id,profile).catch(()=>{});
+    }).catch(()=>{});
+  },[user?.id]);
+
+  useEffect(()=>{
+    if(!Array.isArray(todayPrescription)||!todayPrescription.length)return;
+    try{
+      const session=buildAdaptiveSession(
+        todayPrescription,
+        history?Object.values(history).flat():[],
+        profile,
+        wPrefs?._libraryId||wPrefs?.splitType,
+        todayCheckin,
+        recentFoodLogs
+      );
+      setAdaptiveSession(session);
+    }catch(e){console.error('[adaptiveSession]',e);}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[todayCheckin,recentFoodLogs,wPrefs?.splitType]);
+
   // ── End session confirmation ─────────────────────────────────────────────
   const [endConfirm,setEndConfirm]=useState(false);
 
@@ -3102,6 +3180,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div>~{estMin} min</div><div>{exCount} exercises</div><div>Volume: {totalSets} sets</div>
                 </div>
               )}
+              {/* ── Adaptive coaching banners ── */}
+              {adaptiveSession?.injuryRisk==="high"&&adaptiveSession?.injuryNote&&(
+                <div style={{background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.35)",borderRadius:10,padding:"10px 14px",marginTop:10,display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
+                  <div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Injury Risk</div>
+                    <div style={{fontSize:12,color:"rgba(245,245,240,0.85)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
+                    <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",marginTop:3}}>Consider seeing a physio before continuing.</div>
+                  </div>
+                </div>
+              )}
+              {adaptiveSession?.modifier?.label&&adaptiveSession.modifier.label!=="full"&&(
+                <AdaptiveBanner modifier={adaptiveSession.modifier} analysis={adaptiveSession?.analysisInsight}/>
+              )}
               {/* Pregnancy permanent safety banner */}
               {profile?.lifeStage==="pregnant"&&(
                 <>
@@ -3243,11 +3335,28 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             {todayPrescription.map((ex,i)=>(
                               <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)"}}>
                                 <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--mono)",fontSize:10,color:"var(--accent)",fontWeight:700,flexShrink:0}}>{i+1}</div>
-                                <div style={{flex:1,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                <div style={{flex:1}}>
+                                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                  {(()=>{
+                                    const prog=adaptiveSession?.progressions?.[ex.name];
+                                    const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
+                                    return(<>
+                                      {conflict&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {conflict.zone.replace(/_/g,' ')} still recovering</div>}
+                                      {prog&&prog.action!=='new'&&<WeightSuggestion prog={prog}/>}
+                                    </>);
+                                  })()}
+                                </div>
                                 <div style={{fontFamily:"var(--mono)",fontSize:12,color:"rgba(245,245,240,0.7)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
                               </div>
                             ))}
                           </div>
+                          {adaptiveSession?.hasPlateau&&(
+                            <div style={{background:"#1a1a1a",border:"1px solid rgba(255,59,48,0.3)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>You've pushed this program to its limit.</div>
+                              <div style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
+                              <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.12)",border:"1.5px solid rgba(255,59,48,0.35)",borderRadius:9,color:"#FF3B30",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
+                            </div>
+                          )}
                           <button onClick={()=>startFromProgram()} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
                         </div>
                       )}

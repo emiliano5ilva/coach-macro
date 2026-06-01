@@ -79,7 +79,7 @@ export async function gatherBriefContext(userId) {
   const strengthCompDate = row?.strength_comp_date || wp.strengthCompDate || null;
   const strengthPhase = strengthCompDate ? getStrengthPhase(strengthCompDate) : null;
 
-  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
     getActivePlateaus(userId).catch(() => []),
@@ -87,6 +87,8 @@ export async function gatherBriefContext(userId) {
     getRecentAdjustments(userId).catch(() => []),
     analyseRPETrends(userId).catch(() => null),
     getTodayNutritionProtocol(userId).catch(() => null),
+    sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null),
+    sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null),
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
@@ -142,6 +144,9 @@ export async function gatherBriefContext(userId) {
     strengthWeightClass: wp.strengthWeightClass || p.strengthWeightClass || null,
     strengthCompType: wp.strength_comp_type || p.strength_comp_type || null,
     strengthCompFederation: wp.strength_comp_federation || p.strength_comp_federation || null,
+    // Adaptive coaching
+    todayCheckin: todayCheckinRow ?? null,
+    weeklyAnalysis: adaptiveProfileRow?.lastAnalysis ?? null,
   };
 }
 
@@ -221,7 +226,33 @@ export async function generateBriefContent(ctx) {
       ? `WRITING STYLE: This is an ADVANCED athlete. Use precise coaching language — RPE, deload, hypertrophy, progressive overload, periodisation are all fine. Be concise and data-driven. Skip motivational fluff.`
       : `WRITING STYLE: This is an INTERMEDIATE athlete. Use standard coaching terms but briefly clarify any technical concepts when relevant. Be direct and data-informed.`;
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}
+  // ── Adaptive coaching block ────────────────────────────────────────────────
+  const checkin = ctx.todayCheckin;
+  const analysis = ctx.weeklyAnalysis;
+  const adaptiveBlock = (checkin || analysis) ? `
+ADAPTIVE COACHING DATA:
+${JSON.stringify({
+  todayReadiness: checkin?.readiness ?? null,
+  soreness: checkin ? {
+    level: checkin.overall_soreness,
+    primaryAreas: checkin.primary_soreness,
+    secondaryAreas: checkin.secondary_soreness,
+  } : null,
+  weeklyAnalysis: analysis ? {
+    status: analysis.trainingStatus,
+    insight: analysis.keyInsight,
+    nutritionNote: analysis.nutritionInsight,
+    morningNote: analysis.morningBriefNote,
+    focusAreas: analysis.focusNextWeek,
+    deloadRecommended: analysis.deloadRecommended,
+    injuryRisk: analysis.injuryRisk,
+    injuryNote: analysis.injuryNote,
+  } : null,
+}, null, 2)}
+
+Use this data to make the brief feel like a real coach who knows this athlete intimately. Reference soreness by muscle name if reported. Acknowledge what is progressing. Be specific about today's session adjustments. Never be generic.` : '';
+
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}
 
 Context:
 - Name: ${ctx.name}

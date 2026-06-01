@@ -166,3 +166,117 @@ export async function getOptimizationData(userId) {
 
   return optimization;
 }
+
+// ── Morning check-in helpers ──────────────────────────────────────────────────
+
+export async function getTodayCheckin(userId) {
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb
+    .from('morning_checkins')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .single();
+  return data ?? null;
+}
+
+export async function getRecentCheckins(userId, days = 14) {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const { data } = await sb
+    .from('morning_checkins')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', since.toISOString().split('T')[0])
+    .order('date', { ascending: false });
+  return data ?? [];
+}
+
+export function getReadinessModifier(profile, checkin, recentFoodLogs) {
+  const coachScore = profile?.coach_score ?? 75;
+  const readiness  = checkin?.readiness ?? 'good';
+  const soreness   = checkin?.overall_soreness ?? 0;
+  const adherence  = recentFoodLogs?.length
+    ? recentFoodLogs.slice(0, 3).reduce((sum, l) => {
+        const target = l.calorie_target ?? 2000;
+        const actual = l.calories ?? 0;
+        return sum + Math.min(actual / target, 1.5);
+      }, 0) / Math.min(recentFoodLogs.length, 3)
+    : 1.0;
+
+  const readinessMap = { great: 1.10, good: 1.0, okay: 0.90, tired: 0.80, rough: 0.70 };
+  let volume    = readinessMap[readiness] ?? 1.0;
+  let intensity = volume;
+  const reasons = [];
+
+  if (coachScore < 40) {
+    volume    = Math.min(volume, 0.70);
+    intensity = Math.min(intensity, 0.80);
+    reasons.push('Recovery signals low');
+  } else if (coachScore < 60) {
+    volume = Math.min(volume, 0.85);
+    reasons.push('Below-average recovery');
+  }
+
+  if (soreness >= 8) {
+    volume = Math.min(volume, 0.70);
+    reasons.push('High soreness reported');
+  } else if (soreness >= 6) {
+    volume = Math.min(volume, 0.85);
+    reasons.push('Moderate soreness — volume reduced');
+  }
+
+  if (adherence < 0.75) {
+    intensity = Math.min(intensity, 0.85);
+    reasons.push('Under-fuelled this week');
+  }
+
+  const label = volume < 0.75 ? 'recovery' : volume < 0.90 ? 'reduced' : 'full';
+  return { volumeMultiplier: volume, intensityMultiplier: intensity, label, reasons };
+}
+
+export function getSorenessMuscleConflicts(checkin, todayExercises) {
+  if (!checkin || checkin.overall_soreness < 5) return [];
+  const soreZones = [
+    ...(checkin.primary_soreness ?? []),
+    ...(checkin.secondary_soreness ?? []),
+  ];
+  const zoneToKeywords = {
+    'quads':        ['squat','lunge','leg press','extension'],
+    'quads_L':      ['squat','lunge','leg press','extension'],
+    'quads_R':      ['squat','lunge','leg press','extension'],
+    'hamstrings':   ['deadlift','curl','rdl','nordic'],
+    'hamstrings_L': ['deadlift','curl','rdl'],
+    'hamstrings_R': ['deadlift','curl','rdl'],
+    'glutes':       ['hip thrust','glute','lunge','squat'],
+    'glutes_L':     ['hip thrust','glute'],
+    'glutes_R':     ['hip thrust','glute'],
+    'lower-back':   ['deadlift','good morning','back'],
+    'chest':        ['bench','press','fly','push'],
+    'shoulders-f':  ['press','raise','shoulder'],
+    'lats':         ['pulldown','pull up','row'],
+    'biceps':       ['curl','pull','row'],
+    'triceps':      ['press','extension','pushdown','dip'],
+  };
+  const conflicts = [];
+  soreZones.forEach(zone => {
+    const keywords = zoneToKeywords[zone] ?? [];
+    todayExercises.forEach(ex => {
+      const nameL = ex.name?.toLowerCase() ?? '';
+      if (keywords.some(k => nameL.includes(k))) {
+        conflicts.push({ exercise: ex.name, zone });
+      }
+    });
+  });
+  return [...new Set(conflicts.map(c => c.exercise))]
+    .map(name => conflicts.find(c => c.exercise === name));
+}
+
+export function applyReadinessToSession(exercises, modifier) {
+  if (modifier.volumeMultiplier >= 1.0) return exercises;
+  return exercises.map(ex => {
+    if (!ex.primary) return ex;
+    const reduced = Math.max(2, Math.round((ex.sets ?? 3) * modifier.volumeMultiplier));
+    return { ...ex, sets: reduced };
+  });
+}

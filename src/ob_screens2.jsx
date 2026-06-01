@@ -57,6 +57,7 @@ import { getTodayNutritionProtocol } from "./services/nutritionPeriodisationServ
 import { getRunningPhase, getRunTimePredictor } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase, getStrengthPredictor } from "./services/strengthPeriodisationService.js";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
+import MorningCheckin from "./components/MorningCheckin.jsx";
 import { recordWorkoutRecovery } from "./services/recoveryService.js";
 import SpotlightTour from "./components/SpotlightTour.jsx";
 import FeatureUnlockCard from "./components/FeatureUnlockCard.jsx";
@@ -3673,6 +3674,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [showCheckin,setShowCheckin]=useState(false);
   const [sorenessData,setSorenessData]=useState(null);
   const [checkinDone,setCheckinDone]=useState(false);
+  const [morningCheckinDone,setMorningCheckinDone]=useState(false);
+  const [morningCheckinChecked,setMorningCheckinChecked]=useState(false);
 
   // ── Biological Algorithm ───────────────────────────────────────────────────
   const [bioInsights,setBioInsights]=useState({});
@@ -4243,6 +4246,17 @@ Be specific and practical. Empathetic tone. No fluff.`,
     }
     buildPrediction();
   },[trainScreen,user,activeWorkout?.readinessTier]);
+
+  // ── Morning check-in: query once per session to see if already logged today ──
+  useEffect(()=>{
+    if(!user?.id||morningCheckinChecked)return;
+    const today=new Date().toISOString().split('T')[0];
+    sb.from('morning_checkins').select('id').eq('user_id',user.id).eq('date',today).maybeSingle()
+      .then(({data})=>{
+        setMorningCheckinDone(!!data);
+        setMorningCheckinChecked(true);
+      }).catch(()=>setMorningCheckinChecked(true));
+  },[user,morningCheckinChecked]);
 
   // ── Morning Brief ───────────────────────────────────────────────────────────
   useEffect(()=>{
@@ -5501,6 +5515,14 @@ Rules:
 
         {/* Morning Brief + Comeback Protocol */}
         <div style={{margin:"0 20px 12px"}}>
+          {/* Morning check-in card — shows once per day before the brief */}
+          {morningCheckinChecked&&!morningCheckinDone&&user?.id&&(
+            <MorningCheckin
+              userId={user.id}
+              onComplete={()=>setMorningCheckinDone(true)}
+              onSkip={()=>setMorningCheckinDone(true)}
+            />
+          )}
           {(morningBrief||morningBriefLoading||morningBriefError)&&!briefDismissed&&(
             briefExpanded
               ?<div style={{padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.18)",borderLeft:"3px solid var(--red)",borderRadius:"4px 14px 14px 4px",boxSizing:"border-box",position:"relative"}}>
