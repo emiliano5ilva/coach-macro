@@ -6489,7 +6489,18 @@ Rules:
     const [customOz,        setCustomOz]        = useState(20);
     const displayWater = waterLoggedOz + waterOptimistic;
 
+    // iOS 13+ requires a user-gesture to enable DeviceOrientationEvent.
+    // Call once on first water interaction; non-iOS / already-asked → no-op.
+    function requestOrientationPermission() {
+      if(orientPermAsked.current) return;
+      orientPermAsked.current = true;
+      if(typeof DeviceOrientationEvent?.requestPermission === 'function'){
+        DeviceOrientationEvent.requestPermission().catch(()=>{}); // denied → wave runs without tilt
+      }
+    }
+
     async function handleWaterTap(oz) {
+      requestOrientationPermission();
       setWaterOptimistic(p=>p+oz);
       const dt=new Date().toISOString().split("T")[0];
       const result=await addWaterLog(user.id,oz,dt);
@@ -6504,6 +6515,7 @@ Rules:
     const removeLastFired = useRef(0);
 
     async function handleWaterRemove() {
+      requestOrientationPermission();
       const now = Date.now();
       if(now - removeLastFired.current < 400) return; // debounce: drop ghost-clicks
       removeLastFired.current = now;
@@ -6517,10 +6529,12 @@ Rules:
       if(result) setWaterLogs(prev=>[...prev,result]);
     }
 
-    // ── WaveHero rAF state ────────────────────────────────────────────────
-    const waveRef    = useRef(null);
-    const waveRafRef = useRef(null);
-    const waveSt     = useRef({t:0,level:0,target:0,vel:0,_lastTs:null});
+    // ── WaveHero rAF + tilt state ─────────────────────────────────────────
+    const waveRef         = useRef(null);
+    const waveRafRef      = useRef(null);
+    // tilt/tiltTarget: lerped device-gamma fraction (-1..1), additive surface slope
+    const waveSt          = useRef({t:0,level:0,target:0,vel:0,_lastTs:null,tilt:0,tiltTarget:0});
+    const orientPermAsked = useRef(false); // iOS: request at most once per mount
 
     // Keep spring target in sync with real water level (or DEV override)
     useEffect(()=>{
@@ -6531,7 +6545,7 @@ Rules:
     // 60fps rAF loop — cancels on unmount (component only mounts when section==="today")
     useEffect(()=>{
       if(reducedMotion){
-        // Static flat fill — draw once, no loop
+        // Static flat fill — no loop, no tilt
         const svg=waveRef.current; if(!svg) return;
         const W=svg.clientWidth||340, H=svg.clientHeight||200;
         const lv=Math.max(0,Math.min(1,displayWater/Math.max(1,waterTarget)));
@@ -6540,26 +6554,41 @@ Rules:
         svg.querySelector('.cm-wc')?.setAttribute('d',`M0,${y} L${W},${y}`);
         return;
       }
+
+      // Device-tilt listener — updates tiltTarget from gamma, removed on unmount
+      function onOrient(e){
+        const gamma=e.gamma??0;
+        // Clamp to ±30° of real tilt, map to -1..1 fraction
+        waveSt.current.tiltTarget=Math.max(-1,Math.min(1,gamma/30));
+      }
+      window.addEventListener('deviceorientation',onOrient,{passive:true});
+
       function tick(ts){
         if(!waveSt.current._lastTs) waveSt.current._lastTs=ts;
         const dt=Math.min((ts-waveSt.current._lastTs)/1000,0.04);
         waveSt.current._lastTs=ts;
         waveSt.current.t+=dt;
-        // Spring: pull level toward target (small overshoot = bounce on log)
+        // Spring: level toward target
         const diff=waveSt.current.target-waveSt.current.level;
         waveSt.current.vel+=(diff*38-waveSt.current.vel*7.5)*dt;
         waveSt.current.level=Math.max(0,Math.min(1.05,waveSt.current.level+waveSt.current.vel*dt));
+        // Tilt: lerp toward sensor target — ~200ms time constant, damps hand-shake
+        waveSt.current.tilt+=(waveSt.current.tiltTarget-waveSt.current.tilt)*Math.min(1,dt*5);
         const svg=waveRef.current;
         if(svg){
           const W=svg.clientWidth||340, H=svg.clientHeight||200;
           const baseY=H*(1-Math.min(1,waveSt.current.level));
+          // Tilt slope: ±5% of panel height across full width (~6° equivalent, very subtle)
+          const tiltSlope=waveSt.current.tilt*H*0.05;
           const N=54, pts=[], cPts=[];
           for(let i=0;i<=N;i++){
             const x=(i/N)*W;
             const p1=(x/W)*Math.PI*3.6+waveSt.current.t*1.1;
             const p2=(x/W)*Math.PI*5.8-waveSt.current.t*0.72;
-            const dy=Math.sin(p1)*H*0.023+Math.sin(p2)*H*0.013;
-            const y=Math.max(0,baseY+dy);
+            const waveDy=Math.sin(p1)*H*0.023+Math.sin(p2)*H*0.013;
+            // tiltDy: linear ramp — negative at left, positive at right when tilted right
+            const tiltDy=tiltSlope*(x/W-0.5)*2;
+            const y=Math.max(0,baseY+waveDy+tiltDy);
             pts.push(`${i===0?"M":"L"}${x.toFixed(1)},${y.toFixed(1)}`);
             cPts.push(`${i===0?"M":"L"}${x.toFixed(1)},${Math.max(0,y-1.5).toFixed(1)}`);
           }
@@ -6569,7 +6598,10 @@ Rules:
         waveRafRef.current=requestAnimationFrame(tick);
       }
       waveRafRef.current=requestAnimationFrame(tick);
-      return()=>{ if(waveRafRef.current) cancelAnimationFrame(waveRafRef.current); };
+      return()=>{
+        if(waveRafRef.current) cancelAnimationFrame(waveRafRef.current);
+        window.removeEventListener('deviceorientation',onOrient);
+      };
     },[]);
     // ─────────────────────────────────────────────────────────────────────
 
