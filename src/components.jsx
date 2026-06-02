@@ -364,7 +364,7 @@ export const GLOBAL_CSS = `
 `;
 
 export const NEW_ONBOARDING  = false;
-export const GOCLUB_REDESIGN = false;
+export const GOCLUB_REDESIGN = true;
 export const SHOW_DEBUG      = true;  // flip false to hide overlay
 export const REDESIGN_CSS = `
   .goclub {
@@ -417,8 +417,26 @@ export const REDESIGN_CSS = `
   .cm-muted          { color: rgba(17,17,17,0.42); }
   .goclub .cm-muted  { color: rgba(255,255,255,0.40); }
 
+  /* Phase 3 — Today red field */
+  .goclub.tab-today .app-screen { background: var(--cm-accent) !important; }
+
+  /* Bar grow (transform-origin:bottom set inline) */
+  @keyframes cm-bar-up {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
+  }
+
+  /* White card slide-up */
+  @keyframes cm-slide-up {
+    from { transform: translateY(52px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .goclub-card-enter { animation: cm-slide-up 0.42s cubic-bezier(.2,.7,.3,1) forwards; }
+
   @media (prefers-reduced-motion: reduce) {
-    .goclub .app-tab { transition: none; }
+    .goclub .app-tab          { transition: none; }
+    .goclub-card-enter        { animation: none; }
+    @keyframes cm-bar-up      { from {} to {} }
   }
 `;
 

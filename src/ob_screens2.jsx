@@ -6299,6 +6299,196 @@ Rules:
     );
   }
 
+  // ─── PHASE 3 — Today screen (goclub redesign) ─────────────────────────────
+  // Separate component so the old HomeSection is byte-identical when flag is off.
+  // CRITICAL: every text node carries explicit fontFamily — GLOBAL_CSS heading
+  // rules beat .goclub inheritance, so we never rely on the cascade for font.
+  function HomeSectionGoClub() {
+    const AF = "'Archivo',sans-serif";
+    const sc  = coachScore?.total ?? 0;
+    const tier = sc>=90?"ELITE":sc>=85?"GREAT":sc>=70?"GOOD":sc>=50?"FAIR":"LOW";
+
+    const [selBar, setSelBar] = useState(null);
+    const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
+    const heroDisplay = useCountUp(heroTarget, 900);
+
+    // 7-day history — real data from dailyScores, graceful on empty
+    const last7 = useMemo(()=>{
+      const rows=[];
+      for(let i=6;i>=0;i--){
+        const d=new Date(); d.setDate(d.getDate()-i);
+        const ds=d.toISOString().split("T")[0];
+        const ltr="SMTWTFS"[d.getDay()];
+        const entry=dailyScores.find(s=>s.date===ds);
+        rows.push({ds,ltr,score:entry?.score??null,isToday:i===0});
+      }
+      return rows;
+    },[dailyScores]);
+
+    const selScore = selBar!==null ? last7[selBar]?.score : null;
+    const selDiff  = selScore!=null ? selScore-sc : null;
+    const dayLabel = new Date().toLocaleDateString("en-US",{weekday:"long"}).toUpperCase();
+    const dayStatus= deloadActive?"DELOAD WEEK":(cfg?.label||todayType).toUpperCase()+" DAY";
+    const b = morningBrief;
+    const briefText = b?.coach_says||b?.greeting||"";
+
+    return (
+      <div>
+        {/* ── RED FIELD — inherits var(--cm-accent) from .app-screen bg ── */}
+        <div style={{paddingLeft:22,paddingRight:22,paddingBottom:168}}>
+
+          {/* Date / status */}
+          <div style={{fontFamily:AF,fontWeight:500,fontSize:11,color:"rgba(255,255,255,0.70)",letterSpacing:"0.13em",textTransform:"uppercase",marginBottom:6}}>
+            {dayLabel} · {dayStatus}
+          </div>
+
+          {/* Greeting */}
+          <div style={{fontFamily:AF,fontWeight:600,fontSize:17,color:"rgba(255,255,255,0.92)",marginBottom:24}}>
+            HEY, {firstName.toUpperCase()}
+          </div>
+
+          {/* ── HERO NUMBER ── */}
+          <div style={{textAlign:"center",marginBottom:18}}>
+            <div style={{fontFamily:AF,fontWeight:800,fontSize:96,color:"#ffffff",lineHeight:0.88,letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums"}}>
+              {heroDisplay}
+            </div>
+            <div style={{fontFamily:AF,fontWeight:700,fontSize:11,color:"rgba(255,255,255,0.78)",letterSpacing:"0.20em",marginTop:10,textTransform:"uppercase"}}>
+              {tier}
+            </div>
+            {selDiff!==null&&(
+              <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:5,
+                color:selDiff>=0?"#86efac":"rgba(255,255,255,0.55)"}}>
+                {selDiff>=0?"+":""}{selDiff} vs today
+              </div>
+            )}
+          </div>
+
+          {/* ── 7-DAY BAR CHART ── */}
+          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:60,justifyContent:"center"}}>
+            {last7.map((day,i)=>{
+              const h = day.score!=null ? Math.max(8,Math.round(day.score/100*54)) : 5;
+              return (
+                <div key={day.ds}
+                  onClick={()=>setSelBar(selBar===i?null:i)}
+                  style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  <div style={{
+                    width:30,height:h,borderRadius:5,
+                    background:day.isToday||selBar===i?"#ffffff":"rgba(255,255,255,0.28)",
+                    transformOrigin:"bottom",
+                    animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
+                    transition:"background 0.15s",
+                  }}/>
+                  <div style={{fontFamily:AF,fontSize:9,color:day.isToday?"#fff":"rgba(255,255,255,0.48)",fontWeight:day.isToday?700:400}}>
+                    {day.ltr}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── WHITE CARD ── */}
+        <div className="goclub-card-enter" style={{
+          background:"#ffffff",borderRadius:"30px 30px 0 0",
+          marginTop:-130,position:"relative",
+          paddingTop:28,paddingLeft:20,paddingRight:20,paddingBottom:120,
+        }}>
+
+          {/* Morning Brief */}
+          {!briefDismissed&&briefText&&(
+            <div style={{marginBottom:22}}>
+              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
+                MORNING BRIEF
+              </div>
+              {briefExpanded?(
+                <div style={{background:"#f5f5f5",borderRadius:16,padding:16}}>
+                  {b?.greeting&&<div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",lineHeight:1.2,marginBottom:10}}>{b.greeting}</div>}
+                  {b?.today&&<div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.72)",lineHeight:1.6,marginBottom:10}}>{b.today}</div>}
+                  {b?.coach_says&&(
+                    <div style={{fontFamily:AF,fontWeight:600,fontStyle:"italic",fontSize:13,color:"#111",lineHeight:1.5,
+                      background:"rgba(255,59,48,0.06)",borderLeft:"3px solid #FF3B30",
+                      borderRadius:"0 10px 10px 0",padding:"10px 12px",marginBottom:12}}>
+                      {b.coach_says}
+                    </div>
+                  )}
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <button onClick={()=>setBriefExpanded(false)}
+                      style={{fontFamily:AF,fontSize:9,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>
+                      COLLAPSE ↑
+                    </button>
+                    <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}}
+                      style={{fontFamily:AF,fontSize:9,color:"#FF3B30",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>
+                      GOT IT →
+                    </button>
+                  </div>
+                </div>
+              ):(
+                <div onClick={()=>setBriefExpanded(true)} style={{cursor:"pointer"}}>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.3,marginBottom:8,
+                    display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
+                    {briefText}
+                  </div>
+                  <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>
+                    READ MORE ↓
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Today's Session */}
+          <div style={{marginBottom:22}}>
+            <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
+              TODAY'S SESSION
+            </div>
+            {deloadActive?(
+              <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
+                <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#7E57C2",marginBottom:4}}>RECOVERY WEEK</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Deload active — light work only</div>
+              </div>
+            ):todayType==="rest"?(
+              <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
+                <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#111111",marginBottom:4}}>REST DAY</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Recovery is part of the program</div>
+              </div>
+            ):(
+              <button onClick={()=>setSection("train")} style={{
+                width:"100%",background:"#111111",border:"none",borderRadius:14,
+                padding:"14px 16px",display:"flex",justifyContent:"space-between",
+                alignItems:"center",cursor:"pointer",textAlign:"left",
+                WebkitTapHighlightColor:"transparent",
+              }}>
+                <div>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#ffffff"}}>{todayFocus}</div>
+                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.45)",marginTop:3}}>
+                    {(cfg?.label||todayType).toUpperCase()}
+                  </div>
+                </div>
+                <div style={{fontFamily:AF,fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.65)"}}>START →</div>
+              </button>
+            )}
+          </div>
+
+          {/* Morning check-in */}
+          {morningCheckinChecked&&!morningCheckinDone&&user?.id&&(
+            <div style={{marginBottom:16}}>
+              <MorningCheckin userId={user.id} onComplete={()=>setMorningCheckinDone(true)}
+                onSkip={()=>setMorningCheckinDone(true)} profile={profile} workoutLogs={workoutLogsRaw}/>
+            </div>
+          )}
+          {showCheckin&&!checkinDone&&(
+            <SorenessCheckIn userId={user?.id}
+              onComplete={(s,m)=>{setSorenessData({soreness_score:s,sore_muscles:m});setCheckinDone(true);setShowCheckin(false);}}
+              onSkip={()=>setShowCheckin(false)}/>
+          )}
+          {checkinDone&&sorenessData&&(
+            <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   function WorkoutHistorySection({logs}) {
     const [expandedIdx,setExpandedIdx]=useState(null);
     return(
@@ -7954,7 +8144,7 @@ Rules:
       </div>}
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
-        {section==="today"&&<ErrorBoundary><HomeSection/></ErrorBoundary>}
+        {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
