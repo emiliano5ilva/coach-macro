@@ -5268,6 +5268,7 @@ Rules:
   }
 
   function handleTabPress(tabId){
+    if(GOCLUB_REDESIGN && tabId==="plan") return; // Phase 3: will launch onboarding flow
     if(section===tabId){
       resetTabToRoot(tabId);
       scrollToTop();
@@ -5302,6 +5303,24 @@ Rules:
     {id:"me",       label:"ME",       icon:"me",       tour:"me-tab"},
   ];
 
+  // Redesign nav — onboarding-complete condition mirrors NativeApp:
+  // profile.goalCals is set by handleProfileDone (the same gate that flips phase→"app").
+  const hasPlan = !!profile.goalCals;
+  const GOCLUB_NAV_4 = [
+    {id:"today", label:"Dashboard", icon:"today"},
+    {id:"train", label:"Train",     icon:"train"},
+    {id:"fuel",  label:"Fuel",      icon:"fuel"},
+    {id:"me",    label:"Me",        icon:"me"},
+  ];
+  const GOCLUB_NAV_3 = [
+    {id:"today", label:"Dashboard", icon:"today"},
+    {id:"plan",  label:"Plan",      icon:"plan",  emphasized:true},
+    {id:"me",    label:"Me",        icon:"me"},
+  ];
+  const activeNav = GOCLUB_REDESIGN
+    ? (hasPlan ? GOCLUB_NAV_4 : GOCLUB_NAV_3)
+    : NAV_ITEMS;
+
   function TabIcon({name, size=22}) {
     const paths = {
       today: <g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></g>,
@@ -5309,6 +5328,7 @@ Rules:
       fuel: <path d="M8 3h6l1 4c0 1.5-2 2.5-4 2.5S7 8.5 7 7l1-4zM7 9v11a1 1 0 001 1h6a1 1 0 001-1V9" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/>,
       progress: <g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h6v6"/></g>,
       me: <g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></g>,
+      plan: <g stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l1.8 7.2L21 12l-7.2 1.8L12 21l-1.8-7.2L3 12l7.2-1.8z"/></g>,
     };
     return <svg width={size} height={size} viewBox="0 0 24 24">{paths[name]||null}</svg>;
   }
@@ -7828,7 +7848,7 @@ Rules:
 
 
   return (
-    <div className={GOCLUB_REDESIGN ? "goclub" : undefined} style={{position:"relative",minHeight:"100vh",maxWidth:480,margin:"0 auto",background:"var(--navy)"}}>
+    <div className={GOCLUB_REDESIGN ? `goclub tab-${section}` : undefined} style={{position:"relative",minHeight:"100vh",maxWidth:480,margin:"0 auto",background:"var(--navy)"}}>
       {GOCLUB_REDESIGN && (<>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -7976,8 +7996,8 @@ Rules:
       )}
 
       <div className="app-tab-bar">
-        {NAV_ITEMS.map(item=>(
-          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}>
+        {activeNav.map(item=>(
+          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}>
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <TabIcon name={item.icon} size={22}/>
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:T.fat,border:"2px solid var(--navy)"}}/>}

@@ -375,16 +375,50 @@ export const REDESIGN_CSS = `
     --cm-accent:     #FF3B30;
     --cm-accent-rgb: 255,59,48;
     --cm-border:     rgba(17,17,17,0.10);
+    --cm-nav-track:  rgba(255,255,255,0.05);
     font-family: 'Archivo', sans-serif;
   }
 
-  .goclub.tab-today  { --cm-field-bg: var(--cm-accent); }
-  .goclub.tab-train,
-  .goclub.tab-fuel,
-  .goclub.tab-me     { --cm-field-bg: #000000; }
+  /* Per-tab nav track colour */
+  .goclub.tab-today                              { --cm-nav-track: #F4F4F6; }
+  .goclub.tab-train,.goclub.tab-fuel,
+  .goclub.tab-me,.goclub.tab-progress            { --cm-nav-track: rgba(255,255,255,0.05); }
 
+  /* Nav bar */
+  .goclub .app-tab-bar {
+    background: var(--cm-nav-track);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-top: none;
+    gap: 4px;
+    padding: 8px max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  }
+
+  /* Inactive tab colour — white today surface = ink 40%, dark surfaces = white 40% */
+  .goclub .app-tab                { color: rgba(0,0,0,0.40); border-radius: 24px; padding: 8px 12px; transition: background 0.2s,color 0.2s; }
+  .goclub.tab-train .app-tab,
+  .goclub.tab-fuel  .app-tab,
+  .goclub.tab-me    .app-tab,
+  .goclub.tab-progress .app-tab   { color: rgba(255,255,255,0.40); }
+
+  /* Active tab — red pill */
+  .goclub .app-tab.active                          { background: var(--cm-accent); color: #ffffff; }
+  .goclub .app-tab.active .tab-icon-wrap::before   { display: none; }
+
+  /* Label: hidden inactive, visible active */
+  .goclub .tab-label-txt                           { display: none; }
+  .goclub .app-tab.active .tab-label-txt           { display: block; font-size: 10px; letter-spacing: 0.06em; }
+
+  /* Emphasized center Plan tab (3-tab onboarding state) */
+  .goclub .app-tab--plan { background: var(--cm-accent); color: #ffffff; padding: 10px 20px; flex: 1.4; }
+
+  /* Muted text */
   .cm-muted          { color: rgba(17,17,17,0.42); }
   .goclub .cm-muted  { color: rgba(255,255,255,0.40); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .goclub .app-tab { transition: none; }
+  }
 `;
 
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
