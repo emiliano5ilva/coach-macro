@@ -3583,10 +3583,10 @@ const _PLAN_AURORA_CSS=`
 @keyframes ps3{0%,100%{transform:translateX(0) rotate(-3deg)}22%{transform:translateX(36px) rotate(6deg)}55%{transform:translateX(-32px) rotate(-9deg)}82%{transform:translateX(18px) rotate(2deg)}}
 @keyframes ps4{0%,100%{transform:translateX(0) rotate(8deg)}55%{transform:translateX(-20px) rotate(13deg)}}
 /* Independent opacity breathing — offset from drift so glow pulses even when position changes little */
-@keyframes pa-fade1{0%,100%{opacity:0.55}50%{opacity:0.76}}
-@keyframes pa-fade2{0%,100%{opacity:0.44}50%{opacity:0.26}}
-@keyframes pa-fade3{0%,100%{opacity:0.40}55%{opacity:0.72}}
-@keyframes pa-fade4{0%,100%{opacity:0.48}50%{opacity:0.28}}
+@keyframes pa-fade1{0%,100%{opacity:0.65}50%{opacity:0.95}}
+@keyframes pa-fade2{0%,100%{opacity:0.60}50%{opacity:0.38}}
+@keyframes pa-fade3{0%,100%{opacity:0.58}55%{opacity:0.95}}
+@keyframes pa-fade4{0%,100%{opacity:0.62}50%{opacity:0.40}}
 /* transform-origin at bottom-center so rotation pivots from where the streak meets the floor */
 .pa-streak{transform-origin:50% 100%}
 @media(prefers-reduced-motion:reduce){.pa-streak{animation:none!important;opacity:0.20!important}}
@@ -3602,8 +3602,8 @@ function PlanAurora(){
       */}
       <div style={{
         position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0,
-        maskImage:"linear-gradient(to top, black 0%, black 48%, transparent 75%)",
-        WebkitMaskImage:"linear-gradient(to top, black 0%, black 48%, transparent 75%)",
+        maskImage:"linear-gradient(to top, black 0%, black 12%, transparent 88%)",
+        WebkitMaskImage:"linear-gradient(to top, black 0%, black 12%, transparent 88%)",
       }}>
         {[
           /*
@@ -3614,25 +3614,25 @@ function PlanAurora(){
           */
           {
             // Left streak — brand red, leans left
-            bg:"radial-gradient(ellipse 65% 72% at 40% 100%, rgba(255,59,48,0.92) 0%, rgba(255,59,48,0.50) 28%, rgba(255,59,48,0.12) 62%, transparent 100%)",
+            bg:"radial-gradient(ellipse 65% 72% at 40% 100%, rgba(255,59,48,1.00) 0%, rgba(255,59,48,0.72) 28%, rgba(255,59,48,0.22) 62%, transparent 100%)",
             w:"65%", l:"-10%",
             a:"ps1 22s ease-in-out infinite,     pa-fade1 8s ease-in-out infinite 1s",
           },
           {
             // Right streak — deep red, leans right
-            bg:"radial-gradient(ellipse 60% 68% at 60% 100%, rgba(226,36,26,0.88) 0%, rgba(226,36,26,0.42) 32%, rgba(226,36,26,0.10) 64%, transparent 100%)",
+            bg:"radial-gradient(ellipse 60% 68% at 60% 100%, rgba(226,36,26,1.00) 0%, rgba(226,36,26,0.65) 32%, rgba(226,36,26,0.20) 64%, transparent 100%)",
             w:"58%", r:"-8%",
             a:"ps2 25s ease-in-out infinite 4s,  pa-fade2 9s ease-in-out infinite",
           },
           {
             // Center drifter — lightest red, most travel, makes the aurora feel alive
-            bg:"radial-gradient(ellipse 58% 78% at 50% 100%, rgba(255,107,92,0.82) 0%, rgba(255,107,92,0.46) 30%, rgba(255,107,92,0.12) 65%, transparent 100%)",
+            bg:"radial-gradient(ellipse 58% 78% at 50% 100%, rgba(255,107,92,1.00) 0%, rgba(255,107,92,0.68) 30%, rgba(255,107,92,0.22) 65%, transparent 100%)",
             w:"55%", l:"22%",
             a:"ps3 19s ease-in-out infinite 9s,  pa-fade3 6s ease-in-out infinite 2s",
           },
           {
             // Dark anchor — fills the base, adds tonal depth to overlaps
-            bg:"radial-gradient(ellipse 52% 65% at 50% 100%, rgba(200,18,18,0.80) 0%, rgba(200,18,18,0.32) 38%, transparent 100%)",
+            bg:"radial-gradient(ellipse 52% 65% at 50% 100%, rgba(200,18,18,1.00) 0%, rgba(200,18,18,0.55) 38%, transparent 100%)",
             w:"48%", l:"18%",
             a:"ps4 23s ease-in-out infinite 14s, pa-fade4 11s ease-in-out infinite 5s",
           },
@@ -3643,7 +3643,7 @@ function PlanAurora(){
             left:s.l, right:s.r, bottom:0,
             background:s.bg,
             mixBlendMode:"screen",
-            filter:"blur(8px)",
+            filter:"blur(5px)",
             animation:s.a,
           }}/>
         ))}
