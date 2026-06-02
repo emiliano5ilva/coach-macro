@@ -6465,6 +6465,60 @@ Rules:
       }
       // on error: optimistic removed, waterLogs unchanged → total reverts
     }
+
+    // ── WaveHero rAF state ────────────────────────────────────────────────
+    const waveRef    = useRef(null);
+    const waveRafRef = useRef(null);
+    const waveSt     = useRef({t:0,level:0,target:0,vel:0,_lastTs:null});
+
+    // Keep spring target in sync with real water level
+    useEffect(()=>{
+      waveSt.current.target=Math.max(0,Math.min(1,displayWater/Math.max(1,waterTarget)));
+    },[displayWater,waterTarget]);
+
+    // 60fps rAF loop — cancels on unmount (component only mounts when section==="today")
+    useEffect(()=>{
+      if(reducedMotion){
+        // Static flat fill — draw once, no loop
+        const svg=waveRef.current; if(!svg) return;
+        const W=svg.clientWidth||340, H=svg.clientHeight||200;
+        const lv=Math.max(0,Math.min(1,displayWater/Math.max(1,waterTarget)));
+        const y=H*(1-lv);
+        svg.querySelector('.cm-wf')?.setAttribute('d',`M0,${y} L${W},${y} L${W},${H} L0,${H} Z`);
+        svg.querySelector('.cm-wc')?.setAttribute('d',`M0,${y} L${W},${y}`);
+        return;
+      }
+      function tick(ts){
+        if(!waveSt.current._lastTs) waveSt.current._lastTs=ts;
+        const dt=Math.min((ts-waveSt.current._lastTs)/1000,0.04);
+        waveSt.current._lastTs=ts;
+        waveSt.current.t+=dt;
+        // Spring: pull level toward target (small overshoot = bounce on log)
+        const diff=waveSt.current.target-waveSt.current.level;
+        waveSt.current.vel+=(diff*38-waveSt.current.vel*7.5)*dt;
+        waveSt.current.level=Math.max(0,Math.min(1.05,waveSt.current.level+waveSt.current.vel*dt));
+        const svg=waveRef.current;
+        if(svg){
+          const W=svg.clientWidth||340, H=svg.clientHeight||200;
+          const baseY=H*(1-Math.min(1,waveSt.current.level));
+          const N=54, pts=[], cPts=[];
+          for(let i=0;i<=N;i++){
+            const x=(i/N)*W;
+            const p1=(x/W)*Math.PI*3.6+waveSt.current.t*1.1;
+            const p2=(x/W)*Math.PI*5.8-waveSt.current.t*0.72;
+            const dy=Math.sin(p1)*H*0.023+Math.sin(p2)*H*0.013;
+            const y=Math.max(0,baseY+dy);
+            pts.push(`${i===0?"M":"L"}${x.toFixed(1)},${y.toFixed(1)}`);
+            cPts.push(`${i===0?"M":"L"}${x.toFixed(1)},${Math.max(0,y-1.5).toFixed(1)}`);
+          }
+          svg.querySelector('.cm-wf')?.setAttribute('d',pts.join(' ')+` L${W},${H} L0,${H} Z`);
+          svg.querySelector('.cm-wc')?.setAttribute('d',cPts.join(' '));
+        }
+        waveRafRef.current=requestAnimationFrame(tick);
+      }
+      waveRafRef.current=requestAnimationFrame(tick);
+      return()=>{ if(waveRafRef.current) cancelAnimationFrame(waveRafRef.current); };
+    },[]);
     // ─────────────────────────────────────────────────────────────────────
 
     return (
@@ -6537,28 +6591,34 @@ Rules:
               )}
             </div>
 
-            {/* ── 7-DAY BAR CHART ── */}
-            <div style={{display:"flex",gap:8,alignItems:"flex-end",height:60,justifyContent:"center"}}>
-              {last7.map((day,i)=>{
-                const h = day.score!=null ? Math.max(8,Math.round(day.score/100*54)) : 5;
-                return (
-                  <div key={day.ds}
-                    onClick={()=>setSelBar(selBar===i?null:i)}
-                    style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-                    <div style={{
-                      width:30,height:h,borderRadius:5,
-                      background:day.isToday||selBar===i?"#ffffff":"rgba(255,255,255,0.28)",
-                      transformOrigin:"bottom",
-                      animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
-                      transition:"background 0.15s",
-                    }}/>
-                    <div style={{fontFamily:AF,fontSize:9,color:day.isToday?"#fff":"rgba(255,255,255,0.48)",fontWeight:day.isToday?700:400}}>
-                      {day.ltr}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* ── 7-DAY BAR CHART — scaled to data range, not /100 ── */}
+            {(()=>{
+              const CHART_H=160;
+              const maxVal=Math.max(...last7.map(d=>d.score??0),1);
+              return(
+                <div style={{display:"flex",gap:6,alignItems:"flex-end",height:CHART_H+24,paddingBottom:20,position:"relative"}}>
+                  {last7.map((day,i)=>{
+                    const h=day.score!=null?Math.max(6,(day.score/maxVal)*CHART_H*0.93):4;
+                    return(
+                      <div key={day.ds} onClick={()=>setSelBar(selBar===i?null:i)}
+                        style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative"}}>
+                        <div style={{
+                          width:"100%",height:h,alignSelf:"flex-end",borderRadius:"5px 5px 0 0",
+                          background:day.isToday||selBar===i?"#ffffff":"rgba(255,255,255,0.28)",
+                          transformOrigin:"bottom",
+                          animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
+                          transition:"height 0.35s cubic-bezier(.16,1,.3,1),background 0.15s",
+                          boxShadow:selBar===i&&!day.isToday?"0 -4px 14px rgba(255,255,255,0.35)":"none",
+                        }}/>
+                        <div style={{position:"absolute",bottom:0,fontFamily:AF,fontSize:9,fontWeight:day.isToday?700:400,color:day.isToday?"#fff":"rgba(255,255,255,0.48)"}}>
+                          {day.ltr}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </>)}
         </div>
 
@@ -6614,7 +6674,7 @@ Rules:
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>TODAY'S LIFT</div>
                 <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"rgba(17,17,17,0.40)",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
-                  See plan →
+                  See workout →
                 </button>
               </div>
               {todayType==="rest"||deloadActive ? (
@@ -6641,53 +6701,57 @@ Rules:
               )}
             </div>
 
-            {/* ── TODAY: HYDRATION HERO ── blue is intentional and scoped here only */}
+            {/* ── TODAY: HYDRATION HERO — full-width SVG wave, blue scoped here only ── */}
             <div style={{marginBottom:22,position:"relative"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>HYDRATION</div>
-                <div style={{display:"flex",alignItems:"center",gap:7}}>
-                  {[8,12,16].map(oz=>(
-                    <button key={oz} onClick={()=>handleWaterTap(oz)} style={{fontFamily:AF,fontWeight:700,fontSize:10,padding:"5px 9px",borderRadius:20,background:"rgba(43,166,255,0.08)",border:"1.5px solid rgba(43,166,255,0.22)",color:"#1D8EE6",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>+{oz}oz</button>
-                  ))}
-                  <button onClick={()=>setShowWaterInfo(v=>!v)} style={{width:20,height:20,borderRadius:"50%",background:"rgba(43,166,255,0.10)",border:"1px solid rgba(43,166,255,0.35)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",padding:0,flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
-                    <span style={{fontFamily:AF,fontSize:10,color:"#1D8EE6",lineHeight:1,fontWeight:600}}>i</span>
-                  </button>
+              {/* Wave panel */}
+              <div style={{borderRadius:20,overflow:"hidden",background:"#032248",height:200,position:"relative"}}>
+                <svg ref={waveRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
+                  <defs>
+                    <linearGradient id="cm-wgr" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3BB8FF"/>
+                      <stop offset="100%" stopColor="#0A6CFF"/>
+                    </linearGradient>
+                    <linearGradient id="cm-wsh" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgba(255,255,255,0.14)"/>
+                      <stop offset="80%" stopColor="rgba(255,255,255,0)"/>
+                    </linearGradient>
+                  </defs>
+                  <path className="cm-wf" d="" fill="url(#cm-wgr)"/>
+                  <path className="cm-wc" d="" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"/>
+                  <rect x="0" y="0" width="100%" height="56" fill="url(#cm-wsh)" style={{mixBlendMode:"screen",pointerEvents:"none"}}/>
+                </svg>
+                {/* Content overlay */}
+                <div style={{position:"relative",zIndex:2,height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between",padding:"18px 20px 16px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{fontFamily:AF,fontSize:9,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.55)",textTransform:"uppercase",marginBottom:6}}>HYDRATION</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:5}}>
+                        <span style={{fontFamily:AF,fontWeight:800,fontSize:54,color:"#fff",lineHeight:1,textShadow:"0 2px 12px rgba(0,0,0,0.25)"}}>{Math.round(displayWater)}</span>
+                        <span style={{fontFamily:AF,fontSize:14,fontWeight:600,color:"rgba(255,255,255,0.50)"}}>/ {waterTarget} oz</span>
+                      </div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(255,255,255,0.55)",marginTop:3}}>
+                        {Math.round(Math.min(100,displayWater/Math.max(1,waterTarget)*100))}% of goal
+                      </div>
+                    </div>
+                    <button onClick={()=>setShowWaterInfo(v=>!v)} style={{width:26,height:26,borderRadius:13,background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.20)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,padding:0,WebkitTapHighlightColor:"transparent"}}>i</button>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[8,12,16,24].map(oz=>(
+                      <button key={oz} onClick={()=>handleWaterTap(oz)}
+                        style={{flex:1,padding:"10px 0",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.23)",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:AF,WebkitTapHighlightColor:"transparent"}}>
+                        +{oz}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
+              {/* Info popover */}
               {showWaterInfo&&(<>
                 <div onClick={()=>setShowWaterInfo(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
-                <div style={{position:"absolute",top:38,right:0,zIndex:200,background:"#ffffff",border:"1px solid rgba(43,166,255,0.20)",borderRadius:12,padding:"12px 14px",maxWidth:260,boxShadow:"0 6px 20px rgba(0,0,0,0.10)"}}>
+                <div style={{position:"absolute",top:8,right:8,zIndex:200,background:"#ffffff",border:"1px solid rgba(43,166,255,0.20)",borderRadius:12,padding:"12px 14px",maxWidth:260,boxShadow:"0 6px 20px rgba(0,0,0,0.10)"}}>
                   <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.65)",lineHeight:1.6}}>{waterInfoText}</div>
                 </div>
               </>)}
-              {/* Vessel */}
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-                <div style={{width:84,height:164,borderRadius:26,border:"2px solid rgba(43,166,255,0.18)",background:"rgba(43,166,255,0.03)",position:"relative",overflow:"hidden",boxShadow:"inset 0 2px 10px rgba(43,166,255,0.06)"}}>
-                  {/* Animated fill */}
-                  <div style={{position:"absolute",bottom:0,left:0,right:0,height:`${Math.max(0,Math.min(100,displayWater/Math.max(1,waterTarget)*100))}%`,background:"linear-gradient(to top,#0A7CFF 0%,#2BA6FF 100%)",transition:reducedMotion?"none":"height 0.55s cubic-bezier(.2,.7,.3,1)"}}>
-                    {/* Wave at fill surface */}
-                    {displayWater>0&&displayWater<waterTarget&&(
-                      <div style={{position:"absolute",top:-3,left:-4,right:-4,height:6,overflow:"hidden"}}>
-                        <svg viewBox="0 0 110 6" preserveAspectRatio="none" width="110%" height="6">
-                          <path d="M0,3 Q13.75,0 27.5,3 Q41.25,6 55,3 Q68.75,0 82.5,3 Q96.25,6 110,3 L110,6 L0,6 Z" fill="rgba(255,255,255,0.35)"/>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  {/* Overlay numbers */}
-                  <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-                    <div style={{fontFamily:AF,fontWeight:800,fontSize:26,lineHeight:1,letterSpacing:"-0.02em",color:displayWater>waterTarget*0.55?"#ffffff":"#1D8EE6",textShadow:displayWater>waterTarget*0.55?"0 1px 6px rgba(0,0,0,0.22)":"none"}}>
-                      {Math.round(displayWater)}
-                    </div>
-                    <div style={{fontFamily:AF,fontSize:9,letterSpacing:"0.06em",marginTop:3,color:displayWater>waterTarget*0.55?"rgba(255,255,255,0.78)":"rgba(29,142,230,0.65)"}}>
-                      of {waterTarget} oz
-                    </div>
-                  </div>
-                </div>
-                {displayWater>=waterTarget&&(
-                  <div style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"#1D8EE6",marginTop:8,letterSpacing:"0.06em"}}>Goal met ✓</div>
-                )}
-              </div>
             </div>
 
             {/* ── TODAY: NUTRITION ── */}
