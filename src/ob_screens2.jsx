@@ -6579,14 +6579,17 @@ Rules:
           const W=svg.clientWidth||340, H=svg.clientHeight||200;
           const baseY=H*(1-Math.min(1,waveSt.current.level));
           // Tilt slope: ±5% of panel height across full width (~6° equivalent, very subtle)
-          const tiltSlope=waveSt.current.tilt*H*0.05;
+          // Negative sign: water stays level with ground, so it pools on the LOW side
+          // (opposite the phone tilt). Amplitude 0.10 makes the effect visible.
+          const tiltSlope=-(waveSt.current.tilt*H*0.10);
           const N=54, pts=[], cPts=[];
           for(let i=0;i<=N;i++){
             const x=(i/N)*W;
             const p1=(x/W)*Math.PI*3.6+waveSt.current.t*1.1;
             const p2=(x/W)*Math.PI*5.8-waveSt.current.t*0.72;
-            const waveDy=Math.sin(p1)*H*0.023+Math.sin(p2)*H*0.013;
-            // tiltDy: linear ramp — negative at left, positive at right when tilted right
+            // Doubled amplitudes: surface is clearly alive at a glance
+            const waveDy=Math.sin(p1)*H*0.046+Math.sin(p2)*H*0.026;
+            // tiltDy: linear ramp across width
             const tiltDy=tiltSlope*(x/W-0.5)*2;
             const y=Math.max(0,baseY+waveDy+tiltDy);
             pts.push(`${i===0?"M":"L"}${x.toFixed(1)},${y.toFixed(1)}`);
@@ -6818,7 +6821,7 @@ Rules:
                     </linearGradient>
                   </defs>
                   <path className="cm-wf" d="" fill="url(#cm-wgr)"/>
-                  <path className="cm-wc" d="" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"/>
+                  <path className="cm-wc" d="" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"/>
                   <rect x="0" y="0" width="100%" height="56" fill="url(#cm-wsh)" style={{mixBlendMode:"screen",pointerEvents:"none"}}/>
                 </svg>
                 {/* Content overlay */}
