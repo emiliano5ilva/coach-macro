@@ -3577,10 +3577,15 @@ function CoachAlertsStream({ userMode, children }) {
 // ── PLAN ONBOARDING (PHASE 5B) ───────────────────────────────────────────────
 
 const _PLAN_AURORA_CSS=`
-@keyframes pa1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(90px,-60px) scale(1.07)}66%{transform:translate(-55px,42px) scale(0.94)}}
-@keyframes pa2{0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(-110px,85px) scale(1.06)}80%{transform:translate(65px,-50px) scale(0.93)}}
-@keyframes pa3{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(130px,75px) scale(1.09)}75%{transform:translate(-85px,-55px) scale(0.91)}}
-@keyframes pa4{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-85px,95px) scale(1.07)}}
+@keyframes pa1{0%,100%{transform:translate(0,0)}30%{transform:translate(55px,-22px)}65%{transform:translate(-38px,18px)}}
+@keyframes pa2{0%,100%{transform:translate(0,0)}40%{transform:translate(-60px,-16px)}78%{transform:translate(34px,26px)}}
+@keyframes pa3{0%,100%{transform:translate(0,0)}22%{transform:translate(88px,-28px)}55%{transform:translate(-68px,22px)}80%{transform:translate(44px,16px)}}
+@keyframes pa4{0%,100%{transform:translate(0,0)}50%{transform:translate(-44px,22px)}}
+@keyframes pa-fade1{0%,100%{opacity:0.52}50%{opacity:0.70}}
+@keyframes pa-fade2{0%,100%{opacity:0.42}50%{opacity:0.26}}
+@keyframes pa-fade3{0%,100%{opacity:0.38}55%{opacity:0.65}}
+@keyframes pa-fade4{0%,100%{opacity:0.46}50%{opacity:0.28}}
+.pa-blob{opacity:0.5}
 @media(prefers-reduced-motion:reduce){.pa-blob{animation:none!important;opacity:0.25!important}}
 `;
 
@@ -3588,18 +3593,25 @@ function PlanAurora(){
   return(
     <>
       <style>{_PLAN_AURORA_CSS}</style>
-      <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
+      {/* Gradient mask: hard-clips glow from top — top 38% stays near-black */}
+      <div style={{
+        position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0,
+        maskImage:"linear-gradient(to top, black 38%, transparent 62%)",
+        WebkitMaskImage:"linear-gradient(to top, black 38%, transparent 62%)",
+      }}>
         {[
-          {c:"#FF3B30",w:620,h:580,l:"-80px",  t:"-100px",             a:"pa1 19s ease-in-out infinite"},
-          {c:"#E2241A",w:540,h:620,r:"-60px",  b:"-80px",              a:"pa2 23s ease-in-out infinite 3s"},
-          {c:"#FF6B5C",w:700,h:540,r:"-60px",  t:"28%",                a:"pa3 17s ease-in-out infinite 7s"},
-          {c:"#C81212",w:520,h:580,l:"-40px",  b:"10%",                a:"pa4 21s ease-in-out infinite 11s"},
+          // All blobs bottom-anchored — pool into lower 55% of screen
+          // Opacity driven by separate pa-fade keyframes so glow breathes independently of movement
+          {c:"#FF3B30",w:380,h:320,l:"-30px", b:"-50px", a:"pa1 20s ease-in-out infinite,       pa-fade1 7s ease-in-out infinite 1s"},
+          {c:"#E2241A",w:360,h:340,r:"-40px", b:"-55px", a:"pa2 24s ease-in-out infinite 4s,    pa-fade2 9s ease-in-out infinite"},
+          {c:"#FF6B5C",w:340,h:280,l:"18%",   b:"65px",  a:"pa3 18s ease-in-out infinite 9s,    pa-fade3 6s ease-in-out infinite 2s"},
+          {c:"#C81212",w:300,h:260,l:"32%",   b:"-38px", a:"pa4 22s ease-in-out infinite 14s,   pa-fade4 11s ease-in-out infinite 5s"},
         ].map((b,i)=>(
           <div key={i} className="pa-blob" style={{
             position:"absolute",width:b.w,height:b.h,
-            left:b.l,right:b.r,bottom:b.b,top:b.t,
+            left:b.l,right:b.r,bottom:b.b,
             borderRadius:"50%",background:b.c,
-            filter:"blur(70px)",mixBlendMode:"screen",opacity:0.65,
+            filter:"blur(58px)",mixBlendMode:"screen",
             animation:b.a,
           }}/>
         ))}
