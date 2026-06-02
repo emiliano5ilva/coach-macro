@@ -341,7 +341,7 @@ export const GLOBAL_CSS = `
   .toggle.on{background:var(--red)}
   .toggle-knob{position:absolute;top:2px;left:2px;width:22px;height:22px;background:var(--white);border-radius:50%;transition:left 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.3)}
   .toggle.on .toggle-knob{left:20px}
-  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:#000000;scrollbar-width:none}
+  .app-screen{position:relative;min-height:100%;overflow-y:auto;overflow-x:hidden;padding-top:max(54px,calc(env(safe-area-inset-top) + 48px));padding-bottom:100px;background:#000000;scrollbar-width:none;touch-action:pan-y}
   .app-screen::-webkit-scrollbar{display:none}
   .app-tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,0,0,0.85);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border-top:1px solid rgba(var(--accent-rgb),0.08);display:flex;padding:8px 8px max(22px,env(safe-area-inset-bottom))}
   .ob-page{min-height:100vh;background:#000000;overflow-y:auto;-webkit-overflow-scrolling:touch}

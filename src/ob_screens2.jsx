@@ -6500,16 +6500,21 @@ Rules:
       }
     }
 
+    // Debounce ref — blocks remove firing twice within 400ms (ghost-click guard)
+    const removeLastFired = useRef(0);
+
     async function handleWaterRemove() {
-      if(displayWater<=0) return;
-      const removeAmt=Math.min(16,displayWater); // floor at 0
-      setWaterOptimistic(p=>p-removeAmt); // optimistic drain
+      const now = Date.now();
+      if(now - removeLastFired.current < 400) return; // debounce: drop ghost-clicks
+      removeLastFired.current = now;
+      if(displayWater<=0) return; // already at 0 — total floor
+      const removeAmt=Math.min(16,Math.max(0,displayWater)); // never negative
+      if(removeAmt<=0) return;
+      setWaterOptimistic(p=>p-removeAmt);
       const dt=new Date().toISOString().split("T")[0];
-      // Compensating negative insert — same model as addWaterLog, sum() handles it
       const result=await addWaterLog(user.id,-removeAmt,dt);
-      setWaterOptimistic(p=>p+removeAmt); // always clear
+      setWaterOptimistic(p=>p+removeAmt);
       if(result) setWaterLogs(prev=>[...prev,result]);
-      // on error: optimistic cleared, waterLogs unchanged → total reverts
     }
 
     // ── WaveHero rAF state ────────────────────────────────────────────────
@@ -6767,8 +6772,8 @@ Rules:
 
             {/* ── TODAY: HYDRATION HERO — full-width SVG wave, blue scoped here only ── */}
             <div style={{marginBottom:22,position:"relative"}}>
-              {/* Wave panel */}
-              <div style={{borderRadius:20,overflow:"hidden",background:"#032248",height:200,position:"relative"}}>
+              {/* Wave panel — touchAction:pan-y lets the page scroll; manipulation on buttons kills ghost-clicks */}
+              <div style={{borderRadius:20,overflow:"hidden",background:"#032248",height:200,position:"relative",touchAction:"pan-y"}}>
                 <svg ref={waveRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
                   <defs>
                     <linearGradient id="cm-wgr" x1="0" y1="0" x2="0" y2="1">
@@ -6802,7 +6807,7 @@ Rules:
                   {/* Stepper row */}
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <button onClick={handleWaterRemove} disabled={displayWater<=0}
-                      style={{width:46,height:46,borderRadius:23,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.20)",color:"#fff",fontSize:26,fontWeight:300,cursor:displayWater<=0?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,opacity:displayWater<=0?0.30:1,WebkitTapHighlightColor:"transparent",lineHeight:1,paddingBottom:2}}>
+                      style={{width:46,height:46,borderRadius:23,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.20)",color:"#fff",fontSize:26,fontWeight:300,cursor:displayWater<=0?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,opacity:displayWater<=0?0.30:1,WebkitTapHighlightColor:"transparent",lineHeight:1,paddingBottom:2,touchAction:"manipulation"}}>
                       −
                     </button>
                     <div style={{flex:1,textAlign:"center"}}>
@@ -6813,7 +6818,7 @@ Rules:
                       </button>
                     </div>
                     <button onClick={()=>handleWaterTap(16)}
-                      style={{width:46,height:46,borderRadius:23,background:"rgba(255,255,255,0.18)",border:"1px solid rgba(255,255,255,0.25)",color:"#fff",fontSize:26,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,paddingBottom:2}}>
+                      style={{width:46,height:46,borderRadius:23,background:"rgba(255,255,255,0.18)",border:"1px solid rgba(255,255,255,0.25)",color:"#fff",fontSize:26,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,paddingBottom:2,touchAction:"manipulation"}}>
                       +
                     </button>
                   </div>
