@@ -6316,9 +6316,43 @@ Rules:
     // Gateway: check-in must happen before score is revealed
     const showGateway = morningCheckinChecked && !morningCheckinDone && !!user?.id;
 
+    // Sheet state for the slide-up check-in panel
+    const [sheetOpen,      setSheetOpen]      = useState(false);
+    const [sheetReadiness, setSheetReadiness] = useState(null);
+    const [sheetSoreness,  setSheetSoreness]  = useState(0);
+    const [sheetSaving,    setSheetSaving]    = useState(false);
+
+    const READINESS_OPTS = [
+      {key:'great',emoji:'😁',label:'GREAT'},
+      {key:'good', emoji:'🙂',label:'GOOD'},
+      {key:'okay', emoji:'😐',label:'OKAY'},
+      {key:'tired',emoji:'😓',label:'TIRED'},
+      {key:'rough',emoji:'💀',label:'ROUGH'},
+    ];
+
+    async function handleGatewaySubmit() {
+      if(!sheetReadiness||!user?.id) return;
+      setSheetSaving(true);
+      try {
+        const today=new Date().toISOString().split('T')[0];
+        const row={user_id:user.id,date:today,overall_soreness:sheetSoreness,
+          primary_soreness:[],secondary_soreness:[],readiness:sheetReadiness};
+        const{error}=await sb.from('morning_checkins').upsert(row,{onConflict:'user_id,date'});
+        if(error) console.error('[gateway checkin]',error.message);
+        setSheetOpen(false);
+        setMorningCheckinDone(true); // score hero reveals + counts up
+      }catch(e){
+        console.error('[gateway checkin]',e);
+        setMorningCheckinDone(true); // still reveal on error — never block UX
+      }finally{
+        setSheetSaving(false);
+      }
+    }
+
+    const reducedMotion = typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion:reduce)').matches;
     const [selBar, setSelBar] = useState(null);
     const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
-    const heroDisplay = useCountUp(heroTarget, 900);
+    const heroDisplay = useCountUp(heroTarget, reducedMotion ? 1 : 900);
 
     // 7-day history — real data from dailyScores, graceful on empty
     const last7 = useMemo(()=>{
@@ -6357,27 +6391,31 @@ Rules:
 
           {/* ── GATEWAY or HERO+BARS ── */}
           {showGateway ? (
-            /* Check-in gateway — revealed score is the reward */
+            /* Check-in gateway — tap a face → slide-up sheet → score reveals */
             <div style={{textAlign:"center",paddingBottom:8}}>
               <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(255,255,255,0.60)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:20}}>
                 CHECK IN TO UNLOCK YOUR SCORE
               </div>
-              <div style={{fontFamily:AF,fontWeight:800,fontSize:26,color:"#ffffff",lineHeight:1.15,marginBottom:30}}>
+              <div style={{fontFamily:AF,fontWeight:800,fontSize:26,color:"#ffffff",lineHeight:1.15,marginBottom:28}}>
                 How's your readiness today?
               </div>
-              <div style={{display:"flex",justifyContent:"center",gap:10}}>
-                {["1","2","3","4","5"].map(v=>(
-                  <button key={v} onClick={()=>setMorningCheckinDone(true)}
-                    style={{fontFamily:AF,fontWeight:700,fontSize:20,width:54,height:54,borderRadius:14,
-                      border:"2px solid rgba(255,255,255,0.35)",background:"rgba(255,255,255,0.14)",
-                      color:"#ffffff",cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                      display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    {v}
+              <div style={{display:"flex",justifyContent:"center",gap:6}}>
+                {READINESS_OPTS.map(r=>(
+                  <button key={r.key}
+                    onClick={()=>{setSheetReadiness(r.key);setSheetOpen(true);}}
+                    style={{
+                      display:"flex",flexDirection:"column",alignItems:"center",gap:7,
+                      flex:1,padding:"14px 4px 12px",
+                      background:"rgba(255,255,255,0.13)",
+                      border:"2px solid rgba(255,255,255,0.26)",
+                      borderRadius:18,cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                    }}>
+                    <span style={{fontSize:28,lineHeight:1}}>{r.emoji}</span>
+                    <span style={{fontFamily:AF,fontWeight:700,fontSize:8,color:"rgba(255,255,255,0.80)",letterSpacing:"0.10em"}}>
+                      {r.label}
+                    </span>
                   </button>
                 ))}
-              </div>
-              <div style={{fontFamily:AF,fontSize:9,color:"rgba(255,255,255,0.45)",marginTop:14,letterSpacing:"0.10em"}}>
-                1 = COOKED · 5 = PEAK
               </div>
             </div>
           ) : (<>
@@ -6522,6 +6560,86 @@ Rules:
             <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
           )}
         </div>
+
+        {/* ── SLIDE-UP SHEET — check-in detail (soreness + confirm) ── */}
+        {sheetOpen&&ReactDOM.createPortal(
+          <div style={{position:"fixed",inset:0,zIndex:10001,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+            {/* Backdrop */}
+            <div onClick={()=>setSheetOpen(false)}
+              style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)"}}/>
+            {/* Sheet */}
+            <div style={{
+              position:"relative",background:"#ffffff",
+              borderRadius:"28px 28px 0 0",
+              padding:"28px 20px",
+              paddingBottom:"max(32px,env(safe-area-inset-bottom))",
+              animation:reducedMotion?"none":"cm-slide-up 0.35s cubic-bezier(.2,.7,.3,1) forwards",
+            }}>
+              {/* Drag handle */}
+              <div style={{width:36,height:4,background:"rgba(0,0,0,0.12)",borderRadius:2,margin:"0 auto 22px"}}/>
+
+              {/* Selected readiness — tap to change */}
+              <div style={{display:"flex",gap:6,marginBottom:24}}>
+                {READINESS_OPTS.map(r=>(
+                  <button key={r.key} onClick={()=>setSheetReadiness(r.key)}
+                    style={{
+                      display:"flex",flexDirection:"column",alignItems:"center",gap:5,flex:1,padding:"10px 4px",
+                      background:sheetReadiness===r.key?"rgba(255,59,48,0.08)":"rgba(0,0,0,0.03)",
+                      border:`2px solid ${sheetReadiness===r.key?"#FF3B30":"rgba(0,0,0,0.08)"}`,
+                      borderRadius:14,cursor:"pointer",WebkitTapHighlightColor:"transparent",transition:"all 0.12s",
+                    }}>
+                    <span style={{fontSize:22}}>{r.emoji}</span>
+                    <span style={{fontFamily:AF,fontWeight:700,fontSize:8,
+                      color:sheetReadiness===r.key?"#FF3B30":"rgba(0,0,0,0.35)",letterSpacing:"0.10em"}}>
+                      {r.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Soreness slider */}
+              <div style={{marginBottom:28}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(0,0,0,0.42)",letterSpacing:"0.14em",textTransform:"uppercase"}}>
+                    OVERALL SORENESS
+                  </div>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:20,
+                    color:sheetSoreness===0?"rgba(0,0,0,0.25)":sheetSoreness>=7?"#FF3B30":sheetSoreness>=4?"#FF8C00":"#22c55e"}}>
+                    {sheetSoreness}<span style={{fontFamily:AF,fontSize:12,fontWeight:400,color:"rgba(0,0,0,0.25)"}}>/10</span>
+                  </div>
+                </div>
+                <input type="range" min={0} max={10} step={1} value={sheetSoreness}
+                  onChange={e=>setSheetSoreness(Number(e.target.value))}
+                  style={{width:"100%",accentColor:"#FF3B30",cursor:"pointer"}}/>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                  <span style={{fontFamily:AF,fontSize:9,color:"rgba(0,0,0,0.30)"}}>None</span>
+                  <span style={{fontFamily:AF,fontSize:9,color:"rgba(0,0,0,0.30)"}}>Max</span>
+                </div>
+              </div>
+
+              {/* Confirm */}
+              <button onClick={handleGatewaySubmit} disabled={!sheetReadiness||sheetSaving}
+                style={{
+                  width:"100%",padding:"16px 0",border:"none",borderRadius:14,cursor:"pointer",
+                  background:sheetReadiness&&!sheetSaving?"#FF3B30":"rgba(0,0,0,0.08)",
+                  color:sheetReadiness&&!sheetSaving?"#ffffff":"rgba(0,0,0,0.25)",
+                  fontFamily:AF,fontWeight:800,fontSize:16,letterSpacing:"0.04em",
+                  transition:"background 0.15s",
+                }}>
+                {sheetSaving?"Saving…":"See my score →"}
+              </button>
+
+              {/* Dismiss */}
+              <button onClick={()=>setSheetOpen(false)}
+                style={{display:"block",margin:"14px auto 0",background:"none",border:"none",
+                  fontFamily:AF,fontSize:11,color:"rgba(0,0,0,0.32)",cursor:"pointer",
+                  letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                Not now
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     );
   }
