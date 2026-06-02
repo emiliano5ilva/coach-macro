@@ -3608,6 +3608,105 @@ function PlanAurora(){
   );
 }
 
+const _PLAN_BUILD_MSGS=[
+  "Analyzing your split…",
+  "Setting your training volume…",
+  "Calculating your macros…",
+  "Finishing your plan…",
+];
+
+function PlanBuildingOverlay({msgIdx,reducedMotion}){
+  const AF="'Archivo',sans-serif";
+  return(
+    <motion.div
+      initial={{opacity:0}}animate={{opacity:1}}exit={{opacity:0}}
+      transition={{duration:0.35,ease:"easeOut"}}
+      style={{position:"absolute",inset:0,zIndex:20,background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}
+    >
+      <PlanAurora/>
+      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:44}}>
+        {reducedMotion?(
+          <div style={{fontFamily:AF,fontSize:17,fontWeight:600,color:"rgba(255,255,255,0.9)",textAlign:"center",padding:"0 32px"}}>
+            Building your plan…
+          </div>
+        ):(
+          <>
+            {/* Orbital rings + dots */}
+            <div style={{position:"relative",width:120,height:120}}>
+              {/* Outer breathing ring */}
+              <motion.div
+                animate={{scale:[1,1.1,1],opacity:[0.22,0.08,0.22]}}
+                transition={{duration:2.6,repeat:Infinity,ease:"easeInOut"}}
+                style={{position:"absolute",inset:-10,borderRadius:"50%",border:"1px solid rgba(255,59,48,0.45)"}}
+              />
+              {/* Inner breathing ring */}
+              <motion.div
+                animate={{scale:[1,1.07,1],opacity:[0.4,0.16,0.4]}}
+                transition={{duration:2.6,repeat:Infinity,ease:"easeInOut",delay:0.55}}
+                style={{position:"absolute",inset:10,borderRadius:"50%",border:"1px solid rgba(255,59,48,0.6)"}}
+              />
+              {/* Radial glow */}
+              <motion.div
+                animate={{opacity:[0.1,0.28,0.1]}}
+                transition={{duration:2.1,repeat:Infinity,ease:"easeInOut"}}
+                style={{position:"absolute",inset:0,borderRadius:"50%",background:"radial-gradient(circle,rgba(255,59,48,0.32) 0%,transparent 70%)"}}
+              />
+              {/* 3 orbiting dots at different phases / speeds */}
+              {[
+                {phase:0,  dur:3.0,size:10,alpha:1.0, glow:true},
+                {phase:120,dur:3.8,size:7, alpha:0.6, glow:false},
+                {phase:240,dur:4.6,size:5, alpha:0.38,glow:false},
+              ].map((d,i)=>(
+                <motion.div
+                  key={i}
+                  initial={{rotate:d.phase}}
+                  animate={{rotate:d.phase+360}}
+                  transition={{duration:d.dur,repeat:Infinity,ease:"linear"}}
+                  style={{position:"absolute",inset:0,transformOrigin:"center center"}}
+                >
+                  <div style={{
+                    position:"absolute",top:-d.size/2,left:"50%",marginLeft:-d.size/2,
+                    width:d.size,height:d.size,borderRadius:"50%",
+                    background:`rgba(255,59,48,${d.alpha})`,
+                    boxShadow:d.glow?"0 0 10px rgba(255,59,48,0.75)":"none",
+                  }}/>
+                </motion.div>
+              ))}
+              {/* Center spark */}
+              <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <motion.div
+                  animate={{scale:[1,1.08,1],opacity:[0.8,1,0.8]}}
+                  transition={{duration:2.2,repeat:Infinity,ease:"easeInOut"}}
+                >
+                  <svg width={28} height={28} viewBox="0 0 24 24" fill="rgba(255,59,48,1)">
+                    <path d="M11 2C11 8 17 11 21 13C17 15 11 18 11 23C11 18 5 15 1 13C5 11 11 8 11 2Z"/>
+                    <path d="M20 2C20 4.5 21.8 5.5 23.5 6C21.8 6.5 20 7.5 20 10C20 7.5 18.2 6.5 16.5 6C18.2 5.5 20 4.5 20 2Z"/>
+                  </svg>
+                </motion.div>
+              </div>
+            </div>
+            {/* Cycling status text */}
+            <div style={{height:26,position:"relative",width:280}}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={msgIdx}
+                  initial={{opacity:0,y:7}}
+                  animate={{opacity:1,y:0}}
+                  exit={{opacity:0,y:-7}}
+                  transition={{duration:0.28,ease:"easeOut"}}
+                  style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,fontSize:15,fontWeight:500,color:"rgba(255,255,255,0.72)",letterSpacing:"0.01em"}}
+                >
+                  {_PLAN_BUILD_MSGS[msgIdx]}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 const _PLAN_SPLITS = {
   none:        [{id:"Full Body",    desc:"Every major pattern every session — ideal start"},
                 {id:"Upper/Lower", desc:"Two focuses, each muscle hit twice a week"}],
@@ -3657,6 +3756,14 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
   const [selDays,setSelDays]=useState(initDays);
   const [mealFreq,setMealFreq]=useState(profile?.mealFreq||3);
   const [saving,setSaving]=useState(false);
+  const [building,setBuilding]=useState(false);
+  const [buildMsgIdx,setBuildMsgIdx]=useState(0);
+
+  useEffect(()=>{
+    if(!building||reducedMotion) return;
+    const t=setInterval(()=>setBuildMsgIdx(i=>(i+1)%_PLAN_BUILD_MSGS.length),1250);
+    return()=>clearInterval(t);
+  },[building]);
 
   const skipSplit=focus==="run";
   // Step sequence: 1→(2 if !skipSplit)→3→4→5
@@ -3687,6 +3794,9 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
   async function handleConfirm(){
     if(saving) return;
     setSaving(true);
+    setBuilding(true);
+    setBuildMsgIdx(0);
+    const startedAt=Date.now();
     try{
       const newSchedule=buildSchedule();
       const newWPrefs={
@@ -3695,7 +3805,6 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         isHybrid:focus==="hybrid",
         isHyrox:focus==="hyrox",
       };
-      // Write all three columns in one upsert
       await sb.from("profiles").upsert({
         id:user.id,
         wprefs:newWPrefs,
@@ -3703,13 +3812,14 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         profile_data:{...profile,mealFreq},
         updated_at:new Date().toISOString(),
       },{onConflict:"id"});
-      // Update local App state
       setWPrefs(newWPrefs);
       setSchedule(newSchedule);
-      // Flip the gate — DB + local planBuilt state → 3→5 nav
       await markPlanBuilt();
+      // Hold the building screen for at least 1.5s so it never flashes
+      const elapsed=Date.now()-startedAt;
+      if(elapsed<1500) await new Promise(r=>setTimeout(r,1500-elapsed));
       setSection("today");
-    }catch(e){console.error("[PlanOnboarding]",e);setSaving(false);}
+    }catch(e){console.error("[PlanOnboarding]",e);setSaving(false);setBuilding(false);}
   }
 
   // Shared styles
@@ -3901,6 +4011,11 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         )}
 
       </div>
+
+      {/* Building / thinking overlay — shown while async work runs after P5 CTA */}
+      <AnimatePresence>
+        {building&&<PlanBuildingOverlay msgIdx={buildMsgIdx} reducedMotion={reducedMotion}/>}
+      </AnimatePresence>
     </div>
   );
 }
