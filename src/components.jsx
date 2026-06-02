@@ -363,6 +363,32 @@ export const GLOBAL_CSS = `
   @media(min-width:768px){.bottom-sheet{max-width:480px;left:50%;right:auto;transform:translateX(-50%)}}
 `;
 
+export const NEW_ONBOARDING  = false;
+export const GOCLUB_REDESIGN = false;
+export const REDESIGN_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700&display=swap');
+
+  .goclub {
+    --cm-bg:         #ffffff;
+    --cm-surface:    #f5f5f5;
+    --cm-text:       #111111;
+    --cm-text-dim:   rgba(17,17,17,0.65);
+    --cm-muted:      rgba(17,17,17,0.42);
+    --cm-accent:     #FF3B30;
+    --cm-accent-rgb: 255,59,48;
+    --cm-border:     rgba(17,17,17,0.10);
+    font-family: 'Archivo', sans-serif;
+  }
+
+  .goclub.tab-today  { --cm-field-bg: var(--cm-accent); }
+  .goclub.tab-train,
+  .goclub.tab-fuel,
+  .goclub.tab-me     { --cm-field-bg: #000000; }
+
+  .cm-muted          { color: rgba(17,17,17,0.42); }
+  .goclub .cm-muted  { color: rgba(255,255,255,0.40); }
+`;
+
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
 
 export function Ring({value,max,color,size=140,sw=11}) {
