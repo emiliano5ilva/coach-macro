@@ -3573,6 +3573,14 @@ function CoachAlertsStream({ userMode, children }) {
   );
 }
 
+// ── Stable module-scope shell for HomeSectionGoClub ─────────────────────────
+// Defined outside App so React sees a constant component type every render.
+// App populates _GoClubHome.current with the latest closure on every render;
+// the shell just calls it, so hooks run in the React context of this stable component.
+const _GoClubHome = { current: null };
+function HomeSectionGoClub() { return _GoClubHome.current?.() ?? null; }
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -6326,7 +6334,8 @@ Rules:
   // Separate component so the old HomeSection is byte-identical when flag is off.
   // CRITICAL: every text node carries explicit fontFamily — GLOBAL_CSS heading
   // rules beat .goclub inheritance, so we never rely on the cascade for font.
-  function HomeSectionGoClub() {
+  // Populate the module-scope render slot with the latest App closure each render.
+  _GoClubHome.current = function() {
     const AF = "'Archivo',sans-serif";
     const sc  = coachScore?.total ?? 0;
     const tier = sc>=90?"ELITE":sc>=85?"GREAT":sc>=70?"GOOD":sc>=50?"FAIR":"LOW";
@@ -6376,6 +6385,11 @@ Rules:
     // DEV-only fill preview. Set to a fraction (0–1) to preview the wave at that level.
     // null = real today_oz/goal_oz. Impossible in production — import.meta.env.DEV is false.
     const DEBUG_WATER_PCT = import.meta.env.DEV ? 0.15 : null;
+    // LOCAL brief state — setting these never re-renders App (only this component)
+    const [briefExpandedLocal, setBriefExpandedLocal] = useState(()=>{
+      const today=new Date().toISOString().split("T")[0];
+      return localStorage.getItem("brief_expanded")===today;
+    });
     const [selBar, setSelBar] = useState(null);
     const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
     const heroDisplay = useCountUp(heroTarget, reducedMotion ? 1 : 900);
@@ -6660,7 +6674,7 @@ Rules:
                 <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
                   MORNING BRIEF
                 </div>
-                {briefExpanded?(
+                {briefExpandedLocal?(
                   <div style={{background:"#f5f5f5",borderRadius:16,padding:16}}>
                     {b?.greeting&&<div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",lineHeight:1.2,marginBottom:10}}>{b.greeting}</div>}
                     {b?.today&&<div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.72)",lineHeight:1.6,marginBottom:10}}>{b.today}</div>}
@@ -6672,12 +6686,12 @@ Rules:
                       </div>
                     )}
                     <div style={{display:"flex",justifyContent:"space-between"}}>
-                      <button onClick={()=>setBriefExpanded(false)} style={{fontFamily:AF,fontSize:9,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
+                      <button onClick={()=>setBriefExpandedLocal(false)} style={{fontFamily:AF,fontSize:9,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
                       <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{fontFamily:AF,fontSize:9,color:"#FF3B30",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
                     </div>
                   </div>
                 ):(
-                  <div onClick={()=>setBriefExpanded(true)} style={{cursor:"pointer"}}>
+                  <div onClick={()=>{setBriefExpandedLocal(true);localStorage.setItem("brief_expanded",new Date().toISOString().split("T")[0]);}} style={{cursor:"pointer"}}>
                     <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.3,marginBottom:8,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
                       {briefText}
                     </div>
