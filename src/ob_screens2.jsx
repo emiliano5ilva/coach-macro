@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
+import { AnimatePresence, motion } from 'motion/react';
 import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, SHOW_DEBUG, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
@@ -3573,6 +3574,337 @@ function CoachAlertsStream({ userMode, children }) {
   );
 }
 
+// ── PLAN ONBOARDING (PHASE 5B) ───────────────────────────────────────────────
+
+const _PLAN_AURORA_CSS=`
+@keyframes pa1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(28px,-18px) scale(1.08)}66%{transform:translate(-16px,12px) scale(0.93)}}
+@keyframes pa2{0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(-32px,16px) scale(1.05)}80%{transform:translate(20px,-12px) scale(0.96)}}
+@keyframes pa3{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(18px,22px) scale(1.12)}75%{transform:translate(-24px,-8px) scale(0.91)}}
+@keyframes pa4{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,18px) scale(1.06)}}
+@media(prefers-reduced-motion:reduce){.pa-blob{animation:none!important;opacity:0.25!important}}
+`;
+
+function PlanAurora(){
+  return(
+    <>
+      <style>{_PLAN_AURORA_CSS}</style>
+      <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
+        {[
+          {c:"#FF3B30",w:380,h:320,l:"5%",b:"-60px",  a:"pa1 19s ease-in-out infinite"},
+          {c:"#FF1B6B",w:320,h:360,r:"-40px",b:"20px", a:"pa2 23s ease-in-out infinite 3s"},
+          {c:"#9333EA",w:360,h:300,l:"30%",b:"-30px",  a:"pa3 17s ease-in-out infinite 7s"},
+          {c:"#FF6B00",w:280,h:340,r:"20%",b:"40px",   a:"pa4 21s ease-in-out infinite 11s"},
+        ].map((b,i)=>(
+          <div key={i} className="pa-blob" style={{
+            position:"absolute",width:b.w,height:b.h,
+            left:b.l,right:b.r,bottom:b.b,
+            borderRadius:"50%",background:b.c,
+            filter:"blur(45px)",mixBlendMode:"screen",opacity:0.6,
+            animation:b.a,
+          }}/>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const _PLAN_SPLITS = {
+  none:        [{id:"Full Body",    desc:"Every major pattern every session — ideal start"},
+                {id:"Upper/Lower", desc:"Two focuses, each muscle hit twice a week"}],
+  beginner:    [{id:"Full Body",    desc:"Every major pattern every session — ideal start"},
+                {id:"Upper/Lower", desc:"Two focuses, each muscle hit twice a week"}],
+  intermediate:[{id:"Upper/Lower",     desc:"Hit each muscle group twice a week"},
+                {id:"Push/Pull/Legs", desc:"The most popular intermediate split"},
+                {id:"Full Body",      desc:"Three full-body sessions per week"}],
+  advanced:    [{id:"Push/Pull/Legs", desc:"6-day PPL — each muscle hit twice weekly"},
+                {id:"Upper/Lower",    desc:"4-day classic — high frequency, clean structure"},
+                {id:"Bro Split",      desc:"One muscle per day — maximum isolation volume"}],
+};
+const _PLAN_DAY_MAP = {
+  "1-2":["Mon","Thu"],
+  "3":["Mon","Wed","Fri"],
+  "4":["Mon","Tue","Thu","Fri"],
+  "5":["Mon","Tue","Wed","Thu","Fri"],
+  "6":["Mon","Tue","Wed","Thu","Fri","Sat"],
+  "7":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+};
+const _PLAN_DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt,setSection,setPlanBuilt:_spb}){
+  const AF="'Archivo',sans-serif";
+  const reducedMotion=typeof window!=="undefined"&&window.matchMedia?.("(prefers-reduced-motion:reduce)").matches;
+
+  // Derive initial values from first-onboarding data
+  const initFocus=(()=>{
+    const t=profile?.trainType||"";
+    if(t==="hyrox") return "hyrox";
+    if(t==="hybrid") return "hybrid";
+    if(t==="run"||t==="running"||t==="cardio") return "run";
+    return "strength";
+  })();
+  const liftExp=wPrefs?.liftExp||profile?.liftExp||"beginner";
+  const splitOpts=_PLAN_SPLITS[liftExp]||_PLAN_SPLITS.beginner;
+  const initSplit=wPrefs?.splitType&&splitOpts.some(s=>s.id===wPrefs.splitType)?wPrefs.splitType:splitOpts[0].id;
+  const initDays=()=>{
+    const set=new Set(_PLAN_DAY_MAP[profile?.freq]||_PLAN_DAY_MAP["3"]);
+    return set;
+  };
+
+  const [step,setStep]=useState(1);
+  const [dir,setDir]=useState(1);
+  const [focus,setFocus]=useState(initFocus);
+  const [splitType,setSplitType]=useState(initSplit);
+  const [selDays,setSelDays]=useState(initDays);
+  const [mealFreq,setMealFreq]=useState(profile?.mealFreq||3);
+  const [saving,setSaving]=useState(false);
+
+  const skipSplit=focus==="run";
+  // Step sequence: 1→(2 if !skipSplit)→3→4→5
+  function nextStep(cur){return cur===1&&skipSplit?3:cur+1;}
+  function prevStep(cur){return cur===3&&skipSplit?1:cur-1;}
+  const totalSteps=skipSplit?4:5;
+  // Display progress index (1-based, accounting for skipped step)
+  const dispStep=skipSplit&&step>=3?step-1:step;
+
+  function advance(s){ setDir(1); setStep(nextStep(s)); }
+  function back(s){ setDir(-1); setStep(prevStep(s)); }
+  function toggleDay(d){
+    setSelDays(prev=>{
+      const next=new Set(prev);
+      if(next.has(d)){if(next.size>1)next.delete(d);}
+      else next.add(d);
+      return next;
+    });
+  }
+
+  function buildSchedule(){
+    const dayType=focus==="run"?"run":focus==="hyrox"?"hyrox":"training";
+    const sch={};
+    _PLAN_DAYS.forEach(d=>{sch[d]=selDays.has(d)?dayType:"rest";});
+    return sch;
+  }
+
+  async function handleConfirm(){
+    if(saving) return;
+    setSaving(true);
+    try{
+      const newSchedule=buildSchedule();
+      const newWPrefs={
+        ...wPrefs,
+        splitType:skipSplit?(wPrefs?.splitType||"Full Body"):splitType,
+        isHybrid:focus==="hybrid",
+        isHyrox:focus==="hyrox",
+      };
+      // Write all three columns in one upsert
+      await sb.from("profiles").upsert({
+        id:user.id,
+        wprefs:newWPrefs,
+        schedule:newSchedule,
+        profile_data:{...profile,mealFreq},
+        updated_at:new Date().toISOString(),
+      },{onConflict:"id"});
+      // Update local App state
+      setWPrefs(newWPrefs);
+      setSchedule(newSchedule);
+      // Flip the gate — DB + local planBuilt state → 3→5 nav
+      await markPlanBuilt();
+      setSection("today");
+    }catch(e){console.error("[PlanOnboarding]",e);setSaving(false);}
+  }
+
+  // Shared styles
+  const pill=(sel)=>({
+    display:"flex",flexDirection:"column",gap:4,
+    padding:"14px 18px",borderRadius:18,cursor:"pointer",
+    border:`1.5px solid ${sel?"#FF3B30":"rgba(255,255,255,0.13)"}`,
+    background:sel?"#FF3B30":"rgba(255,255,255,0.07)",
+    backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",
+    transition:reducedMotion?"none":"all 0.15s",
+    touchAction:"manipulation",WebkitTapHighlightColor:"transparent",
+    marginBottom:10,
+  });
+  const btn=(primary,disabled)=>({
+    width:"100%",padding:"16px 0",border:"none",borderRadius:100,cursor:disabled?"default":"pointer",
+    background:primary?"#fff":"rgba(255,255,255,0.08)",
+    color:primary?"#000":"rgba(255,255,255,0.55)",
+    fontFamily:AF,fontWeight:700,fontSize:16,
+    touchAction:"manipulation",WebkitTapHighlightColor:"transparent",
+    opacity:disabled?0.5:1,
+  });
+
+  const variants={
+    enter:(d)=>({x:d>0?"100%":"-100%",opacity:0}),
+    center:{x:0,opacity:1,transition:{duration:0.28,ease:[0.2,0.7,0.3,1]}},
+    exit:(d)=>({x:d>0?"-100%":"100%",opacity:0,transition:{duration:0.2,ease:"easeIn"}}),
+  };
+
+  // Friendly summary for P5
+  const trainingDays=_PLAN_DAYS.filter(d=>selDays.has(d)).map(d=>d.slice(0,3)).join(" · ");
+  const splitLabel=skipSplit?null:splitType;
+  const mealLabel={2:"2 meals",3:"3 meals",4:"4–5 meals",6:"6+ meals / grazing"}[mealFreq]||"3 meals";
+
+  const screenContent=(()=>{
+    switch(step){
+      // ── P1: Focus ──────────────────────────────────────────────────────
+      case 1: return(
+        <div>
+          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP 1 OF {totalSteps}</div>
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>What's your<br/>focus?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Select one — we'll tailor your program.</div>
+          {[
+            {id:"strength",label:"Strength & muscle",emoji:"🏋️",desc:"Build muscle, get stronger"},
+            {id:"run",     label:"Run / endurance",  emoji:"🏃",desc:"Aerobic base, distance, pace"},
+            {id:"hybrid",  label:"Hybrid",           emoji:"⚡",desc:"Lifting + cardio combined"},
+            {id:"hyrox",   label:"Hyrox",            emoji:"🔥",desc:"Race-specific functional fitness"},
+          ].map(o=>(
+            <div key={o.id} onClick={()=>setFocus(o.id)} style={pill(focus===o.id)}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:22}}>{o.emoji}</span>
+                <div>
+                  <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.label}</div>
+                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.desc}</div>
+                </div>
+                {focus===o.id&&<div style={{marginLeft:"auto",width:20,height:20,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:11,color:"#fff"}}>✓</span></div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+      // ── P2: Split (skipped for run) ────────────────────────────────────
+      case 2: return(
+        <div>
+          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP 2 OF {totalSteps}</div>
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Pick your<br/>split.</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>This routes every workout we build for you.</div>
+          {splitOpts.map(o=>(
+            <div key={o.id} onClick={()=>setSplitType(o.id)} style={pill(splitType===o.id)}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.id}</div>
+                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.desc}</div>
+                </div>
+                {splitType===o.id&&<div style={{width:20,height:20,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:11,color:"#fff"}}>✓</span></div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+      // ── P3: Days ───────────────────────────────────────────────────────
+      case 3: return(
+        <div>
+          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP {dispStep} OF {totalSteps}</div>
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Which days<br/>will you train?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Tap to toggle. Pre-set from your weekly frequency.</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:8,marginBottom:24}}>
+            {_PLAN_DAYS.map(d=>{
+              const on=selDays.has(d);
+              return(
+                <button key={d} onClick={()=>toggleDay(d)}
+                  style={{padding:"12px 0",borderRadius:14,border:`1.5px solid ${on?"#FF3B30":"rgba(255,255,255,0.13)"}`,background:on?"#FF3B30":"rgba(255,255,255,0.07)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent",transition:reducedMotion?"none":"all 0.15s"}}>
+                  <div style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"#fff",textAlign:"center"}}>{d.slice(0,1)}</div>
+                  <div style={{fontFamily:AF,fontSize:9,color:"rgba(255,255,255,0.55)",textAlign:"center",marginTop:2}}>{d.slice(1,3)}</div>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.40)",textAlign:"center"}}>{selDays.size} day{selDays.size!==1?"s":""} selected</div>
+        </div>
+      );
+      // ── P4: Meal rhythm ────────────────────────────────────────────────
+      case 4: return(
+        <div>
+          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP {dispStep} OF {totalSteps}</div>
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>How often<br/>do you eat?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>We'll split your daily calories into these slots.</div>
+          {[
+            {id:2,label:"2 meals",desc:"Large meals, longer fasting window"},
+            {id:3,label:"3 meals",desc:"Breakfast, lunch, dinner"},
+            {id:4,label:"4–5 meals",desc:"Regular meals + snacks"},
+            {id:6,label:"6+ meals / grazing",desc:"Frequent small meals throughout the day"},
+          ].map(o=>(
+            <div key={o.id} onClick={()=>setMealFreq(o.id)} style={pill(mealFreq===o.id)}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.label}</div>
+                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.desc}</div>
+                </div>
+                {mealFreq===o.id&&<div style={{width:20,height:20,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:11,color:"#fff"}}>✓</span></div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+      // ── P5: Confirm ────────────────────────────────────────────────────
+      case 5: return(
+        <div style={{textAlign:"center"}}>
+          <div style={{width:72,height:72,borderRadius:36,background:"rgba(255,59,48,0.15)",border:"1.5px solid rgba(255,59,48,0.35)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px"}}>
+            <svg width={34} height={34} viewBox="0 0 24 24" fill="rgba(255,59,48,0.9)">
+              <path d="M11 2C11 8 17 11 21 13C17 15 11 18 11 23C11 18 5 15 1 13C5 11 11 8 11 2Z"/>
+              <path d="M20 2C20 4.5 21.8 5.5 23.5 6C21.8 6.5 20 7.5 20 10C20 7.5 18.2 6.5 16.5 6C18.2 5.5 20 4.5 20 2Z"/>
+            </svg>
+          </div>
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:40,letterSpacing:"-0.03em",color:"#fff",marginBottom:12}}>Your plan<br/>is ready.</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.50)",lineHeight:1.65,marginBottom:32,maxWidth:280,margin:"0 auto 32px"}}>
+            {[splitLabel,trainingDays,mealLabel].filter(Boolean).join(" · ")}
+          </div>
+          <button onClick={handleConfirm} disabled={saving}
+            style={{...btn(true,saving),fontSize:17,padding:"18px 0"}}>
+            {saving?"Building…":"Build my plan →"}
+          </button>
+        </div>
+      );
+      default: return null;
+    }
+  })();
+
+  return(
+    <div style={{position:"relative",minHeight:"100%",background:"#000",display:"flex",flexDirection:"column",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top,0px),0px)"}}>
+      <PlanAurora/>
+
+      {/* UI layer */}
+      <div style={{position:"relative",zIndex:1,flex:1,display:"flex",flexDirection:"column"}}>
+
+        {/* Progress bar */}
+        <div style={{display:"flex",gap:5,padding:"max(env(safe-area-inset-top,0px),16px) 20px 0",justifyContent:"center"}}>
+          {Array.from({length:totalSteps}).map((_,i)=>(
+            <div key={i} style={{height:3,flex:1,maxWidth:52,borderRadius:2,
+              background:i<dispStep?"#FF3B30":"rgba(255,255,255,0.18)",
+              transition:reducedMotion?"none":"background 0.3s"}}/>
+          ))}
+        </div>
+
+        {/* Back */}
+        {step>1&&(
+          <button onClick={()=>back(step)}
+            style={{position:"absolute",top:"max(env(safe-area-inset-top,0px),12px)",left:20,zIndex:10,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:20,padding:"8px 14px",color:"#fff",fontFamily:AF,fontSize:13,fontWeight:600,cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent"}}>
+            ← Back
+          </button>
+        )}
+
+        {/* Animated screen content */}
+        <div style={{flex:1,overflow:"hidden",position:"relative",marginTop:20}}>
+          <AnimatePresence mode="wait" custom={dir}>
+            <motion.div key={step} custom={dir} variants={variants} initial="enter" animate="center" exit="exit"
+              style={{position:"absolute",inset:0,overflowY:"auto",padding:"24px 24px 20px",WebkitOverflowScrolling:"touch"}}>
+              {screenContent}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Continue / bottom area */}
+        {step<5&&(
+          <div style={{padding:"12px 24px",paddingBottom:"max(24px,env(safe-area-inset-bottom,24px))"}}>
+            <button onClick={()=>advance(step)} style={btn(true,false)}>
+              Continue
+            </button>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 // ── RENDER-SLOT PATTERN — HomeSectionGoClub ──────────────────────────────────
 //
 // PROBLEM: HomeSectionGoClub is defined inside App's function body. React uses
@@ -3599,6 +3931,9 @@ function HomeSectionGoClub() { return _GoClubHome.current?.() ?? null; }
 
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
+  // planBuilt mirrors profiles.plan_built — owned as local state so markPlanBuilt can flip it
+  // without needing setProfile (App gets profile as a prop from NativeApp, not as owned state).
+  const [planBuilt,setPlanBuilt]=useState(!!profile?.plan_built);
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
   const [_dbgFont,_setDbgFont]=useState("?");
   const [_dbgFontLoaded,_setDbgFontLoaded]=useState("?");
@@ -5310,7 +5645,7 @@ Rules:
     if(!user) return;
     try{
       await sb.from("profiles").update({plan_built:true}).eq("id",user.id);
-      setProfile(p=>({...p,plan_built:true}));
+      setPlanBuilt(true); // flips hasFullPlan → 3→5 nav expansion
     }catch(e){console.error("[markPlanBuilt]",e);}
   }
 
@@ -5356,9 +5691,9 @@ Rules:
 
   // ── REDESIGN NAV GATE ──────────────────────────────────────────────────────
   // hasPlan    — first onboarding done (goalCals written by handleProfileDone)
-  // hasFullPlan — second onboarding done (plan_built flipped by markPlanBuilt)
+  // hasFullPlan — second onboarding done (planBuilt local state, flipped by markPlanBuilt)
   const hasPlan     = !!profile.goalCals;
-  const hasFullPlan = !!profile.plan_built;
+  const hasFullPlan = planBuilt;
 
   // 3-tab: user has account but hasn't built their training+nutrition plan yet
   const GOCLUB_NAV_3 = [
@@ -7228,35 +7563,6 @@ Rules:
     {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
   ];
 
-  // Phase 5B will replace this with the real second-onboarding screens.
-  // markPlanBuilt() is the only hook 5B needs — call it on the final screen.
-  function PlanOnboardingPlaceholder({markPlanBuilt:_markPlanBuilt}){
-    const AF="'Archivo',sans-serif";
-    return(
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",padding:"40px 28px",gap:20,textAlign:"center"}}>
-        <div style={{width:56,height:56,borderRadius:28,background:"rgba(255,59,48,0.12)",border:"1px solid rgba(255,59,48,0.25)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <svg width={28} height={28} viewBox="0 0 24 24" fill="rgba(255,59,48,0.9)">
-            <path d="M11 2C11 8 17 11 21 13C17 15 11 18 11 23C11 18 5 15 1 13C5 11 11 8 11 2Z"/>
-            <path d="M20 2C20 4.5 21.8 5.5 23.5 6C21.8 6.5 20 7.5 20 10C20 7.5 18.2 6.5 16.5 6C18.2 5.5 20 4.5 20 2Z"/>
-          </svg>
-        </div>
-        <div>
-          <div style={{fontFamily:AF,fontWeight:800,fontSize:22,color:"rgba(245,245,240,0.9)",marginBottom:6}}>Build Your Plan</div>
-          <div style={{fontFamily:AF,fontSize:14,color:"rgba(245,245,240,0.45)",lineHeight:1.6,maxWidth:280}}>
-            Phase 5B — second onboarding coming here. Train + Fuel setup to unlock all 5 tabs.
-          </div>
-        </div>
-        {/* Dev shortcut: tap to simulate completing second onboarding */}
-        {import.meta.env.DEV&&(
-          <button onClick={_markPlanBuilt}
-            style={{marginTop:12,padding:"12px 24px",background:"rgba(255,59,48,0.15)",border:"1px solid rgba(255,59,48,0.3)",borderRadius:12,color:"rgba(255,59,48,0.9)",fontFamily:AF,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:"0.04em"}}>
-            [DEV] Complete Plan Setup →
-          </button>
-        )}
-      </div>
-    );
-  }
-
   function ProgressSection() {
     const sc = coachScore;
     const activeTab = progressTab;
@@ -8665,7 +8971,7 @@ Rules:
           <div>📍 section: <b style={{color:"#fff"}}>{section}</b></div>
           <div>🎨 rootClass: <b style={{color:"#60a5fa"}}>goclub tab-{section}</b></div>
           <div>📋 hasPlan: <b style={{color:"#fff"}}>{String(!!profile.goalCals)}</b></div>
-          <div>✨ hasFullPlan: <b style={{color:"#fff"}}>{String(!!profile.plan_built)}</b></div>
+          <div>✨ hasFullPlan: <b style={{color:"#fff"}}>{String(planBuilt)}</b></div>
           <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",marginTop:4,paddingTop:4}}>
             🔤 cascade: <b style={{color:"#fbbf24"}}>{_dbgFont}</b>
             <br/>📥 file: <b style={{color:"#a78bfa"}}>{_dbgFontLoaded}</b>
@@ -8746,7 +9052,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
-        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboardingPlaceholder markPlanBuilt={markPlanBuilt}/></ErrorBoundary>}
+        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt}/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
