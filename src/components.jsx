@@ -365,6 +365,7 @@ export const GLOBAL_CSS = `
 
 export const NEW_ONBOARDING  = false;
 export const GOCLUB_REDESIGN = false;
+export const SHOW_DEBUG      = true;  // flip false to hide overlay
 export const REDESIGN_CSS = `
   .goclub {
     --cm-bg:         #ffffff;

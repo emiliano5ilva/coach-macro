@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
+import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, SHOW_DEBUG, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, BodyFigure, InfoTip, ErrorBoundary,
@@ -3576,6 +3576,13 @@ function CoachAlertsStream({ userMode, children }) {
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
+  const _dbgRef=useRef(null);
+  const [_dbgFont,_setDbgFont]=useState("?");
+  useEffect(()=>{
+    if(!GOCLUB_REDESIGN||!SHOW_DEBUG)return;
+    const el=_dbgRef.current;
+    if(el) _setDbgFont(window.getComputedStyle(el).fontFamily.split(",")[0].replace(/['"]/g,"").trim());
+  },[section]);
 
   useEffect(()=>{
     const handler=()=>setIsMobile(window.innerWidth<769);
@@ -7855,6 +7862,18 @@ Rules:
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" />
       </>)}
       <style>{GLOBAL_CSS}{GOCLUB_REDESIGN ? REDESIGN_CSS : ""}</style>
+      {GOCLUB_REDESIGN && SHOW_DEBUG && (
+        <div style={{position:"fixed",top:52,right:8,zIndex:99999,background:"rgba(0,0,0,0.88)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"8px 10px",fontSize:10,fontFamily:"monospace",color:"#4ade80",lineHeight:1.7,pointerEvents:"none",maxWidth:230,backdropFilter:"blur(6px)"}}>
+          <div>🏷 GOCLUB_REDESIGN: <b style={{color:"#f87171"}}>{String(GOCLUB_REDESIGN)}</b></div>
+          <div>📍 section: <b style={{color:"#fff"}}>{section}</b></div>
+          <div>🎨 rootClass: <b style={{color:"#60a5fa"}}>goclub tab-{section}</b></div>
+          <div>📋 hasPlan: <b style={{color:"#fff"}}>{String(!!profile.goalCals)}</b></div>
+          <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",marginTop:4,paddingTop:4}}>
+            🔤 font: <b style={{color:"#fbbf24",wordBreak:"break-all"}}>{_dbgFont}</b>
+            <span ref={_dbgRef} style={{position:"absolute",opacity:0,pointerEvents:"none",fontFamily:"inherit",fontSize:12}}>x</span>
+          </div>
+        </div>
+      )}
       {/* Toast container */}
       <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"center",pointerEvents:"none",width:"min(380px,90vw)"}}>
         {toasts.map(toast=>(
