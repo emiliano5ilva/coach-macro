@@ -6373,6 +6373,9 @@ Rules:
     }
 
     const reducedMotion = typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion:reduce)').matches;
+    // DEV-only fill preview. Set to a fraction (0–1) to preview the wave at that level.
+    // null = real today_oz/goal_oz. Impossible in production — import.meta.env.DEV is false.
+    const DEBUG_WATER_PCT = import.meta.env.DEV ? 0.15 : null;
     const [selBar, setSelBar] = useState(null);
     const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
     const heroDisplay = useCountUp(heroTarget, reducedMotion ? 1 : 900);
@@ -6471,9 +6474,10 @@ Rules:
     const waveRafRef = useRef(null);
     const waveSt     = useRef({t:0,level:0,target:0,vel:0,_lastTs:null});
 
-    // Keep spring target in sync with real water level
+    // Keep spring target in sync with real water level (or DEV override)
     useEffect(()=>{
-      waveSt.current.target=Math.max(0,Math.min(1,displayWater/Math.max(1,waterTarget)));
+      const realLevel=displayWater/Math.max(1,waterTarget);
+      waveSt.current.target=Math.max(0,Math.min(1,DEBUG_WATER_PCT??realLevel));
     },[displayWater,waterTarget]);
 
     // 60fps rAF loop — cancels on unmount (component only mounts when section==="today")
@@ -6701,6 +6705,23 @@ Rules:
               )}
             </div>
 
+            {/* ── TODAY: NUTRITION ── */}
+            <div style={{marginBottom:22}}>
+              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
+              {consumed.calories>0&&(
+                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:12}}>
+                  {Math.round(consumed.calories)} kcal · {Math.round(consumed.protein)}g protein · {Math.round(consumed.carbs)}g carbs · {Math.round(consumed.fat)}g fat
+                </div>
+              )}
+              <button onClick={()=>{
+                  // TODO: present FuelLogger as sheet (deferred pass)
+                  setSection("fuel"); setFuelScreen("log");
+                }}
+                style={{width:"100%",padding:"13px 0",border:"1.5px solid rgba(17,17,17,0.12)",borderRadius:12,background:"none",cursor:"pointer",fontFamily:AF,fontWeight:700,fontSize:12,color:"#111111",letterSpacing:"0.04em",WebkitTapHighlightColor:"transparent"}}>
+                + Log meal
+              </button>
+            </div>
+
             {/* ── TODAY: HYDRATION HERO — full-width SVG wave, blue scoped here only ── */}
             <div style={{marginBottom:22,position:"relative"}}>
               {/* Wave panel */}
@@ -6752,23 +6773,6 @@ Rules:
                   <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.65)",lineHeight:1.6}}>{waterInfoText}</div>
                 </div>
               </>)}
-            </div>
-
-            {/* ── TODAY: NUTRITION ── */}
-            <div style={{marginBottom:22}}>
-              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
-              {consumed.calories>0&&(
-                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:12}}>
-                  {Math.round(consumed.calories)} kcal · {Math.round(consumed.protein)}g protein · {Math.round(consumed.carbs)}g carbs · {Math.round(consumed.fat)}g fat
-                </div>
-              )}
-              <button onClick={()=>{
-                  // TODO: present FuelLogger as sheet (deferred pass)
-                  setSection("fuel"); setFuelScreen("log");
-                }}
-                style={{width:"100%",padding:"13px 0",border:"1.5px solid rgba(17,17,17,0.12)",borderRadius:12,background:"none",cursor:"pointer",fontFamily:AF,fontWeight:700,fontSize:12,color:"#111111",letterSpacing:"0.04em",WebkitTapHighlightColor:"transparent"}}>
-                + Log meal
-              </button>
             </div>
 
             {showCheckin&&!checkinDone&&(
