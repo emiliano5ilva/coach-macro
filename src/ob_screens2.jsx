@@ -3576,12 +3576,19 @@ function CoachAlertsStream({ userMode, children }) {
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
-  const _dbgRef=useRef(null);
   const [_dbgFont,_setDbgFont]=useState("?");
+  const [_dbgFontLoaded,_setDbgFontLoaded]=useState("?");
   useEffect(()=>{
     if(!GOCLUB_REDESIGN||!SHOW_DEBUG)return;
-    const el=_dbgRef.current;
-    if(el) _setDbgFont(window.getComputedStyle(el).fontFamily.split(",")[0].replace(/['"]/g,"").trim());
+    // rAF ensures stylesheet has applied before reading computed style.
+    const id=requestAnimationFrame(()=>{
+      const el=document.querySelector(".goclub")||document.body;
+      const cascade=window.getComputedStyle(el).fontFamily.split(",")[0].replace(/['"]/g,"").trim();
+      _setDbgFont(cascade);
+      // Font Loading API: did the file actually arrive?
+      _setDbgFontLoaded(document.fonts.check(`12px '${cascade}'`) ? "✅ loaded" : "⏳ pending");
+    });
+    return()=>cancelAnimationFrame(id);
   },[section]);
 
   useEffect(()=>{
@@ -7869,8 +7876,8 @@ Rules:
           <div>🎨 rootClass: <b style={{color:"#60a5fa"}}>goclub tab-{section}</b></div>
           <div>📋 hasPlan: <b style={{color:"#fff"}}>{String(!!profile.goalCals)}</b></div>
           <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",marginTop:4,paddingTop:4}}>
-            🔤 font: <b style={{color:"#fbbf24",wordBreak:"break-all"}}>{_dbgFont}</b>
-            <span ref={_dbgRef} style={{position:"absolute",opacity:0,pointerEvents:"none",fontFamily:"inherit",fontSize:12}}>x</span>
+            🔤 cascade: <b style={{color:"#fbbf24"}}>{_dbgFont}</b>
+            <br/>📥 file: <b style={{color:"#a78bfa"}}>{_dbgFontLoaded}</b>
           </div>
         </div>
       )}
