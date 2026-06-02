@@ -21,6 +21,14 @@ import { checkEntitlements } from "./services/purchaseService.js";
 import { PrivacyPolicy, TermsOfService } from "./legal.jsx";
 import { loadAndApplyTheme, applyDefaultTheme } from "./utils/themeService.js";
 
+// Dev-only: auto-sign-in with seeded demo account so simulator reaches phase="app".
+// Guard: import.meta.env.MODE — Vite replaces this with the literal string at build
+// time. `vite build` (prod) → MODE="production" → first check returns false → dead
+// code eliminated by terser. `npm run build:sim` → MODE="development" → bypass runs.
+// Credentials come from .env.development.local (not loaded by prod builds).
+// Flip SIM_AUTH_BYPASS to false to disable without touching env files.
+const SIM_AUTH_BYPASS = true;
+
 // ── Splash Screen ─────────────────────────────────────────────────────────────
 function SplashScreen({onDone}) {
   useEffect(()=>{
@@ -825,6 +833,22 @@ export default function NativeApp() {
     // session or go to welcome screen. The stored token is used automatically
     // by the Supabase client for all subsequent API calls (it reads localStorage
     // on every request), so no explicit setSession() is needed.
+    // Pre-step: dev-only auto-login — fires only when MODE=development + bypass enabled
+    // + no active session. signInWithPassword triggers onAuthStateChange(SIGNED_IN)
+    // below, which calls handleAuth → normal profile-load → phase="app".
+    // import.meta.env.MODE is replaced with the literal string at build time:
+    //   prod build  → "production" === "production" → true  → return false (dead code)
+    //   build:sim   → "development" === "production" → false → bypass runs
+    function _tryDevBypass() {
+      if (import.meta.env.MODE === "production" || !SIM_AUTH_BYPASS) return false;
+      const e = import.meta.env.VITE_DEV_EMAIL;
+      const p = import.meta.env.VITE_DEV_PASSWORD;
+      if (!e || !p) return false;
+      sb.auth.signInWithPassword({email:e, password:p})
+        .catch(()=>setTimeout(()=>setPhase("welcome-screen"), 400));
+      return true;
+    }
+
     try {
       const raw = localStorage.getItem('supabase.auth.token');
       const cached = raw ? JSON.parse(raw) : null;
@@ -837,10 +861,10 @@ export default function NativeApp() {
       } else {
         // Expired or absent — wipe local storage so next getSession returns null fast
         try { localStorage.removeItem('supabase.auth.token'); } catch {}
-        setTimeout(()=>setPhase("welcome-screen"), 400);
+        if (!_tryDevBypass()) setTimeout(()=>setPhase("welcome-screen"), 400);
       }
     } catch {
-      setTimeout(()=>setPhase("welcome-screen"), 400);
+      if (!_tryDevBypass()) setTimeout(()=>setPhase("welcome-screen"), 400);
     }
     const{data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       if(event==="SIGNED_IN"&&session?.user)handleAuth(session.user,null);
