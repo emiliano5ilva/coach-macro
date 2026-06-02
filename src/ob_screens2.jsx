@@ -6374,6 +6374,25 @@ Rules:
     const b = morningBrief;
     const briefText = b?.coach_says||b?.greeting||"";
 
+    // Water info explanation — mirrors buildWaterInfoText in fuel.jsx
+    const waterInfoText = (()=>{
+      if(profile?.waterMode==='custom'&&profile?.waterGoalOz)
+        return `Your daily water goal is set to ${waterTarget} oz (custom target).`;
+      const wLbs=Math.round(profile?.weight_kg?profile.weight_kg*2.205:parseFloat(profile?.weight)||150);
+      const baseOz=Math.round(wLbs*0.55);
+      const adj=todayType==='training'?' + 16 oz for training':todayType==='cardio'||todayType==='run'?' + 24 oz for cardio/run':'';
+      return `Your ${waterTarget} oz goal is based on your ${wLbs} lb body weight (${wLbs} × 0.55 = ${baseOz} oz)${adj}.`;
+    })();
+
+    // Muscle tags from FOCUS_MUSCLES[todayFocus]
+    const focusTags = (()=>{
+      const str=(FOCUS_MUSCLES[todayFocus]||"").trim();
+      if(!str) return [];
+      if(str.includes('·'))
+        return str.split('·').map(s=>s.replace(/\(.*?\)/g,'').trim()).filter(Boolean).slice(0,6);
+      return [todayFocus];
+    })();
+
     // ── Phase 3.5 — selected day drives white card ────────────────────────
     const todayStr  = new Date().toISOString().split("T")[0];
     const selectedDay = selBar!==null ? (last7[selBar]?.ds ?? todayStr) : todayStr;
@@ -6409,6 +6428,7 @@ Rules:
 
     // ── Phase 3.6 — today handoffs + water quick-log ──────────────────────
     const [waterOptimistic, setWaterOptimistic] = useState(0);
+    const [showWaterInfo,   setShowWaterInfo]   = useState(false);
     const displayWater = waterLoggedOz + waterOptimistic;
 
     async function handleWaterTap(oz) {
@@ -6566,82 +6586,100 @@ Rules:
                 )}
               </div>
             )}
-            {/* ── TODAY: session handoff ── */}
-            <div style={{marginBottom:14}}>
-              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>TODAY'S SESSION</div>
-              {deloadActive?(
-                <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#7E57C2",marginBottom:4}}>RECOVERY WEEK</div>
-                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Deload active — light work only</div>
-                </div>
-              ):todayType==="rest"?(
-                <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#111111",marginBottom:4}}>REST DAY</div>
-                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Recovery is part of the program</div>
-                </div>
-              ):(
-                <button onClick={()=>setSection("train")} style={{width:"100%",background:"#111111",border:"none",borderRadius:14,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-                  <div>
-                    <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#ffffff"}}>{todayFocus}</div>
-                    <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.45)",marginTop:3}}>{(cfg?.label||todayType).toUpperCase()}</div>
-                  </div>
-                  <div style={{fontFamily:AF,fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.65)"}}>START →</div>
+            {/* ── TODAY: LIFT MODULE ── */}
+            <div style={{marginBottom:22}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>TODAY'S LIFT</div>
+                <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"rgba(17,17,17,0.40)",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
+                  See plan →
                 </button>
+              </div>
+              {todayType==="rest"||deloadActive ? (
+                <div>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:deloadActive?"#7E57C2":"#111111",marginBottom:4}}>
+                    {deloadActive?"Recovery Week":"Rest Day"}
+                  </div>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)"}}>Recovery is part of the program</div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",marginBottom:10}}>{todayFocus}</div>
+                  {focusTags.length>0&&(
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {focusTags.map((tag,i)=>(
+                        <div key={i} style={{fontFamily:AF,fontSize:11,fontWeight:600,color:"#111111",
+                          background:"rgba(17,17,17,0.06)",borderRadius:20,padding:"4px 11px"}}>
+                          {tag}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-            {/* See workout plan — all day types */}
-            <button onClick={()=>handleTabPress("train")}
-              style={{background:"none",border:"none",padding:"0 0 20px",fontFamily:AF,fontSize:11,fontWeight:700,
-                color:"rgba(17,17,17,0.40)",letterSpacing:"0.10em",textTransform:"uppercase",
-                cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-              See workout plan →
-            </button>
 
-            {/* ── TODAY: nutrition block ── */}
+            {/* ── TODAY: HYDRATION HERO ── blue is intentional and scoped here only */}
+            <div style={{marginBottom:22,position:"relative"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>HYDRATION</div>
+                <div style={{display:"flex",alignItems:"center",gap:7}}>
+                  {[8,12,16].map(oz=>(
+                    <button key={oz} onClick={()=>handleWaterTap(oz)} style={{fontFamily:AF,fontWeight:700,fontSize:10,padding:"5px 9px",borderRadius:20,background:"rgba(43,166,255,0.08)",border:"1.5px solid rgba(43,166,255,0.22)",color:"#1D8EE6",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>+{oz}oz</button>
+                  ))}
+                  <button onClick={()=>setShowWaterInfo(v=>!v)} style={{width:20,height:20,borderRadius:"50%",background:"rgba(43,166,255,0.10)",border:"1px solid rgba(43,166,255,0.35)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",padding:0,flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                    <span style={{fontFamily:AF,fontSize:10,color:"#1D8EE6",lineHeight:1,fontWeight:600}}>i</span>
+                  </button>
+                </div>
+              </div>
+              {showWaterInfo&&(<>
+                <div onClick={()=>setShowWaterInfo(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
+                <div style={{position:"absolute",top:38,right:0,zIndex:200,background:"#ffffff",border:"1px solid rgba(43,166,255,0.20)",borderRadius:12,padding:"12px 14px",maxWidth:260,boxShadow:"0 6px 20px rgba(0,0,0,0.10)"}}>
+                  <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.65)",lineHeight:1.6}}>{waterInfoText}</div>
+                </div>
+              </>)}
+              {/* Vessel */}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <div style={{width:84,height:164,borderRadius:26,border:"2px solid rgba(43,166,255,0.18)",background:"rgba(43,166,255,0.03)",position:"relative",overflow:"hidden",boxShadow:"inset 0 2px 10px rgba(43,166,255,0.06)"}}>
+                  {/* Animated fill */}
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,height:`${Math.max(0,Math.min(100,displayWater/Math.max(1,waterTarget)*100))}%`,background:"linear-gradient(to top,#0A7CFF 0%,#2BA6FF 100%)",transition:reducedMotion?"none":"height 0.55s cubic-bezier(.2,.7,.3,1)"}}>
+                    {/* Wave at fill surface */}
+                    {displayWater>0&&displayWater<waterTarget&&(
+                      <div style={{position:"absolute",top:-3,left:-4,right:-4,height:6,overflow:"hidden"}}>
+                        <svg viewBox="0 0 110 6" preserveAspectRatio="none" width="110%" height="6">
+                          <path d="M0,3 Q13.75,0 27.5,3 Q41.25,6 55,3 Q68.75,0 82.5,3 Q96.25,6 110,3 L110,6 L0,6 Z" fill="rgba(255,255,255,0.35)"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {/* Overlay numbers */}
+                  <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                    <div style={{fontFamily:AF,fontWeight:800,fontSize:26,lineHeight:1,letterSpacing:"-0.02em",color:displayWater>waterTarget*0.55?"#ffffff":"#1D8EE6",textShadow:displayWater>waterTarget*0.55?"0 1px 6px rgba(0,0,0,0.22)":"none"}}>
+                      {Math.round(displayWater)}
+                    </div>
+                    <div style={{fontFamily:AF,fontSize:9,letterSpacing:"0.06em",marginTop:3,color:displayWater>waterTarget*0.55?"rgba(255,255,255,0.78)":"rgba(29,142,230,0.65)"}}>
+                      of {waterTarget} oz
+                    </div>
+                  </div>
+                </div>
+                {displayWater>=waterTarget&&(
+                  <div style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"#1D8EE6",marginTop:8,letterSpacing:"0.06em"}}>Goal met ✓</div>
+                )}
+              </div>
+            </div>
+
+            {/* ── TODAY: NUTRITION ── */}
             <div style={{marginBottom:22}}>
               <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
-              {/* Macro summary line */}
               {consumed.calories>0&&(
-                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:14}}>
+                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:12}}>
                   {Math.round(consumed.calories)} kcal · {Math.round(consumed.protein)}g protein · {Math.round(consumed.carbs)}g carbs · {Math.round(consumed.fat)}g fat
                 </div>
               )}
-              {/* Water quick-log */}
-              <div style={{marginBottom:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.55)"}}>
-                    💧 {Math.round(displayWater)} / {waterTarget} oz
-                  </div>
-                  <div style={{display:"flex",gap:6}}>
-                    {[8,12,16,24].map(oz=>(
-                      <button key={oz} onClick={()=>handleWaterTap(oz)}
-                        style={{
-                          fontFamily:AF,fontWeight:700,fontSize:10,
-                          padding:"5px 10px",borderRadius:20,
-                          background:"rgba(17,17,17,0.05)",
-                          border:"1.5px solid rgba(17,17,17,0.12)",
-                          color:"rgba(17,17,17,0.65)",cursor:"pointer",
-                          WebkitTapHighlightColor:"transparent",
-                          transition:reducedMotion?"none":"background 0.12s",
-                        }}>
-                        +{oz}oz
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {/* Log meal */}
-              <button
-                onClick={()=>{
+              <button onClick={()=>{
                   // TODO: present FuelLogger as sheet (deferred pass)
                   setSection("fuel"); setFuelScreen("log");
                 }}
-                style={{
-                  width:"100%",padding:"13px 0",border:"1.5px solid rgba(17,17,17,0.12)",
-                  borderRadius:12,background:"none",cursor:"pointer",
-                  fontFamily:AF,fontWeight:700,fontSize:12,color:"#111111",
-                  letterSpacing:"0.04em",WebkitTapHighlightColor:"transparent",
-                }}>
+                style={{width:"100%",padding:"13px 0",border:"1.5px solid rgba(17,17,17,0.12)",borderRadius:12,background:"none",cursor:"pointer",fontFamily:AF,fontWeight:700,fontSize:12,color:"#111111",letterSpacing:"0.04em",WebkitTapHighlightColor:"transparent"}}>
                 + Log meal
               </button>
             </div>
