@@ -440,6 +440,13 @@ export const REDESIGN_CSS = `
     .goclub-card-enter        { animation: none; }
     @keyframes cm-bar-up      { from {} to {} }
   }
+
+  /* Plan tab — full-screen onboarding; give app-screen a definite height so flex children fill it */
+  .goclub.tab-plan .app-screen {
+    height: 100dvh;
+    padding: 0 !important;
+    overflow: hidden;
+  }
 `;
 
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────

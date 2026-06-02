@@ -3590,10 +3590,10 @@ function PlanAurora(){
       <style>{_PLAN_AURORA_CSS}</style>
       <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
         {[
-          {c:"#FF3B30",w:380,h:320,l:"5%",b:"-60px",  a:"pa1 19s ease-in-out infinite"},
-          {c:"#FF1B6B",w:320,h:360,r:"-40px",b:"20px", a:"pa2 23s ease-in-out infinite 3s"},
-          {c:"#9333EA",w:360,h:300,l:"30%",b:"-30px",  a:"pa3 17s ease-in-out infinite 7s"},
-          {c:"#FF6B00",w:280,h:340,r:"20%",b:"40px",   a:"pa4 21s ease-in-out infinite 11s"},
+          {c:"#FF3B30",w:380,h:320,l:"5%",  b:"-60px", a:"pa1 19s ease-in-out infinite"},
+          {c:"#E2241A",w:320,h:360,r:"-40px",b:"20px",  a:"pa2 23s ease-in-out infinite 3s"},
+          {c:"#FF6B5C",w:360,h:300,l:"30%", b:"-30px",  a:"pa3 17s ease-in-out infinite 7s"},
+          {c:"#C81212",w:280,h:340,r:"20%", b:"40px",   a:"pa4 21s ease-in-out infinite 11s"},
         ].map((b,i)=>(
           <div key={i} className="pa-blob" style={{
             position:"absolute",width:b.w,height:b.h,
@@ -3858,7 +3858,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
   })();
 
   return(
-    <div style={{position:"relative",minHeight:"100%",background:"#000",display:"flex",flexDirection:"column",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top,0px),0px)"}}>
+    <div style={{position:"relative",height:"100%",background:"#000",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <PlanAurora/>
 
       {/* UI layer */}
@@ -3893,7 +3893,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
 
         {/* Continue / bottom area */}
         {step<5&&(
-          <div style={{padding:"12px 24px",paddingBottom:"max(24px,env(safe-area-inset-bottom,24px))"}}>
+          <div style={{padding:"12px 24px",paddingBottom:"max(84px,calc(56px + env(safe-area-inset-bottom)))"}}>
             <button onClick={()=>advance(step)} style={btn(true,false)}>
               Continue
             </button>
