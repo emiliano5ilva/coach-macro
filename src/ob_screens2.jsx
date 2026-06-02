@@ -6307,6 +6307,14 @@ Rules:
     const AF = "'Archivo',sans-serif";
     const sc  = coachScore?.total ?? 0;
     const tier = sc>=90?"ELITE":sc>=85?"GREAT":sc>=70?"GOOD":sc>=50?"FAIR":"LOW";
+    const tierColor = sc>=90?"#FFD700":sc>=85?"#4ade80":sc>=70?"#93c5fd":sc>=50?"#fcd34d":"#fca5a5";
+
+    // Delta vs yesterday from real dailyScores
+    const ydStr=(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().split("T")[0];})();
+    const delta=(()=>{const e=dailyScores.find(s=>s.date===ydStr);return e!=null?sc-e.score:null;})();
+
+    // Gateway: check-in must happen before score is revealed
+    const showGateway = morningCheckinChecked && !morningCheckinDone && !!user?.id;
 
     const [selBar, setSelBar] = useState(null);
     const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
@@ -6334,8 +6342,8 @@ Rules:
 
     return (
       <div>
-        {/* ── RED FIELD — inherits var(--cm-accent) from .app-screen bg ── */}
-        <div style={{paddingLeft:22,paddingRight:22,paddingBottom:168}}>
+        {/* ── RED FIELD — flat #FF3B30 ── */}
+        <div style={{background:'#FF3B30',paddingLeft:22,paddingRight:22,paddingBottom:168}}>
 
           {/* Date / status */}
           <div style={{fontFamily:AF,fontWeight:500,fontSize:11,color:"rgba(255,255,255,0.70)",letterSpacing:"0.13em",textTransform:"uppercase",marginBottom:6}}>
@@ -6347,44 +6355,80 @@ Rules:
             HEY, {firstName.toUpperCase()}
           </div>
 
-          {/* ── HERO NUMBER ── */}
-          <div style={{textAlign:"center",marginBottom:18}}>
-            <div style={{fontFamily:AF,fontWeight:800,fontSize:96,color:"#ffffff",lineHeight:0.88,letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums"}}>
-              {heroDisplay}
-            </div>
-            <div style={{fontFamily:AF,fontWeight:700,fontSize:11,color:"rgba(255,255,255,0.78)",letterSpacing:"0.20em",marginTop:10,textTransform:"uppercase"}}>
-              {tier}
-            </div>
-            {selDiff!==null&&(
-              <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:5,
-                color:selDiff>=0?"#86efac":"rgba(255,255,255,0.55)"}}>
-                {selDiff>=0?"+":""}{selDiff} vs today
+          {/* ── GATEWAY or HERO+BARS ── */}
+          {showGateway ? (
+            /* Check-in gateway — revealed score is the reward */
+            <div style={{textAlign:"center",paddingBottom:8}}>
+              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(255,255,255,0.60)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:20}}>
+                CHECK IN TO UNLOCK YOUR SCORE
               </div>
-            )}
-          </div>
-
-          {/* ── 7-DAY BAR CHART ── */}
-          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:60,justifyContent:"center"}}>
-            {last7.map((day,i)=>{
-              const h = day.score!=null ? Math.max(8,Math.round(day.score/100*54)) : 5;
-              return (
-                <div key={day.ds}
-                  onClick={()=>setSelBar(selBar===i?null:i)}
-                  style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-                  <div style={{
-                    width:30,height:h,borderRadius:5,
-                    background:day.isToday||selBar===i?"#ffffff":"rgba(255,255,255,0.28)",
-                    transformOrigin:"bottom",
-                    animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
-                    transition:"background 0.15s",
-                  }}/>
-                  <div style={{fontFamily:AF,fontSize:9,color:day.isToday?"#fff":"rgba(255,255,255,0.48)",fontWeight:day.isToday?700:400}}>
-                    {day.ltr}
-                  </div>
+              <div style={{fontFamily:AF,fontWeight:800,fontSize:26,color:"#ffffff",lineHeight:1.15,marginBottom:30}}>
+                How's your readiness today?
+              </div>
+              <div style={{display:"flex",justifyContent:"center",gap:10}}>
+                {["1","2","3","4","5"].map(v=>(
+                  <button key={v} onClick={()=>setMorningCheckinDone(true)}
+                    style={{fontFamily:AF,fontWeight:700,fontSize:20,width:54,height:54,borderRadius:14,
+                      border:"2px solid rgba(255,255,255,0.35)",background:"rgba(255,255,255,0.14)",
+                      color:"#ffffff",cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                      display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div style={{fontFamily:AF,fontSize:9,color:"rgba(255,255,255,0.45)",marginTop:14,letterSpacing:"0.10em"}}>
+                1 = COOKED · 5 = PEAK
+              </div>
+            </div>
+          ) : (<>
+            {/* ── HERO NUMBER ── */}
+            <div style={{textAlign:"center",marginBottom:18}}>
+              <div style={{fontFamily:AF,fontWeight:800,fontSize:96,color:"#ffffff",lineHeight:0.88,letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums"}}>
+                {heroDisplay}
+              </div>
+              {/* Tier label — coloured by score band */}
+              <div style={{fontFamily:AF,fontWeight:700,fontSize:11,color:tierColor,letterSpacing:"0.20em",marginTop:10,textTransform:"uppercase"}}>
+                {tier}
+              </div>
+              {/* Delta vs yesterday — only when no bar selected */}
+              {delta!==null&&selBar===null&&(
+                <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
+                  color:delta>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
+                  {delta>=0?"+":""}{delta} vs yesterday
                 </div>
-              );
-            })}
-          </div>
+              )}
+              {/* Delta vs selected bar */}
+              {selDiff!==null&&(
+                <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
+                  color:selDiff>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
+                  {selDiff>=0?"+":""}{selDiff} vs today
+                </div>
+              )}
+            </div>
+
+            {/* ── 7-DAY BAR CHART ── */}
+            <div style={{display:"flex",gap:8,alignItems:"flex-end",height:60,justifyContent:"center"}}>
+              {last7.map((day,i)=>{
+                const h = day.score!=null ? Math.max(8,Math.round(day.score/100*54)) : 5;
+                return (
+                  <div key={day.ds}
+                    onClick={()=>setSelBar(selBar===i?null:i)}
+                    style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                    <div style={{
+                      width:30,height:h,borderRadius:5,
+                      background:day.isToday||selBar===i?"#ffffff":"rgba(255,255,255,0.28)",
+                      transformOrigin:"bottom",
+                      animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
+                      transition:"background 0.15s",
+                    }}/>
+                    <div style={{fontFamily:AF,fontSize:9,color:day.isToday?"#fff":"rgba(255,255,255,0.48)",fontWeight:day.isToday?700:400}}>
+                      {day.ltr}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>)}
         </div>
 
         {/* ── WHITE CARD ── */}
@@ -6469,13 +6513,6 @@ Rules:
             )}
           </div>
 
-          {/* Morning check-in */}
-          {morningCheckinChecked&&!morningCheckinDone&&user?.id&&(
-            <div style={{marginBottom:16}}>
-              <MorningCheckin userId={user.id} onComplete={()=>setMorningCheckinDone(true)}
-                onSkip={()=>setMorningCheckinDone(true)} profile={profile} workoutLogs={workoutLogsRaw}/>
-            </div>
-          )}
           {showCheckin&&!checkinDone&&(
             <SorenessCheckIn userId={user?.id}
               onComplete={(s,m)=>{setSorenessData({soreness_score:s,sore_muscles:m});setCheckinDone(true);setShowCheckin(false);}}
