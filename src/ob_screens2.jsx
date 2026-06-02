@@ -3577,42 +3577,74 @@ function CoachAlertsStream({ userMode, children }) {
 // ── PLAN ONBOARDING (PHASE 5B) ───────────────────────────────────────────────
 
 const _PLAN_AURORA_CSS=`
-@keyframes pa1{0%,100%{transform:translate(0,0)}30%{transform:translate(55px,-22px)}65%{transform:translate(-38px,18px)}}
-@keyframes pa2{0%,100%{transform:translate(0,0)}40%{transform:translate(-60px,-16px)}78%{transform:translate(34px,26px)}}
-@keyframes pa3{0%,100%{transform:translate(0,0)}22%{transform:translate(88px,-28px)}55%{transform:translate(-68px,22px)}80%{transform:translate(44px,16px)}}
-@keyframes pa4{0%,100%{transform:translate(0,0)}50%{transform:translate(-44px,22px)}}
-@keyframes pa-fade1{0%,100%{opacity:0.52}50%{opacity:0.70}}
-@keyframes pa-fade2{0%,100%{opacity:0.42}50%{opacity:0.26}}
-@keyframes pa-fade3{0%,100%{opacity:0.38}55%{opacity:0.65}}
-@keyframes pa-fade4{0%,100%{opacity:0.46}50%{opacity:0.28}}
-.pa-blob{opacity:0.5}
-@media(prefers-reduced-motion:reduce){.pa-blob{animation:none!important;opacity:0.25!important}}
+/* Streaks sway from their bottom pivot — translateX shifts anchor, rotate tilts the column */
+@keyframes ps1{0%,100%{transform:translateX(0) rotate(-14deg)}35%{transform:translateX(22px) rotate(-8deg)}70%{transform:translateX(-16px) rotate(-20deg)}}
+@keyframes ps2{0%,100%{transform:translateX(0) rotate(18deg)}45%{transform:translateX(-26px) rotate(12deg)}80%{transform:translateX(18px) rotate(23deg)}}
+@keyframes ps3{0%,100%{transform:translateX(0) rotate(-3deg)}22%{transform:translateX(36px) rotate(6deg)}55%{transform:translateX(-32px) rotate(-9deg)}82%{transform:translateX(18px) rotate(2deg)}}
+@keyframes ps4{0%,100%{transform:translateX(0) rotate(8deg)}55%{transform:translateX(-20px) rotate(13deg)}}
+/* Independent opacity breathing — offset from drift so glow pulses even when position changes little */
+@keyframes pa-fade1{0%,100%{opacity:0.55}50%{opacity:0.76}}
+@keyframes pa-fade2{0%,100%{opacity:0.44}50%{opacity:0.26}}
+@keyframes pa-fade3{0%,100%{opacity:0.40}55%{opacity:0.72}}
+@keyframes pa-fade4{0%,100%{opacity:0.48}50%{opacity:0.28}}
+/* transform-origin at bottom-center so rotation pivots from where the streak meets the floor */
+.pa-streak{transform-origin:50% 100%}
+@media(prefers-reduced-motion:reduce){.pa-streak{animation:none!important;opacity:0.20!important}}
 `;
 
 function PlanAurora(){
   return(
     <>
       <style>{_PLAN_AURORA_CSS}</style>
-      {/* Gradient mask: hard-clips glow from top — top 38% stays near-black */}
+      {/*
+        Container mask: smooth vertical fade — fully visible at bottom, fades to black by ~75% up.
+        The top quarter stays near-black; headline/question text reads on dark.
+      */}
       <div style={{
         position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0,
-        maskImage:"linear-gradient(to top, black 38%, transparent 62%)",
-        WebkitMaskImage:"linear-gradient(to top, black 38%, transparent 62%)",
+        maskImage:"linear-gradient(to top, black 0%, black 48%, transparent 75%)",
+        WebkitMaskImage:"linear-gradient(to top, black 0%, black 48%, transparent 75%)",
       }}>
         {[
-          // All blobs bottom-anchored — pool into lower 55% of screen
-          // Opacity driven by separate pa-fade keyframes so glow breathes independently of movement
-          {c:"#FF3B30",w:380,h:320,l:"-30px", b:"-50px", a:"pa1 20s ease-in-out infinite,       pa-fade1 7s ease-in-out infinite 1s"},
-          {c:"#E2241A",w:360,h:340,r:"-40px", b:"-55px", a:"pa2 24s ease-in-out infinite 4s,    pa-fade2 9s ease-in-out infinite"},
-          {c:"#FF6B5C",w:340,h:280,l:"18%",   b:"65px",  a:"pa3 18s ease-in-out infinite 9s,    pa-fade3 6s ease-in-out infinite 2s"},
-          {c:"#C81212",w:300,h:260,l:"32%",   b:"-38px", a:"pa4 22s ease-in-out infinite 14s,   pa-fade4 11s ease-in-out infinite 5s"},
-        ].map((b,i)=>(
-          <div key={i} className="pa-blob" style={{
-            position:"absolute",width:b.w,height:b.h,
-            left:b.l,right:b.r,bottom:b.b,
-            borderRadius:"50%",background:b.c,
-            filter:"blur(58px)",mixBlendMode:"screen",
-            animation:b.a,
+          /*
+            Each streak is a full-height div with a TALL ELLIPSE radial-gradient anchored at
+            the bottom-center of the div. After rotation (from bottom pivot), it becomes an
+            angled column of light — wide+bright at the floor, fading to nothing up top.
+            Overlapping screen-blend layers brighten where they cross, just like real aurora.
+          */
+          {
+            // Left streak — brand red, leans left
+            bg:"radial-gradient(ellipse 65% 72% at 40% 100%, rgba(255,59,48,0.92) 0%, rgba(255,59,48,0.50) 28%, rgba(255,59,48,0.12) 62%, transparent 100%)",
+            w:"65%", l:"-10%",
+            a:"ps1 22s ease-in-out infinite,     pa-fade1 8s ease-in-out infinite 1s",
+          },
+          {
+            // Right streak — deep red, leans right
+            bg:"radial-gradient(ellipse 60% 68% at 60% 100%, rgba(226,36,26,0.88) 0%, rgba(226,36,26,0.42) 32%, rgba(226,36,26,0.10) 64%, transparent 100%)",
+            w:"58%", r:"-8%",
+            a:"ps2 25s ease-in-out infinite 4s,  pa-fade2 9s ease-in-out infinite",
+          },
+          {
+            // Center drifter — lightest red, most travel, makes the aurora feel alive
+            bg:"radial-gradient(ellipse 58% 78% at 50% 100%, rgba(255,107,92,0.82) 0%, rgba(255,107,92,0.46) 30%, rgba(255,107,92,0.12) 65%, transparent 100%)",
+            w:"55%", l:"22%",
+            a:"ps3 19s ease-in-out infinite 9s,  pa-fade3 6s ease-in-out infinite 2s",
+          },
+          {
+            // Dark anchor — fills the base, adds tonal depth to overlaps
+            bg:"radial-gradient(ellipse 52% 65% at 50% 100%, rgba(200,18,18,0.80) 0%, rgba(200,18,18,0.32) 38%, transparent 100%)",
+            w:"48%", l:"18%",
+            a:"ps4 23s ease-in-out infinite 14s, pa-fade4 11s ease-in-out infinite 5s",
+          },
+        ].map((s,i)=>(
+          <div key={i} className="pa-streak" style={{
+            position:"absolute",
+            width:s.w, height:"100%",
+            left:s.l, right:s.r, bottom:0,
+            background:s.bg,
+            mixBlendMode:"screen",
+            filter:"blur(8px)",
+            animation:s.a,
           }}/>
         ))}
       </div>
