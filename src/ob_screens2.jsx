@@ -3573,13 +3573,29 @@ function CoachAlertsStream({ userMode, children }) {
   );
 }
 
-// ── Stable module-scope shell for HomeSectionGoClub ─────────────────────────
-// Defined outside App so React sees a constant component type every render.
-// App populates _GoClubHome.current with the latest closure on every render;
-// the shell just calls it, so hooks run in the React context of this stable component.
+// ── RENDER-SLOT PATTERN — HomeSectionGoClub ──────────────────────────────────
+//
+// PROBLEM: HomeSectionGoClub is defined inside App's function body. React uses
+// referential identity to decide whether to reuse or replace a component tree.
+// A function defined inside another function gets a brand-new identity on every
+// parent render, so React unmounts the old instance and mounts a fresh one —
+// restarting the 60fps rAF wave from zero and replaying the card slide-up
+// animation on every unrelated App state change (e.g. waterLogs, coachScore).
+//
+// CURRENT FIX (render-slot): Define a *stable* module-scope shell here.
+// App assigns its locally-defined closure to _GoClubHome.current on every render;
+// the shell just calls it. React sees the same component type every time (no
+// remount), while the closure always reflects the latest App state. Hooks inside
+// the closure run in the React context of this stable shell component, so
+// useState/useEffect/useRef all persist correctly across App re-renders.
+//
+// TODO (tech debt, pre-launch cleanup): replace this pattern with a proper hoist
+// — move the full component to module scope and pass App state as explicit props.
+// That eliminates the mutable-ref indirection and the implicit closure dependency.
+// Not doing it now to avoid the 600-line refactor mid-launch sprint.
+// ─────────────────────────────────────────────────────────────────────────────
 const _GoClubHome = { current: null };
 function HomeSectionGoClub() { return _GoClubHome.current?.() ?? null; }
-// ─────────────────────────────────────────────────────────────────────────────
 
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
