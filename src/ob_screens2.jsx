@@ -6374,6 +6374,40 @@ Rules:
     const b = morningBrief;
     const briefText = b?.coach_says||b?.greeting||"";
 
+    // ── Phase 3.5 — selected day drives white card ────────────────────────
+    const todayStr  = new Date().toISOString().split("T")[0];
+    const selectedDay = selBar!==null ? (last7[selBar]?.ds ?? todayStr) : todayStr;
+    const isToday   = selectedDay === todayStr;
+
+    // Past-day food log — cached per date, today uses `log` in memory
+    const [dayFoodCache, setDayFoodCache] = useState({});
+    const [dayFoodLoading, setDayFoodLoading] = useState(false);
+    const [wkExpanded, setWkExpanded] = useState(false);
+    const [fnExpanded, setFnExpanded] = useState(false);
+
+    useEffect(()=>{ setWkExpanded(false); setFnExpanded(false); },[selectedDay]);
+
+    useEffect(()=>{
+      if(isToday||!user?.id) return;
+      if(Object.prototype.hasOwnProperty.call(dayFoodCache,selectedDay)) return;
+      setDayFoodLoading(true);
+      sb.from('food_logs').select('entries').eq('user_id',user.id).eq('date',selectedDay).maybeSingle()
+        .then(({data})=>setDayFoodCache(p=>({...p,[selectedDay]:data?.entries??null})))
+        .catch(()=>setDayFoodCache(p=>({...p,[selectedDay]:null})))
+        .finally(()=>setDayFoodLoading(false));
+    },[selectedDay,isToday,user?.id]);
+
+    const selWorkout     = workoutLogsRaw.find(w=>w.date===selectedDay);
+    const selFoodEntries = isToday ? log
+      : Object.prototype.hasOwnProperty.call(dayFoodCache,selectedDay) ? dayFoodCache[selectedDay] : undefined;
+    const selMacros = Array.isArray(selFoodEntries)&&selFoodEntries.length>0
+      ? selFoodEntries.reduce((a,e)=>({calories:a.calories+(e.calories||0),protein:a.protein+(e.protein||0),
+          carbs:a.carbs+(e.carbs||0),fat:a.fat+(e.fat||0)}),{calories:0,protein:0,carbs:0,fat:0})
+      : null;
+    const selDayLabel = isToday ? null
+      : new Date(selectedDay+'T12:00:00').toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
+    // ─────────────────────────────────────────────────────────────────────
+
     return (
       <div>
         {/* ── RED FIELD — flat #FF3B30 ── */}
@@ -6476,89 +6510,149 @@ Rules:
           paddingTop:28,paddingLeft:20,paddingRight:20,paddingBottom:120,
         }}>
 
-          {/* Morning Brief */}
-          {!briefDismissed&&briefText&&(
-            <div style={{marginBottom:22}}>
-              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
-                MORNING BRIEF
-              </div>
-              {briefExpanded?(
-                <div style={{background:"#f5f5f5",borderRadius:16,padding:16}}>
-                  {b?.greeting&&<div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",lineHeight:1.2,marginBottom:10}}>{b.greeting}</div>}
-                  {b?.today&&<div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.72)",lineHeight:1.6,marginBottom:10}}>{b.today}</div>}
-                  {b?.coach_says&&(
-                    <div style={{fontFamily:AF,fontWeight:600,fontStyle:"italic",fontSize:13,color:"#111",lineHeight:1.5,
-                      background:"rgba(255,59,48,0.06)",borderLeft:"3px solid #FF3B30",
-                      borderRadius:"0 10px 10px 0",padding:"10px 12px",marginBottom:12}}>
-                      {b.coach_says}
+          {/* Past-day date label */}
+          {!isToday&&selDayLabel&&(
+            <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:20}}>
+              {selDayLabel}
+            </div>
+          )}
+
+          {isToday ? (<>
+            {/* ── TODAY: morning brief ── */}
+            {!briefDismissed&&briefText&&(
+              <div style={{marginBottom:22}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
+                  MORNING BRIEF
+                </div>
+                {briefExpanded?(
+                  <div style={{background:"#f5f5f5",borderRadius:16,padding:16}}>
+                    {b?.greeting&&<div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",lineHeight:1.2,marginBottom:10}}>{b.greeting}</div>}
+                    {b?.today&&<div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.72)",lineHeight:1.6,marginBottom:10}}>{b.today}</div>}
+                    {b?.coach_says&&(
+                      <div style={{fontFamily:AF,fontWeight:600,fontStyle:"italic",fontSize:13,color:"#111",lineHeight:1.5,
+                        background:"rgba(255,59,48,0.06)",borderLeft:"3px solid #FF3B30",
+                        borderRadius:"0 10px 10px 0",padding:"10px 12px",marginBottom:12}}>
+                        {b.coach_says}
+                      </div>
+                    )}
+                    <div style={{display:"flex",justifyContent:"space-between"}}>
+                      <button onClick={()=>setBriefExpanded(false)} style={{fontFamily:AF,fontSize:9,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
+                      <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{fontFamily:AF,fontSize:9,color:"#FF3B30",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
                     </div>
-                  )}
-                  <div style={{display:"flex",justifyContent:"space-between"}}>
-                    <button onClick={()=>setBriefExpanded(false)}
-                      style={{fontFamily:AF,fontSize:9,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>
-                      COLLAPSE ↑
-                    </button>
-                    <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}}
-                      style={{fontFamily:AF,fontSize:9,color:"#FF3B30",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>
-                      GOT IT →
-                    </button>
                   </div>
+                ):(
+                  <div onClick={()=>setBriefExpanded(true)} style={{cursor:"pointer"}}>
+                    <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.3,marginBottom:8,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
+                      {briefText}
+                    </div>
+                    <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* ── TODAY: session handoff ── */}
+            <div style={{marginBottom:22}}>
+              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>TODAY'S SESSION</div>
+              {deloadActive?(
+                <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#7E57C2",marginBottom:4}}>RECOVERY WEEK</div>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Deload active — light work only</div>
+                </div>
+              ):todayType==="rest"?(
+                <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#111111",marginBottom:4}}>REST DAY</div>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Recovery is part of the program</div>
                 </div>
               ):(
-                <div onClick={()=>setBriefExpanded(true)} style={{cursor:"pointer"}}>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.3,marginBottom:8,
-                    display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
-                    {briefText}
+                <button onClick={()=>setSection("train")} style={{width:"100%",background:"#111111",border:"none",borderRadius:14,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                  <div>
+                    <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#ffffff"}}>{todayFocus}</div>
+                    <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.45)",marginTop:3}}>{(cfg?.label||todayType).toUpperCase()}</div>
                   </div>
-                  <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>
-                    READ MORE ↓
-                  </div>
-                </div>
+                  <div style={{fontFamily:AF,fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.65)"}}>START →</div>
+                </button>
               )}
             </div>
-          )}
-
-          {/* Today's Session */}
-          <div style={{marginBottom:22}}>
-            <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
-              TODAY'S SESSION
-            </div>
-            {deloadActive?(
-              <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
-                <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#7E57C2",marginBottom:4}}>RECOVERY WEEK</div>
-                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Deload active — light work only</div>
-              </div>
-            ):todayType==="rest"?(
-              <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
-                <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#111111",marginBottom:4}}>REST DAY</div>
-                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.55)"}}>Recovery is part of the program</div>
-              </div>
-            ):(
-              <button onClick={()=>setSection("train")} style={{
-                width:"100%",background:"#111111",border:"none",borderRadius:14,
-                padding:"14px 16px",display:"flex",justifyContent:"space-between",
-                alignItems:"center",cursor:"pointer",textAlign:"left",
-                WebkitTapHighlightColor:"transparent",
-              }}>
-                <div>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#ffffff"}}>{todayFocus}</div>
-                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.45)",marginTop:3}}>
-                    {(cfg?.label||todayType).toUpperCase()}
-                  </div>
-                </div>
-                <div style={{fontFamily:AF,fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.65)"}}>START →</div>
-              </button>
+            {showCheckin&&!checkinDone&&(
+              <SorenessCheckIn userId={user?.id}
+                onComplete={(s,m)=>{setSorenessData({soreness_score:s,sore_muscles:m});setCheckinDone(true);setShowCheckin(false);}}
+                onSkip={()=>setShowCheckin(false)}/>
             )}
-          </div>
+            {checkinDone&&sorenessData&&(
+              <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
+            )}
+          </>) : (<>
+            {/* ── PAST DAY: workout block ── */}
+            <div style={{marginBottom:22}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>WORKOUT</div>
+                {selWorkout&&(
+                  <button onClick={()=>setWkExpanded(e=>!e)} style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>
+                    {wkExpanded?"LESS ↑":"SHOW MORE ↓"}
+                  </button>
+                )}
+              </div>
+              {selWorkout ? (<>
+                <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:"#111111",marginBottom:5}}>{selWorkout.workout?.focus||"Session"}</div>
+                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)"}}>
+                  {[selWorkout.volume_lbs?`${selWorkout.volume_lbs.toLocaleString()} lbs`:null,
+                    selWorkout.total_sets?`${selWorkout.total_sets} sets`:null,
+                    selWorkout.session_duration_mins?`${selWorkout.session_duration_mins} min`:null,
+                    selWorkout.pr_count?`${selWorkout.pr_count} PR${selWorkout.pr_count>1?"s":""}`:null,
+                  ].filter(Boolean).join(" · ")||"Logged"}
+                </div>
+                {/* Exercise detail — max-height transition */}
+                <div style={{overflow:"hidden",maxHeight:wkExpanded?"800px":"0",transition:reducedMotion?"none":"max-height 0.38s ease",marginTop:wkExpanded?14:0}}>
+                  {(selWorkout.workout?.exercises||[]).map((ex,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:10,borderTop:`1px solid rgba(0,0,0,0.06)`}}>
+                      <div style={{fontFamily:AF,fontSize:13,color:"#111111",fontWeight:500,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:8}}>{ex.name}</div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.42)",flexShrink:0}}>
+                        {ex.sets?.length||0}×{ex.sets?.[0]?.reps||"—"}
+                        {ex.sets?.[0]?.weight?` @ ${ex.sets[0].weight}lbs`:""}
+                      </div>
+                    </div>
+                  ))}
+                  {!selWorkout.workout?.exercises?.length&&(
+                    <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)",paddingTop:10}}>No exercise detail saved</div>
+                  )}
+                </div>
+              </>) : (
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No session logged</div>
+              )}
+            </div>
 
-          {showCheckin&&!checkinDone&&(
-            <SorenessCheckIn userId={user?.id}
-              onComplete={(s,m)=>{setSorenessData({soreness_score:s,sore_muscles:m});setCheckinDone(true);setShowCheckin(false);}}
-              onSkip={()=>setShowCheckin(false)}/>
-          )}
-          {checkinDone&&sorenessData&&(
-            <SorenesSummary score={sorenessData.soreness_score} muscles={sorenessData.sore_muscles}/>
-          )}
+            {/* ── PAST DAY: nutrition block ── */}
+            <div style={{marginBottom:22}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>NUTRITION</div>
+                {selMacros&&(
+                  <button onClick={()=>setFnExpanded(e=>!e)} style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>
+                    {fnExpanded?"LESS ↑":"SHOW MORE ↓"}
+                  </button>
+                )}
+              </div>
+              {dayFoodLoading ? (
+                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+              ) : selMacros ? (<>
+                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)"}}>
+                  {Math.round(selMacros.calories)} kcal · {Math.round(selMacros.protein)}g protein · {Math.round(selMacros.carbs)}g carbs · {Math.round(selMacros.fat)}g fat
+                </div>
+                {/* Meal detail */}
+                <div style={{overflow:"hidden",maxHeight:fnExpanded?"800px":"0",transition:reducedMotion?"none":"max-height 0.38s ease",marginTop:fnExpanded?14:0}}>
+                  {(selFoodEntries||[]).map((e,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:10,borderTop:`1px solid rgba(0,0,0,0.06)`}}>
+                      <div style={{fontFamily:AF,fontSize:13,color:"#111111",fontWeight:500,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:8}}>{e.food||e.name||"Meal"}</div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.42)",flexShrink:0}}>{Math.round(e.calories||0)} kcal · {Math.round(e.protein||0)}g P</div>
+                    </div>
+                  ))}
+                </div>
+              </>) : selFoodEntries===null ? (
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No meals logged</div>
+              ) : (
+                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+              )}
+            </div>
+          </>)}
         </div>
 
         {/* ── SLIDE-UP SHEET — check-in detail (soreness + confirm) ── */}
