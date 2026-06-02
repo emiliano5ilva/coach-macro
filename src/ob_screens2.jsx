@@ -7829,6 +7829,11 @@ Rules:
 
   return (
     <div className={GOCLUB_REDESIGN ? "goclub" : undefined} style={{position:"relative",minHeight:"100vh",maxWidth:480,margin:"0 auto",background:"var(--navy)"}}>
+      {GOCLUB_REDESIGN && (<>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" />
+      </>)}
       <style>{GLOBAL_CSS}{GOCLUB_REDESIGN ? REDESIGN_CSS : ""}</style>
       {/* Toast container */}
       <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"center",pointerEvents:"none",width:"min(380px,90vw)"}}>

@@ -366,8 +366,6 @@ export const GLOBAL_CSS = `
 export const NEW_ONBOARDING  = false;
 export const GOCLUB_REDESIGN = false;
 export const REDESIGN_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700&display=swap');
-
   .goclub {
     --cm-bg:         #ffffff;
     --cm-surface:    #f5f5f5;
