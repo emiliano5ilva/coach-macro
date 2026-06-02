@@ -3577,10 +3577,10 @@ function CoachAlertsStream({ userMode, children }) {
 // ── PLAN ONBOARDING (PHASE 5B) ───────────────────────────────────────────────
 
 const _PLAN_AURORA_CSS=`
-@keyframes pa1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(28px,-18px) scale(1.08)}66%{transform:translate(-16px,12px) scale(0.93)}}
-@keyframes pa2{0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(-32px,16px) scale(1.05)}80%{transform:translate(20px,-12px) scale(0.96)}}
-@keyframes pa3{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(18px,22px) scale(1.12)}75%{transform:translate(-24px,-8px) scale(0.91)}}
-@keyframes pa4{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,18px) scale(1.06)}}
+@keyframes pa1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(90px,-60px) scale(1.07)}66%{transform:translate(-55px,42px) scale(0.94)}}
+@keyframes pa2{0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(-110px,85px) scale(1.06)}80%{transform:translate(65px,-50px) scale(0.93)}}
+@keyframes pa3{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(130px,75px) scale(1.09)}75%{transform:translate(-85px,-55px) scale(0.91)}}
+@keyframes pa4{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-85px,95px) scale(1.07)}}
 @media(prefers-reduced-motion:reduce){.pa-blob{animation:none!important;opacity:0.25!important}}
 `;
 
@@ -3590,16 +3590,16 @@ function PlanAurora(){
       <style>{_PLAN_AURORA_CSS}</style>
       <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
         {[
-          {c:"#FF3B30",w:380,h:320,l:"5%",  b:"-60px", a:"pa1 19s ease-in-out infinite"},
-          {c:"#E2241A",w:320,h:360,r:"-40px",b:"20px",  a:"pa2 23s ease-in-out infinite 3s"},
-          {c:"#FF6B5C",w:360,h:300,l:"30%", b:"-30px",  a:"pa3 17s ease-in-out infinite 7s"},
-          {c:"#C81212",w:280,h:340,r:"20%", b:"40px",   a:"pa4 21s ease-in-out infinite 11s"},
+          {c:"#FF3B30",w:620,h:580,l:"-80px",  t:"-100px",             a:"pa1 19s ease-in-out infinite"},
+          {c:"#E2241A",w:540,h:620,r:"-60px",  b:"-80px",              a:"pa2 23s ease-in-out infinite 3s"},
+          {c:"#FF6B5C",w:700,h:540,r:"-60px",  t:"28%",                a:"pa3 17s ease-in-out infinite 7s"},
+          {c:"#C81212",w:520,h:580,l:"-40px",  b:"10%",                a:"pa4 21s ease-in-out infinite 11s"},
         ].map((b,i)=>(
           <div key={i} className="pa-blob" style={{
             position:"absolute",width:b.w,height:b.h,
-            left:b.l,right:b.r,bottom:b.b,
+            left:b.l,right:b.r,bottom:b.b,top:b.t,
             borderRadius:"50%",background:b.c,
-            filter:"blur(45px)",mixBlendMode:"screen",opacity:0.6,
+            filter:"blur(70px)",mixBlendMode:"screen",opacity:0.65,
             animation:b.a,
           }}/>
         ))}
@@ -3758,6 +3758,8 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
   const [saving,setSaving]=useState(false);
   const [building,setBuilding]=useState(false);
   const [buildMsgIdx,setBuildMsgIdx]=useState(0);
+  const [p2Touched,setP2Touched]=useState(false);
+  const [p4Touched,setP4Touched]=useState(false);
 
   useEffect(()=>{
     if(!building||reducedMotion) return;
@@ -3854,6 +3856,11 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
   const mealLabel={2:"2 meals",3:"3 meals",4:"4–5 meals",6:"6+ meals / grazing"}[mealFreq]||"3 meals";
 
   const screenContent=(()=>{
+    const chk=(
+      <div style={{marginLeft:"auto",width:20,height:20,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        <svg width={11} height={11} viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      </div>
+    );
     switch(step){
       // ── P1: Focus ──────────────────────────────────────────────────────
       case 1: return(
@@ -3862,22 +3869,34 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>What's your<br/>focus?</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Select one — we'll tailor your program.</div>
           {[
-            {id:"strength",label:"Strength & muscle",emoji:"🏋️",desc:"Build muscle, get stronger"},
-            {id:"run",     label:"Run / endurance",  emoji:"🏃",desc:"Aerobic base, distance, pace"},
-            {id:"hybrid",  label:"Hybrid",           emoji:"⚡",desc:"Lifting + cardio combined"},
-            {id:"hyrox",   label:"Hyrox",            emoji:"🔥",desc:"Race-specific functional fitness"},
+            {id:"strength",label:"Strength & muscle",
+              icon:<svg width={22} height={22} viewBox="0 0 24 24" fill="none"><g stroke="#fff" strokeWidth="1.65" strokeLinecap="round"><rect x="2.5" y="9" width="2.5" height="6" rx="0.8"/><rect x="5" y="7.5" width="2" height="9" rx="0.5"/><rect x="17" y="7.5" width="2" height="9" rx="0.5"/><rect x="19.5" y="9" width="2.5" height="6" rx="0.8"/><line x1="7" y1="12" x2="17" y2="12"/></g></svg>,
+              desc:"Build muscle, get stronger"},
+            {id:"run",label:"Run / endurance",
+              icon:<svg width={22} height={22} viewBox="0 0 24 24" fill="none"><g stroke="#fff" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"><circle cx="14.5" cy="4.5" r="1.8"/><path d="M11.5 8.5l3 1.5 2.5 4"/><path d="M14.5 10l-2 5-2.5 3.5"/><path d="M17 14l1.5 3"/><path d="M11.5 10L9 12"/></g></svg>,
+              desc:"Aerobic base, distance, pace"},
+            {id:"hybrid",label:"Hybrid",
+              icon:<svg width={22} height={22} viewBox="0 0 24 24"><path d="M13 2L3.5 13.5H11l-2 8.5L21.5 10h-8z" fill="#fff"/></svg>,
+              desc:"Lifting + cardio combined"},
+            {id:"hyrox",label:"Hyrox",
+              icon:<svg width={22} height={22} viewBox="0 0 24 24" fill="none"><g stroke="#fff" strokeWidth="1.65" strokeLinecap="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.5 1.5"/><line x1="9.5" y1="2.5" x2="14.5" y2="2.5"/><line x1="12" y1="2.5" x2="12" y2="6"/></g></svg>,
+              desc:"Race-specific functional fitness"},
           ].map(o=>(
             <div key={o.id} onClick={()=>setFocus(o.id)} style={pill(focus===o.id)}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:22}}>{o.emoji}</span>
+                <div style={{width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{o.icon}</div>
                 <div>
                   <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.label}</div>
                   <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.desc}</div>
                 </div>
-                {focus===o.id&&<div style={{marginLeft:"auto",width:20,height:20,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:11,color:"#fff"}}>✓</span></div>}
+                {focus===o.id&&chk}
               </div>
             </div>
           ))}
+          {/* P1: pre-selected — Continue always visible */}
+          <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.22,ease:"easeOut",delay:0.05}} style={{marginTop:20}}>
+            <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+          </motion.div>
         </div>
       );
       // ── P2: Split (skipped for run) ────────────────────────────────────
@@ -3887,16 +3906,24 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Pick your<br/>split.</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>This routes every workout we build for you.</div>
           {splitOpts.map(o=>(
-            <div key={o.id} onClick={()=>setSplitType(o.id)} style={pill(splitType===o.id)}>
+            <div key={o.id} onClick={()=>{setSplitType(o.id);setP2Touched(true);}} style={pill(splitType===o.id)}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.id}</div>
                   <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.desc}</div>
                 </div>
-                {splitType===o.id&&<div style={{width:20,height:20,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:11,color:"#fff"}}>✓</span></div>}
+                {splitType===o.id&&chk}
               </div>
             </div>
           ))}
+          {/* P2: appears only after explicit tap */}
+          <AnimatePresence>
+            {p2Touched&&(
+              <motion.div key="p2cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:20}}>
+                <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       );
       // ── P3: Days ───────────────────────────────────────────────────────
@@ -3905,7 +3932,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP {dispStep} OF {totalSteps}</div>
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Which days<br/>will you train?</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Tap to toggle. Pre-set from your weekly frequency.</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:8,marginBottom:24}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:8,marginBottom:12}}>
             {_PLAN_DAYS.map(d=>{
               const on=selDays.has(d);
               return(
@@ -3917,7 +3944,11 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
               );
             })}
           </div>
-          <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.40)",textAlign:"center"}}>{selDays.size} day{selDays.size!==1?"s":""} selected</div>
+          <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.40)",textAlign:"center",marginBottom:4}}>{selDays.size} day{selDays.size!==1?"s":""} selected</div>
+          {/* P3: pre-ticked — Continue always visible */}
+          <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.22,ease:"easeOut",delay:0.05}} style={{marginTop:16}}>
+            <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+          </motion.div>
         </div>
       );
       // ── P4: Meal rhythm ────────────────────────────────────────────────
@@ -3932,16 +3963,24 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
             {id:4,label:"4–5 meals",desc:"Regular meals + snacks"},
             {id:6,label:"6+ meals / grazing",desc:"Frequent small meals throughout the day"},
           ].map(o=>(
-            <div key={o.id} onClick={()=>setMealFreq(o.id)} style={pill(mealFreq===o.id)}>
+            <div key={o.id} onClick={()=>{setMealFreq(o.id);setP4Touched(true);}} style={pill(mealFreq===o.id)}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.label}</div>
                   <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.desc}</div>
                 </div>
-                {mealFreq===o.id&&<div style={{width:20,height:20,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:11,color:"#fff"}}>✓</span></div>}
+                {mealFreq===o.id&&chk}
               </div>
             </div>
           ))}
+          {/* P4: appears only after explicit tap */}
+          <AnimatePresence>
+            {p4Touched&&(
+              <motion.div key="p4cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:20}}>
+                <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       );
       // ── P5: Confirm ────────────────────────────────────────────────────
@@ -3991,24 +4030,15 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           </button>
         )}
 
-        {/* Animated screen content */}
+        {/* Animated screen content — Continue button is inline per-screen */}
         <div style={{flex:1,overflow:"hidden",position:"relative",marginTop:20}}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={step} custom={dir} variants={variants} initial="enter" animate="center" exit="exit"
-              style={{position:"absolute",inset:0,overflowY:"auto",padding:"24px 24px 20px",WebkitOverflowScrolling:"touch"}}>
+              style={{position:"absolute",inset:0,overflowY:"auto",padding:"24px 24px",paddingBottom:"max(84px,calc(56px + env(safe-area-inset-bottom)))",WebkitOverflowScrolling:"touch"}}>
               {screenContent}
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Continue / bottom area */}
-        {step<5&&(
-          <div style={{padding:"12px 24px",paddingBottom:"max(84px,calc(56px + env(safe-area-inset-bottom)))"}}>
-            <button onClick={()=>advance(step)} style={btn(true,false)}>
-              Continue
-            </button>
-          </div>
-        )}
 
       </div>
 
