@@ -6455,18 +6455,31 @@ Rules:
     // ── Phase 3.6 — today handoffs + water quick-log ──────────────────────
     const [waterOptimistic, setWaterOptimistic] = useState(0);
     const [showWaterInfo,   setShowWaterInfo]   = useState(false);
+    const [showCustomSheet, setShowCustomSheet] = useState(false);
+    const [customOz,        setCustomOz]        = useState(20);
     const displayWater = waterLoggedOz + waterOptimistic;
 
     async function handleWaterTap(oz) {
-      setWaterOptimistic(p=>p+oz); // optimistic bump
+      setWaterOptimistic(p=>p+oz);
       const dt=new Date().toISOString().split("T")[0];
       const result=await addWaterLog(user.id,oz,dt);
-      setWaterOptimistic(p=>p-oz); // clear optimistic regardless
+      setWaterOptimistic(p=>p-oz);
       if(result){
-        setWaterLogs(prev=>[...prev,result]); // reconcile real state
+        setWaterLogs(prev=>[...prev,result]);
         track?.(EVENTS.WATER_LOGGED,{oz},user.id);
       }
-      // on error: optimistic removed, waterLogs unchanged → total reverts
+    }
+
+    async function handleWaterRemove() {
+      if(displayWater<=0) return;
+      const removeAmt=Math.min(16,displayWater); // floor at 0
+      setWaterOptimistic(p=>p-removeAmt); // optimistic drain
+      const dt=new Date().toISOString().split("T")[0];
+      // Compensating negative insert — same model as addWaterLog, sum() handles it
+      const result=await addWaterLog(user.id,-removeAmt,dt);
+      setWaterOptimistic(p=>p+removeAmt); // always clear
+      if(result) setWaterLogs(prev=>[...prev,result]);
+      // on error: optimistic cleared, waterLogs unchanged → total reverts
     }
 
     // ── WaveHero rAF state ────────────────────────────────────────────────
@@ -6756,13 +6769,23 @@ Rules:
                     </div>
                     <button onClick={()=>setShowWaterInfo(v=>!v)} style={{width:26,height:26,borderRadius:13,background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.20)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,padding:0,WebkitTapHighlightColor:"transparent"}}>i</button>
                   </div>
-                  <div style={{display:"flex",gap:8}}>
-                    {[8,12,16,24].map(oz=>(
-                      <button key={oz} onClick={()=>handleWaterTap(oz)}
-                        style={{flex:1,padding:"10px 0",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.23)",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:AF,WebkitTapHighlightColor:"transparent"}}>
-                        +{oz}
+                  {/* Stepper row */}
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <button onClick={handleWaterRemove} disabled={displayWater<=0}
+                      style={{width:46,height:46,borderRadius:23,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.20)",color:"#fff",fontSize:26,fontWeight:300,cursor:displayWater<=0?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,opacity:displayWater<=0?0.30:1,WebkitTapHighlightColor:"transparent",lineHeight:1,paddingBottom:2}}>
+                      −
+                    </button>
+                    <div style={{flex:1,textAlign:"center"}}>
+                      <div style={{fontFamily:AF,fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.80)",letterSpacing:"0.04em"}}>🫙 16 oz</div>
+                      <button onClick={()=>setShowCustomSheet(true)}
+                        style={{fontFamily:AF,fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.40)",background:"none",border:"none",cursor:"pointer",padding:"3px 0 0",letterSpacing:"0.06em",WebkitTapHighlightColor:"transparent"}}>
+                        + Custom
                       </button>
-                    ))}
+                    </div>
+                    <button onClick={()=>handleWaterTap(16)}
+                      style={{width:46,height:46,borderRadius:23,background:"rgba(255,255,255,0.18)",border:"1px solid rgba(255,255,255,0.25)",color:"#fff",fontSize:26,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:AF,flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,paddingBottom:2}}>
+                      +
+                    </button>
                   </div>
                 </div>
               </div>
@@ -6771,6 +6794,33 @@ Rules:
                 <div onClick={()=>setShowWaterInfo(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
                 <div style={{position:"absolute",top:8,right:8,zIndex:200,background:"#ffffff",border:"1px solid rgba(43,166,255,0.20)",borderRadius:12,padding:"12px 14px",maxWidth:260,boxShadow:"0 6px 20px rgba(0,0,0,0.10)"}}>
                   <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.65)",lineHeight:1.6}}>{waterInfoText}</div>
+                </div>
+              </>)}
+              {/* Custom amount sheet */}
+              {showCustomSheet&&(<>
+                <div onClick={()=>setShowCustomSheet(false)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.45)"}}/>
+                <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:301,background:"#ffffff",borderRadius:"20px 20px 0 0",padding:`24px 24px max(24px,env(safe-area-inset-bottom))`,boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+                  <div style={{width:36,height:4,borderRadius:2,background:"rgba(17,17,17,0.12)",margin:"0 auto 20px"}}/>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",marginBottom:4}}>Add Water</div>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)",marginBottom:24}}>Drag to set amount, then confirm.</div>
+                  <div style={{textAlign:"center",marginBottom:8}}>
+                    <span style={{fontFamily:AF,fontWeight:800,fontSize:64,color:"#0A6CFF",lineHeight:1}}>{customOz}</span>
+                    <span style={{fontFamily:AF,fontSize:18,fontWeight:600,color:"rgba(10,108,255,0.50)",marginLeft:6}}>oz</span>
+                  </div>
+                  <input type="range" min={1} max={64} value={customOz} onChange={e=>setCustomOz(Number(e.target.value))}
+                    style={{width:"100%",accentColor:"#0A6CFF",cursor:"pointer",marginBottom:10}}/>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:24}}>
+                    <span style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.35)"}}>1 oz</span>
+                    <span style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.35)"}}>64 oz</span>
+                  </div>
+                  <button onClick={()=>{handleWaterTap(customOz);setShowCustomSheet(false);}}
+                    style={{width:"100%",padding:"15px",background:"#0A6CFF",color:"#fff",border:"none",borderRadius:14,fontFamily:AF,fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:"0.02em",marginBottom:10,WebkitTapHighlightColor:"transparent"}}>
+                    Add {customOz} oz →
+                  </button>
+                  <button onClick={()=>setShowCustomSheet(false)}
+                    style={{width:"100%",padding:"12px",background:"none",color:"rgba(17,17,17,0.40)",border:"none",borderRadius:14,fontFamily:AF,fontSize:14,fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                    Cancel
+                  </button>
                 </div>
               </>)}
             </div>
