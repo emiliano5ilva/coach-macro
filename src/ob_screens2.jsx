@@ -6406,6 +6406,22 @@ Rules:
       : null;
     const selDayLabel = isToday ? null
       : new Date(selectedDay+'T12:00:00').toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
+
+    // ── Phase 3.6 — today handoffs + water quick-log ──────────────────────
+    const [waterOptimistic, setWaterOptimistic] = useState(0);
+    const displayWater = waterLoggedOz + waterOptimistic;
+
+    async function handleWaterTap(oz) {
+      setWaterOptimistic(p=>p+oz); // optimistic bump
+      const dt=new Date().toISOString().split("T")[0];
+      const result=await addWaterLog(user.id,oz,dt);
+      setWaterOptimistic(p=>p-oz); // clear optimistic regardless
+      if(result){
+        setWaterLogs(prev=>[...prev,result]); // reconcile real state
+        track?.(EVENTS.WATER_LOGGED,{oz},user.id);
+      }
+      // on error: optimistic removed, waterLogs unchanged → total reverts
+    }
     // ─────────────────────────────────────────────────────────────────────
 
     return (
@@ -6551,7 +6567,7 @@ Rules:
               </div>
             )}
             {/* ── TODAY: session handoff ── */}
-            <div style={{marginBottom:22}}>
+            <div style={{marginBottom:14}}>
               <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>TODAY'S SESSION</div>
               {deloadActive?(
                 <div style={{background:"#f5f5f5",borderRadius:14,padding:"14px 16px"}}>
@@ -6573,6 +6589,63 @@ Rules:
                 </button>
               )}
             </div>
+            {/* See workout plan — all day types */}
+            <button onClick={()=>handleTabPress("train")}
+              style={{background:"none",border:"none",padding:"0 0 20px",fontFamily:AF,fontSize:11,fontWeight:700,
+                color:"rgba(17,17,17,0.40)",letterSpacing:"0.10em",textTransform:"uppercase",
+                cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+              See workout plan →
+            </button>
+
+            {/* ── TODAY: nutrition block ── */}
+            <div style={{marginBottom:22}}>
+              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
+              {/* Macro summary line */}
+              {consumed.calories>0&&(
+                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:14}}>
+                  {Math.round(consumed.calories)} kcal · {Math.round(consumed.protein)}g protein · {Math.round(consumed.carbs)}g carbs · {Math.round(consumed.fat)}g fat
+                </div>
+              )}
+              {/* Water quick-log */}
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.55)"}}>
+                    💧 {Math.round(displayWater)} / {waterTarget} oz
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    {[8,12,16,24].map(oz=>(
+                      <button key={oz} onClick={()=>handleWaterTap(oz)}
+                        style={{
+                          fontFamily:AF,fontWeight:700,fontSize:10,
+                          padding:"5px 10px",borderRadius:20,
+                          background:"rgba(17,17,17,0.05)",
+                          border:"1.5px solid rgba(17,17,17,0.12)",
+                          color:"rgba(17,17,17,0.65)",cursor:"pointer",
+                          WebkitTapHighlightColor:"transparent",
+                          transition:reducedMotion?"none":"background 0.12s",
+                        }}>
+                        +{oz}oz
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Log meal */}
+              <button
+                onClick={()=>{
+                  // TODO: present FuelLogger as sheet (deferred pass)
+                  setSection("fuel"); setFuelScreen("log");
+                }}
+                style={{
+                  width:"100%",padding:"13px 0",border:"1.5px solid rgba(17,17,17,0.12)",
+                  borderRadius:12,background:"none",cursor:"pointer",
+                  fontFamily:AF,fontWeight:700,fontSize:12,color:"#111111",
+                  letterSpacing:"0.04em",WebkitTapHighlightColor:"transparent",
+                }}>
+                + Log meal
+              </button>
+            </div>
+
             {showCheckin&&!checkinDone&&(
               <SorenessCheckIn userId={user?.id}
                 onComplete={(s,m)=>{setSorenessData({soreness_score:s,sore_muscles:m});setCheckinDone(true);setShowCheckin(false);}}
