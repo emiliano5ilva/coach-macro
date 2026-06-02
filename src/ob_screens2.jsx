@@ -5342,7 +5342,7 @@ Rules:
       fuel: <path d="M8 3h6l1 4c0 1.5-2 2.5-4 2.5S7 8.5 7 7l1-4zM7 9v11a1 1 0 001 1h6a1 1 0 001-1V9" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round"/>,
       progress: <g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h6v6"/></g>,
       me: <g stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></g>,
-      plan: <g stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l1.8 7.2L21 12l-7.2 1.8L12 21l-1.8-7.2L3 12l7.2-1.8z"/></g>,
+      plan: <g fill="currentColor"><path d="M11 2C11 8 17 11 21 13C17 15 11 18 11 23C11 18 5 15 1 13C5 11 11 8 11 2Z"/><path d="M20 2C20 4.5 21.8 5.5 23.5 6C21.8 6.5 20 7.5 20 10C20 7.5 18.2 6.5 16.5 6C18.2 5.5 20 4.5 20 2Z"/></g>,
     };
     return <svg width={size} height={size} viewBox="0 0 24 24">{paths[name]||null}</svg>;
   }

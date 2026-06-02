@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+  <!-- Large 4-pointed sparkle -->
+  <path d="M11 2C11 8 17 11 21 13C17 15 11 18 11 23C11 18 5 15 1 13C5 11 11 8 11 2Z"/>
+  <!-- Small companion sparkle, top-right -->
+  <path d="M20 2C20 4.5 21.8 5.5 23.5 6C21.8 6.5 20 7.5 20 10C20 7.5 18.2 6.5 16.5 6C18.2 5.5 20 4.5 20 2Z"/>
+</svg>
