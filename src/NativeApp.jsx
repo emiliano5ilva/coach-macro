@@ -537,6 +537,7 @@ export default function NativeApp() {
         setProfile({
           ...data.profile_data,
           // Dedicated columns override JSONB where they exist
+          plan_built: data.plan_built ?? false,
           ...(data.first_name   && {name:data.first_name, first_name:data.first_name}),
           ...(data.goal         && {goal:data.goal}),
           ...(data.skill_level  && {liftExp:data.skill_level, skill_level:data.skill_level}),

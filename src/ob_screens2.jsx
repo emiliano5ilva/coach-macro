@@ -5281,8 +5281,21 @@ Rules:
     }
   }
 
+  // Wired by Phase 5B — called at the end of the second onboarding to unlock 5 tabs.
+  async function markPlanBuilt(){
+    if(!user) return;
+    try{
+      await sb.from("profiles").update({plan_built:true}).eq("id",user.id);
+      setProfile(p=>({...p,plan_built:true}));
+    }catch(e){console.error("[markPlanBuilt]",e);}
+  }
+
   function handleTabPress(tabId){
-    if(GOCLUB_REDESIGN && tabId==="plan") return; // Phase 3: will launch onboarding flow
+    if(GOCLUB_REDESIGN && tabId==="plan"){
+      // Phase 5B will replace this with the real second-onboarding entry point.
+      setSection("plan");
+      return;
+    }
     if(section===tabId){
       resetTabToRoot(tabId);
       scrollToTop();
@@ -5317,22 +5330,32 @@ Rules:
     {id:"me",       label:"ME",       icon:"me",       tour:"me-tab"},
   ];
 
-  // Redesign nav — onboarding-complete condition mirrors NativeApp:
-  // profile.goalCals is set by handleProfileDone (the same gate that flips phase→"app").
-  const hasPlan = !!profile.goalCals;
-  const GOCLUB_NAV_4 = [
-    {id:"today", label:"Dashboard", icon:"today"},
-    {id:"train", label:"Train",     icon:"train"},
-    {id:"fuel",  label:"Fuel",      icon:"fuel"},
-    {id:"me",    label:"Me",        icon:"me"},
-  ];
+  // ── REDESIGN NAV GATE ──────────────────────────────────────────────────────
+  // hasPlan    — first onboarding done (goalCals written by handleProfileDone)
+  // hasFullPlan — second onboarding done (plan_built flipped by markPlanBuilt)
+  const hasPlan     = !!profile.goalCals;
+  const hasFullPlan = !!profile.plan_built;
+
+  // 3-tab: user has account but hasn't built their training+nutrition plan yet
   const GOCLUB_NAV_3 = [
-    {id:"today", label:"Dashboard", icon:"today"},
-    {id:"plan",  label:"Plan",      icon:"plan",  emphasized:true},
-    {id:"me",    label:"Me",        icon:"me"},
+    {id:"today",    label:"Dashboard", icon:"today"},
+    {id:"plan",     label:"Plan",      icon:"plan",     emphasized:true},
+    {id:"me",       label:"Me",        icon:"me"},
   ];
+  // 5-tab: full expanded nav after second onboarding completes
+  const GOCLUB_NAV_5 = [
+    {id:"today",    label:"TODAY",    icon:"today",    tour:"today-tab"},
+    {id:"train",    label:"TRAIN",    icon:"train"},
+    {id:"fuel",     label:"FUEL",     icon:"fuel",     tour:"fuel-tab"},
+    {id:"progress", label:"PROGRESS", icon:"progress", tour:"progress-tab"},
+    {id:"me",       label:"ME",       icon:"me",       tour:"me-tab"},
+  ];
+
+  // flag off  → native 5-tab NAV_ITEMS (byte-identical, unchanged)
+  // flag on + !hasFullPlan → GOCLUB_NAV_3 (3-tab, plan-tab gate)
+  // flag on + hasFullPlan  → GOCLUB_NAV_5 (full 5-tab GoClub)
   const activeNav = GOCLUB_REDESIGN
-    ? (hasPlan ? GOCLUB_NAV_4 : GOCLUB_NAV_3)
+    ? (hasFullPlan ? GOCLUB_NAV_5 : GOCLUB_NAV_3)
     : NAV_ITEMS;
 
   function TabIcon({name, size=22}) {
@@ -7017,6 +7040,35 @@ Rules:
     {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
   ];
 
+  // Phase 5B will replace this with the real second-onboarding screens.
+  // markPlanBuilt() is the only hook 5B needs — call it on the final screen.
+  function PlanOnboardingPlaceholder({markPlanBuilt:_markPlanBuilt}){
+    const AF="'Archivo',sans-serif";
+    return(
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",padding:"40px 28px",gap:20,textAlign:"center"}}>
+        <div style={{width:56,height:56,borderRadius:28,background:"rgba(255,59,48,0.12)",border:"1px solid rgba(255,59,48,0.25)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <svg width={28} height={28} viewBox="0 0 24 24" fill="rgba(255,59,48,0.9)">
+            <path d="M11 2C11 8 17 11 21 13C17 15 11 18 11 23C11 18 5 15 1 13C5 11 11 8 11 2Z"/>
+            <path d="M20 2C20 4.5 21.8 5.5 23.5 6C21.8 6.5 20 7.5 20 10C20 7.5 18.2 6.5 16.5 6C18.2 5.5 20 4.5 20 2Z"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:22,color:"rgba(245,245,240,0.9)",marginBottom:6}}>Build Your Plan</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(245,245,240,0.45)",lineHeight:1.6,maxWidth:280}}>
+            Phase 5B — second onboarding coming here. Train + Fuel setup to unlock all 5 tabs.
+          </div>
+        </div>
+        {/* Dev shortcut: tap to simulate completing second onboarding */}
+        {import.meta.env.DEV&&(
+          <button onClick={_markPlanBuilt}
+            style={{marginTop:12,padding:"12px 24px",background:"rgba(255,59,48,0.15)",border:"1px solid rgba(255,59,48,0.3)",borderRadius:12,color:"rgba(255,59,48,0.9)",fontFamily:AF,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:"0.04em"}}>
+            [DEV] Complete Plan Setup →
+          </button>
+        )}
+      </div>
+    );
+  }
+
   function ProgressSection() {
     const sc = coachScore;
     const activeTab = progressTab;
@@ -8425,6 +8477,7 @@ Rules:
           <div>📍 section: <b style={{color:"#fff"}}>{section}</b></div>
           <div>🎨 rootClass: <b style={{color:"#60a5fa"}}>goclub tab-{section}</b></div>
           <div>📋 hasPlan: <b style={{color:"#fff"}}>{String(!!profile.goalCals)}</b></div>
+          <div>✨ hasFullPlan: <b style={{color:"#fff"}}>{String(!!profile.plan_built)}</b></div>
           <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",marginTop:4,paddingTop:4}}>
             🔤 cascade: <b style={{color:"#fbbf24"}}>{_dbgFont}</b>
             <br/>📥 file: <b style={{color:"#a78bfa"}}>{_dbgFontLoaded}</b>
@@ -8505,6 +8558,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
+        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboardingPlaceholder markPlanBuilt={markPlanBuilt}/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}

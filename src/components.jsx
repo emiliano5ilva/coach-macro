@@ -383,7 +383,8 @@ export const REDESIGN_CSS = `
   /* Per-tab nav track colour */
   .goclub.tab-today                              { --cm-nav-track: #F4F4F6; }
   .goclub.tab-train,.goclub.tab-fuel,
-  .goclub.tab-me,.goclub.tab-progress            { --cm-nav-track: rgba(255,255,255,0.05); }
+  .goclub.tab-me,.goclub.tab-progress,
+  .goclub.tab-plan                               { --cm-nav-track: rgba(255,255,255,0.05); }
 
   /* Nav bar */
   .goclub .app-tab-bar {
@@ -400,7 +401,8 @@ export const REDESIGN_CSS = `
   .goclub.tab-train .app-tab,
   .goclub.tab-fuel  .app-tab,
   .goclub.tab-me    .app-tab,
-  .goclub.tab-progress .app-tab   { color: rgba(255,255,255,0.40); }
+  .goclub.tab-progress .app-tab,
+  .goclub.tab-plan  .app-tab      { color: rgba(255,255,255,0.40); }
 
   /* Active tab — red pill */
   .goclub .app-tab.active                          { background: var(--cm-accent); color: #ffffff; }
