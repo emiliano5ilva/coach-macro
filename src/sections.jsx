@@ -8,7 +8,8 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
   Badge, getTier, getReferralBadge,
   hap, hapMed, hapSuccess, hapPR,
-  InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState } from "./components.jsx";
+  InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState,
+  GOCLUB_REDESIGN } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
@@ -1885,8 +1886,8 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
   const firstUpNextIdx = WDAYS.findIndex((day,idx) => idx > todayIdx && schedule[day] && schedule[day] !== "rest");
 
   return (
-    <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
-      <div className="header-eyebrow" style={{marginBottom:10}}>// This Week</div>
+    <div style={{background:GOCLUB_REDESIGN?"rgba(255,255,255,0.04)":T.s1,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
+      <div className="header-eyebrow" style={{marginBottom:10,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":undefined,fontStyle:GOCLUB_REDESIGN?"normal":undefined}}>// This Week</div>
       <div style={{display:"flex",flexDirection:"column"}}>
         {WDAYS.map((day,idx)=>{
           const t = schedule[day];
@@ -1916,7 +1917,7 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
                 {day.toUpperCase()}
               </div>
               {/* Focus label */}
-              <div style={{flex:1,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
+              <div style={{flex:1,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?14:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
                 {label}
               </div>
               {/* Status word */}
@@ -1936,6 +1937,13 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
     </div>
   );
 }
+
+const _TRAIN_GOCLUB_CSS=`
+.goclub.tab-train{background:#000!important}
+.goclub.tab-train .screen-header{padding-top:4px!important}
+.goclub.tab-train .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.4)!important;text-transform:uppercase!important}
+.goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important}
+`;
 
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -2971,7 +2979,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   return (
-    <div className="page-enter" style={{paddingBottom:isMobile?20:0}}>
+    <div className={GOCLUB_REDESIGN?"page-enter goclub tab-train":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
+      {GOCLUB_REDESIGN&&<style>{_TRAIN_GOCLUB_CSS}</style>}
       {/* Adapt Now Modal */}
       {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} adaptLimit={adaptLimit} adaptResetDate={adaptResetDate} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)} user={user} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey}/>}
 
@@ -3161,6 +3170,53 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {/* ── TODAY ── */}
         {trainScreen==="today"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* ── GOCLUB: Week completion + Program arc ── */}
+            {GOCLUB_REDESIGN&&(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _todayIdx=WDAYS.indexOf(todayKey);
+              const _weekDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_todayIdx+i);return d.toISOString().split('T')[0];});
+              const _thisWeekSet=new Set(_weekDates);
+              const _doneThisWeek=new Set(Object.values(history).flatMap(s=>s.filter(x=>_thisWeekSet.has(x.date)).map(x=>x.date))).size;
+              const _schedThisWeek=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
+              const _progInfo2=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+              const _totalWks=_progInfo2?.weeks||null;
+              const _dispWk=programCurrentWeek||weekNum;
+              const _wkPct=_totalWks?Math.min(1,(_dispWk-1)/Math.max(1,_totalWks-1)):null;
+              const _r=16,_circ=2*Math.PI*_r;
+              const _donePct=_schedThisWeek>0?_doneThisWeek/_schedThisWeek:0;
+              return(
+                <div style={{display:"flex",gap:10}}>
+                  {/* Week completion */}
+                  <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:14}}>
+                    <svg width={42} height={42} viewBox="0 0 42 42" style={{flexShrink:0}}>
+                      <circle cx={21} cy={21} r={_r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3}/>
+                      <circle cx={21} cy={21} r={_r} fill="none" stroke="#FF3B30" strokeWidth={3}
+                        strokeDasharray={_circ} strokeDashoffset={_circ*(1-_donePct)}
+                        strokeLinecap="round" transform="rotate(-90 21 21)"/>
+                    </svg>
+                    <div>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1}}>
+                        {_doneThisWeek}<span style={{color:"rgba(255,255,255,0.35)"}}>/{_schedThisWeek}</span>
+                      </div>
+                      <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>sessions this week</div>
+                    </div>
+                  </div>
+                  {/* Program arc */}
+                  {_totalWks&&(
+                    <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
+                      <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>program</div>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,marginBottom:10}}>
+                        Wk {_dispWk}<span style={{color:"rgba(255,255,255,0.35)"}}> / {_totalWks}</span>
+                      </div>
+                      <div style={{height:3,background:"rgba(255,255,255,0.08)",borderRadius:2}}>
+                        <div style={{height:"100%",width:`${_wkPct*100}%`,background:"#FF3B30",borderRadius:2}}/>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             {/* Race periodization banner */}
             {(()=>{
               const rp=profile?.runProfile;
@@ -3190,11 +3246,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
               const estMin=exCount>0?Math.round(exCount*9+12):0;
               return(
-            <div style={{background:T.s2,border:"1px solid var(--white-border)",borderRadius:14,padding:16,borderLeft:"3px solid var(--red)"}}>
+            <div style={{background:GOCLUB_REDESIGN?"rgba(255,255,255,0.05)":T.s2,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":"1px solid var(--white-border)",borderRadius:14,padding:16,borderLeft:"3px solid #FF3B30"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
                 <div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",marginBottom:6}}>// {progLabel}</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{todayFocus}</div>
+                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?800:900,fontSize:GOCLUB_REDESIGN?34:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{todayFocus}</div>
                   {prescType==="lifting"&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
                     <span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span>
                     {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span style={{padding:"4px 9px",borderRadius:6,background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:"var(--accent)",textTransform:"uppercase"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
@@ -3392,7 +3448,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                               <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)"}}>
                                 <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--mono)",fontSize:10,color:"var(--accent)",fontWeight:700,flexShrink:0}}>{i+1}</div>
                                 <div style={{flex:1}}>
-                                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?15:17,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
                                   {(()=>{
                                     const prog=adaptiveSession?.progressions?.[ex.name];
                                     const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
@@ -3525,6 +3581,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
             {/* ── MUSCLE RECOVERY ── */}
             <MuscleRecovery userId={user?.id}/>
+
+            {/* ── GOCLUB: Balance correction insight ── */}
+            {GOCLUB_REDESIGN&&balanceCorrections?.length>0&&(()=>{
+              const top=balanceCorrections[0];
+              if(!top?.recommendation)return null;
+              return(
+                <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
+                  <div style={{fontSize:16,flexShrink:0,lineHeight:1,paddingTop:1}}>⚖️</div>
+                  <div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Balance insight</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.75)",lineHeight:1.55}}>{top.recommendation}</div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── EXPLORE BOTTOM SHEET — portalled so position:fixed works on iOS ── */}
             {showExploreSheet&&ReactDOM.createPortal(
