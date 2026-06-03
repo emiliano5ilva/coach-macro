@@ -3577,47 +3577,45 @@ function CoachAlertsStream({ userMode, children }) {
 // ── PLAN ONBOARDING (PHASE 5B) ───────────────────────────────────────────────
 
 const _PLAN_AURORA_CSS=`
-/* Streaks sway from their bottom pivot — translateX shifts anchor, rotate tilts the column */
-@keyframes ps1{0%,100%{transform:translateX(0) rotate(-14deg)}35%{transform:translateX(22px) rotate(-8deg)}70%{transform:translateX(-16px) rotate(-20deg)}}
-@keyframes ps2{0%,100%{transform:translateX(0) rotate(18deg)}45%{transform:translateX(-26px) rotate(12deg)}80%{transform:translateX(18px) rotate(23deg)}}
-@keyframes ps3{0%,100%{transform:translateX(0) rotate(-3deg)}22%{transform:translateX(36px) rotate(6deg)}55%{transform:translateX(-32px) rotate(-9deg)}82%{transform:translateX(18px) rotate(2deg)}}
-@keyframes ps4{0%,100%{transform:translateX(0) rotate(8deg)}55%{transform:translateX(-20px) rotate(13deg)}}
-/* Independent opacity breathing — wide dramatic range so the glow visibly pulses */
-@keyframes pa-fade1{0%,100%{opacity:0.45}50%{opacity:1.00}}
-@keyframes pa-fade2{0%,100%{opacity:1.00}50%{opacity:0.45}}
-@keyframes pa-fade3{0%,100%{opacity:0.45}55%{opacity:1.00}}
-@keyframes pa-fade4{0%,100%{opacity:1.00}50%{opacity:0.40}}
-/* transform-origin at bottom-center; will-change promotes each streak to its own compositor layer from frame 1 */
+/* translateZ(0) in every keyframe ensures GPU layer is promoted in ALL states, not just before animation */
+@keyframes ps1{0%,100%{transform:translateZ(0) translateX(0) rotate(-14deg)}35%{transform:translateZ(0) translateX(22px) rotate(-8deg)}70%{transform:translateZ(0) translateX(-16px) rotate(-20deg)}}
+@keyframes ps2{0%,100%{transform:translateZ(0) translateX(0) rotate(18deg)}45%{transform:translateZ(0) translateX(-26px) rotate(12deg)}80%{transform:translateZ(0) translateX(18px) rotate(23deg)}}
+@keyframes ps3{0%,100%{transform:translateZ(0) translateX(0) rotate(-3deg)}22%{transform:translateZ(0) translateX(36px) rotate(6deg)}55%{transform:translateZ(0) translateX(-32px) rotate(-9deg)}82%{transform:translateZ(0) translateX(18px) rotate(2deg)}}
+@keyframes ps4{0%,100%{transform:translateZ(0) translateX(0) rotate(8deg)}55%{transform:translateZ(0) translateX(-20px) rotate(13deg)}}
+/* Breathing 0.55↔1.0 — vivid floor so the pulse is obvious without going dark */
+@keyframes pa-fade1{0%,100%{opacity:0.55}50%{opacity:1.00}}
+@keyframes pa-fade2{0%,100%{opacity:1.00}50%{opacity:0.55}}
+@keyframes pa-fade3{0%,100%{opacity:0.55}55%{opacity:1.00}}
+@keyframes pa-fade4{0%,100%{opacity:1.00}50%{opacity:0.55}}
 .pa-streak{transform-origin:50% 100%;will-change:transform,opacity}
 @media(prefers-reduced-motion:reduce){.pa-streak{animation:none!important;opacity:0.20!important}}
 `;
 
 function PlanAurora(){
-  // Y-radius 118-128% overshoots the element so the gradient extends above the visible top;
-  // the visible portion shows the strong lower section. Gradient holds near-peak to ~50%,
-  // only starts fading past that — keeps the glow reaching 70-80% up the screen.
-  // Mask removed: gradient stops control the shape. Two screen-blend passes double intensity.
+  // Y-radius 142-150%: gradient overshoots top so the visible portion is the near-solid lower half.
+  // Stops hold 1.0 alpha out to ~55-60% of the gradient = ~80% up the screen before fading.
+  // Two screen-blend passes (blur 2px) double intensity without heavy GPU cost.
   const _S=[
     {
-      bg:"radial-gradient(ellipse 65% 120% at 40% 100%, rgba(255,59,48,0.95) 0%, rgba(255,59,48,0.90) 45%, rgba(255,59,48,0.55) 75%, transparent 100%)",
+      bg:"radial-gradient(ellipse 65% 145% at 40% 100%, rgba(255,59,48,1.00) 0%, rgba(255,59,48,1.00) 55%, rgba(255,59,48,0.55) 80%, transparent 100%)",
       w:"65%",l:"-10%",
       a:"ps1 22s ease-in-out infinite,     pa-fade1 8s ease-in-out infinite 1s",
       a2:"ps1 22s ease-in-out infinite 3s, pa-fade1 8s ease-in-out infinite 5s",
     },
     {
-      bg:"radial-gradient(ellipse 60% 125% at 60% 100%, rgba(226,36,26,0.95) 0%, rgba(226,36,26,0.88) 48%, rgba(226,36,26,0.52) 78%, transparent 100%)",
+      bg:"radial-gradient(ellipse 60% 148% at 60% 100%, rgba(226,36,26,1.00) 0%, rgba(226,36,26,1.00) 58%, rgba(226,36,26,0.50) 82%, transparent 100%)",
       w:"58%",r:"-8%",
       a:"ps2 25s ease-in-out infinite 4s,  pa-fade2 9s ease-in-out infinite",
       a2:"ps2 25s ease-in-out infinite 7s, pa-fade2 9s ease-in-out infinite 4s",
     },
     {
-      bg:"radial-gradient(ellipse 58% 128% at 50% 100%, rgba(255,107,92,0.95) 0%, rgba(255,107,92,0.85) 50%, rgba(255,107,92,0.50) 80%, transparent 100%)",
+      bg:"radial-gradient(ellipse 58% 150% at 50% 100%, rgba(255,107,92,1.00) 0%, rgba(255,107,92,1.00) 60%, rgba(255,107,92,0.52) 82%, transparent 100%)",
       w:"55%",l:"22%",
       a:"ps3 19s ease-in-out infinite 9s,   pa-fade3 6s ease-in-out infinite 2s",
       a2:"ps3 19s ease-in-out infinite 12s, pa-fade3 6s ease-in-out infinite 5s",
     },
     {
-      bg:"radial-gradient(ellipse 52% 118% at 50% 100%, rgba(200,18,18,0.95) 0%, rgba(200,18,18,0.75) 50%, rgba(200,18,18,0.42) 80%, transparent 100%)",
+      bg:"radial-gradient(ellipse 52% 142% at 50% 100%, rgba(200,18,18,1.00) 0%, rgba(200,18,18,1.00) 55%, rgba(200,18,18,0.45) 80%, transparent 100%)",
       w:"48%",l:"18%",
       a:"ps4 23s ease-in-out infinite 14s, pa-fade4 11s ease-in-out infinite 5s",
       a2:"ps4 23s ease-in-out infinite 17s,pa-fade4 11s ease-in-out infinite 8s",
@@ -3632,16 +3630,16 @@ function PlanAurora(){
             position:"absolute",width:s.w,height:"100%",
             left:s.l,right:s.r,bottom:0,
             background:s.bg,mixBlendMode:"screen",
-            filter:"blur(4px)",animation:s.a,
+            filter:"blur(2px)",animation:s.a,
           }}/>
         ))}
-        {/* Second screen-blend pass with offset delays — doubles intensity where streaks overlap */}
+        {/* Second screen-blend pass — offset phase doubles intensity; 2px blur keeps GPU cost low */}
         {_S.map((s,i)=>(
           <div key={`b${i}`} className="pa-streak" style={{
             position:"absolute",width:s.w,height:"100%",
             left:s.l,right:s.r,bottom:0,
             background:s.bg,mixBlendMode:"screen",
-            filter:"blur(6px)",animation:s.a2,
+            filter:"blur(2px)",animation:s.a2,
           }}/>
         ))}
       </div>
