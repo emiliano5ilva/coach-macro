@@ -2144,22 +2144,121 @@ Reply with ONLY a valid JSON object, no markdown:
       <div className="screen-header" style={{paddingTop:12}}>
         <div style={{flex:1,minWidth:0}}>
           <div className="header-eyebrow">// {new Date().toLocaleDateString("en-US",{weekday:"long"})} · {macros.isFlexDay?"Flex Day":(cfg.label+" Day")}</div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:13,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.28)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2C8 2 4 6 4 10c0 6 8 12 8 12s8-6 8-12c0-4-4-8-8-8z" fill="var(--red)" opacity="0.8"/>
-                <path d="M12 6c0 0-2 2-2 4s2 4 2 4" stroke="rgba(245,245,240,0.5)" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
-              </svg>
+          {!GOCLUB_REDESIGN&&(
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:44,height:44,borderRadius:13,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.28)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2C8 2 4 6 4 10c0 6 8 12 8 12s8-6 8-12c0-4-4-8-8-8z" fill="var(--red)" opacity="0.8"/>
+                  <path d="M12 6c0 0-2 2-2 4s2 4 2 4" stroke="rgba(245,245,240,0.5)" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
+                </svg>
+              </div>
+              <div className="header-title">Fuel</div>
             </div>
-            <div className="header-title">Fuel</div>
+          )}
+        </div>
+        {!GOCLUB_REDESIGN&&(
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:"0.1em"}}>{macros.calories.toLocaleString()} kcal</div>
           </div>
-        </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:"0.1em"}}>{macros.calories.toLocaleString()} kcal</div>
-        </div>
+        )}
       </div>
-      {/* Date navigator */}
-      {setLogDate&&(
+      {/* GOCLUB: contextual hero + segmented sub-nav + date navigator */}
+      {GOCLUB_REDESIGN&&(()=>{
+        const _titleMap={log:"Log Food",kitchen:"Kitchen",mealprep:"Meal Prep"};
+        const _screenTitle=_titleMap[fuelScreen]||(fuelScreen.charAt(0).toUpperCase()+fuelScreen.slice(1));
+        return(
+          <>
+            {/* Hero zone — ring on Home, screen title everywhere else */}
+            <div style={{padding:"0 18px 8px"}}>
+              {fuelScreen==="home"?(()=>{
+                const _circ=parseFloat((2*Math.PI*100).toFixed(1));
+                const _calRem=Math.max(0,remaining.calories);
+                const _calOver=remaining.calories<0;
+                const _calPct=macros.calories>0?Math.min(1,consumed.calories/macros.calories):0;
+                const _tipA=_calPct*2*Math.PI-Math.PI/2;
+                const _tipX=(110+100*Math.cos(_tipA)).toFixed(2);
+                const _tipY=(110+100*Math.sin(_tipA)).toFixed(2);
+                const _cnd={fontFamily:"'Archivo',sans-serif",fontStyle:'normal',fontWeight:800};
+                return(
+                  <div style={{position:'relative',height:220,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'16px'}}>
+                    <svg width="220" height="220" viewBox="0 0 220 220"
+                      style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%) rotate(-90deg)',filter:'drop-shadow(0 0 16px rgba(232,52,28,0.10))'}}>
+                      <defs>
+                        <linearGradient id="calRingHeroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#FF3B30"/>
+                          <stop offset="100%" stopColor="#FAFAF0" stopOpacity="0.9"/>
+                        </linearGradient>
+                        <linearGradient id="calRingHeroGradOver" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#FF3B30"/>
+                          <stop offset="100%" stopColor="#FF6B5C"/>
+                        </linearGradient>
+                      </defs>
+                      <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth="14"/>
+                      {_calOver&&<circle cx="110" cy="110" r="100" fill="none" stroke="rgba(255,59,48,0.3)" strokeWidth="14" strokeLinecap="round" strokeDasharray={_circ} strokeDashoffset="0"/>}
+                      <MotionArc cx={110} cy={110} r={100} pct={_calPct}
+                        stroke={`url(#${_calOver?'calRingHeroGradOver':'calRingHeroGrad'})`}
+                        strokeWidth={14}/>
+                      {_calPct>0.02&&(
+                        <motion.circle cx={_tipX} cy={_tipY} r="7" fill="#FF3B30"
+                          initial={{opacity:0}} animate={{opacity:1}}
+                          transition={{delay:0.72,duration:0.18}}
+                          style={{filter:_calOver?'drop-shadow(0 0 10px rgba(255,59,48,1.0))':'drop-shadow(0 0 6px rgba(255,59,48,0.8)) drop-shadow(0 0 12px rgba(255,59,48,0.4))'}}/>
+                      )}
+                    </svg>
+                    <div style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
+                      <div style={{..._cnd,fontSize:26,color:'#f5f5f0',lineHeight:1}}><MN value={consumed.calories} format={{useGrouping:true}}/></div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
+                    </div>
+                    <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',textAlign:'center',pointerEvents:'none'}}>
+                      <div style={{..._cnd,fontSize:48,color:_calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em',textShadow:'0 0 30px rgba(245,245,240,0.15), 0 2px 24px rgba(0,0,0,0.8)'}}>
+                        {_calOver?<MN value={Math.abs(remaining.calories)} format={{useGrouping:true}} prefix="+"/>:<MN value={_calRem} format={{useGrouping:true}}/>}
+                      </div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>{_calOver?'OVER':'REMAINING'}</div>
+                      {calDelta!==null&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':calDelta<0?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:2}}><MN value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</div>}
+                    </div>
+                    <div style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
+                      <div style={{..._cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}><MN value={macros.calories} format={{useGrouping:true}}/></div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
+                    </div>
+                  </div>
+                );
+              })():(
+                <div style={{paddingTop:4,paddingBottom:4}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:34,color:'#f5f5f0',lineHeight:1.05,letterSpacing:'-0.01em'}}>{_screenTitle}</div>
+                </div>
+              )}
+            </div>
+            {/* Segmented sub-nav */}
+            <div style={{padding:"0 18px 4px",overflowX:"auto",flexShrink:0}}>
+              <div style={{display:"inline-flex",background:"rgba(255,255,255,0.06)",borderRadius:10,padding:3,gap:2}}>
+                {FUEL_TABS.map(tab=>(
+                  <button key={tab.id} onClick={()=>setFuelScreen(tab.id)}
+                    style={{padding:"7px 14px",borderRadius:8,border:"none",cursor:"pointer",
+                      fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,
+                      color:fuelScreen===tab.id?"#fff":"rgba(255,255,255,0.4)",
+                      background:fuelScreen===tab.id?"#e8341c":"transparent",
+                      whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0,letterSpacing:"0.02em"}}>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Date navigator */}
+            {setLogDate&&(
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:0,padding:"8px 20px 4px"}}>
+                <button onClick={()=>shiftDate(-1)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.5)",cursor:"pointer",fontSize:20,padding:"4px 12px",lineHeight:1,fontFamily:"inherit"}}>‹</button>
+                <div style={{flex:1,textAlign:"center"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:isToday2?"var(--red)":"#fff"}}>{dateLabelFuel}</div>
+                  {!isToday2&&<div style={{fontSize:10,color:"rgba(245,245,240,0.35)",fontFamily:"var(--mono)",letterSpacing:"0.1em"}}>VIEW ONLY</div>}
+                </div>
+                <button onClick={()=>shiftDate(1)} disabled={isToday2} style={{background:"none",border:"none",color:isToday2?"rgba(245,245,240,0.15)":"rgba(245,245,240,0.5)",cursor:isToday2?"default":"pointer",fontSize:20,padding:"4px 12px",lineHeight:1,fontFamily:"inherit"}}>›</button>
+              </div>
+            )}
+          </>
+        );
+      })()}
+      {/* Date navigator (non-GOCLUB) */}
+      {!GOCLUB_REDESIGN&&setLogDate&&(
         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:0,padding:"10px 20px 4px"}}>
           <button onClick={()=>shiftDate(-1)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.5)",cursor:"pointer",fontSize:20,padding:"4px 12px",lineHeight:1,fontFamily:"inherit"}}>‹</button>
           <div style={{flex:1,textAlign:"center"}}>
@@ -2303,7 +2402,8 @@ Reply with ONLY a valid JSON object, no markdown:
           slotTargets={getSlotTargets(macros.calories,mealSlots,skippedSlots||[],getLoggedSlots(log),slotOverages||{})}
         />
       )}
-      {/* Sub-nav */}
+      {/* Sub-nav (non-GOCLUB) */}
+      {!GOCLUB_REDESIGN&&(
       <div style={{display:"flex",gap:4,padding:isMobile?"12px 18px 0":"0 0 20px",overflowX:"auto",flexShrink:0}}>
         {FUEL_TABS.map(tab=>(
           <button key={tab.id} onClick={()=>setFuelScreen(tab.id)}
@@ -2313,6 +2413,7 @@ Reply with ONLY a valid JSON object, no markdown:
           </button>
         ))}
       </div>
+      )}
 
       <div style={{padding:isMobile?"12px 18px":"0"}}>
 
@@ -2374,14 +2475,13 @@ Reply with ONLY a valid JSON object, no markdown:
                     @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
                   `}</style>
 
-                  {/* Ring row: consumed | ring+remaining | target */}
-                  <div style={{
+                  {/* Ring row: in GOCLUB this is rendered in the hero above; legacy only */}
+                  {!GOCLUB_REDESIGN&&<div style={{
                     position:'relative',height:220,
-                    background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':'rgba(245,245,240,0.03)',
-                    backgroundImage:GOCLUB_REDESIGN?'none':'radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)',
-                    boxShadow:GOCLUB_REDESIGN?'none':'0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)',
+                    background:'rgba(245,245,240,0.03)',
+                    backgroundImage:'radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)',
+                    boxShadow:'0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)',
                     borderRadius:'16px',
-                    border:GOCLUB_REDESIGN?'1px solid rgba(255,255,255,0.08)':'none',
                   }}>
                     <svg width="220" height="220" viewBox="0 0 220 220"
                       style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%) rotate(-90deg)',filter:'drop-shadow(0 0 16px rgba(232,52,28,0.10))'}}>
@@ -2436,7 +2536,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       <div style={{...cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}><MN value={macros.calories} format={{useGrouping:true}} /></div>
                       <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Macro bars */}
                   <div style={{display:'flex',flexDirection:'column',gap:10,marginTop:20}}>

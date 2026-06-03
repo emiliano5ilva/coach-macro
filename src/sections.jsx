@@ -3155,7 +3155,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </button>
             )}
             <div>
-              <div className="header-eyebrow">// {todayFocus||cfg.label} · Week {weekNum}</div>
+              <div className="header-eyebrow">// {todayFocus||cfg.label}{!GOCLUB_REDESIGN&&` · Week ${weekNum}`}</div>
               <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="routine-builder"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
             </div>
           </div>
