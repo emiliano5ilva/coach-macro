@@ -1328,8 +1328,15 @@ export function getSkillVariant(programData, skillLevel) {
 
 export function getTodayRunWorkout(programName, weekNumber, dayOfWeek) {
   const program = RUNNING_PROGRAMS[programName];
-  if(!program) return null;
-  const week = program.schedule.find(w=>w.week===weekNumber);
+  if(!program?.schedule) return null;
+  // TODO: replace with generative running engine (Track 2)
+  let week = program.schedule.find(w=>w.week===weekNumber);
+  if(!week && program.schedule.length>0){
+    // Nearest-authored-week fallback: highest authored week <= weekNumber, then lowest above
+    const below=program.schedule.filter(w=>w.week<=weekNumber).sort((a,b)=>b.week-a.week);
+    const above=program.schedule.filter(w=>w.week>weekNumber).sort((a,b)=>a.week-b.week);
+    week=below[0]||above[0];
+  }
   if(!week) return null;
   return week.days.find(d=>d.day===dayOfWeek)||null;
 }

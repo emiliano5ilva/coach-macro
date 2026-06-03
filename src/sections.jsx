@@ -2267,7 +2267,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     todayPrescription=exs;
   }else if(prescType==="running"){
     todayProgObj=RUNNING_PROGRAMS[wPrefs.runPlan||"Couch to 5K"];
-    const rawDay=todayProgObj?.schedule?.find(w=>w.week===weekNum)?.days?.find(d=>d.day===todayKey)||null;
+    // TODO: replace with generative running engine (Track 2)
+    // Nearest-authored-week fallback — prevents null workout when current week isn't in schedule
+    const _sched=todayProgObj?.schedule||[];
+    let _weekObj=_sched.find(w=>w.week===weekNum);
+    if(!_weekObj&&_sched.length>0){
+      const _below=_sched.filter(w=>w.week<=weekNum).sort((a,b)=>b.week-a.week);
+      const _above=_sched.filter(w=>w.week>weekNum).sort((a,b)=>a.week-b.week);
+      _weekObj=_below[0]||_above[0];
+    }
+    const rawDay=_weekObj?.days?.find(d=>d.day===todayKey)||null;
     if(rawDay?.skill_variants){
       const lvl=(wPrefs.cardioExp||wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
       todayPrescription=getSkillVariant(rawDay.skill_variants,lvl)||rawDay;
