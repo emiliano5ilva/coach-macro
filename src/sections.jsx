@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
@@ -3196,18 +3197,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const _r=16,_circ=2*Math.PI*_r;
               const _donePct=_schedThisWeek>0?_doneThisWeek/_schedThisWeek:0;
               return(
+                <StaggerItem i={0}>
                 <div style={{display:"flex",gap:10}}>
                   {/* Week completion */}
                   <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:14}}>
                     <svg width={42} height={42} viewBox="0 0 42 42" style={{flexShrink:0}}>
                       <circle cx={21} cy={21} r={_r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3}/>
-                      <circle cx={21} cy={21} r={_r} fill="none" stroke="#FF3B30" strokeWidth={3}
-                        strokeDasharray={_circ} strokeDashoffset={_circ*(1-_donePct)}
-                        strokeLinecap="round" transform="rotate(-90 21 21)"/>
+                      <MotionArc cx={21} cy={21} r={_r} pct={_donePct}
+                        stroke="#FF3B30" strokeWidth={3}
+                        transform="rotate(-90 21 21)" />
                     </svg>
                     <div>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1}}>
-                        {_doneThisWeek}<span style={{color:"rgba(255,255,255,0.35)"}}>/{_schedThisWeek}</span>
+                        <MN value={_doneThisWeek} /><span style={{color:"rgba(255,255,255,0.35)"}}>/<MN value={_schedThisWeek} /></span>
                       </div>
                       <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>sessions this week</div>
                     </div>
@@ -3217,14 +3219,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
                       <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>program</div>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,marginBottom:10}}>
-                        Wk {_dispWk}<span style={{color:"rgba(255,255,255,0.35)"}}> / {_totalWks}</span>
+                        Wk <MN value={_dispWk} /><span style={{color:"rgba(255,255,255,0.35)"}}> / {_totalWks}</span>
                       </div>
                       <div style={{height:3,background:"rgba(255,255,255,0.08)",borderRadius:2}}>
-                        <div style={{height:"100%",width:`${_wkPct*100}%`,background:"#FF3B30",borderRadius:2}}/>
+                        <div style={{height:"100%",width:`${_wkPct*100}%`,background:"#FF3B30",borderRadius:2,transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
                       </div>
                     </div>
                   )}
                 </div>
+                </StaggerItem>
               );
             })()}
             {/* Race periodization banner */}
@@ -3261,6 +3264,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
               const estMin=exCount>0?Math.round(exCount*9+12):0;
               return(
+            <StaggerItem i={1}>
             <div style={{background:GOCLUB_REDESIGN?"rgba(255,255,255,0.05)":T.s2,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":"1px solid var(--white-border)",borderRadius:14,padding:16,borderLeft:"3px solid #FF3B30"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
                 <div>
@@ -3497,6 +3501,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
               )}
             </div>
+            </StaggerItem>
             );})()}
 
             {/* ── QUICK ACCESS CAROUSEL ── */}

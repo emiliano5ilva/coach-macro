@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion, useReducedMotion } from 'motion/react';
+import { MN, MotionArc, StaggerItem, Pressable } from './motion-layer.jsx';
 import FoodIcon from "./FoodIcon.jsx";
 import { getFoodIcon } from "./iconMap.js";
 import FeatureStrip from "./components/FeatureStrip.jsx";
@@ -2318,6 +2320,7 @@ Reply with ONLY a valid JSON object, no markdown:
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* MACRO MEMORY — shown first so the fastest re-log path is always above the fold */}
             {wPrefs?.macroMemory!==false&&memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).length>0&&(
+              <StaggerItem i={0}>
               <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div>
@@ -2341,6 +2344,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   ))}
                 </div>
               </div>
+              </StaggerItem>
             )}
             {/* ── MACRO RING ── */}
             {(()=>{
@@ -2357,9 +2361,9 @@ Reply with ONLY a valid JSON object, no markdown:
               const tipX=(110+100*Math.cos(tipAngle)).toFixed(2);
               const tipY=(110+100*Math.sin(tipAngle)).toFixed(2);
               return(
+                <StaggerItem i={1}>
                 <>
                   <style>{`
-                    @keyframes fuelRingSweepN{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}
                     @keyframes fuelBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
                   `}</style>
 
@@ -2386,36 +2390,43 @@ Reply with ONLY a valid JSON object, no markdown:
                       </defs>
                       <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth="14"/>
                       {calOver&&<circle cx="110" cy="110" r="100" fill="none" stroke="rgba(255,59,48,0.3)" strokeWidth="14" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset="0"/>}
-                      <circle cx="110" cy="110" r="100" fill="none" stroke={`url(#${calOver?'calRingGradientOver':'calRingGradient'})`} strokeWidth="14" strokeLinecap="round"
-                        strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
-                        style={{animation:'fuelRingSweepN 0.8s cubic-bezier(.2,.7,.3,1) both'}}/>
+                      <MotionArc cx={110} cy={110} r={100} pct={calPct}
+                        stroke={`url(#${calOver?'calRingGradientOver':'calRingGradient'})`}
+                        strokeWidth={14} />
                       {calPct>0.02&&(
-                        <circle cx={tipX} cy={tipY} r="7" fill="#FF3B30"
-                          style={{filter:calOver?'drop-shadow(0 0 10px rgba(255,59,48,1.0))':'drop-shadow(0 0 6px rgba(255,59,48,0.8)) drop-shadow(0 0 12px rgba(255,59,48,0.4))'}}/>
+                        GOCLUB_REDESIGN
+                          ? <motion.circle cx={tipX} cy={tipY} r="7" fill="#FF3B30"
+                              initial={{opacity:0}} animate={{opacity:1}}
+                              transition={{delay:0.72,duration:0.18}}
+                              style={{filter:calOver?'drop-shadow(0 0 10px rgba(255,59,48,1.0))':'drop-shadow(0 0 6px rgba(255,59,48,0.8)) drop-shadow(0 0 12px rgba(255,59,48,0.4))'}}/>
+                          : <circle cx={tipX} cy={tipY} r="7" fill="#FF3B30"
+                              style={{filter:calOver?'drop-shadow(0 0 10px rgba(255,59,48,1.0))':'drop-shadow(0 0 6px rgba(255,59,48,0.8)) drop-shadow(0 0 12px rgba(255,59,48,0.4))'}}/>
                       )}
                     </svg>
                     {/* Left — consumed */}
                     <div style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
-                      <div style={{...cnd,fontSize:26,color:'#f5f5f0',lineHeight:1}}>{consumed.calories.toLocaleString()}</div>
+                      <div style={{...cnd,fontSize:26,color:'#f5f5f0',lineHeight:1}}><MN value={consumed.calories} format={{useGrouping:true}} /></div>
                       <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
                     </div>
                     {/* Center — remaining */}
                     <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',textAlign:'center',pointerEvents:'none'}}>
                       <div style={{...cnd,fontSize:48,color:calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em',textShadow:'0 0 30px rgba(245,245,240,0.15), 0 2px 24px rgba(0,0,0,0.8)'}}>
-                        {calOver?`+${Math.abs(remaining.calories).toLocaleString()}`:calRemaining.toLocaleString()}
+                        {calOver
+                          ? <MN value={Math.abs(remaining.calories)} format={{useGrouping:true}} prefix="+" />
+                          : <MN value={calRemaining} format={{useGrouping:true}} />}
                       </div>
                       <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>
                         {calOver?'OVER':'REMAINING'}
                       </div>
                       {GOCLUB_REDESIGN&&calDelta!==null&&(
                         <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':calDelta<0?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:2}}>
-                          {calDelta>0?'+':''}{calDelta} vs yest.
+                          <MN value={calDelta} format={{signDisplay:'exceptZero'}} /> vs yest.
                         </div>
                       )}
                     </div>
                     {/* Right — target */}
                     <div style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
-                      <div style={{...cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}>{macros.calories.toLocaleString()}</div>
+                      <div style={{...cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}><MN value={macros.calories} format={{useGrouping:true}} /></div>
                       <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
                     </div>
                   </div>
@@ -2432,7 +2443,7 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div style={{flex:1,height:6,background:GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':'rgba(245,245,240,0.06)',borderRadius:3,overflow:'hidden'}}>
                           <div style={{height:'100%',borderRadius:3,background:color,width:`${Math.min(100,t>0?Math.round(c/t*100):0)}%`,transition:'width 0.5s ease'}}/>
                         </div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'#f5f5f0',letterSpacing:'0.08em',whiteSpace:'nowrap'}}>{c} / {t}g</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'#f5f5f0',letterSpacing:'0.08em',whiteSpace:'nowrap'}}><MN value={c} /> / <MN value={t} />g</div>
                       </div>
                     ))}
                   </div>
@@ -2548,6 +2559,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   })()}
 
                 </>
+                </StaggerItem>
               );
             })()}
 
@@ -2557,6 +2569,7 @@ Reply with ONLY a valid JSON object, no markdown:
               const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
               const basePerSlot=Math.round(macros.calories/mealSlots.length);
               return(
+                <StaggerItem i={2}>
                 <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                   {(()=>{
                     const f=profile?.fasting||profile?.profile_data?.fasting;
@@ -2676,6 +2689,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     })()}
                   </div>
                 </div>
+                </StaggerItem>
               );
             })()}
 

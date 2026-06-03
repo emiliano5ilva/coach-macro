@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
 const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
@@ -819,6 +820,7 @@ function CoachScoreRing({score, ringColor, scoreStatus, scoreLabels, sc}) {
   const [displayScore, setDisplayScore] = useState(0);
 
   useEffect(() => {
+    if (GOCLUB_REDESIGN) { setDisplayScore(score); return; } // NumberFlow handles animation
     let raf;
     const start = performance.now();
     const tick = now => {
@@ -834,8 +836,6 @@ function CoachScoreRing({score, ringColor, scoreStatus, scoreLabels, sc}) {
   const circ = parseFloat((2 * Math.PI * r).toFixed(1));
   const pct = Math.min(1, score / 100);
   const fillLen = parseFloat((pct * circ).toFixed(1));
-  // Arc uses rotate(-90 cx cy) on the circle, so arc starts at 12-o'clock;
-  // tip angle is in global SVG coords (CCW from right, y-down)
   const tipAngle = pct * 2 * Math.PI - Math.PI / 2;
   const tipX = (sz / 2 + r * Math.cos(tipAngle)).toFixed(2);
   const tipY = (sz / 2 + r * Math.sin(tipAngle)).toFixed(2);
@@ -848,10 +848,10 @@ function CoachScoreRing({score, ringColor, scoreStatus, scoreLabels, sc}) {
 
   return (
     <>
-      <style>{`
+      {!GOCLUB_REDESIGN&&<style>{`
         @keyframes csRingSweep{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}
         @keyframes csBarGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-      `}</style>
+      `}</style>}
       <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:4}}>
         {/* Ring */}
         <div style={{position:"relative",width:sz,height:sz,flexShrink:0}}>
@@ -864,21 +864,26 @@ function CoachScoreRing({score, ringColor, scoreStatus, scoreLabels, sc}) {
             </defs>
             {/* Track */}
             <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth={sw}/>
-            {/* Active arc */}
-            <circle cx={sz/2} cy={sz/2} r={r} fill="none"
-              stroke="url(#csRingGrad)" strokeWidth={sw} strokeLinecap="round"
-              strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
-              transform={`rotate(-90 ${sz/2} ${sz/2})`}
-              style={{animation:'csRingSweep 0.8s cubic-bezier(.2,.7,.3,1) both'}}/>
+            {/* Active arc — Motion pathLength when GOCLUB_REDESIGN */}
+            <MotionArc cx={sz/2} cy={sz/2} r={r} pct={pct}
+              stroke="url(#csRingGrad)" strokeWidth={sw}
+              transform={`rotate(-90 ${sz/2} ${sz/2})`} />
             {/* Tip glow dot */}
             {pct>0.02&&(
-              <circle cx={tipX} cy={tipY} r={6} fill={rc}
-                style={{filter:`drop-shadow(0 0 6px ${rc}) drop-shadow(0 0 12px ${rc}66)`}}/>
+              GOCLUB_REDESIGN
+                ? <motion.circle cx={tipX} cy={tipY} r={6} fill={rc}
+                    initial={{opacity:0}} animate={{opacity:1}}
+                    transition={{delay:0.72,duration:0.18}}
+                    style={{filter:`drop-shadow(0 0 6px ${rc}) drop-shadow(0 0 12px ${rc}66)`}}/>
+                : <circle cx={tipX} cy={tipY} r={6} fill={rc}
+                    style={{filter:`drop-shadow(0 0 6px ${rc}) drop-shadow(0 0 12px ${rc}66)`}}/>
             )}
           </svg>
           {/* Center labels — HTML overlay for textShadow */}
           <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-            <div style={{...cnd,fontSize:22,color:"#f5f5f0",lineHeight:1,textShadow:"0 0 30px rgba(245,245,240,0.12), 0 2px 24px rgba(0,0,0,0.8)"}}>{displayScore}</div>
+            <div style={{...cnd,fontSize:22,color:"#f5f5f0",lineHeight:1,textShadow:"0 0 30px rgba(245,245,240,0.12), 0 2px 24px rgba(0,0,0,0.8)"}}>
+              {GOCLUB_REDESIGN ? <MN value={score} /> : displayScore}
+            </div>
             <div style={{...mno,fontSize:8,color:rc,letterSpacing:"0.1em",marginTop:2}}>{scoreStatus}</div>
           </div>
         </div>
@@ -7132,7 +7137,7 @@ Rules:
     });
     const [selBar, setSelBar] = useState(null);
     const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
-    const heroDisplay = useCountUp(heroTarget, reducedMotion ? 1 : 900);
+    const heroDisplay = useCountUp(heroTarget, GOCLUB_REDESIGN ? 0 : (reducedMotion ? 1 : 900));
 
     // 7-day history — real data from dailyScores, graceful on empty
     const last7 = useMemo(()=>{
@@ -7380,7 +7385,7 @@ Rules:
             {/* ── HERO NUMBER ── */}
             <div style={{textAlign:"center",marginBottom:18}}>
               <div style={{fontFamily:AF,fontWeight:800,fontSize:96,color:"#ffffff",lineHeight:0.88,letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums"}}>
-                {heroDisplay}
+                {GOCLUB_REDESIGN ? <MN value={heroTarget} /> : heroDisplay}
               </div>
               {/* Tier label — coloured by score band */}
               <div style={{fontFamily:AF,fontWeight:700,fontSize:11,color:tierColor,letterSpacing:"0.20em",marginTop:10,textTransform:"uppercase"}}>
@@ -7390,14 +7395,14 @@ Rules:
               {delta!==null&&selBar===null&&(
                 <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
                   color:delta>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
-                  {delta>=0?"+":""}{delta} vs yesterday
+                  <MN value={delta} format={{signDisplay:'exceptZero'}} /> vs yesterday
                 </div>
               )}
               {/* Delta vs selected bar */}
               {selDiff!==null&&(
                 <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
                   color:selDiff>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
-                  {selDiff>=0?"+":""}{selDiff} vs today
+                  <MN value={selDiff} format={{signDisplay:'exceptZero'}} /> vs today
                 </div>
               )}
             </div>
@@ -7450,7 +7455,7 @@ Rules:
           {isToday ? (<>
             {/* ── TODAY: morning brief ── */}
             {!briefDismissed&&briefText&&(
-              <div style={{marginBottom:22}}>
+              <StaggerItem i={0} style={{marginBottom:22}}>
                 <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
                   MORNING BRIEF
                 </div>
@@ -7478,10 +7483,10 @@ Rules:
                     <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
                   </div>
                 )}
-              </div>
+              </StaggerItem>
             )}
             {/* ── TODAY: LIFT MODULE ── */}
-            <div style={{marginBottom:22}}>
+            <StaggerItem i={1} style={{marginBottom:22}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>TODAY'S LIFT</div>
                 <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"rgba(17,17,17,0.40)",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
@@ -7510,10 +7515,10 @@ Rules:
                   )}
                 </div>
               )}
-            </div>
+            </StaggerItem>
 
             {/* ── TODAY: NUTRITION ── */}
-            <div style={{marginBottom:22}}>
+            <StaggerItem i={2} style={{marginBottom:22}}>
               <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
               {consumed.calories>0&&(
                 <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:12}}>
@@ -7527,10 +7532,10 @@ Rules:
                 style={{width:"100%",padding:"13px 0",border:"1.5px solid rgba(17,17,17,0.12)",borderRadius:12,background:"none",cursor:"pointer",fontFamily:AF,fontWeight:700,fontSize:12,color:"#111111",letterSpacing:"0.04em",WebkitTapHighlightColor:"transparent"}}>
                 + Log meal
               </button>
-            </div>
+            </StaggerItem>
 
             {/* ── TODAY: HYDRATION HERO — full-width SVG wave, blue scoped here only ── */}
-            <div style={{marginBottom:22,position:"relative"}}>
+            <StaggerItem i={3} style={{marginBottom:22,position:"relative"}}>
               {/* Wave panel — touchAction:pan-y lets the page scroll; manipulation on buttons kills ghost-clicks */}
               <div style={{borderRadius:20,overflow:"hidden",background:"#032248",height:200,position:"relative",touchAction:"pan-y"}}>
                 <svg ref={waveRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
@@ -7617,7 +7622,7 @@ Rules:
                   </button>
                 </div>
               </>)}
-            </div>
+            </StaggerItem>
 
             {showCheckin&&!checkinDone&&(
               <SorenessCheckIn userId={user?.id}
