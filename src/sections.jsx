@@ -1943,7 +1943,7 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
 }
 
 const _TRAIN_GOCLUB_CSS=`
-.goclub.tab-train{background:#000!important}
+.goclub.tab-train{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E") repeat left top/200px 200px,radial-gradient(ellipse at 50% 15%,#1A0A08 0%,#0A0302 40%,#000000 72%)!important}
 .goclub.tab-train .screen-header{padding-top:4px!important}
 .goclub.tab-train .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.4)!important;text-transform:uppercase!important}
 .goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important}
