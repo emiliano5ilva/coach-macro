@@ -3578,10 +3578,11 @@ function CoachAlertsStream({ userMode, children }) {
 
 const _PLAN_AURORA_CSS=`
 /* translateZ(0) in every keyframe ensures GPU layer is promoted in ALL states, not just before animation */
-@keyframes ps1{0%,100%{transform:translateZ(0) translateX(0) rotate(-14deg)}35%{transform:translateZ(0) translateX(22px) rotate(-8deg)}70%{transform:translateZ(0) translateX(-16px) rotate(-20deg)}}
-@keyframes ps2{0%,100%{transform:translateZ(0) translateX(0) rotate(18deg)}45%{transform:translateZ(0) translateX(-26px) rotate(12deg)}80%{transform:translateZ(0) translateX(18px) rotate(23deg)}}
-@keyframes ps3{0%,100%{transform:translateZ(0) translateX(0) rotate(-3deg)}22%{transform:translateZ(0) translateX(36px) rotate(6deg)}55%{transform:translateZ(0) translateX(-32px) rotate(-9deg)}82%{transform:translateZ(0) translateX(18px) rotate(2deg)}}
-@keyframes ps4{0%,100%{transform:translateZ(0) translateX(0) rotate(8deg)}55%{transform:translateZ(0) translateX(-20px) rotate(13deg)}}
+/* Gentler rotation (±6-10°) — wide overlapping beams, fluid GO Club-style motion */
+@keyframes ps1{0%,100%{transform:translateZ(0) translateX(0) rotate(-8deg)}40%{transform:translateZ(0) translateX(18px) rotate(-3deg)}75%{transform:translateZ(0) translateX(-12px) rotate(-11deg)}}
+@keyframes ps2{0%,100%{transform:translateZ(0) translateX(0) rotate(10deg)}45%{transform:translateZ(0) translateX(-20px) rotate(5deg)}80%{transform:translateZ(0) translateX(14px) rotate(13deg)}}
+@keyframes ps3{0%,100%{transform:translateZ(0) translateX(0) rotate(-2deg)}25%{transform:translateZ(0) translateX(24px) rotate(4deg)}60%{transform:translateZ(0) translateX(-20px) rotate(-6deg)}85%{transform:translateZ(0) translateX(10px) rotate(1deg)}}
+@keyframes ps4{0%,100%{transform:translateZ(0) translateX(0) rotate(4deg)}55%{transform:translateZ(0) translateX(-14px) rotate(7deg)}}
 /* Breathing 0.55↔1.0 — vivid floor so the pulse is obvious without going dark */
 @keyframes pa-fade1{0%,100%{opacity:0.55}50%{opacity:1.00}}
 @keyframes pa-fade2{0%,100%{opacity:1.00}50%{opacity:0.55}}
@@ -3592,33 +3593,33 @@ const _PLAN_AURORA_CSS=`
 `;
 
 function PlanAurora(){
-  // Y-radius 142-150%: gradient overshoots top so the visible portion is the near-solid lower half.
-  // Stops hold 1.0 alpha out to ~55-60% of the gradient = ~80% up the screen before fading.
-  // Two screen-blend passes (blur 2px) double intensity without heavy GPU cost.
+  // 4 layers only — fewer compositing layers = smooth first paint.
+  // Wide X-radii (78-88%) for GO Club-style broad overlapping beams.
+  // Y-radius 142-150% keeps the gradient's strong section visible up to ~80% of screen.
   const _S=[
+    // Left-leaning wide beam — primary brand red
     {
-      bg:"radial-gradient(ellipse 65% 145% at 40% 100%, rgba(255,59,48,1.00) 0%, rgba(255,59,48,1.00) 55%, rgba(255,59,48,0.55) 80%, transparent 100%)",
-      w:"65%",l:"-10%",
-      a:"ps1 22s ease-in-out infinite,     pa-fade1 8s ease-in-out infinite 1s",
-      a2:"ps1 22s ease-in-out infinite 3s, pa-fade1 8s ease-in-out infinite 5s",
+      bg:"radial-gradient(ellipse 80% 145% at 38% 100%, rgba(255,59,48,1.00) 0%, rgba(255,59,48,1.00) 50%, rgba(255,59,48,0.40) 76%, transparent 100%)",
+      w:"75%",l:"-12%",
+      a:"ps1 22s ease-in-out infinite, pa-fade1 8s ease-in-out infinite",
     },
+    // Right-leaning wide beam — slightly darker crimson
     {
-      bg:"radial-gradient(ellipse 60% 148% at 60% 100%, rgba(226,36,26,1.00) 0%, rgba(226,36,26,1.00) 58%, rgba(226,36,26,0.50) 82%, transparent 100%)",
-      w:"58%",r:"-8%",
-      a:"ps2 25s ease-in-out infinite 4s,  pa-fade2 9s ease-in-out infinite",
-      a2:"ps2 25s ease-in-out infinite 7s, pa-fade2 9s ease-in-out infinite 4s",
+      bg:"radial-gradient(ellipse 78% 148% at 62% 100%, rgba(220,30,18,1.00) 0%, rgba(220,30,18,1.00) 52%, rgba(220,30,18,0.38) 78%, transparent 100%)",
+      w:"72%",r:"-10%",
+      a:"ps2 26s ease-in-out infinite 5s, pa-fade2 9s ease-in-out infinite 2s",
     },
+    // Center bloom — widest, coral-red, dominant glow
     {
-      bg:"radial-gradient(ellipse 58% 150% at 50% 100%, rgba(255,107,92,1.00) 0%, rgba(255,107,92,1.00) 60%, rgba(255,107,92,0.52) 82%, transparent 100%)",
-      w:"55%",l:"22%",
-      a:"ps3 19s ease-in-out infinite 9s,   pa-fade3 6s ease-in-out infinite 2s",
-      a2:"ps3 19s ease-in-out infinite 12s, pa-fade3 6s ease-in-out infinite 5s",
+      bg:"radial-gradient(ellipse 88% 150% at 50% 100%, rgba(255,90,70,1.00) 0%, rgba(255,90,70,0.95) 48%, rgba(255,90,70,0.35) 78%, transparent 100%)",
+      w:"90%",l:"5%",
+      a:"ps3 20s ease-in-out infinite 10s, pa-fade3 7s ease-in-out infinite 3s",
     },
+    // Narrow hot-center anchor — deepest red, adds tonal depth under the bloom
     {
-      bg:"radial-gradient(ellipse 52% 142% at 50% 100%, rgba(200,18,18,1.00) 0%, rgba(200,18,18,1.00) 55%, rgba(200,18,18,0.45) 80%, transparent 100%)",
-      w:"48%",l:"18%",
-      a:"ps4 23s ease-in-out infinite 14s, pa-fade4 11s ease-in-out infinite 5s",
-      a2:"ps4 23s ease-in-out infinite 17s,pa-fade4 11s ease-in-out infinite 8s",
+      bg:"radial-gradient(ellipse 48% 142% at 50% 100%, rgba(200,16,16,1.00) 0%, rgba(200,16,16,0.90) 42%, rgba(200,16,16,0.30) 74%, transparent 100%)",
+      w:"50%",l:"25%",
+      a:"ps4 24s ease-in-out infinite 15s, pa-fade4 11s ease-in-out infinite 6s",
     },
   ];
   return(
@@ -3631,15 +3632,6 @@ function PlanAurora(){
             left:s.l,right:s.r,bottom:0,
             background:s.bg,mixBlendMode:"screen",
             filter:"blur(2px)",animation:s.a,
-          }}/>
-        ))}
-        {/* Second screen-blend pass — offset phase doubles intensity; 2px blur keeps GPU cost low */}
-        {_S.map((s,i)=>(
-          <div key={`b${i}`} className="pa-streak" style={{
-            position:"absolute",width:s.w,height:"100%",
-            left:s.l,right:s.r,bottom:0,
-            background:s.bg,mixBlendMode:"screen",
-            filter:"blur(2px)",animation:s.a2,
           }}/>
         ))}
       </div>
