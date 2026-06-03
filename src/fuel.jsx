@@ -2138,7 +2138,7 @@ Reply with ONLY a valid JSON object, no markdown:
   })();
 
   return (
-    <div className={GOCLUB_REDESIGN?"goclub tab-fuel":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
+    <div className={GOCLUB_REDESIGN?"goclub tab-fuel":"page-enter"} style={{paddingBottom:isMobile?20:0}}>
       {GOCLUB_REDESIGN&&<style>{_FUEL_GOCLUB_CSS}</style>}
       {/* ── PAGE HEADER ── */}
       <div className="screen-header" style={{paddingTop:12}}>

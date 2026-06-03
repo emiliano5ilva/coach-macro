@@ -5191,8 +5191,19 @@ Be specific and practical. Empathetic tone. No fluff.`,
 
   async function handleAddWater(oz){
     const today=new Date().toISOString().split("T")[0];
-    const log2=await addWaterLog(user.id,oz,today);
-    if(log2){setWaterLogs(prev=>[...prev,log2]);track(EVENTS.WATER_LOGGED,{oz},user.id);}
+    // Optimistic update — both Today and Fuel see the change immediately
+    const tempId=`tmp_${Date.now()}`;
+    setWaterLogs(prev=>[...prev,{id:tempId,amount_oz:oz,date:today}]);
+    try{
+      const log2=await addWaterLog(user.id,oz,today);
+      setWaterLogs(prev=>log2
+        ? prev.filter(l=>l.id!==tempId).concat([log2])
+        : prev.filter(l=>l.id!==tempId)
+      );
+      if(log2&&oz>0)track(EVENTS.WATER_LOGGED,{oz},user.id);
+    }catch{
+      setWaterLogs(prev=>prev.filter(l=>l.id!==tempId));
+    }
   }
   async function handleDeleteWater(id){
     await deleteWaterLog(id);
@@ -7214,50 +7225,38 @@ Rules:
       : new Date(selectedDay+'T12:00:00').toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
 
     // ── Phase 3.6 — today handoffs + water quick-log ──────────────────────
-    const [waterOptimistic, setWaterOptimistic] = useState(0);
     const [showWaterInfo,   setShowWaterInfo]   = useState(false);
     const [showCustomSheet, setShowCustomSheet] = useState(false);
     const [customOz,        setCustomOz]        = useState(20);
-    const displayWater = waterLoggedOz + waterOptimistic;
+    // displayWater reads directly from shared waterLogs — handleAddWater is now
+    // optimistic at App level so both Today and Fuel update immediately.
+    const displayWater = waterLoggedOz;
 
-    // iOS 13+ requires a user-gesture to enable DeviceOrientationEvent.
-    // Call once on first water interaction; non-iOS / already-asked → no-op.
     function requestOrientationPermission() {
       if(orientPermAsked.current) return;
       orientPermAsked.current = true;
       if(typeof DeviceOrientationEvent?.requestPermission === 'function'){
-        DeviceOrientationEvent.requestPermission().catch(()=>{}); // denied → wave runs without tilt
+        DeviceOrientationEvent.requestPermission().catch(()=>{}); // denied — wave runs without tilt
       }
     }
 
-    async function handleWaterTap(oz) {
+    function handleWaterTap(oz) {
       requestOrientationPermission();
-      setWaterOptimistic(p=>p+oz);
-      const dt=new Date().toISOString().split("T")[0];
-      const result=await addWaterLog(user.id,oz,dt);
-      setWaterOptimistic(p=>p-oz);
-      if(result){
-        setWaterLogs(prev=>[...prev,result]);
-        track?.(EVENTS.WATER_LOGGED,{oz},user.id);
-      }
+      handleAddWater(oz); // optimistic — App state updates immediately, syncs to Fuel
     }
 
     // Debounce ref — blocks remove firing twice within 400ms (ghost-click guard)
     const removeLastFired = useRef(0);
 
-    async function handleWaterRemove() {
+    function handleWaterRemove() {
       requestOrientationPermission();
       const now = Date.now();
-      if(now - removeLastFired.current < 400) return; // debounce: drop ghost-clicks
+      if(now - removeLastFired.current < 400) return;
       removeLastFired.current = now;
-      if(displayWater<=0) return; // already at 0 — total floor
-      const removeAmt=Math.min(16,Math.max(0,displayWater)); // never negative
+      if(displayWater<=0) return;
+      const removeAmt=Math.min(16,Math.max(0,displayWater));
       if(removeAmt<=0) return;
-      setWaterOptimistic(p=>p-removeAmt);
-      const dt=new Date().toISOString().split("T")[0];
-      const result=await addWaterLog(user.id,-removeAmt,dt);
-      setWaterOptimistic(p=>p+removeAmt);
-      if(result) setWaterLogs(prev=>[...prev,result]);
+      handleAddWater(-removeAmt); // optimistic negative entry, syncs to Fuel
     }
 
     // ── WaveHero rAF + tilt state ─────────────────────────────────────────
