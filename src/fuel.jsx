@@ -2233,7 +2233,8 @@ Reply with ONLY a valid JSON object, no markdown:
                     transition={_fuelEyeRedMo?{duration:0}:{duration:0.22,ease:'easeOut'}}
                     style={{padding:"0 18px 8px"}}
                   >
-                    <div style={{position:'relative',height:220,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'16px'}}>
+                    <div style={{position:'relative',height:220,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'16px',overflow:'hidden'}}>
+                      {/* Ring SVG — centered absolutely, behind text overlay */}
                       <svg width="220" height="220" viewBox="0 0 220 220"
                         style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%) rotate(-90deg)',filter:'drop-shadow(0 0 16px rgba(232,52,28,0.10))'}}>
                         <defs>
@@ -2258,20 +2259,27 @@ Reply with ONLY a valid JSON object, no markdown:
                             style={{filter:_calOver?'drop-shadow(0 0 10px rgba(255,59,48,1.0))':'drop-shadow(0 0 6px rgba(255,59,48,0.8)) drop-shadow(0 0 12px rgba(255,59,48,0.4))'}}/>
                         )}
                       </svg>
-                      <div style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
-                        <div style={{..._cnd,fontSize:26,color:'#f5f5f0',lineHeight:1}}><MN value={consumed.calories} format={{useGrouping:true}}/></div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
-                      </div>
-                      <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',textAlign:'center',pointerEvents:'none'}}>
-                        <div style={{..._cnd,fontSize:48,color:_calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em',textShadow:'0 0 30px rgba(245,245,240,0.15), 0 2px 24px rgba(0,0,0,0.8)'}}>
-                          {_calOver?<MN value={Math.abs(remaining.calories)} format={{useGrouping:true}} prefix="+"/>:<MN value={_calRem} format={{useGrouping:true}}/>}
+                      {/* Flex overlay: consumed | ring-spacer (remaining inside) | target
+                          Equal 80px columns + equal 16px padding = ring-spacer center
+                          always aligns with SVG center regardless of card width. */}
+                      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',padding:'0 16px',boxSizing:'border-box'}}>
+                        <div style={{width:80,flexShrink:0,textAlign:'center'}}>
+                          <div style={{..._cnd,fontSize:26,color:'#f5f5f0',lineHeight:1}}><MN value={consumed.calories} format={{useGrouping:true}}/></div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
                         </div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>{_calOver?'OVER':'REMAINING'}</div>
-                        {calDelta!==null&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':calDelta<0?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:2}}><MN value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</div>}
-                      </div>
-                      <div style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
-                        <div style={{..._cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}><MN value={macros.calories} format={{useGrouping:true}}/></div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
+                        <div style={{flex:1,alignSelf:'stretch',position:'relative'}}>
+                          <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',textAlign:'center',pointerEvents:'none',width:'100%'}}>
+                            <div style={{..._cnd,fontSize:48,color:_calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em',textShadow:'0 0 30px rgba(245,245,240,0.15), 0 2px 24px rgba(0,0,0,0.8)'}}>
+                              {_calOver?<MN value={Math.abs(remaining.calories)} format={{useGrouping:true}} prefix="+"/>:<MN value={_calRem} format={{useGrouping:true}}/>}
+                            </div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>{_calOver?'OVER':'REMAINING'}</div>
+                            {calDelta!==null&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':calDelta<0?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:2}}><MN value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</div>}
+                          </div>
+                        </div>
+                        <div style={{width:80,flexShrink:0,textAlign:'center'}}>
+                          <div style={{..._cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}><MN value={macros.calories} format={{useGrouping:true}}/></div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
