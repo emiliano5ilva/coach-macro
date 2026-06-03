@@ -3582,69 +3582,66 @@ const _PLAN_AURORA_CSS=`
 @keyframes ps2{0%,100%{transform:translateX(0) rotate(18deg)}45%{transform:translateX(-26px) rotate(12deg)}80%{transform:translateX(18px) rotate(23deg)}}
 @keyframes ps3{0%,100%{transform:translateX(0) rotate(-3deg)}22%{transform:translateX(36px) rotate(6deg)}55%{transform:translateX(-32px) rotate(-9deg)}82%{transform:translateX(18px) rotate(2deg)}}
 @keyframes ps4{0%,100%{transform:translateX(0) rotate(8deg)}55%{transform:translateX(-20px) rotate(13deg)}}
-/* Independent opacity breathing — offset from drift so glow pulses even when position changes little */
-@keyframes pa-fade1{0%,100%{opacity:0.70}50%{opacity:1.00}}
-@keyframes pa-fade2{0%,100%{opacity:0.65}50%{opacity:0.45}}
-@keyframes pa-fade3{0%,100%{opacity:0.65}55%{opacity:1.00}}
-@keyframes pa-fade4{0%,100%{opacity:0.65}50%{opacity:0.45}}
+/* Independent opacity breathing — wide dramatic range so the glow visibly pulses */
+@keyframes pa-fade1{0%,100%{opacity:0.45}50%{opacity:1.00}}
+@keyframes pa-fade2{0%,100%{opacity:1.00}50%{opacity:0.45}}
+@keyframes pa-fade3{0%,100%{opacity:0.45}55%{opacity:1.00}}
+@keyframes pa-fade4{0%,100%{opacity:1.00}50%{opacity:0.40}}
 /* transform-origin at bottom-center; will-change promotes each streak to its own compositor layer from frame 1 */
 .pa-streak{transform-origin:50% 100%;will-change:transform,opacity}
 @media(prefers-reduced-motion:reduce){.pa-streak{animation:none!important;opacity:0.20!important}}
 `;
 
 function PlanAurora(){
+  // Y-radius 118-128% overshoots the element so the gradient extends above the visible top;
+  // the visible portion shows the strong lower section. Gradient holds near-peak to ~50%,
+  // only starts fading past that — keeps the glow reaching 70-80% up the screen.
+  // Mask removed: gradient stops control the shape. Two screen-blend passes double intensity.
+  const _S=[
+    {
+      bg:"radial-gradient(ellipse 65% 120% at 40% 100%, rgba(255,59,48,0.95) 0%, rgba(255,59,48,0.90) 45%, rgba(255,59,48,0.55) 75%, transparent 100%)",
+      w:"65%",l:"-10%",
+      a:"ps1 22s ease-in-out infinite,     pa-fade1 8s ease-in-out infinite 1s",
+      a2:"ps1 22s ease-in-out infinite 3s, pa-fade1 8s ease-in-out infinite 5s",
+    },
+    {
+      bg:"radial-gradient(ellipse 60% 125% at 60% 100%, rgba(226,36,26,0.95) 0%, rgba(226,36,26,0.88) 48%, rgba(226,36,26,0.52) 78%, transparent 100%)",
+      w:"58%",r:"-8%",
+      a:"ps2 25s ease-in-out infinite 4s,  pa-fade2 9s ease-in-out infinite",
+      a2:"ps2 25s ease-in-out infinite 7s, pa-fade2 9s ease-in-out infinite 4s",
+    },
+    {
+      bg:"radial-gradient(ellipse 58% 128% at 50% 100%, rgba(255,107,92,0.95) 0%, rgba(255,107,92,0.85) 50%, rgba(255,107,92,0.50) 80%, transparent 100%)",
+      w:"55%",l:"22%",
+      a:"ps3 19s ease-in-out infinite 9s,   pa-fade3 6s ease-in-out infinite 2s",
+      a2:"ps3 19s ease-in-out infinite 12s, pa-fade3 6s ease-in-out infinite 5s",
+    },
+    {
+      bg:"radial-gradient(ellipse 52% 118% at 50% 100%, rgba(200,18,18,0.95) 0%, rgba(200,18,18,0.75) 50%, rgba(200,18,18,0.42) 80%, transparent 100%)",
+      w:"48%",l:"18%",
+      a:"ps4 23s ease-in-out infinite 14s, pa-fade4 11s ease-in-out infinite 5s",
+      a2:"ps4 23s ease-in-out infinite 17s,pa-fade4 11s ease-in-out infinite 8s",
+    },
+  ];
   return(
     <>
       <style>{_PLAN_AURORA_CSS}</style>
-      {/*
-        Container mask: smooth vertical fade — fully visible at bottom, fades to black by ~75% up.
-        The top quarter stays near-black; headline/question text reads on dark.
-      */}
-      <div style={{
-        position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0,
-        maskImage:"linear-gradient(to top, black 0%, black 6%, transparent 94%)",
-        WebkitMaskImage:"linear-gradient(to top, black 0%, black 6%, transparent 94%)",
-      }}>
-        {[
-          /*
-            Each streak is a full-height div with a TALL ELLIPSE radial-gradient anchored at
-            the bottom-center of the div. After rotation (from bottom pivot), it becomes an
-            angled column of light — wide+bright at the floor, fading to nothing up top.
-            Overlapping screen-blend layers brighten where they cross, just like real aurora.
-          */
-          {
-            // Left streak — brand red, leans left
-            bg:"radial-gradient(ellipse 65% 88% at 40% 100%, rgba(255,59,48,1.00) 0%, rgba(255,59,48,0.82) 32%, rgba(255,59,48,0.32) 70%, transparent 100%)",
-            w:"65%", l:"-10%",
-            a:"ps1 22s ease-in-out infinite,     pa-fade1 8s ease-in-out infinite 1s",
-          },
-          {
-            // Right streak — deep red, leans right
-            bg:"radial-gradient(ellipse 60% 85% at 60% 100%, rgba(226,36,26,1.00) 0%, rgba(226,36,26,0.78) 38%, rgba(226,36,26,0.30) 72%, transparent 100%)",
-            w:"58%", r:"-8%",
-            a:"ps2 25s ease-in-out infinite 4s,  pa-fade2 9s ease-in-out infinite",
-          },
-          {
-            // Center drifter — lightest red, most travel, makes the aurora feel alive
-            bg:"radial-gradient(ellipse 58% 92% at 50% 100%, rgba(255,107,92,1.00) 0%, rgba(255,107,92,0.80) 35%, rgba(255,107,92,0.32) 74%, transparent 100%)",
-            w:"55%", l:"22%",
-            a:"ps3 19s ease-in-out infinite 9s,  pa-fade3 6s ease-in-out infinite 2s",
-          },
-          {
-            // Dark anchor — fills the base, adds tonal depth to overlaps
-            bg:"radial-gradient(ellipse 52% 82% at 50% 100%, rgba(200,18,18,1.00) 0%, rgba(200,18,18,0.70) 45%, transparent 100%)",
-            w:"48%", l:"18%",
-            a:"ps4 23s ease-in-out infinite 14s, pa-fade4 11s ease-in-out infinite 5s",
-          },
-        ].map((s,i)=>(
+      <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
+        {_S.map((s,i)=>(
           <div key={i} className="pa-streak" style={{
-            position:"absolute",
-            width:s.w, height:"100%",
-            left:s.l, right:s.r, bottom:0,
-            background:s.bg,
-            mixBlendMode:"screen",
-            filter:"blur(3px)",
-            animation:s.a,
+            position:"absolute",width:s.w,height:"100%",
+            left:s.l,right:s.r,bottom:0,
+            background:s.bg,mixBlendMode:"screen",
+            filter:"blur(4px)",animation:s.a,
+          }}/>
+        ))}
+        {/* Second screen-blend pass with offset delays — doubles intensity where streaks overlap */}
+        {_S.map((s,i)=>(
+          <div key={`b${i}`} className="pa-streak" style={{
+            position:"absolute",width:s.w,height:"100%",
+            left:s.l,right:s.r,bottom:0,
+            background:s.bg,mixBlendMode:"screen",
+            filter:"blur(6px)",animation:s.a2,
           }}/>
         ))}
       </div>
