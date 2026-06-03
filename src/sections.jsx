@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from 'motion/react';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
+const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
@@ -3499,9 +3501,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     /* No exercise list (non-lifting or no program) — Start Session always visible */
                     <motion.button
                       onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)}
-                      onPointerDown={GOCLUB_REDESIGN?()=>hap():undefined}
-                      whileTap={GOCLUB_REDESIGN?{scale:0.93}:undefined}
-                      transition={GOCLUB_REDESIGN?{type:'spring',stiffness:500,damping:25}:undefined}
+                      onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
+                      whileTap={GOCLUB_REDESIGN?{scale:0.91}:undefined}
+                      transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
                       style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>START SESSION →</motion.button>
                   )}
                 </div>

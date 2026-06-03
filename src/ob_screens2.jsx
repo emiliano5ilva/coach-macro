@@ -6046,6 +6046,7 @@ Rules:
   function handleTabPress(tabId){
     if(GOCLUB_REDESIGN && tabId==="plan"){
       // Phase 5B will replace this with the real second-onboarding entry point.
+      _hL();
       setSection("plan");
       return;
     }
@@ -6053,6 +6054,7 @@ Rules:
       resetTabToRoot(tabId);
       scrollToTop();
     }else{
+      if(GOCLUB_REDESIGN) _hL(); // haptic only on actual tab switch
       setSection(tabId);
       setTimeout(scrollToTop,50);
     }
@@ -7367,8 +7369,8 @@ Rules:
                   <motion.button key={r.key}
                     onClick={()=>{setSheetReadiness(r.key);setSheetOpen(true);}}
                     onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
-                    whileTap={GOCLUB_REDESIGN?{scale:0.92}:undefined}
-                    transition={GOCLUB_REDESIGN?{type:'spring',stiffness:500,damping:25}:undefined}
+                    whileTap={GOCLUB_REDESIGN?{scale:0.90}:undefined}
+                    transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
                     style={{
                       display:"flex",flexDirection:"column",alignItems:"center",gap:7,
                       flex:1,padding:"14px 4px 12px",
@@ -7428,8 +7430,8 @@ Rules:
                     return(
                       <motion.div key={day.ds} onClick={()=>setSelBar(selBar===i?null:i)}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
-                        whileTap={GOCLUB_REDESIGN?{scale:0.92}:undefined}
-                        transition={GOCLUB_REDESIGN?{type:'spring',stiffness:500,damping:25}:undefined}
+                        whileTap={GOCLUB_REDESIGN?{scale:0.90}:undefined}
+                        transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
                         style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>
                         <div style={{
                           width:"100%",height:h,alignSelf:"flex-end",borderRadius:"5px 5px 0 0",
@@ -9528,14 +9530,17 @@ Rules:
 
       <div className="app-tab-bar">
         {activeNav.map(item=>(
-          <button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}>
+          <motion.button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}
+            whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
+            transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
+            style={GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined}>
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               <TabIcon name={item.icon} size={22}/>
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:T.fat,border:"2px solid var(--navy)"}}/>}
               {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,border:"2px solid var(--navy)"}}/>}
             </div>
             <div className="tab-label-txt">{item.label}</div>
-          </button>
+          </motion.button>
         ))}
       </div>
 
