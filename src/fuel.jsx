@@ -7,7 +7,17 @@ import { FlagBtn } from "./FlagBtn.jsx";
 import { MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
-  FoodSearchSkeleton, AIContentSkeleton, EmptyState, hap, calcTDEE } from "./components.jsx";
+  FoodSearchSkeleton, AIContentSkeleton, EmptyState, hap, calcTDEE,
+  GOCLUB_REDESIGN } from "./components.jsx";
+
+const _FUEL_GOCLUB_CSS=`
+.goclub.tab-fuel{background:#000!important;--condensed:'Archivo',sans-serif}
+.goclub.tab-fuel .screen-header{border:none!important;background:transparent!important}
+.goclub.tab-fuel .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important}
+.goclub.tab-fuel .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.4)!important;text-transform:uppercase!important}
+.goclub.tab-fuel [style*="Barlow Condensed"]{font-family:'Archivo',sans-serif!important;font-style:normal!important}
+.goclub.tab-fuel [style*="Barlow Condensed"][style*="fontStyle"]{font-style:normal!important}
+`;
 import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS } from "./services/analytics.js";
@@ -906,16 +916,17 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
   return (
     <div style={{
       position:"relative",
-      background:"rgba(59,130,246,0.03)",
-      backgroundImage:"radial-gradient(circle at top, rgba(59,130,246,0.06) 0%, transparent 60%)",
-      boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(59,130,246,0.12), inset 0 1px 0 0 rgba(59,130,246,0.15)",
+      background:GOCLUB_REDESIGN?"rgba(255,255,255,0.05)":"rgba(59,130,246,0.03)",
+      backgroundImage:GOCLUB_REDESIGN?"none":"radial-gradient(circle at top, rgba(59,130,246,0.06) 0%, transparent 60%)",
+      boxShadow:GOCLUB_REDESIGN?"none":"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(59,130,246,0.12), inset 0 1px 0 0 rgba(59,130,246,0.15)",
+      border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":undefined,
       borderRadius:16,padding:"16px 18px",marginBottom:12,
     }}>
       <style>{`@keyframes hydRingSweep{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}`}</style>
 
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontFamily:"var(--condensed)",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
+        <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <div style={{...mno,fontSize:11,color:"#93C5FD",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
           <button
@@ -1747,6 +1758,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [memorySuggestions,setMemorySuggestions]=useState([]);
   const [skippedMemory,setSkippedMemory]=useState(new Set());
   const [memoryLoggedMsg,setMemoryLoggedMsg]=useState("");
+  const [weeklyProteinByDay,setWeeklyProteinByDay]=useState({}); // ISO-date → grams logged
   useEffect(()=>{
     if(!user||wPrefs?.macroMemory===false)return;
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-56);
@@ -1756,22 +1768,32 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
         const todayDOW=new Date().toLocaleDateString("en-US",{weekday:"short"});
         const todayAlreadyLogged=new Set((log||[]).map(e=>(e.food||"").toLowerCase().trim()));
         const foodCounts={};
+        const protByDate={};
+        const since7=new Date(Date.now()-7*864e5).toISOString().split("T")[0];
         data.forEach(row=>{
+          // Macro Memory: day-of-week food frequency
           const dow=new Date(row.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});
-          if(dow!==todayDOW)return;
-          (row.entries||[]).forEach(entry=>{
-            const key=(entry.food||"").toLowerCase().trim();
-            if(!key)return;
-            if(!foodCounts[key]){foodCounts[key]={count:0,data:entry};}
-            foodCounts[key].count++;
-            foodCounts[key].data=entry;
-          });
+          if(dow===todayDOW){
+            (row.entries||[]).forEach(entry=>{
+              const key=(entry.food||"").toLowerCase().trim();
+              if(!key)return;
+              if(!foodCounts[key]){foodCounts[key]={count:0,data:entry};}
+              foodCounts[key].count++;
+              foodCounts[key].data=entry;
+            });
+          }
+          // Weekly protein: last 7 days per ISO date
+          if(row.date>=since7){
+            const p=(row.entries||[]).reduce((s,e)=>s+(Number(e.protein)||0),0);
+            protByDate[row.date]=(protByDate[row.date]||0)+p;
+          }
         });
         const suggestions=Object.values(foodCounts)
           .filter(({count,data})=>count>=3&&!todayAlreadyLogged.has((data.food||"").toLowerCase().trim()))
           .sort((a,b)=>b.count-a.count)
           .slice(0,3);
         setMemorySuggestions(suggestions);
+        setWeeklyProteinByDay(protByDate);
       });
   },[user,wPrefs?.macroMemory,log?.length]);
 
@@ -2112,7 +2134,8 @@ Reply with ONLY a valid JSON object, no markdown:
   })();
 
   return (
-    <div className="page-enter" style={{paddingBottom:isMobile?20:0}}>
+    <div className={GOCLUB_REDESIGN?"page-enter goclub tab-fuel":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
+      {GOCLUB_REDESIGN&&<style>{_FUEL_GOCLUB_CSS}</style>}
       {/* ── PAGE HEADER ── */}
       <div className="screen-header" style={{paddingTop:12}}>
         <div style={{flex:1,minWidth:0}}>
@@ -2295,17 +2318,17 @@ Reply with ONLY a valid JSON object, no markdown:
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* MACRO MEMORY — shown first so the fastest re-log path is always above the fold */}
             {wPrefs?.macroMemory!==false&&memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).length>0&&(
-              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+              <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div>
-                    <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
+                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
                     <div style={{fontSize:11,color:T.mu,marginTop:2}}>Based on your {new Date().toLocaleDateString("en-US",{weekday:"long"})} patterns</div>
                   </div>
                   {memoryLoggedMsg&&<div style={{fontSize:11,color:T.green,fontWeight:700}}>{memoryLoggedMsg}</div>}
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).map(({count,data})=>(
-                    <div key={data.food} style={{background:T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                    <div key={data.food} style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.food}</div>
                         <div style={{fontSize:11,color:T.mu,marginTop:2}}>{data.calories} kcal · {data.protein}g protein</div>
@@ -2326,7 +2349,9 @@ Reply with ONLY a valid JSON object, no markdown:
               const calOver=remaining.calories<0;
               const calPct=macros.calories>0?Math.min(1,consumed.calories/macros.calories):0;
               const fillLen=parseFloat((calPct*circ).toFixed(1));
-              const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
+              const cnd=GOCLUB_REDESIGN
+                ?{fontFamily:"'Archivo',sans-serif",fontStyle:'normal',fontWeight:800}
+                :{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
               const mno={fontFamily:"'DM Mono',monospace"};
               const tipAngle=calPct*2*Math.PI-Math.PI/2;
               const tipX=(110+100*Math.cos(tipAngle)).toFixed(2);
@@ -2341,10 +2366,11 @@ Reply with ONLY a valid JSON object, no markdown:
                   {/* Ring row: consumed | ring+remaining | target */}
                   <div style={{
                     position:'relative',height:220,
-                    background:'rgba(245,245,240,0.03)',
-                    backgroundImage:'radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)',
-                    boxShadow:'0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)',
+                    background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':'rgba(245,245,240,0.03)',
+                    backgroundImage:GOCLUB_REDESIGN?'none':'radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)',
+                    boxShadow:GOCLUB_REDESIGN?'none':'0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)',
                     borderRadius:'16px',
+                    border:GOCLUB_REDESIGN?'1px solid rgba(255,255,255,0.08)':'none',
                   }}>
                     <svg width="220" height="220" viewBox="0 0 220 220"
                       style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%) rotate(-90deg)',filter:'drop-shadow(0 0 16px rgba(232,52,28,0.10))'}}>
@@ -2381,6 +2407,11 @@ Reply with ONLY a valid JSON object, no markdown:
                       <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>
                         {calOver?'OVER':'REMAINING'}
                       </div>
+                      {GOCLUB_REDESIGN&&calDelta!==null&&(
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':calDelta<0?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:2}}>
+                          {calDelta>0?'+':''}{calDelta} vs yest.
+                        </div>
+                      )}
                     </div>
                     {/* Right — target */}
                     <div style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',textAlign:'center',width:62}}>
@@ -2392,19 +2423,73 @@ Reply with ONLY a valid JSON object, no markdown:
                   {/* Macro bars */}
                   <div style={{display:'flex',flexDirection:'column',gap:10,marginTop:20}}>
                     {[
-                      {label:'PROTEIN',c:Math.round(consumed.protein),t:Math.round(macros.protein),color:'#e8341c'},
+                      {label:'PROTEIN',c:Math.round(consumed.protein),t:Math.round(macros.protein),color:'#FF3B30'},
                       {label:'CARBS',  c:Math.round(consumed.carbs),  t:Math.round(macros.carbs),  color:'#60a5fa'},
                       {label:'FAT',    c:Math.round(consumed.fat),    t:Math.round(macros.fat),    color:'#FEA020'},
                     ].map(({label,c,t,color})=>(
                       <div key={label} style={{display:'flex',alignItems:'center',gap:12}}>
-                        <div style={{...mno,fontSize:9,textTransform:'uppercase',letterSpacing:'0.12em',width:56,color:'rgba(245,245,240,0.5)',flexShrink:0}}>{label}</div>
-                        <div style={{flex:1,height:6,background:'rgba(245,245,240,0.06)',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,textTransform:'uppercase',letterSpacing:'0.12em',width:56,color:GOCLUB_REDESIGN?'rgba(255,255,255,0.40)':'rgba(245,245,240,0.5)',flexShrink:0}}>{label}</div>
+                        <div style={{flex:1,height:6,background:GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':'rgba(245,245,240,0.06)',borderRadius:3,overflow:'hidden'}}>
                           <div style={{height:'100%',borderRadius:3,background:color,width:`${Math.min(100,t>0?Math.round(c/t*100):0)}%`,transition:'width 0.5s ease'}}/>
                         </div>
-                        <div style={{...mno,fontSize:9,color:'#f5f5f0',letterSpacing:'0.08em',whiteSpace:'nowrap'}}>{c} / {t}g</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'#f5f5f0',letterSpacing:'0.08em',whiteSpace:'nowrap'}}>{c} / {t}g</div>
                       </div>
                     ))}
                   </div>
+                  {/* keyInsight — coaching line surfaced from weekMacros */}
+                  {GOCLUB_REDESIGN&&todayWeekEntry?.keyInsight&&(
+                    <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)',fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.55)',lineHeight:1.5}}>
+                      {todayWeekEntry.keyInsight}
+                    </div>
+                  )}
+
+                  {/* WEEKLY PROTEIN ADHERENCE + TRAINING-DAY MATCH */}
+                  {GOCLUB_REDESIGN&&weekMacros&&(()=>{
+                    const today7=new Date();
+                    const days7=Array.from({length:7},(_,i)=>{
+                      const d=new Date(today7);
+                      d.setDate(d.getDate()-(6-i));
+                      const iso=d.toISOString().split('T')[0];
+                      const wdayIdx=(d.getDay()+6)%7;
+                      const abbr=WDAYS_ORDER[wdayIdx];
+                      const entry=weekMacros.find(x=>x.day===abbr);
+                      const target=entry?.protein||macros.protein||150;
+                      const isToday=i===6;
+                      const logged=isToday?consumed.protein:(weeklyProteinByDay[iso]||0);
+                      const hit=logged>=target*0.9;
+                      return{abbr,iso,logged,target,isToday,hit,schedType:entry?.schedType||'rest'};
+                    });
+                    const trainingDays=days7.filter(d=>d.schedType!=='rest');
+                    const restDays=days7.filter(d=>d.schedType==='rest');
+                    const trainHits=trainingDays.filter(d=>d.hit).length;
+                    const restHits=restDays.filter(d=>d.hit).length;
+                    return(
+                      <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                        {/* Training-day match line */}
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(255,255,255,0.40)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:10,display:'flex',gap:6,alignItems:'center'}}>
+                          <span>Protein:</span>
+                          <span style={{color:'#22C55E'}}>{trainHits}/{trainingDays.length} training</span>
+                          <span style={{color:'rgba(255,255,255,0.25)'}}>·</span>
+                          <span style={{color:'rgba(255,255,255,0.55)'}}>{restHits}/{restDays.length} rest</span>
+                        </div>
+                        {/* 7-bar weekly view */}
+                        <div style={{display:'flex',gap:4,alignItems:'flex-end'}}>
+                          {days7.map(({abbr,iso,logged,target,isToday,hit,schedType})=>{
+                            const pct=Math.min(1,target>0?logged/target:0);
+                            const isTrainDay=schedType!=='rest';
+                            return(
+                              <div key={iso} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                                <div style={{width:'100%',height:36,background:'rgba(255,255,255,0.06)',borderRadius:4,position:'relative',overflow:'hidden',outline:isToday?'1px solid rgba(255,59,48,0.5)':'none',outlineOffset:-1}}>
+                                  <div style={{position:'absolute',bottom:0,left:0,right:0,height:`${Math.round(pct*100)}%`,background:hit?'#22C55E':'rgba(255,255,255,0.40)',borderRadius:4,transition:'height 0.4s ease',boxShadow:isToday&&hit?'0 0 8px rgba(34,197,94,0.4)':undefined}}/>
+                                </div>
+                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:isToday?'#FF3B30':isTrainDay?'rgba(255,255,255,0.45)':'rgba(255,255,255,0.25)',letterSpacing:'0.08em',textTransform:'uppercase'}}>{abbr}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* WHY ARE MY MACROS LIKE THIS? */}
                   {(()=>{
@@ -2453,7 +2538,7 @@ Reply with ONLY a valid JSON object, no markdown:
                                     <span style={{...mno,fontSize:10,color:r.amountColor,letterSpacing:'0.08em'}}>{r.amount}</span>
                                   </div>
                                 </div>
-                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,color:'#f5f5f0',lineHeight:1.4}}>{r.text}</div>
+                                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontSize:GOCLUB_REDESIGN?13:15,color:'#f5f5f0',lineHeight:1.4,fontWeight:GOCLUB_REDESIGN?500:400}}>{r.text}</div>
                               </div>
                             ))}
                           </div>
@@ -2472,7 +2557,7 @@ Reply with ONLY a valid JSON object, no markdown:
               const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
               const basePerSlot=Math.round(macros.calories/mealSlots.length);
               return(
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                   {(()=>{
                     const f=profile?.fasting||profile?.profile_data?.fasting;
                     if(!f||f==="no")return null;
@@ -2480,8 +2565,8 @@ Reply with ONLY a valid JSON object, no markdown:
                     return<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{windowLabel}</div>;
                   })()}
                   <div style={{marginBottom:14}}>
-                    <div className="header-eyebrow" style={{marginBottom:2}}>// Today's Meals</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
+                    <div className="header-eyebrow" style={{marginBottom:2,color:GOCLUB_REDESIGN?'rgba(255,255,255,0.40)':undefined}}>// Today's Meals</div>
+                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
                   </div>
                   <div>
                     {mealSlots.map((slot,si)=>{
@@ -2583,8 +2668,8 @@ Reply with ONLY a valid JSON object, no markdown:
                           :{head:"THE DAY ISN'T OVER.",sub:`You have ${calR} calories remaining. Make the rest of today count.`,btn:"LOG NOW →"};
                       return(
                         <div style={{textAlign:"center",padding:"24px 16px"}}>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"rgba(245,245,240,0.75)",textTransform:"uppercase",marginBottom:6,lineHeight:1}}>{msg.head}</div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,color:"rgba(245,245,240,0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
+                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:20,color:"rgba(245,245,240,0.75)",textTransform:"uppercase",marginBottom:6,lineHeight:1}}>{msg.head}</div>
+                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:GOCLUB_REDESIGN?500:400,color:"rgba(245,245,240,0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
                           <button onClick={()=>setLogMode("search")} style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:8,padding:"8px 16px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>{msg.btn}</button>
                         </div>
                       );
@@ -2604,10 +2689,10 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* NUTRITION PERIODIZATION */}
             {periodizationInfo&&(
-              <div style={{background:"linear-gradient(135deg, rgba(232,52,28,0.08), var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:16,padding:"14px 18px"}}>
+              <div style={{background:GOCLUB_REDESIGN?"rgba(255,59,48,0.08)":"linear-gradient(135deg, rgba(232,52,28,0.08), var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:16,padding:"14px 18px"}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// Nutrition Periodization</div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:"var(--red)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Week {periodizationInfo.cycleWeek} — {periodizationInfo.phase}</div>
+                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:"var(--red)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Week {periodizationInfo.cycleWeek} — {periodizationInfo.phase}</div>
                   <div style={{display:"flex",gap:3}}>
                     {Array.from({length:8}).map((_,i)=>(
                       <div key={i} style={{width:6,height:6,borderRadius:"50%",background:i<(periodizationInfo.cycleWeek||1)?"var(--red)":"rgba(245,245,240,0.12)",flexShrink:0}}/>
@@ -2636,7 +2721,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:meta.color,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>{meta.comment}</div>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                     <div style={{fontSize:22}}>{meta.icon}</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:meta.color,letterSpacing:"0.04em",textTransform:"uppercase"}}>{meta.label}</div>
+                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:meta.color,letterSpacing:"0.04em",textTransform:"uppercase"}}>{meta.label}</div>
                   </div>
                   <div style={{fontSize:13,color:"rgba(245,245,240,0.8)",lineHeight:1.55,marginBottom:10}}>{todayProtocol.reason}</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -2711,19 +2796,19 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* PERFORMANCE NUTRITION PATTERNS */}
             {perfCorrelations&&perfCorrelations.length>=2&&(
-              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:2}}>NUTRITION × PERFORMANCE</div>
+              <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:2}}>NUTRITION × PERFORMANCE</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:14}}>Your average intake before each session type · last 28 days</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {perfCorrelations.sort((a,b)=>b.count-a.count).slice(0,3).map(c=>(
-                    <div key={c.session_type} style={{background:T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div key={c.session_type} style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div>
                         <div style={{fontSize:12,fontWeight:700,textTransform:"capitalize",color:"#fff",marginBottom:2}}>{c.session_type}</div>
                         <div style={{fontSize:10,color:T.mu}}>{c.count} sessions tracked</div>
                       </div>
                       <div style={{display:"flex",gap:12,textAlign:"right"}}>
-                        <div><div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
-                        <div><div style={{fontSize:15,fontWeight:900,color:T.prot}}>{c.avg_protein}g</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>PROT</div></div>
+                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:"#fff"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
+                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:T.prot}}>{c.avg_protein}g</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>PROT</div></div>
                       </div>
                     </div>
                   ))}
@@ -2821,7 +2906,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 ["Recipes", ()=>setFuelScreen("kitchen"),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>],
               ].map(([label, action, icon])=>(
-                <button key={label} onClick={action} style={{padding:"14px 6px 12px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                <button key={label} onClick={action} style={{padding:"14px 6px 12px",background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':"var(--navy-card)",border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':"var(--white-border)"}`,borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
                   <div style={{width:40,height:40,borderRadius:12,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.18)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)"}}>
                     {icon}
                   </div>
@@ -2834,7 +2919,7 @@ Reply with ONLY a valid JSON object, no markdown:
             <button onClick={()=>setFuelScreen("kitchen")} style={{width:"100%",background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
               <div style={{flex:1}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// Meal Prep</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",marginBottom:4}}>Weekly Prep</div>
+                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",marginBottom:4}}>Weekly Prep</div>
                 <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{prepPlan?"View your weekly prep plan · proteins, carbs, veggies + grocery list":"Generate your weekly meal prep plan based on your training schedule"}</div>
               </div>
               <div style={{color:"var(--amber)",flexShrink:0}}>
@@ -2862,14 +2947,14 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* ── MY RECIPES (compact home section) ── */}
             {userRecipes.length>0&&(
-              <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+              <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)"}}>My Recipes</div>
+                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)"}}>My Recipes</div>
                   <button onClick={()=>setFuelScreen("kitchen")} style={{background:"none",border:"none",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>See All →</button>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {userRecipes.slice(0,3).map(r=>(
-                    <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12}}>
+                    <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s2,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:12}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                         <div style={{fontSize:10,color:T.mu}}>{r.calories_per_serving} kcal · <span style={{color:T.prot}}>P {r.protein_per_serving}g</span></div>
