@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
@@ -27,7 +27,7 @@ import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
 import { shouldRunAnalysis, runWeeklyAnalysis } from "./services/adaptiveAnalysisService.js";
-import { getTodayCheckin } from "./services/recoveryService.js";
+import { getTodayCheckin, getRecoveryData } from "./services/recoveryService.js";
 import { getWeatherPaceAdjustment, applyWeatherToPaces } from "./services/weatherService.js";
 import { scoreReadiness, getReadinessTier, READINESS_CONFIG, applyWeightMod, getCyclePhase, isPriorityExercise, applyMobilitySubstitutions, getCoachingStyle, getLifeFactorMod } from "./utils/ait.js";
 import { lifeStageModifier, ACL_PREHAB, isLegDay, getPostpartumPhase, isCalorieFreeMode, getConsistencyScore, showConsistencyScore, getCycleNutrition } from "./utils/female.js";
@@ -1960,6 +1960,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     getTodaySoreness(user.id).then(s=>setTodaySoreness(s)).catch(()=>{});
   },[user?.id]);
 
+  // ── GOCLUB eyebrow — swipeable pages ─────────────────────────────────────────
+  const [_trainRecovPct,_setTrainRecovPct]=useState(null);
+  const [_trainEyePg,_setTrainEyePg]=useState(0);
+  const _trainEyeX=useRef(0);
+  const _trainEyeY=useRef(0);
+  const _trainEyeRedMo=useReducedMotion();
+  useEffect(()=>{
+    if(!GOCLUB_REDESIGN||!user?.id)return;
+    getRecoveryData(user.id).then(d=>{
+      if(!d)return;
+      const vs=Object.values(d);
+      _setTrainRecovPct(Math.round(vs.reduce((s,v)=>s+v.percent,0)/vs.length));
+    }).catch(()=>{});
+  },[user?.id]);
+
   // ── Adaptive session ─────────────────────────────────────────────────────────
   const [adaptiveSession,setAdaptiveSession]=useState(null);
   const [todayCheckin,setTodayCheckin]=useState(null);
@@ -3155,7 +3170,40 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </button>
             )}
             <div>
-              <div className="header-eyebrow">// {todayFocus||cfg.label}{!GOCLUB_REDESIGN&&` · Week ${weekNum}`}</div>
+              {GOCLUB_REDESIGN?(()=>{
+                const _ec=n=>n>=80?'#22C55E':n>=50?'#F59E0B':'#FF3B30';
+                const _tIdx=WDAYS.indexOf(todayKey);
+                const _wDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_tIdx+i);return d.toISOString().split('T')[0];});
+                const _wsSet=new Set(_wDates);
+                const _done=new Set(Object.values(history).flatMap(s=>s.filter(x=>_wsSet.has(x.date)).map(x=>x.date))).size;
+                const _sched=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
+                const _wkPct=_sched>0?Math.round(_done/_sched*100):0;
+                const _pages=[
+                  <><span style={{color:'rgba(255,255,255,0.4)'}}>RECOVERY</span><span style={{color:'rgba(255,255,255,0.18)',margin:'0 5px'}}>|</span><span style={{color:_ec(_trainRecovPct??100)}}>{_trainRecovPct!=null?`${_trainRecovPct}% ready`:'...'}</span></>,
+                  <><span style={{color:'rgba(255,255,255,0.4)'}}>THIS WEEK</span><span style={{color:'rgba(255,255,255,0.18)',margin:'0 5px'}}>|</span><span style={{color:_ec(_wkPct)}}>{_wkPct}% complete</span></>,
+                ];
+                return(
+                  <div className="header-eyebrow"
+                    style={{overflow:'hidden',userSelect:'none'}}
+                    onPointerDown={e=>{_trainEyeX.current=e.clientX;_trainEyeY.current=e.clientY;}}
+                    onPointerUp={e=>{
+                      const dx=e.clientX-_trainEyeX.current,dy=e.clientY-_trainEyeY.current;
+                      if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)_setTrainEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
+                    }}
+                  >
+                    <motion.div
+                      animate={{x:_trainEyePg===0?'0%':'-50%'}}
+                      transition={_trainEyeRedMo?{duration:0}:{type:'spring',stiffness:500,damping:40}}
+                      style={{display:'flex',width:'200%'}}
+                    >
+                      <div style={{width:'50%'}}>{_pages[0]}</div>
+                      <div style={{width:'50%'}}>{_pages[1]}</div>
+                    </motion.div>
+                  </div>
+                );
+              })():(
+                <div className="header-eyebrow">// {todayFocus||cfg.label}</div>
+              )}
               <div className="header-title">{trainScreen==="today"?"Today's Session":trainScreen==="plan"?"My Program":trainScreen==="library"?"Exercise Library":trainScreen==="routine-builder"?"My Routines":trainScreen==="warmup-protocols"?"Protocols":trainScreen==="builder"?"Lift Smarter":trainScreen==="progress"?"Progress":"Train"}</div>
             </div>
           </div>

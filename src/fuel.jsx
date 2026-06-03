@@ -1762,7 +1762,13 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [memorySuggestions,setMemorySuggestions]=useState([]);
   const [skippedMemory,setSkippedMemory]=useState(new Set());
   const [memoryLoggedMsg,setMemoryLoggedMsg]=useState("");
-  const [weeklyProteinByDay,setWeeklyProteinByDay]=useState({}); // ISO-date → grams logged
+  const [weeklyProteinByDay,setWeeklyProteinByDay]=useState({}); // ISO-date → protein grams logged
+  const [weeklyCalsByDay,setWeeklyCalsByDay]=useState({}); // ISO-date → calories logged
+  // ── GOCLUB eyebrow — swipeable pages ─────────────────────────────────────────
+  const [_fuelEyePg,_setFuelEyePg]=useState(0);
+  const _fuelEyeX=useRef(0);
+  const _fuelEyeY=useRef(0);
+  const _fuelEyeRedMo=useReducedMotion();
   useEffect(()=>{
     if(!user||wPrefs?.macroMemory===false)return;
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-56);
@@ -1773,6 +1779,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
         const todayAlreadyLogged=new Set((log||[]).map(e=>(e.food||"").toLowerCase().trim()));
         const foodCounts={};
         const protByDate={};
+        const calsByDate={};
         const since7=new Date(Date.now()-7*864e5).toISOString().split("T")[0];
         data.forEach(row=>{
           // Macro Memory: day-of-week food frequency
@@ -1786,10 +1793,12 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
               foodCounts[key].data=entry;
             });
           }
-          // Weekly protein: last 7 days per ISO date
+          // Weekly protein + calories: last 7 days per ISO date
           if(row.date>=since7){
             const p=(row.entries||[]).reduce((s,e)=>s+(Number(e.protein)||0),0);
             protByDate[row.date]=(protByDate[row.date]||0)+p;
+            const c=(row.entries||[]).reduce((s,e)=>s+(Number(e.calories)||0),0);
+            calsByDate[row.date]=(calsByDate[row.date]||0)+c;
           }
         });
         const suggestions=Object.values(foodCounts)
@@ -1798,6 +1807,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
           .slice(0,3);
         setMemorySuggestions(suggestions);
         setWeeklyProteinByDay(protByDate);
+        setWeeklyCalsByDay(calsByDate);
       });
   },[user,wPrefs?.macroMemory,log?.length]);
 
@@ -2143,7 +2153,47 @@ Reply with ONLY a valid JSON object, no markdown:
       {/* ── PAGE HEADER ── */}
       <div className="screen-header" style={{paddingTop:12}}>
         <div style={{flex:1,minWidth:0}}>
-          <div className="header-eyebrow">// {new Date().toLocaleDateString("en-US",{weekday:"long"})} · {macros.isFlexDay?"Flex Day":(cfg.label+" Day")}</div>
+          {GOCLUB_REDESIGN?(()=>{
+            const _ec=n=>n>=80?'#22C55E':n>=50?'#F59E0B':'#FF3B30';
+            const _yISO=new Date(Date.now()-864e5).toISOString().split('T')[0];
+            const _yMac=weekMacros?.find(d=>d.day===yesterdayKey);
+            // Protein page
+            const _protPct=macros.protein>0?Math.round(consumed.protein/macros.protein*100):0;
+            const _yProtTgt=_yMac?.protein||macros.protein;
+            const _yProtPct=_yProtTgt>0&&weeklyProteinByDay[_yISO]!=null?Math.round(weeklyProteinByDay[_yISO]/_yProtTgt*100):null;
+            const _protDelta=_yProtPct!=null?_protPct-_yProtPct:null;
+            // Calories page
+            const _calRemPct=macros.calories>0?Math.round(Math.max(0,remaining.calories)/macros.calories*100):0;
+            const _calConsPct=macros.calories>0?Math.round(consumed.calories/macros.calories*100):0;
+            const _yCalTgt=_yMac?.calories||macros.calories;
+            const _yCalConsPct=_yCalTgt>0&&weeklyCalsByDay[_yISO]!=null?Math.round(weeklyCalsByDay[_yISO]/_yCalTgt*100):null;
+            const _calDelta2=_yCalConsPct!=null?_calConsPct-_yCalConsPct:null;
+            const _pages=[
+              <><span style={{color:'rgba(255,255,255,0.4)'}}>PROTEIN</span><span style={{color:'rgba(255,255,255,0.18)',margin:'0 5px'}}>|</span><span style={{color:_ec(_protPct)}}>{_protPct}% hit</span>{_protDelta!=null&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:_protDelta>=0?'#22C55E':'#FF3B30',marginLeft:6,letterSpacing:'0.06em'}}>{_protDelta>=0?'+':''}{_protDelta}% vs yest.</span>}</>,
+              <><span style={{color:'rgba(255,255,255,0.4)'}}>CALORIES</span><span style={{color:'rgba(255,255,255,0.18)',margin:'0 5px'}}>|</span><span style={{color:_ec(_calRemPct)}}>{_calRemPct}% remaining</span>{_calDelta2!=null&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:_calDelta2>=0?'#22C55E':'#FF3B30',marginLeft:6,letterSpacing:'0.06em'}}>{_calDelta2>=0?'+':''}{_calDelta2}% vs yest.</span>}</>,
+            ];
+            return(
+              <div className="header-eyebrow"
+                style={{overflow:'hidden',userSelect:'none'}}
+                onPointerDown={e=>{_fuelEyeX.current=e.clientX;_fuelEyeY.current=e.clientY;}}
+                onPointerUp={e=>{
+                  const dx=e.clientX-_fuelEyeX.current,dy=e.clientY-_fuelEyeY.current;
+                  if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)_setFuelEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
+                }}
+              >
+                <motion.div
+                  animate={{x:_fuelEyePg===0?'0%':'-50%'}}
+                  transition={_fuelEyeRedMo?{duration:0}:{type:'spring',stiffness:500,damping:40}}
+                  style={{display:'flex',width:'200%'}}
+                >
+                  <div style={{width:'50%'}}>{_pages[0]}</div>
+                  <div style={{width:'50%'}}>{_pages[1]}</div>
+                </motion.div>
+              </div>
+            );
+          })():(
+            <div className="header-eyebrow">// {new Date().toLocaleDateString("en-US",{weekday:"long"})} · {macros.isFlexDay?"Flex Day":(cfg.label+" Day")}</div>
+          )}
           {!GOCLUB_REDESIGN&&(
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:44,height:44,borderRadius:13,background:"rgba(232,52,28,0.12)",border:"1px solid rgba(232,52,28,0.28)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
