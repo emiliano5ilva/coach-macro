@@ -3497,7 +3497,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </>
                   ):(
                     /* No exercise list (non-lifting or no program) — Start Session always visible */
-                    <motion.button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} whileTap={GOCLUB_REDESIGN?{scale:0.96}:undefined} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</motion.button>
+                    <motion.button
+                      onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)}
+                      onPointerDown={GOCLUB_REDESIGN?()=>hap():undefined}
+                      whileTap={GOCLUB_REDESIGN?{scale:0.93}:undefined}
+                      transition={GOCLUB_REDESIGN?{type:'spring',stiffness:500,damping:25}:undefined}
+                      style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>START SESSION →</motion.button>
                   )}
                 </div>
               )}

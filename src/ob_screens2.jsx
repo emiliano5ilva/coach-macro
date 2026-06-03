@@ -7366,13 +7366,16 @@ Rules:
                 {READINESS_OPTS.map(r=>(
                   <motion.button key={r.key}
                     onClick={()=>{setSheetReadiness(r.key);setSheetOpen(true);}}
-                    whileTap={GOCLUB_REDESIGN?{scale:0.93}:undefined}
+                    onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
+                    whileTap={GOCLUB_REDESIGN?{scale:0.92}:undefined}
+                    transition={GOCLUB_REDESIGN?{type:'spring',stiffness:500,damping:25}:undefined}
                     style={{
                       display:"flex",flexDirection:"column",alignItems:"center",gap:7,
                       flex:1,padding:"14px 4px 12px",
                       background:"rgba(255,255,255,0.13)",
                       border:"2px solid rgba(255,255,255,0.26)",
                       borderRadius:18,cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                      touchAction:GOCLUB_REDESIGN?"manipulation":undefined,
                     }}>
                     <span style={{fontSize:28,lineHeight:1}}>{r.emoji}</span>
                     <span style={{fontFamily:AF,fontWeight:700,fontSize:8,color:"rgba(255,255,255,0.80)",letterSpacing:"0.10em"}}>
@@ -7418,8 +7421,10 @@ Rules:
                     const h=day.score!=null?Math.max(6,(day.score/maxVal)*CHART_H*0.93):4;
                     return(
                       <motion.div key={day.ds} onClick={()=>setSelBar(selBar===i?null:i)}
+                        onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
                         whileTap={GOCLUB_REDESIGN?{scale:0.92}:undefined}
-                        style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative"}}>
+                        transition={GOCLUB_REDESIGN?{type:'spring',stiffness:500,damping:25}:undefined}
+                        style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>
                         <div style={{
                           width:"100%",height:h,alignSelf:"flex-end",borderRadius:"5px 5px 0 0",
                           background:day.isToday||selBar===i?"#ffffff":"rgba(255,255,255,0.28)",
