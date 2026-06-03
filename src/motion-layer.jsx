@@ -125,7 +125,7 @@ export function SlotNumber({ value, prefix, format, style }) {
         startValue="0"
         startValueOnce
         duration={0.45}
-        delay={0.34}
+        delay={0.20}
         direction="top-down"
         containerClassName="goclub-slot"
         autoAnimationStart
