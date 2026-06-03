@@ -2285,8 +2285,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       if(weatherAdjustment?.note&&todayPrescription) todayPrescription={...todayPrescription,description:`⚠️ ${weatherAdjustment.note}\n`+(todayPrescription.description||"")};
     }
   }else if(prescType==="hyrox"){
-    todayProgObj=HYROX_PROGRAM;
-    todayPrescription=getTodayHyroxWorkout(todayProgObj,weekNum,todayKey);
+    const _hyroxProgramName=wPrefs.hyroxProgram||"12-Week Race Prep";
+    todayProgObj=HYROX_PROGRAM[_hyroxProgramName]||HYROX_PROGRAM["12-Week Race Prep"];
+    todayPrescription=getTodayHyroxWorkout(_hyroxProgramName,weekNum,todayKey);
     if(todayPrescription){
       const _vdotPaces=profile?.runProfile?.paces??null;
       if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};

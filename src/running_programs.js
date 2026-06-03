@@ -1334,8 +1334,8 @@ export function getTodayRunWorkout(programName, weekNumber, dayOfWeek) {
   return week.days.find(d=>d.day===dayOfWeek)||null;
 }
 
-export function getTodayHyroxWorkout(weekNumber, dayOfWeek) {
-  const program = HYROX_PROGRAM["12-Week Race Prep"];
+export function getTodayHyroxWorkout(programName, weekNumber, dayOfWeek) {
+  const program = HYROX_PROGRAM[programName] || HYROX_PROGRAM["12-Week Race Prep"];
   const week = program.weeks_detail.find(w=>w.week===weekNumber);
   if(!week) return null;
   return week.days.find(d=>d.day===dayOfWeek)||null;
