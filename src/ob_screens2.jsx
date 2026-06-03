@@ -4265,7 +4265,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           </div>
           {/* Row 2: back button — fixed-height row keeps step counter position stable on all steps */}
           <div style={{height:38,display:"flex",alignItems:"center"}}>
-            {step>1&&(
+            {step!=="focus"&&(
               <button onClick={()=>back(step)}
                 style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:20,padding:"8px 14px",color:"#fff",fontFamily:AF,fontSize:13,fontWeight:600,cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent"}}>
                 ← Back

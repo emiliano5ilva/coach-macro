@@ -3241,7 +3241,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const heroIsAdv=heroLvl==="advanced"||heroLvl==="elite";
               const heroLevelColor=heroIsNov?"var(--green)":heroIsAdv?"#F87171":"var(--blue)";
               const heroLvlBadge=heroIsNov?"Beginner":heroIsAdv?"Advanced":"Intermediate";
-              const progLabel=wPrefs.splitType||(wPrefs.isHyrox?"Hyrox":wPrefs.isHybrid?"Hybrid":"My Program");
+              const progLabel=
+                wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
+                wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
+                wPrefs.isHybrid  ? (wPrefs.hybridTemplate||"Hybrid") :
+                prescType==="running" ? (wPrefs.runPlan||"Running") :
+                wPrefs.splitType||"My Program";
               const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns";
               const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
               const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
@@ -3489,7 +3494,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {(()=>{
               const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
               const totalWeeks=progInfo?.weeks||12;
-              const progName=progInfo?.name||(wPrefs.splitType||"Custom Plan");
+              const progName=
+                wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
+                wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
+                wPrefs.isHybrid  ? (wPrefs.hybridTemplate||"Hybrid") :
+                prescType==="running" ? (wPrefs.runPlan||"Running") :
+                progInfo?.name||(wPrefs.splitType||"Custom Plan");
               const displayWeek=programCurrentWeek||weekNum;
               const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
               const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
