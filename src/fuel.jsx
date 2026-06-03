@@ -2260,11 +2260,12 @@ Reply with ONLY a valid JSON object, no markdown:
                         )}
                       </svg>
                       {/* Flex overlay: consumed | ring-spacer (remaining inside) | target
-                          Equal 80px columns + equal 16px padding = ring-spacer center
-                          always aligns with SVG center regardless of card width. */}
-                      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',padding:'0 16px',boxSizing:'border-box'}}>
-                        <div style={{width:80,flexShrink:0,textAlign:'center'}}>
-                          <div style={{..._cnd,fontSize:26,color:'#f5f5f0',lineHeight:1}}><MN value={consumed.calories} format={{useGrouping:true}}/></div>
+                          88px columns + 12px padding each side — spacer center = card center.
+                          Side labels use plain text (not NumberFlow) so width = exact font width,
+                          no shadow-DOM overflow. overflow:hidden on columns is the hard stop. */}
+                      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',padding:'0 12px',boxSizing:'border-box'}}>
+                        <div style={{width:88,flexShrink:0,textAlign:'center',overflow:'hidden'}}>
+                          <div style={{..._cnd,fontSize:22,color:'#f5f5f0',lineHeight:1}}>{Math.round(consumed.calories).toLocaleString()}</div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
                         </div>
                         <div style={{flex:1,alignSelf:'stretch',position:'relative'}}>
@@ -2276,8 +2277,8 @@ Reply with ONLY a valid JSON object, no markdown:
                             {calDelta!==null&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':calDelta<0?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:2}}><MN value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</div>}
                           </div>
                         </div>
-                        <div style={{width:80,flexShrink:0,textAlign:'center'}}>
-                          <div style={{..._cnd,fontSize:26,color:'rgba(245,245,240,0.5)',lineHeight:1}}><MN value={macros.calories} format={{useGrouping:true}}/></div>
+                        <div style={{width:88,flexShrink:0,textAlign:'center',overflow:'hidden'}}>
+                          <div style={{..._cnd,fontSize:22,color:'rgba(245,245,240,0.5)',lineHeight:1}}>{Math.round(macros.calories).toLocaleString()}</div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
                         </div>
                       </div>

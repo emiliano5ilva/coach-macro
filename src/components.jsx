@@ -227,7 +227,7 @@ export function useCountUp(target, dur=1400) {
 
 // ─── GLOBAL STYLES ─────────────────────────────────────────────────────────────
 export const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Archivo:wght@400;600;700;800&display=swap');
   :root {
     --accent: #FF3B30;
     --accent-rgb: 255,59,48;
