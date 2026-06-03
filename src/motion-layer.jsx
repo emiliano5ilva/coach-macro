@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import NumberFlow, { styles as nfStyles } from '@number-flow/react';
+import SlotCounter from 'react-slot-counter';
 import { GOCLUB_REDESIGN } from './components.jsx';
 
 // Inject NumberFlow document-level styles once at module load
@@ -12,13 +13,25 @@ if (typeof document !== 'undefined' && !document.querySelector('[data-nf]')) {
 }
 
 const EASE = [0.2, 0.7, 0.3, 1];
-
-// Spring preset for whileTap — export so callers can spread it in
 export const TAP_SPRING = { type: 'spring', stiffness: 500, damping: 25 };
 
+// ── CSS injected once for react-slot-counter spring easing override ───────────
+// slot-counter uses inline CSS transitions; !important overrides from outside.
+const SC_CSS = `
+.goclub-slot .slot-counter-item-numbers {
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+`;
+if (typeof document !== 'undefined' && !document.querySelector('[data-sc]')) {
+  const el = document.createElement('style');
+  el.dataset.sc = '1';
+  el.textContent = SC_CSS;
+  document.head.appendChild(el);
+}
+
 // ── StaggerItem ───────────────────────────────────────────────────────────────
-// Entrance: opacity+translateY, fires once on mount.
-// Delay = i * 200ms so cards cascade top-to-bottom at ~75% through previous.
+// Entrance once on mount: opacity+translateY, 200ms gap between cards (75% through
+// previous card's 320ms motion). Resolves immediately if reducedMotion.
 export function StaggerItem({ children, style, i = 0, className }) {
   const rm = useReducedMotion();
   if (!GOCLUB_REDESIGN || rm) {
@@ -37,20 +50,16 @@ export function StaggerItem({ children, style, i = 0, className }) {
   );
 }
 
-// ── MN (MotionNumber) ─────────────────────────────────────────────────────────
-// NOTE: @number-flow/react (this version) has NO digitDelay / per-digit stagger.
-// spinTiming applies uniformly to all digits. To achieve LEFT→RIGHT digit cascade,
-// we render ONE NumberFlow instance per digit with staggered spinTiming.delay.
-// The cascade: each digit starts when the previous is 75% done (delay = pos * dur * 0.75).
-//
-// Also fixes: mount-animate (starts at 0, rAF updates to real value so NumberFlow
-// always sees a value change 0→v and fires animation), trend=-1 (top→down entry),
-// spring bounce easing.
+// ── MN (MotionNumber) — single NumberFlow per number ─────────────────────────
+// REVERTED from per-digit hack (caused scramble mid-spin).
+// One NumberFlow instance per number: trend=-1 (top→down), spring bounce easing,
+// opacity fade. Mount-animate: starts at 0, rAF updates to real value so
+// NumberFlow sees 0→v change and fires.
+// Used on Train + Fuel. NOT used on Today (see SlotNumber below).
 export function MN({ value, format, style, suffix, prefix }) {
   const rm = useReducedMotion();
   const v = typeof value === 'number' && Number.isFinite(value) ? value : 0;
 
-  // State-driven value: starts at 0 so mount triggers 0 → v animation
   const [nfVal, setNfVal] = useState(0);
   const isFirst = useRef(true);
 
@@ -66,43 +75,66 @@ export function MN({ value, format, style, suffix, prefix }) {
 
   if (!GOCLUB_REDESIGN) return <>{prefix}{Math.round(v)}{suffix}</>;
 
-  // Format the display value
-  const fmt = format || { maximumFractionDigits: 0, useGrouping: false };
-  const formatted = new Intl.NumberFormat('en', fmt).format(Math.round(nfVal));
+  return (
+    <>
+      {prefix}
+      <NumberFlow
+        value={nfVal}
+        trend={-1}
+        format={format || { maximumFractionDigits: 0, useGrouping: false }}
+        transformTiming={{ duration: 600, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+        opacityTiming={{ duration: 300, easing: 'ease-out' }}
+        animated={!rm}
+        willChange
+        style={style}
+      />
+      {suffix}
+    </>
+  );
+}
 
-  // Cascade config: 500ms per digit, next starts at 75% of previous
-  const DIGIT_DUR = 500;
-  const CASCADE_PCT = 0.75;
+// ── SlotNumber — react-slot-counter cascade for Today only ───────────────────
+// react-slot-counter uses plain CSS transitions — no shadow DOM, no linear()
+// easing dependency — works cleanly in WKWebView.
+// Per-digit cascade: each digit starts delay seconds after the previous
+// (left→right). direction="top-down" → digits enter from above, settle down.
+// Spring overshoot easing injected via goclub-slot CSS class above.
+//
+// Props:
+//   value       — number to display
+//   prefix      — static string before the number (e.g. "+" for delta)
+//   format      — { useGrouping } for comma separators
+export function SlotNumber({ value, prefix, format, style }) {
+  const rm = useReducedMotion();
+  const v = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  const rounded = Math.round(v);
 
-  let digitIndex = 0;
-  const segments = formatted.split('').map((char, i) => {
-    if (/\d/.test(char)) {
-      const delay = Math.round(digitIndex * DIGIT_DUR * CASCADE_PCT);
-      digitIndex++;
-      return (
-        <NumberFlow
-          key={`d${i}`}
-          value={parseInt(char, 10)}
-          trend={-1}
-          spinTiming={{ duration: DIGIT_DUR, delay, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-          opacityTiming={{ duration: 300, easing: 'ease-out' }}
-          animated={!rm}
-          willChange
-          // Zero horizontal mask width so adjacent single-digit instances don't clip each other
-          style={{ '--number-flow-mask-width': '0', ...style }}
-        />
-      );
-    }
-    // Non-digit chars (commas, decimal point, sign) render as static spans
-    return <span key={`s${i}`} style={style}>{char}</span>;
-  });
+  if (!GOCLUB_REDESIGN || rm) {
+    return <span style={style}>{prefix}{rounded}</span>;
+  }
 
-  return <>{prefix}<span style={{ fontVariantNumeric: 'tabular-nums' }}>{segments}</span>{suffix}</>;
+  const displayVal = format?.useGrouping
+    ? new Intl.NumberFormat('en', { useGrouping: true, maximumFractionDigits: 0 }).format(rounded)
+    : String(rounded);
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'baseline', fontVariantNumeric: 'tabular-nums', ...style }}>
+      {prefix && <span>{prefix}</span>}
+      <SlotCounter
+        value={displayVal}
+        startValue="0"
+        startValueOnce
+        duration={0.45}
+        delay={0.34}
+        direction="top-down"
+        containerClassName="goclub-slot"
+        autoAnimationStart
+      />
+    </span>
+  );
 }
 
 // ── MotionArc ─────────────────────────────────────────────────────────────────
-// Replaces CSS @keyframes strokeDashoffset rings with Motion pathLength.
-// transform only — compositor-safe. Resolves to final state if reducedMotion.
 export function MotionArc({ cx, cy, r, pct, stroke, strokeWidth, strokeLinecap = 'round', transform }) {
   const rm = useReducedMotion();
   const safeP = Math.min(1, Math.max(0, pct || 0));

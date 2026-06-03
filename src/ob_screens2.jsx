@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
+import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
 const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
@@ -7389,7 +7389,9 @@ Rules:
             {/* ── HERO NUMBER ── */}
             <div style={{textAlign:"center",marginBottom:18}}>
               <div style={{fontFamily:AF,fontWeight:800,fontSize:96,color:"#ffffff",lineHeight:0.88,letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums"}}>
-                {GOCLUB_REDESIGN ? <MN value={heroTarget} /> : heroDisplay}
+                {GOCLUB_REDESIGN
+                  ? <SlotNumber value={heroTarget} />
+                  : heroDisplay}
               </div>
               {/* Tier label — coloured by score band */}
               <div style={{fontFamily:AF,fontWeight:700,fontSize:11,color:tierColor,letterSpacing:"0.20em",marginTop:10,textTransform:"uppercase"}}>
@@ -7399,14 +7401,18 @@ Rules:
               {delta!==null&&selBar===null&&(
                 <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
                   color:delta>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
-                  <MN value={delta} format={{signDisplay:'exceptZero'}} /> vs yesterday
+                  {GOCLUB_REDESIGN
+                    ? <SlotNumber value={Math.abs(delta)} prefix={delta>=0?"+":"-"} />
+                    : <>{delta>=0?"+":""}{delta}</>} vs yesterday
                 </div>
               )}
               {/* Delta vs selected bar */}
               {selDiff!==null&&(
                 <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
                   color:selDiff>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
-                  <MN value={selDiff} format={{signDisplay:'exceptZero'}} /> vs today
+                  {GOCLUB_REDESIGN
+                    ? <SlotNumber value={Math.abs(selDiff)} prefix={selDiff>=0?"+":"-"} />
+                    : <>{selDiff>=0?"+":""}{selDiff}</>} vs today
                 </div>
               )}
             </div>
