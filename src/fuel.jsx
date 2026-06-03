@@ -2136,7 +2136,7 @@ Reply with ONLY a valid JSON object, no markdown:
   })();
 
   return (
-    <div className={GOCLUB_REDESIGN?"page-enter goclub tab-fuel":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
+    <div className={GOCLUB_REDESIGN?"goclub tab-fuel":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
       {GOCLUB_REDESIGN&&<style>{_FUEL_GOCLUB_CSS}</style>}
       {/* ── PAGE HEADER ── */}
       <div className="screen-header" style={{paddingTop:12}}>
@@ -2337,7 +2337,10 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div style={{fontSize:11,color:T.mu,marginTop:2}}>{data.calories} kcal · {data.protein}g protein</div>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        <button onClick={()=>{if(logEntry)logEntry(data);setMemoryLoggedMsg(`✓ Logged. ${remaining.calories-data.calories} kcal remaining.`);setTimeout(()=>setMemoryLoggedMsg(""),3000);}} style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Log</button>
+                        <motion.button
+                          onClick={()=>{if(logEntry)logEntry(data);setMemoryLoggedMsg(`✓ Logged. ${remaining.calories-data.calories} kcal remaining.`);setTimeout(()=>setMemoryLoggedMsg(""),3000);}}
+                          whileTap={GOCLUB_REDESIGN?{scale:0.94}:undefined}
+                          style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Log</motion.button>
                         <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
                       </div>
                     </div>
@@ -2608,7 +2611,10 @@ Reply with ONLY a valid JSON object, no markdown:
                               </span>
                             )}
                             {!isSkipped&&(
-                              <button onClick={()=>{pendingLogSlotRef.current=mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0;setFuelScreen('log');}} style={{width:44,height:44,background:"rgba(232,52,28,0.15)",border:"1.5px solid #e8341c",color:"#e8341c",borderRadius:10,fontSize:20,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+                              <motion.button
+                                whileTap={GOCLUB_REDESIGN?{scale:0.90}:undefined}
+                                onClick={()=>{pendingLogSlotRef.current=mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0;setFuelScreen('log');}}
+                                style={{width:44,height:44,background:"rgba(232,52,28,0.15)",border:"1.5px solid #e8341c",color:"#e8341c",borderRadius:10,fontSize:20,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</motion.button>
                             )}
                             {mealSlots.length>1&&!isSkipped&&(
                               <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
@@ -2920,12 +2926,14 @@ Reply with ONLY a valid JSON object, no markdown:
                 ["Recipes", ()=>setFuelScreen("kitchen"),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>],
               ].map(([label, action, icon])=>(
-                <button key={label} onClick={action} style={{padding:"14px 6px 12px",background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':"var(--navy-card)",border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':"var(--white-border)"}`,borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                <motion.button key={label} onClick={action}
+                  whileTap={GOCLUB_REDESIGN?{scale:0.93}:undefined}
+                  style={{padding:"14px 6px 12px",background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':"var(--navy-card)",border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':"var(--white-border)"}`,borderRadius:14,cursor:"pointer",textAlign:"center",transition:"all .15s",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
                   <div style={{width:40,height:40,borderRadius:12,background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.18)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)"}}>
                     {icon}
                   </div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",lineHeight:1}}>{label}</div>
-                </button>
+                </motion.button>
               ))}
             </div>
 

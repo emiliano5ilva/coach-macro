@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { motion } from 'motion/react';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
@@ -2990,7 +2991,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   return (
-    <div className={GOCLUB_REDESIGN?"page-enter goclub tab-train":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
+    <div className={GOCLUB_REDESIGN?"goclub tab-train":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
       {GOCLUB_REDESIGN&&<style>{_TRAIN_GOCLUB_CSS}</style>}
       {/* Adapt Now Modal */}
       {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} adaptLimit={adaptLimit} adaptResetDate={adaptResetDate} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)} user={user} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey}/>}
@@ -3496,7 +3497,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </>
                   ):(
                     /* No exercise list (non-lifting or no program) — Start Session always visible */
-                    <button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
+                    <motion.button onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)} whileTap={GOCLUB_REDESIGN?{scale:0.96}:undefined} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</motion.button>
                   )}
                 </div>
               )}

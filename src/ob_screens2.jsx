@@ -7364,8 +7364,9 @@ Rules:
               </div>
               <div style={{display:"flex",justifyContent:"center",gap:6}}>
                 {READINESS_OPTS.map(r=>(
-                  <button key={r.key}
+                  <motion.button key={r.key}
                     onClick={()=>{setSheetReadiness(r.key);setSheetOpen(true);}}
+                    whileTap={GOCLUB_REDESIGN?{scale:0.93}:undefined}
                     style={{
                       display:"flex",flexDirection:"column",alignItems:"center",gap:7,
                       flex:1,padding:"14px 4px 12px",
@@ -7377,7 +7378,7 @@ Rules:
                     <span style={{fontFamily:AF,fontWeight:700,fontSize:8,color:"rgba(255,255,255,0.80)",letterSpacing:"0.10em"}}>
                       {r.label}
                     </span>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -7416,7 +7417,8 @@ Rules:
                   {last7.map((day,i)=>{
                     const h=day.score!=null?Math.max(6,(day.score/maxVal)*CHART_H*0.93):4;
                     return(
-                      <div key={day.ds} onClick={()=>setSelBar(selBar===i?null:i)}
+                      <motion.div key={day.ds} onClick={()=>setSelBar(selBar===i?null:i)}
+                        whileTap={GOCLUB_REDESIGN?{scale:0.92}:undefined}
                         style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative"}}>
                         <div style={{
                           width:"100%",height:h,alignSelf:"flex-end",borderRadius:"5px 5px 0 0",
@@ -7429,7 +7431,7 @@ Rules:
                         <div style={{position:"absolute",bottom:0,fontFamily:AF,fontSize:9,fontWeight:day.isToday?700:400,color:day.isToday?"#fff":"rgba(255,255,255,0.48)"}}>
                           {day.ltr}
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
