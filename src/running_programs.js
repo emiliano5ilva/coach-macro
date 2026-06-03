@@ -1357,7 +1357,7 @@ export function getTodayHybridWorkout(templateName, dayOfWeek, weekNumber) {
 
 export function getProgramForUser(wPrefs) {
   if(wPrefs?.isHyrox && wPrefs?.isHybrid) return { type:"hyrox-hybrid", program:HYBRID_PROGRAMS["Hyrox Hybrid"] };
-  if(wPrefs?.isHyrox) return { type:"hyrox", program:HYROX_PROGRAM["12-Week Race Prep"] };
+  if(wPrefs?.isHyrox) return { type:"hyrox", program:HYROX_PROGRAM[wPrefs?.hyroxProgram||"12-Week Race Prep"] };
   if(wPrefs?.isHybrid) {
     const template = wPrefs?.hybridTemplate || "Balanced Hybrid";
     return { type:"hybrid", program:HYBRID_PROGRAMS[template] };

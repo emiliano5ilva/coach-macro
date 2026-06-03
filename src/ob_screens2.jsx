@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { AnimatePresence, motion } from 'motion/react';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
+const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
 import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, SHOW_DEBUG, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
@@ -3577,61 +3580,82 @@ function CoachAlertsStream({ userMode, children }) {
 // ── PLAN ONBOARDING (PHASE 5B) ───────────────────────────────────────────────
 
 const _PLAN_AURORA_CSS=`
-/* translateZ(0) in every keyframe ensures GPU layer is promoted in ALL states, not just before animation */
-/* Gentler rotation (±6-10°) — wide overlapping beams, fluid GO Club-style motion */
-@keyframes ps1{0%,100%{transform:translateZ(0) translateX(0) rotate(-8deg)}40%{transform:translateZ(0) translateX(18px) rotate(-3deg)}75%{transform:translateZ(0) translateX(-12px) rotate(-11deg)}}
-@keyframes ps2{0%,100%{transform:translateZ(0) translateX(0) rotate(10deg)}45%{transform:translateZ(0) translateX(-20px) rotate(5deg)}80%{transform:translateZ(0) translateX(14px) rotate(13deg)}}
-@keyframes ps3{0%,100%{transform:translateZ(0) translateX(0) rotate(-2deg)}25%{transform:translateZ(0) translateX(24px) rotate(4deg)}60%{transform:translateZ(0) translateX(-20px) rotate(-6deg)}85%{transform:translateZ(0) translateX(10px) rotate(1deg)}}
-@keyframes ps4{0%,100%{transform:translateZ(0) translateX(0) rotate(4deg)}55%{transform:translateZ(0) translateX(-14px) rotate(7deg)}}
-/* Breathing 0.55↔1.0 — vivid floor so the pulse is obvious without going dark */
-@keyframes pa-fade1{0%,100%{opacity:0.55}50%{opacity:1.00}}
-@keyframes pa-fade2{0%,100%{opacity:1.00}50%{opacity:0.55}}
-@keyframes pa-fade3{0%,100%{opacity:0.55}55%{opacity:1.00}}
-@keyframes pa-fade4{0%,100%{opacity:1.00}50%{opacity:0.55}}
-.pa-streak{transform-origin:50% 100%;will-change:transform,opacity}
-@media(prefers-reduced-motion:reduce){.pa-streak{animation:none!important;opacity:0.20!important}}
+/* Large travel ranges so orbits read at a glance; translateZ(0) keeps GPU layer active in all states */
+@keyframes ob1{
+  0%  {transform:translateZ(0) translate(0px,0px)}
+  25% {transform:translateZ(0) translate(-72px,-55px)}
+  50% {transform:translateZ(0) translate(-24px,-88px)}
+  75% {transform:translateZ(0) translate(62px,-42px)}
+  100%{transform:translateZ(0) translate(0px,0px)}
+}
+@keyframes ob2{
+  0%  {transform:translateZ(0) translate(0px,0px)}
+  30% {transform:translateZ(0) translate(68px,-65px)}
+  65% {transform:translateZ(0) translate(-72px,-78px)}
+  100%{transform:translateZ(0) translate(0px,0px)}
+}
+@keyframes ob3{
+  0%  {transform:translateZ(0) translate(0px,0px)}
+  22% {transform:translateZ(0) translate(58px,-48px)}
+  55% {transform:translateZ(0) translate(-62px,-62px)}
+  80% {transform:translateZ(0) translate(-38px,-18px)}
+  100%{transform:translateZ(0) translate(0px,0px)}
+}
+/* Opacity never reaches exactly 1.0 — on iOS, filter:blur + opacity:1.0 triggers a compositor
+   strategy switch (layer flatten attempt) that causes a visible flicker. 0.99 prevents it. */
+@keyframes ob-fade1{0%,100%{opacity:0.82}50%{opacity:0.99}}
+@keyframes ob-fade2{0%,100%{opacity:0.99}50%{opacity:0.78}}
+@keyframes ob-fade3{0%,100%{opacity:0.70}50%{opacity:0.96}}
+/* backwards fill: applies 0% keyframe (incl. translateZ(0)) during animation-delay so the layer
+   stays GPU-composited from creation, preventing a promotion jump when animation starts. */
+.pa-ball{will-change:transform,opacity;animation-fill-mode:backwards}
+@media(prefers-reduced-motion:reduce){.pa-ball{animation:none!important}}
 `;
 
 function PlanAurora(){
-  // 4 layers only — fewer compositing layers = smooth first paint.
-  // Wide X-radii (78-88%) for GO Club-style broad overlapping beams.
-  // Y-radius 142-150% keeps the gradient's strong section visible up to ~80% of screen.
-  const _S=[
-    // Left-leaning wide beam — primary brand red
+  // Defer ball divs until 300ms after mount so the Framer Motion entrance animation
+  // (280ms) completes before aurora GPU layers are created — keeps entrance frame clean.
+  const [auroraReady,setAuroraReady]=useState(false);
+  useEffect(()=>{
+    const id=setTimeout(()=>setAuroraReady(true),300);
+    return()=>clearTimeout(id);
+  },[]);
+
+  // 3 round glow-balls. Positioned in distinct zones: Ball 1 far-left, Ball 2 far-right,
+  // Ball 3 center-below. They overlap only at soft gradient edges, not stacked.
+  // Faster durations (11-14s) so orbits read without staring.
+  const _B=[
+    // Ball 1 — main brand red, anchored lower-LEFT
     {
-      bg:"radial-gradient(ellipse 80% 145% at 38% 100%, rgba(255,59,48,1.00) 0%, rgba(255,59,48,1.00) 50%, rgba(255,59,48,0.40) 76%, transparent 100%)",
-      w:"75%",l:"-12%",
-      a:"ps1 22s ease-in-out infinite, pa-fade1 8s ease-in-out infinite",
+      bg:"radial-gradient(circle, rgba(255,59,48,0.95) 0%, rgba(255,59,48,0.88) 12%, rgba(255,59,48,0.76) 24%, rgba(255,59,48,0.58) 38%, rgba(255,59,48,0.38) 54%, rgba(255,59,48,0.20) 70%, rgba(255,59,48,0.08) 84%, transparent 100%)",
+      sz:"130vw", l:"-50vw", t:"58%",
+      a:"ob1 12s ease-in-out infinite, ob-fade1 7s ease-in-out infinite",
     },
-    // Right-leaning wide beam — slightly darker crimson
+    // Ball 2 — main deeper red, anchored lower-RIGHT
     {
-      bg:"radial-gradient(ellipse 78% 148% at 62% 100%, rgba(220,30,18,1.00) 0%, rgba(220,30,18,1.00) 52%, rgba(220,30,18,0.38) 78%, transparent 100%)",
-      w:"72%",r:"-10%",
-      a:"ps2 26s ease-in-out infinite 5s, pa-fade2 9s ease-in-out infinite 2s",
+      bg:"radial-gradient(circle, rgba(210,25,15,0.92) 0%, rgba(210,25,15,0.84) 12%, rgba(210,25,15,0.72) 24%, rgba(210,25,15,0.54) 38%, rgba(210,25,15,0.34) 54%, rgba(210,25,15,0.17) 70%, rgba(210,25,15,0.06) 84%, transparent 100%)",
+      sz:"120vw", r:"-45vw", t:"54%",
+      a:"ob2 14s ease-in-out infinite 3s, ob-fade2 8s ease-in-out infinite 2s",
     },
-    // Center bloom — widest, coral-red, dominant glow
+    // Ball 3 — lighter coral-red, anchored center-BELOW the two main balls
     {
-      bg:"radial-gradient(ellipse 88% 150% at 50% 100%, rgba(255,90,70,1.00) 0%, rgba(255,90,70,0.95) 48%, rgba(255,90,70,0.35) 78%, transparent 100%)",
-      w:"90%",l:"5%",
-      a:"ps3 20s ease-in-out infinite 10s, pa-fade3 7s ease-in-out infinite 3s",
-    },
-    // Narrow hot-center anchor — deepest red, adds tonal depth under the bloom
-    {
-      bg:"radial-gradient(ellipse 48% 142% at 50% 100%, rgba(200,16,16,1.00) 0%, rgba(200,16,16,0.90) 42%, rgba(200,16,16,0.30) 74%, transparent 100%)",
-      w:"50%",l:"25%",
-      a:"ps4 24s ease-in-out infinite 15s, pa-fade4 11s ease-in-out infinite 6s",
+      bg:"radial-gradient(circle, rgba(255,88,60,0.78) 0%, rgba(255,88,60,0.68) 14%, rgba(255,88,60,0.55) 28%, rgba(255,88,60,0.38) 44%, rgba(255,88,60,0.22) 60%, rgba(255,88,60,0.10) 76%, rgba(255,88,60,0.03) 90%, transparent 100%)",
+      sz:"105vw", l:"-2vw", t:"68%",
+      a:"ob3 11s ease-in-out infinite 5s, ob-fade3 6s ease-in-out infinite 3s",
     },
   ];
   return(
     <>
       <style>{_PLAN_AURORA_CSS}</style>
-      <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
-        {_S.map((s,i)=>(
-          <div key={i} className="pa-streak" style={{
-            position:"absolute",width:s.w,height:"100%",
-            left:s.l,right:s.r,bottom:0,
-            background:s.bg,mixBlendMode:"screen",
-            filter:"blur(2px)",animation:s.a,
+      <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0,isolation:"isolate"}}>
+        {auroraReady&&_B.map((b,i)=>(
+          <div key={i} className="pa-ball" style={{
+            position:"absolute",
+            width:b.sz, height:b.sz,
+            left:b.l, right:b.r, top:b.t,
+            background:b.bg,
+            filter:"blur(16px)",
+            animation:b.a,
           }}/>
         ))}
       </div>
@@ -3780,17 +3804,25 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
     return set;
   };
 
-  const [step,setStep]=useState(1);
+  const [step,setStep]=useState("focus");
   const [dir,setDir]=useState(1);
   const [focus,setFocus]=useState(initFocus);
-  const [splitType,setSplitType]=useState(initSplit);
+  const [splitType,setSplitType]=useState(null);
   const [selDays,setSelDays]=useState(initDays);
-  const [mealFreq,setMealFreq]=useState(profile?.mealFreq||3);
+  const [mealFreq,setMealFreq]=useState(null);
   const [saving,setSaving]=useState(false);
   const [building,setBuilding]=useState(false);
   const [buildMsgIdx,setBuildMsgIdx]=useState(0);
   const [p2Touched,setP2Touched]=useState(false);
+  const [p3bTouched,setP3bTouched]=useState(false); // hybrid split (hyb_split step)
   const [p4Touched,setP4Touched]=useState(false);
+  // Branch-specific state — each writes to a field with existing logic consumers
+  const [runPlan,setRunPlan]=useState(null);         // → wPrefs.runPlan (getTodayRunWorkout reads it)
+  const [fiveKSecs,setFiveKSecs]=useState(null);     // → profile.current5KTime (getPacesFromTime reads it)
+  const [hybridTemplate,setHybridTemplate]=useState(null); // → wPrefs.hybridTemplate (getTodayHybridWorkout reads it)
+  const [hyroxProgram,setHyroxProgram]=useState(null);     // → wPrefs.hyroxProgram (getProgramForUser reads it after this pass)
+  const [lastPeriodDate,setLastPeriodDate]=useState("");   // → profile.lastPeriodDate (cycle-phase display reads it)
+  const [lifeStage,setLifeStage]=useState(null);           // → profile.lifeStage (TrainSection safety banners read it)
 
   useEffect(()=>{
     if(!building||reducedMotion) return;
@@ -3798,13 +3830,24 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
     return()=>clearInterval(t);
   },[building]);
 
-  const skipSplit=focus==="run";
-  // Step sequence: 1→(2 if !skipSplit)→3→4→5
-  function nextStep(cur){return cur===1&&skipSplit?3:cur+1;}
-  function prevStep(cur){return cur===3&&skipSplit?1:cur-1;}
-  const totalSteps=skipSplit?4:5;
-  // Display progress index (1-based, accounting for skipped step)
-  const dispStep=skipSplit&&step>=3?step-1:step;
+  const isFemale=profile?.sex==="female";
+  // Dynamic step sequence — varies by focus and sex, recomputes on focus change
+  const _stepSeq=useMemo(()=>{
+    const seq=["focus"];
+    if(focus==="strength") seq.push("split");
+    else if(focus==="run")    seq.push("run_goal","run_5k");
+    else if(focus==="hybrid") seq.push("hyb_base","hyb_split");
+    else if(focus==="hyrox")  seq.push("hyx_exp");
+    seq.push("days");
+    if(isFemale) seq.push("cycle","lifestage");
+    seq.push("meals","summary");
+    return seq;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[focus,isFemale]);
+  function nextStep(cur){const i=_stepSeq.indexOf(cur);return i<_stepSeq.length-1?_stepSeq[i+1]:cur;}
+  function prevStep(cur){const i=_stepSeq.indexOf(cur);return i>0?_stepSeq[i-1]:cur;}
+  const totalSteps=_stepSeq.length-1; // summary is not a numbered bar segment
+  const dispStep=_stepSeq.indexOf(step)+1;
 
   function advance(s){ setDir(1); setStep(nextStep(s)); }
   function back(s){ setDir(-1); setStep(prevStep(s)); }
@@ -3834,21 +3877,32 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
       const newSchedule=buildSchedule();
       const newWPrefs={
         ...wPrefs,
-        splitType:skipSplit?(wPrefs?.splitType||"Full Body"):splitType,
+        // Strength split (strength path) or fallback for other paths
+        splitType:(focus==="run"||focus==="hyrox")?(wPrefs?.splitType||"Full Body"):splitType,
         isHybrid:focus==="hybrid",
         isHyrox:focus==="hyrox",
+        // Branch-specific fields — each has a live consumer in program generation
+        ...(focus==="run"&&runPlan?{runPlan}:{}),
+        ...(focus==="hybrid"&&hybridTemplate?{hybridTemplate}:{}),
+        ...(focus==="hyrox"&&hyroxProgram?{hyroxProgram}:{}),
+      };
+      const updatedProfile={
+        ...profile,
+        mealFreq,
+        ...(focus==="run"&&fiveKSecs?{current5KTime:fiveKSecs}:{}),
+        ...(isFemale&&lastPeriodDate?{lastPeriodDate}:{}),
+        ...(isFemale&&lifeStage?{lifeStage}:{}),
       };
       await sb.from("profiles").upsert({
         id:user.id,
         wprefs:newWPrefs,
         schedule:newSchedule,
-        profile_data:{...profile,mealFreq},
+        profile_data:updatedProfile,
         updated_at:new Date().toISOString(),
       },{onConflict:"id"});
       setWPrefs(newWPrefs);
       setSchedule(newSchedule);
       await markPlanBuilt();
-      // Hold the building screen for at least 1.5s so it never flashes
       const elapsed=Date.now()-startedAt;
       if(elapsed<1500) await new Promise(r=>setTimeout(r,1500-elapsed));
       setSection("today");
@@ -3860,8 +3914,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
     display:"flex",flexDirection:"column",gap:4,
     padding:"14px 18px",borderRadius:18,cursor:"pointer",
     border:`1.5px solid ${sel?"#FF3B30":"rgba(255,255,255,0.13)"}`,
-    background:sel?"#FF3B30":"rgba(255,255,255,0.07)",
-    backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",
+    background:sel?"#FF3B30":"rgba(255,255,255,0.10)",
     transition:reducedMotion?"none":"all 0.15s",
     touchAction:"manipulation",WebkitTapHighlightColor:"transparent",
     marginBottom:10,
@@ -3881,10 +3934,27 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
     exit:(d)=>({x:d>0?"-100%":"100%",opacity:0,transition:{duration:0.2,ease:"easeIn"}}),
   };
 
-  // Friendly summary for P5
+  // Summary labels — adapt to focus path
   const trainingDays=_PLAN_DAYS.filter(d=>selDays.has(d)).map(d=>d.slice(0,3)).join(" · ");
-  const splitLabel=skipSplit?null:splitType;
+  const splitLabel=
+    focus==="run"    ? (runPlan||null) :
+    focus==="hybrid" ? (hybridTemplate||splitType||null) :
+    focus==="hyrox"  ? (hyroxProgram||null) :
+    splitType;
   const mealLabel={2:"2 meals",3:"3 meals",4:"4–5 meals",6:"6+ meals / grazing"}[mealFreq]||"3 meals";
+
+  // Shared eyebrow component
+  const eyebrow=<div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP {dispStep} OF {totalSteps}</div>;
+  // Shared continue-on-select footer
+  const contAfterTap=(touched,key)=>(
+    <AnimatePresence>
+      {touched&&(
+        <motion.div key={key} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:20}}>
+          <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   const screenContent=(()=>{
     const chk=(
@@ -3892,11 +3962,23 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         <svg width={11} height={11} viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </div>
     );
+    const optPill=(sel,onClick,label,desc)=>(
+      <div onClick={()=>{_hL();onClick();}} style={pill(sel)}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{label}</div>
+            {desc&&<div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{desc}</div>}
+          </div>
+          {sel&&chk}
+        </div>
+      </div>
+    );
     switch(step){
-      // ── P1: Focus ──────────────────────────────────────────────────────
-      case 1: return(
+
+      // ── FOCUS (P1) ─────────────────────────────────────────────────────
+      case "focus": return(
         <div>
-          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP 1 OF {totalSteps}</div>
+          {eyebrow}
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>What's your<br/>focus?</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Select one — we'll tailor your program.</div>
           {[
@@ -3913,7 +3995,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
               icon:<svg width={22} height={22} viewBox="0 0 24 24" fill="none"><g stroke="#fff" strokeWidth="1.65" strokeLinecap="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.5 1.5"/><line x1="9.5" y1="2.5" x2="14.5" y2="2.5"/><line x1="12" y1="2.5" x2="12" y2="6"/></g></svg>,
               desc:"Race-specific functional fitness"},
           ].map(o=>(
-            <div key={o.id} onClick={()=>setFocus(o.id)} style={pill(focus===o.id)}>
+            <div key={o.id} onClick={()=>{_hL();setFocus(o.id);}} style={pill(focus===o.id)}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{o.icon}</div>
                 <div>
@@ -3924,20 +4006,20 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
               </div>
             </div>
           ))}
-          {/* P1: pre-selected — Continue always visible */}
           <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.22,ease:"easeOut",delay:0.05}} style={{marginTop:20}}>
             <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
           </motion.div>
         </div>
       );
-      // ── P2: Split (skipped for run) ────────────────────────────────────
-      case 2: return(
+
+      // ── STRENGTH SPLIT (P2 strength) ───────────────────────────────────
+      case "split": return(
         <div>
-          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP 2 OF {totalSteps}</div>
+          {eyebrow}
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Pick your<br/>split.</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>This routes every workout we build for you.</div>
           {splitOpts.map(o=>(
-            <div key={o.id} onClick={()=>{setSplitType(o.id);setP2Touched(true);}} style={pill(splitType===o.id)}>
+            <div key={o.id} onClick={()=>{_hL();setSplitType(o.id);setP2Touched(true);}} style={pill(splitType===o.id)}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.id}</div>
@@ -3947,45 +4029,178 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
               </div>
             </div>
           ))}
-          {/* P2: appears only after explicit tap */}
+          {contAfterTap(p2Touched,"split-cont")}
+        </div>
+      );
+
+      // ── RUN GOAL (P2 run) — wPrefs.runPlan, fixes always-C25K default ──
+      case "run_goal": return(
+        <div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Running<br/>goal?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Picks the right program structure for you.</div>
+          {[
+            {v:"Couch to 5K",    l:"Just starting out",    d:"Start from scratch — 8 weeks to your first 5K"},
+            {v:"Sub-25 5K",      l:"Go faster — sub-25",   d:"Break the 25-minute barrier for 5K"},
+            {v:"10K Training",   l:"Build to 10K",          d:"Step up from 5K to 10K distance"},
+            {v:"Half Marathon",  l:"Half marathon",         d:"Train for 13.1 miles / 21.1 km"},
+            {v:"Advanced Marathon",l:"Full marathon",       d:"26.2 miles — serious marathon performance"},
+          ].map(o=>optPill(runPlan===o.v,()=>{setRunPlan(o.v);setP2Touched(true);},o.l,o.d))}
+          {contAfterTap(p2Touched,"rg-cont")}
+        </div>
+      );
+
+      // ── RUN 5K TIME (P3 run) — profile.current5KTime, unlocks pace zones ─
+      case "run_5k": return(
+        <div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Current<br/>5K time?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:24}}>Personalizes your pace zones in today's session card.</div>
+          {[
+            {s:2400,l:"~40 min",d:"Just starting — walk/run mix"},
+            {s:2100,l:"~35 min",d:"Can finish a 5K, slowly"},
+            {s:1800,l:"~30 min",d:"Comfortable recreational runner"},
+            {s:1500,l:"~25 min",d:"Regular runner, racing occasionally"},
+            {s:1200,l:"~20 min",d:"Fast runner — competitive pace"},
+          ].map(o=>(
+            <div key={o.s} onClick={()=>{_hL();setFiveKSecs(o.s);}} style={pill(fiveKSecs===o.s)}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.l}</div>
+                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.d}</div>
+                </div>
+                {fiveKSecs===o.s&&chk}
+              </div>
+            </div>
+          ))}
           <AnimatePresence>
-            {p2Touched&&(
-              <motion.div key="p2cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:20}}>
+            {fiveKSecs&&(
+              <motion.div key="5k-cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:20}}>
                 <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
               </motion.div>
             )}
           </AnimatePresence>
+          <button onClick={()=>advance(step)} style={{display:"block",width:"100%",marginTop:fiveKSecs?8:20,background:"none",border:"none",color:"rgba(255,255,255,0.35)",fontFamily:AF,fontSize:13,cursor:"pointer",padding:"8px 0",textAlign:"center"}}>Skip for now</button>
         </div>
       );
-      // ── P3: Days ───────────────────────────────────────────────────────
-      case 3: return(
+
+      // ── HYBRID BASE (P2 hybrid) — wPrefs.hybridTemplate, fixes always-Balanced ─
+      case "hyb_base": return(
         <div>
-          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP {dispStep} OF {totalSteps}</div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>What's your<br/>base?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Sets the balance between lifting and cardio sessions.</div>
+          {[
+            {v:"Strength-Biased Hybrid",l:"Lifter adding cardio",  d:"Strength-first — run sessions build your engine"},
+            {v:"Run-Biased Hybrid",     l:"Runner adding lifting", d:"Running-first — lifting builds strength for your runs"},
+            {v:"Balanced Hybrid",       l:"Equal mix",              d:"Even split of lifting and endurance sessions"},
+            {v:"Tactical Hybrid",       l:"Tactical / Military",   d:"Loaded carries, running, and heavy lifting combined"},
+          ].map(o=>optPill(hybridTemplate===o.v,()=>{setHybridTemplate(o.v);setP2Touched(true);},o.l,o.d))}
+          {contAfterTap(p2Touched,"hb-cont")}
+        </div>
+      );
+
+      // ── HYBRID SPLIT (P3 hybrid) — wPrefs.splitType for lifting sessions ─
+      case "hyb_split": return(
+        <div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Lifting<br/>structure?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>How to organize your strength sessions within the hybrid week.</div>
+          {[
+            {v:"Full Body",      d:"3× full body strength sessions — best for beginners"},
+            {v:"Upper/Lower",    d:"Upper and lower splits alternate with run days"},
+            {v:"Push/Pull/Legs", d:"PPL structure with cardio days between"},
+          ].map(o=>optPill(splitType===o.v,()=>{setSplitType(o.v);setP3bTouched(true);},o.v,o.d))}
+          {contAfterTap(p3bTouched,"hs-cont")}
+        </div>
+      );
+
+      // ── HYROX EXP (P2 hyrox) — wPrefs.hyroxProgram, fixes hardcoded 12-Week ─
+      case "hyx_exp": return(
+        <div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Hyrox<br/>experience?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Picks the right program length and intensity.</div>
+          {[
+            {v:"8-Week First Timer",  l:"First race ever",       d:"Learn every station, build your aerobic base — 8 weeks"},
+            {v:"12-Week Race Prep",   l:"Have raced before",      d:"Sharpen technique and improve your time — 12 weeks"},
+            {v:"16-Week Elite Prep",  l:"Competing for podium",   d:"Sub-60 min Open/Pro — maximum volume — 16 weeks"},
+          ].map(o=>optPill(hyroxProgram===o.v,()=>{setHyroxProgram(o.v);setP2Touched(true);},o.l,o.d))}
+          {contAfterTap(p2Touched,"hx-cont")}
+        </div>
+      );
+
+      // ── DAYS ───────────────────────────────────────────────────────────
+      case "days": return(
+        <div>
+          {eyebrow}
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Which days<br/>will you train?</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Tap to toggle. Pre-set from your weekly frequency.</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:8,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,marginBottom:12}}>
             {_PLAN_DAYS.map(d=>{
               const on=selDays.has(d);
               return(
-                <button key={d} onClick={()=>toggleDay(d)}
-                  style={{padding:"12px 0",borderRadius:14,border:`1.5px solid ${on?"#FF3B30":"rgba(255,255,255,0.13)"}`,background:on?"#FF3B30":"rgba(255,255,255,0.07)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent",transition:reducedMotion?"none":"all 0.15s"}}>
-                  <div style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"#fff",textAlign:"center"}}>{d.slice(0,1)}</div>
-                  <div style={{fontFamily:AF,fontSize:9,color:"rgba(255,255,255,0.55)",textAlign:"center",marginTop:2}}>{d.slice(1,3)}</div>
+                <button key={d} onClick={()=>{_hL();toggleDay(d);}}
+                  style={{padding:"12px 0",borderRadius:14,border:`1.5px solid ${on?"#FF3B30":"rgba(255,255,255,0.13)"}`,background:on?"#FF3B30":"rgba(255,255,255,0.10)",cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent",transition:reducedMotion?"none":"all 0.15s"}}>
+                  <div style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"#fff",textAlign:"center",whiteSpace:"nowrap"}}>{d.slice(0,3)}</div>
                 </button>
               );
             })}
           </div>
           <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.40)",textAlign:"center",marginBottom:4}}>{selDays.size} day{selDays.size!==1?"s":""} selected</div>
-          {/* P3: pre-ticked — Continue always visible */}
+          {selDays.size<2&&<div style={{fontFamily:AF,fontSize:12,color:"rgba(255,100,80,0.90)",textAlign:"center",marginBottom:8}}>Pick at least 2 training days</div>}
           <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.22,ease:"easeOut",delay:0.05}} style={{marginTop:16}}>
-            <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+            <button onClick={()=>{if(selDays.size>=2)advance(step);}} disabled={selDays.size<2} style={btn(true,selDays.size<2)}>Continue</button>
           </motion.div>
         </div>
       );
-      // ── P4: Meal rhythm ────────────────────────────────────────────────
-      case 4: return(
+
+      // ── CYCLE (female) — profile.lastPeriodDate, feeds cycle-phase display ─
+      case "cycle": return(
         <div>
-          <div style={{fontFamily:AF,fontSize:11,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:14}}>STEP {dispStep} OF {totalSteps}</div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Cycle<br/>tracking.</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Adjusts training load and nutrition based on your cycle phase — already built in.</div>
+          <div style={{fontFamily:AF,fontSize:13,fontWeight:600,color:"rgba(255,255,255,0.65)",marginBottom:10}}>When did your last period start?</div>
+          <input type="date" value={lastPeriodDate}
+            onChange={e=>{_hL();setLastPeriodDate(e.target.value);}}
+            max={new Date().toISOString().split("T")[0]}
+            style={{width:"100%",background:"rgba(255,255,255,0.07)",border:"1.5px solid rgba(255,255,255,0.15)",borderRadius:14,padding:"14px 16px",color:"#fff",fontFamily:AF,fontSize:16,fontWeight:600,outline:"none",boxSizing:"border-box",marginBottom:12}}
+          />
+          <button onClick={()=>{_hL();setLastPeriodDate(new Date().toISOString().split("T")[0]);}}
+            style={{display:"block",width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:14,padding:"12px 0",color:"rgba(255,255,255,0.55)",fontFamily:AF,fontSize:14,fontWeight:600,cursor:"pointer",marginBottom:16,textAlign:"center"}}>
+            Track from today
+          </button>
+          <AnimatePresence>
+            {lastPeriodDate&&(
+              <motion.div key="cyc-cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration:0.22,ease:"easeOut"}}>
+                <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <button onClick={()=>advance(step)} style={{display:"block",width:"100%",marginTop:lastPeriodDate?8:0,background:"none",border:"none",color:"rgba(255,255,255,0.30)",fontFamily:AF,fontSize:13,cursor:"pointer",padding:"8px 0",textAlign:"center"}}>Skip for now</button>
+        </div>
+      );
+
+      // ── LIFE STAGE (female) — profile.lifeStage, feeds TrainSection banners ─
+      case "lifestage": return(
+        <div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Life<br/>stage?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Unlocks the right safety notes and program modifications.</div>
+          {[
+            {v:null,        l:"Regular training",    d:"No special modifications needed"},
+            {v:"pregnant",  l:"Currently pregnant",  d:"Safety-first adjustments — always cleared with your provider"},
+            {v:"postpartum",l:"Postpartum recovery",  d:"Gradual rebuilding program after having a baby"},
+          ].map(o=>optPill(lifeStage===o.v,()=>{setLifeStage(o.v);setP4Touched(true);},o.l,o.d))}
+          {contAfterTap(p4Touched,"ls-cont")}
+        </div>
+      );
+
+      // ── MEALS ──────────────────────────────────────────────────────────
+      case "meals": return(
+        <div>
+          {eyebrow}
           <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>How often<br/>do you eat?</div>
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>We'll split your daily calories into these slots.</div>
           {[
@@ -3994,7 +4209,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
             {id:4,label:"4–5 meals",desc:"Regular meals + snacks"},
             {id:6,label:"6+ meals / grazing",desc:"Frequent small meals throughout the day"},
           ].map(o=>(
-            <div key={o.id} onClick={()=>{setMealFreq(o.id);setP4Touched(true);}} style={pill(mealFreq===o.id)}>
+            <div key={o.id} onClick={()=>{_hL();setMealFreq(o.id);setP4Touched(true);}} style={pill(mealFreq===o.id)}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.label}</div>
@@ -4004,18 +4219,12 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
               </div>
             </div>
           ))}
-          {/* P4: appears only after explicit tap */}
-          <AnimatePresence>
-            {p4Touched&&(
-              <motion.div key="p4cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:20}}>
-                <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {contAfterTap(p4Touched,"meals-cont")}
         </div>
       );
-      // ── P5: Confirm ────────────────────────────────────────────────────
-      case 5: return(
+
+      // ── SUMMARY ────────────────────────────────────────────────────────
+      case "summary": return(
         <div style={{textAlign:"center"}}>
           <div style={{width:72,height:72,borderRadius:36,background:"rgba(255,59,48,0.15)",border:"1.5px solid rgba(255,59,48,0.35)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px"}}>
             <svg width={34} height={34} viewBox="0 0 24 24" fill="rgba(255,59,48,0.9)">
@@ -4027,7 +4236,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.50)",lineHeight:1.65,marginBottom:32,maxWidth:280,margin:"0 auto 32px"}}>
             {[splitLabel,trainingDays,mealLabel].filter(Boolean).join(" · ")}
           </div>
-          <button onClick={handleConfirm} disabled={saving}
+          <button onClick={()=>{_hM();handleConfirm();}} disabled={saving}
             style={{...btn(true,saving),fontSize:17,padding:"18px 0"}}>
             {saving?"Building…":"Build my plan →"}
           </button>
@@ -4044,28 +4253,32 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
       {/* UI layer */}
       <div style={{position:"relative",zIndex:1,flex:1,display:"flex",flexDirection:"column"}}>
 
-        {/* Progress bar */}
-        <div style={{display:"flex",gap:5,padding:"max(env(safe-area-inset-top,0px),16px) 20px 0",justifyContent:"center"}}>
-          {Array.from({length:totalSteps}).map((_,i)=>(
-            <div key={i} style={{height:3,flex:1,maxWidth:52,borderRadius:2,
-              background:i<dispStep?"#FF3B30":"rgba(255,255,255,0.18)",
-              transition:reducedMotion?"none":"background 0.3s"}}/>
-          ))}
+        {/* Header — progress bar + back button in layout flow so nothing overlaps */}
+        <div style={{paddingTop:"max(calc(env(safe-area-inset-top,0px) + 16px),36px)",padding:"max(calc(env(safe-area-inset-top,0px) + 16px),36px) 20px 0"}}>
+          {/* Row 1: progress bars */}
+          <div style={{display:"flex",gap:5,justifyContent:"center",marginBottom:14}}>
+            {Array.from({length:totalSteps}).map((_,i)=>(
+              <div key={i} style={{height:3,flex:1,maxWidth:52,borderRadius:2,
+                background:i<dispStep?"#FF3B30":"rgba(255,255,255,0.18)",
+                transition:reducedMotion?"none":"background 0.3s"}}/>
+            ))}
+          </div>
+          {/* Row 2: back button — fixed-height row keeps step counter position stable on all steps */}
+          <div style={{height:38,display:"flex",alignItems:"center"}}>
+            {step>1&&(
+              <button onClick={()=>back(step)}
+                style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:20,padding:"8px 14px",color:"#fff",fontFamily:AF,fontSize:13,fontWeight:600,cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent"}}>
+                ← Back
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Back */}
-        {step>1&&(
-          <button onClick={()=>back(step)}
-            style={{position:"absolute",top:"max(env(safe-area-inset-top,0px),12px)",left:20,zIndex:10,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:20,padding:"8px 14px",color:"#fff",fontFamily:AF,fontSize:13,fontWeight:600,cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent"}}>
-            ← Back
-          </button>
-        )}
-
-        {/* Animated screen content — Continue button is inline per-screen */}
-        <div style={{flex:1,overflow:"hidden",position:"relative",marginTop:20}}>
+        {/* Animated screen content — step counter starts here, always cleared below header */}
+        <div style={{flex:1,overflow:"hidden",position:"relative",marginTop:8}}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={step} custom={dir} variants={variants} initial="enter" animate="center" exit="exit"
-              style={{position:"absolute",inset:0,overflowY:"auto",padding:"24px 24px",paddingBottom:"max(84px,calc(56px + env(safe-area-inset-bottom)))",WebkitOverflowScrolling:"touch"}}>
+              style={{position:"absolute",inset:0,overflowY:"auto",padding:"8px 24px",paddingBottom:"max(84px,calc(56px + env(safe-area-inset-bottom)))",WebkitOverflowScrolling:"touch"}}>
               {screenContent}
             </motion.div>
           </AnimatePresence>
