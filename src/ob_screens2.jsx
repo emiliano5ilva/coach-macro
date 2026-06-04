@@ -5,7 +5,7 @@ import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
 const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
-import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, SHOW_DEBUG, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
+import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, BodyFigure, InfoTip, ErrorBoundary,
@@ -4329,20 +4329,6 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   // without needing setProfile (App gets profile as a prop from NativeApp, not as owned state).
   const [planBuilt,setPlanBuilt]=useState(!!profile?.plan_built);
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
-  const [_dbgFont,_setDbgFont]=useState("?");
-  const [_dbgFontLoaded,_setDbgFontLoaded]=useState("?");
-  useEffect(()=>{
-    if(!GOCLUB_REDESIGN||!SHOW_DEBUG)return;
-    // rAF ensures stylesheet has applied before reading computed style.
-    const id=requestAnimationFrame(()=>{
-      const el=document.querySelector(".goclub")||document.body;
-      const cascade=window.getComputedStyle(el).fontFamily.split(",")[0].replace(/['"]/g,"").trim();
-      _setDbgFont(cascade);
-      // Font Loading API: did the file actually arrive?
-      _setDbgFontLoaded(document.fonts.check(`12px '${cascade}'`) ? "✅ loaded" : "⏳ pending");
-    });
-    return()=>cancelAnimationFrame(id);
-  },[section]);
 
   useEffect(()=>{
     const handler=()=>setIsMobile(window.innerWidth<769);
@@ -7140,9 +7126,6 @@ Rules:
     }
 
     const reducedMotion = typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion:reduce)').matches;
-    // DEV-only fill preview. Set to a fraction (0–1) to preview the wave at that level.
-    // null = real today_oz/goal_oz. Impossible in production — import.meta.env.DEV is false.
-    const DEBUG_WATER_PCT = import.meta.env.DEV ? 0.15 : null;
     // LOCAL brief state — setting these never re-renders App (only this component)
     const [briefExpandedLocal, setBriefExpandedLocal] = useState(()=>{
       const today=new Date().toISOString().split("T")[0];
@@ -7206,6 +7189,8 @@ Rules:
     const [dayFoodLoading, setDayFoodLoading] = useState(false);
     const [wkExpanded, setWkExpanded] = useState(false);
     const [fnExpanded, setFnExpanded] = useState(false);
+    const [dayWaterCache, setDayWaterCache] = useState({});
+    const [dayWaterLoading, setDayWaterLoading] = useState(false);
 
     useEffect(()=>{ setWkExpanded(false); setFnExpanded(false); },[selectedDay]);
 
@@ -7219,6 +7204,19 @@ Rules:
         .finally(()=>setDayFoodLoading(false));
     },[selectedDay,isToday,user?.id]);
 
+    useEffect(()=>{
+      if(isToday||!user?.id) return;
+      if(Object.prototype.hasOwnProperty.call(dayWaterCache,selectedDay)) return;
+      setDayWaterLoading(true);
+      sb.from('water_logs').select('amount_oz').eq('user_id',user.id).eq('date',selectedDay)
+        .then(({data})=>{
+          const total=Array.isArray(data)?data.reduce((s,r)=>s+Number(r.amount_oz),0):0;
+          setDayWaterCache(p=>({...p,[selectedDay]:total}));
+        })
+        .catch(()=>setDayWaterCache(p=>({...p,[selectedDay]:0})))
+        .finally(()=>setDayWaterLoading(false));
+    },[selectedDay,isToday,user?.id]);
+
     const selWorkout     = workoutLogsRaw.find(w=>w.date===selectedDay);
     const selFoodEntries = isToday ? log
       : Object.prototype.hasOwnProperty.call(dayFoodCache,selectedDay) ? dayFoodCache[selectedDay] : undefined;
@@ -7226,6 +7224,8 @@ Rules:
       ? selFoodEntries.reduce((a,e)=>({calories:a.calories+(e.calories||0),protein:a.protein+(e.protein||0),
           carbs:a.carbs+(e.carbs||0),fat:a.fat+(e.fat||0)}),{calories:0,protein:0,carbs:0,fat:0})
       : null;
+    const selWaterOz = !isToday && Object.prototype.hasOwnProperty.call(dayWaterCache,selectedDay)
+      ? dayWaterCache[selectedDay] : 0;
     const selDayLabel = isToday ? null
       : new Date(selectedDay+'T12:00:00').toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
 
@@ -7252,6 +7252,9 @@ Rules:
 
     // Debounce ref — blocks remove firing twice within 400ms (ghost-click guard)
     const removeLastFired = useRef(0);
+    // Zipper scroll haptic accumulators
+    const zipperAccRef  = useRef(0);
+    const zipperLastRef = useRef(0);
 
     function handleWaterRemove() {
       requestOrientationPermission();
@@ -7270,11 +7273,15 @@ Rules:
     // tilt/tiltTarget: lerped device-gamma fraction (-1..1), additive surface slope
     const waveSt          = useRef({t:0,level:0,target:0,vel:0,_lastTs:null,tilt:0,tiltTarget:0});
     const orientPermAsked = useRef(false); // iOS: request at most once per mount
+    // Past-day wave refs (separate from live wave — never on screen simultaneously)
+    const pdWaveRef    = useRef(null);
+    const pdWaveRafRef = useRef(null);
+    const pdWaveSt     = useRef({t:0,level:0,target:0,vel:0,_lastTs:null,tilt:0,tiltTarget:0});
 
     // Keep spring target in sync with real water level (or DEV override)
     useEffect(()=>{
       const realLevel=displayWater/Math.max(1,waterTarget);
-      waveSt.current.target=Math.max(0,Math.min(1,DEBUG_WATER_PCT??realLevel));
+      waveSt.current.target=Math.max(0,Math.min(1,realLevel));
     },[displayWater,waterTarget]);
 
     // 60fps rAF loop — cancels on unmount (component only mounts when section==="today")
@@ -7341,6 +7348,88 @@ Rules:
         window.removeEventListener('deviceorientation',onOrient);
       };
     },[]);
+
+    // Keep past-day wave spring target in sync with fetched water total
+    useEffect(()=>{
+      if(!isToday) pdWaveSt.current.target=Math.max(0,Math.min(1,selWaterOz/Math.max(1,waterTarget)));
+    },[selWaterOz,waterTarget,isToday]);
+
+    // Past-day wave rAF + tilt loop — mirrors live wave; runs only when viewing a past day
+    useEffect(()=>{
+      if(isToday) return;
+      if(reducedMotion){
+        const svg=pdWaveRef.current; if(!svg) return;
+        const W=svg.clientWidth||340, H=svg.clientHeight||160;
+        const lv=pdWaveSt.current.target;
+        const y=H*(1-lv);
+        svg.querySelector('.cm-pdf')?.setAttribute('d',`M0,${y} L${W},${y} L${W},${H} L0,${H} Z`);
+        svg.querySelector('.cm-pdc')?.setAttribute('d',`M0,${y} L${W},${y}`);
+        return;
+      }
+      function onOrient(e){
+        const gamma=e.gamma??0;
+        pdWaveSt.current.tiltTarget=Math.max(-1,Math.min(1,gamma/30));
+      }
+      window.addEventListener('deviceorientation',onOrient,{passive:true});
+      function tick(ts){
+        if(!pdWaveSt.current._lastTs) pdWaveSt.current._lastTs=ts;
+        const dt=Math.min((ts-pdWaveSt.current._lastTs)/1000,0.04);
+        pdWaveSt.current._lastTs=ts;
+        pdWaveSt.current.t+=dt;
+        const diff=pdWaveSt.current.target-pdWaveSt.current.level;
+        pdWaveSt.current.vel+=(diff*38-pdWaveSt.current.vel*7.5)*dt;
+        pdWaveSt.current.level=Math.max(0,Math.min(1.05,pdWaveSt.current.level+pdWaveSt.current.vel*dt));
+        pdWaveSt.current.tilt+=(pdWaveSt.current.tiltTarget-pdWaveSt.current.tilt)*Math.min(1,dt*5);
+        const svg=pdWaveRef.current;
+        if(svg){
+          const W=svg.clientWidth||340, H=svg.clientHeight||160;
+          const baseY=H*(1-Math.min(1,pdWaveSt.current.level));
+          const tiltSlope=-(pdWaveSt.current.tilt*H*0.10);
+          const N=54, pts=[], cPts=[];
+          for(let i=0;i<=N;i++){
+            const x=(i/N)*W;
+            const p1=(x/W)*Math.PI*3.6+pdWaveSt.current.t*1.1;
+            const p2=(x/W)*Math.PI*5.8-pdWaveSt.current.t*0.72;
+            const waveDy=Math.sin(p1)*H*0.046+Math.sin(p2)*H*0.026;
+            const tiltDy=tiltSlope*(x/W-0.5)*2;
+            const y=Math.max(0,baseY+waveDy+tiltDy);
+            pts.push(`${i===0?"M":"L"}${x.toFixed(1)},${y.toFixed(1)}`);
+            cPts.push(`${i===0?"M":"L"}${x.toFixed(1)},${Math.max(0,y-1.5).toFixed(1)}`);
+          }
+          svg.querySelector('.cm-pdf')?.setAttribute('d',pts.join(' ')+` L${W},${H} L0,${H} Z`);
+          svg.querySelector('.cm-pdc')?.setAttribute('d',cPts.join(' '));
+        }
+        pdWaveRafRef.current=requestAnimationFrame(tick);
+      }
+      pdWaveRafRef.current=requestAnimationFrame(tick);
+      return()=>{
+        if(pdWaveRafRef.current) cancelAnimationFrame(pdWaveRafRef.current);
+        window.removeEventListener('deviceorientation',onOrient);
+        pdWaveSt.current._lastTs=null;
+      };
+    },[isToday,reducedMotion]);
+
+    // Zipper scroll haptic — fires every ZIPPER_PX of accumulated scroll delta on Today card
+    const ZIPPER_PX = 30;
+    useEffect(()=>{
+      if(!GOCLUB_REDESIGN||reducedMotion) return;
+      const el=appScreenRef.current;
+      if(!el) return;
+      function onScroll(){
+        if(!isToday){ zipperLastRef.current=el.scrollTop; zipperAccRef.current=0; return; }
+        const cur=el.scrollTop;
+        const delta=Math.abs(cur-zipperLastRef.current);
+        zipperLastRef.current=cur;
+        zipperAccRef.current+=delta;
+        if(zipperAccRef.current>=ZIPPER_PX){
+          zipperAccRef.current=0;
+          try{Haptics.impact({style:ImpactStyle.Heavy});}catch{}
+        }
+      }
+      el.addEventListener('scroll',onScroll,{passive:true});
+      return()=>el.removeEventListener('scroll',onScroll);
+    },[isToday,reducedMotion]);
+
     // ─────────────────────────────────────────────────────────────────────
 
     return (
@@ -7778,6 +7867,51 @@ Rules:
                 <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No meals logged</div>
               ) : (
                 <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+              )}
+            </div>
+
+            {/* Section divider */}
+            <div style={{height:1,background:"rgba(0,0,0,0.08)",marginBottom:32}}/>
+
+            {/* ── PAST DAY: hydration ── */}
+            <div style={{marginBottom:24}}>
+              <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut',delay:0.10}}
+                style={{display:"inline-flex",background:"#0A6CFF",borderRadius:20,padding:"5px 15px",marginBottom:24}}>
+                <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Hydration</span>
+              </motion.div>
+              {dayWaterLoading ? (
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+              ) : (
+                <div style={{borderRadius:20,overflow:"hidden",background:"#032248",height:160,position:"relative",touchAction:"pan-y"}}>
+                  <svg ref={pdWaveRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
+                    <defs>
+                      <linearGradient id="cm-pdwgr" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3BB8FF"/>
+                        <stop offset="100%" stopColor="#0A6CFF"/>
+                      </linearGradient>
+                      <linearGradient id="cm-pdwsh" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(255,255,255,0.14)"/>
+                        <stop offset="80%" stopColor="rgba(255,255,255,0)"/>
+                      </linearGradient>
+                    </defs>
+                    <path className="cm-pdf" d="" fill="url(#cm-pdwgr)"/>
+                    <path className="cm-pdc" d="" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"/>
+                    <rect x="0" y="0" width="100%" height="56" fill="url(#cm-pdwsh)" style={{mixBlendMode:"screen",pointerEvents:"none"}}/>
+                  </svg>
+                  <div style={{position:"relative",zIndex:2,height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between",padding:"16px 20px 14px"}}>
+                    <div>
+                      <div style={{fontFamily:AF,fontSize:9,fontWeight:700,letterSpacing:"0.18em",color:"rgba(255,255,255,0.55)",textTransform:"uppercase",marginBottom:6}}>HYDRATION</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:5}}>
+                        <span style={{fontFamily:AF,fontWeight:800,fontSize:46,color:"#fff",lineHeight:1,textShadow:"0 2px 12px rgba(0,0,0,0.25)"}}>{Math.round(selWaterOz)}</span>
+                        <span style={{fontFamily:AF,fontSize:14,fontWeight:600,color:"rgba(255,255,255,0.50)"}}>/ {waterTarget} oz</span>
+                      </div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(255,255,255,0.55)",marginTop:3}}>
+                        {Math.round(Math.min(100,selWaterOz/Math.max(1,waterTarget)*100))}% of goal
+                      </div>
+                    </div>
+                    <div style={{fontFamily:AF,fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.38)",letterSpacing:"0.10em",textTransform:"uppercase"}}>VIEW ONLY · {selDayLabel}</div>
+                  </div>
+                </div>
               )}
             </div>
           </>)}
@@ -9436,19 +9570,6 @@ Rules:
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" />
       </>)}
       <style>{GLOBAL_CSS}{GOCLUB_REDESIGN ? REDESIGN_CSS : ""}</style>
-      {GOCLUB_REDESIGN && SHOW_DEBUG && (
-        <div style={{position:"fixed",top:52,right:8,zIndex:99999,background:"rgba(0,0,0,0.88)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"8px 10px",fontSize:10,fontFamily:"monospace",color:"#4ade80",lineHeight:1.7,pointerEvents:"none",maxWidth:230,backdropFilter:"blur(6px)"}}>
-          <div>🏷 GOCLUB_REDESIGN: <b style={{color:"#f87171"}}>{String(GOCLUB_REDESIGN)}</b></div>
-          <div>📍 section: <b style={{color:"#fff"}}>{section}</b></div>
-          <div>🎨 rootClass: <b style={{color:"#60a5fa"}}>goclub tab-{section}</b></div>
-          <div>📋 hasPlan: <b style={{color:"#fff"}}>{String(!!profile.goalCals)}</b></div>
-          <div>✨ hasFullPlan: <b style={{color:"#fff"}}>{String(planBuilt)}</b></div>
-          <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",marginTop:4,paddingTop:4}}>
-            🔤 cascade: <b style={{color:"#fbbf24"}}>{_dbgFont}</b>
-            <br/>📥 file: <b style={{color:"#a78bfa"}}>{_dbgFontLoaded}</b>
-          </div>
-        </div>
-      )}
       {/* Toast container */}
       <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"center",pointerEvents:"none",width:"min(380px,90vw)"}}>
         {toasts.map(toast=>(
