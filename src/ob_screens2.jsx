@@ -7454,9 +7454,38 @@ Rules:
         {/* ── RED FIELD — flat #FF3B30 ── */}
         <div style={{background:'#FF3B30',paddingLeft:22,paddingRight:22,paddingBottom:168}}>
 
-          {/* Date / status */}
-          <div style={{fontFamily:AF,fontWeight:500,fontSize:11,color:"rgba(255,255,255,0.70)",letterSpacing:"0.13em",textTransform:"uppercase",marginBottom:6}}>
-            {dayLabel} · {dayStatus}
+          {/* ── 3-page swipeable top eyebrow: date | vs-yesterday | streak ── */}
+          <div style={{marginBottom:6,overflow:'hidden',userSelect:'none',touchAction:'manipulation'}}
+            onPointerDown={e=>{eyeX.current=e.clientX;eyeY.current=e.clientY;}}
+            onPointerUp={e=>{
+              const dx=e.clientX-eyeX.current,dy=e.clientY-eyeY.current;
+              if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)setEyePg(p=>dx<0?Math.min(2,p+1):Math.max(0,p-1));
+            }}
+          >
+            <motion.div
+              animate={{x:eyePg===0?'0%':eyePg===1?'-33.333%':'-66.666%'}}
+              transition={reducedMotion?{duration:0}:{type:'spring',stiffness:500,damping:40}}
+              style={{display:'flex',width:'300%'}}
+            >
+              <div style={{width:'33.333%',fontFamily:AF,fontWeight:500,fontSize:11,color:"rgba(255,255,255,0.70)",letterSpacing:"0.13em",textTransform:"uppercase"}}>
+                {dayLabel} · {dayStatus}
+              </div>
+              <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
+                <span style={{color:'rgba(255,255,255,0.55)'}}>VS YESTERDAY</span>
+                <span style={{color:'rgba(255,255,255,0.25)',margin:'0 6px'}}>|</span>
+                {delta!==null
+                  ? <span style={{color:delta>=0?"#86efac":"#fca5a5"}}>{delta>=0?"+":""}{delta} pts</span>
+                  : <span style={{color:'rgba(255,255,255,0.35)'}}>—</span>
+                }
+              </div>
+              <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
+                <span style={{color:'rgba(255,255,255,0.55)'}}>STREAK</span>
+                <span style={{color:'rgba(255,255,255,0.25)',margin:'0 6px'}}>|</span>
+                <span style={{color:workoutStreak>=3?"#86efac":workoutStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
+                  {workoutStreak} day{workoutStreak!==1?"s":""}
+                </span>
+              </div>
+            </motion.div>
           </div>
 
           {/* Greeting */}
@@ -7508,36 +7537,6 @@ Rules:
               {/* Tier label — coloured by score band */}
               <div style={{fontFamily:AF,fontWeight:700,fontSize:11,color:tierColor,letterSpacing:"0.20em",marginTop:10,textTransform:"uppercase"}}>
                 {tier}
-              </div>
-              {/* ── Swipeable eyebrow — VS YESTERDAY | STREAK ── */}
-              <div style={{marginTop:10,overflow:'hidden',userSelect:'none',touchAction:'manipulation'}}
-                onPointerDown={e=>{eyeX.current=e.clientX;eyeY.current=e.clientY;}}
-                onPointerUp={e=>{
-                  const dx=e.clientX-eyeX.current,dy=e.clientY-eyeY.current;
-                  if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)setEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
-                }}
-              >
-                <motion.div
-                  animate={{x:eyePg===0?'0%':'-50%'}}
-                  transition={reducedMotion?{duration:0}:{type:'spring',stiffness:500,damping:40}}
-                  style={{display:'flex',width:'200%'}}
-                >
-                  <div style={{width:'50%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',textAlign:'center'}}>
-                    <span style={{color:'rgba(255,255,255,0.50)'}}>VS YESTERDAY</span>
-                    <span style={{color:'rgba(255,255,255,0.20)',margin:'0 6px'}}>|</span>
-                    {delta!==null
-                      ? <span style={{color:delta>=0?"#86efac":"#fca5a5"}}>{delta>=0?"+":""}{delta} pts</span>
-                      : <span style={{color:'rgba(255,255,255,0.35)'}}>—</span>
-                    }
-                  </div>
-                  <div style={{width:'50%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',textAlign:'center'}}>
-                    <span style={{color:'rgba(255,255,255,0.50)'}}>STREAK</span>
-                    <span style={{color:'rgba(255,255,255,0.20)',margin:'0 6px'}}>|</span>
-                    <span style={{color:workoutStreak>=3?"#86efac":workoutStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
-                      {workoutStreak} day{workoutStreak!==1?"s":""}
-                    </span>
-                  </div>
-                </motion.div>
               </div>
             </div>
 
