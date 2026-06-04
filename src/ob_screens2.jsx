@@ -7657,32 +7657,32 @@ Rules:
             )}
           </>) : (<>
             {/* ── PAST DAY: workout ── */}
-            <div style={{marginBottom:26}}>
-              {/* Pill header */}
+            <div style={{marginBottom:32}}>
               <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
-                style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"4px 14px",marginBottom:14}}>
+                style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 15px",marginBottom:24}}>
                 <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Workout</span>
               </motion.div>
               {selWorkout ? (<>
-                {/* Focus + secondary context */}
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:20,color:"#111",lineHeight:1.1}}>{selWorkout.workout?.focus||"Session"}</div>
-                  {selWorkout.session_duration_mins>0&&(
-                    <span style={{fontFamily:AF,fontWeight:500,fontSize:11,color:"rgba(17,17,17,0.45)"}}>
-                      <MN value={selWorkout.session_duration_mins}/> min
-                    </span>
-                  )}
-                  {selWorkout.pr_count>0&&(
-                    <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#FF3B30",background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.25)",borderRadius:20,padding:"3px 10px",flexShrink:0}}>
-                      {selWorkout.pr_count} PR{selWorkout.pr_count>1?"s":""}
-                    </span>
-                  )}
+                {/* Focus headline + context */}
+                <div style={{marginBottom:22}}>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:40,color:"#111",lineHeight:1.05,marginBottom:10}}>{selWorkout.workout?.focus||"Session"}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                    {selWorkout.session_duration_mins>0&&(
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.4)"}}>
+                        <MN value={selWorkout.session_duration_mins}/> min
+                      </span>
+                    )}
+                    {selWorkout.pr_count>0&&(
+                      <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#FF3B30",background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.25)",borderRadius:20,padding:"3px 10px"}}>
+                        {selWorkout.pr_count} PR{selWorkout.pr_count>1?"s":""}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {/* Exercise list — always shown, best-set per exercise */}
+                {/* Exercise list — best set per exercise */}
                 {(selWorkout.workout?.exercises||[]).length>0 ? (
                   <div>
                     {(selWorkout.workout.exercises).map((ex,i)=>{
-                      // Best set = highest weight; tie-break by reps
                       const doneSets=(ex.sets||[]).filter(s=>s.done!==false);
                       const arr=doneSets.length?doneSets:(ex.sets||[]);
                       const best=arr.length?arr.reduce((b,s)=>{
@@ -7692,11 +7692,12 @@ Rules:
                       const bestW=best?parseFloat(best.weight)||0:0;
                       const bestR=best?.reps||0;
                       return(
-                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:9,paddingBottom:9,borderBottom:"1px solid rgba(0,0,0,0.05)"}}>
-                          <div style={{fontFamily:AF,fontSize:13,color:"#111",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:10}}>{ex.name}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(17,17,17,0.45)",flexShrink:0,textAlign:"right"}}>
-                            {bestW>0?<><MN value={bestW} format={{useGrouping:true}}/> lbs × <MN value={bestR}/></>
-                              :bestR>0?<><MN value={bestR}/> reps</>
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:14,paddingBottom:14,borderBottom:"1px solid rgba(0,0,0,0.08)"}}>
+                          <div style={{fontFamily:AF,fontSize:15,color:"#111",fontWeight:500,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{ex.name}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.38)",flexShrink:0,textAlign:"right"}}>
+                            {bestW>0
+                              ?<><span style={{color:"rgba(17,17,17,0.65)",fontWeight:600}}><MN value={bestW} format={{useGrouping:true}}/></span><span style={{color:"rgba(17,17,17,0.35)"}}> lbs × {bestR}</span></>
+                              :bestR>0?<>{bestR} reps</>
                               :`${arr.length} sets`}
                           </div>
                         </div>
@@ -7704,38 +7705,46 @@ Rules:
                     })}
                   </div>
                 ) : (
-                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)"}}>No exercise detail saved</div>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)",paddingTop:4}}>No exercise detail saved</div>
                 )}
               </>) : (
                 <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No session logged</div>
               )}
             </div>
 
+            {/* Section divider */}
+            <div style={{height:1,background:"rgba(0,0,0,0.08)",marginBottom:32}}/>
+
             {/* ── PAST DAY: nutrition ── */}
-            <div style={{marginBottom:22}}>
-              {/* Pill header */}
+            <div style={{marginBottom:24}}>
               <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut',delay:0.06}}
-                style={{display:"inline-flex",background:"#22C55E",borderRadius:20,padding:"4px 14px",marginBottom:14}}>
+                style={{display:"inline-flex",background:"#22C55E",borderRadius:20,padding:"5px 15px",marginBottom:24}}>
                 <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Nutrition</span>
               </motion.div>
               {dayFoodLoading ? (
-                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
               ) : selMacros ? (<>
-                {/* Day macro chips */}
-                <div style={{display:"flex",gap:6,marginBottom:18}}>
+                {/* Calorie headline */}
+                <div style={{marginBottom:28}}>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:52,color:"#111",lineHeight:0.95,letterSpacing:"-0.02em"}}>
+                    <MN value={Math.round(selMacros.calories)} format={{useGrouping:true}}/>
+                  </div>
+                  <div style={{fontFamily:AF,fontWeight:600,fontSize:11,color:"rgba(17,17,17,0.45)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:8}}>Total Calories</div>
+                </div>
+                {/* P / C / F macro row */}
+                <div style={{display:"flex",paddingBottom:22,marginBottom:22,borderBottom:"1px solid rgba(0,0,0,0.07)"}}>
                   {[
-                    {k:"CAL",v:<MN value={Math.round(selMacros.calories)} format={{useGrouping:true}}/>,u:"",  c:"#111"},
-                    {k:"P",  v:<MN value={Math.round(selMacros.protein)}/>,                               u:"g",c:T.prot},
-                    {k:"C",  v:<MN value={Math.round(selMacros.carbs)}/>,                                 u:"g",c:T.carb},
-                    {k:"F",  v:<MN value={Math.round(selMacros.fat)}/>,                                   u:"g",c:T.fat},
-                  ].map(({k,v,u,c})=>(
-                    <div key={k} style={{flex:1,background:"rgba(17,17,17,0.04)",borderRadius:10,padding:"8px 6px",textAlign:"center"}}>
-                      <div style={{fontFamily:AF,fontWeight:700,fontSize:8,color:"rgba(17,17,17,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>{k}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:15,color:c,lineHeight:1}}>{v}<span style={{fontSize:10,fontWeight:400,color:"rgba(17,17,17,0.4)"}}>{u}</span></div>
+                    {k:"Protein",v:<MN value={Math.round(selMacros.protein)}/>,c:T.prot},
+                    {k:"Carbs",  v:<MN value={Math.round(selMacros.carbs)}/>,  c:T.carb},
+                    {k:"Fat",    v:<MN value={Math.round(selMacros.fat)}/>,    c:T.fat},
+                  ].map(({k,v,c},i,arr)=>(
+                    <div key={k} style={{flex:1,textAlign:"center",borderRight:i<arr.length-1?"1px solid rgba(0,0,0,0.07)":"none"}}>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(17,17,17,0.35)"}}>g</span></div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
                     </div>
                   ))}
                 </div>
-                {/* Meal slots */}
+                {/* Meal slot cards */}
                 {(()=>{
                   const _gs=e=>typeof e.slot==='number'?e.slot:(e.slot?normaliseSlotToNumber(e.slot,[1,2,3,4,5,6]):1);
                   const slotNums=[...new Set((selFoodEntries||[]).map(_gs))].sort((a,b)=>a-b);
@@ -7744,18 +7753,18 @@ Rules:
                     const sCalTotal=items.reduce((s,e)=>s+(e.calories||0),0);
                     const sProtTotal=items.reduce((s,e)=>s+(e.protein||0),0);
                     return(
-                      <div key={sn} style={{marginBottom:14}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                          <div style={{fontFamily:AF,fontWeight:700,fontSize:10,color:"rgba(17,17,17,0.55)",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(17,17,17,0.4)"}}>
+                      <div key={sn} style={{background:"rgba(17,17,17,0.03)",border:"1px solid rgba(17,17,17,0.07)",borderRadius:14,padding:"16px 16px",marginBottom:14}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(17,17,17,0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.40)"}}>
                             <MN value={Math.round(sCalTotal)} format={{useGrouping:true}}/> kcal
                             {sProtTotal>0&&<span style={{color:T.prot}}> · <MN value={Math.round(sProtTotal)}/>g P</span>}
                           </div>
                         </div>
                         {items.map((e,i)=>(
-                          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:7,paddingBottom:7,borderTop:"1px solid rgba(0,0,0,0.05)"}}>
-                            <div style={{fontFamily:AF,fontSize:12,color:"#111",fontWeight:500,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:10}}>{e.food||e.name||"Item"}</div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(17,17,17,0.4)",flexShrink:0,textAlign:"right"}}>
+                          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)"}}>
+                            <div style={{fontFamily:AF,fontSize:15,color:"#111",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.38)",flexShrink:0,textAlign:"right"}}>
                               <MN value={Math.round(e.calories||0)} format={{useGrouping:true}}/> kcal
                               {(e.protein||0)>0&&<span style={{color:T.prot}}> · <MN value={Math.round(e.protein||0)}/>g P</span>}
                             </div>
@@ -7768,7 +7777,7 @@ Rules:
               </>) : selFoodEntries===null ? (
                 <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No meals logged</div>
               ) : (
-                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
               )}
             </div>
           </>)}
