@@ -2229,8 +2229,9 @@ Reply with ONLY a valid JSON object, no markdown:
                 const _cnd={fontFamily:"'Archivo',sans-serif",fontStyle:'normal',fontWeight:800};
                 return(
                   <motion.div key="hero-ring"
-                    initial={{opacity:0,scale:0.96}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:0.96}}
-                    transition={_fuelEyeRedMo?{duration:0}:{duration:0.22,ease:'easeOut'}}
+                    initial={{opacity:0,scale:0.96}}
+                    animate={{opacity:1,scale:1,transition:_fuelEyeRedMo?{duration:0}:{duration:0.22,ease:'easeOut'}}}
+                    exit={{opacity:0,scale:0.96,transition:_fuelEyeRedMo?{duration:0}:{duration:0.25,ease:'easeIn'}}}
                     style={{padding:"0 18px 8px"}}
                   >
                     <div style={{position:'relative',height:220,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'16px',overflow:'hidden'}}>
