@@ -549,6 +549,7 @@ export default function NativeApp() {
           ...(data.calorie_target && {calorie_target:data.calorie_target}),
           ...(data.protein_g    && {protein_g:data.protein_g}),
           ...(data.current_program && {current_program:data.current_program}),
+          daily_scores:data.daily_scores||[],
           referralCount:data.referral_count||0,
           subscription_tier:tier,
           trial_ends_at:trialEnd||null,
