@@ -1959,9 +1959,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     getTodayCheckin(user.id).then(c=>setTodayCheckin(c??null)).catch(()=>{});
     // Load recent food logs
     const since=new Date();since.setDate(since.getDate()-7);
-    sb.from('food_history').select('date,calories,protein').eq('user_id',user.id)
+    sb.from('food_logs').select('date,entries').eq('user_id',user.id)
       .gte('date',since.toISOString().split('T')[0]).order('date',{ascending:false}).limit(7)
-      .then(({data})=>setRecentFoodLogs(data??[])).catch(()=>{});
+      .then(({data})=>setRecentFoodLogs((data??[]).map(r=>({
+        date:r.date,
+        calories:(r.entries||[]).reduce((s,e)=>s+(e.calories||0),0),
+        protein:(r.entries||[]).reduce((s,e)=>s+(e.protein||0),0),
+      })).filter(r=>r.calories>0))).catch(()=>{});
     // Weekly analysis fire-and-forget
     shouldRunAnalysis(user.id).then(should=>{
       if(should)runWeeklyAnalysis(user.id,profile).catch(()=>{});

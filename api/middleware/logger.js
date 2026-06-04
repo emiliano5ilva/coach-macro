@@ -34,10 +34,18 @@ export const withLogging = (handler) => async (req, res) => {
     // userId may come from JWT Bearer token (AI routes) or x-user-id (legacy)
     const bearerToken = req.headers['authorization']?.replace('Bearer ', '');
     const legacyUserId = req.headers['x-user-id'] || null;
+    // Decode JWT sub without verification — just for error logging (handler already verified it)
+    let jwtUserId = null;
+    if (bearerToken && !legacyUserId) {
+      try {
+        const payload = JSON.parse(Buffer.from(bearerToken.split('.')[1], 'base64url').toString('utf8'));
+        jwtUserId = payload.sub || null;
+      } catch { jwtUserId = null; }
+    }
     await log('error', error.message, {
       path:   req.url,
       stack:  error.stack,
-      userId: legacyUserId || (bearerToken ? '[jwt]' : null),
+      userId: legacyUserId || jwtUserId,
     });
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error' });

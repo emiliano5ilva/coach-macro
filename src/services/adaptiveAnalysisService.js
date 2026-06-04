@@ -105,14 +105,18 @@ export async function runWeeklyAnalysis(userId, profile) {
     sb.from('morning_checkins')
       .select('*')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
-    sb.from('food_history')
-      .select('date,calories,protein')
+    sb.from('food_logs')
+      .select('date,entries')
       .eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),
   ]);
 
   const workoutLogs = logsRes.data ?? [];
   const checkins    = checkinsRes.data ?? [];
-  const foodLogs    = foodRes.data ?? [];
+  const foodLogs = (foodRes.data ?? []).map(r => ({
+    date:     r.date,
+    calories: (r.entries||[]).reduce((s,e)=>s+(e.calories||0),0),
+    protein:  (r.entries||[]).reduce((s,e)=>s+(e.protein||0),0),
+  })).filter(r => r.calories > 0);
 
   const context = {
     athlete: {
