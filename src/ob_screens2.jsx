@@ -7149,10 +7149,8 @@ Rules:
       return localStorage.getItem("brief_expanded")===today;
     });
     const [selBar, setSelBar] = useState(null);
-    const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
-    const heroDisplay = useCountUp(heroTarget, GOCLUB_REDESIGN ? 0 : (reducedMotion ? 1 : 900));
 
-    // 7-day history — real data from dailyScores, graceful on empty
+    // 7-day history — must be declared before heroTarget (which reads last7[selBar])
     const last7 = useMemo(()=>{
       const rows=[];
       for(let i=6;i>=0;i--){
@@ -7164,6 +7162,9 @@ Rules:
       }
       return rows;
     },[dailyScores]);
+
+    const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
+    const heroDisplay = useCountUp(heroTarget, GOCLUB_REDESIGN ? 0 : (reducedMotion ? 1 : 900));
 
     const selScore = selBar!==null ? last7[selBar]?.score : null;
     const selDiff  = selScore!=null ? selScore-sc : null;
@@ -7195,22 +7196,32 @@ Rules:
     const todayStr  = new Date().toISOString().split("T")[0];
     const selectedDay = selBar!==null ? (last7[selBar]?.ds ?? todayStr) : todayStr;
     const isToday   = selectedDay === todayStr;
+    // TEMP INSTRUMENT [2]
+    console.log('[SELDAY] selBar=',selBar,'last7[selBar]=',last7[selBar],'selectedDay=',selectedDay,'isToday=',isToday,'todayStr=',todayStr);
 
     // Past-day food log — cached per date, today uses `log` in memory
     const [dayFoodCache, setDayFoodCache] = useState({});
     const [dayFoodLoading, setDayFoodLoading] = useState(false);
     const [wkExpanded, setWkExpanded] = useState(false);
     const [fnExpanded, setFnExpanded] = useState(false);
+    // TEMP INSTRUMENT — on-screen debug state
+    const [_dbgLog, _setDbgLog] = useState('(no tap yet)');
 
     useEffect(()=>{ setWkExpanded(false); setFnExpanded(false); },[selectedDay]);
 
     useEffect(()=>{
-      if(isToday||!user?.id) return;
-      if(Object.prototype.hasOwnProperty.call(dayFoodCache,selectedDay)) return;
+      const hasCached=Object.prototype.hasOwnProperty.call(dayFoodCache,selectedDay);
+      // TEMP INSTRUMENT [3]
+      console.log('[FOODFETCH] fire for',selectedDay,'isToday=',isToday,'user=',user?.id,'hasCached=',hasCached);
+      if(isToday||!user?.id) { console.log('[FOODFETCH] SKIPPED — isToday or no user'); return; }
+      if(hasCached) { console.log('[FOODFETCH] SKIPPED — already cached'); return; }
       setDayFoodLoading(true);
       sb.from('food_logs').select('entries').eq('user_id',user.id).eq('date',selectedDay).maybeSingle()
-        .then(({data})=>setDayFoodCache(p=>({...p,[selectedDay]:data?.entries??null})))
-        .catch(()=>setDayFoodCache(p=>({...p,[selectedDay]:null})))
+        .then(({data,error})=>{
+          console.log('[FOODFETCH] result for',selectedDay,'data=',data,'error=',error);
+          setDayFoodCache(p=>({...p,[selectedDay]:data?.entries??null}));
+        })
+        .catch((e)=>{ console.log('[FOODFETCH] catch',e); setDayFoodCache(p=>({...p,[selectedDay]:null})); })
         .finally(()=>setDayFoodLoading(false));
     },[selectedDay,isToday,user?.id]);
 
@@ -7429,7 +7440,12 @@ Rules:
                     const h=hasScore?Math.max(6,(day.score/maxVal)*CHART_H*0.93):18;
                     const isSelected=selBar===i;
                     return(
-                      <motion.div key={day.ds} onClick={()=>setSelBar(isSelected?null:i)}
+                      <motion.div key={day.ds} onClick={()=>{
+                          // TEMP INSTRUMENT [1]
+                          console.log('[BAR TAP] i=',i,'ds=',day.ds,'prevSelBar=',selBar);
+                          _setDbgLog(`TAP i=${i} ds=${day.ds} prev=${selBar}`);
+                          setSelBar(isSelected?null:i);
+                        }}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
                         whileTap={GOCLUB_REDESIGN?{scale:0.90}:undefined}
                         transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
@@ -7462,6 +7478,17 @@ Rules:
           marginTop:-130,position:"relative",
           paddingTop:28,paddingLeft:20,paddingRight:20,paddingBottom:120,
         }}>
+
+          {/* TEMP INSTRUMENT — on-screen debug strip */}
+          <div style={{background:"#000",color:"#0f0",fontFamily:"monospace",fontSize:10,padding:"6px 8px",borderRadius:8,marginBottom:12,lineHeight:1.6,wordBreak:"break-all"}}>
+            <div>{_dbgLog}</div>
+            <div>selBar={String(selBar)} selectedDay={selectedDay}</div>
+            <div>isToday={String(isToday)} userId={user?.id?.slice(0,8)}</div>
+            <div>cached={Object.keys(dayFoodCache).join(',')}</div>
+            <div>entries={Array.isArray(selFoodEntries)?selFoodEntries.length:String(selFoodEntries)}</div>
+          </div>
+          {/* TEMP INSTRUMENT [4] */}
+          {console.log('[RENDER DETAIL] isToday=',isToday,'selectedDay=',selectedDay,'selFoodEntries=',selFoodEntries,'selMacros=',selMacros)||null}
 
           {/* Past-day date label */}
           {!isToday&&selDayLabel&&(
