@@ -7132,6 +7132,9 @@ Rules:
       return localStorage.getItem("brief_expanded")===today;
     });
     const [selBar, setSelBar] = useState(null);
+    const [eyePg, setEyePg] = useState(0);
+    const eyeX = useRef(0);
+    const eyeY = useRef(0);
 
     // 7-day history — must be declared before heroTarget (which reads last7[selBar])
     // Use local date parts so ds matches food_logs dates (both local calendar dates).
@@ -7146,6 +7149,21 @@ Rules:
       }
       return rows;
     },[dailyScores]);
+
+    // Consecutive days with ≥1 workout session, working backward from today.
+    // Skips today if no session yet so an active streak isn't broken by morning.
+    const workoutStreak = useMemo(()=>{
+      const dates=new Set(workoutLogsRaw.map(w=>w.date));
+      let streak=0;
+      const d=new Date();
+      for(let i=0;i<60;i++){
+        const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if(dates.has(ds)){streak++;d.setDate(d.getDate()-1);}
+        else if(i===0){d.setDate(d.getDate()-1);} // today has no session yet — don't break
+        else break;
+      }
+      return streak;
+    },[workoutLogsRaw]);
 
     const heroTarget = selBar!==null ? (last7[selBar]?.score ?? sc) : sc;
     const heroDisplay = useCountUp(heroTarget, GOCLUB_REDESIGN ? 0 : (reducedMotion ? 1 : 900));
@@ -7491,24 +7509,36 @@ Rules:
               <div style={{fontFamily:AF,fontWeight:700,fontSize:11,color:tierColor,letterSpacing:"0.20em",marginTop:10,textTransform:"uppercase"}}>
                 {tier}
               </div>
-              {/* Delta vs yesterday — only when no bar selected */}
-              {delta!==null&&selBar===null&&(
-                <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
-                  color:delta>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
-                  {GOCLUB_REDESIGN
-                    ? <SlotNumber value={Math.abs(delta)} prefix={delta>=0?"+":"-"} />
-                    : <>{delta>=0?"+":""}{delta}</>} vs yesterday
-                </div>
-              )}
-              {/* Delta vs selected bar */}
-              {selDiff!==null&&(
-                <div style={{fontFamily:AF,fontWeight:600,fontSize:11,letterSpacing:"0.06em",marginTop:6,
-                  color:selDiff>=0?"#86efac":"rgba(255,255,255,0.52)"}}>
-                  {GOCLUB_REDESIGN
-                    ? <SlotNumber value={Math.abs(selDiff)} prefix={selDiff>=0?"+":"-"} />
-                    : <>{selDiff>=0?"+":""}{selDiff}</>} vs today
-                </div>
-              )}
+              {/* ── Swipeable eyebrow — VS YESTERDAY | STREAK ── */}
+              <div style={{marginTop:10,overflow:'hidden',userSelect:'none',touchAction:'pan-y'}}
+                onPointerDown={e=>{eyeX.current=e.clientX;eyeY.current=e.clientY;}}
+                onPointerUp={e=>{
+                  const dx=e.clientX-eyeX.current,dy=e.clientY-eyeY.current;
+                  if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.5)setEyePg(p=>dx<0?Math.min(1,p+1):Math.max(0,p-1));
+                }}
+              >
+                <motion.div
+                  animate={{x:eyePg===0?'0%':'-50%'}}
+                  transition={reducedMotion?{duration:0}:{type:'spring',stiffness:500,damping:40}}
+                  style={{display:'flex',width:'200%'}}
+                >
+                  <div style={{width:'50%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',textAlign:'center'}}>
+                    <span style={{color:'rgba(255,255,255,0.50)'}}>VS YESTERDAY</span>
+                    <span style={{color:'rgba(255,255,255,0.20)',margin:'0 6px'}}>|</span>
+                    {delta!==null
+                      ? <span style={{color:delta>=0?"#86efac":"#fca5a5"}}>{delta>=0?"+":""}{delta} pts</span>
+                      : <span style={{color:'rgba(255,255,255,0.35)'}}>—</span>
+                    }
+                  </div>
+                  <div style={{width:'50%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',textAlign:'center'}}>
+                    <span style={{color:'rgba(255,255,255,0.50)'}}>STREAK</span>
+                    <span style={{color:'rgba(255,255,255,0.20)',margin:'0 6px'}}>|</span>
+                    <span style={{color:workoutStreak>=3?"#86efac":workoutStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
+                      {workoutStreak} day{workoutStreak!==1?"s":""}
+                    </span>
+                  </div>
+                </motion.div>
+              </div>
             </div>
 
             {/* ── 7-DAY BAR CHART — scaled to data range, not /100 ── */}
@@ -7528,7 +7558,7 @@ Rules:
                         transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
                         style={{flex:1,alignSelf:'stretch',display:"flex",flexDirection:"column",justifyContent:"flex-end",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>
                         <div style={{
-                          width:"100%",height:h,borderRadius:"5px 5px 0 0",
+                          width:"100%",height:h,borderRadius:999,
                           background:day.isToday||isSelected?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent",
                           border:hasScore?"none":"1px solid rgba(255,255,255,0.18)",
                           boxSizing:"border-box",
