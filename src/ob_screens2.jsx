@@ -7151,11 +7151,12 @@ Rules:
     const [selBar, setSelBar] = useState(null);
 
     // 7-day history — must be declared before heroTarget (which reads last7[selBar])
+    // Use local date parts so ds matches food_logs dates (both local calendar dates).
     const last7 = useMemo(()=>{
       const rows=[];
       for(let i=6;i>=0;i--){
         const d=new Date(); d.setDate(d.getDate()-i);
-        const ds=d.toISOString().split("T")[0];
+        const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         const ltr="SMTWTFS"[d.getDay()];
         const entry=dailyScores.find(s=>s.date===ds);
         rows.push({ds,ltr,score:entry?.score??null,isToday:i===0});
@@ -7193,11 +7194,14 @@ Rules:
     })();
 
     // ── Phase 3.5 — selected day drives white card ────────────────────────
-    const todayStr  = new Date().toISOString().split("T")[0];
+    // Use local date parts (not toISOString/UTC) so bar dates match food_logs dates
+    // regardless of timezone — toISOString() can be +1 day ahead of local late at night.
+    const _nowRef = new Date();
+    const todayStr = `${_nowRef.getFullYear()}-${String(_nowRef.getMonth()+1).padStart(2,'0')}-${String(_nowRef.getDate()).padStart(2,'0')}`;
     const selectedDay = selBar!==null ? (last7[selBar]?.ds ?? todayStr) : todayStr;
     const isToday   = selectedDay === todayStr;
     // TEMP INSTRUMENT [2]
-    console.log('[SELDAY] selBar=',selBar,'last7[selBar]=',last7[selBar],'selectedDay=',selectedDay,'isToday=',isToday,'todayStr=',todayStr);
+    console.log('[SELDAY] selBar=',selBar,'last7[selBar]=',last7[selBar],'selectedDay=',selectedDay,'isToday=',isToday,'todayStr=',todayStr,'utcToday=',new Date().toISOString().split("T")[0]);
 
     // Past-day food log — cached per date, today uses `log` in memory
     const [dayFoodCache, setDayFoodCache] = useState({});
@@ -7482,9 +7486,10 @@ Rules:
           {/* TEMP INSTRUMENT — on-screen debug strip */}
           <div style={{background:"#000",color:"#0f0",fontFamily:"monospace",fontSize:10,padding:"6px 8px",borderRadius:8,marginBottom:12,lineHeight:1.6,wordBreak:"break-all"}}>
             <div>{_dbgLog}</div>
-            <div>selBar={String(selBar)} selectedDay={selectedDay}</div>
-            <div>isToday={String(isToday)} userId={user?.id?.slice(0,8)}</div>
-            <div>cached={Object.keys(dayFoodCache).join(',')}</div>
+            <div>selBar={String(selBar)} sel={selectedDay}</div>
+            <div>today(local)={todayStr} today(utc)={new Date().toISOString().split("T")[0]}</div>
+            <div>isToday={String(isToday)} uid={user?.id?.slice(0,8)}</div>
+            <div>cached=[{Object.keys(dayFoodCache).join(',')}]</div>
             <div>entries={Array.isArray(selFoodEntries)?selFoodEntries.length:String(selFoodEntries)}</div>
           </div>
           {/* TEMP INSTRUMENT [4] */}
