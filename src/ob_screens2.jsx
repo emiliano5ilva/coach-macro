@@ -7510,7 +7510,7 @@ Rules:
                 {tier}
               </div>
               {/* ── Swipeable eyebrow — VS YESTERDAY | STREAK ── */}
-              <div style={{marginTop:10,overflow:'hidden',userSelect:'none',touchAction:'pan-y'}}
+              <div style={{marginTop:10,overflow:'hidden',userSelect:'none',touchAction:'manipulation'}}
                 onPointerDown={e=>{eyeX.current=e.clientX;eyeY.current=e.clientY;}}
                 onPointerUp={e=>{
                   const dx=e.clientX-eyeX.current,dy=e.clientY-eyeY.current;
@@ -7551,11 +7551,13 @@ Rules:
                     const hasScore=day.score!=null;
                     const h=hasScore?Math.max(6,(day.score/maxVal)*CHART_H*0.93):18;
                     const isSelected=selBar===i;
-                    const isTodayNotSel=day.isToday&&!isSelected;
-                    // Selected → solid white. Today (not selected) → hollow white outline.
-                    // Past scored → dim white. Ghost → faint outline.
+                    // Resting (nothing selected): today = hollow outline, others = dim fill.
+                    // Any bar selected: exactly ONE white bar (the selected one);
+                    //   today in this state drops to plain dim — no hollow outline.
+                    const resting=selBar===null;
+                    const todayResting=day.isToday&&resting;
                     const barBg=isSelected?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent";
-                    const barBorder=isTodayNotSel?"2px solid #ffffff":hasScore?"none":"1px solid rgba(255,255,255,0.18)";
+                    const barBorder=todayResting?"2px solid #ffffff":hasScore?"none":"1px solid rgba(255,255,255,0.18)";
                     return(
                       <motion.div key={day.ds} onClick={()=>setSelBar(isSelected?null:i)}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
