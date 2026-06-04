@@ -7452,7 +7452,7 @@ Rules:
     return (
       <div>
         {/* ── RED FIELD — flat #FF3B30 ── */}
-        <div style={{background:'#FF3B30',paddingLeft:22,paddingRight:22,paddingBottom:168}}>
+        <div style={{background:'#FF3B30',paddingLeft:22,paddingRight:22,paddingBottom:148}}>
 
           {/* ── 3-page swipeable top eyebrow: date | vs-yesterday | streak ── */}
           <div style={{marginBottom:6,overflow:'hidden',userSelect:'none',touchAction:'manipulation'}}
@@ -7542,7 +7542,7 @@ Rules:
 
             {/* ── 7-DAY BAR CHART — scaled to data range, not /100 ── */}
             {(()=>{
-              const CHART_H=230;
+              const CHART_H=280;
               const maxVal=Math.max(...last7.map(d=>d.score??0),1);
               return(
                 <div style={{display:"flex",gap:6,alignItems:"flex-end",height:CHART_H+24,paddingBottom:20,position:"relative"}}>
@@ -7550,13 +7550,16 @@ Rules:
                     const hasScore=day.score!=null;
                     const h=hasScore?Math.max(6,(day.score/maxVal)*CHART_H*0.93):18;
                     const isSelected=selBar===i;
-                    // Resting (nothing selected): today = hollow outline, others = dim fill.
-                    // Any bar selected: exactly ONE white bar (the selected one);
-                    //   today in this state drops to plain dim — no hollow outline.
-                    const resting=selBar===null;
-                    const todayResting=day.isToday&&resting;
+                    const anySelected=selBar!==null;
+                    // Exactly ONE white bar ever:
+                    //   selected → solid white.
+                    //   today + nothing selected → hollow outline ("I'm today").
+                    //   today + something else selected → plain dim (same as other past bars).
+                    //   ghost → faint outline.
+                    const showTodayOutline=day.isToday&&!anySelected;
                     const barBg=isSelected?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent";
-                    const barBorder=todayResting?"2px solid #ffffff":hasScore?"none":"1px solid rgba(255,255,255,0.18)";
+                    // Use transparent border (not "none") for smooth snap — avoids border-animation artifacts.
+                    const barBorder=showTodayOutline?"2px solid rgba(255,255,255,0.90)":(!hasScore)?"1px solid rgba(255,255,255,0.18)":"2px solid transparent";
                     return(
                       <motion.div key={day.ds} onClick={()=>setSelBar(isSelected?null:i)}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
@@ -7570,7 +7573,7 @@ Rules:
                           boxSizing:"border-box",
                           transformOrigin:"bottom",
                           animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
-                          transition:"height 0.35s cubic-bezier(.16,1,.3,1),background 0.15s,border 0.15s",
+                          transition:"height 0.35s cubic-bezier(.16,1,.3,1),background 0.15s",
                           boxShadow:isSelected?"0 -4px 14px rgba(255,255,255,0.35)":"none",
                         }}/>
                         <div style={{position:"absolute",bottom:0,fontFamily:AF,fontSize:9,fontWeight:day.isToday?700:400,color:day.isToday?"#fff":"rgba(255,255,255,0.48)"}}>
