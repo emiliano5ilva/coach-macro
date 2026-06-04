@@ -7425,20 +7425,24 @@ Rules:
               return(
                 <div style={{display:"flex",gap:6,alignItems:"flex-end",height:CHART_H+24,paddingBottom:20,position:"relative"}}>
                   {last7.map((day,i)=>{
-                    const h=day.score!=null?Math.max(6,(day.score/maxVal)*CHART_H*0.93):4;
+                    const hasScore=day.score!=null;
+                    const h=hasScore?Math.max(6,(day.score/maxVal)*CHART_H*0.93):18;
+                    const isSelected=selBar===i;
                     return(
-                      <motion.div key={day.ds} onClick={()=>setSelBar(selBar===i?null:i)}
+                      <motion.div key={day.ds} onClick={()=>setSelBar(isSelected?null:i)}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
                         whileTap={GOCLUB_REDESIGN?{scale:0.90}:undefined}
                         transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
-                        style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>
+                        style={{flex:1,alignSelf:'stretch',display:"flex",flexDirection:"column",justifyContent:"flex-end",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>
                         <div style={{
-                          width:"100%",height:h,alignSelf:"flex-end",borderRadius:"5px 5px 0 0",
-                          background:day.isToday||selBar===i?"#ffffff":"rgba(255,255,255,0.28)",
+                          width:"100%",height:h,borderRadius:"5px 5px 0 0",
+                          background:day.isToday||isSelected?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent",
+                          border:hasScore?"none":"1px solid rgba(255,255,255,0.18)",
+                          boxSizing:"border-box",
                           transformOrigin:"bottom",
                           animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
                           transition:"height 0.35s cubic-bezier(.16,1,.3,1),background 0.15s",
-                          boxShadow:selBar===i&&!day.isToday?"0 -4px 14px rgba(255,255,255,0.35)":"none",
+                          boxShadow:isSelected&&!day.isToday?"0 -4px 14px rgba(255,255,255,0.35)":"none",
                         }}/>
                         <div style={{position:"absolute",bottom:0,fontFamily:AF,fontSize:9,fontWeight:day.isToday?700:400,color:day.isToday?"#fff":"rgba(255,255,255,0.48)"}}>
                           {day.ltr}
