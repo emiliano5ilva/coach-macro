@@ -16,7 +16,7 @@ export async function getReferralData(userId) {
 export async function getReferrals(userId) {
   const { data } = await sb
     .from('referrals')
-    .select('id, status, created_at, completed_at, referred_id, referred_name')
+    .select('id, status, created_at, completed_at, referred_id')
     .eq('referrer_id', userId)
     .not('referred_id', 'is', null)
     .order('created_at', { ascending: false });

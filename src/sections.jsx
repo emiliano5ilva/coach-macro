@@ -5350,7 +5350,7 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
             {referrals.map((r, i) => (
               <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < referrals.length - 1 ? '1px solid rgba(245,245,240,0.05)' : 'none' }}>
                 <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>
-                  {r.referred_name || 'Anonymous'}
+                  Anonymous
                 </span>
                 {r.status === 'completed'
                   ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#22c55e' }}>PAID ✓</span>
@@ -5734,7 +5734,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
   useEffect(()=>{
     if(!user?.id)return;
-    sb.from('connected_apps').select('athlete_name,connected_at').eq('user_id',user.id).eq('provider','strava').maybeSingle().then(({data})=>{
+    sb.from('connected_apps').select('metadata,connected_at').eq('user_id',user.id).eq('provider','strava').maybeSingle().then(({data})=>{
       if(data){setStravaConnected(true);setStravaAthlete(data);}
     });
   },[user?.id]);
@@ -6045,7 +6045,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
             <div>
               <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Strava</div>
-              {stravaConnected&&stravaAthlete?.athlete_name&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>{stravaAthlete.athlete_name}</div>}
+              {stravaConnected&&stravaAthlete?.metadata?.firstname&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>{stravaAthlete.metadata.firstname}</div>}
               {!stravaConnected&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
             </div>
           </div>

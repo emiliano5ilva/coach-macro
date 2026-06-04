@@ -403,10 +403,10 @@ export async function runDailyValidationSuite(userId, profile) {
     { data: healthSnaps },
   ] = await Promise.all([
     sb.from('food_logs').select('date,entries').eq('user_id', userId).gte('date', cutoff30),
-    sb.from('bodyweight_logs').select('weight,unit,created_at').eq('user_id', userId).gte('created_at', cutoff90).order('created_at'),
+    sb.from('bodyweight_logs').select('weight,date,created_at').eq('user_id', userId).gte('created_at', cutoff90).order('created_at'),
     sb.from('workout_logs').select('date,volume_lbs,workout').eq('user_id', userId).gte('date', cutoff90).order('date'),
     sb.from('personal_records').select('exercise_name,weight,reps,date').eq('user_id', userId).gte('date', cutoff90),
-    sb.from('bio_data_points').select('metric,input_value,output_value,created_at').eq('user_id', userId).gte('created_at', cutoff30).order('created_at'),
+    sb.from('bio_data_points').select('metric,input_value,output_value,recorded_at').eq('user_id', userId).gte('recorded_at', cutoff30).order('recorded_at'),
     sb.from('daily_health_snapshots').select('date,hrv,rhr,steps,sleep').eq('user_id', userId).gte('date', cutoff30).order('date'),
   ]);
 

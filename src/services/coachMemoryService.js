@@ -179,9 +179,9 @@ export async function updateMemoryOutcomes(userId) {
   // Fetch current signals for comparison
   const since = windowStart;
   const [{ data: bwLogs }, { data: foodLogs }, { data: bioData }] = await Promise.all([
-    sb.from('bodyweight_logs').select('weight,unit,created_at').eq('user_id', userId).gte('created_at', since).order('created_at'),
+    sb.from('bodyweight_logs').select('weight,date,created_at').eq('user_id', userId).gte('created_at', since).order('created_at'),
     sb.from('food_logs').select('date,entries').eq('user_id', userId).gte('date', since),
-    sb.from('bio_data_points').select('metric,output_value,created_at').eq('user_id', userId).gte('created_at', since).order('created_at'),
+    sb.from('bio_data_points').select('metric,output_value,recorded_at').eq('user_id', userId).gte('recorded_at', since).order('recorded_at'),
   ]);
 
   for (const mem of memories) {
@@ -191,11 +191,10 @@ export async function updateMemoryOutcomes(userId) {
 
     if (mem.memory_type === 'plateau' || mem.linked_insight_type === 'weight_trend') {
       // Did weight start moving?
-      const toLbs = (w, u) => parseFloat(w) * (u === 'kg' ? 2.205 : 1);
-      const recent = (bwLogs || []).filter(l => l.created_at?.slice(0, 10) > mem.date_observed).slice(-5);
+      const toLbs = (w) => parseFloat(w);  // weight stored in user's unit; delta direction still valid
+      const recent = (bwLogs || []).filter(l => (l.date || l.created_at?.slice(0,10)) > mem.date_observed).slice(-5);
       if (recent.length >= 2) {
-        const change = toLbs(recent[recent.length - 1].weight, recent[recent.length - 1].unit) -
-                       toLbs(recent[0].weight, recent[0].unit);
+        const change = toLbs(recent[recent.length - 1].weight) - toLbs(recent[0].weight);
         if (Math.abs(change) > 0.8) {
           outcome = `Weight began moving (${change > 0 ? '+' : ''}${change.toFixed(1)} lbs over ${recent.length} readings)`;
           effectiveness = Math.min(95, 60 + Math.round(Math.abs(change) * 10));

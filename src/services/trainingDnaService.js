@@ -28,7 +28,7 @@ export async function calculateTrainingDNA(userId) {
     sb.from('workout_logs').select('date, workout').eq('user_id', userId).gte('date', cut90),
     sb.from('food_logs').select('date, entries').eq('user_id', userId).gte('date', cut30),
     sb.from('muscle_recovery').select('muscle_group, last_trained_at').eq('user_id', userId),
-    sb.from('profiles').select('goalCals, created_at').eq('id', userId).single(),
+    sb.from('profiles').select('calorie_target, created_at').eq('id', userId).single(),
     sb.from('run_logs').select('distance_km').eq('user_id', userId),
     sb.from('personal_records').select('exercise_name, weight, date').eq('user_id', userId).in('exercise_name', COMPOUND),
   ]);
@@ -122,7 +122,7 @@ export async function calculateTrainingDNA(userId) {
   // Protein and calorie target adherence over 30 days.
   let nutritionScore = 0;
   if (fl.length > 0) {
-    const calorieTarget = prof?.goalCals || 2000;
+    const calorieTarget = prof?.calorie_target || 2000;
     const proteinTarget = Math.round((calorieTarget * 0.30) / 4);
 
     const byDay = {};

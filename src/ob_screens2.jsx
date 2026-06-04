@@ -2247,7 +2247,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
 
     Promise.all([
       sb.from('food_logs').select('date,entries').eq('user_id', userId).gte('date', since),
-      sb.from('bodyweight_logs').select('weight,unit,created_at').eq('user_id', userId).gte('created_at', since).order('created_at'),
+      sb.from('bodyweight_logs').select('weight,date,created_at').eq('user_id', userId).gte('created_at', since).order('created_at'),
       sb.from('validation_insights').select('*').eq('user_id', userId).gte('date_generated', weekAgo).order('created_at', {ascending: false}),
       sb.from('personal_records').select('exercise_name,weight,reps,date').eq('user_id', userId).gte('date', weekAgo),
     ]).then(([{data: food}, {data: bw}, {data: insights}, {data: prs}]) => {
