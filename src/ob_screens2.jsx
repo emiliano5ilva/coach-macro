@@ -7467,20 +7467,20 @@ Rules:
               transition={reducedMotion?{duration:0}:{type:'spring',stiffness:500,damping:40}}
               style={{display:'flex',width:'300%'}}
             >
-              <div style={{width:'33.333%',fontFamily:AF,fontWeight:500,fontSize:11,color:"rgba(255,255,255,0.70)",letterSpacing:"0.13em",textTransform:"uppercase"}}>
+              <div style={{width:'33.333%',fontFamily:AF,fontWeight:600,fontSize:11,color:"#ffffff",letterSpacing:"0.13em",textTransform:"uppercase"}}>
                 {dayLabel} · {dayStatus}
               </div>
               <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
-                <span style={{color:'rgba(255,255,255,0.55)'}}>VS YESTERDAY</span>
-                <span style={{color:'rgba(255,255,255,0.25)',margin:'0 6px'}}>|</span>
+                <span style={{color:'#ffffff'}}>VS YESTERDAY</span>
+                <span style={{color:'rgba(255,255,255,0.35)',margin:'0 6px'}}>|</span>
                 {delta!==null
                   ? <span style={{color:delta>=0?"#86efac":"#fca5a5"}}>{delta>=0?"+":""}{delta} pts</span>
                   : <span style={{color:'rgba(255,255,255,0.35)'}}>—</span>
                 }
               </div>
               <div style={{width:'33.333%',fontFamily:AF,fontWeight:700,fontSize:11,letterSpacing:'0.13em',textTransform:'uppercase'}}>
-                <span style={{color:'rgba(255,255,255,0.55)'}}>STREAK</span>
-                <span style={{color:'rgba(255,255,255,0.25)',margin:'0 6px'}}>|</span>
+                <span style={{color:'#ffffff'}}>STREAK</span>
+                <span style={{color:'rgba(255,255,255,0.35)',margin:'0 6px'}}>|</span>
                 <span style={{color:workoutStreak>=3?"#86efac":workoutStreak>=1?"#fcd34d":"rgba(255,255,255,0.35)"}}>
                   {workoutStreak} day{workoutStreak!==1?"s":""}
                 </span>
@@ -7551,15 +7551,12 @@ Rules:
                     const h=hasScore?Math.max(6,(day.score/maxVal)*CHART_H*0.93):18;
                     const isSelected=selBar===i;
                     const anySelected=selBar!==null;
-                    // Exactly ONE white bar ever:
-                    //   selected → solid white.
-                    //   today + nothing selected → hollow outline ("I'm today").
-                    //   today + something else selected → plain dim (same as other past bars).
-                    //   ghost → faint outline.
-                    const showTodayOutline=day.isToday&&!anySelected;
-                    const barBg=isSelected?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent";
-                    // Use transparent border (not "none") for smooth snap — avoids border-animation artifacts.
-                    const barBorder=showTodayOutline?"2px solid rgba(255,255,255,0.90)":(!hasScore)?"1px solid rgba(255,255,255,0.18)":"2px solid transparent";
+                    // Today + nothing selected → solid white (implicit default, matches "highlighted on load").
+                    // Selected bar → solid white. Today + something else selected → plain dim.
+                    // Ghost → faint outline.
+                    const showSolid=isSelected||(day.isToday&&!anySelected);
+                    const barBg=showSolid?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent";
+                    const barBorder=(!hasScore)?"1px solid rgba(255,255,255,0.18)":"2px solid transparent";
                     return(
                       <motion.div key={day.ds} onClick={()=>setSelBar(isSelected?null:i)}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
@@ -7574,7 +7571,7 @@ Rules:
                           transformOrigin:"bottom",
                           animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
                           transition:"height 0.35s cubic-bezier(.16,1,.3,1),background 0.15s",
-                          boxShadow:isSelected?"0 -4px 14px rgba(255,255,255,0.35)":"none",
+                          boxShadow:showSolid?"0 -4px 14px rgba(255,255,255,0.35)":"none",
                         }}/>
                         <div style={{position:"absolute",bottom:0,fontFamily:AF,fontSize:9,fontWeight:day.isToday?700:400,color:day.isToday?"#fff":"rgba(255,255,255,0.48)"}}>
                           {day.ltr}
@@ -7597,7 +7594,7 @@ Rules:
 
           {/* Past-day date label */}
           {!isToday&&selDayLabel&&(
-            <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:20}}>
+            <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:20}}>
               {selDayLabel}
             </div>
           )}
@@ -7606,7 +7603,7 @@ Rules:
             {/* ── TODAY: morning brief ── */}
             {!briefDismissed&&briefText&&(
               <StaggerItem i={0} style={{marginBottom:22}}>
-                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
                   MORNING BRIEF
                 </div>
                 {briefExpandedLocal?(
@@ -7630,7 +7627,7 @@ Rules:
                     <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.3,marginBottom:8,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
                       {briefText}
                     </div>
-                    <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
+                    <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"#111111",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
                   </div>
                 )}
               </StaggerItem>
@@ -7638,8 +7635,8 @@ Rules:
             {/* ── TODAY: LIFT MODULE ── */}
             <StaggerItem i={1} style={{marginBottom:22}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase"}}>TODAY'S LIFT</div>
-                <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"rgba(17,17,17,0.40)",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase"}}>TODAY'S LIFT</div>
+                <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"#111111",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
                   See workout →
                 </button>
               </div>
@@ -7669,7 +7666,7 @@ Rules:
 
             {/* ── TODAY: NUTRITION ── */}
             <StaggerItem i={2} style={{marginBottom:22}}>
-              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
+              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
               {consumed.calories>0&&(
                 <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:12}}>
                   {Math.round(consumed.calories)} kcal · {Math.round(consumed.protein)}g protein · {Math.round(consumed.carbs)}g carbs · {Math.round(consumed.fat)}g fat
