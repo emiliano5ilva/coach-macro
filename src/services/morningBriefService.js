@@ -213,11 +213,16 @@ export async function gatherBriefContext(userId) {
     ctx.preLoadingNote = getPreLoadingNote(tomorrowSession, p);
   } catch { ctx.preLoadingNote = null; }
 
-  // Protein distribution
+  // Protein distribution — food_logs has calories/protein inside entries JSONB, not top-level
   try {
-    const { data: foodHistoryRows } = await sb.from('food_history').select('date,calories,protein').eq('user_id', userId).order('date', { ascending: false }).limit(7);
+    const { data: recentFoodRows } = await sb.from('food_logs').select('date,entries').eq('user_id', userId).order('date', { ascending: false }).limit(7);
+    const foodHistoryRows = (recentFoodRows || []).map(r => ({
+      date: r.date,
+      calories: (r.entries||[]).reduce((s,e)=>s+(e.calories||0),0),
+      protein:  (r.entries||[]).reduce((s,e)=>s+(e.protein||0),0),
+    })).filter(r => r.calories > 0);
     const proteinTarget = Math.round(((p.goalCals || 2200) * 0.30) / 4);
-    ctx.proteinInsight = getProteinDistributionInsight(foodHistoryRows ?? [], proteinTarget);
+    ctx.proteinInsight = getProteinDistributionInsight(foodHistoryRows, proteinTarget);
   } catch { ctx.proteinInsight = null; }
 
   // DOMS predictions

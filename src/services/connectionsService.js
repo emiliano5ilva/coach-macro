@@ -83,7 +83,7 @@ export async function calculateUserCorrelations(userId) {
   const [{ data: bio }, { data: bw }, { data: food }, { data: workouts }, { data: tdeeHist }] = await Promise.all([
     sb.from('bio_data_points').select('recorded_at, sleep_hours, hrv_avg, rhr, steps').eq('user_id', userId).gte('recorded_at', since),
     sb.from('bodyweight_logs').select('created_at, weight').eq('user_id', userId).gte('created_at', since + 'T00:00:00Z'),
-    sb.from('food_logs').select('date, calories').eq('user_id', userId).gte('date', since),
+    sb.from('food_logs').select('date, entries').eq('user_id', userId).gte('date', since),
     sb.from('workout_logs').select('date, volume_lbs').eq('user_id', userId).gte('date', since),
     sb.from('tdee_history').select('date, calculated_tdee').eq('user_id', userId).gte('date', since),
   ]);
@@ -99,7 +99,8 @@ export async function calculateUserCorrelations(userId) {
   const calMap = {};
   for (const row of food || []) {
     const d = String(row.date || '').slice(0, 10);
-    if (d) calMap[d] = (calMap[d] || 0) + (row.calories || 0);
+    const rowCals = (row.entries||[]).reduce((s,e)=>s+(e.calories||0),0);
+    if (d) calMap[d] = (calMap[d] || 0) + rowCals;
   }
 
   const volMap = {};

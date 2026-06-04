@@ -19,7 +19,7 @@ const TOKEN_LIMITS = {
   restaurant_pick: { input: 1200, output: 900 },
   menu_scan:       { input: 8000, output: 900 },
   adapt_now:       { input: 600, output: 500 },
-  morning_brief:   { input: 400, output: 250 },
+  morning_brief:   { input: 2500, output: 700 },
   meal_suggestion: { input: 300, output: 200 },
   food_suggestion: { input: 300, output: 200 },
   meal_prep:       { input: 500, output: 800 },

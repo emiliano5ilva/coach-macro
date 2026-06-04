@@ -114,7 +114,7 @@ export async function calculatePersonalityScores(userId) {
     { data: events },
     { data: profileRow },
   ] = await Promise.all([
-    sb.from('food_logs').select('date, logged_at, calories, entries').eq('user_id', userId).gte('date', since),
+    sb.from('food_logs').select('date, logged_at, entries').eq('user_id', userId).gte('date', since),
     sb.from('workout_logs').select('date, volume_lbs').eq('user_id', userId).gte('date', since),
     sb.from('bodyweight_logs').select('weight, created_at').eq('user_id', userId).gte('created_at', since + 'T00:00:00Z').order('created_at'),
     sb.from('validation_insights').select('insight_type, acted_upon, priority, date_generated').eq('user_id', userId).gte('date_generated', since),
