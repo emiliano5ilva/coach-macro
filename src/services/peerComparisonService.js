@@ -142,10 +142,10 @@ export async function getUserMetrics(userId) {
     { data: workouts },
     { data: bio },
   ] = await Promise.all([
-    sb.from('food_logs').select('date').eq('user_id', userId).gte('date', since).catch(() => ({ data: [] })),
-    sb.from('bodyweight_logs').select('weight, created_at').eq('user_id', userId).gte('created_at', since + 'T00:00:00Z').order('created_at').catch(() => ({ data: [] })),
-    sb.from('workout_logs').select('date').eq('user_id', userId).gte('date', since).catch(() => ({ data: [] })),
-    sb.from('bio_data_points').select('recorded_at, sleep_hours').eq('user_id', userId).gte('recorded_at', since + 'T00:00:00Z').catch(() => ({ data: [] })),
+    sb.from('food_logs').select('date').eq('user_id', userId).gte('date', since),
+    sb.from('bodyweight_logs').select('weight, created_at').eq('user_id', userId).gte('created_at', since + 'T00:00:00Z').order('created_at'),
+    sb.from('workout_logs').select('date').eq('user_id', userId).gte('date', since),
+    sb.from('bio_data_points').select('recorded_at, sleep_hours').eq('user_id', userId).gte('recorded_at', since + 'T00:00:00Z'),
   ]);
 
   const adherence = Math.min(1, (new Set((food || []).map(l => l.date)).size) / 30);

@@ -408,7 +408,8 @@ INSTRUCTION: If directly relevant today, add one sentence to coach_says in the s
     : '';
 
   // Training load block
-  const { data: loadLogs } = await sb.from('workout_logs').select('date,session_duration_mins,workout,volume_lbs').eq('user_id', (await sb.auth.getUser()).data.user?.id ?? 'x').gte('date', (() => { const d=new Date(); d.setDate(d.getDate()-60); return d.toISOString().split('T')[0]; })()).order('date',{ascending:false}).limit(60).catch(()=>({data:[]}));
+  const sixtyDaysAgo = (() => { const d=new Date(); d.setDate(d.getDate()-60); return d.toISOString().split('T')[0]; })();
+  const { data: loadLogs, error: _loadErr } = await sb.from('workout_logs').select('date,session_duration_mins,workout,volume_lbs').eq('user_id', userId).gte('date', sixtyDaysAgo).order('date',{ascending:false}).limit(60);
   const load = computeLoadMetrics(ctx._workoutLogs ?? loadLogs ?? []);
   const tsbBlock = load.tsb < -20
     ? `\n\nLOAD ALERT: Training stress balance is critically negative (TSB: ${load.tsb}). Athlete is likely overreached. Recommend recovery focus today.`

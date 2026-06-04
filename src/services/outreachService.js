@@ -534,9 +534,9 @@ export async function runOutreachCheck(userId, appData = {}) {
     prefs,
     recentNotifs,
   ] = await Promise.all([
-    sb.from('bio_data_points').select('recorded_at, sleep_hours, hrv_avg, rhr').eq('user_id', userId).gte('recorded_at', since14).catch(() => ({ data: [] })),
-    sb.from('food_logs').select('date, entries').eq('user_id', userId).gte('date', since14).catch(() => ({ data: [] })),
-    sb.from('pattern_detections').select('pattern_name, detected_at, outcome').eq('user_id', userId).gte('detected_at', new Date(Date.now() - 14 * 864e5).toISOString()).catch(() => ({ data: [] })),
+    sb.from('bio_data_points').select('recorded_at, sleep_hours, hrv_avg, rhr').eq('user_id', userId).gte('recorded_at', since14),
+    sb.from('food_logs').select('date, entries').eq('user_id', userId).gte('date', since14),
+    sb.from('pattern_detections').select('pattern_name, detected_at, outcome').eq('user_id', userId).gte('detected_at', new Date(Date.now() - 14 * 864e5).toISOString()),
     getOutreachPreferences(userId),
     _getRecentNotifs(userId),
   ]);
