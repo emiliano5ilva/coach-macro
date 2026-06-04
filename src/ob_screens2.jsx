@@ -7601,15 +7601,43 @@ Rules:
 
           {isToday ? (<>
             {/* ── TODAY: morning brief ── */}
-            {!briefDismissed&&briefText&&(
+            {!briefDismissed&&(morningBriefLoading||morningBriefError||b?.coach_says||b?.today)&&(
               <StaggerItem i={0} style={{marginBottom:22}}>
                 <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
                   MORNING BRIEF
                 </div>
-                {briefExpandedLocal?(
-                  <div style={{background:"#f5f5f5",borderRadius:16,padding:16}}>
-                    {b?.greeting&&<div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",lineHeight:1.2,marginBottom:10}}>{b.greeting}</div>}
-                    {b?.today&&<div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.72)",lineHeight:1.6,marginBottom:10}}>{b.today}</div>}
+                {morningBriefLoading ? (
+                  // Loading skeleton — light-mode shimmer, doesn't flash fallback content
+                  <div>
+                    {[1,0.80,0.60].map((w,i)=>(
+                      <div key={i} style={{height:13,width:`${w*100}%`,borderRadius:6,marginBottom:8,
+                        background:"linear-gradient(90deg,rgba(17,17,17,0.06) 25%,rgba(17,17,17,0.10) 50%,rgba(17,17,17,0.06) 75%)",
+                        backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite linear",
+                        animationDelay:`${i*80}ms`}}/>
+                    ))}
+                  </div>
+                ) : morningBriefError ? (
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)",fontStyle:"italic"}}>
+                    Couldn't load brief — pull down to retry.
+                  </div>
+                ) : briefExpandedLocal ? (
+                  // ── EXPANDED: coach monologue ──
+                  <div style={{background:"#f7f7f7",borderRadius:16,padding:"16px 16px 14px"}}>
+                    {b?.greeting&&(
+                      <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.2,marginBottom:12}}>
+                        {b.greeting}
+                      </div>
+                    )}
+                    {b?.yesterday&&(
+                      <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.70)",lineHeight:1.6,marginBottom:10}}>
+                        {b.yesterday}
+                      </div>
+                    )}
+                    {b?.today&&(
+                      <div style={{fontFamily:AF,fontSize:13,color:"#111111",lineHeight:1.6,marginBottom:12}}>
+                        {b.today}
+                      </div>
+                    )}
                     {b?.coach_says&&(
                       <div style={{fontFamily:AF,fontWeight:600,fontStyle:"italic",fontSize:13,color:"#111",lineHeight:1.5,
                         background:"rgba(255,59,48,0.06)",borderLeft:"3px solid #FF3B30",
@@ -7617,17 +7645,49 @@ Rules:
                         {b.coach_says}
                       </div>
                     )}
+                    {b?.sign_off&&(
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.40)",marginBottom:14}}>
+                        {b.sign_off}
+                      </div>
+                    )}
+                    {(()=>{
+                      const hour=new Date().getHours();
+                      const sessionDone=workoutLogsRaw.some(w=>w.date===todayStr)||!!completedWorkout;
+                      const foodLogged=log.length>0;
+                      if(todayType==="training"&&hour<12&&!sessionDone)
+                        return <button onClick={()=>{_hL();handleTabPress("train");}} style={{width:"100%",padding:"11px 0",background:"#111111",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Start Session →</button>;
+                      if(!foodLogged)
+                        return <button onClick={()=>{_hL();setSection("fuel");setFuelScreen("log");}} style={{width:"100%",padding:"11px 0",background:"#111111",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Log Breakfast →</button>;
+                      return null;
+                    })()}
                     <div style={{display:"flex",justifyContent:"space-between"}}>
                       <button onClick={()=>setBriefExpandedLocal(false)} style={{fontFamily:AF,fontSize:9,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
                       <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{fontFamily:AF,fontSize:9,color:"#FF3B30",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
                     </div>
                   </div>
-                ):(
+                ) : (
+                  // ── COLLAPSED: lead line + contextual CTA ──
                   <div onClick={()=>{setBriefExpandedLocal(true);localStorage.setItem("brief_expanded",new Date().toISOString().split("T")[0]);}} style={{cursor:"pointer"}}>
-                    <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.3,marginBottom:8,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
-                      {briefText}
+                    <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#111111",lineHeight:1.4,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
+                      {b?.today||b?.coach_says||b?.greeting||""}
                     </div>
-                    <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"#111111",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
+                    {(()=>{
+                      const hour=new Date().getHours();
+                      const sessionDone=workoutLogsRaw.some(w=>w.date===todayStr)||!!completedWorkout;
+                      const foodLogged=log.length>0;
+                      const ctaLabel=todayType==="training"&&hour<12&&!sessionDone?"START SESSION →":!foodLogged?"LOG BREAKFAST →":"YOU'RE ON TRACK";
+                      const ctaIsAction=ctaLabel!=="YOU'RE ON TRACK";
+                      return(
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <div style={{fontFamily:AF,fontWeight:700,fontSize:10,
+                            color:ctaIsAction?"#FF3B30":"rgba(17,17,17,0.45)",
+                            letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                            {ctaLabel}
+                          </div>
+                          <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.45)",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </StaggerItem>
