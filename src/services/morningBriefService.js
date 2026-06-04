@@ -201,71 +201,80 @@ export async function gatherBriefContext(userId) {
     } : null,
   };
 
-  // Derive tomorrow's session from the schedule for pre-loading
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowKey = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][tomorrow.getDay()];
-  const tomorrowType = (wp.schedule || {})[tomorrowKey] || 'rest';
-  const tomorrowFocus = (wp.dayFocus || {})[tomorrowKey] || null;
-  const tomorrowSession = tomorrowType === 'training'
-    ? { type: tomorrowFocus || 'Strength', exercises: null }
-    : null;
-  ctx.preLoadingNote = getPreLoadingNote(tomorrowSession, p);
+  // ── Optional enrichments — each wrapped so a failure degrades to null, never crashes ──
 
-  // Protein distribution from food_history (use richer food_history table)
-  const { data: foodHistoryRows } = await sb.from('food_history').select('date,calories,protein').eq('user_id', userId).order('date', { ascending: false }).limit(7);
-  const proteinTarget = Math.round(((p.goalCals || 2200) * 0.30) / 4);
-  ctx.proteinInsight = getProteinDistributionInsight(foodHistoryRows ?? [], proteinTarget);
+  // Pre-loading note (tomorrow's session context)
+  try {
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowKey = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][tomorrow.getDay()];
+    const tomorrowType = (wp.schedule || {})[tomorrowKey] || 'rest';
+    const tomorrowFocus = (wp.dayFocus || {})[tomorrowKey] || null;
+    const tomorrowSession = tomorrowType === 'training' ? { type: tomorrowFocus || 'Strength', exercises: null } : null;
+    ctx.preLoadingNote = getPreLoadingNote(tomorrowSession, p);
+  } catch { ctx.preLoadingNote = null; }
 
-  // DOMS predictions for brief context
-  const { data: recentLogsForDoms } = await sb.from('workout_logs')
-    .select('date,workout').eq('user_id', userId).order('date', { ascending: false }).limit(30);
-  const domsProfile = adaptiveProfileRow?.domsProfile ?? null;
-  const domsPreds = predictSoreness(recentLogsForDoms ?? [], domsProfile, 1);
-  // Cycle pattern context
-  const profileForCycle = { profile_data: p };
-  const cycleAdj = getCycleAdjustment(profileForCycle, adaptiveProfileRow);
-  const cp = adaptiveProfileRow?.cycleProfile;
-  ctx.cycleInsight = cycleAdj?.insight ?? null;
-  ctx.cycleDataProgress = (cp && !cp.hasEnoughData)
-    ? `${cp.observations?.length ?? 0} days of cycle data collected — personalised cycle insights unlock at ${cp.observationsNeeded} more days`
-    : null;
+  // Protein distribution
+  try {
+    const { data: foodHistoryRows } = await sb.from('food_history').select('date,calories,protein').eq('user_id', userId).order('date', { ascending: false }).limit(7);
+    const proteinTarget = Math.round(((p.goalCals || 2200) * 0.30) / 4);
+    ctx.proteinInsight = getProteinDistributionInsight(foodHistoryRows ?? [], proteinTarget);
+  } catch { ctx.proteinInsight = null; }
 
-  ctx.domsPredictions = Object.entries(domsPreds)
-    .filter(([, p]) => p.isPeaking || (p.isBuilding && p.hoursToPeak < 12))
-    .map(([zone, p]) => ({
-      zone,
-      status: p.isPeaking ? 'peaking' : 'building',
-      hoursToRecovery: p.hoursToRecovery,
-    }));
+  // DOMS predictions
+  try {
+    const { data: recentLogsForDoms } = await sb.from('workout_logs').select('date,workout').eq('user_id', userId).order('date', { ascending: false }).limit(30);
+    const domsProfile = adaptiveProfileRow?.domsProfile ?? null;
+    const domsPreds = predictSoreness(recentLogsForDoms ?? [], domsProfile, 1);
+    ctx.domsPredictions = Object.entries(domsPreds)
+      .filter(([, p]) => p.isPeaking || (p.isBuilding && p.hoursToPeak < 12))
+      .map(([zone, p]) => ({ zone, status: p.isPeaking ? 'peaking' : 'building', hoursToRecovery: p.hoursToRecovery }));
+  } catch { ctx.domsPredictions = []; }
 
-  // Weather — only relevant for run days
-  const isRunDay = tomorrowType === 'training' || todayType === 'training';
-  if (isRunDay && (wp.isHybrid || wp.isHyrox || (wp.splitType||'').toLowerCase().includes('run'))) {
-    const coords = await new Promise(resolve => {
-      if (!navigator?.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => resolve(null),
-        { timeout: 4000, maximumAge: 3600000 }
-      );
-    });
-    if (coords) {
-      const weather = await getWeatherPaceAdjustment(coords.lat, coords.lon).catch(() => null);
-      ctx.weatherNote = weather?.note ?? null;
+  // Cycle pattern
+  try {
+    const profileForCycle = { profile_data: p };
+    const cycleAdj = getCycleAdjustment(profileForCycle, adaptiveProfileRow);
+    const cp = adaptiveProfileRow?.cycleProfile;
+    ctx.cycleInsight = cycleAdj?.insight ?? null;
+    ctx.cycleDataProgress = (cp && !cp.hasEnoughData)
+      ? `${cp.observations?.length ?? 0} days of cycle data collected — personalised cycle insights unlock at ${cp.observationsNeeded} more days`
+      : null;
+  } catch { ctx.cycleInsight = null; ctx.cycleDataProgress = null; }
+
+  // Weather (run athletes only)
+  ctx.weatherNote = null;
+  try {
+    const tomorrowKeyW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(Date.now()+864e5).getDay()];
+    const tomorrowTypeW = (wp.schedule || {})[tomorrowKeyW] || 'rest';
+    const isRunDay = tomorrowTypeW === 'training' || todayType === 'training';
+    if (isRunDay && (wp.isHybrid || wp.isHyrox || (wp.splitType||'').toLowerCase().includes('run'))) {
+      const coords = await new Promise(resolve => {
+        if (!navigator?.geolocation) { resolve(null); return; }
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          () => resolve(null),
+          { timeout: 4000, maximumAge: 3600000 }
+        );
+      });
+      if (coords) {
+        const weather = await getWeatherPaceAdjustment(coords.lat, coords.lon).catch(() => null);
+        ctx.weatherNote = weather?.note ?? null;
+      }
     }
-  }
-  if (!ctx.weatherNote) ctx.weatherNote = null;
+  } catch { ctx.weatherNote = null; }
 
-  // HRV note — only when HRV differs meaningfully from baseline
-  const latestHRV  = p?.latestHRV ?? adaptiveProfileRow?.lastAnalysis?.latestHRV ?? null;
-  const hrvBaseline = p?.hrvBaseline ?? null;
-  if (latestHRV && hrvBaseline) {
-    const ratio = latestHRV.value / hrvBaseline;
-    if (Math.abs(ratio - 1) > 0.10) {
-      const direction = ratio < 1 ? 'below' : 'above';
-      ctx.hrvNote = `HRV: ${latestHRV.value.toFixed(0)}ms (baseline ${hrvBaseline.toFixed(0)}ms — ${Math.round(Math.abs(ratio - 1) * 100)}% ${direction} normal)`;
+  // HRV note
+  try {
+    const latestHRV  = p?.latestHRV ?? adaptiveProfileRow?.lastAnalysis?.latestHRV ?? null;
+    const hrvBaseline = p?.hrvBaseline ?? null;
+    if (latestHRV && hrvBaseline) {
+      const ratio = latestHRV.value / hrvBaseline;
+      if (Math.abs(ratio - 1) > 0.10) {
+        const direction = ratio < 1 ? 'below' : 'above';
+        ctx.hrvNote = `HRV: ${latestHRV.value.toFixed(0)}ms (baseline ${hrvBaseline.toFixed(0)}ms — ${Math.round(Math.abs(ratio - 1) * 100)}% ${direction} normal)`;
+      }
     }
-  }
+  } catch { ctx.hrvNote = null; }
 
   return ctx;
 }
@@ -466,8 +475,8 @@ export async function getMorningBrief(userId) {
 
   if (cached?.content) return cached.content;
 
-  const ctx = await gatherBriefContext(userId);
-  const content = await generateBriefContent(ctx);
+  const ctx = await gatherBriefContext(userId).catch(e => { console.error('[brief] gatherBriefContext threw:',e?.message,e); throw e; });
+  const content = await generateBriefContent(ctx).catch(e => { console.error('[brief] generateBriefContent threw:',e?.message,e); throw e; });
 
   await sb.from('morning_briefs').upsert(
     { user_id: userId, brief_date: todayStr, content, generated_at: new Date().toISOString() },

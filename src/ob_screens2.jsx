@@ -5027,6 +5027,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
       .catch(e=>{
         console.error("[morningBrief] error:",e);
         setMorningBriefLoading(false);
+        setMorningBriefError(e?.message||String(e));
       });
   },[user,wPrefs.morningBriefEnabled,briefTrigger]);
 
