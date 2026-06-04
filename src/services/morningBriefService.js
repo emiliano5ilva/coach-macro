@@ -86,7 +86,7 @@ export async function gatherBriefContext(userId) {
   const strengthCompDate = row?.strength_comp_date || wp.strengthCompDate || null;
   const strengthPhase = strengthCompDate ? getStrengthPhase(strengthCompDate) : null;
 
-  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow, rawValidationInsights] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow, rawValidationInsights, yWorkoutRow] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
     getActivePlateaus(userId).catch(() => []),
@@ -97,6 +97,7 @@ export async function gatherBriefContext(userId) {
     sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null),
     sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null),
     getTodayInsights(userId).catch(() => []),  // cached daily — fast SELECT
+    sb.from('workout_logs').select('date,workout,pr_count,volume_lbs,session_duration_mins').eq('user_id', userId).eq('date', yesterdayStr).maybeSingle().then(r=>r.data).catch(()=>null),
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
@@ -168,6 +169,13 @@ export async function gatherBriefContext(userId) {
     strengthWeightClass: wp.strengthWeightClass || p.strengthWeightClass || null,
     strengthCompType: wp.strength_comp_type || p.strength_comp_type || null,
     strengthCompFederation: wp.strength_comp_federation || p.strength_comp_federation || null,
+    // Yesterday's workout (date-exact: today - 1, null = rest day or no log)
+    yesterdayWorkout: yWorkoutRow ? {
+      focus:     yWorkoutRow.workout?.focus || 'Session',
+      prCount:   yWorkoutRow.pr_count ?? 0,
+      volumeLbs: yWorkoutRow.volume_lbs ?? 0,
+      durationMins: yWorkoutRow.session_duration_mins ?? 0,
+    } : null,
     // Adaptive coaching
     todayCheckin: todayCheckinRow ?? null,
     weeklyAnalysis: adaptiveProfileRow?.lastAnalysis ?? null,
@@ -263,9 +271,13 @@ export async function gatherBriefContext(userId) {
 }
 
 export async function generateBriefContent(ctx) {
-  const yNote = ctx.yesterdayNutrition
-    ? `Yesterday: ${ctx.yesterdayNutrition.calories} kcal logged, ${ctx.yesterdayNutrition.protein}g protein.`
-    : 'No nutrition logged yesterday.';
+  const yNutLine = ctx.yesterdayNutrition
+    ? `${Math.round(ctx.yesterdayNutrition.calories)} kcal, ${Math.round(ctx.yesterdayNutrition.protein)}g protein logged`
+    : 'no nutrition logged';
+  const yWorkLine = ctx.yesterdayWorkout
+    ? `${ctx.yesterdayWorkout.focus} session${ctx.yesterdayWorkout.prCount > 0 ? ` (${ctx.yesterdayWorkout.prCount} PR${ctx.yesterdayWorkout.prCount > 1 ? 's' : ''})` : ''}${ctx.yesterdayWorkout.volumeLbs > 0 ? ` — ${(ctx.yesterdayWorkout.volumeLbs / 1000).toFixed(1)}k lbs` : ''}`
+    : 'rest day (no workout logged)';
+  const yNote = `Yesterday: ${yWorkLine}. Nutrition: ${yNutLine}.`;
 
   const fatigueBlock = ctx.fatigueLevel === 'high'
     ? `FATIGUE ALERT: This athlete is showing high fatigue signals from RPE trending data${ctx.fatigueExercises?.length ? ` (affected: ${ctx.fatigueExercises.join(', ')})` : ''}. Coach Says MUST recommend backing off intensity today or taking a rest day. Do NOT recommend pushing hard.`
