@@ -7409,15 +7409,15 @@ Rules:
       };
     },[isToday,reducedMotion]);
 
-    // Zipper scroll haptic — fires every ZIPPER_PX of accumulated scroll delta on Today card
+    // Zipper scroll haptic — fires every ZIPPER_PX of accumulated scroll delta on Today card.
+    // Attaches to window: .app-screen has no fixed height so it never itself scrolls;
+    // the window is the actual scroll container for the today tab.
     const ZIPPER_PX = 30;
     useEffect(()=>{
       if(!GOCLUB_REDESIGN||reducedMotion) return;
-      const el=appScreenRef.current;
-      if(!el) return;
       function onScroll(){
-        if(!isToday){ zipperLastRef.current=el.scrollTop; zipperAccRef.current=0; return; }
-        const cur=el.scrollTop;
+        if(!isToday){ zipperLastRef.current=window.scrollY; zipperAccRef.current=0; return; }
+        const cur=window.scrollY;
         const delta=Math.abs(cur-zipperLastRef.current);
         zipperLastRef.current=cur;
         zipperAccRef.current+=delta;
@@ -7426,8 +7426,8 @@ Rules:
           try{Haptics.impact({style:ImpactStyle.Heavy});}catch{}
         }
       }
-      el.addEventListener('scroll',onScroll,{passive:true});
-      return()=>el.removeEventListener('scroll',onScroll);
+      window.addEventListener('scroll',onScroll,{passive:true});
+      return()=>window.removeEventListener('scroll',onScroll);
     },[isToday,reducedMotion]);
 
     // ─────────────────────────────────────────────────────────────────────
