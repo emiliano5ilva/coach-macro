@@ -7543,7 +7543,7 @@ Rules:
 
             {/* ── 7-DAY BAR CHART — scaled to data range, not /100 ── */}
             {(()=>{
-              const CHART_H=160;
+              const CHART_H=230;
               const maxVal=Math.max(...last7.map(d=>d.score??0),1);
               return(
                 <div style={{display:"flex",gap:6,alignItems:"flex-end",height:CHART_H+24,paddingBottom:20,position:"relative"}}>
@@ -7551,6 +7551,11 @@ Rules:
                     const hasScore=day.score!=null;
                     const h=hasScore?Math.max(6,(day.score/maxVal)*CHART_H*0.93):18;
                     const isSelected=selBar===i;
+                    const isTodayNotSel=day.isToday&&!isSelected;
+                    // Selected → solid white. Today (not selected) → hollow white outline.
+                    // Past scored → dim white. Ghost → faint outline.
+                    const barBg=isSelected?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent";
+                    const barBorder=isTodayNotSel?"2px solid #ffffff":hasScore?"none":"1px solid rgba(255,255,255,0.18)";
                     return(
                       <motion.div key={day.ds} onClick={()=>setSelBar(isSelected?null:i)}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
@@ -7559,13 +7564,13 @@ Rules:
                         style={{flex:1,alignSelf:'stretch',display:"flex",flexDirection:"column",justifyContent:"flex-end",alignItems:"center",cursor:"pointer",WebkitTapHighlightColor:"transparent",paddingBottom:20,position:"relative",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>
                         <div style={{
                           width:"100%",height:h,borderRadius:999,
-                          background:day.isToday||isSelected?"#ffffff":hasScore?"rgba(255,255,255,0.28)":"transparent",
-                          border:hasScore?"none":"1px solid rgba(255,255,255,0.18)",
+                          background:barBg,
+                          border:barBorder,
                           boxSizing:"border-box",
                           transformOrigin:"bottom",
                           animation:`cm-bar-up 0.38s cubic-bezier(.2,.7,.3,1) ${i*38}ms both`,
-                          transition:"height 0.35s cubic-bezier(.16,1,.3,1),background 0.15s",
-                          boxShadow:isSelected&&!day.isToday?"0 -4px 14px rgba(255,255,255,0.35)":"none",
+                          transition:"height 0.35s cubic-bezier(.16,1,.3,1),background 0.15s,border 0.15s",
+                          boxShadow:isSelected?"0 -4px 14px rgba(255,255,255,0.35)":"none",
                         }}/>
                         <div style={{position:"absolute",bottom:0,fontFamily:AF,fontSize:9,fontWeight:day.isToday?700:400,color:day.isToday?"#fff":"rgba(255,255,255,0.48)"}}>
                           {day.ltr}
