@@ -4614,7 +4614,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   }
 
   // ── Food log date navigation ───────────────────────────────────────────────
-  const [logDate,setLogDate]=useState(()=>new Date().toISOString().split("T")[0]);
+  const logDate=new Date().toISOString().split("T")[0]; // today-only; past-day viewing via Today bars
 
   // ── Bodyweight logs ────────────────────────────────────────────────────────
   const [bodyweightLogs,setBodyweightLogs]=useState([]);
@@ -7200,32 +7200,22 @@ Rules:
     const todayStr = `${_nowRef.getFullYear()}-${String(_nowRef.getMonth()+1).padStart(2,'0')}-${String(_nowRef.getDate()).padStart(2,'0')}`;
     const selectedDay = selBar!==null ? (last7[selBar]?.ds ?? todayStr) : todayStr;
     const isToday   = selectedDay === todayStr;
-    // TEMP INSTRUMENT [2]
-    console.log('[SELDAY] selBar=',selBar,'last7[selBar]=',last7[selBar],'selectedDay=',selectedDay,'isToday=',isToday,'todayStr=',todayStr,'utcToday=',new Date().toISOString().split("T")[0]);
 
     // Past-day food log — cached per date, today uses `log` in memory
     const [dayFoodCache, setDayFoodCache] = useState({});
     const [dayFoodLoading, setDayFoodLoading] = useState(false);
     const [wkExpanded, setWkExpanded] = useState(false);
     const [fnExpanded, setFnExpanded] = useState(false);
-    // TEMP INSTRUMENT — on-screen debug state
-    const [_dbgLog, _setDbgLog] = useState('(no tap yet)');
 
     useEffect(()=>{ setWkExpanded(false); setFnExpanded(false); },[selectedDay]);
 
     useEffect(()=>{
-      const hasCached=Object.prototype.hasOwnProperty.call(dayFoodCache,selectedDay);
-      // TEMP INSTRUMENT [3]
-      console.log('[FOODFETCH] fire for',selectedDay,'isToday=',isToday,'user=',user?.id,'hasCached=',hasCached);
-      if(isToday||!user?.id) { console.log('[FOODFETCH] SKIPPED — isToday or no user'); return; }
-      if(hasCached) { console.log('[FOODFETCH] SKIPPED — already cached'); return; }
+      if(isToday||!user?.id) return;
+      if(Object.prototype.hasOwnProperty.call(dayFoodCache,selectedDay)) return;
       setDayFoodLoading(true);
       sb.from('food_logs').select('entries').eq('user_id',user.id).eq('date',selectedDay).maybeSingle()
-        .then(({data,error})=>{
-          console.log('[FOODFETCH] result for',selectedDay,'data=',data,'error=',error);
-          setDayFoodCache(p=>({...p,[selectedDay]:data?.entries??null}));
-        })
-        .catch((e)=>{ console.log('[FOODFETCH] catch',e); setDayFoodCache(p=>({...p,[selectedDay]:null})); })
+        .then(({data})=>setDayFoodCache(p=>({...p,[selectedDay]:data?.entries??null})))
+        .catch(()=>setDayFoodCache(p=>({...p,[selectedDay]:null})))
         .finally(()=>setDayFoodLoading(false));
     },[selectedDay,isToday,user?.id]);
 
@@ -7444,12 +7434,7 @@ Rules:
                     const h=hasScore?Math.max(6,(day.score/maxVal)*CHART_H*0.93):18;
                     const isSelected=selBar===i;
                     return(
-                      <motion.div key={day.ds} onClick={()=>{
-                          // TEMP INSTRUMENT [1]
-                          console.log('[BAR TAP] i=',i,'ds=',day.ds,'prevSelBar=',selBar);
-                          _setDbgLog(`TAP i=${i} ds=${day.ds} prev=${selBar}`);
-                          setSelBar(isSelected?null:i);
-                        }}
+                      <motion.div key={day.ds} onClick={()=>setSelBar(isSelected?null:i)}
                         onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
                         whileTap={GOCLUB_REDESIGN?{scale:0.90}:undefined}
                         transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
@@ -7482,18 +7467,6 @@ Rules:
           marginTop:-130,position:"relative",
           paddingTop:28,paddingLeft:20,paddingRight:20,paddingBottom:120,
         }}>
-
-          {/* TEMP INSTRUMENT — on-screen debug strip */}
-          <div style={{background:"#000",color:"#0f0",fontFamily:"monospace",fontSize:10,padding:"6px 8px",borderRadius:8,marginBottom:12,lineHeight:1.6,wordBreak:"break-all"}}>
-            <div>{_dbgLog}</div>
-            <div>selBar={String(selBar)} sel={selectedDay}</div>
-            <div>today(local)={todayStr} today(utc)={new Date().toISOString().split("T")[0]}</div>
-            <div>isToday={String(isToday)} uid={user?.id?.slice(0,8)}</div>
-            <div>cached=[{Object.keys(dayFoodCache).join(',')}]</div>
-            <div>entries={Array.isArray(selFoodEntries)?selFoodEntries.length:String(selFoodEntries)}</div>
-          </div>
-          {/* TEMP INSTRUMENT [4] */}
-          {console.log('[RENDER DETAIL] isToday=',isToday,'selectedDay=',selectedDay,'selFoodEntries=',selFoodEntries,'selMacros=',selMacros)||null}
 
           {/* Past-day date label */}
           {!isToday&&selDayLabel&&(
@@ -9498,7 +9471,7 @@ Rules:
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
         {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt}/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} logDate={logDate} setLogDate={setLogDate} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><><CommunicationStyleSection userId={user?.id}/><YourPatternsCard userId={user?.id}/><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></></ErrorBoundary>}
