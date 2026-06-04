@@ -42,11 +42,12 @@ export const withLogging = (handler) => async (req, res) => {
         jwtUserId = payload.sub || null;
       } catch { jwtUserId = null; }
     }
-    await log('error', error.message, {
+    // Fire-and-forget — log write must never block or throw into the response path
+    log('error', error.message, {
       path:   req.url,
       stack:  error.stack,
       userId: legacyUserId || jwtUserId,
-    });
+    }).catch(() => {});
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error' });
     }
