@@ -7657,48 +7657,55 @@ Rules:
             )}
           </>) : (<>
             {/* ── PAST DAY: workout ── */}
-            <div style={{marginBottom:24}}>
-              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>WORKOUT</div>
+            <div style={{marginBottom:26}}>
+              {/* Pill header */}
+              <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
+                style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"4px 14px",marginBottom:14}}>
+                <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Workout</span>
+              </motion.div>
               {selWorkout ? (<>
-                {/* Focus + PR badge */}
-                <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+                {/* Focus + secondary context */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}>
                   <div style={{fontFamily:AF,fontWeight:800,fontSize:20,color:"#111",lineHeight:1.1}}>{selWorkout.workout?.focus||"Session"}</div>
+                  {selWorkout.session_duration_mins>0&&(
+                    <span style={{fontFamily:AF,fontWeight:500,fontSize:11,color:"rgba(17,17,17,0.45)"}}>
+                      <MN value={selWorkout.session_duration_mins}/> min
+                    </span>
+                  )}
                   {selWorkout.pr_count>0&&(
-                    <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:T.prot,background:`${T.prot}15`,border:`1px solid ${T.prot}35`,borderRadius:20,padding:"3px 10px",flexShrink:0}}>
+                    <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#FF3B30",background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.25)",borderRadius:20,padding:"3px 10px",flexShrink:0}}>
                       {selWorkout.pr_count} PR{selWorkout.pr_count>1?"s":""}
                     </span>
                   )}
                 </div>
-                {/* Stats chips */}
-                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
-                  {[
-                    selWorkout.volume_lbs&&{k:"VOLUME",v:<><MN value={selWorkout.volume_lbs} format={{useGrouping:true}}/> lbs</>},
-                    selWorkout.total_sets&&{k:"SETS",v:<MN value={selWorkout.total_sets}/>},
-                    selWorkout.session_duration_mins&&{k:"TIME",v:<><MN value={selWorkout.session_duration_mins}/> min</>},
-                  ].filter(Boolean).map(({k,v})=>(
-                    <div key={k} style={{background:"rgba(17,17,17,0.05)",borderRadius:8,padding:"6px 12px",minWidth:52}}>
-                      <div style={{fontFamily:AF,fontWeight:700,fontSize:8,color:"rgba(17,17,17,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>{k}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:15,color:"#111"}}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-                {/* Exercises toggle */}
-                {(selWorkout.workout?.exercises?.length>0)&&(
-                  <button onClick={()=>setWkExpanded(e=>!e)} style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:"4px 0",display:"block",marginBottom:4}}>
-                    {wkExpanded?"LESS ↑":"EXERCISES ↓"}
-                  </button>
+                {/* Exercise list — always shown, best-set per exercise */}
+                {(selWorkout.workout?.exercises||[]).length>0 ? (
+                  <div>
+                    {(selWorkout.workout.exercises).map((ex,i)=>{
+                      // Best set = highest weight; tie-break by reps
+                      const doneSets=(ex.sets||[]).filter(s=>s.done!==false);
+                      const arr=doneSets.length?doneSets:(ex.sets||[]);
+                      const best=arr.length?arr.reduce((b,s)=>{
+                        const w=parseFloat(s.weight)||0,bw=parseFloat(b.weight)||0;
+                        return w>bw?s:(w===bw&&(s.reps||0)>(b.reps||0)?s:b);
+                      },arr[0]):null;
+                      const bestW=best?parseFloat(best.weight)||0:0;
+                      const bestR=best?.reps||0;
+                      return(
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:9,paddingBottom:9,borderBottom:"1px solid rgba(0,0,0,0.05)"}}>
+                          <div style={{fontFamily:AF,fontSize:13,color:"#111",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:10}}>{ex.name}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(17,17,17,0.45)",flexShrink:0,textAlign:"right"}}>
+                            {bestW>0?<><MN value={bestW} format={{useGrouping:true}}/> lbs × <MN value={bestR}/></>
+                              :bestR>0?<><MN value={bestR}/> reps</>
+                              :`${arr.length} sets`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)"}}>No exercise detail saved</div>
                 )}
-                <div style={{overflow:"hidden",maxHeight:wkExpanded?"1200px":"0",transition:reducedMotion?"none":"max-height 0.38s ease"}}>
-                  {(selWorkout.workout?.exercises||[]).map((ex,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:9,paddingBottom:9,borderBottom:"1px solid rgba(0,0,0,0.06)"}}>
-                      <div style={{fontFamily:AF,fontSize:13,color:"#111",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:10}}>{ex.name}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(17,17,17,0.45)",flexShrink:0}}>
-                        {ex.sets?.length||0}×{ex.sets?.[0]?.reps||"—"}{ex.sets?.[0]?.weight?` · ${ex.sets[0].weight}lbs`:""}
-                      </div>
-                    </div>
-                  ))}
-                  {!selWorkout.workout?.exercises?.length&&<div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)",paddingTop:8}}>No exercise detail saved</div>}
-                </div>
               </>) : (
                 <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No session logged</div>
               )}
@@ -7706,17 +7713,21 @@ Rules:
 
             {/* ── PAST DAY: nutrition ── */}
             <div style={{marginBottom:22}}>
-              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"rgba(17,17,17,0.42)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>NUTRITION</div>
+              {/* Pill header */}
+              <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut',delay:0.06}}
+                style={{display:"inline-flex",background:"#22C55E",borderRadius:20,padding:"4px 14px",marginBottom:14}}>
+                <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Nutrition</span>
+              </motion.div>
               {dayFoodLoading ? (
                 <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
               ) : selMacros ? (<>
                 {/* Day macro chips */}
                 <div style={{display:"flex",gap:6,marginBottom:18}}>
                   {[
-                    {k:"CAL",  v:<MN value={Math.round(selMacros.calories)} format={{useGrouping:true}}/>, u:"",  c:"#111"},
-                    {k:"P",    v:<MN value={Math.round(selMacros.protein)}/>,                               u:"g", c:T.prot},
-                    {k:"C",    v:<MN value={Math.round(selMacros.carbs)}/>,                                 u:"g", c:T.carb},
-                    {k:"F",    v:<MN value={Math.round(selMacros.fat)}/>,                                   u:"g", c:T.fat},
+                    {k:"CAL",v:<MN value={Math.round(selMacros.calories)} format={{useGrouping:true}}/>,u:"",  c:"#111"},
+                    {k:"P",  v:<MN value={Math.round(selMacros.protein)}/>,                               u:"g",c:T.prot},
+                    {k:"C",  v:<MN value={Math.round(selMacros.carbs)}/>,                                 u:"g",c:T.carb},
+                    {k:"F",  v:<MN value={Math.round(selMacros.fat)}/>,                                   u:"g",c:T.fat},
                   ].map(({k,v,u,c})=>(
                     <div key={k} style={{flex:1,background:"rgba(17,17,17,0.04)",borderRadius:10,padding:"8px 6px",textAlign:"center"}}>
                       <div style={{fontFamily:AF,fontWeight:700,fontSize:8,color:"rgba(17,17,17,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>{k}</div>
