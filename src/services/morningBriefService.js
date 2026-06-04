@@ -1,4 +1,6 @@
 import { sb, ai } from '../client';
+import { getTodayInsights } from './validationService.js';
+import { recallApplicableLearnings } from './coachMemoryService.js';
 import { getHyroxPhase } from './hyroxPeriodisationService.js';
 import { getTodayNutritionProtocol } from './nutritionPeriodisationService.js';
 import { getRunningPhase } from './runningPeriodisationService.js';
@@ -84,7 +86,7 @@ export async function gatherBriefContext(userId) {
   const strengthCompDate = row?.strength_comp_date || wp.strengthCompDate || null;
   const strengthPhase = strengthCompDate ? getStrengthPhase(strengthCompDate) : null;
 
-  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow] = await Promise.all([
+  const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow, rawValidationInsights] = await Promise.all([
     getActiveDeload(userId).catch(() => null),
     getUpcomingDeload(userId).catch(() => null),
     getActivePlateaus(userId).catch(() => []),
@@ -94,10 +96,27 @@ export async function gatherBriefContext(userId) {
     getTodayNutritionProtocol(userId).catch(() => null),
     sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null),
     sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null),
+    getTodayInsights(userId).catch(() => []),  // cached daily — fast SELECT
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
-  return {
+  // Pick the single most important validation finding (high/severe, highest confidence)
+  const PRIORITY_RANK = { severe: 0, high: 1, medium: 2, low: 3 };
+  const topValidation = (rawValidationInsights || [])
+    .filter(i => i.priority === 'severe' || i.priority === 'high')
+    .sort((a, b) => {
+      const pd = (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
+      return pd !== 0 ? pd : (b.confidence ?? 0) - (a.confidence ?? 0);
+    })[0] ?? null;
+
+  // Coach memory recall — only fires when there's a real high/severe finding
+  let memoryRecall = null;
+  if (topValidation) {
+    memoryRecall = await recallApplicableLearnings(userId, topValidation.insight_type, { goal: goalVal })
+      .catch(() => null);
+  }
+
+  const ctx = {
     name: firstName,
     primaryGoal: goalNames[p.primaryGoal || goal] || (p.primaryGoal || goal),
     todayFocus,
@@ -155,6 +174,23 @@ export async function gatherBriefContext(userId) {
     preLoadingNote: null,   // computed below
     proteinInsight: null,   // computed below
     hrvNote: null,          // computed below
+    // Intelligence layers
+    topValidation: topValidation ? {
+      type:           topValidation.insight_type,
+      priority:       topValidation.priority,
+      message:        topValidation.message,
+      recommendation: topValidation.recommendation,
+      confidence:     topValidation.confidence ?? 70,
+    } : null,
+    memoryRecall: (memoryRecall?.has_applicable_history && memoryRecall?.intelligent_suggestion) ? {
+      suggestion:  memoryRecall.intelligent_suggestion,
+      pastExample: memoryRecall.similar_past?.[0] ? {
+        intervention: memoryRecall.similar_past[0].intervention,
+        outcome:      memoryRecall.similar_past[0].outcome,
+        effectiveness:memoryRecall.similar_past[0].effectiveness,
+        when:         memoryRecall.similar_past[0].date,
+      } : null,
+    } : null,
   };
 
   // Derive tomorrow's session from the schedule for pre-loading
@@ -328,6 +364,23 @@ ${JSON.stringify({
 
 Use this data to make the brief feel like a real coach who knows this athlete intimately. Reference soreness by muscle name if reported. Acknowledge what is progressing. Be specific about today's session adjustments. Never be generic.` : '';
 
+  // Daily data-signal block — only for high/severe validated findings
+  const validationBlock = ctx.topValidation
+    ? `\n\nDAILY DATA SIGNAL (${ctx.topValidation.priority.toUpperCase()}, ${ctx.topValidation.confidence}% confidence):
+${ctx.topValidation.message}
+Suggested action: ${ctx.topValidation.recommendation}
+INSTRUCTION: Weave this into coach_says as ONE sharp, specific line spoken like a coach who noticed this in the data. Do NOT present it as a system alert or list it separately. Example: "Protein only hit 40% of days this week — that's the gap between good and great right now." Keep the rest of the brief tight.`
+    : '';
+
+  // Coach memory block — only when there's applicable history
+  const memoryBlock = ctx.memoryRecall?.suggestion
+    ? `\n\nCOACH MEMORY — WHAT WORKED BEFORE:
+${ctx.memoryRecall.suggestion}${ctx.memoryRecall.pastExample?.intervention
+      ? `\nPreviously: ${ctx.memoryRecall.pastExample.intervention} → outcome: ${ctx.memoryRecall.pastExample.outcome} (${ctx.memoryRecall.pastExample.when})`
+      : ''}
+INSTRUCTION: If directly relevant today, add one sentence to coach_says in the style "last time X happened, Y made the difference." Only include if it genuinely applies — don't force a callback. Never more than one sentence.`
+    : '';
+
   // Training load block
   const { data: loadLogs } = await sb.from('workout_logs').select('date,session_duration_mins,workout,volume_lbs').eq('user_id', (await sb.auth.getUser()).data.user?.id ?? 'x').gte('date', (() => { const d=new Date(); d.setDate(d.getDate()-60); return d.toISOString().split('T')[0]; })()).order('date',{ascending:false}).limit(60).catch(()=>({data:[]}));
   const load = computeLoadMetrics(ctx._workoutLogs ?? loadLogs ?? []);
@@ -358,7 +411,7 @@ Use this data to make the brief feel like a real coach who knows this athlete in
     ? `\n\nPROTEIN INSIGHT: ${ctx.proteinInsight.message}`
     : '';
 
-  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}${tsbBlock}${hrvBlock}${cycleBlock}${domsBlock}${weatherBlock}${preLoadBlock}${proteinBlock}
+  const prompt = `You are Coach Macro, a world-class personal trainer. Generate a structured morning briefing for your athlete.\n\n${writingStyleBlock}${deloadBlock ? `\n\n${deloadBlock}` : ''}${fatigueBlock ? `\n\n${fatigueBlock}` : ''}${adjustmentBlock ? `\n\n${adjustmentBlock}` : ''}${plateauBlock ? `\n\n${plateauBlock}` : ''}${muscleImbalanceBlock ? `\n\n${muscleImbalanceBlock}` : ''}${nutritionBlock ? `\n\n${nutritionBlock}` : ''}${runningBlock ? `\n\n${runningBlock}` : ''}${strengthCompBlock ? `\n\n${strengthCompBlock}` : ''}${goalTimelineBlock ? `\n\n${goalTimelineBlock}` : ''}${femaleHealthBlock ? `\n\n${femaleHealthBlock}` : ''}${strengthWeightClassBlock ? `\n\n${strengthWeightClassBlock}` : ''}${adaptiveBlock}${validationBlock}${memoryBlock}${tsbBlock}${hrvBlock}${cycleBlock}${domsBlock}${weatherBlock}${preLoadBlock}${proteinBlock}
 
 Context:
 - Name: ${ctx.name}
