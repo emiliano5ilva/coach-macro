@@ -28,7 +28,12 @@ export default withLogging(async function handler(req, res) {
   }
 
   // Log ticket to DB for admin dashboard tracking (fire-and-forget)
-  sb.from('support_tickets').insert({ name, email, category: category || 'general', subject, description }).catch(() => {});
+  (async () => {
+    try {
+      const { error } = await sb.from('support_tickets').insert({ name, email, category: category || 'general', subject, description });
+      if (error) console.error('support ticket insert failed:', error);
+    } catch (e) { console.error('support ticket insert threw:', e); }
+  })();
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
