@@ -77,12 +77,12 @@ export async function ai(prompt, max = 900, feature = "default") {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${session.access_token}`,
   };
-  const response = await fetch(`${API_BASE}/api/claude`, {
-    method: "POST",
-    headers,
-    body,
-  });
+  const _url = `${API_BASE}/api/claude`;
+  console.log('[ai] POST', _url, '| feature:', feature, '| max:', max);
+  const response = await fetch(_url, { method: "POST", headers, body });
+  console.log('[ai] response status:', response.status, '| feature:', feature);
   const text = await response.text();
+  console.log('[ai] response body (first 300):', text.slice(0, 300));
   const d = JSON.parse(text);
   if (response.status === 402) {
     window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));

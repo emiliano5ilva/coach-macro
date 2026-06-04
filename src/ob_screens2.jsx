@@ -7618,8 +7618,17 @@ Rules:
                     ))}
                   </div>
                 ) : morningBriefError ? (
-                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)",fontStyle:"italic"}}>
-                    Couldn't load brief — pull down to retry.
+                  <div>
+                    <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)",fontStyle:"italic",marginBottom:6}}>
+                      Couldn't load brief.
+                    </div>
+                    {/* Temp debug — shows exact error on device; remove after fix confirmed */}
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#FF3B30",lineHeight:1.5,marginBottom:8,wordBreak:"break-all"}}>
+                      {morningBriefError}
+                    </div>
+                    <button onClick={()=>{setMorningBriefError(null);setMorningBriefLoading(false);setBriefTrigger(t=>t+1);}} style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"#FF3B30",background:"none",border:"none",padding:0,cursor:"pointer",letterSpacing:"0.06em",textTransform:"uppercase"}}>
+                      RETRY →
+                    </button>
                   </div>
                 ) : briefExpandedLocal ? (
                   // ── EXPANDED: coach monologue ──
