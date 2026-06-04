@@ -7416,7 +7416,6 @@ Rules:
     useEffect(()=>{
       if(!GOCLUB_REDESIGN||reducedMotion) return;
       function onScroll(){
-        if(!isToday){ zipperLastRef.current=window.scrollY; zipperAccRef.current=0; return; }
         const cur=window.scrollY;
         const delta=Math.abs(cur-zipperLastRef.current);
         zipperLastRef.current=cur;
