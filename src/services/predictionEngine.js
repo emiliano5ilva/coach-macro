@@ -6,14 +6,15 @@ export async function calcNutritionAdherence7d(userId) {
     const since = new Date(Date.now() - 7 * 864e5).toISOString().split("T")[0];
     const { data } = await sb
       .from("food_logs")
-      .select("date,calories,goal_calories")
+      .select("date,entries,goal_calories")
       .eq("user_id", userId)
       .gte("date", since);
     if (!data?.length) return 0.5;
     const days = {};
     data.forEach(r => {
+      const cal = (r.entries || []).reduce((s, e) => s + (e.calories || 0), 0);
       if (!days[r.date]) days[r.date] = { cal: 0, goal: r.goal_calories || 2000 };
-      days[r.date].cal += r.calories || 0;
+      days[r.date].cal += cal;
     });
     const adherences = Object.values(days).map(({ cal, goal }) => {
       const ratio = cal / goal;

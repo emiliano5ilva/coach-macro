@@ -132,13 +132,16 @@ export default withLogging(async function handler(req, res) {
   }
 
   // ── Increment photo call count ─────────────────────────────────────────────
-  await sb.from('ai_usage').upsert({
-    user_id:          userId,
-    date:             today,
-    call_count:       dailyUsage?.call_count || 0,
-    photo_call_count: (dailyUsage?.photo_call_count || 0) + 1,
-    updated_at:       new Date().toISOString(),
-  }, { onConflict: 'user_id,date' }).catch(() => {});
+  try {
+    const { error } = await sb.from('ai_usage').upsert({
+      user_id:          userId,
+      date:             today,
+      call_count:       dailyUsage?.call_count || 0,
+      photo_call_count: (dailyUsage?.photo_call_count || 0) + 1,
+      updated_at:       new Date().toISOString(),
+    }, { onConflict: 'user_id,date' });
+    if (error) console.error('ai_usage upsert failed:', error);
+  } catch (e) { console.error('ai_usage upsert threw:', e); }
 
   // ── Token tracking (analytics — not a rate gate) ───────────────────────────
   const thisMonth = new Date().toISOString().slice(0, 7);
@@ -264,10 +267,13 @@ Portion reference:
 
     // Track token usage
     const tokensUsed = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
-    await sb.from('token_usage').upsert(
-      { user_id: userId, month: thisMonth, tokens_used: usedSoFar + tokensUsed },
-      { onConflict: 'user_id,month' }
-    ).catch(() => {});
+    try {
+      const { error } = await sb.from('token_usage').upsert(
+        { user_id: userId, month: thisMonth, tokens_used: usedSoFar + tokensUsed },
+        { onConflict: 'user_id,month' }
+      );
+      if (error) console.error('token_usage upsert failed:', error);
+    } catch (e) { console.error('token_usage upsert threw:', e); }
 
     if (analysis.error) return res.status(200).json(analysis);
 

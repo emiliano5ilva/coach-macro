@@ -142,13 +142,16 @@ export default withLogging(async function handler(req, res) {
   }
 
   // ── 3. Increment daily call count ─────────────────────────────────────────
-  await sb.from('ai_usage').upsert({
-    user_id:          userId,
-    date:             today,
-    call_count:       (dailyUsage?.call_count || 0) + 1,
-    photo_call_count: dailyUsage?.photo_call_count || 0,
-    updated_at:       new Date().toISOString(),
-  }, { onConflict: 'user_id,date' }).catch(() => {});
+  try {
+    const { error } = await sb.from('ai_usage').upsert({
+      user_id:          userId,
+      date:             today,
+      call_count:       (dailyUsage?.call_count || 0) + 1,
+      photo_call_count: dailyUsage?.photo_call_count || 0,
+      updated_at:       new Date().toISOString(),
+    }, { onConflict: 'user_id,date' });
+    if (error) console.error('ai_usage upsert failed:', error);
+  } catch (e) { console.error('ai_usage upsert threw:', e); }
 
   // ── Token tracking (analytics — not a rate gate) ───────────────────────────
   const thisMonth = new Date().toISOString().slice(0, 7);
