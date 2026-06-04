@@ -3162,9 +3162,11 @@ Reply with ONLY a valid JSON object, no markdown:
         {fuelScreen==="log"&&(
           <div style={{maxWidth:isMobile?"100%":600,padding:"0 16px"}}>
             {/* Header */}
-            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
-              <button onClick={()=>setFuelScreen("home")} style={{background:"none",border:"none",color:"#f5f5f0",fontSize:20,cursor:"pointer",padding:"0 4px 0 0",lineHeight:1,flexShrink:0}}>←</button>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>LOG FOOD</div>
+            <div style={{marginBottom:20}}>
+              {GOCLUB_REDESIGN
+                ?<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:28,color:"#f5f5f0",lineHeight:1.05,letterSpacing:"-0.01em"}}>Log Food</div>
+                :<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>LOG FOOD</div>
+              }
             </div>
 
             {/* Step 1: Meal selection */}
