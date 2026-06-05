@@ -19,6 +19,7 @@ import { TrainSection, ConnectSection, SettingsSection,
   WeekStrip } from "./sections.jsx";
 import { getWorkoutForDay } from "./programs.js";
 import { FuelSection } from "./fuel.jsx";
+import { scanTextAllergens, findAllergens } from "./utils/allergenFilter.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
@@ -26,6 +27,9 @@ import { getCycleNutrition, getConsistencyScore, showConsistencyScore, isCalorie
 import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget } from "./utils/dayTypeNutrition.js";
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
 import { displayDistance, distanceLabel } from "./utils/units.js";
+import { minSecToInterval, PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
+import { getTodayRunWorkout, getTodayHyroxWorkout } from "./running_programs.js";
+import { getPacesFromTime, resolvePaceTokens } from "./utils/runningPaces.js";
 import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
 import { calculatePRProbability, generateWeeklyForecast, calculateGoalTrajectories, calcNutritionAdherence7d, trackPredictionOutcome } from "./services/predictionEngine.js";
 import { detectMetabolicAdaptation, generateAdaptationProtocol, buildProtocolPhases, saveDetectedAdaptation, getActiveAdaptation, dismissAdaptation, startProtocol as startMetabolicProtocol, completeProtocol, getProtocolProgress } from "./services/metabolicAdaptation.js";
@@ -40,6 +44,7 @@ import FeatureStrip from "./components/FeatureStrip.jsx";
 import { getMorningBrief } from "./services/morningBriefService.js";
 import { getHyroxPhase, getRaceTimePredictor } from "./services/hyroxPeriodisationService.js";
 import SorenessCheckIn, { SorenesSummary } from "./components/SorenessCheckIn.jsx";
+import { Icon } from "@iconify/react";
 import { trainedYesterday, alreadyLoggedToday, getTodaySoreness } from "./services/sorenessService.js";
 import { getSlotsForFreq, getSlotTargets, getLoggedSlots, getSlotLabel, normaliseSlotToNumber } from "./utils/mealSlots.js";
 import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
@@ -3789,7 +3794,7 @@ const _PLAN_DAY_MAP = {
 };
 const _PLAN_DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt,setSection,setPlanBuilt:_spb}){
+function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt,setSection,setPlanBuilt:_spb,onProfileUpdate}){
   const AF="'Archivo',sans-serif";
   const reducedMotion=typeof window!=="undefined"&&window.matchMedia?.("(prefers-reduced-motion:reduce)").matches;
 
@@ -3828,6 +3833,22 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
   const [hyroxProgram,setHyroxProgram]=useState(null);     // → wPrefs.hyroxProgram (getProgramForUser reads it after this pass)
   const [lastPeriodDate,setLastPeriodDate]=useState("");   // → profile.lastPeriodDate (cycle-phase display reads it)
   const [lifeStage,setLifeStage]=useState(null);           // → profile.lifeStage (TrainSection safety banners read it)
+  // run_distance two-stage state
+  const [runDistMode,setRunDistMode]=useState(null); // null | 'race' | 'general' — stage-1 choice
+  const [runFocus,setRunFocus]=useState(null);       // 'endurance'|'speed'|'consistency' — general path only
+  // run_frequency + run_longest (4b-4)
+  const [runFrequency,setRunFrequency]=useState(null); // int 0–5 → wprefs.currentRunsPerWeek
+  const [longestRunMi,setLongestRunMi]=useState(null); // int mi → wprefs.longestRunMi
+  // run_longday (4b-6)
+  const [longRunDay,setLongRunDay]=useState(null);     // day string → wprefs.longRunDay
+  // run_timeline (4b-3)
+  const [hasRaceDate,setHasRaceDate]=useState(null);   // null | 'yes' | 'no'
+  const [raceDateStr,setRaceDateStr]=useState('');     // ISO date string → wprefs.runRaceDate
+  const [planWeeks,setPlanWeeks]=useState(null);       // 8|12|14|16 → wprefs.planWeeks
+  // run_recovery (4b-5)
+  const [recoverySpeed,setRecoverySpeed]=useState(null); // 'fast'|'normal'|'slow'|'very_slow' → wprefs.recoveryCapacity
+  // run_daymodality (4b-7) — hybrid only
+  const [dayPlan,setDayPlan]=useState(null); // { Mon:{run,lift,liftFocus}, ... } → wprefs.dayPlan
 
   useEffect(()=>{
     if(!building||reducedMotion) return;
@@ -3840,15 +3861,22 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
   const _stepSeq=useMemo(()=>{
     const seq=["focus"];
     if(focus==="strength") seq.push("split");
-    else if(focus==="run")    seq.push("run_goal","run_5k");
+    else if(focus==="run"){
+      seq.push("run_distance","run_5k");
+      // run_timeline: shown for race plans; skipped entirely for general (no race).
+      if(runDistMode!=='general') seq.push("run_timeline");
+      seq.push("run_frequency","run_longest","run_recovery");
+    }
     else if(focus==="hybrid") seq.push("hyb_base","hyb_split");
     else if(focus==="hyrox")  seq.push("hyx_exp");
     seq.push("days");
+    if(focus==="hybrid") seq.push("run_daymodality"); // hybrid only — maps run vs lift days + heavy-lower
+    if(focus==="run"||focus==="hybrid") seq.push("run_longday");
     if(isFemale) seq.push("cycle","lifestage");
     seq.push("meals","summary");
     return seq;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[focus,isFemale]);
+  },[focus,isFemale,runDistMode]);
   function nextStep(cur){const i=_stepSeq.indexOf(cur);return i<_stepSeq.length-1?_stepSeq[i+1]:cur;}
   function prevStep(cur){const i=_stepSeq.indexOf(cur);return i>0?_stepSeq[i-1]:cur;}
   const totalSteps=_stepSeq.length-1; // summary is not a numbered bar segment
@@ -3882,15 +3910,38 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
       const newSchedule=buildSchedule();
       const newWPrefs={
         ...wPrefs,
-        // Strength split (strength path) or fallback for other paths
-        splitType:(focus==="run"||focus==="hyrox")?(wPrefs?.splitType||"Full Body"):splitType,
         isHybrid:focus==="hybrid",
         isHyrox:focus==="hyrox",
+        // Clean run-focus identity — prevents stale lifting/hybrid state from leaking into routing.
+        ...(focus==="run"?{splitType:null,isRunFocus:true,isLifting:false}:{}),
+        // Strength split (strength path) or hyrox fallback
+        ...(focus==="strength"?{splitType}:{}),
+        ...(focus==="hyrox"?{splitType:wPrefs?.splitType||"Full Body"}:{}),
         // Branch-specific fields — each has a live consumer in program generation
         ...(focus==="run"&&runPlan?{runPlan}:{}),
+        ...(focus==="run"&&runFocus?{runFocus}:{}),
+        ...(focus==="run"&&runFrequency!=null?{currentRunsPerWeek:runFrequency}:{}),
+        ...(focus==="run"&&longestRunMi!=null?{longestRunMi}:{}),
+        // 4b-3: race timeline / plan length
+        ...(focus==="run"&&hasRaceDate==='yes'&&raceDateStr?{runRaceDate:raceDateStr,runPlanStartDate:new Date().toISOString().split('T')[0]}:{}),
+        ...(focus==="run"&&hasRaceDate==='no'&&planWeeks?{planWeeks}:{}),
+        ...(focus==="run"&&runDistMode==='general'?{planWeeks:12}:{}),
+        // 4b-5: recovery capacity (maps to RC_MAP: fast=4, normal=3, slow=2, very_slow=1)
+        ...(focus==="run"&&recoverySpeed?{recoveryCapacity:recoverySpeed}:{}),
+        // longRunDay: use explicit user choice, or fall back to the pre-fill (Sat > Sun > last day)
+        ...((focus==="run"||focus==="hybrid")?(()=>{
+          const _td=_PLAN_DAYS.filter(d=>selDays.has(d));
+          const _pref=_td.includes('Sat')?'Sat':_td.includes('Sun')?'Sun':(_td[_td.length-1]||null);
+          const _lrd=longRunDay||_pref;
+          return _lrd?{longRunDay:_lrd}:{};
+        })():{},),
         ...(focus==="hybrid"&&hybridTemplate?{hybridTemplate}:{}),
+        ...(focus==="hybrid"&&dayPlan?{dayPlan}:{}),
         ...(focus==="hyrox"&&hyroxProgram?{hyroxProgram}:{}),
       };
+      // Remove stale dayPlan for run-only — a hybrid dayPlan causes deriveDayModality priority-1
+      // to pick wrong run days, showing only 1 session when the account switches from hybrid to run.
+      if(focus==="run") delete newWPrefs.dayPlan;
       const updatedProfile={
         ...profile,
         mealFreq,
@@ -3898,15 +3949,38 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         ...(isFemale&&lastPeriodDate?{lastPeriodDate}:{}),
         ...(isFemale&&lifeStage?{lifeStage}:{}),
       };
+      // Dedicated-column writes for run/hybrid focus — these are not in the wprefs JSONB
+      // and are not written by System 1's saveProfile when PlanOnboarding is the entry point.
+      const _isRunFocus = focus === "run" || focus === "hybrid";
+      // General path: runDistMode==='general' → run_race_type='general'; race path: derive from runPlan.
+      const _runRaceType = _isRunFocus
+        ? (runDistMode === 'general' ? 'general' : (runPlan ? PLAN_TO_RACE_TYPE[runPlan] || null : null))
+        : null;
+      const _runRaceDate = _isRunFocus ? (newWPrefs.runRaceDate || null) : null;
+      // run_target_time: set by R-screens in Step 4b; use existing wprefs value if present
+      const _runTargetTime = _isRunFocus
+        ? minSecToInterval(newWPrefs.runTargetTimeMin, newWPrefs.runTargetTimeSec) || null
+        : null;
+      const _recoveryCapacity = _isRunFocus ? (newWPrefs.recoveryCapacity || 'normal') : null;
+
       await sb.from("profiles").upsert({
         id:user.id,
         wprefs:newWPrefs,
         schedule:newSchedule,
         profile_data:updatedProfile,
         updated_at:new Date().toISOString(),
+        // Dedicated columns for run/hybrid only
+        ...(_isRunFocus && {
+          run_race_type:    _runRaceType,
+          run_race_date:    _runRaceDate,
+          run_target_time:  _runTargetTime,
+          recovery_capacity:_recoveryCapacity,
+        }),
       },{onConflict:"id"});
       setWPrefs(newWPrefs);
       setSchedule(newSchedule);
+      // Propagate dedicated-column values into React profile state so routing picks them up immediately.
+      if(_isRunFocus && onProfileUpdate) onProfileUpdate({run_race_type:_runRaceType,run_race_date:_runRaceDate,recovery_capacity:_recoveryCapacity});
       await markPlanBuilt();
       const elapsed=Date.now()-startedAt;
       if(elapsed<1500) await new Promise(r=>setTimeout(r,1500-elapsed));
@@ -4038,22 +4112,59 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         </div>
       );
 
-      // ── RUN GOAL (P2 run) — wPrefs.runPlan, fixes always-C25K default ──
-      case "run_goal": return(
-        <div>
-          {eyebrow}
-          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Running<br/>goal?</div>
-          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Picks the right program structure for you.</div>
-          {[
-            {v:"Couch to 5K",    l:"Just starting out",    d:"Start from scratch — 8 weeks to your first 5K"},
-            {v:"Sub-25 5K",      l:"Go faster — sub-25",   d:"Break the 25-minute barrier for 5K"},
-            {v:"10K Training",   l:"Build to 10K",          d:"Step up from 5K to 10K distance"},
-            {v:"Half Marathon",  l:"Half marathon",         d:"Train for 13.1 miles / 21.1 km"},
-            {v:"Advanced Marathon",l:"Full marathon",       d:"26.2 miles — serious marathon performance"},
-          ].map(o=>optPill(runPlan===o.v,()=>{setRunPlan(o.v);setP2Touched(true);},o.l,o.d))}
-          {contAfterTap(p2Touched,"rg-cont")}
-        </div>
-      );
+      // ── RUN DISTANCE (P2 run) — two-stage progressive reveal ──────────────────
+      // Stage 1: race vs general training (always shown).
+      // Stage 2: distance picker (race) or focus picker (general) — animated in below.
+      case "run_distance": {
+        const rdReady = (runDistMode==='race'&&runPlan!==null)||(runDistMode==='general'&&runFocus!==null);
+        return(
+          <div>
+            {eyebrow}
+            <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>What are you<br/>training for?</div>
+            <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:20}}>This shapes your whole plan.</div>
+            {/* Stage 1 */}
+            {[
+              {v:"race",    l:"Training for a race",       d:"5K, 10K, half, or full marathon"},
+              {v:"general", l:"Training to get better",    d:"No specific race — build fitness and stay sharp"},
+            ].map(o=>(
+              <div key={o.v} onClick={()=>{_hL();if(runDistMode!==o.v){setRunDistMode(o.v);setRunPlan(null);setRunFocus(null);setP2Touched(false);}}} style={pill(runDistMode===o.v)}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{o.l}</div>
+                    <div style={{fontFamily:AF,fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:2}}>{o.d}</div>
+                  </div>
+                  {runDistMode===o.v&&chk}
+                </div>
+              </div>
+            ))}
+            {/* Stage 2 — animated reveal once stage 1 is picked */}
+            <AnimatePresence>
+              {runDistMode==='race'&&(
+                <motion.div key="rd-race" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} transition={{duration:0.22,ease:"easeOut"}}>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(255,255,255,0.45)",marginTop:20,marginBottom:12}}>Which distance?</div>
+                  {[
+                    {v:"5K",           l:"5K",           d:"3.1 miles — speed, fitness, or first race"},
+                    {v:"10K",          l:"10K",          d:"6.2 miles — next step from 5K"},
+                    {v:"Half Marathon", l:"Half Marathon", d:"13.1 miles / 21.1 km"},
+                    {v:"Marathon",     l:"Marathon",      d:"26.2 miles / 42.2 km"},
+                  ].map(o=>optPill(runPlan===o.v,()=>{setRunPlan(o.v);setP2Touched(true);},o.l,o.d))}
+                </motion.div>
+              )}
+              {runDistMode==='general'&&(
+                <motion.div key="rd-general" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} transition={{duration:0.22,ease:"easeOut"}}>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(255,255,255,0.45)",marginTop:20,marginBottom:12}}>What's your focus?</div>
+                  {[
+                    {v:"endurance",    l:"Build endurance",    d:"More mileage, longer long runs — aerobic base"},
+                    {v:"speed",        l:"Get faster",         d:"More intervals and speed work"},
+                    {v:"consistency",  l:"Stay consistent",    d:"Steady maintenance — just keep running"},
+                  ].map(o=>optPill(runFocus===o.v,()=>{setRunFocus(o.v);setP2Touched(true);},o.l,o.d))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {contAfterTap(rdReady,"rd-cont")}
+          </div>
+        );
+      }
 
       // ── RUN 5K TIME (P3 run) — profile.current5KTime, unlocks pace zones ─
       case "run_5k": return(
@@ -4088,6 +4199,275 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           <button onClick={()=>advance(step)} style={{display:"block",width:"100%",marginTop:fiveKSecs?8:20,background:"none",border:"none",color:"rgba(255,255,255,0.35)",fontFamily:AF,fontSize:13,cursor:"pointer",padding:"8px 0",textAlign:"center"}}>Skip for now</button>
         </div>
       );
+
+      // ── RUN FREQUENCY (4b-4) — wprefs.currentRunsPerWeek — volume-safety anchor ─
+      case "run_frequency": return(
+        <div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>How many days<br/>do you run now?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Right now — not your goal. This is your current weekly running, not how many days you're committing to going forward.</div>
+          {[
+            {v:0,l:"0 days",d:"I don't currently run"},
+            {v:1,l:"1 day a week",d:"Occasional, one run when I get to it"},
+            {v:2,l:"2 days a week",d:"A couple of times a week"},
+            {v:3,l:"3 days a week",d:"Running regularly"},
+            {v:4,l:"4 days a week",d:"Frequent runner"},
+            {v:5,l:"5 or more",d:"Running most days"},
+          ].map(o=>optPill(runFrequency===o.v,()=>{setRunFrequency(o.v);setP2Touched(true);},o.l,o.d))}
+          {contAfterTap(runFrequency!=null,"rf-cont")}
+        </div>
+      );
+
+      // ── RUN LONGEST (4b-4) — wprefs.longestRunMi — hard-required for half/marathon ─
+      case "run_longest": {
+        const _raceType = runDistMode==='general' ? 'general' : (PLAN_TO_RACE_TYPE[runPlan]||null);
+        const _hardRequired = _raceType==='half_marathon' || _raceType==='marathon';
+        const _canContinue = longestRunMi!=null || !_hardRequired;
+        return(
+          <div>
+            {eyebrow}
+            <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Longest run<br/>you're comfortable<br/>with today?</div>
+            <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:_hardRequired?12:28}}>Your longest comfortable run right now — this anchors your starting weekly volume.</div>
+            {_hardRequired&&(
+              <div style={{background:"rgba(255,59,48,0.08)",border:"1px solid rgba(255,59,48,0.25)",borderRadius:10,padding:"10px 14px",marginBottom:20}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase"}}>Required for {_raceType==='marathon'?'marathon':'half marathon'} training</div>
+              </div>
+            )}
+            {[
+              {v:1, l:"Under 2 miles",d:"Just getting started"},
+              {v:2, l:"2–3 miles",    d:"Can run a 5K or close"},
+              {v:4, l:"4–5 miles",    d:"Comfortable with 5–8 km"},
+              {v:6, l:"6–7 miles",    d:"Running 10K distances"},
+              {v:8, l:"8–9 miles",    d:"Double-digit km is familiar"},
+              {v:10,l:"10–12 miles",  d:"Half marathon territory"},
+              {v:13,l:"13+ miles",    d:"Half marathon or longer"},
+            ].map(o=>optPill(longestRunMi===o.v,()=>{setLongestRunMi(o.v);setP4Touched(true);},o.l,o.d))}
+            <AnimatePresence>
+              {_canContinue&&(longestRunMi!=null||!_hardRequired)&&(
+                <motion.div key="rl-cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:16}}>
+                  <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!_hardRequired&&(
+              <button onClick={()=>advance(step)} style={{display:"block",width:"100%",marginTop:longestRunMi?8:16,background:"none",border:"none",color:"rgba(255,255,255,0.35)",fontFamily:AF,fontSize:13,cursor:"pointer",padding:"8px 0",textAlign:"center"}}>Not sure — skip</button>
+            )}
+          </div>
+        );
+      }
+
+      // ── RUN TIMELINE (4b-3) — race date or plan length ────────────────────────
+      // Shown for race distances only; general focus is excluded from _stepSeq.
+      case "run_timeline": {
+        const _todayStr=new Date().toISOString().split('T')[0];
+        // Per-distance minimum plan weeks for the too-soon guard
+        const _MIN_WKS={'5K':6,'10K':8,'Half Marathon':10,'Marathon':12};
+        const _minWks=_MIN_WKS[runPlan]||8;
+        let _weeksToRace=null,_tooSoon=false;
+        if(raceDateStr){
+          const _rd=new Date(raceDateStr);
+          const _tod=new Date(); _tod.setHours(0,0,0,0);
+          _weeksToRace=Math.ceil((_rd-_tod)/(7*86400000));
+          _tooSoon=_weeksToRace<_minWks;
+        }
+        const _rtReady=(hasRaceDate==='yes'&&!!raceDateStr)||(hasRaceDate==='no'&&planWeeks!=null);
+        return(
+          <div>
+            {eyebrow}
+            <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Do you have a<br/>race date?</div>
+            <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:24}}>Helps us build your weekly schedule toward the finish line.</div>
+            {optPill(hasRaceDate==='yes',()=>setHasRaceDate('yes'),"Yes, I have a date","We'll build the plan backward from race day")}
+            {optPill(hasRaceDate==='no',()=>{setHasRaceDate('no');setRaceDateStr('');},"No race date yet","Pick a plan length instead")}
+            <AnimatePresence>
+              {hasRaceDate==='yes'&&(
+                <motion.div key="rt-date" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} transition={{duration:0.22,ease:"easeOut"}}>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(255,255,255,0.45)",marginTop:20,marginBottom:10}}>When is your {runPlan}?</div>
+                  <input
+                    type="date"
+                    value={raceDateStr}
+                    min={_todayStr}
+                    onChange={e=>setRaceDateStr(e.target.value)}
+                    style={{width:"100%",padding:"14px 16px",borderRadius:12,border:"1.5px solid rgba(255,255,255,0.2)",background:"rgba(255,255,255,0.08)",color:"#fff",fontFamily:AF,fontSize:16,boxSizing:"border-box",outline:"none",colorScheme:"dark"}}
+                  />
+                  {_tooSoon&&(
+                    <div style={{marginTop:12,background:"rgba(255,59,48,0.08)",border:"1px solid rgba(255,59,48,0.3)",borderRadius:10,padding:"10px 14px"}}>
+                      <div style={{fontFamily:AF,fontSize:13,color:"#FF6B60",lineHeight:1.55}}>
+                        A {runPlan} in {_weeksToRace} week{_weeksToRace===1?'':'s'} is aggressive — we recommend at least {_minWks}. We'll build the safest plan we can.
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+              {hasRaceDate==='no'&&(
+                <motion.div key="rt-weeks" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} transition={{duration:0.22,ease:"easeOut"}}>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(255,255,255,0.45)",marginTop:20,marginBottom:12}}>How many weeks would you like?</div>
+                  {[
+                    {v:8, l:"8 weeks",  d:"Quick block — get sharp fast"},
+                    {v:12,l:"12 weeks", d:"Standard — solid base and peak"},
+                    {v:14,l:"14 weeks", d:"More build time before race day"},
+                    {v:16,l:"16 weeks", d:"Full cycle — best for longer distances"},
+                  ].map(o=>optPill(planWeeks===o.v,()=>setPlanWeeks(o.v),o.l,o.d))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {contAfterTap(_rtReady,"rt-cont")}
+          </div>
+        );
+      }
+
+      // ── RUN RECOVERY (4b-5) — wprefs.recoveryCapacity — maps to RC_MAP in engine ─
+      // RC_MAP: fast→4, normal→3, slow→2, very_slow→1
+      case "run_recovery": return(
+        <div>
+          {eyebrow}
+          <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>How fast do you<br/>recover between<br/>hard sessions?</div>
+          <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:28}}>Shapes how aggressively we space your hard days and long run.</div>
+          {[
+            {v:'fast',     l:"Very fast",  d:"Ready to go the next day"},
+            {v:'normal',   l:"Normal",     d:"A bit sore for about a day"},
+            {v:'slow',     l:"Slower",     d:"Need 2–3 days to feel fresh"},
+            {v:'very_slow',l:"Very slow",  d:"4+ days to fully bounce back"},
+          ].map(o=>optPill(recoverySpeed===o.v,()=>setRecoverySpeed(o.v),o.l,o.d))}
+          {contAfterTap(recoverySpeed!=null,"rr-cont")}
+        </div>
+      );
+
+      // ── RUN DAY-MODALITY (4b-7) — hybrid only — maps each selected day to run/lift/heavy ─
+      case "run_daymodality": {
+        const _td=_PLAN_DAYS.filter(d=>selDays.has(d));
+        // Canonical lift cycles — same keys as HEAVY_LOWER_CYCLES in deriveDayModality
+        const _CYCS={
+          "Push/Pull/Legs":       ["Push","Pull","Legs"],
+          "Push/Pull/Legs x2":   ["Push","Pull","Legs","Push","Pull","Legs"],
+          "Dumbbell PPL":         ["Push","Pull","Legs"],
+          "Upper/Lower":          ["Upper","Lower"],
+          "Upper Lower":          ["Upper","Lower"],
+          "Dumbbell Upper Lower": ["Upper","Lower"],
+          "Bro Split":            ["Chest","Back","Shoulders","Arms","Legs"],
+          "Arnold Split":         ["Chest & Back","Shoulders & Arms","Legs"],
+          "PHUL":                 ["Upper","Lower","Upper","Lower"],
+        };
+        const _HEAVY_LABELS=new Set(["Legs","Lower"]);
+        const _cyc=_CYCS[splitType]||null;
+        const _n=_td.length;
+        // nLifts: one cycle's worth of lift days, leaving at least 2 run days for hybrid
+        const _nLifts=_cyc
+          ? Math.max(1,Math.min(_cyc.length,_n-2))
+          : splitType==="Full Body"
+          ? Math.max(1,Math.min(3,_n-2))
+          : Math.max(1,Math.min(Math.floor(_n/2),_n-2));
+        // Build inferred plan: first _nLifts days = lifts, rest = runs
+        const _infPlan={};
+        _td.forEach((d,i)=>{
+          if(i<_nLifts){
+            const _lbl=_cyc?_cyc[i%_cyc.length]:(splitType==="Full Body"?"Full Body":null);
+            const _lf=_HEAVY_LABELS.has(_lbl)?"heavy_lower":_lbl==="Full Body"?"full":"upper";
+            _infPlan[d]={run:false,lift:true,liftFocus:_lf};
+          } else {
+            _infPlan[d]={run:true,lift:false,liftFocus:null};
+          }
+        });
+        const _plan=dayPlan??_infPlan;
+        const _hasInf=!!_cyc||splitType==="Full Body";
+        const _getDayType=d=>{
+          const e=_plan[d];
+          if(!e||e.run) return 'run';
+          if(e.liftFocus==='heavy_lower') return 'heavy';
+          return 'lift';
+        };
+        const _setDay=(d,type)=>{
+          const _lf=type==='heavy'?'heavy_lower':type==='lift'?(splitType==='Full Body'?'full':'upper'):null;
+          setDayPlan({..._infPlan,...(dayPlan||{}),[d]:{run:type==='run',lift:type!=='run',liftFocus:_lf}});
+        };
+        const _tagSt=(active,type)=>({
+          padding:"5px 11px",borderRadius:100,fontSize:12,fontFamily:AF,fontWeight:700,
+          cursor:"pointer",touchAction:"manipulation",WebkitTapHighlightColor:"transparent",
+          border:`1.5px solid ${active?(type==='heavy'?"#FF3B30":type==='lift'?"#007AFF":"#34C759"):"rgba(255,255,255,0.15)"}`,
+          background:active?(type==='heavy'?"rgba(255,59,48,0.15)":type==='lift'?"rgba(0,122,255,0.15)":"rgba(52,199,89,0.15)"):"rgba(255,255,255,0.06)",
+          color:active?"#fff":"rgba(255,255,255,0.4)",
+        });
+        return(
+          <div>
+            {eyebrow}
+            <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Map your week</div>
+            <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:_hasInf?12:20}}>Which days are runs and which are lifts?</div>
+            {_hasInf&&(
+              <div style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 14px",marginBottom:20}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>Pre-filled from your {splitType} program — adjust if it's not right.</div>
+              </div>
+            )}
+            {_td.map(d=>{
+              const _cur=_getDayType(d);
+              const _lbl={run:"Run",lift:"Lift",heavy:"Heavy legs"};
+              return(
+                <div key={d} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:14,background:"rgba(255,255,255,0.06)",marginBottom:8}}>
+                  <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff",width:38,flexShrink:0}}>{d}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {(['run','lift','heavy']).map(type=>(
+                      <div key={type} onClick={()=>_setDay(d,type)} style={_tagSt(_cur===type,type)}>{_lbl[type]}</div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{marginTop:20}}>
+              <button onClick={()=>advance(step)} style={btn(true,false)}>Confirm</button>
+            </div>
+          </div>
+        );
+      }
+
+      // ── RUN LONGDAY (4b-6) — wprefs.longRunDay — which day is the long run ──────
+      case "run_longday": {
+        const _td=_PLAN_DAYS.filter(d=>selDays.has(d));
+        const _pref=_td.includes('Sat')?'Sat':_td.includes('Sun')?'Sun':(_td[_td.length-1]||null);
+        const _sel=longRunDay??_pref; // pre-filled if user hasn't tapped yet
+        // DOMS hint for hybrid: prefer explicit dayPlan (from run_daymodality),
+        // fall back to splitType cycle inference.
+        let _domsHint=null;
+        if(focus==="hybrid"){
+          // Priority 1: explicit heavy-lower day from dayPlan
+          const _heavyExplicit=_td.find(d=>dayPlan?.[d]?.liftFocus==='heavy_lower');
+          if(_heavyExplicit&&_pref&&_heavyExplicit!==_pref){
+            _domsHint=`We suggest ${_pref} — your heavy-leg day is ${_heavyExplicit}, so your legs are fresh by then.`;
+          } else if(!_heavyExplicit&&splitType){
+            // Priority 2: infer from split cycle if dayPlan not yet set
+            const _HEAVY_CYCLES={'Push/Pull/Legs':['Push','Pull','Legs'],'Push/Pull/Legs x2':['Push','Pull','Legs','Push','Pull','Legs'],'Upper/Lower':['Upper','Lower'],'Upper Lower':['Upper','Lower'],'Dumbbell Upper Lower':['Upper','Lower'],'Bro Split':['Chest','Back','Shoulders','Arms','Legs'],'Arnold Split':['Chest & Back','Shoulders & Arms','Legs'],'PHUL':['Upper','Lower','Upper','Lower']};
+            const _HEAVY=new Set(['Legs','Lower']);
+            const _cyc2=_HEAVY_CYCLES[splitType];
+            if(_cyc2){
+              const _h=_td.find((_,i)=>_HEAVY.has(_cyc2[i%_cyc2.length]));
+              if(_h&&_pref&&_h!==_pref) _domsHint=`We suggest ${_pref} — your heavy-leg day is ${_h}, so your legs are fresh by then.`;
+            }
+          }
+        }
+        return(
+          <div>
+            {eyebrow}
+            <div style={{fontFamily:AF,fontWeight:800,fontSize:38,lineHeight:1.05,letterSpacing:"-0.03em",color:"#fff",marginBottom:8}}>Which day is<br/>your long run?</div>
+            <div style={{fontFamily:AF,fontSize:14,color:"rgba(255,255,255,0.55)",marginBottom:20}}>The engine builds the rest of the week around this day — it's always easy-paced and longer.</div>
+            {_td.map(d=>(
+              <div key={d} onClick={()=>{_hL();setLongRunDay(d);}} style={pill(_sel===d)}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#fff"}}>{d}</div>
+                    {_sel===d&&!longRunDay&&<div style={{fontFamily:AF,fontSize:11,color:"rgba(255,255,255,0.45)",marginTop:2}}>Pre-selected based on your schedule</div>}
+                  </div>
+                  {_sel===d&&chk}
+                </div>
+              </div>
+            ))}
+            {_domsHint&&(
+              <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"10px 14px",marginTop:12,marginBottom:4}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(245,245,240,0.6)",lineHeight:1.55}}>{_domsHint}</div>
+              </div>
+            )}
+            <div style={{marginTop:16}}>
+              <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
+            </div>
+          </div>
+        );
+      }
 
       // ── HYBRID BASE (P2 hybrid) — wPrefs.hybridTemplate, fixes always-Balanced ─
       case "hyb_base": return(
@@ -4323,7 +4703,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
 const _GoClubHome = { current: null };
 function HomeSectionGoClub() { return _GoClubHome.current?.() ?? null; }
 
-export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user}) {
+export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user,onProfileUpdate}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   // planBuilt mirrors profiles.plan_built — owned as local state so markPlanBuilt can flip it
   // without needing setProfile (App gets profile as a prop from NativeApp, not as owned state).
@@ -4339,6 +4719,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [log,setLog]=useState([]);
   const [skippedSlots,setSkippedSlots]=useState([]);
   const [slotOverages,setSlotOverages]=useState({});
+  const [lockedSlots,setLockedSlots]=useState([]);
+  const [pendingTodaySlot,setPendingTodaySlot]=useState(null);
   const [foodInput,setFoodInput]=useState("");
   const [logging,setLogging]=useState(false);
   const [logMsg,setLogMsg]=useState("");
@@ -4507,8 +4889,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     hap?.();
     const today=new Date().toISOString().split("T")[0];
     await Promise.allSettled([
-      sb.from("food_logs").select("entries,skipped_slots,slot_overages").eq("user_id",user.id).eq("date",logDate).maybeSingle()
-        .then(({data})=>{if(data?.entries)setLog(data.entries);setSkippedSlots(data?.skipped_slots||[]);setSlotOverages(data?.slot_overages||{});}),
+      sb.from("food_logs").select("entries,skipped_slots,slot_overages,locked_slots").eq("user_id",user.id).eq("date",logDate).maybeSingle()
+        .then(({data})=>{if(data?.entries)setLog(data.entries);setSkippedSlots(data?.skipped_slots||[]);setSlotOverages(data?.slot_overages||{});setLockedSlots(data?.locked_slots||[]);}),
       getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[])),
       getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[])),
       sb.from("workout_logs").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(50)
@@ -4656,14 +5038,24 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     await sb.from("food_logs").upsert({user_id:user.id,date:today,slot_overages:newOverages},{onConflict:"user_id,date"});
   }
 
+  async function saveLockedSlots(newLocked){
+    if(!user)return;
+    setLockedSlots(newLocked);
+    const today=new Date().toISOString().split("T")[0];
+    await sb.from("food_logs").upsert({user_id:user.id,date:today,locked_slots:newLocked},{onConflict:"user_id,date"});
+  }
+
   function handlePhotoLog(entries){
     const isFirstMeal=log.length===0;
-    const newLog=[...entries,...log];
+    const _slots=getSlotsForFreq(profile?.mealFreq||"3");
+    const _defaultSlot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);
+    const tagged=entries.map(e=>({...e,slot:_resolveTargetSlot(typeof e.slot==='number'?e.slot:_defaultSlot,_slots,lockedSlots)}));
+    const newLog=[...tagged,...log];
     setLog(newLog);
     if(user){
       saveFoodLog(user.id,newLog);
-      const totals=entries.reduce((a,e)=>({calories:a.calories+e.calories,protein:a.protein+e.protein}),{calories:0,protein:0});
-      track(EVENTS.FOOD_LOGGED,{method:"photo",calories:totals.calories,protein:totals.protein,items:entries.length},user.id);
+      const totals=tagged.reduce((a,e)=>({calories:a.calories+e.calories,protein:a.protein+e.protein}),{calories:0,protein:0});
+      track(EVENTS.FOOD_LOGGED,{method:"photo",calories:totals.calories,protein:totals.protein,items:tagged.length},user.id);
     }
     setShowPhotoLogger(false);
     setFuelScreen("home");
@@ -4674,10 +5066,11 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   useEffect(()=>{
     if(!user)return;
     setLog([]);
-    sb.from("food_logs").select("entries,skipped_slots,slot_overages").eq("user_id",user.id).eq("date",logDate).maybeSingle().then(({data})=>{
+    sb.from("food_logs").select("entries,skipped_slots,slot_overages,locked_slots").eq("user_id",user.id).eq("date",logDate).maybeSingle().then(({data})=>{
       if(data?.entries)setLog(data.entries);
       setSkippedSlots(data?.skipped_slots||[]);
       setSlotOverages(data?.slot_overages||{});
+      setLockedSlots(data?.locked_slots||[]);
     });
   },[user,logDate]);
 
@@ -4782,7 +5175,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         generateAdaptationProtocol(plateau,profile).then(({explanation,phases:p})=>{
           const enriched={...saved,protocol:{phases:p,explanation,estimatedWeeklyLoss:p.estimatedWeeklyLoss}};
           setMetabolicAdaptation(enriched);
-          sb.from("metabolic_adaptations").update({protocol:enriched.protocol}).eq("id",saved.id).catch(()=>{});
+          (async()=>{try{await sb.from("metabolic_adaptations").update({protocol:enriched.protocol}).eq("id",saved.id);}catch(e){console.warn('[metabolic_adaptations update]',e);}})();
         }).catch(()=>{});
       }).catch(()=>{setAdaptationChecking(false);});
     }
@@ -4954,7 +5347,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
       case "reduce_volume_this_week":{
         const next={...wPrefs,lighterWeek:true,lighterWeekDate:new Date().toISOString().split("T")[0]};
         setWPrefs(next);
-        if(user)sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"}).catch(()=>{});
+        if(user)(async()=>{try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch(e){console.warn('[profiles upsert wprefs]',e);}})();
         showToast("Lighter week applied — 20% fewer sets this week 💪","success",{duration:5000});
         break;
       }
@@ -5075,6 +5468,26 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const todayType=schedule[todayKey]||"rest";
   const todayFocus=dayFocus[todayKey]||"Rest";
   const cfg=DAY_CFG[todayType]||DAY_CFG.rest;
+
+  // Run / hyrox focus detection — mirrors TrainSection prescType logic
+  const _prescIsRun  = !!(profile?.run_race_type) && !wPrefs?.isHybrid && !wPrefs?.isHyrox;
+  const _hybridRunDayHome = wPrefs?.isHybrid && !!(wPrefs?.dayPlan?.[todayKey]?.run) && !wPrefs?.dayPlan?.[todayKey]?.lift;
+  const todayIsRunDay = _prescIsRun || _hybridRunDayHome;
+  const todayIsHyrox  = !!wPrefs?.isHyrox && !wPrefs?.isHybrid; // hyrox-focused account
+
+  // Today's engine run session — same function TrainSection uses; tokens resolved inline
+  const todayRunSession = useMemo(()=>{
+    if(!todayIsRunDay||!profile) return null;
+    try{
+      const raw=getTodayRunWorkout(profile,wPrefs,schedule,todayKey,1); // weekNum ignored internally by buildRunEngineInputs
+      if(!raw||raw.isPostRace) return raw||null;
+      const _5k=wPrefs?.current5KTime||profile?.current5KTime||profile?.profile_data?.current5KTime;
+      const paces=getPacesFromTime(_5k);
+      if(paces&&raw.description) return{...raw,description:resolvePaceTokens(raw.description,paces)};
+      return raw;
+    }catch(e){ return null; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[todayKey,profile?.run_race_type,wPrefs?.isHybrid,wPrefs?.dayPlan,wPrefs?.runPlanStartDate,wPrefs?.current5KTime,schedule]);
 
   const allActs=[
     ...stravaActs.map(a=>({id:`st-${a.id}`,type:a.sport_type||"Workout",icon:{Run:"🏃",Ride:"🚴",Swim:"🏊",Walk:"🚶",WeightTraining:"💪",CrossFit:"🏋️"}[a.sport_type]||"💪",date:a.start_date_local,durationMin:Math.round((a.moving_time||0)/60),distanceKm:((a.distance||0)/1000).toFixed(2),calories:Math.round(a.calories||0),title:a.name,avgHR:a.average_heartrate||"",source:"Strava",sourceIcon:"🟠"})),
@@ -5283,15 +5696,20 @@ Be specific and practical. Empathetic tone. No fluff.`,
     const result=await lookupBarcode(barcode);setBarcodeResult(result);setBarcodeLoading(false);
     return result;
   }
-  function addBarcode(){if(!barcodeResult)return;const isFirstMeal=log.length===0;const entry={...barcodeResult,id:Date.now(),method:"barcode"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}}
-  function addQuick(){if(!quickFields.calories)return;const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick"};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"quick",calories:entry.calories,protein:entry.protein},user.id);}setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
+  function _getTimeBasedSlot(slots){const h=new Date().getHours(),n=slots.length;if(n<=0)return 1;const bounds=n===2?[13]:n===4?[10,13,18]:n===5?[9,12,15,19]:[8,10,13,16,19];const idx=bounds.findIndex(b=>h<b);return slots[idx===-1?n-1:Math.min(idx,n-1)]||slots[0]||1;}
+  function _resolveTargetSlot(inferred,slots,locked){if(!(locked||[]).includes(inferred))return inferred;const first=slots.find(s=>!(locked||[]).includes(s));if(first!==undefined)return first;showToast("All meals are locked for today.","info");return inferred;}
+  function addBarcode(){if(!barcodeResult)return;const isFirstMeal=log.length===0;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={...barcodeResult,id:Date.now(),method:"barcode",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"barcode",calories:barcodeResult.calories,protein:barcodeResult.protein},user.id);}setBarcodeResult(null);setBarcodeInput("");setLogMsg(`✓ ${barcodeResult.name} added`);if(isFirstMeal){const sl=wPrefs?.liftExp||profile?.profile_data?.liftExp||profile?.liftExp||'beginner';showToast(getWin('first_meal',sl)?.headline||'FIRST MEAL LOGGED.');}}
+  function addQuick(){if(!quickFields.calories)return;const _slots=getSlotsForFreq(profile?.mealFreq||"3");const _slot=_resolveTargetSlot(_getTimeBasedSlot(_slots),_slots,lockedSlots);const entry={food:quickFields.name||"Entry",calories:parseInt(quickFields.calories)||0,protein:parseInt(quickFields.protein)||0,carbs:parseInt(quickFields.carbs)||0,fat:parseInt(quickFields.fat)||0,id:Date.now(),method:"quick",slot:_slot};const newLog=[entry,...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"quick",calories:entry.calories,protein:entry.protein},user.id);}setQF({name:"",calories:"",protein:"",carbs:"",fat:""});}
   function removeLog(id){const newLog=log.filter(i=>i.id!==id);setLog(newLog);if(user)saveFoodLog(user.id,newLog);}
-  function logEntry(entry){const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
+  function logEntry(entry){const entrySlot=typeof entry.slot==='number'?entry.slot:null;if(entrySlot&&(lockedSlots||[]).includes(entrySlot))return;const newLog=[{...entry,id:Date.now(),method:"memory"},...log];setLog(newLog);if(user){saveFoodLog(user.id,newLog);track(EVENTS.FOOD_LOGGED,{method:"memory",calories:entry.calories,protein:entry.protein},user.id);}}
 
   async function fetchRecs(){
     if(recsLoading||!city.trim())return;
     setRecsLoading(true);setRecs("");
     const dietaryCtx=(profile?.dietary||[]).filter(d=>d!=="none");
+    // Map profile dietary to allergen chip keys for post-scan
+    const _CHIP_MAP={'dairy':'No Dairy','gluten':'No Gluten','nuts':'No Nuts','halal':'No Pork'};
+    const raProfileChips=dietaryCtx.filter(d=>!['vegan','vegetarian'].includes(d)).map(d=>_CHIP_MAP[d]).filter(Boolean);
     const slots=getSlotsForFreq(profile?.mealFreq||"3");
     const lSlots=getLoggedSlots(log);
     const slotTargets=getSlotTargets(macros.calories,slots,skippedSlots||[],lSlots);
@@ -5301,11 +5719,17 @@ Be specific and practical. Empathetic tone. No fluff.`,
     const mealProteinTarget=Math.round((macros.protein/slots.length)+((skippedSlots||[]).length>0?(macros.protein/slots.length*(skippedSlots||[]).length)/(remainingSlots.length||1):0));
     const currentMealSlot=nextSlot?`Meal ${nextSlot}`:"this meal";
     const mealsRemaining=remainingSlots.length;
+    let raBuf='';
     try{
       await streamAI(`You are a precision nutrition coach. The user is in ${city||"their city"} and is planning ${currentMealSlot} of ${slots.length} meals today.\n\nCurrent meal calorie target: ${currentSlotTarget} kcal\nProtein target for this meal: ~${mealProteinTarget}g\nMeals remaining after this one: ${Math.max(0,mealsRemaining-1)}\nDaily remaining macros: ${remaining.calories} kcal · ${remaining.protein}g protein · ${remaining.carbs}g carbs · ${remaining.fat}g fat\n\nGoal: ${profile.goal}. Training day: ${todayType}.${dietaryCtx.length>0?" DIETARY RESTRICTIONS (strictly avoid): "+dietaryCtx.join(", ")+".":""}\n\nProvide exactly 3 restaurant meal options using REAL menu items from chains available in ${city||"the US"} (e.g. Chick-fil-A, Chipotle, Subway, McDonald's, Wingstop, Raising Cane's, Panera, Wendy's, Taco Bell). For each option:\n• Restaurant name\n• Exact order with customizations\n• Macros: calories / protein / carbs / fat\n• How close it gets to your ${currentMealSlot} target (${currentSlotTarget} kcal)\n• "Covers X% of your ${currentMealSlot} protein target (${mealProteinTarget}g)"\n\nRules:\n- This is ONE meal, not the full day.${mealsRemaining>1?` Do not recommend a meal exceeding 120% of the ${currentSlotTarget} kcal meal target.`:` This is your last meal — you may go slightly over to hit daily protein.`}\n- Be SPECIFIC. Use real menu item names. Show exact macro numbers.\n\nThen 1 quick home meal option.`,900,"restaurant_ai",
         ()=>{},
-        (text)=>{setRecs(text);}
+        (text)=>{raBuf=text;setRecs(text);}
       );
+      // Allergen text scan — warn if any violation detected after stream completes
+      const raViolations=scanTextAllergens(raBuf,raProfileChips);
+      if(raViolations.length>0){
+        setRecs(`⚠️ Allergy warning: possible ${raViolations.join(', ')} detected in suggestions below. Verify with the restaurant before ordering.\n\n`+raBuf);
+      }
     }catch(e){console.error("[fetchRecs] error:",e);const m=getAIErrorMessage(e);if(m)setRecs("⚠️ "+m+" Tap 'Get Recommendations' to retry.");if(user)trackError(e,"restaurant_ai",user.id);setRecsLoading(false);}
     setRecsLoading(false);
   }
@@ -5314,8 +5738,20 @@ Be specific and practical. Empathetic tone. No fluff.`,
     setRecipesLoading(true);setRecipes("");
     const recipeDietCtx=(profile.dietary||[]).filter(d=>d!=="none");
     const recipeCondCtx=(profile.conditions||[]).filter(c=>c!=="none");
-    try{const txt=await ai(`Remaining macros I need to hit:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal} · Day: ${todayType}${recipeDietCtx.length>0?". Dietary restrictions: "+recipeDietCtx.join(", "):""}${recipeCondCtx.length>0?". Health conditions: "+recipeCondCtx.join(", "):""}\n\nGive 3 simple home recipes. Each: name, ingredients (max 6 with amounts), steps (max 5), macro breakdown, prep time. Easy to cook. Hit the protein and calorie targets.`,900);setRecipes(txt);}
-    catch(e){console.error("[fetchRecipes] error:",e);const m=getAIErrorMessage(e);if(m)setRecipes("⚠️ "+m+" Tap 'Get Recipes' to retry.");}setRecipesLoading(false);
+    // Map profile dietary values to allergen chip keys for post-scan
+    const _CHIP_MAP={'dairy':'No Dairy','gluten':'No Gluten','nuts':'No Nuts','halal':'No Pork'};
+    const profileChips=recipeDietCtx.filter(d=>!['vegan','vegetarian'].includes(d)).map(d=>_CHIP_MAP[d]).filter(Boolean);
+    try{
+      let txt=await ai(`Remaining macros I need to hit:\n- Calories: ${remaining.calories} kcal\n- Protein: ${remaining.protein}g\n- Carbs: ${remaining.carbs}g\n- Fat: ${remaining.fat}g\nGoal: ${profile.goal} · Day: ${todayType}${recipeDietCtx.length>0?". Dietary restrictions (STRICTLY avoid): "+recipeDietCtx.join(", "):""}${recipeCondCtx.length>0?". Health conditions: "+recipeCondCtx.join(", "):""}\n\nGive 3 simple home recipes. Each: name, ingredients (max 6 with amounts), steps (max 5), macro breakdown, prep time. Easy to cook. Hit the protein and calorie targets.`,900);
+      // Allergen text scan — warn if any violation detected in the text response
+      const textViolations=scanTextAllergens(txt,profileChips);
+      if(textViolations.length>0){
+        txt=`⚠️ Allergy warning: possible ${textViolations.join(', ')} detected in suggestions below. Verify all ingredients before cooking.\n\n`+txt;
+      }
+      setRecipes(txt);
+    }
+    catch(e){console.error("[fetchRecipes] error:",e);const m=getAIErrorMessage(e);if(m)setRecipes("⚠️ "+m+" Tap 'Get Recipes' to retry.");}
+    setRecipesLoading(false);
   }
 
   async function generateWorkout(type="lifting",split="",runPlan="",hybridTemplate=""){
@@ -5752,7 +6188,7 @@ Rules:
     // Restore to phase 3 calories permanently
     const phase3Cals=metabolicAdaptation.protocol?.phases?.phase3?.calories;
     if(phase3Cals&&user){
-      await sb.from("profiles").upsert({id:user.id,goalCals:phase3Cals,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+      try{await sb.from("profiles").upsert({id:user.id,goalCals:phase3Cals,updated_at:new Date().toISOString()},{onConflict:"id"});}catch(e){console.warn('[profiles upsert goalCals]',e);}
     }
     await completeProtocol(metabolicAdaptation.id).catch(()=>{});
     setMetabolicAdaptation(null);
@@ -5800,7 +6236,7 @@ Rules:
       if(completed){
         setDeloadActive(false);setDeloadStartedAt(null);
         setDeloadWeeksHistory(prev=>prev.map(d=>d.id===completed.id?{...d,status:"completed"}:d));
-        sb.from("profiles").upsert({id:user.id,deload_active:false,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+        (async()=>{try{await sb.from("profiles").upsert({id:user.id,deload_active:false,updated_at:new Date().toISOString()},{onConflict:"id"});}catch(e){console.warn('[profiles upsert deload_active=false]',e);}})();
       }
     }).catch(()=>{});
 
@@ -5809,7 +6245,7 @@ Rules:
       if(activated){
         setDeloadActive(true);setDeloadStartedAt(activated.week_start);
         setDeloadWeeksHistory(prev=>prev.map(d=>d.id===activated.id?activated:d));
-        sb.from("profiles").upsert({id:user.id,deload_active:true,deload_started_at:activated.week_start,updated_at:new Date().toISOString()},{onConflict:"id"}).catch(()=>{});
+        (async()=>{try{await sb.from("profiles").upsert({id:user.id,deload_active:true,deload_started_at:activated.week_start,updated_at:new Date().toISOString()},{onConflict:"id"});}catch(e){console.warn('[profiles upsert deload_active=true]',e);}})();
       }
     }).catch(()=>{});
 
@@ -6394,7 +6830,7 @@ Rules:
                         return(
                           <div style={{borderTop:"1px solid rgba(var(--accent-rgb),0.08)",paddingTop:12}}>
                             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// WHAT SHOULD I DO FIRST?</div>
-                            <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
+                            <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{width:"100%",background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:10,padding:"11px 14px",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",textAlign:"left"}}>LOG BREAKFAST →</button>
                           </div>
                         );
                       }
@@ -6462,7 +6898,7 @@ Rules:
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// NUTRITION CHECK</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>{msg.headline}</div>
               <div style={{fontFamily:"var(--condensed)",fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.5}}>{msg.sub}</div>
-              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{marginTop:10,background:"transparent",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG A MEAL →</button>
             </div>
           );
         })()}
@@ -6480,7 +6916,7 @@ Rules:
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// POST-WORKOUT WINDOW</div>
               <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>FUEL YOUR RECOVERY.</div>
               <div style={{fontFamily:"var(--condensed)",fontSize:16,color:"rgba(245,245,240,0.6)",lineHeight:1.4,marginBottom:10}}>Your post-workout window is open. Hit {pwProtein}g protein and {pwCarbs}g carbs in the next 45 minutes to maximize recovery.</div>
-              <button onClick={()=>{setSection("fuel");setFuelScreen("log");}} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#22c55e",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG POST-WORKOUT MEAL →</button>
+              <button onClick={()=>{setSection("fuel");setFuelScreen("home");}} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#22c55e",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>LOG POST-WORKOUT MEAL →</button>
             </div>
           );
         })()}
@@ -7100,11 +7536,11 @@ Rules:
     const [sheetSaving,    setSheetSaving]    = useState(false);
 
     const READINESS_OPTS = [
-      {key:'great',emoji:'😁',label:'GREAT'},
-      {key:'good', emoji:'🙂',label:'GOOD'},
-      {key:'okay', emoji:'😐',label:'OKAY'},
-      {key:'tired',emoji:'😓',label:'TIRED'},
-      {key:'rough',emoji:'💀',label:'ROUGH'},
+      {key:'great',icon:'fluent-emoji-flat:beaming-face-with-smiling-eyes',label:'GREAT'},
+      {key:'good', icon:'fluent-emoji-flat:slightly-smiling-face',         label:'GOOD'},
+      {key:'okay', icon:'fluent-emoji-flat:neutral-face',                  label:'OKAY'},
+      {key:'tired',icon:'fluent-emoji-flat:tired-face',                    label:'TIRED'},
+      {key:'rough',icon:'fluent-emoji-flat:skull',                         label:'ROUGH'},
     ];
 
     async function handleGatewaySubmit() {
@@ -7519,7 +7955,9 @@ Rules:
                       borderRadius:18,cursor:"pointer",WebkitTapHighlightColor:"transparent",
                       touchAction:GOCLUB_REDESIGN?"manipulation":undefined,
                     }}>
-                    <span style={{fontSize:28,lineHeight:1}}>{r.emoji}</span>
+                    <div style={{width:28,height:28,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                      <Icon icon={r.icon} width={28} height={28}/>
+                    </div>
                     <span style={{fontFamily:AF,fontWeight:700,fontSize:8,color:"rgba(255,255,255,0.80)",letterSpacing:"0.10em"}}>
                       {r.label}
                     </span>
@@ -7667,7 +8105,7 @@ Rules:
                       if(todayType==="training"&&hour<12&&!sessionDone)
                         return <button onClick={()=>{_hL();handleTabPress("train");}} style={{width:"100%",padding:"11px 0",background:"#111111",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Start Session →</button>;
                       if(!foodLogged)
-                        return <button onClick={()=>{_hL();setSection("fuel");setFuelScreen("log");}} style={{width:"100%",padding:"11px 0",background:"#111111",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Log Breakfast →</button>;
+                        return <button onClick={()=>{_hL();setSection("fuel");setFuelScreen("home");}} style={{width:"100%",padding:"11px 0",background:"#111111",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Log Breakfast →</button>;
                       return null;
                     })()}
                     <div style={{display:"flex",justifyContent:"space-between"}}>
@@ -7702,31 +8140,132 @@ Rules:
                 )}
               </StaggerItem>
             )}
-            {/* ── TODAY: LIFT MODULE ── */}
+            {/* ── TODAY: WORKOUT MODULE — LIFT / RUN / HYROX / REST all share the same shell ── */}
             <StaggerItem i={1} style={{marginBottom:22}}>
+              {/* Eyebrow + optional nav link — always present */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase"}}>TODAY'S LIFT</div>
-                <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"#111111",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
-                  See workout →
-                </button>
-              </div>
-              {todayType==="rest"||deloadActive ? (
-                <div>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:16,color:deloadActive?"#7E57C2":"#111111",marginBottom:4}}>
-                    {deloadActive?"Recovery Week":"Rest Day"}
-                  </div>
-                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)"}}>Recovery is part of the program</div>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase"}}>
+                  {todayType==="rest"||deloadActive?"TODAY":todayIsRunDay?"TODAY'S RUN":todayIsHyrox?"TODAY'S HYROX":"TODAY'S LIFT"}
                 </div>
-              ) : (
+                {!deloadActive&&todayType!=="rest"&&(
+                  <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"#111111",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
+                    See session →
+                  </button>
+                )}
+              </div>
+
+              {/* ── DELOAD ── premium purple panel */}
+              {deloadActive?(
+                <div style={{borderRadius:16,overflow:"hidden",border:"1px solid rgba(126,87,194,0.22)"}}>
+                  <div style={{height:3,background:"#7E57C2"}}/>
+                  <div style={{padding:"16px 18px",background:"rgba(126,87,194,0.05)",display:"flex",gap:14,alignItems:"center"}}>
+                    <div style={{width:40,height:40,borderRadius:12,background:"rgba(126,87,194,0.14)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M1 4v6h6" stroke="#7E57C2" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M23 20v-6h-6" stroke="#7E57C2" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="#7E57C2" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#7E57C2",lineHeight:1,marginBottom:5}}>Recovery Week</div>
+                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.5}}>Reduced intensity. This is where adaptation happens.</div>
+                    </div>
+                  </div>
+                </div>
+
+              /* ── REST ── premium slate panel */
+              ):todayType==="rest"?(
+                <div style={{borderRadius:16,overflow:"hidden",border:"1px solid rgba(94,114,228,0.18)"}}>
+                  <div style={{height:3,background:"linear-gradient(90deg,#5E72E4,#48B0F1)"}}/>
+                  <div style={{padding:"16px 18px",background:"rgba(94,114,228,0.04)",display:"flex",gap:14,alignItems:"center"}}>
+                    <div style={{width:40,height:40,borderRadius:12,background:"rgba(94,114,228,0.10)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="rgba(94,114,228,0.85)"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#111",lineHeight:1,marginBottom:5}}>Rest Day</div>
+                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.5}}>Recovery is where the work pays off.</div>
+                    </div>
+                  </div>
+                </div>
+
+              /* ── RUN — engine session, sourced from getTodayRunWorkout ── */
+              ):todayIsRunDay&&todayRunSession&&!todayRunSession.isPostRace?(
+                (()=>{
+                  const _RUN_LABELS={'long run':'Long Run','tempo':'Tempo Run','interval':'Intervals','easy':'Easy Run','maintenance':'Maintenance Run'};
+                  const typeLabel=_RUN_LABELS[todayRunSession.type]||(todayRunSession.type?todayRunSession.type.charAt(0).toUpperCase()+todayRunSession.type.slice(1):"Run");
+                  const dist=todayRunSession.distanceMi||0;
+                  const distStr=dist>0?(parseFloat(dist.toFixed(2))+" mi"):null;
+                  const note=(todayRunSession.description||"").split('\n')[0];
+                  const phase=todayRunSession.weekPhase;
+                  const phaseSuffix=todayRunSession.isRaceWeek?" · race week":todayRunSession.isDownWeek?" · recovery":"";
+                  return(
+                    <div>
+                      <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
+                        style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 14px",marginBottom:14}}>
+                        <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>{typeLabel}</span>
+                      </motion.div>
+                      {distStr&&<div style={{fontFamily:AF,fontWeight:800,fontSize:36,color:"#111",lineHeight:1,marginBottom:8,letterSpacing:"-0.02em"}}>{distStr}</div>}
+                      {note&&<div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.55,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{note}</div>}
+                      {phase&&phase!=='general'&&(
+                        <div style={{display:"inline-flex",background:"rgba(17,17,17,0.06)",borderRadius:20,padding:"4px 11px"}}>
+                          <span style={{fontFamily:AF,fontSize:10,fontWeight:600,color:"rgba(17,17,17,0.50)",textTransform:"capitalize"}}>{phase} phase{phaseSuffix}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+
+              /* ── HYROX — session from getTodayHyroxWorkout, same source as Train tab ── */
+              ):todayIsHyrox?(
+                (()=>{
+                  let hSess=null;
+                  try{
+                    const _wk=Math.floor(Math.max(0,Math.floor((Date.now()-(profile?.startDate?new Date(profile.startDate):new Date()).getTime())/86400000))/7)+1;
+                    hSess=getTodayHyroxWorkout(wPrefs?.hyroxProgram||"12-Week Race Prep",_wk,todayKey);
+                  }catch{}
+                  const hType=(hSess?.type||"Training").toUpperCase();
+                  const hDur=hSess?.duration?`${hSess.duration} min`:null;
+                  const hNote=hSess?(hSess.description||"").split('.')[0]+".":'Get after it.';
+                  const sessionDone=workoutLogsRaw.some(w=>w.date===todayStr);
+                  return(
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+                        <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
+                          style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 14px"}}>
+                          <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>{hType}</span>
+                        </motion.div>
+                        {hDur&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(17,17,17,0.45)"}}>{hDur}</span>}
+                        {sessionDone&&<span style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"#22c55e",background:"rgba(34,197,94,0.10)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:20,padding:"3px 10px",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>DONE ✓</span>}
+                      </div>
+                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.55,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{hNote}</div>
+                    </div>
+                  );
+                })()
+
+              /* ── LIFT — red split pill + chips + optional exercise count + done state ── */
+              ):(
                 <div>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",marginBottom:10}}>{todayFocus}</div>
+                  {/* Red split pill + done badge row */}
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+                    <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
+                      style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 14px"}}>
+                      <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>{todayFocus||"Training"}</span>
+                    </motion.div>
+                    {/* Exercise count — only when workout is AI-generated and loaded */}
+                    {workout?.exercises?.length>0&&(
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(17,17,17,0.45)"}}>{workout.exercises.length} exercises</span>
+                    )}
+                    {workoutLogsRaw.some(w=>w.date===todayStr)&&(
+                      <span style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"#22c55e",background:"rgba(34,197,94,0.10)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:20,padding:"3px 10px",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>DONE ✓</span>
+                    )}
+                  </div>
+                  {/* Muscle group chips */}
                   {focusTags.length>0&&(
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {focusTags.map((tag,i)=>(
-                        <div key={i} style={{fontFamily:AF,fontSize:11,fontWeight:600,color:"#111111",
-                          background:"rgba(17,17,17,0.06)",borderRadius:20,padding:"4px 11px"}}>
-                          {tag}
-                        </div>
+                        <div key={i} style={{fontFamily:AF,fontSize:11,fontWeight:600,color:"#111111",background:"rgba(17,17,17,0.06)",borderRadius:20,padding:"4px 11px"}}>{tag}</div>
                       ))}
                     </div>
                   )}
@@ -7734,21 +8273,76 @@ Rules:
               )}
             </StaggerItem>
 
-            {/* ── TODAY: NUTRITION ── */}
+            {/* ── TODAY: NUTRITION — itemized per-meal, mirrors past-day rendering ── */}
             <StaggerItem i={2} style={{marginBottom:22}}>
-              <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>NUTRITION</div>
-              {consumed.calories>0&&(
-                <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",marginBottom:12}}>
-                  {Math.round(consumed.calories)} kcal · {Math.round(consumed.protein)}g protein · {Math.round(consumed.carbs)}g carbs · {Math.round(consumed.fat)}g fat
+              <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
+                style={{display:"inline-flex",background:"#22C55E",borderRadius:20,padding:"5px 15px",marginBottom:16}}>
+                <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Nutrition</span>
+              </motion.div>
+              {consumed.calories>0&&(<>
+                <div style={{marginBottom:16}}>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:52,color:"#111",lineHeight:0.95,letterSpacing:"-0.02em"}}><MN value={Math.round(consumed.calories)} format={{useGrouping:true}}/></div>
+                  <div style={{fontFamily:AF,fontWeight:600,fontSize:11,color:"rgba(17,17,17,0.45)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:8}}>Total Calories</div>
                 </div>
-              )}
-              <button onClick={()=>{
-                  // TODO: present FuelLogger as sheet (deferred pass)
-                  setSection("fuel"); setFuelScreen("log");
-                }}
-                style={{width:"100%",padding:"13px 0",border:"1.5px solid rgba(17,17,17,0.12)",borderRadius:12,background:"none",cursor:"pointer",fontFamily:AF,fontWeight:700,fontSize:12,color:"#111111",letterSpacing:"0.04em",WebkitTapHighlightColor:"transparent"}}>
-                + Log meal
-              </button>
+                <div style={{display:"flex",paddingBottom:16,marginBottom:16,borderBottom:"1px solid rgba(0,0,0,0.07)"}}>
+                  {[{k:"Protein",v:<MN value={Math.round(consumed.protein)}/>,c:T.prot},{k:"Carbs",v:<MN value={Math.round(consumed.carbs)}/>,c:T.carb},{k:"Fat",v:<MN value={Math.round(consumed.fat)}/>,c:T.fat}].map(({k,v,c},i,arr)=>(
+                    <div key={k} style={{flex:1,textAlign:"center",borderRight:i<arr.length-1?"1px solid rgba(0,0,0,0.07)":"none"}}>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(17,17,17,0.35)"}}>g</span></div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
+                    </div>
+                  ))}
+                </div>
+              </>)}
+              {/* Per-meal slot cards */}
+              {(()=>{
+                const todaySlots=getSlotsForFreq(profile?.mealFreq||"3");
+                const _gs=e=>typeof e.slot==='number'?e.slot:(e.slot?normaliseSlotToNumber(e.slot,todaySlots):todaySlots[0]||1);
+                return todaySlots.map(sn=>{
+                  const items=log.filter(e=>_gs(e)===sn);
+                  const isLocked=(lockedSlots||[]).includes(sn);
+                  const sCalTotal=items.reduce((s,e)=>s+(e.calories||0),0);
+                  const sProtTotal=items.reduce((s,e)=>s+(e.protein||0),0);
+                  if(items.length===0){
+                    return(
+                      <div key={sn} style={{background:"rgba(17,17,17,0.03)",border:"1px solid rgba(17,17,17,0.07)",borderRadius:14,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <div>
+                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(17,17,17,0.38)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                          <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.28)",marginTop:3}}>Not logged yet</div>
+                        </div>
+                        {!isLocked&&(
+                          <button onPointerDown={()=>_hL()} onClick={()=>{_hL();setFuelScreen("home");setPendingTodaySlot(sn);setSection("fuel");}}
+                            style={{width:36,height:36,borderRadius:10,background:"rgba(255,59,48,0.08)",border:"1.5px solid rgba(255,59,48,0.25)",color:"#FF3B30",fontSize:20,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,touchAction:"manipulation",WebkitTapHighlightColor:"transparent",lineHeight:1}}>
+                            +
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+                  return(
+                    <div key={sn} style={{background:"rgba(17,17,17,0.03)",border:"1px solid rgba(17,17,17,0.07)",borderRadius:14,padding:"16px 16px",marginBottom:10}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          {isLocked&&<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.7)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:isLocked?"#22c55e":"rgba(17,17,17,0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                        </div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.40)"}}>
+                          <MN value={Math.round(sCalTotal)} format={{useGrouping:true}}/> kcal
+                          {sProtTotal>0&&<span style={{color:T.prot}}> · <MN value={Math.round(sProtTotal)}/>g P</span>}
+                        </div>
+                      </div>
+                      {items.map((e,i)=>(
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)"}}>
+                          <div style={{fontFamily:AF,fontSize:15,color:"#111",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.38)",flexShrink:0,textAlign:"right"}}>
+                            <MN value={Math.round(e.calories||0)} format={{useGrouping:true}}/> kcal
+                            {(e.protein||0)>0&&<span style={{color:T.prot}}> · <MN value={Math.round(e.protein||0)}/>g P</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                });
+              })()}
             </StaggerItem>
 
             {/* ── TODAY: HYDRATION HERO — full-width SVG wave, blue scoped here only ── */}
@@ -7842,7 +8436,7 @@ Rules:
             </StaggerItem>
 
             {showCheckin&&!checkinDone&&(
-              <SorenessCheckIn userId={user?.id}
+              <SorenessCheckIn light userId={user?.id}
                 onComplete={(s,m)=>{setSorenessData({soreness_score:s,sore_muscles:m});setCheckinDone(true);setShowCheckin(false);}}
                 onSkip={()=>setShowCheckin(false)}/>
             )}
@@ -8035,6 +8629,7 @@ Rules:
               padding:"28px 20px",
               paddingBottom:"max(32px,env(safe-area-inset-bottom))",
               animation:reducedMotion?"none":"cm-slide-up 0.35s cubic-bezier(.2,.7,.3,1) forwards",
+              overscrollBehavior:"contain",
             }}>
               {/* Drag handle */}
               <div style={{width:36,height:4,background:"rgba(0,0,0,0.12)",borderRadius:2,margin:"0 auto 22px"}}/>
@@ -8049,7 +8644,9 @@ Rules:
                       border:`2px solid ${sheetReadiness===r.key?"#FF3B30":"rgba(0,0,0,0.08)"}`,
                       borderRadius:14,cursor:"pointer",WebkitTapHighlightColor:"transparent",transition:"all 0.12s",
                     }}>
-                    <span style={{fontSize:22}}>{r.emoji}</span>
+                    <div style={{width:22,height:22,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                      <Icon icon={r.icon} width={22} height={22}/>
+                    </div>
                     <span style={{fontFamily:AF,fontWeight:700,fontSize:8,
                       color:sheetReadiness===r.key?"#FF3B30":"rgba(0,0,0,0.35)",letterSpacing:"0.10em"}}>
                       {r.label}
@@ -8070,8 +8667,9 @@ Rules:
                   </div>
                 </div>
                 <input type="range" min={0} max={10} step={1} value={sheetSoreness}
-                  onChange={e=>setSheetSoreness(Number(e.target.value))}
-                  style={{width:"100%",accentColor:"#FF3B30",cursor:"pointer"}}/>
+                  onChange={e=>{_hL();setSheetSoreness(Number(e.target.value));}}
+                  className="cm-soreness-range"
+                  style={{marginBottom:0}}/>
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
                   <span style={{fontFamily:AF,fontSize:9,color:"rgba(0,0,0,0.30)"}}>None</span>
                   <span style={{fontFamily:AF,fontSize:9,color:"rgba(0,0,0,0.30)"}}>Max</span>
@@ -9749,9 +10347,9 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
-        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt}/></ErrorBoundary>}
+        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate}/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))}/></ErrorBoundary>}
-        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} resetSignal={fuelResetSignal} todayProtocol={todayProtocol}/></ErrorBoundary>}
+        {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><><CommunicationStyleSection userId={user?.id}/><YourPatternsCard userId={user?.id}/><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)}/></></ErrorBoundary>}

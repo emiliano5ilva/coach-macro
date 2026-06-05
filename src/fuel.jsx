@@ -23,6 +23,7 @@ const _FUEL_GOCLUB_CSS=`
 .goclub.tab-fuel [style*="Barlow Condensed"][style*="fontStyle"]{font-style:normal!important}
 `;
 import { showToast } from "./utils/toast.js";
+import { mealHasAllergen, scanTextAllergens } from "./utils/allergenFilter.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
@@ -1385,7 +1386,20 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   );
 }
 
-export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,resetSignal=0,todayProtocol=null}) {
+const DIET_PRESETS=[
+  {id:'balanced',    label:'Balanced',     badge:'POPULAR',  color:'#e8341c'},
+  {id:'high-protein',label:'High Protein', badge:'POPULAR',  color:'#e8341c'},
+  {id:'mediterranean',label:'Mediterranean',badge:'TRENDING',color:'#FEA020'},
+  {id:'keto',        label:'Keto',         badge:'TRENDING', color:'#FEA020'},
+  {id:'paleo',       label:'Paleo',        badge:null,       color:null},
+  {id:'vegetarian',  label:'Vegetarian',   badge:null,       color:null},
+  {id:'vegan',       label:'Vegan',        badge:null,       color:null},
+  {id:'carnivore',   label:'Carnivore',    badge:'NEW',      color:'#22c55e'},
+  {id:'low-carb',    label:'Low Carb',     badge:null,       color:null},
+  {id:'pescatarian', label:'Pescatarian',  badge:null,       color:null},
+];
+
+export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null}) {
 
   const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"kitchen",label:"Kitchen"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
@@ -1487,6 +1501,8 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [skipPromptTarget,setSkipPromptTarget]=useState(null);
   const [tooltipSlot,setTooltipSlot]=useState(null);
   const [justSkipped,setJustSkipped]=useState([]);
+  // Lock-gate: {slotToLock, pendingIdx} — fired before navigating into a new slot
+  const [lockGate,setLockGate]=useState(null);
   const [showUndoToast,setShowUndoToast]=useState(false);
   const [undoProgress,setUndoProgress]=useState(100);
   const undoTimerRef=useRef(null);
@@ -1589,10 +1605,13 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     const lSlots=getLoggedSlots(log);
     const calTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
     const slotCal=calTargets[slot]||Math.round(macros.calories/mealSlots.length);
-    const ratio=macros.calories>0?slotCal/macros.calories:1/mealSlots.length;
+    // Subtract what's already logged in this slot so Restaurant AI targets the REMAINING gap
+    const alreadyInSlot=log.filter(e=>getEntrySlot(e)===slot).reduce((s,e)=>s+(e.calories||0),0);
+    const remainingCal=Math.max(100,slotCal-alreadyInSlot);
+    const ratio=macros.calories>0?remainingCal/macros.calories:1/mealSlots.length;
     setRestaurantAI({
       slot,
-      calTarget:slotCal,
+      calTarget:remainingCal,
       proteinTarget:Math.round(macros.protein*ratio),
       carbTarget:Math.round(macros.carbs*ratio),
       fatTarget:Math.round(macros.fat*ratio),
@@ -1821,6 +1840,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   // ── Meal Prep Planner ───────────────────────────────────────────────────────
   const [prepPlan,setPrepPlan]=useState(()=>profile?.meal_prep_plan||null);
   const [prepLoading,setPrepLoading]=useState(false);
+  const [prepWarning,setPrepWarning]=useState(null);
   const [groceryChecked,setGroceryChecked]=useState(new Set());
   const [groceryOpen,setGroceryOpen]=useState(false);
 
@@ -1850,8 +1870,42 @@ Reply with ONLY a valid JSON object, no markdown:
       try{const j=rawText.replace(/```json|```/g,"").trim();plan=JSON.parse(j);}
       catch{const m=rawText.match(/\{[\s\S]*\}/);if(m)try{plan=JSON.parse(m[0]);}catch{}}
       if(plan){
+        // === ALLERGEN FILTER — legacy path ===
+        // Schema: proteins/carbs/vegetables/snacks = [{name,amount,prep}]
+        //         mealAssignments.{training,rest}[slot] = "description string"
+        const legacyChips=(profile?.dietary||[]).filter(d=>d&&d!=='none').map(d=>({'dairy':'No Dairy','gluten':'No Gluten','nuts':'No Nuts','halal':'No Pork'}[d])).filter(Boolean);
+        const legacyRemovals=[];
+        if(legacyChips.length>0){
+          // Filter each ingredient-list category
+          for(const cat of['proteins','carbs','vegetables','snacks']){
+            if(!Array.isArray(plan[cat]))continue;
+            const safe=plan[cat].filter(item=>{
+              const texts=[item.name||'',item.amount||'',item.prep||''];
+              for(const t of texts){if(legacyChips.some(c=>mealHasAllergen({name:t},legacyChips)))return false;}
+              // Use mealHasAllergen on the combined strings
+              return!mealHasAllergen({name:item.name||'',ingredients:[item.amount||'',item.prep||'']},legacyChips);
+            });
+            if(safe.length<plan[cat].length){
+              const removed=plan[cat].filter(item=>!safe.includes(item));
+              removed.forEach(r=>legacyRemovals.push(`${r.name||'item'} (${cat})`));
+              plan[cat]=safe;
+            }
+          }
+          // Filter mealAssignments description strings
+          for(const dayType of['training','rest']){
+            const slot=plan.mealAssignments?.[dayType];
+            if(!slot)continue;
+            for(const [meal,desc] of Object.entries(slot)){
+              if(mealHasAllergen({name:desc||''},legacyChips)){
+                legacyRemovals.push(`${meal} (${dayType} day assignment)`);
+                delete slot[meal];
+              }
+            }
+          }
+        }
         const now=new Date().toISOString();
         setPrepPlan(plan);
+        if(legacyRemovals.length>0)setPrepWarning(`Some items were removed for your restrictions: ${legacyRemovals.join(', ')}. Always verify before consuming.`);
         setGroceryChecked(new Set());
         if(user){
           const {error:prepErr}=await sb.from("profiles").upsert({id:user.id,meal_prep_plan:plan,meal_prep_generated_at:now,updated_at:now},{onConflict:"id"});
@@ -1863,12 +1917,8 @@ Reply with ONLY a valid JSON object, no markdown:
     setPrepLoading(false);
   }
 
-  useEffect(()=>{
-    if(!profile?.meal_prep_generated_at)return;
-    const daysSince=(new Date()-new Date(profile.meal_prep_generated_at))/864e5;
-    const isMonday=new Date().getDay()===1;
-    if(daysSince>=7||isMonday)generatePrepPlan();
-  },[]);
+  // Auto-trigger removed: legacy generatePrepPlan no longer auto-runs.
+  // Users reach meal prep via Kitchen → Meal Prep card → new flow.
 
   // ── Quick Log Sheet ─────────────────────────────────────────────────────────
   const [showQuickLog,setShowQuickLog]=useState(false);
@@ -1876,8 +1926,22 @@ Reply with ONLY a valid JSON object, no markdown:
   const undoTimer=useRef(null);
   const mealPrepRef=useRef(null);
   const [mealPrepScreen,setMealPrepScreen]=useState('setup');
-  const [mealPrepPlan,setMealPrepPlan]=useState(null);
-  const [mealPrepPrefs,setMealPrepPrefs]=useState({mealsPerDay:3,prepTime:'1hr',dietaryPrefs:[],selectedDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']});
+  // Persist new plan across sessions via localStorage
+  const [mealPrepPlan,setMealPrepPlan]=useState(()=>{
+    try{const s=localStorage.getItem('cm_mp_plan_v2');return s?JSON.parse(s):null;}catch{return null;}
+  });
+  const [mealPrepPrefs,setMealPrepPrefs]=useState(()=>{
+    // Pre-fill from onboarding profile
+    const freq=Math.min(4,Math.max(2,parseInt(String(profile?.mealFreq))||3));
+    const CHIP_MAP={'dairy':'No Dairy','gluten':'No Gluten','nuts':'No Nuts','halal':'No Pork'};
+    const DIET_MAP={'vegan':'vegan','vegetarian':'vegetarian'};
+    const stored=(profile?.dietary||[]).filter(d=>d&&d!=='none');
+    const profileDietPreset=stored.reduce((a,v)=>a||(DIET_MAP[v]||null),null);
+    const dietPreset=wPrefs?.mealPrepDiet||(profileDietPreset||'balanced');
+    const dietaryPrefs=stored.filter(v=>!DIET_MAP[v]).map(v=>CHIP_MAP[v]).filter(Boolean);
+    return{mealsPerDay:freq,prepTime:'1hr',dietaryPrefs,dietPreset,selectedDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
+  });
+  const [mealPrepWarning,setMealPrepWarning]=useState(null);
   const [showGroceryList,setShowGroceryList]=useState(false);
   const [checkedGroceryItems,setCheckedGroceryItems]=useState(()=>{try{const s=localStorage.getItem('mp_checked');return s?new Set(JSON.parse(s)):new Set();}catch{return new Set();}});
   const [regeneratingMeal,setRegeneratingMeal]=useState(null);
@@ -1887,28 +1951,119 @@ Reply with ONLY a valid JSON object, no markdown:
   const [mpStatusIdx,setMpStatusIdx]=useState(0);
   const MP_STATUSES=['Analyzing your training schedule...','Calculating leg day fuel...','Optimizing rest day meals...','Matching macros to your goals...','Building grocery list...','Almost done...'];
   useEffect(()=>{try{localStorage.setItem('mp_checked',JSON.stringify([...checkedGroceryItems]));}catch{}},[checkedGroceryItems]);
-  useEffect(()=>{if(fuelScreen!=='mealprep'){setMealPrepScreen('setup');setShowGroceryList(false);setMpSaveConfirm(false);setMealPrepError(null);}},[fuelScreen]);
+  // Persist new-flow plan across app sessions
+  useEffect(()=>{try{if(mealPrepPlan)localStorage.setItem('cm_mp_plan_v2',JSON.stringify(mealPrepPlan));else localStorage.removeItem('cm_mp_plan_v2');}catch{}},[mealPrepPlan]);
+  useEffect(()=>{if(fuelScreen!=='mealprep'){setMealPrepScreen('setup');setShowGroceryList(false);setMpSaveConfirm(false);setMealPrepError(null);setMealPrepWarning(null);}},[fuelScreen]);
   useEffect(()=>{if(mealPrepScreen!=='generating')return;setMpStatusIdx(0);const id=setInterval(()=>setMpStatusIdx(i=>(i+1)%MP_STATUSES.length),2000);return()=>clearInterval(id);},[mealPrepScreen]);
   const [showRegenerateBanner,setShowRegenerateBanner]=useState(()=>localStorage.getItem('__mp_regen_needed')==='1');
   useEffect(()=>{if(mealPrepPlan?.days?.length>0){localStorage.setItem('__mp_exists','1');}else{localStorage.removeItem('__mp_exists');}},[mealPrepPlan]);
   useEffect(()=>{function onClear(){setMealPrepPlan(null);setShowRegenerateBanner(true);localStorage.setItem('__mp_regen_needed','1');localStorage.removeItem('__mp_exists');}window.addEventListener('cm_clear_meal_prep',onClear);return()=>window.removeEventListener('cm_clear_meal_prep',onClear);},[]);
 
   async function generateMealPrepPlan(){
-    setMealPrepError(null);
+    setMealPrepError(null);setMealPrepWarning(null);
     setMealPrepScreen('generating');
+    // Diagnostic state — captured into error_logs on ANY throw
+    let _stage='init', _raw='', _planKeys='', _parseErr='';
     try{
       const sel=mealPrepPrefs.selectedDays;
       const weekScheduleStr=WDAYS_ORDER.filter(d=>sel.includes(d)).map(d=>{const t=schedule?.[d]||'rest';const focus=wPrefs?.dayFocus?.[d]||t;return `${d}: ${focus}`;}).join(', ');
-      const prompt=`You are a sports nutritionist AI building a weekly meal prep plan for an athlete.\n\nUser profile:\n- Goal: ${profile?.goal||'maintenance'}\n- Daily calorie target: ${macros?.calories||2000} kcal\n- Protein target: ${macros?.protein||150}g\n- Carbs target: ${macros?.carbs||200}g\n- Fat target: ${macros?.fat||70}g\n- Dietary restrictions: ${mealPrepPrefs.dietaryPrefs.join(', ')||'none'}\n- Prep time available: ${mealPrepPrefs.prepTime}\n- Meals per day: ${mealPrepPrefs.mealsPerDay}\n\nTraining schedule this week:\n${weekScheduleStr}\n\nRules:\n- Training days get 15-20% more carbs than base target\n- Leg days get the highest carbs (25-30% above base)\n- Rest days use base macro targets\n- Each meal should be whole foods, simple to prep in batches\n- Meals should be realistic and filling for an athlete\n\nRespond with ONLY valid JSON. No markdown. No explanation. No backticks. Just raw JSON.\n\n{"days":[{"day":"Monday","sessionType":"push","macroProtocol":"training_high","totalCalories":2950,"totalProtein":210,"totalCarbs":317,"totalFat":92,"meals":[{"id":"mon_meal_1","name":"Meal name","description":"Brief description","calories":985,"protein":70,"carbs":106,"fat":31,"prepTime":15,"ingredients":["200g chicken breast","150g brown rice","100g broccoli"],"instructions":"Brief prep note"}]}],"groceryList":{"proteins":["2kg chicken breast"],"grains":["1kg brown rice"],"vegetables":["500g broccoli"],"dairy":["500g Greek yogurt"],"other":["olive oil"]}}`;
+      const nMeals=mealPrepPrefs.mealsPerDay||3;
+      const chipStr=mealPrepPrefs.dietaryPrefs.length>0?mealPrepPrefs.dietaryPrefs.join(', '):'none';
+      const dietPreset=mealPrepPrefs.dietPreset||'balanced';
+      const dietNote=dietPreset!=='balanced'?`\n- Diet style: ${dietPreset} (use foods appropriate for this approach — e.g. keto means low-carb high-fat, vegan means no animal products)`:'';
+      const prompt=`You are a sports nutritionist AI building a weekly meal prep plan for an athlete.\n\nUser profile:\n- Goal: ${profile?.goal||'maintenance'}\n- Daily calorie target: ${macros?.calories||2000} kcal\n- Protein target: ${macros?.protein||150}g\n- Carbs target: ${macros?.carbs||200}g\n- Fat target: ${macros?.fat||70}g\n- Dietary restrictions (STRICTLY AVOID ALL of these): ${chipStr}${dietNote}\n- Prep time available: ${mealPrepPrefs.prepTime}\n- Meals per day: ${nMeals}\n\nTraining schedule this week:\n${weekScheduleStr}\n\nRules:\n- Training days get 15-20% more carbs than base target\n- Leg days get the highest carbs (25-30% above base)\n- Rest days use base macro targets\n- Each meal should be whole foods, simple to prep in batches\n- Meals should be realistic and filling for an athlete\n\nRespond with ONLY valid JSON. No markdown. No explanation. No backticks. Just raw JSON.\n\n{"days":[{"day":"Monday","sessionType":"push","macroProtocol":"training_high","totalCalories":2950,"totalProtein":210,"totalCarbs":317,"totalFat":92,"meals":[{"id":"mon_meal_1","name":"Meal name","description":"Brief description","calories":985,"protein":70,"carbs":106,"fat":31,"prepTime":15,"ingredients":["200g chicken breast","150g brown rice","100g broccoli"],"instructions":"Brief prep note"}]}],"groceryList":{"proteins":["2kg chicken breast"],"grains":["1kg brown rice"],"vegetables":["500g broccoli"],"other":["olive oil"]}}`;
+
+      _stage='fetch';
       const raw=await ai(prompt,2500,'meal_prep_full');
+      _raw=raw;
+
+      _stage='parse';
       const clean=raw.replace(/```json\n?|```/g,'').trim();
       const jsonMatch=clean.match(/\{[\s\S]*\}/);
-      const plan=JSON.parse(jsonMatch?jsonMatch[0]:clean);
+      let plan=null;
+      try{plan=JSON.parse(jsonMatch?jsonMatch[0]:clean);}
+      catch(pe){_parseErr=pe.message;}
+      if(!plan){
+        _planKeys=_parseErr?`parse_threw:${_parseErr}`:'null_after_parse';
+        throw new Error(`Couldn't parse the plan — tap Generate to try again.`);
+      }
+      // Record the top-level shape of the parsed object
+      _planKeys=Object.keys(plan).join(',');
+      // Normalize: accept both 'grocery' and 'groceryList' top-level keys
+      if(plan.grocery&&!plan.groceryList)plan.groceryList=plan.grocery;
+
+      _stage='allergen_filter';
+      const activeChips=mealPrepPrefs.dietaryPrefs||[];
+      const removedMessages=[];
+      if(activeChips.length>0&&Array.isArray(plan.days)){
+        const RETRY_CAP=3;
+        for(const day of plan.days){
+          if(!day||!Array.isArray(day.meals))continue;
+          const cleanMeals=[];
+          for(const meal of day.meals){
+            if(!meal)continue;
+            let cleanMeal=meal;
+            // Normalize ingredients to array if AI returned a string
+            if(typeof meal.ingredients==='string')meal.ingredients=meal.ingredients.split(',').map(s=>s.trim());
+            if(typeof meal.ing==='string')meal.ing=meal.ing.split(',').map(s=>s.trim());
+            let violation=mealHasAllergen(meal,activeChips);
+            let attempts=0;
+            while(violation&&attempts<RETRY_CAP){
+              _stage=`allergen_retry_${attempts+1}`;
+              attempts++;
+              try{
+                const tCal=Math.round((day.totalCalories||macros?.calories||2000)/nMeals);
+                const tPro=Math.round((day.totalProtein||macros?.protein||150)/nMeals);
+                const tCarb=Math.round((day.totalCarbs||macros?.carbs||200)/nMeals);
+                const tFat=Math.round((day.totalFat||macros?.fat||70)/nMeals);
+                const rePrompt=`Generate ONE safe meal for ${day.day}. Targets: ~${tCal} kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICT ALLERGY — ABSOLUTELY NO ${violation} in any ingredient, name, or cooking method. All restrictions: ${activeChips.join(', ')}. Return ONLY JSON: {"id":"uid","name":"Meal","description":"Brief","calories":${tCal},"protein":${tPro},"carbs":${tCarb},"fat":${tFat},"prepTime":15,"ingredients":["ingredient"],"instructions":"Brief"}`;
+                const retryRaw=await ai(rePrompt,450,'allergen_retry');
+                const m=retryRaw.match(/\{[\s\S]*\}/);
+                if(!m)break;
+                const retryMeal=JSON.parse(m[0]);
+                if(typeof retryMeal.ingredients==='string')retryMeal.ingredients=retryMeal.ingredients.split(',').map(s=>s.trim());
+                const nextViolation=mealHasAllergen(retryMeal,activeChips);
+                if(!nextViolation){cleanMeal=retryMeal;violation=null;}
+                else violation=nextViolation;
+              }catch(_){break;}
+            }
+            if(violation){
+              removedMessages.push(`${day.day}: couldn't fill "${meal.name||'a meal'}" safely for your ${violation} restriction after ${RETRY_CAP} attempts`);
+            }else{
+              cleanMeals.push(cleanMeal);
+            }
+          }
+          day.meals=cleanMeals;
+        }
+      }
+
+      _stage='state_set';
       setMealPrepPlan(plan);
       setMealPrepScreen('plan');
+      if(removedMessages.length>0){
+        setMealPrepWarning(`Some meal slots were removed because they couldn't be safely filled for your restrictions after multiple attempts. ${removedMessages.join('. ')}. Try adjusting your allergy settings or diet style.`);
+      }
     }catch(e){
-      console.error('[generateMealPrepPlan]',e);
-      setMealPrepError(e.message||'Generation failed');
+      console.error('[generateMealPrepPlan] stage='+_stage, e);
+      // Wide diagnostic capture — fires on ANY throw (not just parse failure)
+      try{
+        await sb.from('error_logs').insert({
+          user_id:user?.id||null,
+          level:'error',
+          context:'mealprep_raw',
+          message:JSON.stringify({
+            stage:_stage,
+            error:e.message,
+            stack:(e.stack||'').slice(0,800),
+            planKeys:_planKeys,
+            parseErr:_parseErr,
+            rawPreview:_raw.slice(0,600),
+          }),
+          request_path:'meal_prep',
+          created_at:new Date().toISOString(),
+        });
+      }catch(logE){console.warn('[mealprep] error_log insert failed',logE);}
+      setMealPrepError(e.message||`Couldn't build your plan — tap Generate to try again.`);
       setMealPrepScreen('setup');
     }
   }
@@ -1919,11 +2074,25 @@ Reply with ONLY a valid JSON object, no markdown:
       const day=mealPrepPlan.days[dayIndex];
       const currentMeal=day.meals[mealIndex];
       const n=mealPrepPrefs.mealsPerDay||3;
-      const prompt=`Generate ONE replacement meal for ${day.day} (${day.sessionType} day). Must hit approximately: ${Math.round(day.totalCalories/n)} kcal, ${Math.round(day.totalProtein/n)}g protein, ${Math.round(day.totalCarbs/n)}g carbs, ${Math.round(day.totalFat/n)}g fat. Dietary restrictions: ${mealPrepPrefs.dietaryPrefs.join(', ')||'none'}. Current meal being replaced: "${currentMeal.name}" (give something different). Respond with ONLY JSON: {"id":"unique_id","name":"Meal name","description":"Brief","calories":0,"protein":0,"carbs":0,"fat":0,"prepTime":15,"ingredients":[],"instructions":"Brief"}`;
-      const raw=await ai(prompt,450,'meal_swap');
-      const m=raw.match(/\{[\s\S]*\}/);
-      const newMeal=JSON.parse(m?m[0]:raw.trim());
-      setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=newMeal;return u;});
+      const activeChips=mealPrepPrefs.dietaryPrefs||[];
+      const chipStr=activeChips.join(', ')||'none';
+      const RETRY_CAP=3;
+      let cleanMeal=null;
+      let attempts=0;
+      while(!cleanMeal&&attempts<RETRY_CAP){
+        attempts++;
+        const prompt=`Generate ONE replacement meal for ${day.day} (${day.sessionType} day). Must hit approximately: ${Math.round((day.totalCalories||2000)/n)} kcal, ${Math.round((day.totalProtein||150)/n)}g protein, ${Math.round((day.totalCarbs||200)/n)}g carbs, ${Math.round((day.totalFat||70)/n)}g fat. Dietary restrictions (STRICTLY AVOID): ${chipStr}. Current meal being replaced: "${currentMeal.name}" (give something different). Respond with ONLY JSON: {"id":"unique_id","name":"Meal name","description":"Brief","calories":0,"protein":0,"carbs":0,"fat":0,"prepTime":15,"ingredients":[],"instructions":"Brief"}`;
+        const raw=await ai(prompt,450,'meal_swap');
+        const m=raw.match(/\{[\s\S]*\}/);
+        if(!m)continue;
+        const candidate=JSON.parse(m[0]);
+        if(!mealHasAllergen(candidate,activeChips))cleanMeal=candidate;
+      }
+      if(cleanMeal){
+        setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=cleanMeal;return u;});
+      }else{
+        console.warn('[regenerateMeal] allergen filter: could not produce clean meal after',RETRY_CAP,'attempts');
+      }
     }catch(e){console.error('[regenerateMeal]',e);}
     setRegeneratingMeal(null);
   }
@@ -1933,11 +2102,16 @@ Reply with ONLY a valid JSON object, no markdown:
     try{
       const day=mealPrepPlan.days[dayIndex];
       const n=mealPrepPrefs.mealsPerDay||3;
-      const prompt=`Generate ${n} new meals for ${day.day} (${day.sessionType} day). Daily targets: ${day.totalCalories} kcal, ${day.totalProtein}g protein, ${day.totalCarbs}g carbs, ${day.totalFat}g fat. Dietary restrictions: ${mealPrepPrefs.dietaryPrefs.join(', ')||'none'}. Respond with ONLY a JSON array of ${n} meal objects: [{"id":"...","name":"...","description":"...","calories":0,"protein":0,"carbs":0,"fat":0,"prepTime":0,"ingredients":[],"instructions":"..."}]`;
+      const activeChips=mealPrepPrefs.dietaryPrefs||[];
+      const chipStr=activeChips.join(', ')||'none';
+      const prompt=`Generate ${n} new meals for ${day.day} (${day.sessionType} day). Daily targets: ${day.totalCalories||2000} kcal, ${day.totalProtein||150}g protein, ${day.totalCarbs||200}g carbs, ${day.totalFat||70}g fat. Dietary restrictions (STRICTLY AVOID): ${chipStr}. Respond with ONLY a JSON array of ${n} meal objects: [{"id":"...","name":"...","description":"...","calories":0,"protein":0,"carbs":0,"fat":0,"prepTime":0,"ingredients":[],"instructions":"..."}]`;
       const raw=await ai(prompt,900,'regen_day');
       const m=raw.match(/\[[\s\S]*\]/);
-      const newMeals=JSON.parse(m?m[0]:raw.trim());
-      setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals=newMeals;return u;});
+      const candidates=JSON.parse(m?m[0]:raw.trim());
+      const cleanMeals=candidates.filter(meal=>!mealHasAllergen(meal,activeChips));
+      if(cleanMeals.length>0){
+        setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals=cleanMeals;return u;});
+      }
     }catch(e){console.error('[regenerateDay]',e);}
     setRegeneratingDay(null);
   }
@@ -2713,6 +2887,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div>
                     {mealSlots.map((slot,si)=>{
                       const isSkipped=(skippedSlots||[]).includes(slot);
+                      const isLocked=(lockedSlots||[]).includes(slot);
                       const slotItems=log.filter(e=>getEntrySlot(e)===slot);
                       const slotCals=slotItems.reduce((s,e)=>s+(e.calories||0),0);
                       const target=slotTargets[slot]||0;
@@ -2721,10 +2896,14 @@ Reply with ONLY a valid JSON object, no markdown:
                       return(
                         <div key={slot} style={{marginBottom:12,opacity:isSkipped?0.4:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:slotItems.length>0?6:4}}>
-                            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:isSkipped?"rgba(245,245,240,0.4)":"#f5f5f0",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
+                            {/* Lock icon on locked slots */}
+                            {isLocked&&<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:isSkipped?"rgba(245,245,240,0.4)":isLocked?"#22c55e":"#f5f5f0",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
                             <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
                             {isSkipped?(
                               <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
+                            ):isLocked?(
+                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",letterSpacing:"0.08em"}}>LOCKED</span>
                             ):(
                               <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.06em"}}>
                                 {slotCals} / {target} kcal
@@ -2736,15 +2915,26 @@ Reply with ONLY a valid JSON object, no markdown:
                                 )}
                               </span>
                             )}
-                            {!isSkipped&&(
+                            {/* "+" hidden on locked + skipped slots; shows lock gate for earlier unlocked slots */}
+                            {!isSkipped&&!isLocked&&(
                               <motion.button
                                 onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
                                 whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
                                 transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
-                                onClick={()=>{pendingLogSlotRef.current=mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0;setFuelScreen('log');}}
+                                onClick={()=>{
+                                  const pendingIdx=mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0;
+                                  // Check if any earlier slot has items and is not yet locked
+                                  const slotToLock=mealSlots.find(s=>s<slot&&log.some(e=>getEntrySlot(e)===s)&&!(lockedSlots||[]).includes(s));
+                                  if(slotToLock){
+                                    setLockGate({slotToLock,pendingIdx});
+                                  }else{
+                                    pendingLogSlotRef.current=pendingIdx;
+                                    setFuelScreen('log');
+                                  }
+                                }}
                                 style={{width:44,height:44,background:"rgba(232,52,28,0.15)",border:"1.5px solid #e8341c",color:"#e8341c",borderRadius:10,fontSize:20,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>+</motion.button>
                             )}
-                            {mealSlots.length>1&&!isSkipped&&(
+                            {mealSlots.length>1&&!isSkipped&&!isLocked&&(
                               <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
                             )}
                           </div>
@@ -2756,7 +2946,7 @@ Reply with ONLY a valid JSON object, no markdown:
                           )}
                           {slotItems.map((item,i)=>(
                             <SwipeRow key={item.id}
-                              onDelete={()=>{
+                              onDelete={isLocked?null:()=>{
                                 const snap={...item};
                                 removeLog(item.id);
                                 showToast(`${snap.food||"Item"} removed`,{action:()=>logEntry(snap),actionLabel:"Undo"});
@@ -2765,9 +2955,9 @@ Reply with ONLY a valid JSON object, no markdown:
                             >
                               <div
                                 className="card-press"
-                                onPointerDown={()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
-                                onPointerUp={()=>clearTimeout(longPressRef.current)}
-                                onPointerLeave={()=>clearTimeout(longPressRef.current)}
+                                onPointerDown={isLocked?undefined:()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
+                                onPointerUp={isLocked?undefined:()=>clearTimeout(longPressRef.current)}
+                                onPointerLeave={isLocked?undefined:()=>clearTimeout(longPressRef.current)}
                                 style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
                               >
                                 <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
@@ -2787,7 +2977,7 @@ Reply with ONLY a valid JSON object, no markdown:
                                     <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
                                     <div style={{fontSize:9,color:T.mu}}>kcal</div>
                                   </div>
-                                  <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                                  {!isLocked&&<button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>}
                                 </div>
                               </div>
                             </SwipeRow>
@@ -3734,179 +3924,32 @@ Reply with ONLY a valid JSON object, no markdown:
               </>
             )}
 
-            {/* ── MEAL PREP section inside Kitchen ── */}
+            {/* ── MEAL PREP section inside Kitchen — routes to new flow ── */}
             <div ref={mealPrepRef} style={{borderTop:`1px solid ${T.bd}`,marginTop:32,paddingTop:28}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
               <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP</div>
-              {prepPlan&&!prepLoading&&(
-                <button onClick={generatePrepPlan} style={{fontSize:11,color:"#e8341c",background:"none",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
+              {mealPrepPlan&&(
+                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{fontSize:11,color:"#e8341c",background:"none",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
               )}
             </div>
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Cook once, eat all week · based on your training schedule</p>
 
-            {prepLoading&&(
-              <div style={{padding:"16px 0",color:T.mu}}>
-                <AIContentSkeleton/>
-                <div style={{fontSize:13,color:T.dim,textAlign:"center",marginTop:8}}>Building your meal prep plan…</div>
-                <div style={{fontSize:11,color:"rgba(245,245,240,0.35)"}}>Analyzing training schedule and macro targets</div>
+            {!mealPrepPlan&&(
+              <div style={{textAlign:"center",padding:"48px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
+                <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Generate Your Week</div>
+                <div style={{fontSize:12,color:T.mu,marginBottom:24,lineHeight:1.65,maxWidth:300,margin:"0 auto 24px"}}>Choose your diet style, meals per day, and restrictions — AI builds a fully personalised weekly plan with grocery list</div>
+                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{padding:"14px 32px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"1.8px",textTransform:"uppercase"}}>SET UP MY WEEK →</button>
               </div>
             )}
 
-            {!prepPlan&&!prepLoading&&(
-              <div style={{textAlign:"center",padding:"56px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
-                <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Generate Your Prep Plan</div>
-                <div style={{fontSize:12,color:T.mu,marginBottom:28,lineHeight:1.65,maxWidth:300,margin:"0 auto 28px"}}>AI builds a complete Sunday prep guide — proteins, carbs, vegetables, and a ready-to-shop grocery list</div>
-                <button onClick={generatePrepPlan} style={{padding:"14px 32px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"1.8px",textTransform:"uppercase"}}>GENERATE PLAN →</button>
-              </div>
-            )}
-
-            {prepPlan&&!prepLoading&&(
-              <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
-                {/* MEAL ASSIGNMENTS */}
-                <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:14}}>MEAL ASSIGNMENTS</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                    {["training","rest"].map(type=>(
-                      <div key={type} style={{background:T.s2,borderRadius:14,padding:"14px"}}>
-                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10,color:type==="training"?T.prot:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>{type==="training"?"// TRAINING DAY":"// REST DAY"}</div>
-                        {Object.entries(prepPlan.mealAssignments?.[type]||{}).map(([meal,desc])=>(
-                          <div key={meal} style={{marginBottom:8,paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                            <div style={{fontSize:9,color:type==="training"?"rgba(232,52,28,0.7)":"rgba(245,245,240,0.35)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:3}}>{meal}</div>
-                            <div style={{fontSize:11,color:"rgba(245,245,240,0.75)",lineHeight:1.55}}>{desc}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
+            {mealPrepPlan&&(
+              <div style={{background:T.s1,border:'1px solid rgba(232,52,28,0.15)',borderRadius:16,padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                <div>
+                  <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>ACTIVE PLAN</div>
+                  <div style={{fontSize:14,fontWeight:700,color:'#f5f5f0',marginBottom:2}}>{(mealPrepPlan.days||[]).length} days · {(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).length,0)} meals</div>
+                  <div style={{fontFamily:'var(--mono)',fontSize:10,color:'rgba(245,245,240,0.4)'}}>{mealPrepPrefs.dietPreset||'balanced'} · {mealPrepPrefs.mealsPerDay} meals/day</div>
                 </div>
-
-                {/* PROTEINS */}
-                {prepPlan.proteins?.length>0&&(
-                  <div style={{background:T.s1,border:`1px solid rgba(232,52,28,0.2)`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-                      <span style={{fontSize:20}}>🥩</span>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot,letterSpacing:.5}}>PROTEINS</div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                      {prepPlan.proteins.map((item,i)=>(
-                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:T.prot,fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
-                          </div>
-                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* CARBS */}
-                {prepPlan.carbs?.length>0&&(
-                  <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-                      <span style={{fontSize:20}}>🍚</span>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.carb,letterSpacing:.5}}>CARBS</div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                      {prepPlan.carbs.map((item,i)=>(
-                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:T.carb,fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
-                          </div>
-                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* VEGETABLES */}
-                {prepPlan.vegetables?.length>0&&(
-                  <div style={{background:T.s1,border:"1px solid rgba(34,197,94,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-                      <span style={{fontSize:20}}>🥦</span>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.green,letterSpacing:.5}}>VEGETABLES</div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                      {prepPlan.vegetables.map((item,i)=>(
-                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:T.green,fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
-                          </div>
-                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* SNACKS */}
-                {prepPlan.snacks?.length>0&&(
-                  <div style={{background:T.s1,border:"1px solid rgba(126,87,194,0.2)",borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-                      <span style={{fontSize:20}}>🍎</span>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:"#7E57C2",letterSpacing:.5}}>SNACKS</div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                      {prepPlan.snacks.map((item,i)=>(
-                        <div key={i} style={{background:T.s2,borderRadius:12,padding:"12px 14px"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                            <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{item.name}</div>
-                            <div style={{fontSize:11,color:"#7E57C2",fontWeight:700,fontFamily:"var(--mono)"}}>{item.amount}</div>
-                          </div>
-                          <div style={{fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{item.prep}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* GROCERY LIST */}
-                {prepPlan.grocery&&(
-                  <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:groceryOpen?14:0}}>
-                      <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>🛒 GROCERY LIST</div>
-                      <div style={{display:"flex",gap:8}}>
-                        <button onClick={()=>{
-                          const text=Object.entries(prepPlan.grocery).map(([cat,items])=>`${cat}:\n${items.map(i=>`  • ${i}`).join("\n")}`).join("\n\n");
-                          navigator.clipboard?.writeText(text);
-                        }} style={{padding:"6px 12px",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.3)",color:T.prot,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Copy</button>
-                        <button onClick={()=>setGroceryOpen(o=>!o)} style={{padding:"6px 12px",background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{groceryOpen?"Hide ▲":"Show ▼"}</button>
-                      </div>
-                    </div>
-                    {groceryOpen&&(
-                      <div>
-                        {Object.entries(prepPlan.grocery).map(([category,items])=>(
-                          <div key={category} style={{marginBottom:16}}>
-                            <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>{category}</div>
-                            {(items||[]).map((item,i)=>{
-                              const key=`${category}:${item}`;
-                              const checked=groceryChecked.has(key);
-                              return(
-                                <div key={i} onClick={()=>setGroceryChecked(s=>{const n=new Set(s);if(checked)n.delete(key);else n.add(key);return n;})}
-                                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
-                                  <div style={{width:18,height:18,borderRadius:4,border:`1.5px solid ${checked?T.green:T.bd}`,background:checked?"rgba(34,197,94,0.15)":"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
-                                    {checked&&<span style={{color:T.green,fontSize:10,fontWeight:900,lineHeight:1}}>✓</span>}
-                                  </div>
-                                  <span style={{fontSize:13,color:checked?"rgba(245,245,240,0.35)":"rgba(245,245,240,0.85)",textDecoration:checked?"line-through":"none",transition:"all 0.15s"}}>{item}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ))}
-                        <div style={{marginTop:4,padding:"10px 14px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.12)",borderRadius:10,fontSize:12,color:"rgba(245,245,240,0.45)",textAlign:"center"}}>
-                          {groceryChecked.size} / {Object.values(prepPlan.grocery).reduce((s,a)=>s+(a?.length||0),0)} items checked
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <button onClick={generatePrepPlan} style={{width:"100%",padding:"13px",background:T.s2,color:"#7E57C2",fontSize:13,fontWeight:700,letterSpacing:1,textTransform:"uppercase",border:"1px solid rgba(126,87,194,0.25)",borderRadius:11,cursor:"pointer",fontFamily:"inherit"}}>↺ Regenerate Plan</button>
+                <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');}} style={{background:'#e8341c',border:'none',borderRadius:10,padding:'10px 16px',fontFamily:'var(--mono)',fontSize:9,fontWeight:700,color:'#fff',letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',flexShrink:0}}>VIEW PLAN →</button>
               </div>
             )}
             </div>{/* end meal prep section */}
@@ -4015,10 +4058,29 @@ Reply with ONLY a valid JSON object, no markdown:
                   })}
                 </div>
 
-                {/* Dietary chips */}
-                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// DIETARY NEEDS</div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:24}}>
-                  {['No Dairy','No Gluten','High Protein','Vegetarian','No Pork','No Shellfish'].map(chip=>{
+                {/* Diet style — 10 presets */}
+                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// DIET STYLE</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:20}}>
+                  {DIET_PRESETS.map(d=>{
+                    const sel=mealPrepPrefs.dietPreset===d.id;
+                    return(
+                      <button key={d.id}
+                        onClick={()=>{
+                          setMealPrepPrefs(p=>({...p,dietPreset:d.id}));
+                          try{if(typeof saveFlexPrefs==='function')saveFlexPrefs({...(wPrefs||{}),mealPrepDiet:d.id});}catch{}
+                        }}
+                        style={{background:sel?'rgba(232,52,28,0.1)':'#0d0d0d',border:sel?'1.5px solid #e8341c':'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'10px 12px',cursor:'pointer',outline:'none',textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
+                        <span style={{...mno,fontSize:10,color:sel?'#e8341c':'#f5f5f0',fontWeight:700}}>{d.label}</span>
+                        {d.badge&&<span style={{...mno,fontSize:7,fontWeight:700,letterSpacing:'0.1em',padding:'2px 6px',borderRadius:20,background:d.badge==='NEW'?'rgba(34,197,94,0.15)':d.badge==='TRENDING'?'rgba(254,160,32,0.15)':'rgba(232,52,28,0.15)',color:d.badge==='NEW'?'#22c55e':d.badge==='TRENDING'?'#FEA020':'#e8341c'}}>{d.badge}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Restrictions & allergies */}
+                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// RESTRICTIONS & ALLERGIES</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
+                  {['No Dairy','No Gluten','No Pork','No Shellfish','No Eggs','No Nuts'].map(chip=>{
                     const active=mealPrepPrefs.dietaryPrefs.includes(chip);
                     return(
                       <button key={chip} onClick={()=>setMealPrepPrefs(p=>({...p,dietaryPrefs:active?p.dietaryPrefs.filter(c=>c!==chip):[...p.dietaryPrefs,chip]}))}
@@ -4028,6 +4090,32 @@ Reply with ONLY a valid JSON object, no markdown:
                     );
                   })}
                 </div>
+
+                {/* Item 4 — combo pre-warning */}
+                {(()=>{
+                  const chips=mealPrepPrefs.dietaryPrefs;
+                  const noDairy=chips.includes('No Dairy'),noEgg=chips.includes('No Eggs'),noNut=chips.includes('No Nuts');
+                  const tightCount=[noDairy,noEgg,noNut].filter(Boolean).length;
+                  if(noDairy&&noEgg&&!noNut)return(<div style={{background:'rgba(232,52,28,0.06)',border:'1px solid rgba(232,52,28,0.18)',borderRadius:10,padding:'8px 14px',marginBottom:12}}>
+                    <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3}}>// HEADS UP</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.65)',lineHeight:1.6}}>No Dairy + No Eggs is effectively a vegan protein profile — options will be narrow. Consider high-protein plant foods (legumes, tofu, tempeh).</div>
+                  </div>);
+                  if(tightCount>=3)return(<div style={{background:'rgba(232,52,28,0.06)',border:'1px solid rgba(232,52,28,0.18)',borderRadius:10,padding:'8px 14px',marginBottom:12}}>
+                    <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3}}>// VERY RESTRICTIVE COMBO</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.65)',lineHeight:1.6}}>No Dairy + No Eggs + No Nuts removes most high-fat and protein staples. Some meal slots may not be safely fillable — the filter will drop them with an honest message.</div>
+                  </div>);
+                  return null;
+                })()}
+
+                {/* Safety disclaimer */}
+                {mealPrepPrefs.dietaryPrefs.length>0&&(
+                  <div style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.12)',borderRadius:10,padding:'8px 14px',marginBottom:20}}>
+                    <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3}}>// ALLERGY NOTICE</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.55)',lineHeight:1.6}}>
+                      AI-generated plans make best efforts to honor your restrictions, but <span style={{color:'rgba(245,245,240,0.85)',fontWeight:700}}>you must verify all ingredients yourself</span> before consuming. Not medical or allergy advice. If you have a severe allergy, consult a physician and always read food labels.
+                    </div>
+                  </div>
+                )}
 
                 {/* Generate button */}
                 <button onClick={generateMealPrepPlan} disabled={mealPrepPrefs.selectedDays.length===0}
@@ -4057,6 +4145,16 @@ Reply with ONLY a valid JSON object, no markdown:
               return(
                 <div>
                   <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+
+                  {/* Allergen warning/notice */}
+                  {mealPrepWarning&&<div style={{background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.3)',borderRadius:10,padding:'10px 14px',marginBottom:16}}>
+                    <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:4}}>// ALLERGEN NOTICE</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.75)',lineHeight:1.6}}>{mealPrepWarning}</div>
+                  </div>}
+                  {mealPrepPrefs.dietaryPrefs.length>0&&!mealPrepWarning&&<div style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'6px 14px',marginBottom:14}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.45)',lineHeight:1.5}}>Allergy filters applied. Always verify ingredients — not medical advice.</div>
+                  </div>}
+
                   {/* Header */}
                   <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
                     <button onClick={()=>setMealPrepScreen('setup')} style={{background:'none',border:'none',color:'#f5f5f0',fontSize:20,cursor:'pointer',padding:'0 4px 0 0',lineHeight:1,flexShrink:0}}>←</button>
@@ -4209,6 +4307,35 @@ Reply with ONLY a valid JSON object, no markdown:
 
         {/* hidden file input for menu scan — used by both inline tab and modal */}
         <input ref={menuScanRef} type="file" accept="image/*" capture="environment" onChange={handleMenuScan} style={{display:"none"}}/>
+
+        {/* ── MEAL LOCK GATE MODAL ── */}
+        {lockGate&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+            <div style={{background:"#111",border:"1.5px solid rgba(232,52,28,0.3)",borderRadius:20,padding:28,maxWidth:340,width:"100%",textAlign:"center"}}>
+              <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>// LOCK IN MEAL {lockGate.slotToLock}?</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:24,color:"#f5f5f0",lineHeight:1.1,marginBottom:10,textTransform:"uppercase"}}>Finished with {getSlotLabel(lockGate.slotToLock)}?</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.5)",lineHeight:1.6,marginBottom:24}}>Locking seals this meal. Items become read-only and macros are recorded for the day.</div>
+              <div style={{display:"flex",gap:10}}>
+                <button
+                  onClick={()=>{
+                    const newLocked=[...(lockedSlots||[]),lockGate.slotToLock];
+                    if(onLockSlots)onLockSlots(newLocked);
+                    pendingLogSlotRef.current=lockGate.pendingIdx;
+                    setLockGate(null);
+                    setFuelScreen('log');
+                  }}
+                  style={{flex:2,padding:"14px",background:"#e8341c",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
+                  YES — LOCK IT
+                </button>
+                <button
+                  onClick={()=>setLockGate(null)}
+                  style={{flex:1,padding:"14px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.1)",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>
+                  NOT YET
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── RESTAURANT AI MODAL ── */}
         {restaurantAI&&logMode!=="restaurant"&&(

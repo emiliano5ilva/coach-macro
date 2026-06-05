@@ -18,12 +18,12 @@ import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
-import { getProgramForUser, getTodayRunWorkout, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
+import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
 import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
-import { getPacesFromTime, resolvePaceTokens, formatRaceTime, getRacePredictions, enrichRunSession } from "./utils/runningPaces.js";
+import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
 import { shouldRunAnalysis, runWeeklyAnalysis } from "./services/adaptiveAnalysisService.js";
@@ -989,7 +989,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         if (rDay && user) {
           const updatedSch = {...(schedule || {}), [rDay]: schedule?.[todayKey] || 'training'};
           setSchedule?.(updatedSch);
-          sb.from("profiles").upsert({id: user.id, schedule: updatedSch}, {onConflict: "id"}).catch(() => {});
+          (async()=>{try{await sb.from("profiles").upsert({id:user.id,schedule:updatedSch},{onConflict:"id"});}catch(e){console.warn('[profiles upsert schedule reschedule]',e);}})();
           rescheduleInfo = {day: rDay};
           setRescheduled(rescheduleInfo);
         }
@@ -1104,7 +1104,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
           if (rDay && user) {
             const updatedSch = {...(schedule||{}), [rDay]: schedule?.[todayKey]||'training'};
             setSchedule?.(updatedSch);
-            sb.from("profiles").upsert({id:user.id,schedule:updatedSch},{onConflict:"id"}).catch(()=>{});
+            (async()=>{try{await sb.from("profiles").upsert({id:user.id,schedule:updatedSch},{onConflict:"id"});}catch(e){console.warn('[profiles upsert schedule adapt]',e);}})();
             rescheduleInfo = {day: rDay};
             setRescheduled(rescheduleInfo);
           }
@@ -1998,7 +1998,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       if(should)runWeeklyAnalysis(user.id,profile).catch(()=>{});
     }).catch(()=>{});
     // Weather adjustment for run sessions — fire once
-    if(wPrefs?.isHybrid||wPrefs?.isHyrox||(wPrefs?.splitType||'').toLowerCase().includes('run')){
+    if(wPrefs?.isHybrid||wPrefs?.isHyrox||profile?.run_race_type){
       if(navigator?.geolocation){
         navigator.geolocation.getCurrentPosition(pos=>{
           getWeatherPaceAdjustment(pos.coords.latitude,pos.coords.longitude)
@@ -2256,14 +2256,60 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const daysSinceStart=Math.max(0,Math.floor((new Date()-startDate)/86400000));
   const weekNum=Math.floor(daysSinceStart/7)+1;
   const dayIndex=daysSinceStart%(daysPerWeek||1);
-  const isLifting=!wPrefs.isHyrox&&!wPrefs.isHybrid&&!(wPrefs.splitType||"").toLowerCase().includes("run");
+  const isLifting=!wPrefs.isHyrox&&!wPrefs.isHybrid&&!profile?.run_race_type;
   const isGVTWeek=isLifting&&(wPrefs?.gvt===true||(wPrefs?.gvt!==false&&weekNum%4===0))&&todayType==="training";
 
   let prescType="lifting";
   if(wPrefs.isHyrox&&wPrefs.isHybrid)prescType="hybrid-hyrox";
   else if(wPrefs.isHyrox)prescType="hyrox";
   else if(wPrefs.isHybrid)prescType="hybrid";
-  else if((wPrefs.splitType||"").toLowerCase().includes("run"))prescType="running";
+  else if(profile?.run_race_type)prescType="running";
+
+  // Full generated week for run-focused accounts; drives WeekStrip labels + week card
+  const runWeek = prescType === "running"
+    ? (() => { try { return getRunWeek(profile, wPrefs, schedule, weekNum); } catch { return null; } })()
+    : null;
+
+  // For hybrid accounts with an explicit dayPlan, compute per-day modality + engine run week
+  const hybridModality = (prescType === "hybrid" && !!wPrefs?.dayPlan)
+    ? deriveDayModality(profile, wPrefs, schedule)
+    : null;
+  const hybridRunWeek = hybridModality
+    ? (() => { try { return getRunWeek(profile, wPrefs, schedule, weekNum); } catch { return null; } })()
+    : null;
+  // True when today is an engine run day for a hybrid account (dayPlan-gated)
+  const hybridRunDay = !!(hybridModality?.runDays.includes(todayKey) && !hybridModality?.liftDays.includes(todayKey));
+
+  // Format a run session label with mileage: "Tempo Run · 4 mi"
+  const _runLabel = (rs) => {
+    const label = RUN_SESSION_TITLE[rs.type] || rs.type;
+    const dist  = rs.distanceMi || 0;
+    if (!dist) return label;
+    const distStr = dist >= 3 ? `${Math.round(dist)} mi` : `${parseFloat(dist.toFixed(1))} mi`;
+    return `${label} · ${distStr}`;
+  };
+
+  // Build a dayFocus map showing correct labels for all account types
+  const resolvedDayFocus = runWeek
+    ? WDAYS.reduce((acc, d) => {
+        if (!schedule[d] || schedule[d] === 'rest') { acc[d] = 'Rest'; return acc; }
+        const rs = runWeek.sessions.find(s => s.day === d);
+        acc[d] = rs ? _runLabel(rs) : 'Rest';
+        return acc;
+      }, {})
+    : (hybridRunWeek && hybridModality)
+      ? WDAYS.reduce((acc, d) => {
+          const dp = wPrefs.dayPlan?.[d];
+          if (!dp || (!dp.run && !dp.lift)) { acc[d] = 'Rest'; return acc; }
+          if (dp.run && !dp.lift) {
+            const rs = hybridRunWeek.sessions.find(s => s.day === d);
+            acc[d] = rs ? _runLabel(rs) : 'Easy Run';
+          } else {
+            acc[d] = dayFocus[d] || 'Training';
+          }
+          return acc;
+        }, {})
+      : dayFocus;
 
   let todayPrescription=null;
   let todayProgObj=null;
@@ -2289,32 +2335,24 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     }
     todayPrescription=exs;
   }else if(prescType==="running"){
-    todayProgObj=RUNNING_PROGRAMS[wPrefs.runPlan||"Couch to 5K"];
-    // TODO: replace with generative running engine (Track 2)
-    // Nearest-authored-week fallback — prevents null workout when current week isn't in schedule
-    const _sched=todayProgObj?.schedule||[];
-    let _weekObj=_sched.find(w=>w.week===weekNum);
-    if(!_weekObj&&_sched.length>0){
-      const _below=_sched.filter(w=>w.week<=weekNum).sort((a,b)=>b.week-a.week);
-      const _above=_sched.filter(w=>w.week>weekNum).sort((a,b)=>a.week-b.week);
-      _weekObj=_below[0]||_above[0];
+    // ── Generative engine — Phase B ──────────────────────────────────────────
+    todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
+
+    // Resolve pace tokens and apply VDOT/weather adjustments
+    const _5kSecs = wPrefs.current5KTime || profile?.current5KTime || profile?.profile_data?.current5KTime;
+    let runPaces = getPacesFromTime(_5kSecs);
+    if (runPaces && profile?.run_target_time) {
+      // Extend paces with {goalPace} derived from the user's goal finish time
+      const _gpSecs = parseTimeInput(profile.run_target_time);
+      if (_gpSecs > 0) runPaces = { ...runPaces, goalPace: computeGoalPace(_gpSecs, profile?.run_race_type || '5k', runPaces.tempo) };
     }
-    const rawDay=_weekObj?.days?.find(d=>d.day===todayKey)||null;
-    if(rawDay?.skill_variants){
-      const lvl=(wPrefs.cardioExp||wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
-      todayPrescription=getSkillVariant(rawDay.skill_variants,lvl)||rawDay;
-    }else{
-      todayPrescription=rawDay;
-    }
-    const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
-    if(todayPrescription){
-      todayPrescription=enrichRunSession(todayPrescription);
-      if(runPaces) todayPrescription={...todayPrescription,description:resolvePaceTokens(todayPrescription.description||"",runPaces)};
-      // Phase 4: apply VDOT-derived paces (with weather adjustment for hot days)
-      const _rawPaces=profile?.runProfile?.paces??null;
-      const _vdotPaces=weatherAdjustment?.adjustmentFactor>1.0?applyWeatherToPaces(_rawPaces,weatherAdjustment.adjustmentFactor):_rawPaces;
-      if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
-      if(weatherAdjustment?.note&&todayPrescription) todayPrescription={...todayPrescription,description:`⚠️ ${weatherAdjustment.note}\n`+(todayPrescription.description||"")};
+    if (todayPrescription) {
+      todayPrescription = enrichRunSession(todayPrescription);
+      if (runPaces) todayPrescription = { ...todayPrescription, description: resolvePaceTokens(todayPrescription.description || "", runPaces) };
+      const _rawPaces = profile?.runProfile?.paces ?? null;
+      const _vdotPaces = weatherAdjustment?.adjustmentFactor > 1.0 ? applyWeatherToPaces(_rawPaces, weatherAdjustment.adjustmentFactor) : _rawPaces;
+      if (_vdotPaces) todayPrescription = { ...todayPrescription, description: renderWithPaces(todayPrescription.description || "", _vdotPaces) };
+      if (weatherAdjustment?.note && todayPrescription) todayPrescription = { ...todayPrescription, description: `⚠️ ${weatherAdjustment.note}\n` + (todayPrescription.description || "") };
     }
   }else if(prescType==="hyrox"){
     const _hyroxProgramName=wPrefs.hyroxProgram||"12-Week Race Prep";
@@ -2336,12 +2374,32 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       if(_hp) todayPrescription={...todayPrescription,description:enrichHyroxDesc(todayPrescription.description||"",_hp)};
     }
   }else if(prescType==="hybrid"){
-    const _hybridTemplate=wPrefs.hybridTemplate||"Balanced Hybrid";
-    todayProgObj=HYBRID_PROGRAMS[_hybridTemplate];
-    todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
-    if(todayPrescription){
-      const _vdotPaces=profile?.runProfile?.paces??null;
-      if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+    if(hybridRunDay){
+      // Engine path for run days — same pace resolution as the run-only branch
+      todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
+      const _5kSecs = wPrefs.current5KTime || profile?.current5KTime || profile?.profile_data?.current5KTime;
+      let runPaces = getPacesFromTime(_5kSecs);
+      if(runPaces && profile?.run_target_time){
+        const _gpSecs = parseTimeInput(profile.run_target_time);
+        if(_gpSecs > 0) runPaces = { ...runPaces, goalPace: computeGoalPace(_gpSecs, profile?.run_race_type || '5k', runPaces.tempo) };
+      }
+      if(todayPrescription){
+        todayPrescription = enrichRunSession(todayPrescription);
+        if(runPaces) todayPrescription = { ...todayPrescription, description: resolvePaceTokens(todayPrescription.description || "", runPaces) };
+        const _rawPaces = profile?.runProfile?.paces ?? null;
+        const _vdotPaces = weatherAdjustment?.adjustmentFactor > 1.0 ? applyWeatherToPaces(_rawPaces, weatherAdjustment.adjustmentFactor) : _rawPaces;
+        if(_vdotPaces) todayPrescription = { ...todayPrescription, description: renderWithPaces(todayPrescription.description || "", _vdotPaces) };
+        if(weatherAdjustment?.note) todayPrescription = { ...todayPrescription, description: `⚠️ ${weatherAdjustment.note}\n` + (todayPrescription.description || "") };
+      }
+    } else {
+      // Lift day or no-dayPlan (backward compat) — existing hybrid template, byte-for-byte unchanged
+      const _hybridTemplate=wPrefs.hybridTemplate||"Balanced Hybrid";
+      todayProgObj=HYBRID_PROGRAMS[_hybridTemplate];
+      todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
+      if(todayPrescription){
+        const _vdotPaces=profile?.runProfile?.paces??null;
+        if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+      }
     }
   }
 
@@ -2410,14 +2468,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     // ── Warm-up intercept ────────────────────────────────────────────────
     const wuEnabled = wPrefs?.warmupEnabled !== false;
     const wuTiming  = wPrefs?.warmupTiming || 'always';
+    const _isRunDayForWu = prescType === 'running' || (prescType === 'hybrid' && hybridRunDay);
     const showWu = wuEnabled && (
       wuTiming === 'always' ||
       (wuTiming === 'heavy' && prescType === 'lifting') ||
-      (wuTiming === 'runs'  && prescType === 'running')
+      (wuTiming === 'runs'  && _isRunDayForWu)
     );
     if (showWu) {
       const focusLower = (todayFocus || '').toLowerCase();
-      const wuType = prescType === 'running' ? 'run'
+      const wuType = _isRunDayForWu ? 'run'
         : prescType === 'hyrox' || prescType === 'hybrid-hyrox' ? 'hyrox'
         : focusLower.includes('push') ? 'push'
         : focusLower.includes('pull') ? 'pull'
@@ -2433,7 +2492,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       setWarmupSkillLevel(wuLevel);
       setTrainScreen("warmup");
     } else {
-      setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);
+      setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':(prescType==='running'||hybridRunDay)?'run-picker':null);
       setTrainScreen("active");
     }
   }
@@ -3308,11 +3367,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               const heroIsAdv=heroLvl==="advanced"||heroLvl==="elite";
               const heroLevelColor=heroIsNov?"var(--green)":heroIsAdv?"#F87171":"var(--blue)";
               const heroLvlBadge=heroIsNov?"Beginner":heroIsAdv?"Advanced":"Intermediate";
+              const _raceTypeLabels={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+              const _raceLabel=_raceTypeLabels[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
               const progLabel=
                 wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
                 wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
-                wPrefs.isHybrid  ? (wPrefs.hybridTemplate||"Hybrid") :
-                prescType==="running" ? (wPrefs.runPlan||"Running") :
+                wPrefs.isHybrid  ? (_raceLabel?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel}`:(wPrefs.hybridTemplate||"Hybrid")) :
+                prescType==="running" ? (_raceLabel||wPrefs.runPlan||"Running") :
                 wPrefs.splitType||"My Program";
               const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns";
               const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
@@ -3324,7 +3385,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
                 <div>
                   <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",marginBottom:6}}>// {progLabel}</div>
-                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?800:900,fontSize:GOCLUB_REDESIGN?34:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{todayFocus}</div>
+                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?800:900,fontSize:GOCLUB_REDESIGN?34:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{(prescType==="running"||hybridRunDay)?(resolvedDayFocus[todayKey]||"Run Day"):todayFocus}</div>
                   {prescType==="lifting"&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
                     <span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span>
                     {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span style={{padding:"4px 9px",borderRadius:6,background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:"var(--accent)",textTransform:"uppercase"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
@@ -3568,11 +3629,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             {(()=>{
               const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
               const totalWeeks=progInfo?.weeks||12;
+              const _raceTypeLabels2={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+              const _raceLabel2=_raceTypeLabels2[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
               const progName=
                 wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
                 wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
-                wPrefs.isHybrid  ? (wPrefs.hybridTemplate||"Hybrid") :
-                prescType==="running" ? (wPrefs.runPlan||"Running") :
+                wPrefs.isHybrid  ? (_raceLabel2?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel2}`:(wPrefs.hybridTemplate||"Hybrid")) :
+                prescType==="running" ? (_raceLabel2||wPrefs.runPlan||"Running") :
                 progInfo?.name||(wPrefs.splitType||"Custom Plan");
               const displayWeek=programCurrentWeek||weekNum;
               const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
@@ -3662,7 +3725,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             })()}
 
             {/* ── THIS WEEK ── */}
-            <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={dayFocus} sessionCount={sessionCount} todayType={todayType}/>
+            <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType}/>
 
             {/* ── MUSCLE RECOVERY ── */}
             <MuscleRecovery userId={user?.id}/>
@@ -3842,13 +3905,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               gap:10,
             }}>
               <button
-                onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
+                onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':(prescType==='running'||hybridRunDay)?'run-picker':null);setTrainScreen("active");}}
                 style={{width:'100%',padding:'16px 0',background:'var(--accent)',border:'none',borderRadius:12,color:'#fff',fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}
               >
                 BEGIN SESSION →
               </button>
               <button
-                onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':prescType==='running'?'run-picker':null);setTrainScreen("active");}}
+                onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':(prescType==='running'||hybridRunDay)?'run-picker':null);setTrainScreen("active");}}
                 style={{width:'100%',padding:'13px 0',background:'transparent',border:'1px solid rgba(245,245,240,0.15)',borderRadius:12,color:'rgba(245,245,240,0.4)',fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}
               >
                 SKIP WARM-UP →
@@ -4376,7 +4439,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             </SectionCard>
 
             <SectionCard title="Weekly Schedule">
-              {WDAYS.map(day=>{const t=schedule[day];const c=DAY_CFG[t]||DAY_CFG.rest;const isT=day===todayKey;const f=dayFocus[day];return(
+              {WDAYS.map(day=>{const t=schedule[day];const c=DAY_CFG[t]||DAY_CFG.rest;const isT=day===todayKey;const f=resolvedDayFocus[day];return(
                 <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontWeight:700,fontSize:13,color:isT?T.prot:"#fff",width:32}}>{day}</span>
@@ -4405,7 +4468,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <div style={{display:"flex",flexDirection:"column",gap:14,maxWidth:isMobile?"100%":740}}>
             <PerformanceCalendar profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
             <AthletePassport user={user}/>
-            {(wPrefs.isHyrox||(wPrefs.splitType||"").toLowerCase().includes("run"))&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
+            {(wPrefs.isHyrox||profile?.run_race_type)&&<RacePredictor profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile}/>}
             <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
 
             {/* Program Progress Card */}

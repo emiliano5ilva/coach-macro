@@ -786,7 +786,7 @@ export default function PhotoFoodLogger({ user, profile, onLog, onClose }) {
         .filter(c => c.ai_identified && (c.user_corrected_to || c.portion_adjustment))
         .map(c => ({ user_id: user.id, ...c }));
       if (rows.length) {
-        sb.from("photo_log_corrections").insert(rows).catch(() => {});
+        (async()=>{try{await sb.from("photo_log_corrections").insert(rows);}catch(e){console.warn('[photo_log_corrections insert]',e);}})();
       }
     }
 
