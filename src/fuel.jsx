@@ -782,6 +782,9 @@ function SwipeRow({onDelete, children, style={}}) {
   const startX = React.useRef(0);
   const THRESHOLD = 72;
 
+  // D-fix: if no onDelete, render children with no swipe behaviour
+  if(!onDelete) return <div style={style}>{children}</div>;
+
   function onPointerDown(e) {
     startX.current = e.clientX;
     setDragging(true);
@@ -798,9 +801,12 @@ function SwipeRow({onDelete, children, style={}}) {
     else setOffset(0);
   }
 
+  // Delete panel opacity fades in proportionally to swipe distance
+  const deleteFade = Math.min(1, Math.abs(offset) / (THRESHOLD * 0.6));
+
   return (
     <div style={{position:"relative",overflow:"hidden",...style}}>
-      <div style={{position:"absolute",right:0,top:0,bottom:0,width:THRESHOLD,background:"#EF4444",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"0 8px 8px 0",flexShrink:0}}>
+      <div style={{position:"absolute",right:0,top:0,bottom:0,width:THRESHOLD,background:"#EF4444",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"0 8px 8px 0",flexShrink:0,opacity:deleteFade,transition:dragging?"none":"opacity 0.2s ease"}}>
         <span style={{color:"#fff",fontSize:11,fontWeight:700,letterSpacing:"0.08em"}}>Delete</span>
       </div>
       <div className="swipe-row"
@@ -808,7 +814,7 @@ function SwipeRow({onDelete, children, style={}}) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        style={{transform:`translateX(${offset}px)`,transition:dragging?"none":"transform 0.25s ease",background:T.bg||"#0a0e1a",position:"relative"}}
+        style={{transform:`translateX(${offset}px)`,transition:dragging?"none":"transform 0.25s ease",background:"none",position:"relative"}}
       >
         {children}
       </div>
@@ -1399,9 +1405,30 @@ const DIET_PRESETS=[
   {id:'pescatarian', label:'Pescatarian',  badge:null,       color:null},
 ];
 
+// T: safeParseJSON — balanced-brace extraction + trailing-comma repair.
+// Handles prose before/after JSON, truncated responses, and markdown fences.
+function safeParseJSON(str){
+  if(!str)return null;
+  let s=str.replace(/```json\n?|```\n?/g,'').trim();
+  try{return JSON.parse(s);}catch{}
+  const start=s.search(/[{\[]/);
+  if(start===-1)return null;
+  const opener=s[start];const closer=opener==='{'?'}':']';
+  let depth=0,end=-1;
+  for(let i=start;i<s.length;i++){
+    if(s[i]===opener)depth++;
+    else if(s[i]===closer){depth--;if(depth===0){end=i;break;}}
+  }
+  const extracted=end!==-1?s.slice(start,end+1):s.slice(start);
+  try{return JSON.parse(extracted);}catch{}
+  const fixed=extracted.replace(/,(\s*[}\]])/g,'$1').replace(/,\s*$/,'');
+  const opens=[...fixed].reduce((st,ch)=>{if(ch==='{'||ch==='[')st.push(ch==='{'?'}':']');else if((ch==='}'||ch===']')&&st.length&&st[st.length-1]===ch)st.pop();return st;},[]);
+  try{return JSON.parse(fixed+opens.reverse().join(''));}catch{return null;}
+}
+
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null}) {
 
-  const FUEL_TABS=[{id:"home",label:"Home"},{id:"log",label:"Log Food"},{id:"kitchen",label:"Kitchen"}];
+  const FUEL_TABS=[{id:"home",label:"Home"},{id:"kitchen",label:"Kitchen"}];
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const mno={fontFamily:"'DM Mono',monospace"};
   const [logMode,setLogMode]=useState(null);
@@ -1978,10 +2005,8 @@ Reply with ONLY a valid JSON object, no markdown:
       _raw=raw;
 
       _stage='parse';
-      const clean=raw.replace(/```json\n?|```/g,'').trim();
-      const jsonMatch=clean.match(/\{[\s\S]*\}/);
       let plan=null;
-      try{plan=JSON.parse(jsonMatch?jsonMatch[0]:clean);}
+      try{plan=safeParseJSON(raw);}
       catch(pe){_parseErr=pe.message;}
       if(!plan){
         _planKeys=_parseErr?`parse_threw:${_parseErr}`:'null_after_parse';
@@ -2446,12 +2471,12 @@ Reply with ONLY a valid JSON object, no markdown:
                 );
               })()}
             </AnimatePresence>
-            {/* Segmented sub-nav */}
-            <div style={{padding:"0 18px 4px",overflowX:"auto",flexShrink:0}}>
+            {/* Segmented sub-nav — centered, 2 tabs (Home / Kitchen) */}
+            <div style={{padding:"0 18px 4px",flexShrink:0,display:"flex",justifyContent:"center"}}>
               <div style={{display:"inline-flex",background:"rgba(255,255,255,0.06)",borderRadius:10,padding:3,gap:2}}>
                 {FUEL_TABS.map(tab=>(
                   <button key={tab.id} onClick={()=>setFuelScreen(tab.id)}
-                    style={{padding:"7px 14px",borderRadius:8,border:"none",cursor:"pointer",
+                    style={{padding:"7px 22px",borderRadius:8,border:"none",cursor:"pointer",
                       fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,
                       color:fuelScreen===tab.id?"#fff":"rgba(255,255,255,0.4)",
                       background:fuelScreen===tab.id?"#e8341c":"transparent",
@@ -3166,7 +3191,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     </div>)
                 }
                 <div style={{display:"flex",gap:8}}>
-                  {bodySuggest&&<button onClick={()=>setFuelScreen("log")} style={{flex:2,padding:"11px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:700,fontSize:13,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer"}}>Log It</button>}
+                  {bodySuggest&&<button onClick={()=>setFuelScreen("home")} style={{flex:2,padding:"11px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:700,fontSize:13,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer"}}>Log It</button>}
                 </div>
               </div>
             )}
@@ -3176,7 +3201,7 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:flexOn?14:0}}>
                 <div>
                   <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:14,fontWeight:900,letterSpacing:"0.08em",color:flexOn?"var(--amber)":"rgba(245,245,240,0.65)",textTransform:"uppercase",marginBottom:flexOn?3:0}}>Weekend Flex</div>
-                  {flexOn&&<div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Weekday deficit covers weekend. Protein stays fixed.</div>}
+                  {flexOn&&<div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Adds {flexPct}% on Sat/Sun and trims weekdays to match — weekly total stays the same.</div>}
                 </div>
                 <div onClick={()=>saveFlexPrefs({...(wPrefs||{}),weekendFlexMode:!flexOn,flexDays:!flexOn?["Sat","Sun"]:flexDays,flexCalorieIncrease:flexPct})}
                   style={{width:44,height:24,borderRadius:12,background:flexOn?"#F59E0B":"rgba(245,245,240,0.15)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:flexOn?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
@@ -3239,7 +3264,7 @@ Reply with ONLY a valid JSON object, no markdown:
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
               {[
-                ["Food", ()=>setFuelScreen("log"),
+                ["Food", ()=>setFuelScreen("home"),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2s-2 2-2 5a2 2 0 004 0c0-3-2-5-2-5z"/><path d="M17 3v4a5 5 0 01-10 0V3"/><path d="M7 14v8m10-8v8"/></svg>],
                 ["Recipes", ()=>setFuelScreen("kitchen"),
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>],
@@ -3257,17 +3282,7 @@ Reply with ONLY a valid JSON object, no markdown:
               ))}
             </div>
 
-            {/* MEAL PREP CARD */}
-            <button onClick={()=>setFuelScreen("kitchen")} style={{width:"100%",background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:16,padding:"16px 20px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:16}}>
-              <div style={{flex:1}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// Meal Prep</div>
-                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:"#fff",textTransform:"uppercase",marginBottom:4}}>Weekly Prep</div>
-                <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{prepPlan?"View your weekly prep plan · proteins, carbs, veggies + grocery list":"Generate your weekly meal prep plan based on your training schedule"}</div>
-              </div>
-              <div style={{color:"var(--amber)",flexShrink:0}}>
-                <svg width={18} height={18} viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
-              </div>
-            </button>
+            {/* Weekly Prep card removed from home — accessible via Kitchen tab */}
 
             {/* WATER TRACKER */}
             {waterTarget>0&&(
@@ -3311,16 +3326,16 @@ Reply with ONLY a valid JSON object, no markdown:
           );}catch(err){console.error('FUEL HOME CRASH:',err);return(<div style={{padding:24,color:'#e8341c',fontFamily:'DM Mono,monospace',fontSize:12}}>Error: {err.message}</div>);}
         })()}
 
-        {/* ── LOG FOOD ── */}
+        {/* ── LOG FOOD — full-screen fixed sheet (F) ── */}
         {fuelScreen==="log"&&(
-          <div style={{maxWidth:isMobile?"100%":600,padding:"0 16px"}}>
-            {/* Header */}
-            <div style={{marginBottom:20}}>
-              {GOCLUB_REDESIGN
-                ?<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:28,color:"#f5f5f0",lineHeight:1.05,letterSpacing:"-0.01em"}}>Log Food</div>
-                :<div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>LOG FOOD</div>
-              }
+          <div style={{position:"fixed",inset:0,zIndex:500,background:"radial-gradient(ellipse at 50% 0%,rgba(232,52,28,0.12) 0%,#060d1a 65%)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+            {/* Sticky header: ← Close + MEAL X chip */}
+            <div style={{position:"sticky",top:0,background:"rgba(6,13,26,0.94)",backdropFilter:"blur(12px)",padding:"calc(env(safe-area-inset-top,0px) + 12px) 16px 12px",zIndex:10,display:"flex",alignItems:"center",gap:14,borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+              <button onClick={()=>setFuelScreen("home")} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",cursor:"pointer",padding:0,textTransform:"uppercase",flexShrink:0}}>← CLOSE</button>
+              <div style={{flex:1}}/>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#e8341c",letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:20,padding:"4px 12px",flexShrink:0}}>MEAL {mealSlots[activeSlotIdx]||1}</div>
             </div>
+            <div style={{maxWidth:isMobile?"100%":600,padding:"16px 16px 0"}}>
 
             {/* Step 1: Meal selection */}
             {(()=>{
@@ -3736,6 +3751,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
               </div>
             )}
+            </div>
           </div>
         )}
 
@@ -3770,11 +3786,11 @@ Reply with ONLY a valid JSON object, no markdown:
                     onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||320;setKitchenCard(Math.min(1,Math.max(0,Math.round(el.scrollLeft/w))));}}
                   >
                     {kitchenCards.map((card,i)=>(
-                      <div key={i} onClick={card.onPress} style={{minWidth:'100%',maxWidth:'100%',scrollSnapAlign:'start',background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.12)',borderRadius:14,padding:'18px 16px',boxSizing:'border-box',cursor:'pointer',position:'relative'}}>
+                      <div key={i} onClick={card.onPress} style={{minWidth:'100%',maxWidth:'100%',scrollSnapAlign:'start',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(232,52,28,0.22)',borderRadius:16,padding:'20px 18px',boxSizing:'border-box',cursor:'pointer',position:'relative',boxShadow:'0 4px 24px rgba(0,0,0,0.45)'}}>
                         <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>{card.eyebrow}</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:24,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:6}}>{card.title}</div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.4)',lineHeight:1.5}}>{card.sub}</div>
-                        <div style={{position:'absolute',bottom:16,right:16,color:'#e8341c',fontSize:16,lineHeight:1}}>→</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:26,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:6}}>{card.title}</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.45)',lineHeight:1.5}}>{card.sub}</div>
+                        <div style={{position:'absolute',bottom:18,right:18,color:'#e8341c',fontSize:18,lineHeight:1,fontWeight:700}}>→</div>
                       </div>
                     ))}
                   </div>
@@ -3886,7 +3902,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       const cPct=Math.round((r.carbs_per_serving||0)*4/macroTotal*100);
                       const fPct=Math.max(0,100-pPct-cPct);
                       return(
-                        <div key={r.id} style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:16,padding:"16px"}}>
+                        <div key={r.id} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.10)',borderRadius:16,padding:"16px",boxShadow:'0 3px 16px rgba(0,0,0,0.35)'}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
@@ -4069,9 +4085,17 @@ Reply with ONLY a valid JSON object, no markdown:
                           setMealPrepPrefs(p=>({...p,dietPreset:d.id}));
                           try{if(typeof saveFlexPrefs==='function')saveFlexPrefs({...(wPrefs||{}),mealPrepDiet:d.id});}catch{}
                         }}
-                        style={{background:sel?'rgba(232,52,28,0.1)':'#0d0d0d',border:sel?'1.5px solid #e8341c':'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'10px 12px',cursor:'pointer',outline:'none',textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
-                        <span style={{...mno,fontSize:10,color:sel?'#e8341c':'#f5f5f0',fontWeight:700}}>{d.label}</span>
-                        {d.badge&&<span style={{...mno,fontSize:7,fontWeight:700,letterSpacing:'0.1em',padding:'2px 6px',borderRadius:20,background:d.badge==='NEW'?'rgba(34,197,94,0.15)':d.badge==='TRENDING'?'rgba(254,160,32,0.15)':'rgba(232,52,28,0.15)',color:d.badge==='NEW'?'#22c55e':d.badge==='TRENDING'?'#FEA020':'#e8341c'}}>{d.badge}</span>}
+                        style={{background:sel?'rgba(232,52,28,0.12)':'rgba(255,255,255,0.04)',border:sel?'1.5px solid #e8341c':'1px solid rgba(255,255,255,0.08)',borderRadius:12,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:sel?'0 0 0 1px rgba(232,52,28,0.3)':'0 2px 8px rgba(0,0,0,0.35)'}}>
+                        {/* 16:9 image slot */}
+                        <div style={{width:'100%',aspectRatio:'16/9',background:'linear-gradient(135deg,rgba(232,52,28,0.18),rgba(0,0,0,0.7))',position:'relative',overflow:'hidden'}}>
+                          <img src={`/diet-images/${d.id}.jpg`} alt={d.label} style={{width:'100%',height:'100%',objectFit:'cover',position:'absolute',inset:0}} onError={e=>{e.target.style.display='none';}}/>
+                          {d.badge&&<span style={{position:'absolute',top:6,right:6,...mno,fontSize:7,fontWeight:700,letterSpacing:'0.10em',textTransform:'uppercase',padding:'2px 7px',borderRadius:20,background:d.badge==='NEW'?'rgba(34,197,94,0.90)':d.badge==='TRENDING'?'rgba(254,160,32,0.90)':'rgba(232,52,28,0.90)',color:'#fff'}}>{d.badge}</span>}
+                        </div>
+                        {/* Label row */}
+                        <div style={{padding:'8px 10px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <span style={{...mno,fontSize:10,color:sel?'#e8341c':'#f5f5f0',fontWeight:700}}>{d.label}</span>
+                          {sel&&<span style={{color:'#e8341c',fontSize:12,lineHeight:1}}>✓</span>}
+                        </div>
                       </button>
                     );
                   })}
