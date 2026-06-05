@@ -435,6 +435,46 @@ export const REDESIGN_CSS = `
   }
   .goclub-card-enter { animation: cm-slide-up 0.42s cubic-bezier(.2,.7,.3,1) forwards; }
 
+  /* Soreness range slider — on-brand thumb, immediate drag (touch-action:none) */
+  .cm-soreness-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(17,17,17,0.12);
+    outline: none;
+    cursor: pointer;
+    touch-action: none;
+    display: block;
+  }
+  .cm-soreness-range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(17,17,17,0.12);
+  }
+  .cm-soreness-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #FF3B30;
+    cursor: pointer;
+    margin-top: -11px;
+    box-shadow: 0 2px 8px rgba(255,59,48,0.35);
+    border: none;
+  }
+  .cm-soreness-range::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #FF3B30;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(255,59,48,0.35);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .goclub .app-tab          { transition: none; }
     .goclub-card-enter        { animation: none; }

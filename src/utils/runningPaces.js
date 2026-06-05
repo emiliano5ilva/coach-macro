@@ -56,6 +56,20 @@ export const updateRaceTime = (current5K, targetPaceSecs, actualPaceSecs, sessio
   return current5K;
 };
 
+// Derive goal pace (sec/mi) from a goal finish time + race distance.
+// Returns { secs, display } matching the paces object shape.
+// Falls back to tempo when goal time is missing or distance unknown.
+const RACE_DIST_MI = { '5k': 3.107, '10k': 6.214, 'half': 13.109, 'marathon': 26.219, 'general': null };
+
+export const computeGoalPace = (goalTimeSecs, raceDistance, fallbackTempo) => {
+  const distMi = RACE_DIST_MI[raceDistance];
+  if (!goalTimeSecs || !distMi) return fallbackTempo ?? null;
+  const secPerMile = goalTimeSecs / distMi;
+  const m = Math.floor(secPerMile / 60);
+  const s = Math.round(secPerMile % 60);
+  return { secs: secPerMile, display: (s < 10 ? `${m}:0${s}` : `${m}:${s}`) + '/mi' };
+};
+
 // Replace {pace_token} placeholders in workout description strings with live pace values.
 export const resolvePaceTokens = (text, paces) => {
   if (!paces || !text) return text;
@@ -67,7 +81,9 @@ export const resolvePaceTokens = (text, paces) => {
     .replace(/\{interval5K\}/g,  paces.interval5K.display)
     .replace(/\{interval1mi\}/g, paces.interval1mi.display)
     .replace(/\{longRun\}/g,     paces.longRun.display)
-    .replace(/\{stride\}/g,      paces.stride.display);
+    .replace(/\{stride\}/g,      paces.stride.display)
+    // {goalPace} → goal-pace derived from run_target_time; falls back to tempo
+    .replace(/\{goalPace\}/g,    (paces.goalPace?.display ?? paces.tempo.display));
 };
 
 // Estimate 5K time from fitness level when user doesn't know their time.

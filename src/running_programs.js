@@ -1326,20 +1326,295 @@ export function getSkillVariant(programData, skillLevel) {
   return programData;
 }
 
-export function getTodayRunWorkout(programName, weekNumber, dayOfWeek) {
-  const program = RUNNING_PROGRAMS[programName];
-  if(!program?.schedule) return null;
-  // TODO: replace with generative running engine (Track 2)
-  let week = program.schedule.find(w=>w.week===weekNumber);
-  if(!week && program.schedule.length>0){
-    // Nearest-authored-week fallback: highest authored week <= weekNumber, then lowest above
-    const below=program.schedule.filter(w=>w.week<=weekNumber).sort((a,b)=>b.week-a.week);
-    const above=program.schedule.filter(w=>w.week>weekNumber).sort((a,b)=>a.week-b.week);
-    week=below[0]||above[0];
+import { generateRunWeek } from './services/runEngine.js';
+
+// Assemble generateRunWeek() inputs from live app state.
+// Safe defaults ensure this works before Phase C onboarding ships.
+// Maps the string vocabulary written by onboarding to the 1–5 numeric scale the engine uses.
+// "fast"=4, "normal"=3, "slow"=2, "very_slow"=1. Default 3 for anything else/missing.
+const RC_MAP = { fast: 4, normal: 3, slow: 2, very_slow: 1 };
+
+// Engine expects "half" not "half_marathon"; normalize any variant to engine keys.
+const RACE_TYPE_MAP = { half_marathon: 'half', '10km': '10k' };
+
+const WDAYS_ORDER = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// Cycles for programs that have deterministic heavy-lower days.
+// Only include programs where the leg/lower day can be inferred reliably from the cycle.
+// Missing keys return null → heavyLowerDays = [] (safe/cold-start DOMS fallback).
+const HEAVY_LOWER_CYCLES = {
+  "Push/Pull/Legs":       ["Push","Pull","Legs"],
+  "Push/Pull/Legs x2":   ["Push","Pull","Legs","Push","Pull","Legs"],
+  "Dumbbell PPL":         ["Push","Pull","Legs"],
+  "Upper/Lower":          ["Upper","Lower"],
+  "Upper Lower":          ["Upper","Lower"],
+  "Dumbbell Upper Lower": ["Upper","Lower"],
+  "Bro Split":            ["Chest","Back","Shoulders","Arms","Legs"],
+  "Arnold Split":         ["Chest & Back","Shoulders & Arms","Legs"],
+  "PHUL":                 ["Upper","Lower","Upper","Lower"],
+};
+// Focus labels that map to a heavy-lower session.
+const HEAVY_LOWER_LABELS = new Set(["Legs","Lower"]);
+
+// Pure function: profile/wPrefs/schedule in → { runDays, liftDays, heavyLowerDays } out.
+// Resolution order:
+//   1. Explicit wPrefs.dayPlan (Phase C Step 2+ / onboarding writes this)
+//   2. Run-only fallback (run_race_type set, not hybrid)
+//   3. Hybrid without dayPlan — runDays & liftDays = all training days,
+//      heavyLowerDays inferred from program split cycle
+export function deriveDayModality(profile, wPrefs, schedule) {
+  const sch = schedule || {};
+  // Recognize all active (non-rest) schedule types: 'run', 'training', 'cardio', 'hyrox', etc.
+  // PlanOnboarding writes 'run' for run-focus days, not 'training', so === 'training' misses them.
+  const trainingDays = WDAYS_ORDER.filter(d => sch[d] && sch[d] !== 'rest');
+  const isHybrid = !!wPrefs?.isHybrid;
+  const hasRunRaceType = !!profile?.run_race_type;
+
+  // Path 1: explicit day-plan (written by onboarding after Step 4, or manually seeded)
+  const dp = wPrefs?.dayPlan;
+  if (dp && typeof dp === 'object' && Object.keys(dp).length > 0) {
+    return {
+      runDays:        WDAYS_ORDER.filter(d => !!dp[d]?.run),
+      liftDays:       WDAYS_ORDER.filter(d => !!dp[d]?.lift),
+      heavyLowerDays: WDAYS_ORDER.filter(d => dp[d]?.liftFocus === 'heavy_lower'),
+    };
   }
-  if(!week) return null;
-  return week.days.find(d=>d.day===dayOfWeek)||null;
+
+  // Path 2: run-only account — liftDays and heavyLowerDays are empty
+  if (hasRunRaceType && !isHybrid) {
+    return { runDays: trainingDays, liftDays: [], heavyLowerDays: [] };
+  }
+
+  // Path 3: hybrid (or lifting-only) without dayPlan — infer heavyLowerDays from the
+  // program's split cycle. If the cycle can't be resolved confidently, return [].
+  const splitType = wPrefs?.splitType || profile?.current_program || '';
+  const cycle = HEAVY_LOWER_CYCLES[splitType] || null;
+  const heavyLowerDays = cycle
+    ? trainingDays.filter((_, i) => HEAVY_LOWER_LABELS.has(cycle[i % cycle.length]))
+    : [];
+
+  return {
+    runDays: trainingDays,
+    liftDays: trainingDays,
+    heavyLowerDays,
+  };
 }
+
+export function buildRunEngineInputs(profile, wPrefs, schedule, weekNum) {
+  const WDAYS = WDAYS_ORDER;
+
+  // Bug 5: current5KTime is stored as string "1500" — coerce to Number.
+  const _raw5K = wPrefs?.current5KTime
+    ?? profile?.current5KTime
+    ?? profile?.profile_data?.current5KTime
+    ?? null;
+  const seconds5K = _raw5K != null ? (Number(_raw5K) || null) : null;
+
+  // Bug 2: default to conservative 2, not schedule-training-days count.
+  // wPrefs.currentRunsPerWeek is the *current* run frequency; schedule days are
+  // committed/future training slots and include lifting for hybrid users.
+  const currentRunsPerWeek = wPrefs?.currentRunsPerWeek != null
+    ? Number(wPrefs.currentRunsPerWeek)
+    : 2;
+
+  const longestRunMi = wPrefs?.longestRunMi ?? null;
+
+  // Bug 1: recovery_capacity is stored as a string ("fast"/"normal"/"slow"/"very_slow").
+  // The engine expects a number 1–5 (3 = baseline). Map it.
+  const _rcRaw       = profile?.recovery_capacity ?? wPrefs?.recoveryCapacity ?? 'normal';
+  const recoveryCapacity = typeof _rcRaw === 'number'
+    ? _rcRaw
+    : (RC_MAP[_rcRaw] ?? 3);
+
+  // Bug norm: run_race_type can be "half_marathon" (onboarding map) — normalize to engine keys.
+  const _rawDist   = (profile?.run_race_type || wPrefs?.runRaceType || '5k').toLowerCase().trim();
+  const goalDistance = RACE_TYPE_MAP[_rawDist] ?? _rawDist;
+
+  // run_target_time is a Postgres interval returned as "H:MM:SS" or "MM:SS"
+  const _rawTarget = profile?.run_target_time;
+  let goalSeconds  = null;
+  if (_rawTarget) {
+    const parts = String(_rawTarget).split(':').map(Number);
+    if (parts.length === 3) goalSeconds = parts[0]*3600 + parts[1]*60 + parts[2];
+    else if (parts.length === 2) goalSeconds = parts[0]*60 + parts[1];
+  }
+
+  // Run-plan week anchor — deliberately separate from program_start_date (the LIFTING anchor).
+  // A hybrid user who has been lifting for months but just started a 12-week run plan must
+  // read as week ~1, not week ~26.
+  const planWeeks = Math.max(8, Number(wPrefs?.planWeeks ?? profile?.profile_data?.planWeeks ?? 12) || 12);
+
+  // Resolution order for run plan start:
+  //   a. wprefs.runPlanStartDate  — explicit anchor written by Step 4 onboarding
+  //   b. race_date − planWeeks×7  — derives the start that makes the plan end on race day
+  //   c. program_start_date / startDate  — fallback (lifting anchor; only correct for run-only)
+  //   d. today                    — safe last resort
+  let runPlanStart = null;
+  if (wPrefs?.runPlanStartDate) {
+    const d = new Date(wPrefs.runPlanStartDate);
+    if (!isNaN(d.getTime())) runPlanStart = d;
+  }
+  if (!runPlanStart && profile?.run_race_date) {
+    const raceDate = new Date(profile.run_race_date);
+    if (!isNaN(raceDate.getTime()))
+      runPlanStart = new Date(raceDate.getTime() - planWeeks * 7 * 86400000);
+  }
+  if (!runPlanStart) {
+    const fallbackRaw = profile?.program_start_date || profile?.startDate || null;
+    const fallback = fallbackRaw ? new Date(fallbackRaw) : null;
+    runPlanStart = (fallback && !isNaN(fallback.getTime())) ? fallback : new Date();
+  }
+
+  // totalWeeks: race_date vs runPlanStart when race is set; else planWeeks.
+  let totalWeeks = planWeeks;
+  if (profile?.run_race_date) {
+    const raceDate = new Date(profile.run_race_date);
+    if (!isNaN(raceDate.getTime())) {
+      totalWeeks = Math.max(8, Math.ceil((raceDate - runPlanStart) / (7 * 86400000)));
+    }
+  }
+
+  const _daysSinceRunStart = Math.max(0, Math.floor((Date.now() - runPlanStart.getTime()) / 86400000));
+  const weekInPlan = Math.max(1, Math.floor(_daysSinceRunStart / 7) + 1);
+  // Post-race: race date is in the past — do not feed out-of-range week to the engine.
+  const isPostRace = weekInPlan > totalWeeks;
+
+  // Experience
+  const expRaw   = (profile?.skill_level || wPrefs?.liftExp || 'intermediate').toLowerCase();
+  const experience = ['beginner','intermediate','advanced'].includes(expRaw) ? expRaw : 'intermediate';
+
+  // Day-modality separation: run days, lift days, heavy-lower days
+  const { runDays, liftDays, heavyLowerDays } = deriveDayModality(profile, wPrefs, schedule);
+
+  const isHybrid        = !!wPrefs?.isHybrid;
+  const liftDaysPerWeek = isHybrid ? liftDays.length : 0;
+  const domsProfile     = profile?.adaptive_profile?.domsProfile ?? null;
+
+  // For general (no-race) accounts, pass the focus emphasis through to the engine.
+  const emphasis = wPrefs?.runFocus || 'consistency';
+
+  return {
+    currentAbility: { seconds5K, currentRunsPerWeek, longestRunMi, recoveryCapacity },
+    goalRace:        { distance: goalDistance, goalSeconds },
+    weekInPlan,
+    totalWeeks,
+    isPostRace,
+    emphasis,
+    daysAvailable:   runDays.length >= 2 ? runDays : ['Tue','Thu','Sat'],
+    experience,
+    liftingLoad:     { liftDaysPerWeek, heavyLowerDays, domsProfile },
+  };
+}
+
+// Maps engine session types to the display / enrichRunSession vocabulary.
+export const RUN_SESSION_TYPE_MAP = {
+  long:       'long run',
+  threshold:  'tempo',
+  intervals:  'interval',
+  easy:       'easy',
+  maintenance: 'maintenance',
+};
+
+// Human-readable heading for each engine session type (used in hero card title).
+export const RUN_SESSION_TITLE = {
+  long:       'Long Run',
+  threshold:  'Tempo Run',
+  intervals:  'Intervals',
+  easy:       'Easy Run',
+  maintenance: 'Maintenance Run',
+};
+
+// Returns the FULL generated week object for the current plan week.
+// Callers that need more than today's session (week card, week overview) use this.
+export function getRunWeek(profile, wPrefs, schedule, weekNum) {
+  const inputs = buildRunEngineInputs(profile, wPrefs, schedule, weekNum);
+  // Post-race: engine never sees an out-of-range week.
+  if (inputs.isPostRace) {
+    return {
+      sessions:         [],
+      weekPhase:        'post-race',
+      isPostRace:       true,
+      isDownWeek:       false,
+      isRaceWeek:       false,
+      weeklyVolumeMi:   0,
+      coachNote:        'Race complete. Set a new goal to begin your next plan.',
+      projectedFinish:  null,
+    };
+  }
+  const week = generateRunWeek(
+    inputs.currentAbility,
+    inputs.goalRace,
+    inputs.weekInPlan,
+    inputs.totalWeeks,
+    inputs.daysAvailable,
+    inputs.experience,
+    inputs.liftingLoad,
+    inputs.emphasis,
+  );
+
+  // Honor wPrefs.longRunDay — if the engine placed the long run on a different day,
+  // swap it with the user's preferred day (only if that day has an easy/maintenance session).
+  const preferredLongDay = wPrefs?.longRunDay;
+  if (preferredLongDay) {
+    const sessions  = week.sessions;
+    const engineLong = sessions.find(s => s.type === 'long');
+    if (engineLong && engineLong.day !== preferredLongDay) {
+      const targetIdx = sessions.findIndex(
+        s => s.day === preferredLongDay && (s.type === 'easy' || s.type === 'maintenance')
+      );
+      if (targetIdx !== -1) {
+        const engineIdx    = sessions.indexOf(engineLong);
+        const origTarget   = sessions[targetIdx];
+        sessions[targetIdx] = { ...engineLong, day: preferredLongDay };
+        sessions[engineIdx] = {
+          day:        engineLong.day,
+          type:       'easy',
+          distanceMi: origTarget.distanceMi,
+          pace:       '{easy}',
+          note:       'Easy effort. Zone 2. Conversational throughout.',
+        };
+      }
+    }
+  }
+
+  return week;
+}
+
+// Returns today's generated run session in the shape callers expect,
+// or null when today is not a scheduled run day.
+// Returns { isPostRace: true } when the race date is in the past.
+export function getTodayRunWorkout(profile, wPrefs, schedule, dayOfWeek, weekNum) {
+  const generatedWeek = getRunWeek(profile, wPrefs, schedule, weekNum);
+  // Post-race state: surface shows "race complete" message; no session data.
+  if (generatedWeek.isPostRace) {
+    return {
+      isPostRace:  true,
+      type:        'rest',
+      description: 'Your race is complete. Set a new goal to start your next training plan.',
+      distance:    0,
+      distanceMi:  0,
+    };
+  }
+  const session = generatedWeek.sessions.find(s => s.day === dayOfWeek);
+  if (!session) return null;
+
+  return {
+    day:             session.day,
+    type:            RUN_SESSION_TYPE_MAP[session.type] || session.type,
+    description:     session.note,
+    distance:        session.distanceMi,
+    distanceMi:      session.distanceMi,
+    duration:        Math.round(session.distanceMi * 10),
+    pace:            session.pace,
+    weekPhase:       generatedWeek.weekPhase,
+    isDownWeek:      generatedWeek.isDownWeek,
+    isRaceWeek:      generatedWeek.isRaceWeek,
+    projectedFinish: generatedWeek.projectedFinish,
+    coachNote:       generatedWeek.coachNote,
+    weeklyVolumeMi:  generatedWeek.weeklyVolumeMi,
+  };
+}
+
 
 export function getTodayHyroxWorkout(programName, weekNumber, dayOfWeek) {
   const program = HYROX_PROGRAM[programName] || HYROX_PROGRAM["12-Week Race Prep"];

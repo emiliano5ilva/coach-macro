@@ -3,6 +3,7 @@ import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem, Pressable } from './motion-layer.jsx';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
+const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
 import FoodIcon from "./FoodIcon.jsx";
 import { getFoodIcon } from "./iconMap.js";
 import FeatureStrip from "./components/FeatureStrip.jsx";
@@ -1959,7 +1960,7 @@ Reply with ONLY a valid JSON object, no markdown:
   });
   const [mealPrepPrefs,setMealPrepPrefs]=useState(()=>{
     // Pre-fill from onboarding profile
-    const freq=Math.min(4,Math.max(2,parseInt(String(profile?.mealFreq))||3));
+    const freq=Math.min(4,Math.max(2,parseInt(String(wPrefs?.mealFreq||profile?.mealFreq))||3));
     const CHIP_MAP={'dairy':'No Dairy','gluten':'No Gluten','nuts':'No Nuts','halal':'No Pork'};
     const DIET_MAP={'vegan':'vegan','vegetarian':'vegetarian'};
     const stored=(profile?.dietary||[]).filter(d=>d&&d!=='none');
@@ -1969,6 +1970,7 @@ Reply with ONLY a valid JSON object, no markdown:
     return{mealsPerDay:freq,prepTime:'1hr',dietaryPrefs,dietPreset,selectedDays:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
   });
   const [mealPrepWarning,setMealPrepWarning]=useState(null);
+  const [activeMealDetail,setActiveMealDetail]=useState(null); // {day, meal, dayIndex, mealIndex}
   const [showGroceryList,setShowGroceryList]=useState(false);
   const [checkedGroceryItems,setCheckedGroceryItems]=useState(()=>{try{const s=localStorage.getItem('mp_checked');return s?new Set(JSON.parse(s)):new Set();}catch{return new Set();}});
   const [regeneratingMeal,setRegeneratingMeal]=useState(null);
@@ -1999,12 +2001,15 @@ Reply with ONLY a valid JSON object, no markdown:
       const dietPreset=mealPrepPrefs.dietPreset||'balanced';
       const dietNote=dietPreset!=='balanced'?`\n- Diet style: ${dietPreset} (use foods appropriate for this approach — e.g. keto means low-carb high-fat, vegan means no animal products)`:'';
       // COMPACT SCHEMA — cuts output ~60% vs verbose to prevent truncation.
-      // Short keys: cal/pro/carb/fat/type/ing/pt. No description/instructions/macroProtocol.
-      // After parse we normalize compact → verbose so the renderer needs no changes.
-      const prompt=`Sports nutritionist: build a 5-day meal prep plan (Mon-Fri) for an athlete.\nGoal: ${profile?.goal||'maintenance'}. Cals: ${macros?.calories||2000}, Pro: ${macros?.protein||150}g, Carb: ${macros?.carbs||200}g, Fat: ${macros?.fat||70}g.\nRestrictions (STRICTLY AVOID ALL): ${chipStr}${dietNote}.\nPrep: ${mealPrepPrefs.prepTime}. Meals/day: ${nMeals}.\nSchedule: ${weekScheduleStr}.\nTraining days +15% carbs; leg days +25% carbs; rest days base macros.\nReturn STRICT minified JSON only — no prose, no markdown fences, no trailing text.\nEXACT schema (compact keys only, no extras):\n{"days":[{"day":"Mon","type":"rest","cal":2000,"pro":150,"carb":200,"fat":70,"meals":[{"name":"Meal","cal":667,"pro":50,"carb":67,"fat":23,"pt":15,"ing":["200g chicken","100g rice","80g broccoli"]}]}],"grocery":{"proteins":["2kg chicken"],"carbs":["1kg rice"],"veg":["500g broccoli"],"other":["olive oil"]}}`;
+      // Fix 1: explicitly list every selected day + show 2-day example so AI generates ALL days.
+      const selDaysList=mealPrepPrefs.selectedDays.join(', ');
+      const nDays=mealPrepPrefs.selectedDays.length;
+      // ROOT CAUSE OF 2-DAY BUG: showing a 2-day example anchors the model to stop after 2.
+      // Fix: show exactly 1 example day + explicit placeholder for the remaining days.
+      const prompt=`Sports nutritionist: build a ${nDays}-day meal prep plan for an athlete.\nGenerate EXACTLY ${nDays} days: ${selDaysList}. You MUST output ALL ${nDays} days — do NOT stop after 1 or 2.\nGoal: ${profile?.goal||'maintenance'}. Cals: ${macros?.calories||2000}, Pro: ${macros?.protein||150}g, Carb: ${macros?.carbs||200}g, Fat: ${macros?.fat||70}g.\nRestrictions (STRICTLY AVOID ALL): ${chipStr}${dietNote}.\nMeals/day: ${nMeals}. Each day MUST have EXACTLY ${nMeals} meals.\nSchedule: ${weekScheduleStr}.\nTraining days +15% carbs; leg days +25% carbs; rest days base macros.\nReturn STRICT minified JSON only — no prose, no markdown fences, no trailing text.\nSchema (repeat the days array entry ${nDays} times, once per day in ${selDaysList}):\n{"days":[{"day":"Mon","type":"rest","cal":2000,"pro":150,"carb":200,"fat":70,"meals":[{"name":"Oat Protein Bowl","cal":667,"pro":50,"carb":67,"fat":23,"pt":10,"ing":["100g rolled oats","30g whey protein","1 banana","15ml honey"]},...${nMeals} meals total...]},...${nDays-1} more days for ${selDaysList.split(',').slice(1).join(',').trim()||'remaining days'}...],"grocery":{"proteins":["2kg chicken breast"],"carbs":["1kg brown rice","500g oats"],"veg":["500g broccoli"],"other":["olive oil","protein powder"]}}`;
 
       _stage='fetch';
-      const raw=await ai(prompt,5000,'meal_prep_full');
+      const raw=await ai(prompt,6000,'meal_prep_full');
       _raw=raw;
 
       _stage='parse';
@@ -4059,148 +4064,197 @@ Reply with ONLY a valid JSON object, no markdown:
             {mealPrepScreen==='setup'&&(
               <div>
                 {/* Header */}
-                <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
-                  <button onClick={()=>setFuelScreen('kitchen')} style={{background:'none',border:'none',color:'#f5f5f0',fontSize:20,cursor:'pointer',padding:'0 4px 0 0',lineHeight:1,flexShrink:0}}>←</button>
-                  <div>
-                    <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:4}}>// MEAL PREP</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:52,color:'#f5f5f0',lineHeight:0.9,textTransform:'uppercase'}}>YOUR WEEK.</div>
+                <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{duration:0.3}}>
+                  <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:6}}>
+                    <button onPointerDown={()=>_hL()} onClick={()=>setFuelScreen('kitchen')} style={{background:'none',border:'none',color:'#f5f5f0',fontSize:20,cursor:'pointer',padding:'0 4px 0 0',lineHeight:1,flexShrink:0}}>←</button>
+                    <div>
+                      <div style={{...mno,fontSize:9,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:4}}>// MEAL PREP</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:54,color:'#f5f5f0',lineHeight:0.86,textTransform:'uppercase'}}>SET UP<br/>MY WEEK.</div>
+                    </div>
                   </div>
-                </div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,color:'rgba(245,245,240,0.5)',marginBottom:24,lineHeight:1.4}}>Built around your training schedule. Different days get different fuel.</div>
+                  <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.38)',marginBottom:26,lineHeight:1.6,marginTop:8}}>Cook once. Fuel all week. Built around your training schedule.</div>
+                </motion.div>
 
                 {/* Error */}
-                {mealPrepError&&<div style={{...mno,fontSize:11,color:'#e8341c',marginBottom:12,padding:'10px 14px',background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.2)',borderRadius:10}}>{mealPrepError}</div>}
+                {mealPrepError&&<motion.div initial={{opacity:0,scale:0.97}} animate={{opacity:1,scale:1}} style={{...mno,fontSize:11,color:'#FF3B30',marginBottom:14,padding:'12px 16px',background:'rgba(255,59,48,0.08)',border:'1px solid rgba(255,59,48,0.22)',borderRadius:12}}>{mealPrepError}</motion.div>}
 
-                {/* Week Overview */}
-                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// THIS WEEK</div>
-                <div style={{display:'flex',overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',WebkitOverflowScrolling:'touch',gap:8,paddingBottom:4,marginBottom:20}}>
-                  {WDAYS_ORDER.map(day=>{
-                    const sessionType=schedule?.[day]||'rest';
-                    const isTraining=sessionType==='training'||sessionType==='cardio'||sessionType==='run'||sessionType==='hyrox';
-                    const focus=(wPrefs?.dayFocus?.[day])||sessionType;
-                    const focusLabel=focus==='training'?'TRAIN':focus.toUpperCase().slice(0,5);
-                    const selected=mealPrepPrefs.selectedDays.includes(day);
-                    return(
-                      <button key={day} onClick={()=>setMealPrepPrefs(p=>({...p,selectedDays:selected?p.selectedDays.filter(d=>d!==day):[...p.selectedDays,day]}))}
-                        style={{width:72,minWidth:72,background:selected?'rgba(232,52,28,0.08)':'#0d0d0d',borderRadius:10,padding:'10px 6px',textAlign:'center',border:selected?'1.5px solid #e8341c':'1px solid rgba(232,52,28,0.08)',cursor:'pointer',flexShrink:0,outline:'none'}}>
-                        <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.5)',letterSpacing:'0.12em',marginBottom:5}}>{day.toUpperCase()}</div>
-                        <div style={{display:'inline-block',background:isTraining?'rgba(232,52,28,0.15)':'rgba(245,245,240,0.06)',borderRadius:20,padding:'2px 6px',...mno,fontSize:7,color:isTraining?'#e8341c':'rgba(245,245,240,0.3)',letterSpacing:'0.08em',marginBottom:5}}>{isTraining?focusLabel:'REST'}</div>
-                        <div style={{fontSize:7,color:isTraining?'#60a5fa':'rgba(245,245,240,0.25)',letterSpacing:'0.06em',...mno}}>{isTraining?'HIGH CARBS':'BASE'}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* Section card surface — reusable */}
+                {/* SELECT DAYS */}
+                <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.07}}
+                  style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 4px 18px rgba(0,0,0,0.35)'}}>
+                  <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:12}}>// SELECT DAYS</div>
+                  <div style={{display:'flex',overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',WebkitOverflowScrolling:'touch',gap:8,paddingBottom:2}}>
+                    {WDAYS_ORDER.map(day=>{
+                      const sessionType=schedule?.[day]||'rest';
+                      const isTraining=sessionType==='training'||sessionType==='cardio'||sessionType==='run'||sessionType==='hyrox';
+                      const focus=(wPrefs?.dayFocus?.[day])||sessionType;
+                      const focusLabel=focus==='training'?'TRAIN':focus.toUpperCase().slice(0,5);
+                      const selected=mealPrepPrefs.selectedDays.includes(day);
+                      return(
+                        <motion.button key={day} whileTap={{scale:0.88}} onPointerDown={()=>_hL()}
+                          onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,selectedDays:selected?p.selectedDays.filter(d=>d!==day):[...p.selectedDays,day]}));}}
+                          style={{width:64,minWidth:64,background:selected?'rgba(255,59,48,0.12)':'rgba(255,255,255,0.03)',borderRadius:12,padding:'10px 4px',textAlign:'center',border:selected?'1.5px solid #FF3B30':'1px solid rgba(255,255,255,0.07)',cursor:'pointer',flexShrink:0,outline:'none',boxShadow:selected?'0 0 12px rgba(255,59,48,0.18)':'none',transition:'box-shadow 0.15s'}}>
+                          <div style={{...mno,fontSize:9,color:selected?'#FF3B30':'rgba(245,245,240,0.5)',letterSpacing:'0.1em',marginBottom:5,fontWeight:700}}>{day.toUpperCase()}</div>
+                          <div style={{display:'inline-block',background:isTraining?'rgba(255,59,48,0.18)':'rgba(255,255,255,0.05)',borderRadius:20,padding:'2px 6px',...mno,fontSize:7,color:isTraining?'#FF3B30':'rgba(245,245,240,0.28)',letterSpacing:'0.08em'}}>{isTraining?focusLabel:'REST'}</div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
 
-                {/* Meals per day */}
-                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// MEALS PER DAY</div>
-                <div style={{display:'flex',gap:8,marginBottom:20}}>
-                  {[2,3,4].map(n=>{
-                    const sel=mealPrepPrefs.mealsPerDay===n;
-                    return(
-                      <button key={n} onClick={()=>setMealPrepPrefs(p=>({...p,mealsPerDay:n}))}
-                        style={{flex:1,background:sel?'rgba(232,52,28,0.1)':'#0d0d0d',border:sel?'1.5px solid #e8341c':'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:12,...mno,fontSize:10,color:sel?'#e8341c':'#f5f5f0',textAlign:'center',cursor:'pointer',outline:'none'}}>
-                        {n} MEALS
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* MEALS PER DAY */}
+                <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.13}}
+                  style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 4px 18px rgba(0,0,0,0.35)'}}>
+                  <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:12}}>// MEALS PER DAY</div>
+                  <div style={{display:'flex',gap:8}}>
+                    {[2,3,4].map(n=>{
+                      const sel=mealPrepPrefs.mealsPerDay===n;
+                      return(
+                        <motion.button key={n} whileTap={{scale:0.9}} onPointerDown={()=>_hL()}
+                          onClick={()=>{
+                            _hM();
+                            setMealPrepPrefs(p=>({...p,mealsPerDay:n}));
+                            try{saveFlexPrefs({...(wPrefs||{}),mealFreq:String(n)});}catch{}
+                          }}
+                          style={{flex:1,background:sel?'rgba(255,59,48,0.14)':'rgba(255,255,255,0.04)',border:sel?'1.5px solid #FF3B30':'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'16px 0',...mno,fontSize:sel?13:10,fontWeight:700,color:sel?'#FF3B30':'rgba(245,245,240,0.5)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 0 12px rgba(255,59,48,0.2)':'none',transition:'all 0.15s'}}>
+                          {n} MEALS
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
 
-                {/* Prep time */}
-                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// AVAILABLE PREP TIME</div>
-                <div style={{display:'flex',gap:8,marginBottom:20}}>
-                  {[['30min','30 MIN'],['1hr','1 HOUR'],['2hr+','2+ HOURS']].map(([val,label])=>{
-                    const sel=mealPrepPrefs.prepTime===val;
-                    return(
-                      <button key={val} onClick={()=>setMealPrepPrefs(p=>({...p,prepTime:val}))}
-                        style={{flex:1,background:sel?'rgba(232,52,28,0.1)':'#0d0d0d',border:sel?'1.5px solid #e8341c':'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:12,...mno,fontSize:10,color:sel?'#e8341c':'#f5f5f0',textAlign:'center',cursor:'pointer',outline:'none'}}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* DIET STYLE */}
+                <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.19}}
+                  style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 4px 18px rgba(0,0,0,0.35)'}}>
+                  <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:12}}>// DIET STYLE</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                    {DIET_PRESETS.map((d,di)=>{
+                      const sel=mealPrepPrefs.dietPreset===d.id;
+                      return(
+                        <motion.button key={d.id} whileTap={{scale:0.94}} onPointerDown={()=>_hL()}
+                          initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:0.21+di*0.035}}
+                          onClick={()=>{
+                            _hM();
+                            setMealPrepPrefs(p=>({...p,dietPreset:d.id}));
+                            try{if(typeof saveFlexPrefs==='function')saveFlexPrefs({...(wPrefs||{}),mealPrepDiet:d.id});}catch{}
+                          }}
+                          style={{background:sel?'rgba(255,59,48,0.14)':'rgba(255,255,255,0.04)',border:sel?'1.5px solid #FF3B30':'1px solid rgba(255,255,255,0.08)',borderRadius:14,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:sel?'0 0 0 1px rgba(255,59,48,0.2),0 6px 20px rgba(0,0,0,0.5)':'0 3px 10px rgba(0,0,0,0.4)',transition:'box-shadow 0.15s'}}>
+                          {/* 16:9 image slot */}
+                          <div style={{width:'100%',aspectRatio:'16/9',background:`linear-gradient(135deg,rgba(${sel?'255,59,48':'30,10,10'},${sel?'0.22':'0.12'}),rgba(0,0,0,0.8))`,position:'relative',overflow:'hidden'}}>
+                            <img src={`/diet-images/${d.id}.jpg`} alt={d.label} style={{width:'100%',height:'100%',objectFit:'cover',position:'absolute',inset:0}} onError={e=>{e.target.style.display='none';}}/>
+                            {d.badge&&<span style={{position:'absolute',top:6,right:6,...mno,fontSize:7,fontWeight:700,letterSpacing:'0.10em',textTransform:'uppercase',padding:'2px 7px',borderRadius:20,background:d.badge==='NEW'?'rgba(34,197,94,0.92)':d.badge==='TRENDING'?'rgba(254,160,32,0.92)':'rgba(255,59,48,0.92)',color:'#fff'}}>{d.badge}</span>}
+                            {sel&&<div style={{position:'absolute',inset:0,border:'2px solid rgba(255,59,48,0.4)',borderRadius:'inherit',pointerEvents:'none'}}/>}
+                          </div>
+                          {/* Label row */}
+                          <div style={{padding:'9px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:15,color:sel?'#FF3B30':'#f5f5f0',textTransform:'uppercase'}}>{d.label}</span>
+                            {sel&&<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="rgba(255,59,48,0.15)" stroke="#FF3B30" strokeWidth="1.5"/><path d="M5 8l2.5 2.5 4-4" stroke="#FF3B30" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
 
-                {/* Diet style — 10 presets */}
-                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// DIET STYLE</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:20}}>
-                  {DIET_PRESETS.map(d=>{
-                    const sel=mealPrepPrefs.dietPreset===d.id;
-                    return(
-                      <button key={d.id}
-                        onClick={()=>{
-                          setMealPrepPrefs(p=>({...p,dietPreset:d.id}));
-                          try{if(typeof saveFlexPrefs==='function')saveFlexPrefs({...(wPrefs||{}),mealPrepDiet:d.id});}catch{}
-                        }}
-                        style={{background:sel?'rgba(232,52,28,0.12)':'rgba(255,255,255,0.04)',border:sel?'1.5px solid #e8341c':'1px solid rgba(255,255,255,0.08)',borderRadius:12,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:sel?'0 0 0 1px rgba(232,52,28,0.3)':'0 2px 8px rgba(0,0,0,0.35)'}}>
-                        {/* 16:9 image slot */}
-                        <div style={{width:'100%',aspectRatio:'16/9',background:'linear-gradient(135deg,rgba(232,52,28,0.18),rgba(0,0,0,0.7))',position:'relative',overflow:'hidden'}}>
-                          <img src={`/diet-images/${d.id}.jpg`} alt={d.label} style={{width:'100%',height:'100%',objectFit:'cover',position:'absolute',inset:0}} onError={e=>{e.target.style.display='none';}}/>
-                          {d.badge&&<span style={{position:'absolute',top:6,right:6,...mno,fontSize:7,fontWeight:700,letterSpacing:'0.10em',textTransform:'uppercase',padding:'2px 7px',borderRadius:20,background:d.badge==='NEW'?'rgba(34,197,94,0.90)':d.badge==='TRENDING'?'rgba(254,160,32,0.90)':'rgba(232,52,28,0.90)',color:'#fff'}}>{d.badge}</span>}
-                        </div>
-                        {/* Label row */}
-                        <div style={{padding:'8px 10px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <span style={{...mno,fontSize:10,color:sel?'#e8341c':'#f5f5f0',fontWeight:700}}>{d.label}</span>
-                          {sel&&<span style={{color:'#e8341c',fontSize:12,lineHeight:1}}>✓</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* PREP TIME */}
+                <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.25}}
+                  style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 4px 18px rgba(0,0,0,0.35)'}}>
+                  <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:12}}>// PREP TIME AVAILABLE</div>
+                  <div style={{display:'flex',gap:8}}>
+                    {[['30min','30 MIN'],['1hr','1 HOUR'],['2hr+','2+ HRS']].map(([val,label])=>{
+                      const sel=mealPrepPrefs.prepTime===val;
+                      return(
+                        <motion.button key={val} whileTap={{scale:0.92}} onPointerDown={()=>_hL()}
+                          onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,prepTime:val}));}}
+                          style={{flex:1,background:sel?'rgba(255,59,48,0.12)':'rgba(255,255,255,0.04)',border:sel?'1.5px solid #FF3B30':'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'14px 0',...mno,fontSize:10,fontWeight:700,color:sel?'#FF3B30':'rgba(245,245,240,0.5)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 0 10px rgba(255,59,48,0.18)':'none',transition:'all 0.15s'}}>
+                          {label}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
 
-                {/* Restrictions & allergies */}
-                <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:10}}>// RESTRICTIONS & ALLERGIES</div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
-                  {['No Dairy','No Gluten','No Pork','No Shellfish','No Eggs','No Nuts'].map(chip=>{
-                    const active=mealPrepPrefs.dietaryPrefs.includes(chip);
-                    return(
-                      <button key={chip} onClick={()=>setMealPrepPrefs(p=>({...p,dietaryPrefs:active?p.dietaryPrefs.filter(c=>c!==chip):[...p.dietaryPrefs,chip]}))}
-                        style={{background:active?'rgba(232,52,28,0.1)':'#0d0d0d',border:active?'1px solid rgba(232,52,28,0.3)':'1px solid rgba(232,52,28,0.1)',borderRadius:20,padding:'6px 14px',...mno,fontSize:9,color:active?'#e8341c':'#f5f5f0',cursor:'pointer',outline:'none'}}>
-                        {chip}
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* RESTRICTIONS & ALLERGIES */}
+                <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.30}}
+                  style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 4px 18px rgba(0,0,0,0.35)'}}>
+                  <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:12}}>// RESTRICTIONS & ALLERGIES</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
+                    {['No Dairy','No Gluten','No Pork','No Shellfish','No Eggs','No Nuts'].map(chip=>{
+                      const active=mealPrepPrefs.dietaryPrefs.includes(chip);
+                      return(
+                        <motion.button key={chip} whileTap={{scale:0.9}} onPointerDown={()=>_hL()}
+                          onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,dietaryPrefs:active?p.dietaryPrefs.filter(c=>c!==chip):[...p.dietaryPrefs,chip]}));}}
+                          style={{background:active?'rgba(255,59,48,0.14)':'rgba(255,255,255,0.04)',border:active?'1.5px solid #FF3B30':'1px solid rgba(255,255,255,0.08)',borderRadius:20,padding:'8px 18px',...mno,fontSize:9,fontWeight:700,color:active?'#FF3B30':'rgba(245,245,240,0.45)',cursor:'pointer',outline:'none',boxShadow:active?'0 0 8px rgba(255,59,48,0.2)':'none',transition:'all 0.15s'}}>
+                          {chip}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
 
-                {/* Item 4 — combo pre-warning */}
-                {(()=>{
-                  const chips=mealPrepPrefs.dietaryPrefs;
-                  const noDairy=chips.includes('No Dairy'),noEgg=chips.includes('No Eggs'),noNut=chips.includes('No Nuts');
-                  const tightCount=[noDairy,noEgg,noNut].filter(Boolean).length;
-                  if(noDairy&&noEgg&&!noNut)return(<div style={{background:'rgba(232,52,28,0.06)',border:'1px solid rgba(232,52,28,0.18)',borderRadius:10,padding:'8px 14px',marginBottom:12}}>
-                    <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3}}>// HEADS UP</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.65)',lineHeight:1.6}}>No Dairy + No Eggs is effectively a vegan protein profile — options will be narrow. Consider high-protein plant foods (legumes, tofu, tempeh).</div>
-                  </div>);
-                  if(tightCount>=3)return(<div style={{background:'rgba(232,52,28,0.06)',border:'1px solid rgba(232,52,28,0.18)',borderRadius:10,padding:'8px 14px',marginBottom:12}}>
-                    <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3}}>// VERY RESTRICTIVE COMBO</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.65)',lineHeight:1.6}}>No Dairy + No Eggs + No Nuts removes most high-fat and protein staples. Some meal slots may not be safely fillable — the filter will drop them with an honest message.</div>
-                  </div>);
-                  return null;
-                })()}
+                  {/* Combo warnings */}
+                  {(()=>{
+                    const chips=mealPrepPrefs.dietaryPrefs;
+                    const noDairy=chips.includes('No Dairy'),noEgg=chips.includes('No Eggs'),noNut=chips.includes('No Nuts');
+                    const tightCount=[noDairy,noEgg,noNut].filter(Boolean).length;
+                    if(noDairy&&noEgg&&!noNut)return(<div style={{background:'rgba(232,52,28,0.06)',border:'1px solid rgba(232,52,28,0.16)',borderRadius:10,padding:'8px 14px',marginBottom:0}}>
+                      <div style={{...mno,fontSize:7,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>// HEADS UP</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.6)',lineHeight:1.6}}>No Dairy + No Eggs is effectively a vegan protein profile. Options will be narrow — consider tofu, tempeh, legumes.</div>
+                    </div>);
+                    if(tightCount>=3)return(<div style={{background:'rgba(232,52,28,0.06)',border:'1px solid rgba(232,52,28,0.16)',borderRadius:10,padding:'8px 14px',marginBottom:0}}>
+                      <div style={{...mno,fontSize:7,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>// VERY RESTRICTIVE COMBO</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.6)',lineHeight:1.6}}>No Dairy + No Eggs + No Nuts removes most protein staples. Some meal slots may not fill safely — the filter will flag them.</div>
+                    </div>);
+                    return null;
+                  })()}
+                </motion.div>
 
                 {/* Safety disclaimer */}
                 {mealPrepPrefs.dietaryPrefs.length>0&&(
-                  <div style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.12)',borderRadius:10,padding:'8px 14px',marginBottom:20}}>
-                    <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3}}>// ALLERGY NOTICE</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.55)',lineHeight:1.6}}>
-                      AI-generated plans make best efforts to honor your restrictions, but <span style={{color:'rgba(245,245,240,0.85)',fontWeight:700}}>you must verify all ingredients yourself</span> before consuming. Not medical or allergy advice. If you have a severe allergy, consult a physician and always read food labels.
+                  <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:'10px 16px',marginBottom:20}}>
+                    <div style={{...mno,fontSize:7,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>// ALLERGY NOTICE</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.5)',lineHeight:1.65}}>
+                      AI plans make best efforts to honor restrictions, but <span style={{color:'rgba(245,245,240,0.8)',fontWeight:700}}>you must verify all ingredients yourself</span> before consuming. Not medical advice.
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Generate button */}
-                <button onClick={generateMealPrepPlan} disabled={mealPrepPrefs.selectedDays.length===0}
-                  style={{width:'100%',background:'#e8341c',border:'none',borderRadius:14,padding:16,...mno,fontWeight:700,fontSize:12,color:'#fff',letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',opacity:mealPrepPrefs.selectedDays.length===0?0.4:1}}>
+                <motion.button
+                  whileTap={{scale:0.97}}
+                  onPointerDown={()=>_hM()}
+                  onClick={generateMealPrepPlan}
+                  disabled={mealPrepPrefs.selectedDays.length===0}
+                  initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.34}}
+                  style={{width:'100%',background:mealPrepPrefs.selectedDays.length===0?'rgba(232,52,28,0.3)':'linear-gradient(135deg,#e8341c,#c0271b)',border:'none',borderRadius:16,padding:18,...mno,fontWeight:700,fontSize:12,color:'#fff',letterSpacing:'0.20em',textTransform:'uppercase',cursor:mealPrepPrefs.selectedDays.length===0?'not-allowed':'pointer',boxShadow:mealPrepPrefs.selectedDays.length===0?'none':'0 8px 28px rgba(232,52,28,0.45)',marginBottom:8}}>
                   GENERATE MY WEEK →
-                </button>
+                </motion.button>
               </div>
             )}
 
             {/* ── GENERATING SCREEN ── */}
             {mealPrepScreen==='generating'&&(
-              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:400,paddingTop:60}}>
-                <style>{`@keyframes mpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.92)}}`}</style>
-                <div style={{width:80,height:80,borderRadius:'50%',background:'#e8341c',animation:'mpPulse 1.5s ease-in-out infinite'}}/>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:36,color:'#f5f5f0',textAlign:'center',marginTop:24,textTransform:'uppercase',lineHeight:1}}>BUILDING YOUR WEEK.</div>
-                <div style={{...mno,fontSize:11,color:'rgba(245,245,240,0.4)',textAlign:'center',letterSpacing:'0.12em',marginTop:16,minHeight:20}}>{MP_STATUSES[mpStatusIdx]}</div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'85vh',paddingTop:60}}>
+                <style>{`@keyframes mpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.25;transform:scale(0.88)}}@keyframes mpOrbit{from{transform:rotate(0deg) translateX(44px) rotate(0deg)}to{transform:rotate(360deg) translateX(44px) rotate(-360deg)}}@keyframes mpBar{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}`}</style>
+                {/* Pulsing logo ring */}
+                <div style={{position:'relative',width:120,height:120,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{width:88,height:88,borderRadius:'50%',border:'2px solid rgba(232,52,28,0.25)',position:'absolute'}}/>
+                  <div style={{width:64,height:64,borderRadius:'50%',background:'radial-gradient(circle,rgba(232,52,28,0.25),rgba(232,52,28,0.05))',border:'1.5px solid rgba(232,52,28,0.4)',animation:'mpPulse 1.6s ease-in-out infinite',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="rgba(232,52,28,0.3)"/><path d="M8 12.5l2.5 2.5 5-5" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  {/* Orbiting dot */}
+                  <div style={{position:'absolute',inset:0,animation:'mpOrbit 2s linear infinite'}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:'#e8341c',boxShadow:'0 0 10px rgba(232,52,28,0.8)'}}/>
+                  </div>
+                </div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:38,color:'#f5f5f0',textAlign:'center',marginTop:28,textTransform:'uppercase',lineHeight:0.95}}>BUILDING<br/>YOUR WEEK.</div>
+                <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.45)',textAlign:'center',letterSpacing:'0.14em',marginTop:18,minHeight:18,textTransform:'uppercase'}}>{MP_STATUSES[mpStatusIdx]}</div>
+                {/* Animated equaliser bars */}
+                <div style={{display:'flex',gap:4,marginTop:28,alignItems:'center',height:28}}>
+                  {[0,1,2,3,4].map(i=>(
+                    <div key={i} style={{width:4,height:22,background:'rgba(232,52,28,0.6)',borderRadius:2,transformOrigin:'bottom',animation:`mpBar 1.1s ease-in-out infinite`,animationDelay:`${i*0.13}s`}}/>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -4213,152 +4267,366 @@ Reply with ONLY a valid JSON object, no markdown:
               const groceryCount=Object.values(mealPrepPlan.groceryList||{}).reduce((s,arr)=>s+(arr?.length||0),0);
               return(
                 <div>
-                  <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                  <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes mpBarAnim{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}`}</style>
 
                   {/* Allergen warning/notice */}
-                  {mealPrepWarning&&<div style={{background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.3)',borderRadius:10,padding:'10px 14px',marginBottom:16}}>
+                  {mealPrepWarning&&<motion.div initial={{opacity:0,y:-6}} animate={{opacity:1,y:0}} style={{background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.3)',borderRadius:12,padding:'10px 14px',marginBottom:16}}>
                     <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.14em',marginBottom:4}}>// ALLERGEN NOTICE</div>
                     <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.75)',lineHeight:1.6}}>{mealPrepWarning}</div>
-                  </div>}
+                  </motion.div>}
                   {mealPrepPrefs.dietaryPrefs.length>0&&!mealPrepWarning&&<div style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:10,padding:'6px 14px',marginBottom:14}}>
                     <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.45)',lineHeight:1.5}}>Allergy filters applied. Always verify ingredients — not medical advice.</div>
                   </div>}
 
                   {/* Header */}
-                  <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
-                    <button onClick={()=>setMealPrepScreen('setup')} style={{background:'none',border:'none',color:'#f5f5f0',fontSize:20,cursor:'pointer',padding:'0 4px 0 0',lineHeight:1,flexShrink:0}}>←</button>
-                    <div>
-                      <div style={{...mno,fontSize:9,color:'#e8341c',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:4}}>// MEAL PREP PLAN</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:40,color:'#f5f5f0',lineHeight:0.9,textTransform:'uppercase'}}>YOUR WEEK.</div>
+                  <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} style={{display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
+                    <button onPointerDown={()=>_hL()} onClick={()=>setMealPrepScreen('setup')} style={{background:'none',border:'none',color:'#f5f5f0',fontSize:20,cursor:'pointer',padding:'0 4px 0 0',lineHeight:1,flexShrink:0}}>←</button>
+                    <div style={{flex:1}}>
+                      <div style={{...mno,fontSize:9,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:4}}>// MEAL PREP PLAN</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:42,color:'#f5f5f0',lineHeight:0.9,textTransform:'uppercase'}}>YOUR WEEK.</div>
                     </div>
-                  </div>
+                    <button onPointerDown={()=>_hL()} onClick={()=>setMpSaveConfirm(true)} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'8px 14px',...mno,fontSize:8,fontWeight:700,color:'rgba(245,245,240,0.6)',letterSpacing:'0.12em',cursor:'pointer',textTransform:'uppercase',flexShrink:0}}>SAVE</button>
+                  </motion.div>
 
                   {/* Summary strip */}
-                  <div style={{background:'#0d0d0d',borderRadius:12,padding:12,marginBottom:20,display:'flex',justifyContent:'space-around'}}>
+                  <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.06}} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.1)',borderRadius:14,padding:'14px 16px',marginBottom:22,display:'flex',justifyContent:'space-around',boxShadow:'0 4px 20px rgba(0,0,0,0.3)'}}>
                     {[[String(totalMeals)+' MEALS','GENERATED'],[prepH>0?`${prepH}H ${prepM}M`:`${prepM}M`,'EST PREP'],[String(groceryCount)+' ITEMS','GROCERY']].map(([val,lbl])=>(
                       <div key={lbl} style={{textAlign:'center'}}>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:22,color:'#f5f5f0',lineHeight:1}}>{val}</div>
-                        <div style={{...mno,fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',marginTop:2}}>{lbl}</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:24,color:'#f5f5f0',lineHeight:1}}>{val}</div>
+                        <div style={{...mno,fontSize:7,color:'rgba(245,245,240,0.35)',letterSpacing:'0.14em',marginTop:3,textTransform:'uppercase'}}>{lbl}</div>
                       </div>
                     ))}
-                  </div>
+                  </motion.div>
 
-                  {/* Day cards */}
+                  {/* Day sections */}
                   {(mealPrepPlan.days||[]).map((day,dayIndex)=>{
                     const isRegDay=regeneratingDay===dayIndex;
                     const isTrainingDay=day.macroProtocol==='training_high'||day.sessionType!=='rest';
+                    const sessionLabel=(day.sessionType||'rest').toUpperCase();
                     return(
-                      <div key={dayIndex} style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.08)',borderRadius:14,marginBottom:12,overflow:'hidden'}}>
-                        {/* Day header */}
-                        <div style={{padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid rgba(232,52,28,0.06)'}}>
+                      <motion.div key={dayIndex} initial={{opacity:0,y:18}} animate={{opacity:1,y:0}} transition={{delay:0.08+dayIndex*0.06}} style={{marginBottom:20}}>
+                        {/* Day header row */}
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,paddingLeft:2}}>
                           <div>
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:18,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:3}}>
-                              {day.day} · {(day.sessionType||'rest').toUpperCase()} DAY
-                            </div>
-                            <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.35)',letterSpacing:'0.06em'}}>
-                              {day.totalCalories?.toLocaleString()} kcal · {day.totalProtein}P · {day.totalCarbs}C · {day.totalFat}F
+                            <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:3}}>// {day.day?.toUpperCase()} · {sessionLabel} DAY</div>
+                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:28,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1}}>{day.day}</div>
+                            <div style={{display:'flex',gap:10,marginTop:4,flexWrap:'wrap'}}>
+                              <span style={{...mno,fontSize:8,color:'rgba(245,245,240,0.55)',letterSpacing:'0.08em'}}>{(day.totalCalories||0).toLocaleString()} kcal</span>
+                              <span style={{...mno,fontSize:8,color:'#22c55e'}}>{day.totalProtein||0}P</span>
+                              <span style={{...mno,fontSize:8,color:'#60a5fa'}}>{day.totalCarbs||0}C</span>
+                              <span style={{...mno,fontSize:8,color:'#FEA020'}}>{day.totalFat||0}F</span>
                             </div>
                           </div>
-                          <button onClick={()=>!isRegDay&&regenerateDay(dayIndex)}
-                            style={{background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.15)',borderRadius:8,padding:'7px 10px',display:'flex',alignItems:'center',gap:4,cursor:'pointer',flexShrink:0,opacity:isRegDay?0.5:1}}>
+                          <button onPointerDown={()=>_hL()} onClick={()=>!isRegDay&&regenerateDay(dayIndex)}
+                            style={{background:'rgba(232,52,28,0.07)',border:'1px solid rgba(232,52,28,0.18)',borderRadius:10,padding:'8px 11px',display:'flex',alignItems:'center',gap:5,cursor:'pointer',flexShrink:0,opacity:isRegDay?0.45:1,outline:'none'}}>
                             {isRegDay
-                              ?<div style={{width:14,height:14,border:'1.5px solid #e8341c',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
-                              :<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 8A6 6 0 002.5 4"/><path d="M2 8A6 6 0 0013.5 12"/><polyline points="2,1 2,4 5,4"/><polyline points="14,12 14,15 11,15"/></svg>
+                              ?<div style={{width:13,height:13,border:'1.5px solid #e8341c',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+                              :<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#e8341c" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 8A6 6 0 002.5 4"/><path d="M2 8A6 6 0 0013.5 12"/><polyline points="2,1 2,4 5,4"/><polyline points="14,12 14,15 11,15"/></svg>
                             }
-                            <span style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.1em'}}>REGENERATE</span>
+                            <span style={{...mno,fontSize:7,color:'#e8341c',letterSpacing:'0.1em',textTransform:'uppercase'}}>Redo</span>
                           </button>
                         </div>
 
-                        {/* Meal rows */}
+                        {/* Meal cards */}
                         {(day.meals||[]).map((meal,mealIndex)=>{
                           const mKey=`${dayIndex}_${mealIndex}`;
                           const isRegMeal=regeneratingMeal===mKey;
                           return(
-                            <div key={mealIndex} style={{padding:'12px 16px',borderBottom:mealIndex<(day.meals.length-1)?'1px solid rgba(232,52,28,0.04)':'none',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,opacity:isRegMeal?0.5:1}}>
+                            <motion.div key={mealIndex}
+                              initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}}
+                              transition={{delay:0.1+dayIndex*0.06+mealIndex*0.04}}
+                              whileTap={{scale:0.97}}
+                              onPointerDown={()=>_hL()}
+                              onClick={()=>{if(!isRegMeal){_hM();setActiveMealDetail({day,meal,dayIndex,mealIndex});}}}
+                              style={{
+                                background:'rgba(255,255,255,0.04)',
+                                border:'1px solid rgba(255,59,48,0.14)',
+                                borderRadius:14,
+                                marginBottom:8,
+                                padding:'14px 14px',
+                                display:'flex',
+                                alignItems:'center',
+                                gap:12,
+                                boxShadow:'0 4px 18px rgba(0,0,0,0.45)',
+                                cursor:'pointer',
+                                opacity:isRegMeal?0.45:1,
+                              }}
+                            >
+                              <FoodIcon name={meal.name} size={44} userId={user?.id} />
                               <div style={{flex:1,minWidth:0}}>
-                                <div style={{...mno,fontSize:8,color:'#e8341c',letterSpacing:'0.12em',marginBottom:3}}>MEAL {mealIndex+1}</div>
-                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:17,color:'#f5f5f0',textTransform:'uppercase',marginBottom:4,lineHeight:1.1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{meal.name}</div>
-                                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                                  <span style={{...mno,fontSize:8,color:'#f5f5f0'}}>{meal.calories} KCAL</span>
-                                  <span style={{...mno,fontSize:8,color:'#e8341c'}}>{meal.protein}P</span>
-                                  <span style={{...mno,fontSize:8,color:'#60a5fa'}}>{meal.carbs}C</span>
-                                  <span style={{...mno,fontSize:8,color:'#FEA020'}}>{meal.fat}F</span>
+                                <div style={{...mno,fontSize:7,color:'#FF3B30',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>MEAL {mealIndex+1}</div>
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:18,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1.05,marginBottom:7,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{meal.name}</div>
+                                <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                                  <span style={{background:'rgba(232,52,28,0.1)',border:'1px solid rgba(232,52,28,0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'rgba(245,245,240,0.8)',letterSpacing:'0.08em'}}>{meal.calories} kcal</span>
+                                  <span style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'#22c55e',letterSpacing:'0.08em'}}>{meal.protein}P</span>
+                                  <span style={{background:'rgba(96,165,250,0.1)',border:'1px solid rgba(96,165,250,0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'#60a5fa',letterSpacing:'0.08em'}}>{meal.carbs}C</span>
+                                  <span style={{background:'rgba(254,160,32,0.1)',border:'1px solid rgba(254,160,32,0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'#FEA020',letterSpacing:'0.08em'}}>{meal.fat}F</span>
                                 </div>
                               </div>
-                              <button onClick={()=>!isRegMeal&&regenerateMeal(dayIndex,mealIndex)}
-                                style={{width:32,height:32,borderRadius:8,background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.15)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,outline:'none'}}>
-                                {isRegMeal
-                                  ?<div style={{width:12,height:12,border:'1.5px solid #e8341c',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
-                                  :<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 8A6 6 0 002.5 4"/><path d="M2 8A6 6 0 0013.5 12"/><polyline points="2,1 2,4 5,4"/><polyline points="14,12 14,15 11,15"/></svg>
-                                }
-                              </button>
-                            </div>
+                              {isRegMeal
+                                ?<div style={{width:14,height:14,border:'1.5px solid #e8341c',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite',flexShrink:0}}/>
+                                :<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(255,59,48,0.45)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M6 4l4 4-4 4"/></svg>
+                              }
+                            </motion.div>
                           );
                         })}
-
-                        {/* Day footer */}
                         {isTrainingDay&&(
-                          <div style={{padding:'8px 16px',...mno,fontSize:8,color:'rgba(245,245,240,0.25)',letterSpacing:'0.1em'}}>
-                            ↑ Carbs elevated for {(day.sessionType||'training').toUpperCase()} performance
-                          </div>
+                          <div style={{...mno,fontSize:7,color:'rgba(245,245,240,0.2)',letterSpacing:'0.1em',paddingLeft:4,paddingBottom:4,textTransform:'uppercase'}}>↑ Carbs elevated for {sessionLabel} performance</div>
                         )}
-                      </div>
+                      </motion.div>
                     );
                   })}
 
-                  {/* Spacer for fixed bar */}
-                  <div style={{height:80}}/>
+                  {/* Spacer for fixed bottom bar */}
+                  <div style={{height:100}}/>
                 </div>
               );
             })()}
 
             {/* ── BOTTOM ACTION BAR (plan screen only) ── */}
             {mealPrepScreen==='plan'&&mealPrepPlan&&(
-              <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#000',borderTop:'1px solid rgba(232,52,28,0.1)',padding:'16px 20px',paddingBottom:'max(16px, env(safe-area-inset-bottom))',display:'flex',gap:10,zIndex:200}}>
-                <button onClick={()=>setShowGroceryList(true)}
-                  style={{flex:1,background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.2)',borderRadius:12,padding:14,...mno,fontWeight:700,fontSize:10,color:'#f5f5f0',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>
-                  GROCERY LIST
-                </button>
-                <button onClick={()=>setMpSaveConfirm(true)}
-                  style={{flex:1,background:'#e8341c',border:'none',borderRadius:12,padding:14,...mno,fontWeight:700,fontSize:10,color:'#fff',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>
-                  SAVE PLAN →
-                </button>
+              <div style={{position:'fixed',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.97)',backdropFilter:'blur(16px)',borderTop:'1px solid rgba(232,52,28,0.12)',padding:'14px 20px',paddingBottom:'max(14px, env(safe-area-inset-bottom))',display:'flex',gap:10,zIndex:200}}>
+                <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hL()} onClick={()=>{_hM();setShowGroceryList(true);}}
+                  style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(232,52,28,0.22)',borderRadius:13,padding:14,...mno,fontWeight:700,fontSize:10,color:'#f5f5f0',letterSpacing:'0.13em',textTransform:'uppercase',cursor:'pointer',boxShadow:'0 2px 12px rgba(0,0,0,0.3)'}}>
+                  🛒 GROCERY
+                </motion.button>
+                <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hM()} onClick={()=>generateMealPrepPlan()}
+                  style={{flex:1.3,background:'linear-gradient(135deg,#e8341c,#c0271b)',border:'none',borderRadius:13,padding:14,...mno,fontWeight:700,fontSize:10,color:'#fff',letterSpacing:'0.13em',textTransform:'uppercase',cursor:'pointer',boxShadow:'0 4px 20px rgba(232,52,28,0.4)'}}>
+                  ↺ REGENERATE
+                </motion.button>
               </div>
             )}
 
-            {/* ── GROCERY LIST BOTTOM SHEET ── */}
-            {showGroceryList&&mealPrepPlan?.groceryList&&(
-              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:490}} onClick={()=>setShowGroceryList(false)}>
-                <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#0d0d0d',borderRadius:'20px 20px 0 0',maxHeight:'80vh',overflowY:'auto',zIndex:500,paddingBottom:40,WebkitOverflowScrolling:'touch'}} onClick={e=>e.stopPropagation()}>
-                  <div style={{width:36,height:4,background:'rgba(245,245,240,0.15)',borderRadius:2,margin:'16px auto 20px'}}/>
-                  <div style={{padding:'0 20px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                    <div style={{...mno,fontSize:10,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase'}}>// GROCERY LIST</div>
-                    <button onClick={()=>setShowGroceryList(false)} style={{background:'none',border:'none',color:'rgba(245,245,240,0.4)',fontSize:18,cursor:'pointer',lineHeight:1,padding:4}}>✕</button>
-                  </div>
-                  {Object.entries(mealPrepPlan.groceryList).map(([category,items])=>{
-                    if(!items||items.length===0)return null;
-                    return(
-                      <div key={category}>
-                        <div style={{padding:'0 20px',...mno,fontSize:9,color:'rgba(245,245,240,0.3)',letterSpacing:'0.16em',textTransform:'uppercase',marginTop:16,marginBottom:6}}>{category.toUpperCase()}</div>
-                        {items.map((item,idx)=>{
-                          const itemId=`${category}_${idx}`;
-                          const checked=checkedGroceryItems.has(itemId);
-                          return(
-                            <div key={itemId} onClick={()=>setCheckedGroceryItems(prev=>{const next=new Set(prev);if(next.has(itemId))next.delete(itemId);else next.add(itemId);return next;})}
-                              style={{padding:'12px 20px',display:'flex',alignItems:'center',gap:12,borderBottom:'1px solid rgba(232,52,28,0.04)',cursor:'pointer'}}>
-                              <div style={{width:20,height:20,borderRadius:5,border:checked?'none':'1.5px solid rgba(232,52,28,0.3)',background:checked?'#e8341c':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                                {checked&&<span style={{color:'#fff',fontSize:12,lineHeight:1}}>✓</span>}
-                              </div>
-                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:checked?'rgba(245,245,240,0.3)':'#f5f5f0',textDecoration:checked?'line-through':'none'}}>{item}</div>
-                            </div>
-                          );
-                        })}
+            {/* ── MEAL DETAIL SHEET ── */}
+            <AnimatePresence>
+            {activeMealDetail&&(()=>{
+              const {day,meal}=activeMealDetail;
+              const mno2={fontFamily:"'DM Mono',monospace"};
+              const cal=meal?.calories||0;
+              const pro=meal?.protein||0;
+              const carb=meal?.carbs||0;
+              const fat=meal?.fat||0;
+              const ings=meal?.ingredients||meal?.ing||[];
+              const totalMacroCal=pro*4+carb*4+fat*9||1;
+              const maxMacro=Math.max(pro,carb,fat)||1;
+              // SVG donut
+              const R=52,SW=11,CX=68,CY=68;
+              const C=2*Math.PI*R;
+              const pLen=Math.max(2,(pro*4/totalMacroCal)*C-4);
+              const cLen=Math.max(2,(carb*4/totalMacroCal)*C-4);
+              const fLen=Math.max(2,(fat*9/totalMacroCal)*C-4);
+              const pOff=-(C*0.25);
+              const cOff=-(C*0.25+(pro*4/totalMacroCal)*C);
+              const fOff=-(C*0.25+(pro*4/totalMacroCal)*C+(carb*4/totalMacroCal)*C);
+              return(
+                <motion.div key="meal-detail-overlay"
+                  initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+                  transition={{duration:0.18}}
+                  style={{position:'fixed',inset:0,zIndex:500,background:'radial-gradient(ellipse at 50% -10%,rgba(90,0,0,0.85) 0%,rgba(0,0,0,0.98) 55%)'}}
+                  onClick={()=>{_hL();setActiveMealDetail(null);}}
+                >
+                  <motion.div
+                    initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
+                    transition={{type:'spring',damping:28,stiffness:290}}
+                    style={{position:'absolute',top:0,bottom:0,left:0,right:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}}
+                    onClick={e=>e.stopPropagation()}
+                  >
+                    <div style={{padding:'max(52px,env(safe-area-inset-top,48px)) 22px max(32px,env(safe-area-inset-bottom,28px))'}}>
+                      {/* Close button */}
+                      <button onPointerDown={()=>_hL()} onClick={()=>{_hM();setActiveMealDetail(null);}}
+                        style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'8px 16px',display:'flex',alignItems:'center',gap:6,cursor:'pointer',marginBottom:24,outline:'none'}}>
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#f5f5f0" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+                        <span style={{...mno2,fontSize:9,color:'rgba(245,245,240,0.65)',letterSpacing:'0.12em',textTransform:'uppercase'}}>CLOSE</span>
+                      </button>
+                      {/* Context eyebrow */}
+                      <div style={{...mno2,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:6}}>
+                        {day?.day?.toUpperCase()} · {(day?.sessionType||'rest').toUpperCase()} DAY
                       </div>
-                    );
-                  })}
+                      {/* Meal name */}
+                      <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.1}}
+                        style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:44,color:'#f5f5f0',textTransform:'uppercase',lineHeight:0.92,marginBottom:28}}>
+                        {meal?.name}
+                      </motion.div>
+
+                      {/* Macro breakdown — SVG donut + bars */}
+                      <motion.div initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}} transition={{delay:0.15}}
+                        style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.14)',borderRadius:16,padding:'20px 18px',marginBottom:24,boxShadow:'0 6px 24px rgba(0,0,0,0.5)'}}>
+                        <div style={{...mno2,fontSize:8,color:'#FF3B30',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:16}}>// MACRO BREAKDOWN</div>
+                        <div style={{display:'flex',alignItems:'center',gap:20}}>
+                          {/* Donut ring */}
+                          <div style={{flexShrink:0}}>
+                            <svg width="136" height="136" viewBox="0 0 136 136">
+                              {/* Background track */}
+                              <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={SW}/>
+                              {/* Protein arc */}
+                              <motion.circle cx={CX} cy={CY} r={R} fill="none" stroke="#22c55e" strokeWidth={SW} strokeLinecap="butt"
+                                style={{strokeDashoffset:pOff}}
+                                strokeDasharray={`${pLen} ${C}`}
+                                initial={{strokeDasharray:`0 ${C}`}}
+                                animate={{strokeDasharray:`${pLen} ${C}`}}
+                                transition={{duration:0.8,ease:'easeOut',delay:0.2}}
+                              />
+                              {/* Carbs arc */}
+                              <motion.circle cx={CX} cy={CY} r={R} fill="none" stroke="#60a5fa" strokeWidth={SW} strokeLinecap="butt"
+                                style={{strokeDashoffset:cOff}}
+                                strokeDasharray={`${cLen} ${C}`}
+                                initial={{strokeDasharray:`0 ${C}`}}
+                                animate={{strokeDasharray:`${cLen} ${C}`}}
+                                transition={{duration:0.8,ease:'easeOut',delay:0.32}}
+                              />
+                              {/* Fat arc */}
+                              <motion.circle cx={CX} cy={CY} r={R} fill="none" stroke="#FEA020" strokeWidth={SW} strokeLinecap="butt"
+                                style={{strokeDashoffset:fOff}}
+                                strokeDasharray={`${fLen} ${C}`}
+                                initial={{strokeDasharray:`0 ${C}`}}
+                                animate={{strokeDasharray:`${fLen} ${C}`}}
+                                transition={{duration:0.8,ease:'easeOut',delay:0.44}}
+                              />
+                              {/* Center calorie number */}
+                              <text x={CX} y={CY-9} textAnchor="middle" fill="#f5f5f0" fontFamily="Barlow Condensed,sans-serif" fontStyle="italic" fontWeight="900" fontSize="26">{cal}</text>
+                              <text x={CX} y={CY+8} textAnchor="middle" fill="rgba(245,245,240,0.35)" fontFamily="DM Mono,monospace" fontSize="7" letterSpacing="2">KCAL</text>
+                            </svg>
+                          </div>
+                          {/* Macro bars */}
+                          <div style={{flex:1}}>
+                            {[
+                              {label:'PROTEIN',value:pro,unit:'g',color:'#22c55e'},
+                              {label:'CARBS',value:carb,unit:'g',color:'#60a5fa'},
+                              {label:'FAT',value:fat,unit:'g',color:'#FEA020'},
+                            ].map(({label,value,unit,color},bi)=>(
+                              <div key={label} style={{marginBottom:12}}>
+                                <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                                  <span style={{...mno2,fontSize:7,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase'}}>{label}</span>
+                                  <span style={{...mno2,fontSize:10,color,fontWeight:700}}>{value}{unit}</span>
+                                </div>
+                                <div style={{height:5,background:'rgba(255,255,255,0.06)',borderRadius:3,overflow:'hidden'}}>
+                                  <motion.div
+                                    style={{height:'100%',background:color,borderRadius:3}}
+                                    initial={{width:0}}
+                                    animate={{width:`${(value/maxMacro)*100}%`}}
+                                    transition={{duration:0.75,ease:'easeOut',delay:0.18+bi*0.08}}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Ingredients */}
+                      {ings.length>0&&(
+                        <div style={{marginBottom:24}}>
+                          <div style={{...mno2,fontSize:8,color:'#FF3B30',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:12}}>// WHAT'S IN THE BOWL</div>
+                          {ings.map((ing,i)=>{
+                            // ing is like "200g chicken breast" — split amount from name
+                            const ingStr=typeof ing==='string'?ing:String(ing);
+                            const amtMatch=ingStr.match(/^([\d\/\.\s]*[a-z]*)\s+(.+)$/i);
+                            const amount=amtMatch?amtMatch[1].trim():'';
+                            const ingName=amtMatch?amtMatch[2].trim():ingStr;
+                            return(
+                              <motion.div key={i}
+                                initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}}
+                                transition={{delay:0.2+i*0.05}}
+                                style={{display:'flex',alignItems:'center',gap:12,padding:'11px 14px',borderRadius:12,marginBottom:6,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.05)'}}>
+                                <FoodIcon name={ingName||ingStr} size={32} userId={user?.id} />
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:'#f5f5f0',textTransform:'capitalize',lineHeight:1.1}}>{ingName||ingStr}</div>
+                                  {amount&&<div style={{...mno2,fontSize:9,color:'rgba(245,245,240,0.45)',marginTop:2}}>{amount}</div>}
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Prep time */}
+                      {(meal?.prepTime||meal?.pt)&&(
+                        <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10}}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.4)" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                          <span style={{...mno2,fontSize:10,color:'rgba(245,245,240,0.55)',letterSpacing:'0.1em',textTransform:'uppercase'}}>Prep time: {meal.prepTime||meal.pt} min</span>
+                        </div>
+                      )}
+
+                      {/* Swap this meal button */}
+                      <motion.button whileTap={{scale:0.97}} onPointerDown={()=>_hL()}
+                        onClick={()=>{
+                          _hM();
+                          setActiveMealDetail(null);
+                          regenerateMeal(activeMealDetail.dayIndex,activeMealDetail.mealIndex);
+                        }}
+                        style={{width:'100%',background:'rgba(232,52,28,0.08)',border:'1px solid rgba(232,52,28,0.2)',borderRadius:14,padding:15,...mno2,fontWeight:700,fontSize:10,color:'#e8341c',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer',marginBottom:8}}>
+                        ↺ SWAP THIS MEAL
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              );
+            })()}
+            </AnimatePresence>
+
+            {/* ── GROCERY LIST BOTTOM SHEET ── */}
+            {showGroceryList&&mealPrepPlan&&(()=>{
+              // Build grocery list: prefer AI-generated list, else aggregate from meal ingredients
+              let groceryCats=mealPrepPlan.groceryList||{};
+              const hasData=Object.values(groceryCats).some(a=>a?.length>0);
+              if(!hasData){
+                // Aggregate all ingredients from meals
+                const allIngs=[];
+                for(const d of(mealPrepPlan.days||[])){
+                  for(const m of(d.meals||[])){
+                    for(const ing of(m.ingredients||m.ing||[])){
+                      if(ing)allIngs.push(String(ing));
+                    }
+                  }
+                }
+                // Dedupe (case-insensitive)
+                const seen=new Set();
+                const deduped=allIngs.filter(i=>{const k=i.toLowerCase().replace(/^\d+[a-z]*\s*/,'');if(seen.has(k))return false;seen.add(k);return true;});
+                groceryCats={ingredients:deduped};
+              }
+              return(
+                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:490}} onClick={()=>{_hL();setShowGroceryList(false);}}>
+                  <motion.div
+                    initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
+                    transition={{type:'spring',damping:28,stiffness:300}}
+                    style={{position:'fixed',bottom:0,left:0,right:0,background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.1)',borderRadius:'20px 20px 0 0',maxHeight:'82vh',overflowY:'auto',zIndex:500,paddingBottom:'max(32px,env(safe-area-inset-bottom,20px))',WebkitOverflowScrolling:'touch'}}
+                    onClick={e=>e.stopPropagation()}
+                  >
+                    <div style={{width:36,height:4,background:'rgba(245,245,240,0.12)',borderRadius:2,margin:'16px auto 18px'}}/>
+                    <div style={{padding:'0 20px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                      <div>
+                        <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:3}}>// SHOPPING LIST</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:26,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1}}>GROCERY LIST</div>
+                      </div>
+                      <button onPointerDown={()=>_hL()} onClick={()=>setShowGroceryList(false)} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,width:32,height:32,color:'rgba(245,245,240,0.5)',fontSize:16,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    </div>
+                    {Object.entries(groceryCats).map(([category,items])=>{
+                      if(!items||items.length===0)return null;
+                      return(
+                        <div key={category}>
+                          <div style={{padding:'0 20px',...mno,fontSize:8,color:'rgba(245,245,240,0.28)',letterSpacing:'0.18em',textTransform:'uppercase',marginTop:18,marginBottom:8}}>{category.toUpperCase()}</div>
+                          {items.map((item,idx)=>{
+                            const itemId=`${category}_${idx}`;
+                            const checked=checkedGroceryItems.has(itemId);
+                            return(
+                              <div key={itemId}
+                                onPointerDown={()=>_hL()}
+                                onClick={()=>setCheckedGroceryItems(prev=>{const next=new Set(prev);if(next.has(itemId))next.delete(itemId);else next.add(itemId);return next;})}
+                                style={{padding:'13px 20px',display:'flex',alignItems:'center',gap:14,borderBottom:'1px solid rgba(232,52,28,0.04)',cursor:'pointer'}}>
+                                <div style={{width:22,height:22,borderRadius:6,border:checked?'none':'1.5px solid rgba(232,52,28,0.28)',background:checked?'#e8341c':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.15s'}}>
+                                  {checked&&<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                </div>
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,color:checked?'rgba(245,245,240,0.25)':'#f5f5f0',textDecoration:checked?'line-through':'none',lineHeight:1.2,textTransform:'capitalize'}}>{item}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </motion.div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ── SAVE CONFIRM ── */}
             {mpSaveConfirm&&(

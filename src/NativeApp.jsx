@@ -8,6 +8,7 @@ import { Onboarding } from "./ob_screens.jsx";
 import { NewOnboarding, NEW_ONBOARDING } from "./ob_new.jsx";
 import { App } from "./ob_screens2.jsx";
 import { getAge } from "./utils/safety.js";
+import { minSecToInterval, RUNNING_GOAL_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
 import { getErrorMessage } from "./utils/errors.js";
 import { ErrorMessage } from "./utils/errors.jsx";
 import { sb } from "./supabase.js";
@@ -548,7 +549,12 @@ export default function NativeApp() {
           ...(data.equipment    && {equipment:data.equipment}),
           ...(data.calorie_target && {calorie_target:data.calorie_target}),
           ...(data.protein_g    && {protein_g:data.protein_g}),
-          ...(data.current_program && {current_program:data.current_program}),
+          ...(data.current_program    && {current_program:data.current_program}),
+          ...(data.program_start_date && {program_start_date:data.program_start_date}),
+          ...(data.recovery_capacity  && {recovery_capacity:data.recovery_capacity}),
+          ...(data.run_race_type      && {run_race_type:data.run_race_type}),
+          ...(data.run_race_date      && {run_race_date:data.run_race_date}),
+          ...(data.run_target_time    && {run_target_time:data.run_target_time}),
           daily_scores:data.daily_scores||[],
           referralCount:data.referral_count||0,
           subscription_tier:tier,
@@ -586,19 +592,12 @@ export default function NativeApp() {
             ? parseFloat(prof.goalWeight)*0.453592
             : parseFloat(prof.goalWeight))||null
         : null;
-      function minSecToInterval(min,sec){
-        if(!min)return null;
-        const total=parseInt(min||0)*60+parseInt(sec||0);
-        const h=Math.floor(total/3600),m=Math.floor((total%3600)/60),s=total%60;
-        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      }
       const hyroxPhase=(()=>{
         if(!wp.hyroxRaceDate)return null;
         const w=Math.ceil((new Date(wp.hyroxRaceDate)-new Date())/(7*86400000));
         return w<=3?"taper":w<=8?"peak":w<=12?"race_prep":w<=16?"strength":"base";
       })();
-      const runRaceTypeMap={first_5k:"5k",sub25_5k:"5k",first_10k:"10k",sub50_10k:"10k",half:"half_marathon",marathon:"marathon",fitness:"5k"};
-      const runRaceType=(wp.runRaceDate&&wp.runningGoal)?runRaceTypeMap[wp.runningGoal]||null:null;
+      const runRaceType=(wp.runRaceDate&&wp.runningGoal)?RUNNING_GOAL_TO_RACE_TYPE[wp.runningGoal]||null:null;
       const runCurrentPhase=(()=>{
         if(!wp.runRaceDate)return null;
         const w=Math.floor((new Date(wp.runRaceDate)-new Date())/(7*86400000));
@@ -975,5 +974,5 @@ export default function NativeApp() {
     else setPhase("app");
   }}/>;
 
-  return<App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user}/>;
+  return<App profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} onEarnedCals={cals=>setEarnedCals(prev=>prev+cals)} onSignOut={handleSignOut} user={user} onProfileUpdate={patch=>setProfile(p=>({...p,...patch}))}/>;
 }
