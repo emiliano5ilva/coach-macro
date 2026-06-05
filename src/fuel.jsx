@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { jsonrepair } from 'jsonrepair';
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem, Pressable } from './motion-layer.jsx';
@@ -26,7 +25,7 @@ const _FUEL_GOCLUB_CSS=`
 `;
 import { showToast } from "./utils/toast.js";
 import { mealHasAllergen, scanTextAllergens } from "./utils/allergenFilter.js";
-import { sb, ai, streamAI } from "./client.js";
+import { sb, ai, streamAI, aiWithTools } from "./client.js";
 import { track, EVENTS } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
 import { getCycleNutrition, PCOS_NOTE, PCOS_FOODS, PERI_NUTRITION, MENO_NUTRITION, isCalorieFreeMode } from "./utils/female.js";
@@ -1407,24 +1406,12 @@ const DIET_PRESETS=[
   {id:'pescatarian', label:'Pescatarian',  badge:null,       color:null},
 ];
 
-// safeParseJSON — strips fences, tries direct parse, then uses jsonrepair for
-// structural repair. Key ordering insight: the balanced-brace extractor can cut off
-// content when braces are misplaced (e.g. truncating Tue when Mon closes early).
-// So jsonrepair(full_string) runs BEFORE jsonrepair(extracted) — the full string
-// produces an array of all fragments when structure is broken; the caller
-// (generateMealPrepPlan) detects the array and reassembles via tryRebuildMealPlan.
+// safeParseJSON — used by non-meal-prep AI paths (restaurant, quick suggestions).
+// Meal prep uses aiWithTools (forced tool use) and never calls this.
 function safeParseJSON(str){
   if(!str)return null;
-  // Strip markdown fences
   let s=str.replace(/```json\n?|```\n?/g,'').trim();
-  // 1. Direct parse (fast path)
   try{return JSON.parse(s);}catch{}
-  // 2. jsonrepair on full stripped string — fixes misplaced/missing brackets,
-  //    wrong brace order, trailing commas, etc. on the complete response.
-  //    Returns an array when structure is too broken to resolve as an object;
-  //    caller handles array → object reconstruction for known schemas.
-  try{return JSON.parse(jsonrepair(s));}catch{}
-  // 3. Extract outermost JSON substring (drops surrounding prose) + direct parse
   const start=s.search(/[{\[]/);
   if(start===-1)return null;
   const opener=s[start];const closer=opener==='{'?'}':']';
@@ -1435,10 +1422,17 @@ function safeParseJSON(str){
   }
   const extracted=end!==-1?s.slice(start,end+1):s.slice(start);
   try{return JSON.parse(extracted);}catch{}
-  // 4. jsonrepair on extracted substring (backup — may produce partial data)
-  try{return JSON.parse(jsonrepair(extracted));}catch{}
-  return null;
+  const fixed=extracted.replace(/,(\s*[}\]])/g,'$1').replace(/,\s*$/,'');
+  const opens=[...fixed].reduce((st,ch)=>{if(ch==='{'||ch==='[')st.push(ch==='{'?'}':']');else if((ch==='}'||ch===']')&&st.length&&st[st.length-1]===ch)st.pop();return st;},[]);
+  try{return JSON.parse(fixed+opens.reverse().join(''));}catch{return null;}
 }
+
+// ── Meal prep tool schemas — forced tool use guarantees structured JSON output ──
+const _ingItem={type:"object",properties:{item:{type:"string",description:"Ingredient name e.g. rolled oats"},amount:{type:"string",description:"Amount e.g. 100g"}},required:["item","amount"],additionalProperties:false};
+const _mealItem={type:"object",properties:{name:{type:"string"},cal:{type:"integer"},pro:{type:"integer"},carb:{type:"integer"},fat:{type:"integer"},pt:{type:"integer",description:"Prep time minutes"},ingredients:{type:"array",items:_ingItem},instructions:{type:"string",description:"Step-by-step prep instructions"}},required:["name","cal","pro","carb","fat","ingredients"],additionalProperties:false};
+const MEAL_PLAN_TOOL={name:"save_meal_plan",description:"Save the complete weekly meal prep plan with all days, meals, structured ingredients, and instructions",input_schema:{type:"object",properties:{days:{type:"array",items:{type:"object",properties:{day:{type:"string"},type:{type:"string"},cal:{type:"integer"},pro:{type:"integer"},carb:{type:"integer"},fat:{type:"integer"},meals:{type:"array",items:_mealItem}},required:["day","type","cal","pro","carb","fat","meals"],additionalProperties:false}},groceryList:{type:"object",additionalProperties:{type:"array",items:{type:"string"}}}},required:["days"],additionalProperties:false}};
+const REGEN_MEAL_TOOL={name:"save_meal",description:"Return one replacement meal with structured ingredients and instructions",input_schema:_mealItem};
+const REGEN_DAY_TOOL={name:"save_day_meals",description:"Return all replacement meals for one day",input_schema:{type:"object",properties:{meals:{type:"array",items:_mealItem}},required:["meals"],additionalProperties:false}};
 
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null}) {
 
@@ -2001,83 +1995,50 @@ Reply with ONLY a valid JSON object, no markdown:
   useEffect(()=>{if(mealPrepPlan?.days?.length>0){localStorage.setItem('__mp_exists','1');}else{localStorage.removeItem('__mp_exists');}},[mealPrepPlan]);
   useEffect(()=>{function onClear(){setMealPrepPlan(null);setShowRegenerateBanner(true);localStorage.setItem('__mp_regen_needed','1');localStorage.removeItem('__mp_exists');}window.addEventListener('cm_clear_meal_prep',onClear);return()=>window.removeEventListener('cm_clear_meal_prep',onClear);},[]);
 
-  // When jsonrepair fixes structurally-broken JSON (misplaced braces), it sometimes
-  // wraps the fragments in a top-level array instead of producing the intended object.
-  // This function recognizes that pattern and reassembles the intended meal-plan shape.
-  // Evidence pattern: [{days:[Mon...]}, {day:"Tue",...}, "grocery", ":", {proteins:[...]}]
-  function tryRebuildMealPlan(arr){
-    if(!Array.isArray(arr))return null;
-    const days=[];
-    let grocery={};
-    for(const item of arr){
-      if(!item||typeof item!=='object'||Array.isArray(item))continue;
-      if(Array.isArray(item.days))days.push(...item.days.filter(Boolean));
-      else if(item.day&&Array.isArray(item.meals))days.push(item);
-      if(item.proteins||item.carbs||item.veg||item.other||item.ingredients||item.produce)grocery=item;
-    }
-    return days.length>0?{days,grocery}:null;
+  // normalizeDay/normalizeMeal: compact schema keys → verbose keys the renderer expects.
+  function normalizeDay(day){
+    if(!day)return;
+    if(day.cal!=null&&day.totalCalories==null)day.totalCalories=day.cal;
+    if(day.pro!=null&&day.totalProtein==null)day.totalProtein=day.pro;
+    if(day.carb!=null&&day.totalCarbs==null)day.totalCarbs=day.carb;
+    if(day.fat!=null&&day.totalFat==null)day.totalFat=day.fat;
+    if(day.type!=null&&day.sessionType==null)day.sessionType=day.type;
+    for(const meal of(day.meals||[]))normalizeMeal(meal);
+  }
+  function normalizeMeal(meal){
+    if(!meal)return;
+    if(meal.cal!=null&&meal.calories==null)meal.calories=meal.cal;
+    if(meal.pro!=null&&meal.protein==null)meal.protein=meal.pro;
+    if(meal.carb!=null&&meal.carbs==null)meal.carbs=meal.carb;
+    if(meal.pt!=null&&meal.prepTime==null)meal.prepTime=meal.pt;
+    // ingredients is [{item,amount}] from tool use; legacy: copy ing→ingredients
+    if(Array.isArray(meal.ing)&&!Array.isArray(meal.ingredients))meal.ingredients=meal.ing;
   }
 
   async function generateMealPrepPlan(){
     setMealPrepError(null);setMealPrepWarning(null);
     setMealPrepScreen('generating');
-    // Diagnostic state — captured into error_logs on ANY throw
-    let _stage='init', _raw='', _planKeys='', _parseErr='';
+    let _stage='init',_planKeys='';
     try{
       const sel=mealPrepPrefs.selectedDays;
       const weekScheduleStr=WDAYS_ORDER.filter(d=>sel.includes(d)).map(d=>{const t=schedule?.[d]||'rest';const focus=wPrefs?.dayFocus?.[d]||t;return `${d}: ${focus}`;}).join(', ');
       const nMeals=mealPrepPrefs.mealsPerDay||3;
       const chipStr=mealPrepPrefs.dietaryPrefs.length>0?mealPrepPrefs.dietaryPrefs.join(', '):'none';
       const dietPreset=mealPrepPrefs.dietPreset||'balanced';
-      const dietNote=dietPreset!=='balanced'?`\n- Diet style: ${dietPreset} (use foods appropriate for this approach — e.g. keto means low-carb high-fat, vegan means no animal products)`:'';
-      // COMPACT SCHEMA — cuts output ~60% vs verbose to prevent truncation.
-      // Fix 1: explicitly list every selected day + show 2-day example so AI generates ALL days.
-      const selDaysList=mealPrepPrefs.selectedDays.join(', ');
-      const nDays=mealPrepPrefs.selectedDays.length;
-      // Root causes addressed:
-      // 1. 2-day bug: 2-day example anchored model output — now shows 1 day + placeholder.
-      // 2. Structural JSON errors: jsonrepair handles misplaced/missing brackets in safeParseJSON.
-      const prompt=`Sports nutritionist: build a ${nDays}-day meal prep plan for an athlete.\nGenerate EXACTLY ${nDays} days: ${selDaysList}. Output ALL ${nDays} days — do NOT stop early.\nGoal: ${profile?.goal||'maintenance'}. Cals: ${macros?.calories||2000}, Pro: ${macros?.protein||150}g, Carb: ${macros?.carbs||200}g, Fat: ${macros?.fat||70}g.\nRestrictions (STRICTLY AVOID ALL): ${chipStr}${dietNote}.\nMeals/day: ${nMeals}. Each day MUST have EXACTLY ${nMeals} meals.\nSchedule: ${weekScheduleStr}.\nTraining days +15% carbs; leg days +25% carbs; rest days base macros.\nReturn a single valid JSON object. Every array and object must be properly closed — no extra or misplaced braces. No prose, no markdown fences, no trailing text after the closing }.\nSchema (one entry per day in ${selDaysList}):\n{"days":[{"day":"Mon","type":"rest","cal":2000,"pro":150,"carb":200,"fat":70,"meals":[{"name":"Oat Protein Bowl","cal":667,"pro":50,"carb":67,"fat":23,"pt":10,"ing":["100g rolled oats","30g whey protein","1 banana"]},...${nMeals-1} more meals]},...${nDays-1} more days],"grocery":{"proteins":["2kg chicken"],"carbs":["1kg rice","500g oats"],"veg":["500g broccoli"],"other":["olive oil"]}}`;
+      const dietNote=dietPreset!=='balanced'?`\nDiet style: ${dietPreset} (keto=low-carb high-fat, vegan=no animal products, etc.)`:'';
+      const selDaysList=sel.join(', ');
+      const nDays=sel.length;
+
+      // Forced tool use — model MUST fill save_meal_plan schema; no JSON parsing or repair needed.
+      const prompt=`Sports nutritionist. Build a complete ${nDays}-day athlete meal prep plan.\nAthlete: goal=${profile?.goal||'maintenance'}, daily targets: ${macros?.calories||2000}kcal / ${macros?.protein||150}g protein / ${macros?.carbs||200}g carbs / ${macros?.fat||70}g fat.\nDays to cover (ALL required): ${selDaysList}. Generate EXACTLY ${nDays} days — one entry per day listed.\nMeals per day: EXACTLY ${nMeals} meals per day.\nWeekly schedule: ${weekScheduleStr}. Training days: +15% carbs. Leg days: +25% carbs. Rest days: base macros.\nRestrictions (STRICTLY AVOID in every meal and ingredient): ${chipStr}.${dietNote}\nFor each meal include 4-6 structured ingredients with exact amounts, and short step-by-step instructions (2-4 sentences).\nUse the save_meal_plan tool to return the complete plan.`;
 
       _stage='fetch';
-      const raw=await ai(prompt,6000,'meal_prep_full');
-      _raw=raw;
-
-      _stage='parse';
-      let plan=null;
-      try{plan=safeParseJSON(raw);}
-      catch(pe){_parseErr=pe.message;}
-      // jsonrepair may return a top-level array when structural errors (misplaced braces)
-      // prevent it from resolving the correct object shape. Reassemble the plan from fragments.
-      if(Array.isArray(plan)){
-        _planKeys='array_from_repair';
-        plan=tryRebuildMealPlan(plan);
-      }
-      if(!plan){
-        _planKeys=_parseErr?`parse_threw:${_parseErr}`:'null_after_parse';
-        throw new Error(`Couldn't parse the plan — tap Generate to try again.`);
-      }
-      // Record the top-level shape of the parsed object
+      const plan=await aiWithTools(prompt,[MEAL_PLAN_TOOL],'save_meal_plan',8000,'meal_prep_full');
       _planKeys=Object.keys(plan).join(',');
-      // Normalize compact → verbose so the renderer and all downstream code
-      // can keep reading totalCalories/totalProtein/calories/protein/ingredients/etc.
+
+      _stage='normalize';
       if(plan.grocery&&!plan.groceryList)plan.groceryList=plan.grocery;
-      for(const day of (plan.days||[])){
-        if(!day)continue;
-        if(day.cal!=null&&day.totalCalories==null)day.totalCalories=day.cal;
-        if(day.pro!=null&&day.totalProtein==null)day.totalProtein=day.pro;
-        if(day.carb!=null&&day.totalCarbs==null)day.totalCarbs=day.carb;
-        if(day.fat!=null&&day.totalFat==null)day.totalFat=day.fat;
-        if(day.type!=null&&day.sessionType==null)day.sessionType=day.type;
-        for(const meal of (day.meals||[])){
-          if(!meal)continue;
-          if(meal.cal!=null&&meal.calories==null)meal.calories=meal.cal;
-          if(meal.pro!=null&&meal.protein==null)meal.protein=meal.pro;
-          if(meal.carb!=null&&meal.carbs==null)meal.carbs=meal.carb;
-          if(meal.pt!=null&&meal.prepTime==null)meal.prepTime=meal.pt;
-          if(Array.isArray(meal.ing)&&!Array.isArray(meal.ingredients))meal.ingredients=meal.ing;
-        }
-      }
+      for(const day of(plan.days||[]))normalizeDay(day);
 
       _stage='allergen_filter';
       const activeChips=mealPrepPrefs.dietaryPrefs||[];
@@ -2090,9 +2051,6 @@ Reply with ONLY a valid JSON object, no markdown:
           for(const meal of day.meals){
             if(!meal)continue;
             let cleanMeal=meal;
-            // Normalize ingredients to array if AI returned a string
-            if(typeof meal.ingredients==='string')meal.ingredients=meal.ingredients.split(',').map(s=>s.trim());
-            if(typeof meal.ing==='string')meal.ing=meal.ing.split(',').map(s=>s.trim());
             let violation=mealHasAllergen(meal,activeChips);
             let attempts=0;
             while(violation&&attempts<RETRY_CAP){
@@ -2103,25 +2061,16 @@ Reply with ONLY a valid JSON object, no markdown:
                 const tPro=Math.round((day.totalProtein||macros?.protein||150)/nMeals);
                 const tCarb=Math.round((day.totalCarbs||macros?.carbs||200)/nMeals);
                 const tFat=Math.round((day.totalFat||macros?.fat||70)/nMeals);
-                const rePrompt=`Generate ONE allergen-safe meal for ${day.day}. Targets: ~${tCal} kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICT ALLERGY — ABSOLUTELY NO ${violation} in any ingredient or name. All restrictions: ${activeChips.join(', ')}. Return ONLY JSON: {"name":"Meal","cal":${tCal},"pro":${tPro},"carb":${tCarb},"fat":${tFat},"pt":15,"ing":["ingredient"]}`;
-                const retryRaw=await ai(rePrompt,450,'allergen_retry');
-                const m=retryRaw.match(/\{[\s\S]*\}/);
-                if(!m)break;
-                const retryMeal=JSON.parse(m[0]);
-                // Normalize compact keys on retry meal
-                if(retryMeal.cal!=null&&retryMeal.calories==null)retryMeal.calories=retryMeal.cal;
-                if(retryMeal.pro!=null&&retryMeal.protein==null)retryMeal.protein=retryMeal.pro;
-                if(retryMeal.carb!=null&&retryMeal.carbs==null)retryMeal.carbs=retryMeal.carb;
-                if(retryMeal.pt!=null&&retryMeal.prepTime==null)retryMeal.prepTime=retryMeal.pt;
-                if(Array.isArray(retryMeal.ing)&&!Array.isArray(retryMeal.ingredients))retryMeal.ingredients=retryMeal.ing;
-                if(typeof retryMeal.ingredients==='string')retryMeal.ingredients=retryMeal.ingredients.split(',').map(s=>s.trim());
+                const rePrompt=`Generate ONE allergen-safe replacement meal. Day: ${day.day}. Targets: ~${tCal}kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICTLY AVOID: ${activeChips.join(', ')}. No ${violation}. 4-5 structured ingredients with amounts, brief instructions. Use the save_meal tool.`;
+                const retryMeal=await aiWithTools(rePrompt,[REGEN_MEAL_TOOL],'save_meal',1200,'allergen_retry');
+                normalizeMeal(retryMeal);
                 const nextViolation=mealHasAllergen(retryMeal,activeChips);
                 if(!nextViolation){cleanMeal=retryMeal;violation=null;}
                 else violation=nextViolation;
               }catch(_){break;}
             }
             if(violation){
-              removedMessages.push(`${day.day}: couldn't fill "${meal.name||'a meal'}" safely for your ${violation} restriction after ${RETRY_CAP} attempts`);
+              removedMessages.push(`${day.day}: couldn't fill "${meal.name||'a meal'}" safely for ${violation} after ${RETRY_CAP} attempts`);
             }else{
               cleanMeals.push(cleanMeal);
             }
@@ -2134,29 +2083,18 @@ Reply with ONLY a valid JSON object, no markdown:
       setMealPrepPlan(plan);
       setMealPrepScreen('plan');
       if(removedMessages.length>0){
-        setMealPrepWarning(`Some meal slots were removed because they couldn't be safely filled for your restrictions after multiple attempts. ${removedMessages.join('. ')}. Try adjusting your allergy settings or diet style.`);
+        setMealPrepWarning(`Some meal slots were removed because they couldn\'t be safely filled for your restrictions after multiple attempts. ${removedMessages.join('. ')}. Try adjusting your allergy settings or diet style.`);
       }
     }catch(e){
       console.error('[generateMealPrepPlan] stage='+_stage, e);
-      // Wide diagnostic capture — fires on ANY throw (not just parse failure)
       try{
         await sb.from('error_logs').insert({
-          user_id:user?.id||null,
-          level:'error',
-          context:'mealprep_raw',
-          message:JSON.stringify({
-            stage:_stage,
-            error:e.message,
-            stack:(e.stack||'').slice(0,800),
-            planKeys:_planKeys,
-            parseErr:_parseErr,
-            rawPreview:_raw.slice(0,600),
-          }),
-          request_path:'meal_prep',
-          created_at:new Date().toISOString(),
+          user_id:user?.id||null,level:'error',context:'mealprep_tool_use',
+          message:JSON.stringify({stage:_stage,error:e.message,stack:(e.stack||'').slice(0,800),planKeys:_planKeys}),
+          request_path:'meal_prep',created_at:new Date().toISOString(),
         });
       }catch(logE){console.warn('[mealprep] error_log insert failed',logE);}
-      setMealPrepError(e.message||`Couldn't build your plan — tap Generate to try again.`);
+      setMealPrepError(e.message||`Couldn\'t build your plan — tap Generate to try again.`);
       setMealPrepScreen('setup');
     }
   }
@@ -2178,17 +2116,9 @@ Reply with ONLY a valid JSON object, no markdown:
         const tPro=Math.round((day.totalProtein||150)/n);
         const tCarb=Math.round((day.totalCarbs||200)/n);
         const tFat=Math.round((day.totalFat||70)/n);
-        const prompt=`Generate ONE replacement meal for ${day.day} (${day.sessionType||'rest'} day). Targets: ~${tCal} kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. Restrictions (STRICTLY AVOID): ${chipStr}. Replace: "${currentMeal.name}". Return ONLY JSON: {"name":"Meal","cal":${tCal},"pro":${tPro},"carb":${tCarb},"fat":${tFat},"pt":15,"ing":["ingredient"]}`;
-        const raw=await ai(prompt,450,'meal_swap');
-        const m=raw.match(/\{[\s\S]*\}/);
-        if(!m)continue;
-        const candidate=JSON.parse(m[0]);
-        // Normalize compact keys
-        if(candidate.cal!=null&&candidate.calories==null)candidate.calories=candidate.cal;
-        if(candidate.pro!=null&&candidate.protein==null)candidate.protein=candidate.pro;
-        if(candidate.carb!=null&&candidate.carbs==null)candidate.carbs=candidate.carb;
-        if(candidate.pt!=null&&candidate.prepTime==null)candidate.prepTime=candidate.pt;
-        if(Array.isArray(candidate.ing)&&!Array.isArray(candidate.ingredients))candidate.ingredients=candidate.ing;
+        const prompt=`Replace the meal "${currentMeal.name}" for ${day.day} (${day.sessionType||'rest'} day). Targets: ~${tCal}kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICTLY AVOID: ${chipStr}. Include 4-5 ingredients with amounts, brief instructions. Use the save_meal tool.`;
+        const candidate=await aiWithTools(prompt,[REGEN_MEAL_TOOL],'save_meal',1200,'meal_swap');
+        normalizeMeal(candidate);
         if(!mealHasAllergen(candidate,activeChips))cleanMeal=candidate;
       }
       if(cleanMeal){
@@ -2207,20 +2137,10 @@ Reply with ONLY a valid JSON object, no markdown:
       const n=mealPrepPrefs.mealsPerDay||3;
       const activeChips=mealPrepPrefs.dietaryPrefs||[];
       const chipStr=activeChips.join(', ')||'none';
-      const prompt=`Generate ${n} new meals for ${day.day} (${day.sessionType||'rest'} day). Targets: ${day.totalCalories||2000} kcal, ${day.totalProtein||150}g protein, ${day.totalCarbs||200}g carbs, ${day.totalFat||70}g fat. Restrictions (STRICTLY AVOID): ${chipStr}. Return ONLY a JSON array: [{"name":"Meal","cal":0,"pro":0,"carb":0,"fat":0,"pt":0,"ing":["item"]}]`;
-      const raw=await ai(prompt,900,'regen_day');
-      const m=raw.match(/\[[\s\S]*\]/);
-      const rawMeals=JSON.parse(m?m[0]:raw.trim());
-      // Normalize compact keys
-      const candidates=rawMeals.map(meal=>{
-        if(meal.cal!=null&&meal.calories==null)meal.calories=meal.cal;
-        if(meal.pro!=null&&meal.protein==null)meal.protein=meal.pro;
-        if(meal.carb!=null&&meal.carbs==null)meal.carbs=meal.carb;
-        if(meal.pt!=null&&meal.prepTime==null)meal.prepTime=meal.pt;
-        if(Array.isArray(meal.ing)&&!Array.isArray(meal.ingredients))meal.ingredients=meal.ing;
-        return meal;
-      });
-      const cleanMeals=candidates.filter(meal=>!mealHasAllergen(meal,activeChips));
+      const prompt=`Generate ${n} completely new meals for ${day.day} (${day.sessionType||'rest'} day). Targets: ${day.totalCalories||2000}kcal / ${day.totalProtein||150}g protein / ${day.totalCarbs||200}g carbs / ${day.totalFat||70}g fat. STRICTLY AVOID: ${chipStr}. Include 4-5 structured ingredients with amounts and brief instructions for each meal. Use the save_day_meals tool.`;
+      const result=await aiWithTools(prompt,[REGEN_DAY_TOOL],'save_day_meals',2500,'regen_day');
+      const meals=(result.meals||[]).map(meal=>{normalizeMeal(meal);return meal;});
+      const cleanMeals=meals.filter(meal=>!mealHasAllergen(meal,activeChips));
       if(cleanMeals.length>0){
         setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals=cleanMeals;return u;});
       }
@@ -4550,30 +4470,47 @@ Reply with ONLY a valid JSON object, no markdown:
                         </div>
                       </motion.div>
 
-                      {/* Ingredients */}
+                      {/* Ingredients — structured {item, amount} from tool use; legacy strings also handled */}
                       {ings.length>0&&(
                         <div style={{marginBottom:24}}>
                           <div style={{...mno2,fontSize:8,color:'#FF3B30',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:12}}>// WHAT'S IN THE BOWL</div>
                           {ings.map((ing,i)=>{
-                            // ing is like "200g chicken breast" — split amount from name
-                            const ingStr=typeof ing==='string'?ing:String(ing);
-                            const amtMatch=ingStr.match(/^([\d\/\.\s]*[a-z]*)\s+(.+)$/i);
-                            const amount=amtMatch?amtMatch[1].trim():'';
-                            const ingName=amtMatch?amtMatch[2].trim():ingStr;
+                            const ingName=typeof ing==='object'?(ing?.item||''):(()=>{const s=String(ing||'');const m=s.match(/^[\d\/\.\s]*[a-z]*\s+(.+)$/i);return m?m[1].trim():s;})();
+                            const ingAmt=typeof ing==='object'?(ing?.amount||''):(()=>{const s=String(ing||'');const m=s.match(/^([\d\/\.\s]*[a-z]+)\s/i);return m?m[1].trim():'';})();
                             return(
                               <motion.div key={i}
                                 initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}}
                                 transition={{delay:0.2+i*0.05}}
-                                style={{display:'flex',alignItems:'center',gap:12,padding:'11px 14px',borderRadius:12,marginBottom:6,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.05)'}}>
-                                <FoodIcon name={ingName||ingStr} size={32} userId={user?.id} />
+                                style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,marginBottom:6,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.05)'}}>
+                                <FoodIcon name={ingName||String(ing)} size={32} userId={user?.id} />
                                 <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:'#f5f5f0',textTransform:'capitalize',lineHeight:1.1}}>{ingName||ingStr}</div>
-                                  {amount&&<div style={{...mno2,fontSize:9,color:'rgba(245,245,240,0.45)',marginTop:2}}>{amount}</div>}
+                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,color:'#f5f5f0',textTransform:'capitalize',lineHeight:1.1}}>{ingName||String(ing)}</div>
                                 </div>
+                                {ingAmt&&<div style={{...mno2,fontSize:11,color:'rgba(245,245,240,0.55)',fontWeight:700,flexShrink:0}}>{ingAmt}</div>}
                               </motion.div>
                             );
                           })}
                         </div>
+                      )}
+
+                      {/* Instructions — HOW TO MAKE IT */}
+                      {meal?.instructions&&(
+                        <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:0.3}} style={{marginBottom:24}}>
+                          <div style={{...mno2,fontSize:8,color:'#FF3B30',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:12}}>// HOW TO MAKE IT</div>
+                          <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'14px 16px'}}>
+                            {meal.instructions.split(/\n|(?<=\.)\s+(?=\d+\.)/).filter(Boolean).map((step,si)=>{
+                              const trimmed=step.trim();
+                              if(!trimmed)return null;
+                              const isNumbered=/^\d+[.)]\s/.test(trimmed);
+                              return(
+                                <div key={si} style={{display:'flex',gap:10,marginBottom:si<meal.instructions.split(/\n|(?<=\.)\s+(?=\d+\.)/).filter(Boolean).length-1?10:0}}>
+                                  {isNumbered&&<div style={{...mno2,fontSize:9,color:'#FF3B30',fontWeight:700,flexShrink:0,marginTop:1}}>{trimmed.match(/^(\d+)/)?.[1]}.</div>}
+                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.72)',lineHeight:1.65,flex:1}}>{isNumbered?trimmed.replace(/^\d+[.)]\s*/,''):trimmed}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
                       )}
 
                       {/* Prep time */}
@@ -4612,13 +4549,19 @@ Reply with ONLY a valid JSON object, no markdown:
                 for(const d of(mealPrepPlan.days||[])){
                   for(const m of(d.meals||[])){
                     for(const ing of(m.ingredients||m.ing||[])){
-                      if(ing)allIngs.push(String(ing));
+                      if(!ing)continue;
+                      // Structured {item,amount} from tool use, or legacy string
+                      if(typeof ing==='object'&&ing.item){
+                        allIngs.push(ing.amount?`${ing.item} — ${ing.amount}`:ing.item);
+                      }else{
+                        allIngs.push(String(ing));
+                      }
                     }
                   }
                 }
-                // Dedupe (case-insensitive)
+                // Dedupe by ingredient name (strip amounts for key comparison)
                 const seen=new Set();
-                const deduped=allIngs.filter(i=>{const k=i.toLowerCase().replace(/^\d+[a-z]*\s*/,'');if(seen.has(k))return false;seen.add(k);return true;});
+                const deduped=allIngs.filter(i=>{const k=i.toLowerCase().replace(/\s*—.*$/,'').replace(/^\d+[a-z]*\s*/,'').trim();if(seen.has(k))return false;seen.add(k);return true;});
                 groceryCats={ingredients:deduped};
               }
               return(

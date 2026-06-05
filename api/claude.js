@@ -15,15 +15,19 @@ LANGUAGE: Never say "no pain no gain", "push through the pain", or "pain is weak
 
 // Max tokens per request per feature
 const TOKEN_LIMITS = {
-  restaurant_ai:   { input: 800, output: 600 },
-  restaurant_pick: { input: 1200, output: 900 },
-  menu_scan:       { input: 8000, output: 900 },
-  adapt_now:       { input: 600, output: 500 },
-  morning_brief:   { input: 2500, output: 700 },
-  meal_suggestion: { input: 300, output: 200 },
-  food_suggestion: { input: 300, output: 200 },
-  meal_prep:       { input: 500, output: 800 },
-  default:         { input: 500, output: 400 },
+  restaurant_ai:   { input: 800,  output: 600  },
+  restaurant_pick: { input: 1200, output: 900  },
+  menu_scan:       { input: 8000, output: 900  },
+  adapt_now:       { input: 600,  output: 500  },
+  morning_brief:   { input: 2500, output: 700  },
+  meal_suggestion: { input: 300,  output: 200  },
+  food_suggestion: { input: 300,  output: 200  },
+  meal_prep:       { input: 500,  output: 800  },
+  meal_prep_full:  { input: 4000, output: 8000 }, // forced tool use — full weekly plan with instructions
+  meal_swap:       { input: 1500, output: 1200 }, // forced tool use — single meal swap
+  allergen_retry:  { input: 1500, output: 1200 }, // forced tool use — allergen-safe replacement
+  regen_day:       { input: 1500, output: 2500 }, // forced tool use — full day regeneration
+  default:         { input: 500,  output: 400  },
 };
 
 // Anti-abuse hourly limits per feature — real users never hit these

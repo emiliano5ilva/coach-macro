@@ -140,13 +140,16 @@ export function isSafe(text, activeChips) {
  */
 export function mealHasAllergen(meal, activeChips) {
   if (!activeChips || !activeChips.length || !meal) return null;
+  // Ingredients may be legacy strings ("200g chicken") or structured {item, amount}.
+  // Scan only the ingredient name — amounts like "200g" never contain allergen keywords.
+  const ingStr = i => typeof i === 'string' ? i : (i?.item || '');
   const texts = [
     meal.name || '',
     meal.description || '',
     meal.steps || '',
     meal.instructions || '',
-    ...(Array.isArray(meal.ing) ? meal.ing : []),
-    ...(Array.isArray(meal.ingredients) ? meal.ingredients : []),
+    ...(Array.isArray(meal.ing) ? meal.ing.map(ingStr) : []),
+    ...(Array.isArray(meal.ingredients) ? meal.ingredients.map(ingStr) : []),
   ].filter(Boolean);
 
   for (const chip of activeChips) {
