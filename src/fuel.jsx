@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { jsonrepair } from 'jsonrepair';
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem, Pressable } from './motion-layer.jsx';
@@ -1406,12 +1407,24 @@ const DIET_PRESETS=[
   {id:'pescatarian', label:'Pescatarian',  badge:null,       color:null},
 ];
 
-// T: safeParseJSON — balanced-brace extraction + trailing-comma repair.
-// Handles prose before/after JSON, truncated responses, and markdown fences.
+// safeParseJSON — strips fences, tries direct parse, then uses jsonrepair for
+// structural repair. Key ordering insight: the balanced-brace extractor can cut off
+// content when braces are misplaced (e.g. truncating Tue when Mon closes early).
+// So jsonrepair(full_string) runs BEFORE jsonrepair(extracted) — the full string
+// produces an array of all fragments when structure is broken; the caller
+// (generateMealPrepPlan) detects the array and reassembles via tryRebuildMealPlan.
 function safeParseJSON(str){
   if(!str)return null;
+  // Strip markdown fences
   let s=str.replace(/```json\n?|```\n?/g,'').trim();
+  // 1. Direct parse (fast path)
   try{return JSON.parse(s);}catch{}
+  // 2. jsonrepair on full stripped string — fixes misplaced/missing brackets,
+  //    wrong brace order, trailing commas, etc. on the complete response.
+  //    Returns an array when structure is too broken to resolve as an object;
+  //    caller handles array → object reconstruction for known schemas.
+  try{return JSON.parse(jsonrepair(s));}catch{}
+  // 3. Extract outermost JSON substring (drops surrounding prose) + direct parse
   const start=s.search(/[{\[]/);
   if(start===-1)return null;
   const opener=s[start];const closer=opener==='{'?'}':']';
@@ -1422,9 +1435,9 @@ function safeParseJSON(str){
   }
   const extracted=end!==-1?s.slice(start,end+1):s.slice(start);
   try{return JSON.parse(extracted);}catch{}
-  const fixed=extracted.replace(/,(\s*[}\]])/g,'$1').replace(/,\s*$/,'');
-  const opens=[...fixed].reduce((st,ch)=>{if(ch==='{'||ch==='[')st.push(ch==='{'?'}':']');else if((ch==='}'||ch===']')&&st.length&&st[st.length-1]===ch)st.pop();return st;},[]);
-  try{return JSON.parse(fixed+opens.reverse().join(''));}catch{return null;}
+  // 4. jsonrepair on extracted substring (backup — may produce partial data)
+  try{return JSON.parse(jsonrepair(extracted));}catch{}
+  return null;
 }
 
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null}) {
@@ -1988,6 +2001,23 @@ Reply with ONLY a valid JSON object, no markdown:
   useEffect(()=>{if(mealPrepPlan?.days?.length>0){localStorage.setItem('__mp_exists','1');}else{localStorage.removeItem('__mp_exists');}},[mealPrepPlan]);
   useEffect(()=>{function onClear(){setMealPrepPlan(null);setShowRegenerateBanner(true);localStorage.setItem('__mp_regen_needed','1');localStorage.removeItem('__mp_exists');}window.addEventListener('cm_clear_meal_prep',onClear);return()=>window.removeEventListener('cm_clear_meal_prep',onClear);},[]);
 
+  // When jsonrepair fixes structurally-broken JSON (misplaced braces), it sometimes
+  // wraps the fragments in a top-level array instead of producing the intended object.
+  // This function recognizes that pattern and reassembles the intended meal-plan shape.
+  // Evidence pattern: [{days:[Mon...]}, {day:"Tue",...}, "grocery", ":", {proteins:[...]}]
+  function tryRebuildMealPlan(arr){
+    if(!Array.isArray(arr))return null;
+    const days=[];
+    let grocery={};
+    for(const item of arr){
+      if(!item||typeof item!=='object'||Array.isArray(item))continue;
+      if(Array.isArray(item.days))days.push(...item.days.filter(Boolean));
+      else if(item.day&&Array.isArray(item.meals))days.push(item);
+      if(item.proteins||item.carbs||item.veg||item.other||item.ingredients||item.produce)grocery=item;
+    }
+    return days.length>0?{days,grocery}:null;
+  }
+
   async function generateMealPrepPlan(){
     setMealPrepError(null);setMealPrepWarning(null);
     setMealPrepScreen('generating');
@@ -2004,9 +2034,10 @@ Reply with ONLY a valid JSON object, no markdown:
       // Fix 1: explicitly list every selected day + show 2-day example so AI generates ALL days.
       const selDaysList=mealPrepPrefs.selectedDays.join(', ');
       const nDays=mealPrepPrefs.selectedDays.length;
-      // ROOT CAUSE OF 2-DAY BUG: showing a 2-day example anchors the model to stop after 2.
-      // Fix: show exactly 1 example day + explicit placeholder for the remaining days.
-      const prompt=`Sports nutritionist: build a ${nDays}-day meal prep plan for an athlete.\nGenerate EXACTLY ${nDays} days: ${selDaysList}. You MUST output ALL ${nDays} days — do NOT stop after 1 or 2.\nGoal: ${profile?.goal||'maintenance'}. Cals: ${macros?.calories||2000}, Pro: ${macros?.protein||150}g, Carb: ${macros?.carbs||200}g, Fat: ${macros?.fat||70}g.\nRestrictions (STRICTLY AVOID ALL): ${chipStr}${dietNote}.\nMeals/day: ${nMeals}. Each day MUST have EXACTLY ${nMeals} meals.\nSchedule: ${weekScheduleStr}.\nTraining days +15% carbs; leg days +25% carbs; rest days base macros.\nReturn STRICT minified JSON only — no prose, no markdown fences, no trailing text.\nSchema (repeat the days array entry ${nDays} times, once per day in ${selDaysList}):\n{"days":[{"day":"Mon","type":"rest","cal":2000,"pro":150,"carb":200,"fat":70,"meals":[{"name":"Oat Protein Bowl","cal":667,"pro":50,"carb":67,"fat":23,"pt":10,"ing":["100g rolled oats","30g whey protein","1 banana","15ml honey"]},...${nMeals} meals total...]},...${nDays-1} more days for ${selDaysList.split(',').slice(1).join(',').trim()||'remaining days'}...],"grocery":{"proteins":["2kg chicken breast"],"carbs":["1kg brown rice","500g oats"],"veg":["500g broccoli"],"other":["olive oil","protein powder"]}}`;
+      // Root causes addressed:
+      // 1. 2-day bug: 2-day example anchored model output — now shows 1 day + placeholder.
+      // 2. Structural JSON errors: jsonrepair handles misplaced/missing brackets in safeParseJSON.
+      const prompt=`Sports nutritionist: build a ${nDays}-day meal prep plan for an athlete.\nGenerate EXACTLY ${nDays} days: ${selDaysList}. Output ALL ${nDays} days — do NOT stop early.\nGoal: ${profile?.goal||'maintenance'}. Cals: ${macros?.calories||2000}, Pro: ${macros?.protein||150}g, Carb: ${macros?.carbs||200}g, Fat: ${macros?.fat||70}g.\nRestrictions (STRICTLY AVOID ALL): ${chipStr}${dietNote}.\nMeals/day: ${nMeals}. Each day MUST have EXACTLY ${nMeals} meals.\nSchedule: ${weekScheduleStr}.\nTraining days +15% carbs; leg days +25% carbs; rest days base macros.\nReturn a single valid JSON object. Every array and object must be properly closed — no extra or misplaced braces. No prose, no markdown fences, no trailing text after the closing }.\nSchema (one entry per day in ${selDaysList}):\n{"days":[{"day":"Mon","type":"rest","cal":2000,"pro":150,"carb":200,"fat":70,"meals":[{"name":"Oat Protein Bowl","cal":667,"pro":50,"carb":67,"fat":23,"pt":10,"ing":["100g rolled oats","30g whey protein","1 banana"]},...${nMeals-1} more meals]},...${nDays-1} more days],"grocery":{"proteins":["2kg chicken"],"carbs":["1kg rice","500g oats"],"veg":["500g broccoli"],"other":["olive oil"]}}`;
 
       _stage='fetch';
       const raw=await ai(prompt,6000,'meal_prep_full');
@@ -2016,6 +2047,12 @@ Reply with ONLY a valid JSON object, no markdown:
       let plan=null;
       try{plan=safeParseJSON(raw);}
       catch(pe){_parseErr=pe.message;}
+      // jsonrepair may return a top-level array when structural errors (misplaced braces)
+      // prevent it from resolving the correct object shape. Reassemble the plan from fragments.
+      if(Array.isArray(plan)){
+        _planKeys='array_from_repair';
+        plan=tryRebuildMealPlan(plan);
+      }
       if(!plan){
         _planKeys=_parseErr?`parse_threw:${_parseErr}`:'null_after_parse';
         throw new Error(`Couldn't parse the plan — tap Generate to try again.`);
