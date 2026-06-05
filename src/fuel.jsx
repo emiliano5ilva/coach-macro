@@ -1998,10 +1998,13 @@ Reply with ONLY a valid JSON object, no markdown:
       const chipStr=mealPrepPrefs.dietaryPrefs.length>0?mealPrepPrefs.dietaryPrefs.join(', '):'none';
       const dietPreset=mealPrepPrefs.dietPreset||'balanced';
       const dietNote=dietPreset!=='balanced'?`\n- Diet style: ${dietPreset} (use foods appropriate for this approach — e.g. keto means low-carb high-fat, vegan means no animal products)`:'';
-      const prompt=`You are a sports nutritionist AI building a weekly meal prep plan for an athlete.\n\nUser profile:\n- Goal: ${profile?.goal||'maintenance'}\n- Daily calorie target: ${macros?.calories||2000} kcal\n- Protein target: ${macros?.protein||150}g\n- Carbs target: ${macros?.carbs||200}g\n- Fat target: ${macros?.fat||70}g\n- Dietary restrictions (STRICTLY AVOID ALL of these): ${chipStr}${dietNote}\n- Prep time available: ${mealPrepPrefs.prepTime}\n- Meals per day: ${nMeals}\n\nTraining schedule this week:\n${weekScheduleStr}\n\nRules:\n- Training days get 15-20% more carbs than base target\n- Leg days get the highest carbs (25-30% above base)\n- Rest days use base macro targets\n- Each meal should be whole foods, simple to prep in batches\n- Meals should be realistic and filling for an athlete\n\nRespond with ONLY valid JSON. No markdown. No explanation. No backticks. Just raw JSON.\n\n{"days":[{"day":"Monday","sessionType":"push","macroProtocol":"training_high","totalCalories":2950,"totalProtein":210,"totalCarbs":317,"totalFat":92,"meals":[{"id":"mon_meal_1","name":"Meal name","description":"Brief description","calories":985,"protein":70,"carbs":106,"fat":31,"prepTime":15,"ingredients":["200g chicken breast","150g brown rice","100g broccoli"],"instructions":"Brief prep note"}]}],"groceryList":{"proteins":["2kg chicken breast"],"grains":["1kg brown rice"],"vegetables":["500g broccoli"],"other":["olive oil"]}}`;
+      // COMPACT SCHEMA — cuts output ~60% vs verbose to prevent truncation.
+      // Short keys: cal/pro/carb/fat/type/ing/pt. No description/instructions/macroProtocol.
+      // After parse we normalize compact → verbose so the renderer needs no changes.
+      const prompt=`Sports nutritionist: build a 5-day meal prep plan (Mon-Fri) for an athlete.\nGoal: ${profile?.goal||'maintenance'}. Cals: ${macros?.calories||2000}, Pro: ${macros?.protein||150}g, Carb: ${macros?.carbs||200}g, Fat: ${macros?.fat||70}g.\nRestrictions (STRICTLY AVOID ALL): ${chipStr}${dietNote}.\nPrep: ${mealPrepPrefs.prepTime}. Meals/day: ${nMeals}.\nSchedule: ${weekScheduleStr}.\nTraining days +15% carbs; leg days +25% carbs; rest days base macros.\nReturn STRICT minified JSON only — no prose, no markdown fences, no trailing text.\nEXACT schema (compact keys only, no extras):\n{"days":[{"day":"Mon","type":"rest","cal":2000,"pro":150,"carb":200,"fat":70,"meals":[{"name":"Meal","cal":667,"pro":50,"carb":67,"fat":23,"pt":15,"ing":["200g chicken","100g rice","80g broccoli"]}]}],"grocery":{"proteins":["2kg chicken"],"carbs":["1kg rice"],"veg":["500g broccoli"],"other":["olive oil"]}}`;
 
       _stage='fetch';
-      const raw=await ai(prompt,2500,'meal_prep_full');
+      const raw=await ai(prompt,5000,'meal_prep_full');
       _raw=raw;
 
       _stage='parse';
@@ -2014,8 +2017,25 @@ Reply with ONLY a valid JSON object, no markdown:
       }
       // Record the top-level shape of the parsed object
       _planKeys=Object.keys(plan).join(',');
-      // Normalize: accept both 'grocery' and 'groceryList' top-level keys
+      // Normalize compact → verbose so the renderer and all downstream code
+      // can keep reading totalCalories/totalProtein/calories/protein/ingredients/etc.
       if(plan.grocery&&!plan.groceryList)plan.groceryList=plan.grocery;
+      for(const day of (plan.days||[])){
+        if(!day)continue;
+        if(day.cal!=null&&day.totalCalories==null)day.totalCalories=day.cal;
+        if(day.pro!=null&&day.totalProtein==null)day.totalProtein=day.pro;
+        if(day.carb!=null&&day.totalCarbs==null)day.totalCarbs=day.carb;
+        if(day.fat!=null&&day.totalFat==null)day.totalFat=day.fat;
+        if(day.type!=null&&day.sessionType==null)day.sessionType=day.type;
+        for(const meal of (day.meals||[])){
+          if(!meal)continue;
+          if(meal.cal!=null&&meal.calories==null)meal.calories=meal.cal;
+          if(meal.pro!=null&&meal.protein==null)meal.protein=meal.pro;
+          if(meal.carb!=null&&meal.carbs==null)meal.carbs=meal.carb;
+          if(meal.pt!=null&&meal.prepTime==null)meal.prepTime=meal.pt;
+          if(Array.isArray(meal.ing)&&!Array.isArray(meal.ingredients))meal.ingredients=meal.ing;
+        }
+      }
 
       _stage='allergen_filter';
       const activeChips=mealPrepPrefs.dietaryPrefs||[];
@@ -2041,11 +2061,17 @@ Reply with ONLY a valid JSON object, no markdown:
                 const tPro=Math.round((day.totalProtein||macros?.protein||150)/nMeals);
                 const tCarb=Math.round((day.totalCarbs||macros?.carbs||200)/nMeals);
                 const tFat=Math.round((day.totalFat||macros?.fat||70)/nMeals);
-                const rePrompt=`Generate ONE safe meal for ${day.day}. Targets: ~${tCal} kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICT ALLERGY — ABSOLUTELY NO ${violation} in any ingredient, name, or cooking method. All restrictions: ${activeChips.join(', ')}. Return ONLY JSON: {"id":"uid","name":"Meal","description":"Brief","calories":${tCal},"protein":${tPro},"carbs":${tCarb},"fat":${tFat},"prepTime":15,"ingredients":["ingredient"],"instructions":"Brief"}`;
+                const rePrompt=`Generate ONE allergen-safe meal for ${day.day}. Targets: ~${tCal} kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICT ALLERGY — ABSOLUTELY NO ${violation} in any ingredient or name. All restrictions: ${activeChips.join(', ')}. Return ONLY JSON: {"name":"Meal","cal":${tCal},"pro":${tPro},"carb":${tCarb},"fat":${tFat},"pt":15,"ing":["ingredient"]}`;
                 const retryRaw=await ai(rePrompt,450,'allergen_retry');
                 const m=retryRaw.match(/\{[\s\S]*\}/);
                 if(!m)break;
                 const retryMeal=JSON.parse(m[0]);
+                // Normalize compact keys on retry meal
+                if(retryMeal.cal!=null&&retryMeal.calories==null)retryMeal.calories=retryMeal.cal;
+                if(retryMeal.pro!=null&&retryMeal.protein==null)retryMeal.protein=retryMeal.pro;
+                if(retryMeal.carb!=null&&retryMeal.carbs==null)retryMeal.carbs=retryMeal.carb;
+                if(retryMeal.pt!=null&&retryMeal.prepTime==null)retryMeal.prepTime=retryMeal.pt;
+                if(Array.isArray(retryMeal.ing)&&!Array.isArray(retryMeal.ingredients))retryMeal.ingredients=retryMeal.ing;
                 if(typeof retryMeal.ingredients==='string')retryMeal.ingredients=retryMeal.ingredients.split(',').map(s=>s.trim());
                 const nextViolation=mealHasAllergen(retryMeal,activeChips);
                 if(!nextViolation){cleanMeal=retryMeal;violation=null;}
@@ -2106,11 +2132,21 @@ Reply with ONLY a valid JSON object, no markdown:
       let attempts=0;
       while(!cleanMeal&&attempts<RETRY_CAP){
         attempts++;
-        const prompt=`Generate ONE replacement meal for ${day.day} (${day.sessionType} day). Must hit approximately: ${Math.round((day.totalCalories||2000)/n)} kcal, ${Math.round((day.totalProtein||150)/n)}g protein, ${Math.round((day.totalCarbs||200)/n)}g carbs, ${Math.round((day.totalFat||70)/n)}g fat. Dietary restrictions (STRICTLY AVOID): ${chipStr}. Current meal being replaced: "${currentMeal.name}" (give something different). Respond with ONLY JSON: {"id":"unique_id","name":"Meal name","description":"Brief","calories":0,"protein":0,"carbs":0,"fat":0,"prepTime":15,"ingredients":[],"instructions":"Brief"}`;
+        const tCal=Math.round((day.totalCalories||2000)/n);
+        const tPro=Math.round((day.totalProtein||150)/n);
+        const tCarb=Math.round((day.totalCarbs||200)/n);
+        const tFat=Math.round((day.totalFat||70)/n);
+        const prompt=`Generate ONE replacement meal for ${day.day} (${day.sessionType||'rest'} day). Targets: ~${tCal} kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. Restrictions (STRICTLY AVOID): ${chipStr}. Replace: "${currentMeal.name}". Return ONLY JSON: {"name":"Meal","cal":${tCal},"pro":${tPro},"carb":${tCarb},"fat":${tFat},"pt":15,"ing":["ingredient"]}`;
         const raw=await ai(prompt,450,'meal_swap');
         const m=raw.match(/\{[\s\S]*\}/);
         if(!m)continue;
         const candidate=JSON.parse(m[0]);
+        // Normalize compact keys
+        if(candidate.cal!=null&&candidate.calories==null)candidate.calories=candidate.cal;
+        if(candidate.pro!=null&&candidate.protein==null)candidate.protein=candidate.pro;
+        if(candidate.carb!=null&&candidate.carbs==null)candidate.carbs=candidate.carb;
+        if(candidate.pt!=null&&candidate.prepTime==null)candidate.prepTime=candidate.pt;
+        if(Array.isArray(candidate.ing)&&!Array.isArray(candidate.ingredients))candidate.ingredients=candidate.ing;
         if(!mealHasAllergen(candidate,activeChips))cleanMeal=candidate;
       }
       if(cleanMeal){
@@ -2129,10 +2165,19 @@ Reply with ONLY a valid JSON object, no markdown:
       const n=mealPrepPrefs.mealsPerDay||3;
       const activeChips=mealPrepPrefs.dietaryPrefs||[];
       const chipStr=activeChips.join(', ')||'none';
-      const prompt=`Generate ${n} new meals for ${day.day} (${day.sessionType} day). Daily targets: ${day.totalCalories||2000} kcal, ${day.totalProtein||150}g protein, ${day.totalCarbs||200}g carbs, ${day.totalFat||70}g fat. Dietary restrictions (STRICTLY AVOID): ${chipStr}. Respond with ONLY a JSON array of ${n} meal objects: [{"id":"...","name":"...","description":"...","calories":0,"protein":0,"carbs":0,"fat":0,"prepTime":0,"ingredients":[],"instructions":"..."}]`;
+      const prompt=`Generate ${n} new meals for ${day.day} (${day.sessionType||'rest'} day). Targets: ${day.totalCalories||2000} kcal, ${day.totalProtein||150}g protein, ${day.totalCarbs||200}g carbs, ${day.totalFat||70}g fat. Restrictions (STRICTLY AVOID): ${chipStr}. Return ONLY a JSON array: [{"name":"Meal","cal":0,"pro":0,"carb":0,"fat":0,"pt":0,"ing":["item"]}]`;
       const raw=await ai(prompt,900,'regen_day');
       const m=raw.match(/\[[\s\S]*\]/);
-      const candidates=JSON.parse(m?m[0]:raw.trim());
+      const rawMeals=JSON.parse(m?m[0]:raw.trim());
+      // Normalize compact keys
+      const candidates=rawMeals.map(meal=>{
+        if(meal.cal!=null&&meal.calories==null)meal.calories=meal.cal;
+        if(meal.pro!=null&&meal.protein==null)meal.protein=meal.pro;
+        if(meal.carb!=null&&meal.carbs==null)meal.carbs=meal.carb;
+        if(meal.pt!=null&&meal.prepTime==null)meal.prepTime=meal.pt;
+        if(Array.isArray(meal.ing)&&!Array.isArray(meal.ingredients))meal.ingredients=meal.ing;
+        return meal;
+      });
       const cleanMeals=candidates.filter(meal=>!mealHasAllergen(meal,activeChips));
       if(cleanMeals.length>0){
         setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals=cleanMeals;return u;});
