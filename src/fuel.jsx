@@ -2036,6 +2036,13 @@ Reply with ONLY a valid JSON object, no markdown:
       const plan=await aiWithTools(prompt,[MEAL_PLAN_TOOL],'save_meal_plan',8000,'meal_prep_full');
       _planKeys=Object.keys(plan).join(',');
 
+      // Sanity-check: if days is absent or empty, the model returned a skeleton.
+      // Log and surface a retry-able error rather than showing an empty plan screen.
+      if(!Array.isArray(plan.days)||plan.days.length===0){
+        try{await sb.from('error_logs').insert({user_id:user?.id||null,level:'error',context:'mealprep_empty_days',message:JSON.stringify({planKeys:_planKeys,daysValue:plan.days,stage:'post_fetch'}),request_path:'meal_prep',created_at:new Date().toISOString()});}catch{}
+        throw new Error(`Plan returned 0 days (schema: ${_planKeys}) — tap Generate to try again`);
+      }
+
       _stage='normalize';
       if(plan.grocery&&!plan.groceryList)plan.groceryList=plan.grocery;
       for(const day of(plan.days||[]))normalizeDay(day);

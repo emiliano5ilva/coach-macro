@@ -253,6 +253,17 @@ export default withLogging(async function handler(req, res) {
 
   // ── 4b. Non-streaming response ─────────────────────────────────────────────
   try {
+    // For forced tool use calls (tool_choice present), use the greater of:
+    //  - the server-side feature limit (prevents abuse on known features)
+    //  - the client's requested max_tokens (prevents silent truncation when
+    //    the feature name isn't registered yet, e.g. during rollout)
+    // Capped at 8192 (Anthropic Sonnet max). This ensures tool-use calls
+    // never get truncated to default:400 just because a feature key is missing.
+    const clientMax = typeof bodyRest.max_tokens === 'number' ? bodyRest.max_tokens : 0;
+    const max_tokens = bodyRest.tool_choice
+      ? Math.min(Math.max(clientMax, limits.output), 8192)
+      : limits.output;
+
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
       headers: {
@@ -264,7 +275,7 @@ export default withLogging(async function handler(req, res) {
         ...bodyRest,
         messages,
         system:     SAFETY_SYSTEM_PROMPT,
-        max_tokens: limits.output,
+        max_tokens,
       }),
     });
 
