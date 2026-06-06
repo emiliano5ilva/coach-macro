@@ -2939,6 +2939,10 @@ Reply with ONLY a valid JSON object, no markdown:
               const lSlots=getLoggedSlots(log);
               const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
               const basePerSlot=Math.round(macros.calories/mealSlots.length);
+              // Read-only: today's plan day → slot→meal map (part A; does NOT touch log or consumed totals)
+              const todayPlanDay=mealPrepPlan?.days?.find(d=>d.day.slice(0,3)===todayKey);
+              const plannedBySlot={};
+              if(todayPlanDay){for(const m of todayPlanDay.meals){if(!m.unfillable&&m.name&&typeof m.slot==='number')plannedBySlot[m.slot]=m;}}
               return(
                 <StaggerItem i={2}>
                 <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
@@ -2961,6 +2965,11 @@ Reply with ONLY a valid JSON object, no markdown:
                       const target=slotTargets[slot]||0;
                       const hasRedistributed=!isSkipped&&(skippedSlots||[]).length>0&&!lSlots.includes(slot)&&target>basePerSlot;
                       const hasOverageReduction=!isSkipped&&!lSlots.includes(slot)&&Object.keys(slotOverages||{}).some(k=>parseInt(k)!==slot);
+                      // Precedence: logged > locked > skipped > planned > empty
+                      // Only show planned when slot is empty, not skipped, not locked, and plan has a meal for this slot.
+                      // If mealFreq differs from plan meal count, slot integers may not align — plannedBySlot[slot]
+                      // returns undefined for non-matching slots and the card is simply absent (graceful skip).
+                      const plannedMeal=slotItems.length===0&&!isSkipped&&!isLocked?(plannedBySlot[slot]||null):null;
                       return(
                         <div key={slot} style={{marginBottom:12,opacity:isSkipped?0.4:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:slotItems.length>0?6:4}}>
@@ -3050,6 +3059,22 @@ Reply with ONLY a valid JSON object, no markdown:
                               </div>
                             </SwipeRow>
                           ))}
+                          {/* ── PLANNED card (read-only, part A) ── */}
+                          {plannedMeal&&(
+                            <div style={{marginTop:4,padding:"10px 12px",border:"1.5px dashed rgba(245,245,240,0.12)",borderRadius:10,background:"rgba(232,52,28,0.04)"}}>
+                              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(232,52,28,0.55)",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:3}}>// planned</div>
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,color:"rgba(245,245,240,0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{plannedMeal.name}</div>
+                                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.28)",marginTop:2}}>
+                                    <span style={{color:"rgba(34,197,94,0.45)"}}>P {Math.round(plannedMeal.protein)}g</span>{' · '}{Math.round(plannedMeal.calories)} kcal
+                                  </div>
+                                </div>
+                                {/* part-B: [✓ Ate this] / [Swap] buttons will replace this label */}
+                                <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.18)",letterSpacing:"0.12em",textTransform:"uppercase",flexShrink:0}}>not logged</div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
