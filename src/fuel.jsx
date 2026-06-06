@@ -25,6 +25,7 @@ const _FUEL_GOCLUB_CSS=`
 `;
 import { showToast } from "./utils/toast.js";
 import { mealHasAllergen, scanTextAllergens } from "./utils/allergenFilter.js";
+import { fitWeek, fitDay } from "./services/mealFitter.js";
 import { sb, ai, streamAI, aiWithTools } from "./client.js";
 import { track, EVENTS } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
@@ -1427,12 +1428,74 @@ function safeParseJSON(str){
   try{return JSON.parse(fixed+opens.reverse().join(''));}catch{return null;}
 }
 
-// ── Meal prep tool schemas — forced tool use guarantees structured JSON output ──
-const _ingItem={type:"object",properties:{item:{type:"string",description:"Ingredient name e.g. rolled oats"},amount:{type:"string",description:"Amount e.g. 100g"}},required:["item","amount"],additionalProperties:false};
-const _mealItem={type:"object",properties:{name:{type:"string"},cal:{type:"integer"},pro:{type:"integer"},carb:{type:"integer"},fat:{type:"integer"},pt:{type:"integer",description:"Prep time minutes"},ingredients:{type:"array",items:_ingItem},instructions:{type:"string",description:"Step-by-step prep instructions"}},required:["name","cal","pro","carb","fat","ingredients"],additionalProperties:false};
-const MEAL_PLAN_TOOL={name:"save_meal_plan",description:"Save the complete weekly meal prep plan with all days, meals, structured ingredients, and instructions",input_schema:{type:"object",properties:{days:{type:"array",items:{type:"object",properties:{day:{type:"string"},type:{type:"string"},cal:{type:"integer"},pro:{type:"integer"},carb:{type:"integer"},fat:{type:"integer"},meals:{type:"array",items:_mealItem}},required:["day","type","cal","pro","carb","fat","meals"],additionalProperties:false}},groceryList:{type:"object",additionalProperties:{type:"array",items:{type:"string"}}}},required:["days"],additionalProperties:false}};
-const REGEN_MEAL_TOOL={name:"save_meal",description:"Return one replacement meal with structured ingredients and instructions",input_schema:_mealItem};
-const REGEN_DAY_TOOL={name:"save_day_meals",description:"Return all replacement meals for one day",input_schema:{type:"object",properties:{meals:{type:"array",items:_mealItem}},required:["meals"],additionalProperties:false}};
+// ── Meal prep: AI tool schemas RETIRED (Phase 3) ──────────────────────────────
+// Generation now uses the pure deterministic fitter (src/services/mealFitter.js)
+// against the 299-recipe Supabase library — instant, allergen-safe, zero tokens.
+// MEAL_PLAN_TOOL / REGEN_MEAL_TOOL / REGEN_DAY_TOOL removed.
+
+// Chip label → DB allergen tag (mirrors retag-allergens.mjs CHIP_TO_TAG)
+const ALLERGEN_CHIP_TO_TAG = {
+  'No Dairy':'dairy','No Gluten':'gluten','No Pork':'pork',
+  'No Shellfish':'shellfish','No Eggs':'eggs','No Nuts':'nuts',
+};
+
+// Format a scaled ingredient quantity for display: "200g", "1.5 cups", etc.
+function fmtIngAmt(qty, unit) {
+  if (!qty || !unit) return '';
+  if (unit === 'g' || unit === 'ml') return `${Math.round(qty)}${unit}`;
+  if (unit === 'whole') { const q=Math.round(qty*10)/10; return q===1?'1':String(q); }
+  return `${Math.round(qty*10)/10} ${unit}`;
+}
+
+// Load eligible recipe pool from Supabase (pre-filtered; fitter re-checks allergens).
+async function loadMealPool(diet, allergenTags) {
+  let q = sb
+    .from('recipes')
+    .select('id,name,meal_slot,diet_tags,allergen_tags,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,servings_count,ingredients,use_count,last_used')
+    .is('user_id', null);
+  if (diet && diet !== 'balanced') q = q.contains('diet_tags', [diet]);
+  // ALLERGEN GATE (DB layer): NOT (allergen_tags && ARRAY[allergens])
+  if (allergenTags.length > 0) q = q.not('allergen_tags', 'ov', `{${allergenTags.join(',')}}`);
+  const { data, error } = await q;
+  if (error) throw new Error(`Recipe pool load failed: ${error.message}`);
+  return data || [];
+}
+
+// Convert a single fitDay result + metadata → the shape one plan day expects.
+function fitterDayToShape(fDay, dayName, sessionType) {
+  const meals = fDay.meals.map(slot => {
+    if (slot.unfillable) {
+      return { name:null, unfillable:true, reason:slot.reason, slot:slot.slot,
+               calories:0, protein:0, carbs:0, fat:0, ingredients:[] };
+    }
+    const { recipe, servings, scaledMacros } = slot;
+    return {
+      name: recipe.name,
+      calories: Math.round(scaledMacros.cal),
+      protein: Math.round(scaledMacros.pro * 10) / 10,
+      carbs:   Math.round(scaledMacros.carb * 10) / 10,
+      fat:     Math.round(scaledMacros.fat  * 10) / 10,
+      ingredients: (recipe.ingredients || []).map(ing => ({
+        item:   ing.item,
+        amount: fmtIngAmt((ing.qty || 0) * servings, ing.unit),
+      })),
+      instructions: recipe.instructions || null,
+      slot: slot.slot,
+      servings,
+      _recipeId: recipe.id,
+      unfillable: false,
+    };
+  });
+  return {
+    day: dayName,
+    sessionType,
+    totalCalories: Math.round(fDay.dayTotals.cal),
+    totalProtein:  Math.round(fDay.dayTotals.pro  * 10) / 10,
+    totalCarbs:    Math.round(fDay.dayTotals.carb * 10) / 10,
+    totalFat:      Math.round(fDay.dayTotals.fat  * 10) / 10,
+    meals,
+  };
+}
 
 export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFocus,earnedCals,todayActs,fuelScreen,setFuelScreen,foodInput,setFoodInput,logging,logMsg,aiLog,barcodeInput,setBarcodeInput,barcodeResult,barcodeLoading,scanBarcode,addBarcode,quickFields,setQF,addQuick,removeLog,recs,recsLoading,fetchRecs,recipes,recipesLoading,fetchRecipes,fastProto,setFastProto,fastActive,setFastActive,fastStart,setFastStart,fastCustomH,setFastCustomH,fastHours,city,setCity,isMobile,user,wPrefs,setWPrefs,schedule,setSchedule,todayKey,periodizationInfo,logEntry,profile,dayNutrition,weekMacros,waterTarget,waterLogs,onAddWater,onDeleteWater,metabolicProtocol,onOpenPhotoLogger,skippedSlots,onSkipSlots,slotOverages={},onSlotOverage,lockedSlots=[],onLockSlots,resetSignal=0,todayProtocol=null}) {
 
@@ -1985,7 +2048,7 @@ Reply with ONLY a valid JSON object, no markdown:
   const [mealPrepError,setMealPrepError]=useState(null);
   const [mpSaveConfirm,setMpSaveConfirm]=useState(false);
   const [mpStatusIdx,setMpStatusIdx]=useState(0);
-  const MP_STATUSES=['Analyzing your training schedule...','Calculating leg day fuel...','Optimizing rest day meals...','Matching macros to your goals...','Building grocery list...','Almost done...'];
+  const MP_STATUSES=['Loading your recipe library...','Matching macros to your targets...','Selecting meals for each day...','Almost done...'];
   useEffect(()=>{try{localStorage.setItem('mp_checked',JSON.stringify([...checkedGroceryItems]));}catch{}},[checkedGroceryItems]);
   // Persist new-flow plan across app sessions
   useEffect(()=>{try{if(mealPrepPlan)localStorage.setItem('cm_mp_plan_v2',JSON.stringify(mealPrepPlan));else localStorage.removeItem('cm_mp_plan_v2');}catch{}},[mealPrepPlan]);
@@ -2015,93 +2078,45 @@ Reply with ONLY a valid JSON object, no markdown:
     if(Array.isArray(meal.ing)&&!Array.isArray(meal.ingredients))meal.ingredients=meal.ing;
   }
 
+  // ── Phase 3: deterministic fitter replaces AI meal-prep generation ─────────────
+  // generateMealPrepPlan: loads pool from Supabase → runs fitWeek (pure, instant) →
+  // converts to renderer shape.  No AI call, no token cost, no JSON parsing.
+  // PHASE 4 SEAM: swap dayTargets for per-day Fuel Flow targets here.
+
   async function generateMealPrepPlan(){
     setMealPrepError(null);setMealPrepWarning(null);
     setMealPrepScreen('generating');
-    let _stage='init',_planKeys='';
     try{
       const sel=mealPrepPrefs.selectedDays;
-      const weekScheduleStr=WDAYS_ORDER.filter(d=>sel.includes(d)).map(d=>{const t=schedule?.[d]||'rest';const focus=wPrefs?.dayFocus?.[d]||t;return `${d}: ${focus}`;}).join(', ');
       const nMeals=mealPrepPrefs.mealsPerDay||3;
-      const chipStr=mealPrepPrefs.dietaryPrefs.length>0?mealPrepPrefs.dietaryPrefs.join(', '):'none';
-      const dietPreset=mealPrepPrefs.dietPreset||'balanced';
-      const dietNote=dietPreset!=='balanced'?`\nDiet style: ${dietPreset} (keto=low-carb high-fat, vegan=no animal products, etc.)`:'';
-      const selDaysList=sel.join(', ');
-      const nDays=sel.length;
+      const diet=mealPrepPrefs.dietPreset||'balanced';
+      const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
 
-      // Forced tool use — model MUST fill save_meal_plan schema; no JSON parsing or repair needed.
-      const prompt=`Sports nutritionist. Build a complete ${nDays}-day athlete meal prep plan.\nAthlete: goal=${profile?.goal||'maintenance'}, daily targets: ${macros?.calories||2000}kcal / ${macros?.protein||150}g protein / ${macros?.carbs||200}g carbs / ${macros?.fat||70}g fat.\nDays to cover (ALL required): ${selDaysList}. Generate EXACTLY ${nDays} days — one entry per day listed.\nMeals per day: EXACTLY ${nMeals} meals per day.\nWeekly schedule: ${weekScheduleStr}. Training days: +15% carbs. Leg days: +25% carbs. Rest days: base macros.\nRestrictions (STRICTLY AVOID in every meal and ingredient): ${chipStr}.${dietNote}\nFor each meal include 4-6 structured ingredients with exact amounts, and short step-by-step instructions (2-4 sentences).\nUse the save_meal_plan tool to return the complete plan.`;
+      // PHASE 4 SEAM: replace with per-day Fuel Flow targets (training vs rest)
+      const dayTarget={cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
+      const dayTargets=sel.map(()=>dayTarget);
 
-      _stage='fetch';
-      const plan=await aiWithTools(prompt,[MEAL_PLAN_TOOL],'save_meal_plan',8000,'meal_prep_full');
-      _planKeys=Object.keys(plan).join(',');
+      // Load pool (DB-level pre-filter; fitter re-checks allergen gate internally)
+      const pool=await loadMealPool(diet,allergenTags);
 
-      // Sanity-check: if days is absent or empty, the model returned a skeleton.
-      // Log and surface a retry-able error rather than showing an empty plan screen.
-      if(!Array.isArray(plan.days)||plan.days.length===0){
-        try{await sb.from('error_logs').insert({user_id:user?.id||null,level:'error',context:'mealprep_empty_days',message:JSON.stringify({planKeys:_planKeys,daysValue:plan.days,stage:'post_fetch'}),request_path:'meal_prep',created_at:new Date().toISOString()});}catch{}
-        throw new Error(`Plan returned 0 days (schema: ${_planKeys}) — tap Generate to try again`);
-      }
+      // Run fitter — synchronous, deterministic, allergen-safe
+      const weekResult=fitWeek({dayTargets,mealCount:nMeals,diet,allergens:allergenTags,pool,seed:Date.now()%100000});
 
-      _stage='normalize';
-      if(plan.grocery&&!plan.groceryList)plan.groceryList=plan.grocery;
-      for(const day of(plan.days||[]))normalizeDay(day);
+      // Convert to plan shape the renderer expects
+      const days=sel.map((dayName,i)=>fitterDayToShape(weekResult[i],dayName,schedule?.[dayName]||'rest'));
+      const plan={days,groceryList:null};
 
-      _stage='allergen_filter';
-      const activeChips=mealPrepPrefs.dietaryPrefs||[];
-      const removedMessages=[];
-      if(activeChips.length>0&&Array.isArray(plan.days)){
-        const RETRY_CAP=3;
-        for(const day of plan.days){
-          if(!day||!Array.isArray(day.meals))continue;
-          const cleanMeals=[];
-          for(const meal of day.meals){
-            if(!meal)continue;
-            let cleanMeal=meal;
-            let violation=mealHasAllergen(meal,activeChips);
-            let attempts=0;
-            while(violation&&attempts<RETRY_CAP){
-              _stage=`allergen_retry_${attempts+1}`;
-              attempts++;
-              try{
-                const tCal=Math.round((day.totalCalories||macros?.calories||2000)/nMeals);
-                const tPro=Math.round((day.totalProtein||macros?.protein||150)/nMeals);
-                const tCarb=Math.round((day.totalCarbs||macros?.carbs||200)/nMeals);
-                const tFat=Math.round((day.totalFat||macros?.fat||70)/nMeals);
-                const rePrompt=`Generate ONE allergen-safe replacement meal. Day: ${day.day}. Targets: ~${tCal}kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICTLY AVOID: ${activeChips.join(', ')}. No ${violation}. 4-5 structured ingredients with amounts, brief instructions. Use the save_meal tool.`;
-                const retryMeal=await aiWithTools(rePrompt,[REGEN_MEAL_TOOL],'save_meal',1200,'allergen_retry');
-                normalizeMeal(retryMeal);
-                const nextViolation=mealHasAllergen(retryMeal,activeChips);
-                if(!nextViolation){cleanMeal=retryMeal;violation=null;}
-                else violation=nextViolation;
-              }catch(_){break;}
-            }
-            if(violation){
-              removedMessages.push(`${day.day}: couldn't fill "${meal.name||'a meal'}" safely for ${violation} after ${RETRY_CAP} attempts`);
-            }else{
-              cleanMeals.push(cleanMeal);
-            }
-          }
-          day.meals=cleanMeals;
-        }
-      }
-
-      _stage='state_set';
       setMealPrepPlan(plan);
       setMealPrepScreen('plan');
-      if(removedMessages.length>0){
-        setMealPrepWarning(`Some meal slots were removed because they couldn\'t be safely filled for your restrictions after multiple attempts. ${removedMessages.join('. ')}. Try adjusting your allergy settings or diet style.`);
+
+      // Surface any thin-pool slots with an honest warning
+      const thin=days.flatMap(d=>d.meals.filter(m=>m.unfillable).map(m=>`${d.day} ${m.slot}`));
+      if(thin.length>0){
+        setMealPrepWarning(`Some slots couldn't be filled from your recipe library for this combination: ${thin.join(', ')}. Try a less restrictive diet or fewer allergen filters.`);
       }
     }catch(e){
-      console.error('[generateMealPrepPlan] stage='+_stage, e);
-      try{
-        await sb.from('error_logs').insert({
-          user_id:user?.id||null,level:'error',context:'mealprep_tool_use',
-          message:JSON.stringify({stage:_stage,error:e.message,stack:(e.stack||'').slice(0,800),planKeys:_planKeys}),
-          request_path:'meal_prep',created_at:new Date().toISOString(),
-        });
-      }catch(logE){console.warn('[mealprep] error_log insert failed',logE);}
-      setMealPrepError(e.message||`Couldn\'t build your plan — tap Generate to try again.`);
+      console.error('[generateMealPrepPlan (fitter)]',e);
+      setMealPrepError(e.message||`Couldn't build your plan — tap Generate to try again.`);
       setMealPrepScreen('setup');
     }
   }
@@ -2109,49 +2124,43 @@ Reply with ONLY a valid JSON object, no markdown:
   async function regenerateMeal(dayIndex,mealIndex){
     setRegeneratingMeal(`${dayIndex}_${mealIndex}`);
     try{
-      const day=mealPrepPlan.days[dayIndex];
-      const currentMeal=day.meals[mealIndex];
-      const n=mealPrepPrefs.mealsPerDay||3;
-      const activeChips=mealPrepPrefs.dietaryPrefs||[];
-      const chipStr=activeChips.join(', ')||'none';
-      const RETRY_CAP=3;
-      let cleanMeal=null;
-      let attempts=0;
-      while(!cleanMeal&&attempts<RETRY_CAP){
-        attempts++;
-        const tCal=Math.round((day.totalCalories||2000)/n);
-        const tPro=Math.round((day.totalProtein||150)/n);
-        const tCarb=Math.round((day.totalCarbs||200)/n);
-        const tFat=Math.round((day.totalFat||70)/n);
-        const prompt=`Replace the meal "${currentMeal.name}" for ${day.day} (${day.sessionType||'rest'} day). Targets: ~${tCal}kcal, ${tPro}g protein, ${tCarb}g carbs, ${tFat}g fat. STRICTLY AVOID: ${chipStr}. Include 4-5 ingredients with amounts, brief instructions. Use the save_meal tool.`;
-        const candidate=await aiWithTools(prompt,[REGEN_MEAL_TOOL],'save_meal',1200,'meal_swap');
-        normalizeMeal(candidate);
-        if(!mealHasAllergen(candidate,activeChips))cleanMeal=candidate;
+      const diet=mealPrepPrefs.dietPreset||'balanced';
+      const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
+      const dayTarget={cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
+      const currentSlot=mealPrepPlan.days[dayIndex].meals[mealIndex]?.slot||'lunch';
+      const currentId=mealPrepPlan.days[dayIndex].meals[mealIndex]?._recipeId;
+      const pool=await loadMealPool(diet,allergenTags);
+      // Exclude the current recipe so the swap is always a different dish
+      const swapPool=currentId?pool.filter(r=>r.id!==currentId):pool;
+      const result=fitDay({dayTarget,mealCount:mealPrepPrefs.mealsPerDay||3,diet,allergens:allergenTags,pool:swapPool,seed:Date.now()%100000});
+      const replacement=result.meals.find(m=>m.slot===currentSlot&&!m.unfillable);
+      if(replacement){
+        const{recipe,servings,scaledMacros}=replacement;
+        const newMeal={
+          name:recipe.name,
+          calories:Math.round(scaledMacros.cal),protein:Math.round(scaledMacros.pro*10)/10,
+          carbs:Math.round(scaledMacros.carb*10)/10,fat:Math.round(scaledMacros.fat*10)/10,
+          ingredients:(recipe.ingredients||[]).map(ing=>({item:ing.item,amount:fmtIngAmt((ing.qty||0)*servings,ing.unit)})),
+          instructions:recipe.instructions||null,slot:currentSlot,servings,_recipeId:recipe.id,unfillable:false,
+        };
+        setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=newMeal;return u;});
       }
-      if(cleanMeal){
-        setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals[mealIndex]=cleanMeal;return u;});
-      }else{
-        console.warn('[regenerateMeal] allergen filter: could not produce clean meal after',RETRY_CAP,'attempts');
-      }
-    }catch(e){console.error('[regenerateMeal]',e);}
+    }catch(e){console.error('[regenerateMeal (fitter)]',e);}
     setRegeneratingMeal(null);
   }
 
   async function regenerateDay(dayIndex){
     setRegeneratingDay(dayIndex);
     try{
-      const day=mealPrepPlan.days[dayIndex];
-      const n=mealPrepPrefs.mealsPerDay||3;
-      const activeChips=mealPrepPrefs.dietaryPrefs||[];
-      const chipStr=activeChips.join(', ')||'none';
-      const prompt=`Generate ${n} completely new meals for ${day.day} (${day.sessionType||'rest'} day). Targets: ${day.totalCalories||2000}kcal / ${day.totalProtein||150}g protein / ${day.totalCarbs||200}g carbs / ${day.totalFat||70}g fat. STRICTLY AVOID: ${chipStr}. Include 4-5 structured ingredients with amounts and brief instructions for each meal. Use the save_day_meals tool.`;
-      const result=await aiWithTools(prompt,[REGEN_DAY_TOOL],'save_day_meals',2500,'regen_day');
-      const meals=(result.meals||[]).map(meal=>{normalizeMeal(meal);return meal;});
-      const cleanMeals=meals.filter(meal=>!mealHasAllergen(meal,activeChips));
-      if(cleanMeals.length>0){
-        setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex].meals=cleanMeals;return u;});
-      }
-    }catch(e){console.error('[regenerateDay]',e);}
+      const diet=mealPrepPrefs.dietPreset||'balanced';
+      const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
+      const dayTarget={cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
+      const pool=await loadMealPool(diet,allergenTags);
+      const result=fitDay({dayTarget,mealCount:mealPrepPrefs.mealsPerDay||3,diet,allergens:allergenTags,pool,seed:Date.now()%100000});
+      const dayName=mealPrepPlan.days[dayIndex].day;
+      const updated=fitterDayToShape(result,dayName,schedule?.[dayName]||'rest');
+      setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex]=updated;return u;});
+    }catch(e){console.error('[regenerateDay (fitter)]',e);}
     setRegeneratingDay(null);
   }
 
@@ -2169,7 +2178,7 @@ Reply with ONLY a valid JSON object, no markdown:
         if(diff<0)diff+=7;
         const d=new Date(today);d.setDate(d.getDate()+diff);
         const dateStr=d.toISOString().split('T')[0];
-        const entries=planDay.meals.map((meal,i)=>({id:`mp_${dateStr}_${i}_${Date.now()+i}`,food:meal.name,calories:meal.calories,protein:meal.protein,carbs:meal.carbs,fat:meal.fat,slot:i+1,method:'mealprep'}));
+        const entries=planDay.meals.filter(meal=>!meal.unfillable&&meal.name).map((meal,i)=>({id:`mp_${dateStr}_${i}_${Date.now()+i}`,food:meal.name,calories:meal.calories,protein:meal.protein,carbs:meal.carbs,fat:meal.fat,slot:i+1,method:'mealprep'}));
         const {data:existing}=await sb.from('food_logs').select('entries').eq('user_id',user.id).eq('date',dateStr).single();
         const kept=(existing?.entries||[]).filter(e=>e.method!=='mealprep');
         await sb.from('food_logs').upsert({user_id:user.id,date:dateStr,entries:[...kept,...entries],updated_at:new Date().toISOString()},{onConflict:'user_id,date'});
@@ -4178,7 +4187,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{background:'rgba(232,52,28,0.04)',border:'1px solid rgba(232,52,28,0.1)',borderRadius:12,padding:'10px 16px',marginBottom:20}}>
                     <div style={{...mno,fontSize:7,color:'#e8341c',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>// ALLERGY NOTICE</div>
                     <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.5)',lineHeight:1.65}}>
-                      AI plans make best efforts to honor restrictions, but <span style={{color:'rgba(245,245,240,0.8)',fontWeight:700}}>you must verify all ingredients yourself</span> before consuming. Not medical advice.
+                      Recipes are tagged by ingredient. Always <span style={{color:'rgba(245,245,240,0.8)',fontWeight:700}}>verify all ingredients yourself</span> before consuming. Not medical advice.
                     </div>
                   </motion.div>
                 )}
@@ -4224,7 +4233,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* ── PLAN SCREEN ── */}
             {mealPrepScreen==='plan'&&mealPrepPlan&&(()=>{
-              const totalMeals=(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).length,0);
+              const totalMeals=(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).filter(m=>!m.unfillable).length,0);
               const totalPrepMins=(mealPrepPlan.days||[]).reduce((s,d)=>(d.meals||[]).reduce((ms,m)=>ms+(m.prepTime||0),s),0);
               const prepH=Math.floor(totalPrepMins/60);
               const prepM=totalPrepMins%60;
@@ -4295,6 +4304,30 @@ Reply with ONLY a valid JSON object, no markdown:
                         {(day.meals||[]).map((meal,mealIndex)=>{
                           const mKey=`${dayIndex}_${mealIndex}`;
                           const isRegMeal=regeneratingMeal===mKey;
+
+                          // ── THIN-POOL SLOT: honest message, not tappable ──────────────────
+                          if(meal.unfillable){
+                            return(
+                              <div key={mealIndex} style={{
+                                background:'rgba(255,255,255,0.015)',
+                                border:'1px dashed rgba(254,160,32,0.2)',
+                                borderRadius:14,marginBottom:8,padding:'14px 14px',
+                                display:'flex',alignItems:'center',gap:12,opacity:0.65,
+                              }}>
+                                <div style={{fontSize:26,flexShrink:0,lineHeight:1}}>🍽️</div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{...mno,fontSize:7,color:'#FEA020',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>
+                                    MEAL {mealIndex+1} · {(meal.slot||'').toUpperCase()} · THIN POOL
+                                  </div>
+                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,color:'rgba(245,245,240,0.42)',lineHeight:1.3}}>
+                                    Not enough {mealPrepPrefs.dietPreset||'matching'} {meal.slot} recipes for your current restrictions
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // ── REGULAR MEAL CARD ────────────────────────────────────────────
                           return(
                             <motion.div key={mealIndex}
                               initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}}
