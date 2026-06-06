@@ -4591,7 +4591,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           {[
             {id:2,label:"2 meals",desc:"Large meals, longer fasting window"},
             {id:3,label:"3 meals",desc:"Breakfast, lunch, dinner"},
-            {id:4,label:"4–5 meals",desc:"Regular meals + snacks"},
+            {id:4,label:"4 meals",desc:"Regular meals + a snack"},
             {id:6,label:"6+ meals / grazing",desc:"Frequent small meals throughout the day"},
           ].map(o=>(
             <div key={o.id} onClick={()=>{_hL();setMealFreq(o.id);setP4Touched(true);}} style={pill(mealFreq===o.id)}>

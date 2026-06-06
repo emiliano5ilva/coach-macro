@@ -181,19 +181,53 @@ console.log('\n── filterPool (unit) ──');
 console.log('\n── slotTargets (unit) ──');
 {
   const t3 = slotTargets(TARGET_2200, 3);
+  assert('3-meal slots: returns array of 3', t3.length === 3);
+  const keys3 = t3.map(s => s.key);
   assert('3-meal slots: has breakfast, lunch, dinner',
-    'breakfast' in t3 && 'lunch' in t3 && 'dinner' in t3);
-  assert('3-meal slots: no snack', !('snack' in t3));
-  const sumCal = t3.breakfast.cal + t3.lunch.cal + t3.dinner.cal;
+    keys3.includes('breakfast') && keys3.includes('lunch') && keys3.includes('dinner'));
+  assert('3-meal slots: no snack', !keys3.includes('snack'));
+  assert('3-meal slots: each entry has mealSlot field', t3.every(s => typeof s.mealSlot === 'string'));
+  const sumCal3 = t3.reduce((sum, s) => sum + s.cal, 0);
   assert('3-meal cal sum ≈ dayTarget.cal (within 10cal)',
-    Math.abs(sumCal - TARGET_2200.cal) <= 10);
-  assert('dinner cal > breakfast cal (40% > 25%)',
-    t3.dinner.cal > t3.breakfast.cal);
+    Math.abs(sumCal3 - TARGET_2200.cal) <= 10);
+  const dinner3    = t3.find(s => s.key === 'dinner');
+  const breakfast3 = t3.find(s => s.key === 'breakfast');
+  assert('dinner cal > breakfast cal (40% > 25%)', dinner3.cal > breakfast3.cal);
 }
 {
   const t4 = slotTargets(TARGET_2200, 4);
-  assert('4-meal slots: has snack', 'snack' in t4);
-  assert('4-meal snack is smallest slot', t4.snack.cal < t4.breakfast.cal);
+  assert('4-meal slots: returns array of 4', t4.length === 4);
+  const keys4 = t4.map(s => s.key);
+  assert('4-meal slots: has snack', keys4.includes('snack'));
+  const snack4     = t4.find(s => s.key === 'snack');
+  const breakfast4 = t4.find(s => s.key === 'breakfast');
+  assert('4-meal snack is smallest slot', snack4.cal < breakfast4.cal);
+  assert('4-meal snack: mealSlot is snack', snack4.mealSlot === 'snack');
+}
+{
+  const t5 = slotTargets(TARGET_2200, 5);
+  assert('5-meal slots: returns array of 5', t5.length === 5);
+  const keys5 = t5.map(s => s.key);
+  assert('5-meal slots: has snack1 and snack2',
+    keys5.includes('snack1') && keys5.includes('snack2'));
+  assert('5-meal slots: no snack3', !keys5.includes('snack3'));
+  assert('5-meal slots: snack1/2 both have mealSlot=snack',
+    t5.filter(s => s.key === 'snack1' || s.key === 'snack2').every(s => s.mealSlot === 'snack'));
+  const sumCal5 = t5.reduce((sum, s) => sum + s.cal, 0);
+  assert('5-meal cal sum ≈ dayTarget.cal (within 10cal)',
+    Math.abs(sumCal5 - TARGET_2200.cal) <= 10);
+}
+{
+  const t6 = slotTargets(TARGET_2200, 6);
+  assert('6-meal slots: returns array of 6', t6.length === 6);
+  const keys6 = t6.map(s => s.key);
+  assert('6-meal slots: has snack1, snack2, snack3',
+    keys6.includes('snack1') && keys6.includes('snack2') && keys6.includes('snack3'));
+  assert('6-meal slots: snack1/2/3 all have mealSlot=snack',
+    t6.filter(s => ['snack1','snack2','snack3'].includes(s.key)).every(s => s.mealSlot === 'snack'));
+  const sumCal6 = t6.reduce((sum, s) => sum + s.cal, 0);
+  assert('6-meal cal sum ≈ dayTarget.cal (within 10cal)',
+    Math.abs(sumCal6 - TARGET_2200.cal) <= 10);
 }
 
 // ── Section: ALLERGEN SAFETY (most critical) ──────────────────────────────────
@@ -253,6 +287,26 @@ for (const allergen of ALL_ALLERGENS) {
     `4-meal allergen="${allergen}": all 4 slots safe`,
     !anyMealViolatesAllergens(result, [allergen]),
   );
+}
+
+console.log('\n── ALLERGEN SAFETY — 5-meal and 6-meal days ──');
+for (const allergen of ALL_ALLERGENS) {
+  const r5 = fitDay({ dayTarget: TARGET_2200, mealCount: 5, diet: null,
+                      allergens: [allergen], pool: POOL, seed: 0 });
+  assert(`5-meal allergen="${allergen}": all slots safe`,
+    !anyMealViolatesAllergens(r5, [allergen]));
+  const r6 = fitDay({ dayTarget: TARGET_2200, mealCount: 6, diet: null,
+                      allergens: [allergen], pool: POOL, seed: 0 });
+  assert(`6-meal allergen="${allergen}": all slots safe`,
+    !anyMealViolatesAllergens(r6, [allergen]));
+}
+// nut+dairy-allergic vegan, 6 meals — the specific case from the spec
+{
+  const r = fitDay({ dayTarget: TARGET_2200, mealCount: 6, diet: 'vegan',
+                     allergens: ['nuts','dairy'], pool: POOL, seed: 0 });
+  assert('6-meal vegan nuts+dairy: 6 slots returned', r.meals.length === 6);
+  assert('6-meal vegan nuts+dairy: no allergen leak',
+    !anyMealViolatesAllergens(r, ['nuts','dairy']));
 }
 
 console.log('\n── ALLERGEN SAFETY — week-level ──');
@@ -316,6 +370,19 @@ for (const seed of [0, 1, 42, 99, 500]) {
   const filled = result.meals.filter(m => !m.unfillable);
   const ids = filled.map(m => m.recipe.id ?? m.recipe.name);
   assert('4-meal day: no dup', new Set(ids).size === ids.length);
+}
+// 5-meal and 6-meal no-dup
+{
+  const r5 = fitDay({ dayTarget: TARGET_2200, mealCount: 5, diet: null,
+                      allergens: [], pool: POOL, seed: 7 });
+  const filled5 = r5.meals.filter(m => !m.unfillable);
+  const ids5 = filled5.map(m => m.recipe.id ?? m.recipe.name);
+  assert('5-meal day: no dup', new Set(ids5).size === ids5.length);
+  const r6 = fitDay({ dayTarget: TARGET_2200, mealCount: 6, diet: null,
+                      allergens: [], pool: POOL, seed: 7 });
+  const filled6 = r6.meals.filter(m => !m.unfillable);
+  const ids6 = filled6.map(m => m.recipe.id ?? m.recipe.name);
+  assert('6-meal day: no dup', new Set(ids6).size === ids6.length);
 }
 
 // ── Section: determinism ─────────────────────────────────────────────────────
@@ -440,6 +507,35 @@ console.log('\n── SLOT STRUCTURE ──');
   assert('4-meal: exactly 4 slots', result4.meals.length === 4);
   const slotNames4 = result4.meals.map(m => m.slot);
   assert('4-meal: has snack', slotNames4.includes('snack'));
+  assert('4-meal: no snack1', !slotNames4.includes('snack1'));
+}
+{
+  const result5 = fitDay({ dayTarget: TARGET_2200, mealCount: 5, diet: null,
+                           allergens: [], pool: POOL, seed: 0 });
+  assert('5-meal: exactly 5 slots', result5.meals.length === 5);
+  const slotNames5 = result5.meals.map(m => m.slot);
+  assert('5-meal: has breakfast', slotNames5.includes('breakfast'));
+  assert('5-meal: has snack1',    slotNames5.includes('snack1'));
+  assert('5-meal: has snack2',    slotNames5.includes('snack2'));
+  assert('5-meal: no snack3',     !slotNames5.includes('snack3'));
+  assert('5-meal: slot order correct',
+    JSON.stringify(slotNames5) === JSON.stringify(['breakfast','lunch','dinner','snack1','snack2']));
+  // All snack slots have mealSlot='snack'
+  assert('5-meal: snack1/2 mealSlot=snack',
+    result5.meals.filter(m => m.slot==='snack1'||m.slot==='snack2').every(m => m.mealSlot === 'snack'));
+}
+{
+  const result6 = fitDay({ dayTarget: TARGET_2200, mealCount: 6, diet: null,
+                           allergens: [], pool: POOL, seed: 0 });
+  assert('6-meal: exactly 6 slots', result6.meals.length === 6);
+  const slotNames6 = result6.meals.map(m => m.slot);
+  assert('6-meal: slot keys in order',
+    JSON.stringify(slotNames6) === JSON.stringify(['breakfast','lunch','dinner','snack1','snack2','snack3']));
+  assert('6-meal: snack1/2/3 all have mealSlot=snack',
+    result6.meals.filter(m => ['snack1','snack2','snack3'].includes(m.slot)).every(m => m.mealSlot === 'snack'));
+  // calories within 15% of target (rounding across 6 small slots)
+  assert('6-meal: day totals cal within 15% of target',
+    Math.abs(result6.dayTotals.cal - TARGET_2200.cal) / TARGET_2200.cal <= 0.15);
 }
 
 // ── Section: graceful unfillable ──────────────────────────────────────────────
