@@ -1,0 +1,821 @@
+[
+  {
+    "name": "Carnivore Beef Tenderloin Breakfast Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","paleo","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"beef, sirloin steak, lean, raw","qty":180,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"bacon, cured, pan-fried","qty":30,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Season steak with salt and pepper; sear in a hot dry skillet 3 minutes per side. Remove and rest. In same pan fry eggs and bacon until cooked. Plate steak slices alongside eggs and bacon."
+  },
+  {
+    "name": "Carnivore Lamb Egg Skillet",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","paleo","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"ground beef, 90% lean, raw","qty":150,"unit":"g"},
+      {"item":"lamb, rib chop, lean, raw","qty":100,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Brown ground beef and lamb chop in a dry skillet over high heat. Push meat aside and fry eggs in rendered fat. Season with salt and pepper; serve together."
+  },
+  {
+    "name": "Carnivore Pork Bacon Egg Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"pork chop, lean, raw","qty":150,"unit":"g"},
+      {"item":"bacon, cured, pan-fried","qty":40,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Cook pork chop in a cast iron pan, 4 minutes per side. Fry bacon until crisp. Scramble eggs in bacon fat. Slice pork and serve with bacon and eggs."
+  },
+  {
+    "name": "Carnivore Ground Beef Breakfast Patty Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","paleo","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"ground beef, 80% lean, raw","qty":200,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Form beef into 2 patties, season with salt and pepper. Cook in a dry skillet 3 minutes per side for medium. Fry eggs alongside. Serve patties topped with eggs."
+  },
+  {
+    "name": "Carnivore Turkey Egg White Skillet",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"turkey breast, raw","qty":180,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"beef broth","qty":60,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Slice turkey thin; cook in a hot skillet 2-3 minutes per side. Add broth and simmer 1 minute. Push turkey aside and scramble eggs in the same pan. Season and serve."
+  },
+  {
+    "name": "Carnivore Smoked Salmon Egg Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","pescatarian","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"smoked salmon","qty":100,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"cream cheese","qty":30,"unit":"g"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Scramble eggs with cream cheese in a non-stick pan over low heat until just set. Plate alongside smoked salmon slices and season with salt and pepper."
+  },
+  {
+    "name": "Carnivore Sirloin and Eggs Breakfast",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","paleo","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"beef, sirloin steak, lean, raw","qty":200,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Season sirloin generously with salt and pepper. Sear in a hot cast iron 3-4 minutes per side. Rest 3 minutes. Fry eggs in same pan. Slice steak and serve with eggs."
+  },
+  {
+    "name": "Carnivore Pork Chop and Eggs",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"pork chop, lean, raw","qty":180,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"heavy cream","qty":30,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Season pork chop with salt and pepper; cook in a hot pan 5 minutes per side. Whisk eggs with cream and scramble in the same pan over medium-low heat until just set."
+  },
+  {
+    "name": "Carnivore Shrimp and Egg Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","pescatarian","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"shrimp, raw","qty":150,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"heavy cream","qty":30,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Cook shrimp in a dry pan 1-2 minutes per side until pink. Whisk eggs with cream and pour over shrimp. Scramble gently until set. Season and serve immediately."
+  },
+  {
+    "name": "Carnivore Cod Egg Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","pescatarian","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"cod, atlantic, raw","qty":180,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Season cod with salt and pepper; pan-sear 3-4 minutes per side until flaky. In a separate pan, fry eggs sunny-side up. Flake cod into a bowl and top with eggs."
+  },
+  {
+    "name": "Carnivore Ground Turkey Egg Bake",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","high-protein","low-carb"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"ground turkey, raw","qty":250,"unit":"g"},
+      {"item":"egg, whole, raw","qty":4,"unit":"whole"},
+      {"item":"cheddar cheese","qty":50,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Brown ground turkey in an oven-safe skillet. Spread evenly, make 4 wells, and crack an egg in each. Top with shredded cheddar. Bake at 375°F for 12-15 minutes until eggs are set."
+  },
+  {
+    "name": "Carnivore Halibut Egg Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["carnivore","keto","pescatarian","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"halibut, atlantic, raw","qty":180,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Season halibut with salt and pepper; sear 4 minutes per side in a hot pan until cooked through. Fry eggs in the same pan. Serve halibut and eggs together."
+  },
+  {
+    "name": "Keto Spinach Feta Frittata",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","vegetarian","low-carb","high-protein","mediterranean"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"egg, whole, raw","qty":6,"unit":"whole"},
+      {"item":"spinach, raw","qty":80,"unit":"g"},
+      {"item":"feta cheese","qty":60,"unit":"g"},
+      {"item":"heavy cream","qty":60,"unit":"ml"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Whisk eggs with cream, salt, and crumbled feta. Heat olive oil in oven-safe skillet; wilt spinach 2 minutes. Pour egg mixture over. Cook on stovetop 3 minutes, then bake at 375°F for 10 minutes until set."
+  },
+  {
+    "name": "Keto Avocado Bacon Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","paleo","low-carb","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"avocado, raw","qty":150,"unit":"g"},
+      {"item":"bacon, cured, pan-fried","qty":50,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Fry bacon until crisp; remove and crumble. Fry eggs in bacon fat. Slice avocado and season with salt. Arrange avocado, eggs, and crumbled bacon in a bowl."
+  },
+  {
+    "name": "Keto Cheddar Egg Muffins",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","vegetarian","low-carb","high-protein"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"egg, whole, raw","qty":6,"unit":"whole"},
+      {"item":"cheddar cheese","qty":80,"unit":"g"},
+      {"item":"heavy cream","qty":60,"unit":"ml"},
+      {"item":"spinach, raw","qty":40,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Whisk eggs, cream, salt, and pepper. Fold in shredded cheese and chopped spinach. Pour into greased muffin tin. Bake at 350°F for 18-20 minutes until puffed and golden."
+  },
+  {
+    "name": "Keto Salmon Cream Cheese Breakfast",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","pescatarian","low-carb","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"smoked salmon","qty":100,"unit":"g"},
+      {"item":"cream cheese","qty":60,"unit":"g"},
+      {"item":"cucumber, raw","qty":100,"unit":"g"},
+      {"item":"avocado, raw","qty":80,"unit":"g"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Slice cucumber into rounds. Spread cream cheese on each slice. Top with smoked salmon and sliced avocado. Season with salt and pepper."
+  },
+  {
+    "name": "Keto Almond Flour Breakfast Muffins",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","vegetarian","low-carb","high-protein"],
+    "servings": 4,
+    "ingredients": [
+      {"item":"almond flour","qty":150,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"coconut oil","qty":45,"unit":"ml"},
+      {"item":"cinnamon, ground","qty":3,"unit":"g"},
+      {"item":"vanilla extract","qty":5,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Mix almond flour, cinnamon, and salt. In a separate bowl whisk eggs, melted coconut oil, and vanilla. Combine wet and dry ingredients. Pour into muffin tin and bake at 350°F for 20 minutes."
+  },
+  {
+    "name": "Keto Mushroom Egg Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","vegetarian","low-carb","high-protein","paleo"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"mushrooms, portobello, raw","qty":150,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"heavy cream","qty":30,"unit":"ml"},
+      {"item":"parmesan cheese","qty":20,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Sauté sliced mushrooms in olive oil over high heat until golden, 5 minutes. Whisk eggs with cream and pour over mushrooms. Scramble gently over medium-low heat. Finish with grated parmesan."
+  },
+  {
+    "name": "Keto Cauliflower Hash and Eggs",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","vegetarian","low-carb","high-protein","paleo"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"cauliflower, raw","qty":300,"unit":"g"},
+      {"item":"egg, whole, raw","qty":4,"unit":"whole"},
+      {"item":"cheddar cheese","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":20,"unit":"ml"},
+      {"item":"onions, raw","qty":60,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Pulse cauliflower in food processor to rice-size. Sauté onion in olive oil 3 minutes; add cauliflower and cook 8 minutes until golden. Make wells and crack in eggs. Cover and cook until eggs set. Top with cheese."
+  },
+  {
+    "name": "Keto Zucchini Egg Bake",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","vegetarian","low-carb","high-protein","paleo"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"zucchini, raw","qty":200,"unit":"g"},
+      {"item":"egg, whole, raw","qty":4,"unit":"whole"},
+      {"item":"mozzarella cheese","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"italian seasoning","qty":3,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Grate zucchini and squeeze dry. Sauté in olive oil with Italian seasoning 5 minutes. Spread in baking dish, top with beaten eggs and mozzarella. Bake at 375°F for 15 minutes until set."
+  },
+  {
+    "name": "Keto Beef Breakfast Skillet",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","low-carb","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"ground beef, 80% lean, raw","qty":150,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"cheddar cheese","qty":40,"unit":"g"},
+      {"item":"bell peppers, raw","qty":60,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Brown ground beef in a skillet with diced peppers. Drain excess fat. Create 2 wells, crack in eggs, and cover until whites are set. Top with shredded cheddar and serve."
+  },
+  {
+    "name": "Keto Cottage Cheese Egg Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto","vegetarian","low-carb","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"cottage cheese, lowfat","qty":100,"unit":"g"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Beat eggs with cottage cheese. Heat olive oil in a pan; wilt spinach 1 minute. Pour egg mixture over and scramble gently over medium-low heat until just set. Season and serve."
+  },
+  {
+    "name": "Vegan Tempeh Breakfast Skillet",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"tempeh","qty":150,"unit":"g"},
+      {"item":"bell peppers, raw","qty":80,"unit":"g"},
+      {"item":"onions, raw","qty":60,"unit":"g"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"soy sauce","qty":15,"unit":"ml"},
+      {"item":"cumin, ground","qty":2,"unit":"g"}
+    ],
+    "instructions": "Crumble tempeh into a hot oiled pan. Add diced onion and pepper; cook 4 minutes. Add spinach, soy sauce, and cumin; stir until wilted. Serve hot."
+  },
+  {
+    "name": "Vegan Berry Chia Overnight Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","balanced","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"chia seeds","qty":40,"unit":"g"},
+      {"item":"coconut milk","qty":240,"unit":"ml"},
+      {"item":"blueberries, raw","qty":80,"unit":"g"},
+      {"item":"strawberries, raw","qty":80,"unit":"g"},
+      {"item":"vanilla extract","qty":5,"unit":"ml"},
+      {"item":"maple syrup","qty":10,"unit":"ml"}
+    ],
+    "instructions": "Mix chia seeds, coconut milk, vanilla, and maple syrup. Refrigerate overnight. In the morning, top with fresh berries and serve cold."
+  },
+  {
+    "name": "Vegan Savory Oat Bowl with Spinach",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","balanced","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"rolled oats","qty":80,"unit":"g"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"nutritional yeast","qty":15,"unit":"g"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Cook oats in water. Wilt spinach in olive oil 1 minute. Top oats with wilted spinach, drizzle with olive oil, and stir in nutritional yeast. Season with salt and pepper."
+  },
+  {
+    "name": "Vegan Hemp Seed Protein Smoothie",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"hemp seeds, hulled","qty":30,"unit":"g"},
+      {"item":"banana, raw","qty":120,"unit":"g"},
+      {"item":"blueberries, raw","qty":80,"unit":"g"},
+      {"item":"protein powder, plant-based","qty":30,"unit":"g"},
+      {"item":"coconut milk","qty":200,"unit":"ml"},
+      {"item":"chia seeds","qty":10,"unit":"g"}
+    ],
+    "instructions": "Blend hemp seeds, banana, blueberries, plant protein, and coconut milk until smooth. Pour into glass and top with chia seeds."
+  },
+  {
+    "name": "Vegan Almond Banana Protein Pancakes",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","balanced","high-protein"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"almond flour","qty":100,"unit":"g"},
+      {"item":"banana, raw","qty":120,"unit":"g"},
+      {"item":"flaxseed, ground","qty":20,"unit":"g"},
+      {"item":"coconut milk","qty":120,"unit":"ml"},
+      {"item":"cinnamon, ground","qty":2,"unit":"g"},
+      {"item":"coconut oil","qty":15,"unit":"ml"}
+    ],
+    "instructions": "Mash banana; mix with almond flour, ground flax, coconut milk, and cinnamon to form batter. Cook spoonfuls in coconut oil over medium heat 2-3 minutes per side until golden."
+  },
+  {
+    "name": "Vegan Tofu Veggie Breakfast Wrap",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"tofu, firm, raw","qty":150,"unit":"g"},
+      {"item":"corn tortilla","qty":50,"unit":"g"},
+      {"item":"spinach, raw","qty":40,"unit":"g"},
+      {"item":"bell peppers, raw","qty":60,"unit":"g"},
+      {"item":"salsa, ready-to-serve","qty":40,"unit":"g"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"cumin, ground","qty":2,"unit":"g"}
+    ],
+    "instructions": "Crumble and cook tofu in olive oil with cumin until golden. Warm tortilla, fill with tofu scramble, spinach, peppers, and salsa. Roll and serve."
+  },
+  {
+    "name": "Vegan Black Bean Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"black beans, canned, drained","qty":150,"unit":"g"},
+      {"item":"avocado, raw","qty":80,"unit":"g"},
+      {"item":"tomatoes, raw","qty":80,"unit":"g"},
+      {"item":"spinach, raw","qty":40,"unit":"g"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"cumin, ground","qty":2,"unit":"g"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"}
+    ],
+    "instructions": "Warm black beans with cumin and olive oil in a small pan. Place over fresh spinach. Top with diced tomato, sliced avocado, and a squeeze of lemon juice."
+  },
+  {
+    "name": "Vegan Coconut Oatmeal with Mango",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"rolled oats","qty":80,"unit":"g"},
+      {"item":"coconut milk","qty":200,"unit":"ml"},
+      {"item":"mango, raw","qty":100,"unit":"g"},
+      {"item":"chia seeds","qty":10,"unit":"g"},
+      {"item":"maple syrup","qty":10,"unit":"ml"},
+      {"item":"cinnamon, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Cook oats in coconut milk over medium heat 5 minutes, stirring until creamy. Sweeten with maple syrup. Top with diced mango and chia seeds and a pinch of cinnamon."
+  },
+  {
+    "name": "Vegan Flaxseed Blueberry Smoothie Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","balanced","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"blueberries, raw","qty":120,"unit":"g"},
+      {"item":"banana, raw","qty":100,"unit":"g"},
+      {"item":"flaxseed, ground","qty":20,"unit":"g"},
+      {"item":"protein powder, plant-based","qty":30,"unit":"g"},
+      {"item":"coconut milk","qty":120,"unit":"ml"},
+      {"item":"hemp seeds, hulled","qty":15,"unit":"g"}
+    ],
+    "instructions": "Blend blueberries, banana, flaxseed, protein powder, and coconut milk until thick. Pour into a bowl and top with hemp seeds."
+  },
+  {
+    "name": "Vegan Edamame Spinach Quinoa Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan","vegetarian","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"quinoa, cooked","qty":185,"unit":"g"},
+      {"item":"edamame, frozen, prepared","qty":100,"unit":"g"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"avocado, raw","qty":80,"unit":"g"},
+      {"item":"sesame oil","qty":10,"unit":"ml"},
+      {"item":"soy sauce","qty":10,"unit":"ml"}
+    ],
+    "instructions": "Layer warm quinoa in a bowl. Top with edamame, fresh spinach, and sliced avocado. Drizzle with sesame oil and soy sauce. Toss gently and serve."
+  },
+  {
+    "name": "Paleo Egg and Sweet Potato Hash",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","balanced","high-protein"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"sweet potato, raw","qty":200,"unit":"g"},
+      {"item":"egg, whole, raw","qty":4,"unit":"whole"},
+      {"item":"onions, raw","qty":80,"unit":"g"},
+      {"item":"bell peppers, raw","qty":80,"unit":"g"},
+      {"item":"olive oil","qty":20,"unit":"ml"},
+      {"item":"paprika","qty":2,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Dice sweet potato and microwave 3 minutes to par-cook. Sauté onion and pepper in olive oil 3 minutes; add sweet potato and paprika, cook 5 minutes. Make wells and crack eggs in. Cover until eggs are set."
+  },
+  {
+    "name": "Paleo Salmon Avocado Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","pescatarian","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"salmon, atlantic, farmed, raw","qty":150,"unit":"g"},
+      {"item":"avocado, raw","qty":100,"unit":"g"},
+      {"item":"mixed greens","qty":60,"unit":"g"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Season salmon with salt and sear skin-side down 4 minutes; flip and cook 2 more minutes. Flake over a bed of greens. Add sliced avocado and drizzle with olive oil and lemon juice."
+  },
+  {
+    "name": "Paleo Almond Butter Banana Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","vegan","vegetarian","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"banana, raw","qty":120,"unit":"g"},
+      {"item":"almond butter","qty":40,"unit":"g"},
+      {"item":"blueberries, raw","qty":60,"unit":"g"},
+      {"item":"coconut milk","qty":60,"unit":"ml"},
+      {"item":"chia seeds","qty":10,"unit":"g"},
+      {"item":"cinnamon, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Slice banana into a bowl. Drizzle with almond butter and coconut milk. Top with blueberries, chia seeds, and cinnamon. Serve immediately."
+  },
+  {
+    "name": "Paleo Turkey Veggie Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"ground turkey, raw","qty":150,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"onions, raw","qty":50,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Brown ground turkey in olive oil with onions 5 minutes. Add spinach and cook 1 minute. Crack eggs over and scramble into the turkey mixture until cooked. Season with salt."
+  },
+  {
+    "name": "Paleo Coconut Mango Smoothie Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","vegan","vegetarian","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"mango, raw","qty":150,"unit":"g"},
+      {"item":"banana, raw","qty":100,"unit":"g"},
+      {"item":"coconut milk","qty":120,"unit":"ml"},
+      {"item":"hemp seeds, hulled","qty":20,"unit":"g"},
+      {"item":"pineapple, raw","qty":80,"unit":"g"},
+      {"item":"chia seeds","qty":10,"unit":"g"}
+    ],
+    "instructions": "Blend mango, banana, and coconut milk until thick and smooth. Pour into bowl. Top with diced pineapple, hemp seeds, and chia seeds."
+  },
+  {
+    "name": "Paleo Beef Veggie Breakfast Hash",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"ground beef, 90% lean, raw","qty":150,"unit":"g"},
+      {"item":"sweet potato, raw","qty":100,"unit":"g"},
+      {"item":"kale, raw","qty":60,"unit":"g"},
+      {"item":"onions, raw","qty":50,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Microwave diced sweet potato 2 minutes. Brown beef in olive oil with onion 4 minutes. Add sweet potato and kale; cook 3 more minutes until kale is wilted. Season and serve."
+  },
+  {
+    "name": "Paleo Bacon Butternut Squash Hash",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","keto","high-protein","low-carb"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"butternut squash, raw","qty":200,"unit":"g"},
+      {"item":"bacon, cured, pan-fried","qty":60,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"onions, raw","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"rosemary, fresh","qty":5,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Dice butternut squash; roast at 400°F for 20 minutes. Cook bacon and onion in a skillet until crisp. Add roasted squash and rosemary. Make wells and cook eggs to desired doneness."
+  },
+  {
+    "name": "Paleo Smoked Salmon Avocado Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","pescatarian","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"smoked salmon","qty":100,"unit":"g"},
+      {"item":"avocado, raw","qty":130,"unit":"g"},
+      {"item":"cucumber, raw","qty":100,"unit":"g"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Arrange smoked salmon on a plate. Fan sliced avocado alongside. Add cucumber rounds. Drizzle everything with olive oil and lemon juice. Season with sea salt."
+  },
+  {
+    "name": "Paleo Egg and Asparagus Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","keto","vegetarian","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"asparagus, raw","qty":150,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"},
+      {"item":"lemon juice, raw","qty":10,"unit":"ml"}
+    ],
+    "instructions": "Toss asparagus in olive oil, salt, and pepper; roast at 425°F for 10 minutes until tender. Poach or fry eggs. Arrange asparagus on plate topped with eggs; drizzle with lemon."
+  },
+  {
+    "name": "Paleo Almond Coconut Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["paleo","vegan","vegetarian","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"almonds, raw","qty":30,"unit":"g"},
+      {"item":"coconut milk","qty":180,"unit":"ml"},
+      {"item":"strawberries, raw","qty":100,"unit":"g"},
+      {"item":"banana, raw","qty":80,"unit":"g"},
+      {"item":"chia seeds","qty":15,"unit":"g"},
+      {"item":"cinnamon, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Soak chia seeds in coconut milk overnight. Stir and pour into bowl. Top with sliced banana, strawberries, almonds, and cinnamon."
+  },
+  {
+    "name": "Pescatarian Tuna Avocado Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["pescatarian","high-protein","low-carb","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"tuna, canned in water, drained","qty":120,"unit":"g"},
+      {"item":"avocado, raw","qty":100,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"mixed greens","qty":60,"unit":"g"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Fry or poach eggs. Place greens in bowl; top with tuna and sliced avocado. Add eggs. Drizzle with olive oil and lemon juice. Season with salt."
+  },
+  {
+    "name": "Pescatarian Shrimp Egg Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": ["pescatarian","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"shrimp, raw","qty":120,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"garlic, raw","qty":5,"unit":"g"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Cook shrimp in olive oil with garlic 2 minutes per side. Add spinach and wilt. Pour in beaten eggs and scramble until just set. Season and serve."
+  },
+  {
+    "name": "Pescatarian Salmon Oat Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["pescatarian","balanced","high-protein","mediterranean"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"salmon, atlantic, farmed, raw","qty":120,"unit":"g"},
+      {"item":"rolled oats","qty":60,"unit":"g"},
+      {"item":"avocado, raw","qty":60,"unit":"g"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Cook oats with water. Season salmon with salt; pan-sear 3 minutes per side. Flake salmon over oats. Add sliced avocado, drizzle with olive oil and lemon."
+  },
+  {
+    "name": "Pescatarian Cod Egg White Omelette",
+    "meal_slot": "breakfast",
+    "diet_tags": ["pescatarian","keto","high-protein","low-carb","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"cod, atlantic, raw","qty":120,"unit":"g"},
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Flake cooked cod (poach 5 minutes in water). Beat eggs and pour into oiled pan; cook omelette base 2 minutes. Add spinach and cod, fold and finish cooking 1 more minute."
+  },
+  {
+    "name": "Pescatarian Mahi Mahi Breakfast Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["pescatarian","keto","paleo","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"mahi-mahi, raw","qty":150,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"avocado, raw","qty":80,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Season mahi mahi with salt; sear in olive oil 4 minutes per side. Fry eggs alongside. Plate with sliced avocado and drizzle lemon juice over fish."
+  },
+  {
+    "name": "Pescatarian Tilapia Veggie Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": ["pescatarian","high-protein","balanced","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"tilapia, raw","qty":150,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"bell peppers, raw","qty":60,"unit":"g"},
+      {"item":"spinach, raw","qty":40,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Flake cooked tilapia (bake at 375°F for 12 minutes). Sauté peppers in olive oil 2 minutes; add spinach and wilt. Add tilapia and beaten eggs; scramble together until set."
+  },
+  {
+    "name": "Smoked Salmon Cucumber Breakfast Plate",
+    "meal_slot": "breakfast",
+    "diet_tags": ["pescatarian","keto","high-protein","low-carb","mediterranean"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"smoked salmon","qty":120,"unit":"g"},
+      {"item":"cucumber, raw","qty":150,"unit":"g"},
+      {"item":"cream cheese","qty":40,"unit":"g"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":2,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Slice cucumber into thick rounds. Spread cream cheese on each. Drape smoked salmon over top. Squeeze lemon, season with pepper and sea salt, and serve chilled."
+  },
+  {
+    "name": "Mediterranean Olive Omelette",
+    "meal_slot": "breakfast",
+    "diet_tags": ["mediterranean","vegetarian","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"feta cheese","qty":40,"unit":"g"},
+      {"item":"tomatoes, cherry","qty":60,"unit":"g"},
+      {"item":"spinach, raw","qty":40,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Beat eggs. Heat olive oil in a non-stick pan. Pour in eggs and cook until nearly set. Add spinach, cherry tomatoes, and feta. Fold omelette and finish cooking 1 minute."
+  },
+  {
+    "name": "Mediterranean Feta Tomato Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": ["mediterranean","vegetarian","keto","high-protein","low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"egg, whole, raw","qty":3,"unit":"whole"},
+      {"item":"feta cheese","qty":50,"unit":"g"},
+      {"item":"tomatoes, raw","qty":100,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"italian seasoning","qty":2,"unit":"g"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Dice tomatoes and cook in olive oil with Italian seasoning 2 minutes. Beat eggs and pour over tomatoes; scramble gently. Finish with crumbled feta just before serving."
+  },
+  {
+    "name": "Mediterranean Yogurt Fruit Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["mediterranean","vegetarian","balanced","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"greek yogurt, plain, whole milk","qty":200,"unit":"g"},
+      {"item":"strawberries, raw","qty":80,"unit":"g"},
+      {"item":"blueberries, raw","qty":60,"unit":"g"},
+      {"item":"walnuts, raw","qty":20,"unit":"g"},
+      {"item":"honey","qty":15,"unit":"ml"},
+      {"item":"cinnamon, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Spoon yogurt into bowl. Arrange strawberries and blueberries on top. Scatter walnuts, drizzle with honey, and dust with cinnamon."
+  },
+  {
+    "name": "Mediterranean Shakshuka Style Eggs",
+    "meal_slot": "breakfast",
+    "diet_tags": ["mediterranean","vegetarian","paleo","balanced","high-protein"],
+    "servings": 2,
+    "ingredients": [
+      {"item":"egg, whole, raw","qty":4,"unit":"whole"},
+      {"item":"tomato products, canned, diced","qty":400,"unit":"g"},
+      {"item":"bell peppers, raw","qty":100,"unit":"g"},
+      {"item":"onions, raw","qty":80,"unit":"g"},
+      {"item":"olive oil","qty":20,"unit":"ml"},
+      {"item":"cumin, ground","qty":3,"unit":"g"},
+      {"item":"paprika","qty":2,"unit":"g"},
+      {"item":"sea salt","qty":2,"unit":"g"}
+    ],
+    "instructions": "Sauté onion and pepper in olive oil 4 minutes. Add diced tomatoes, cumin, paprika, and salt; simmer 8 minutes. Make wells, crack in eggs, cover, and cook 6 minutes until whites are set."
+  },
+  {
+    "name": "Mediterranean Chickpea Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["mediterranean","vegan","vegetarian","high-protein","balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"chickpeas, mature seeds, canned, drained","qty":150,"unit":"g"},
+      {"item":"spinach, raw","qty":60,"unit":"g"},
+      {"item":"tomatoes, cherry","qty":80,"unit":"g"},
+      {"item":"olive oil","qty":15,"unit":"ml"},
+      {"item":"lemon juice, raw","qty":15,"unit":"ml"},
+      {"item":"cumin, ground","qty":2,"unit":"g"},
+      {"item":"sea salt","qty":1,"unit":"g"}
+    ],
+    "instructions": "Warm chickpeas in olive oil with cumin 3 minutes. Add cherry tomatoes; cook 2 minutes. Plate over fresh spinach. Drizzle with lemon juice."
+  },
+  {
+    "name": "Mediterranean Avocado Egg Toast",
+    "meal_slot": "breakfast",
+    "diet_tags": ["mediterranean","vegetarian","balanced","high-protein"],
+    "servings": 1,
+    "ingredients": [
+      {"item":"whole wheat bread","qty":60,"unit":"g"},
+      {"item":"avocado, raw","qty":100,"unit":"g"},
+      {"item":"egg, whole, raw","qty":2,"unit":"whole"},
+      {"item":"tomatoes, cherry","qty":60,"unit":"g"},
+      {"item":"olive oil","qty":10,"unit":"ml"},
+      {"item":"sea salt","qty":1,"unit":"g"},
+      {"item":"black pepper, ground","qty":1,"unit":"g"}
+    ],
+    "instructions": "Toast bread. Mash avocado with salt and spread on toast. Poach eggs in simmering water 3 minutes. Top toast with poached eggs and cherry tomatoes. Drizzle with olive oil."
+  }
+]

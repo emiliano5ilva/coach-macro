@@ -1,0 +1,4271 @@
+[
+  {
+    "name": "Carnivore NY Strip Steak Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 280,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 80,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season steak heavily with salt and pepper. Sear in cast iron 4 min per side for medium-rare. Rest 5 min. Serve with broth as au jus."
+  },
+  {
+    "name": "Carnivore Lamb Rack Dinner Plate",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season lamb rack with salt and pepper. Sear fat-side down 3 min; transfer to 400\u00b0F oven for 12-15 min until internal temp 135\u00b0F. Rest 5 min."
+  },
+  {
+    "name": "Carnivore Pork Chop Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "pork chop, lean, raw",
+        "qty": 280,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 60,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season pork chop. Sear 5 min per side in hot skillet. Remove; add cream to pan and reduce 2 min. Serve chop with cream sauce."
+  },
+  {
+    "name": "Carnivore Ground Beef Dinner Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 2,
+        "unit": "whole"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Brown ground beef in a pan; season with salt and pepper. Push to one side; fry eggs in rendered fat. Top with melted cheddar. Serve in bowl."
+  },
+  {
+    "name": "Carnivore Beef Liver Bacon Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef liver, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 60,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Cook bacon until crisp; remove. In bacon fat, cook sliced liver 3 min per side. Deglaze with broth. Serve liver topped with bacon."
+  },
+  {
+    "name": "Carnivore Turkey Breast Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "turkey breast, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "chicken broth",
+        "qty": 100,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season turkey breast generously. Sear all sides in hot pan; add broth and bake at 375\u00b0F for 25-30 min until internal temp 165\u00b0F. Rest 5 min, slice."
+  },
+  {
+    "name": "Carnivore Ribeye with Bone Broth",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 120,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season ribeye. Sear 4 min per side in very hot cast iron. Rest 5 min. Warm beef broth and serve alongside for sipping."
+  },
+  {
+    "name": "Carnivore Shrimp Cream Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 100,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook shrimp in hot pan 1-2 min per side until pink. Add heavy cream; simmer 3 min to make sauce. Season with salt and pepper."
+  },
+  {
+    "name": "Carnivore Halibut Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "halibut, atlantic, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 50,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season halibut. Pan-sear 5 min per side until golden and cooked through. Drizzle cream over fish in last minute of cooking. Serve immediately."
+  },
+  {
+    "name": "Carnivore Ground Lamb Dinner Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mince lamb; combine with ground beef, salt, pepper. Form into thick patties. Cook in hot dry pan 4 min per side for medium. Serve in bowl."
+  },
+  {
+    "name": "Carnivore Pork Tenderloin Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 500,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 80,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season pork. Sear all sides in hot pan; roast at 400\u00b0F for 20 min until internal 145\u00b0F. Rest, slice. Reduce cream in pan for sauce."
+  },
+  {
+    "name": "Carnivore Sirloin Ground Beef Mix",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 80,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Form ground beef into 2 patties; cook 4 min per side. Sear sirloin 3 min per side. Serve both on plate with broth drizzle."
+  },
+  {
+    "name": "Carnivore Salmon Butter Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "pescatarian",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 50,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season salmon. Sear skin-side down 5 min; flip and cook 3 min. Drizzle with cream in last minute. Serve immediately."
+  },
+  {
+    "name": "Keto Chicken Parmesan Style",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 360,
+        "unit": "g"
+      },
+      {
+        "item": "mozzarella cheese",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "parmesan cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pound chicken thin; season and pan-sear in olive oil 4 min per side. Top with tomato, mozzarella, and parmesan. Bake at 375\u00b0F for 12 min until cheese is bubbly."
+  },
+  {
+    "name": "Keto Beef Zucchini Lasagna",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "ricotta cheese, whole milk",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "mozzarella cheese",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice zucchini lengthwise into strips. Brown beef with Italian seasoning. Layer in baking dish: zucchini, beef, ricotta, diced tomato, mozzarella. Bake at 375\u00b0F for 35 min."
+  },
+  {
+    "name": "Keto Shrimp Scampi Zucchini Noodles",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spiralize zucchini. Cook shrimp in olive oil with garlic 2 min per side. Add zucchini noodles; toss 2 min. Finish with lemon juice, salt, and pepper."
+  },
+  {
+    "name": "Keto Lamb Cauliflower Mash Plate",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "cauliflower, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 60,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "rosemary, fresh",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Steam cauliflower until tender; blend with cream, salt, and olive oil for mash. Season lamb with rosemary and salt; sear 3-4 min per side. Serve over cauli mash."
+  },
+  {
+    "name": "Keto Salmon Avocado Cream Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 220,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 50,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Sear salmon skin-side down 5 min; flip and cook 3 min. Blend avocado, cream, lemon, garlic for sauce. Serve salmon over avocado cream."
+  },
+  {
+    "name": "Keto Turkey Stuffed Bell Pepper",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground turkey, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Halve and hollow peppers. Brown turkey with onion, Italian seasoning; stir in diced tomato. Fill peppers, top with cheddar. Bake at 375\u00b0F for 25 min."
+  },
+  {
+    "name": "Keto Beef Cauliflower Stew",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "cauliflower, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Brown beef with onion and garlic. Add cauliflower florets, tomatoes, and broth. Simmer covered 20 min until cauliflower is tender. Season and serve."
+  },
+  {
+    "name": "Keto Cod Parmesan Crust Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cod, atlantic, raw",
+        "qty": 220,
+        "unit": "g"
+      },
+      {
+        "item": "parmesan cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "almond flour",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mix parmesan and almond flour. Press onto top of cod fillets. Bake at 400\u00b0F for 15 min until crust is golden and fish flakes easily."
+  },
+  {
+    "name": "Keto Chicken Thigh Asparagus Plate",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 360,
+        "unit": "g"
+      },
+      {
+        "item": "asparagus, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season chicken; roast at 400\u00b0F for 25-30 min until golden. Toss asparagus with oil and garlic; roast last 12 min. Squeeze lemon over everything. Serve together."
+  },
+  {
+    "name": "Keto Mozzarella Stuffed Meatballs",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "mozzarella cheese",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 1,
+        "unit": "whole"
+      },
+      {
+        "item": "almond flour",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mix beef, egg, almond flour, Italian seasoning, salt. Form balls stuffed with mozzarella cube. Bake at 400\u00b0F for 20 min until browned and cooked through."
+  },
+  {
+    "name": "Keto Pork Tenderloin Cream Sauce",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 500,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 100,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "rosemary, fresh",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season pork with rosemary, salt, pepper. Sear all sides; roast at 400\u00b0F 20 min. Rest and slice. Deglaze pan with cream and garlic; reduce 3 min. Serve sauce over pork."
+  },
+  {
+    "name": "Keto Halibut Herb Butter Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "halibut, atlantic, raw",
+        "qty": 220,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "rosemary, fresh",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Marinate halibut in olive oil, lemon, garlic, rosemary 10 min. Pan-sear 4-5 min per side until golden. Serve with pan drippings."
+  },
+  {
+    "name": "Vegan Tempeh Broccoli Stir Fry",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "tempeh",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube tempeh; stir-fry in sesame oil 5 min. Add broccoli, garlic, ginger; cook 4 min. Add soy sauce; toss until coated. Serve over brown rice."
+  },
+  {
+    "name": "Vegan Lentil Walnut Bolognese",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "walnuts, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pulse walnuts coarsely. Saut\u00e9 onion and garlic in olive oil 4 min. Add lentils, walnuts, tomatoes, and Italian seasoning; simmer 20 min. Serve over spiralized zucchini or brown rice."
+  },
+  {
+    "name": "Vegan Black Bean Enchilada Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "black beans, canned, drained",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Saut\u00e9 peppers in olive oil 4 min. Add black beans, tomatoes, cumin, and salt; simmer 10 min. Serve over brown rice."
+  },
+  {
+    "name": "Vegan Tofu Tikka Masala",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "tofu, firm, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Cube and bake tofu at 400\u00b0F 20 min. Saut\u00e9 onion, garlic, ginger in olive oil 4 min. Add tomatoes, coconut milk, cumin; simmer 15 min. Add tofu; simmer 5 min. Serve with brown rice."
+  },
+  {
+    "name": "Vegan Chickpea Eggplant Stew",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "eggplant, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube eggplant; saut\u00e9 in olive oil with onion and garlic 6 min. Add chickpeas, tomatoes, cumin, and 200ml water. Simmer 20 min until thick. Serve over quinoa."
+  },
+  {
+    "name": "Vegan Tempeh Thai Peanut Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "tempeh",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "peanut butter, smooth",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Cube tempeh; bake at 400\u00b0F 20 min. Steam broccoli 4 min. Whisk peanut butter, soy sauce, ginger, sesame oil for sauce. Toss all with sauce; serve over brown rice."
+  },
+  {
+    "name": "Vegan Lentil Shepherds Pie",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast mashed sweet potato with salt for topping. Saut\u00e9 onion, carrot in oil 5 min; add lentils, cumin, 200ml water; simmer 10 min. Pour into baking dish; top with mashed sweet potato. Bake 400\u00b0F 20 min."
+  },
+  {
+    "name": "Vegan Black Bean Quinoa Chili",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "black beans, canned, drained",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Saut\u00e9 onion and pepper in olive oil 4 min. Add black beans, tomatoes, cumin, and quinoa. Simmer 15 min until flavors meld. Season and serve."
+  },
+  {
+    "name": "Vegan Tofu Mushroom Stir Fry",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tofu, firm, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "mushrooms, portobello, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube tofu; pan-fry in sesame oil until golden 6 min. Add sliced mushrooms, garlic, ginger; cook 4 min. Add soy sauce; toss. Serve over brown rice."
+  },
+  {
+    "name": "Vegan Chickpea Spinach Coconut Curry",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Saut\u00e9 onion and garlic in olive oil 4 min. Add tomatoes, coconut milk, cumin; simmer 8 min. Add chickpeas; simmer 10 min. Stir in spinach until wilted. Serve with brown rice."
+  },
+  {
+    "name": "Vegan Edamame Tofu Rice Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tofu, firm, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "edamame, frozen, prepared",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pan-fry tofu in sesame oil until golden. Add edamame and soy sauce; toss. Serve over brown rice with grated ginger."
+  },
+  {
+    "name": "Vegan Lentil Sweet Potato Soup",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Saut\u00e9 onion and garlic in olive oil 3 min. Add cubed sweet potato, lentils, 600ml water, cumin, and salt. Simmer 20 min until sweet potato is tender. Blend partially."
+  },
+  {
+    "name": "Vegan Tempeh Buddha Bowl Tahini",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tempeh",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tahini",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Bake tempeh slices at 400\u00b0F 20 min until crispy. Massage kale with sesame oil. Whisk tahini with lemon for dressing. Bowl: quinoa, kale, sliced carrot, tempeh; drizzle dressing."
+  },
+  {
+    "name": "Pescatarian Baked Halibut Tomato Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "mediterranean",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "halibut, atlantic, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Place halibut in baking dish. Top with diced tomatoes, garlic, Italian seasoning, olive oil, and lemon. Bake at 400\u00b0F for 18-20 min until fish flakes."
+  },
+  {
+    "name": "Pescatarian Shrimp Stir Fry Brown Rice",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Stir-fry shrimp in sesame oil with garlic and ginger 2-3 min. Add broccoli; cook 4 min. Add soy sauce; toss. Serve over brown rice."
+  },
+  {
+    "name": "Pescatarian Salmon Herb Quinoa Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "mediterranean",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 360,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "asparagus, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast asparagus with oil and garlic at 400\u00b0F 12 min. Season salmon; bake at 400\u00b0F 15 min. Serve over quinoa with lemon squeeze."
+  },
+  {
+    "name": "Pescatarian Cod Lemon Asparagus",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cod, atlantic, raw",
+        "qty": 220,
+        "unit": "g"
+      },
+      {
+        "item": "asparagus, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss asparagus with oil and garlic; roast at 400\u00b0F 12 min. Season cod with salt; bake on same sheet for last 12 min. Squeeze lemon over everything."
+  },
+  {
+    "name": "Pescatarian Tilapia Sweet Potato Dinner",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tilapia, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "paprika",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube sweet potato; roast with oil, paprika, salt at 400\u00b0F 20 min. Season tilapia; bake at same temp last 12 min. Steam broccoli. Serve together."
+  },
+  {
+    "name": "Pescatarian Mahi Mahi Coconut Curry",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "mahi-mahi, raw",
+        "qty": 360,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Saut\u00e9 onion, garlic, ginger in olive oil 4 min. Add tomatoes, coconut milk, cumin; simmer 10 min. Add mahi mahi chunks; cook 8 min until fish is cooked through. Serve with brown rice."
+  },
+  {
+    "name": "Pescatarian Tuna Zucchini Noodle Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 140,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spiralize zucchini; saut\u00e9 in olive oil with garlic 3 min. Top with tuna and sliced avocado. Drizzle with lemon juice and season."
+  },
+  {
+    "name": "Pescatarian Salmon Spinach Quinoa Bake",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 360,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss quinoa with olive oil, garlic, salt. Spread in baking dish. Top with spinach and salmon fillets. Drizzle with lemon. Bake at 400\u00b0F for 20 min."
+  },
+  {
+    "name": "Pescatarian Shrimp Black Bean Rice Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "black beans, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook shrimp in olive oil with cumin 2 min per side. Warm black beans. Bowl: rice base with black beans, shrimp, avocado, and salsa."
+  },
+  {
+    "name": "Pescatarian Halibut Kale Lemon Plate",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "halibut, atlantic, raw",
+        "qty": 220,
+        "unit": "g"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Massage kale with olive oil and lemon. Season halibut; pan-sear 4-5 min per side. Serve fish over kale; drizzle with pan juices and extra lemon."
+  },
+  {
+    "name": "Pescatarian Tilapia Avocado Mango Salsa",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tilapia, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "mango, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season tilapia; bake at 400\u00b0F 12 min. Dice avocado and mango; toss with lemon juice and salt for salsa. Serve fish topped with salsa."
+  },
+  {
+    "name": "Pescatarian Cod Sweet Potato Fishcake Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "cod, atlantic, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "paprika",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Bake cod at 400\u00b0F 12 min; flake. Roast diced sweet potato with oil, paprika, salt 20 min. Mix cod and sweet potato; form into cakes; pan-fry in olive oil 3 min per side."
+  },
+  {
+    "name": "Pescatarian Shrimp Broccoli Garlic Rice",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast broccoli with oil, garlic, salt at 400\u00b0F 15 min. Cook shrimp in olive oil with garlic 2 min per side. Serve shrimp and broccoli over brown rice with lemon."
+  },
+  {
+    "name": "Paleo Chicken Breast Roasted Beets",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "beets, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "balsamic vinegar",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast sliced beets at 400\u00b0F 25 min. Season chicken; pan-cook 6 min per side. Rest, slice. Arrange over greens with beets; drizzle with olive oil and balsamic."
+  },
+  {
+    "name": "Paleo Ground Beef Sweet Potato Shepherd Pie",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "paprika",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast and mash sweet potato. Saut\u00e9 onion, carrot in oil 5 min; add beef and cook 6 min; season. Pour into baking dish; top with mashed sweet potato. Bake at 400\u00b0F 20 min."
+  },
+  {
+    "name": "Paleo Pork Tenderloin with Apple",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 500,
+        "unit": "g"
+      },
+      {
+        "item": "apples, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season pork; sear all sides in olive oil. Roast at 400\u00b0F 20 min. Meanwhile, saut\u00e9 sliced apples and onions with cinnamon until soft. Rest pork; slice and serve with apple mixture."
+  },
+  {
+    "name": "Paleo Salmon with Mango Avocado Salsa",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "mango, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Dice avocado and mango; toss with lemon juice for salsa. Season salmon; sear skin-side down 5 min; flip and cook 3 min. Serve topped with salsa."
+  },
+  {
+    "name": "Paleo Turkey Meatball Veggie Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground turkey, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mix turkey with Italian seasoning and salt; form meatballs. Brown in olive oil 4 min. Add diced tomato and zucchini; simmer 15 min. Serve meatballs with vegetable sauce."
+  },
+  {
+    "name": "Paleo Lamb Stew Root Vegetables",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 300,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "rosemary, fresh",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube and brown lamb in olive oil 5 min. Add carrots, diced sweet potato, onion, rosemary, and broth. Simmer covered 30 min until lamb and veg are tender."
+  },
+  {
+    "name": "Paleo Beef Butternut Squash Curry",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "butternut squash, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Saut\u00e9 onion and garlic in olive oil 4 min. Add beef; cook 5 min. Add cubed squash, coconut milk, cumin; simmer 20 min until squash is tender."
+  },
+  {
+    "name": "Paleo Shrimp Asparagus Stir Fry",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "asparagus, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss asparagus with half the oil and garlic; roast at 400\u00b0F 10 min. Cook shrimp in remaining oil with garlic 2 min per side. Combine; drizzle with lemon."
+  },
+  {
+    "name": "Paleo Chicken Kale Sweet Potato Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Dice and roast sweet potato at 400\u00b0F 20 min. Pan-cook chicken 6 min per side; slice. Massage kale with olive oil and lemon. Assemble bowl with all components."
+  },
+  {
+    "name": "Paleo Ground Turkey Vegetable Skillet",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground turkey, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook ground turkey in olive oil with onion and cumin until browned. Add diced zucchini and pepper; cook 5 more min until tender. Season and serve."
+  },
+  {
+    "name": "Mediterranean Lemon Herb Chicken",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Marinate chicken in lemon, garlic, olive oil, Italian seasoning for 30 min. Pan-sear 7 min per side or bake at 400\u00b0F for 25 min until golden and cooked through."
+  },
+  {
+    "name": "Mediterranean Baked Salmon Capers",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "keto",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Arrange salmon in baking dish. Scatter cherry tomatoes and garlic. Drizzle with olive oil and lemon; season with Italian seasoning and salt. Bake at 400\u00b0F for 18-20 min."
+  },
+  {
+    "name": "Mediterranean Eggplant Lentil Stew",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "eggplant, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube eggplant and salt it; let drain 10 min. Saut\u00e9 onion and garlic in olive oil 4 min. Add eggplant; cook 5 min. Add lentils, tomatoes, cumin; simmer 20 min."
+  },
+  {
+    "name": "Mediterranean Cod Tomato Caper Sauce",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "paleo",
+      "keto",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "cod, atlantic, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Saut\u00e9 garlic in olive oil 1 min. Add tomatoes and Italian seasoning; simmer 8 min. Add cod; cover and cook 10 min until fish flakes. Finish with lemon juice."
+  },
+  {
+    "name": "Mediterranean Chicken Vegetable Bake",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss chicken and vegetables with olive oil, garlic, Italian seasoning. Spread in baking dish. Bake at 400\u00b0F for 30-35 min until chicken is cooked and vegetables are tender."
+  },
+  {
+    "name": "Mediterranean Shrimp Quinoa Skillet",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 370,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Cook shrimp in olive oil with garlic 2 min per side. Add cherry tomatoes; cook 2 min. Add cooked quinoa and spinach; toss until spinach wilts. Finish with lemon."
+  },
+  {
+    "name": "Mediterranean Lamb Vegetable Tagine",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Brown lamb in olive oil with onion 5 min. Add zucchini, carrots, tomatoes, cumin, and 200ml water. Simmer covered 30 min until lamb is tender."
+  },
+  {
+    "name": "Mediterranean Tofu Roasted Vegetable Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "mediterranean",
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "tofu, firm, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "eggplant, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube tofu and vegetables; toss with olive oil, Italian seasoning, salt. Spread on sheet pan. Roast at 400\u00b0F for 30 min, tossing halfway. Serve over quinoa with lemon."
+  },
+  {
+    "name": "Vegan Almond Date Protein Balls",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced",
+      "high-protein"
+    ],
+    "servings": 4,
+    "ingredients": [
+      {
+        "item": "almonds, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "almond butter",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "protein powder, plant-based",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "coconut oil",
+        "qty": 20,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Blend almonds, almond butter, protein powder, chia seeds, cinnamon, and coconut oil until combined. Roll into 12 balls. Refrigerate 30 min until firm."
+  },
+  {
+    "name": "Vegan Hemp Seed Cocoa Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced",
+      "high-protein"
+    ],
+    "servings": 4,
+    "ingredients": [
+      {
+        "item": "hemp seeds, hulled",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "cocoa powder, unsweetened",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "almond butter",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "maple syrup",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "vanilla extract",
+        "qty": 5,
+        "unit": "ml"
+      },
+      {
+        "item": "coconut oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Mix hemp seeds, cocoa powder, almond butter, maple syrup, vanilla, and coconut oil. Press into small silicone molds or roll into balls. Freeze 20 min."
+  },
+  {
+    "name": "Vegan Edamame with Sea Salt",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "edamame, frozen, prepared",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Steam edamame until tender and bright green. Drizzle with sesame oil; toss with sea salt. Serve warm or at room temperature."
+  },
+  {
+    "name": "Vegan Chia Berry Pudding",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chia seeds",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 300,
+        "unit": "ml"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "maple syrup",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "vanilla extract",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Stir chia seeds, coconut milk, maple syrup, and vanilla together. Refrigerate 4 hours or overnight. Top with fresh blueberries before serving."
+  },
+  {
+    "name": "Vegan Peanut Butter Apple Slices",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "apples, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "peanut butter, smooth",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Core and slice apple into wedges. Spread each slice with peanut butter. Sprinkle with chia seeds and cinnamon. Serve immediately."
+  },
+  {
+    "name": "Vegan Cashew Berry Smoothie",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced",
+      "high-protein"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cashews, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "banana, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "protein powder, plant-based",
+        "qty": 20,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Blend cashews, blueberries, banana, protein powder, and coconut milk until smooth. Pour and serve immediately."
+  },
+  {
+    "name": "Vegan Black Bean Hummus Veggies",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "black beans, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "hummus, commercial",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Blend black beans with hummus, lemon, cumin for dip. Slice carrots and cucumber into sticks. Serve with black bean hummus."
+  },
+  {
+    "name": "Vegan Coconut Almond Energy Bar",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 4,
+    "ingredients": [
+      {
+        "item": "almonds, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "coconut oil",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "item": "almond butter",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "flaxseed, ground",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "cocoa powder, unsweetened",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "item": "maple syrup",
+        "qty": 25,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Blend almonds; mix with all ingredients until combined. Press into lined baking pan. Refrigerate 2 hours until firm. Cut into bars."
+  },
+  {
+    "name": "Carnivore Beef Jerky Bowl",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice sirloin paper-thin against the grain. Toss with salt and pepper. Dehydrate at 165\u00b0F for 4-6 hours or bake at lowest oven setting 3-4 hours until dry and chewy."
+  },
+  {
+    "name": "Carnivore Smoked Salmon Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "smoked salmon",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spread cream cheese on thin smoked salmon slices. Roll into bite-size pieces. Season lightly and serve chilled."
+  },
+  {
+    "name": "Carnivore Hard Boiled Eggs and Bacon",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "egg, whole, hard-boiled",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Peel and halve hard-boiled eggs. Cook bacon until crisp. Serve eggs alongside crumbled bacon with a pinch of sea salt."
+  },
+  {
+    "name": "Carnivore Ground Beef Snack Patties",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season ground beef with salt and pepper. Form into 4 mini patties. Cook in a hot pan 3 min per side. Serve warm as snack patties."
+  },
+  {
+    "name": "Carnivore Pork Rind Cream Cheese Snack",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "pork chop, lean, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook thin pork slices until crispy. Serve topped with cream cheese and a pinch of salt and pepper."
+  },
+  {
+    "name": "Carnivore Ground Turkey Snack Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground turkey, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mix ground turkey with salt and pepper; roll into balls. Bake at 400\u00b0F for 15 min until cooked through. Serve warm."
+  },
+  {
+    "name": "Keto Cheese Almond Snack Plate",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cheddar cheese",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "almonds, raw",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice cheddar cheese. Arrange on plate with almonds and cucumber rounds. Season lightly with salt."
+  },
+  {
+    "name": "Keto Avocado Cream Cheese Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "avocado, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Halve avocado and remove pit. Fill each half with cream cheese. Season with salt, pepper, and lemon juice."
+  },
+  {
+    "name": "Keto Salmon Cucumber Rounds",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "smoked salmon",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice cucumber into thick rounds. Top each with a dollop of cream cheese and a piece of smoked salmon. Season with salt."
+  },
+  {
+    "name": "Keto Cheddar Egg Snack Puffs",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "egg, whole, raw",
+        "qty": 4,
+        "unit": "whole"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Whisk eggs with shredded cheddar, salt, and pepper. Pour into greased muffin tin (half full). Bake at 375\u00b0F for 12 min until puffed and golden."
+  },
+  {
+    "name": "Keto Pumpkin Seed Parmesan Mix",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "pumpkin seeds, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "parmesan cheese",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "paprika",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss pumpkin seeds with grated parmesan, salt, and paprika. Spread on baking sheet. Toast at 350\u00b0F for 8-10 min until golden."
+  },
+  {
+    "name": "Keto Turkey Cream Cheese Rolls",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "turkey breast, deli, sliced",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Lay turkey slices flat; spread cream cheese and add cucumber strips. Roll up tightly. Cut into bite-size pieces."
+  },
+  {
+    "name": "Keto Almond Butter Celery Sticks",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "celery, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "almond butter",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice celery into sticks. Fill the hollow of each stick with almond butter. Sprinkle with sea salt and serve."
+  },
+  {
+    "name": "Keto Cottage Cheese Flaxseed Bowl",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cottage cheese, lowfat",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "flaxseed, ground",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "item": "walnuts, raw",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Scoop cottage cheese into bowl. Top with ground flaxseed, walnuts, and cinnamon. Stir gently and serve chilled."
+  },
+  {
+    "name": "Whey Protein Berry Shake",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "high-protein",
+      "balanced",
+      "vegetarian"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "whey protein powder",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "banana, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "whole milk",
+        "qty": 240,
+        "unit": "ml"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Blend whey protein, blueberries, banana, and milk until smooth. Top with chia seeds."
+  },
+  {
+    "name": "Cottage Cheese with Strawberries Hemp",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "high-protein",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cottage cheese, lowfat",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "strawberries, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "hemp seeds, hulled",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "item": "honey",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Spoon cottage cheese into bowl. Top with sliced strawberries and hemp seeds. Drizzle with honey."
+  },
+  {
+    "name": "Greek Yogurt Almond Protein Bowl",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "high-protein",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "greek yogurt, plain, nonfat",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "almonds, raw",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "honey",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spoon yogurt into bowl. Top with almonds, blueberries, honey drizzle, and cinnamon."
+  },
+  {
+    "name": "Tuna Cucumber Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "keto",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Drain tuna; mix with Dijon mustard, lemon juice, and salt. Slice cucumber into thick rounds. Top each round with tuna salad."
+  },
+  {
+    "name": "Turkey Hummus Rollup Snack",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "turkey breast, deli, sliced",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "hummus, commercial",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 30,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Lay turkey slices on flat surface. Spread hummus on each slice. Add cucumber strip and spinach leaf. Roll up tightly."
+  },
+  {
+    "name": "Egg White Avocado Snack",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "egg, whole, hard-boiled",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Peel and slice eggs. Mash avocado with lemon, salt, and pepper. Arrange eggs alongside avocado mash."
+  },
+  {
+    "name": "Paleo Mango Coconut Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "paleo",
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 4,
+    "ingredients": [
+      {
+        "item": "mango, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 80,
+        "unit": "ml"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "hemp seeds, hulled",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Blend mango and coconut milk. Stir in chia seeds, hemp seeds, and cinnamon. Pour into molds or a container. Freeze 2 hours until firm."
+  },
+  {
+    "name": "Paleo Apple Almond Butter Bowl",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "paleo",
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "apples, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "almond butter",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "walnuts, raw",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Core and chop apple into cubes. Drizzle almond butter over apple. Scatter walnuts and dust with cinnamon."
+  },
+  {
+    "name": "Paleo Banana Walnut Snack",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "paleo",
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "banana, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "walnuts, raw",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "almond butter",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice banana and arrange in bowl. Top with walnuts, drizzle almond butter, and dust with cinnamon."
+  },
+  {
+    "name": "Paleo Pumpkin Seed Hemp Mix",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "paleo",
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "pumpkin seeds, raw",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "hemp seeds, hulled",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "almonds, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss pumpkin seeds, hemp seeds, and almonds with sea salt and cinnamon. Toast in a dry pan 3 minutes. Serve as trail mix."
+  }
+]

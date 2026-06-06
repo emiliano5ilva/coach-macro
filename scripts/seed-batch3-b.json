@@ -1,0 +1,3105 @@
+[
+  {
+    "name": "Carnivore Ribeye Strip Lunch Plate",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 60,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season steak generously with salt and pepper. Sear in very hot cast-iron 3 min per side for medium-rare. Rest 5 min, slice, serve with broth drizzled over."
+  },
+  {
+    "name": "Carnivore Ground Beef Burger Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 1,
+        "unit": "whole"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mix beef with egg, salt, pepper. Form thick patty; cook in hot pan 4 min per side. Melt cheddar on top. Serve in bowl."
+  },
+  {
+    "name": "Carnivore Lamb Chop Lunch Plate",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season lamb chops generously. Sear in hot skillet 3-4 min per side until internal temp 135\u00b0F for medium. Rest 5 min and serve."
+  },
+  {
+    "name": "Carnivore Pork Tenderloin Slices",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 60,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season tenderloin. Sear all sides 3 min; finish at 400\u00b0F oven 15 min. Rest, slice, serve drizzled with warmed heavy cream."
+  },
+  {
+    "name": "Carnivore Turkey Breast Lunch Plate",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "turkey breast, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "chicken broth",
+        "qty": 80,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season turkey with salt and pepper. Cook in pan with broth, simmer covered 8 min per side until cooked through. Slice and serve with pan juices."
+  },
+  {
+    "name": "Carnivore Beef Liver and Bacon Plate",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef liver, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook bacon until crisp; crumble. In same pan cook sliced liver 2-3 min per side over medium-high. Season. Serve topped with crumbled bacon."
+  },
+  {
+    "name": "Carnivore Bacon Ground Beef Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 2,
+        "unit": "whole"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook bacon; crumble and set aside. Brown ground beef in same pan. Fry eggs alongside beef. Combine in bowl; season with salt."
+  },
+  {
+    "name": "Carnivore Sirloin Steak Strips",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 220,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 50,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Slice sirloin thin against grain. Season generously. Sear strips in very hot dry pan 1-2 min total. Deglaze with broth and serve."
+  },
+  {
+    "name": "Carnivore Shrimp Butter Lunch Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 60,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook shrimp in hot dry pan 1-2 min per side until pink. Add cream and simmer 2 min. Season with salt and pepper."
+  },
+  {
+    "name": "Carnivore Tuna Steak Plate",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, hard-boiled",
+        "qty": 2,
+        "unit": "whole"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Drain tuna and place in bowl. Slice hard-boiled eggs alongside. Season with salt and pepper. Serve chilled."
+  },
+  {
+    "name": "Carnivore Ground Turkey Patties",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground turkey, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 1,
+        "unit": "whole"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mix ground turkey with egg, salt, pepper. Form 2 patties. Cook in dry pan 5 min per side until cooked through."
+  },
+  {
+    "name": "Carnivore Halibut Lunch Plate",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "halibut, atlantic, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 40,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season halibut. Pan-sear 4-5 min per side until golden. Drizzle with cream last minute. Serve immediately."
+  },
+  {
+    "name": "Keto Chicken Caesar Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "parmesan cheese",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Grill or pan-cook chicken breast; slice thin. Whisk olive oil, lemon, and Dijon for dressing. Toss romaine with dressing and parmesan. Top with sliced chicken."
+  },
+  {
+    "name": "Keto Avocado Tuna Lettuce Cups",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mash avocado; mix with tuna, lemon juice, mustard, and salt. Spoon into large romaine leaves and serve as cups."
+  },
+  {
+    "name": "Keto Beef Zucchini Noodle Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spiralize zucchini. Brown beef in olive oil with garlic and Italian seasoning. Add diced tomatoes; simmer 5 min. Pour over zucchini noodles."
+  },
+  {
+    "name": "Keto Salmon Spinach Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season salmon; pan-sear 4 min per side. Flake over fresh spinach and sliced avocado. Dress with olive oil and lemon."
+  },
+  {
+    "name": "Keto Egg Salad Lettuce Cups",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "egg, whole, hard-boiled",
+        "qty": 4,
+        "unit": "whole"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Chop hard-boiled eggs. Mix with Dijon mustard, olive oil, salt, and pepper. Spoon into romaine lettuce cups."
+  },
+  {
+    "name": "Keto Turkey Avocado Lettuce Cups",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "turkey breast, deli, sliced",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Lay romaine leaves flat. Spread with Dijon. Layer turkey slices and sliced avocado. Season with salt and pepper."
+  },
+  {
+    "name": "Keto Shrimp Cauliflower Rice Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "cauliflower, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pulse cauliflower to rice-size; saut\u00e9 in 10ml oil 5 min. Cook shrimp in remaining oil with garlic 2 min per side. Serve shrimp over cauliflower rice with lemon."
+  },
+  {
+    "name": "Keto Pork Tenderloin Asparagus",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 350,
+        "unit": "g"
+      },
+      {
+        "item": "asparagus, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season pork with salt, pepper, garlic. Sear all sides in oil; roast at 400\u00b0F for 18 min. Toss asparagus with oil and roast last 12 min. Slice and plate together."
+  },
+  {
+    "name": "Keto Cheddar Beef Stuffed Peppers",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Halve and hollow peppers. Brown beef with diced onion; season. Fill pepper halves. Top with shredded cheddar. Bake at 375\u00b0F for 20 min."
+  },
+  {
+    "name": "Keto Lamb Feta Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season and cook lamb chop 3 min per side. Rest and slice thin. Toss greens, cucumber, feta with oil and lemon. Top with sliced lamb."
+  },
+  {
+    "name": "Keto Ground Beef Taco Lettuce Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Brown beef with cumin and salt. Arrange chopped romaine in bowl. Top with beef, diced avocado, cheddar, and salsa."
+  },
+  {
+    "name": "Vegan Tempeh Stir Fry Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tempeh",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube tempeh; stir-fry in sesame oil 5 min until golden. Add broccoli, garlic, ginger; cook 4 min. Add soy sauce; toss. Serve over brown rice."
+  },
+  {
+    "name": "Vegan Lentil Avocado Power Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Warm lentils with cumin and olive oil. Place spinach in bowl; top with lentils, sliced avocado, and cherry tomatoes. Drizzle lemon juice."
+  },
+  {
+    "name": "Vegan Black Bean Quinoa Lunch Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "black beans, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mix warm quinoa with black beans, cumin, and olive oil. Top with diced avocado and halved cherry tomatoes. Drizzle lemon and serve."
+  },
+  {
+    "name": "Vegan Tofu Peanut Rice Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tofu, firm, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "peanut butter, smooth",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Bake tofu cubes at 400\u00b0F for 20 min until crispy. Whisk peanut butter, soy sauce, ginger, sesame oil for sauce. Toss with rice and tofu; add cucumber strips."
+  },
+  {
+    "name": "Vegan Chickpea Spinach Wrap",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "flour tortilla, large",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Mash chickpeas with lemon, cumin, salt. Spread on tortilla. Layer with spinach and sliced avocado. Roll tightly and slice."
+  },
+  {
+    "name": "Vegan Edamame Quinoa Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "quinoa, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "edamame, frozen, prepared",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Combine quinoa and edamame. Toss with sesame oil, soy sauce, grated ginger, and lemon. Add diced cucumber. Serve warm or chilled."
+  },
+  {
+    "name": "Vegan Butternut Squash Lentil Soup",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "butternut squash, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Saut\u00e9 onion and garlic in oil 3 min. Add cubed squash, lentils, 600ml water, cumin, salt. Simmer 20 min until squash is tender. Blend partially for creamy texture."
+  },
+  {
+    "name": "Vegan Kidney Bean Veggie Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "kidney beans, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Massage kale with olive oil and lemon 2 min. Warm kidney beans with garlic. Bowl: rice base, topped with beans and massaged kale. Season and serve."
+  },
+  {
+    "name": "Vegan Kale Tahini Buddha Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tahini",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast chickpeas at 400\u00b0F 25 min until crispy. Massage kale with olive oil. Whisk tahini with lemon and garlic for dressing. Bowl: quinoa, kale, chickpeas; drizzle dressing."
+  },
+  {
+    "name": "Vegan Tempeh Avocado Wrap",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tempeh",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "flour tortilla, large",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Slice tempeh; pan-fry in sesame oil with soy sauce 3 min per side. Warm tortilla; layer spinach, tempeh, and sliced avocado. Roll and serve."
+  },
+  {
+    "name": "Vegan Black Bean Sweet Potato Burrito Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "black beans, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Dice and roast sweet potato with oil, cumin, salt at 400\u00b0F 20 min. Warm beans. Bowl: rice base topped with black beans, roasted sweet potato, and salsa."
+  },
+  {
+    "name": "Vegan Lentil Mango Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "mango, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "arugula, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss warm lentils with olive oil, lemon, and salt. Mix with fresh arugula and diced mango. Serve immediately."
+  },
+  {
+    "name": "Vegan Tofu Sesame Noodles",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tofu, firm, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "peanut butter, smooth",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Bake tofu until crispy. Whisk sesame oil, soy sauce, peanut butter, grated ginger for sauce. Toss brown rice with sauce; top with tofu and sliced cucumber."
+  },
+  {
+    "name": "Vegan Chickpea Avocado Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Combine chickpeas, diced avocado, sliced cucumber, halved cherry tomatoes. Dress with olive oil, lemon, and salt. Toss gently and serve."
+  },
+  {
+    "name": "Pescatarian Salmon Caesar Wrap",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "flour tortilla, large",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "parmesan cheese",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pan-sear salmon 4 min per side; flake. Whisk oil, lemon, Dijon, parmesan for dressing. Toss romaine with dressing; fill tortilla with romaine and salmon. Roll and slice."
+  },
+  {
+    "name": "Pescatarian Tuna Brown Rice Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 140,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season tuna with soy sauce, sesame oil, lemon. Arrange over brown rice. Top with sliced avocado and cucumber."
+  },
+  {
+    "name": "Pescatarian Shrimp Avocado Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Boil or grill shrimp 2-3 min until pink. Chill. Toss greens, cucumber, and avocado. Top with shrimp. Dress with olive oil and lemon."
+  },
+  {
+    "name": "Pescatarian Cod Taco Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cod, atlantic, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "cabbage, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season cod; bake at 400\u00b0F 12 min. Flake into bowl with rice. Top with shredded cabbage, avocado, salsa. Drizzle oil and lemon."
+  },
+  {
+    "name": "Pescatarian Halibut Quinoa Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "halibut, atlantic, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "arugula, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season halibut; pan-sear 4 min per side. Flake over warm quinoa and fresh arugula. Dress with olive oil and lemon."
+  },
+  {
+    "name": "Pescatarian Mahi Mahi Veggie Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "mahi-mahi, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast broccoli with oil, garlic, salt at 400\u00b0F 15 min. Pan-sear mahi mahi 4 min per side. Serve fish and broccoli over quinoa with lemon."
+  },
+  {
+    "name": "Pescatarian Tilapia Taco Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tilapia, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "black beans, canned, drained",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season tilapia with cumin; cook in olive oil 3 min per side. Flake over rice. Top with black beans, avocado, and salsa."
+  },
+  {
+    "name": "Pescatarian Smoked Salmon Grain Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "smoked salmon",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "arugula, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Layer quinoa in bowl. Top with arugula, cucumber, and smoked salmon. Drizzle with olive oil and lemon."
+  },
+  {
+    "name": "Pescatarian Shrimp Edamame Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "edamame, frozen, prepared",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook shrimp in sesame oil with grated ginger 2 min per side. Add edamame and soy sauce; toss. Serve over brown rice."
+  },
+  {
+    "name": "Pescatarian Tuna Mediterranean Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "mediterranean",
+      "high-protein",
+      "balanced",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 140,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Toss greens, cherry tomatoes, and cucumber with olive oil and lemon. Top with tuna and crumbled feta."
+  },
+  {
+    "name": "Pescatarian Salmon Lentil Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 140,
+        "unit": "g"
+      },
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pan-sear salmon 4 min per side. Flake over warm lentils and fresh spinach. Dress with olive oil and lemon."
+  },
+  {
+    "name": "Pescatarian Cod Kale Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cod, atlantic, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Bake cod at 400\u00b0F 12 min. Massage kale with olive oil and lemon until tender. Serve flaked cod over kale with sliced avocado."
+  },
+  {
+    "name": "Pescatarian Tilapia Brown Rice Power Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tilapia, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pan-cook tilapia in sesame oil 3 min per side. Steam broccoli 4 min. Serve fish and broccoli over brown rice with soy sauce."
+  },
+  {
+    "name": "Pescatarian Shrimp Quinoa Mediterranean Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "mediterranean",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Grill shrimp 2 min per side. Toss quinoa with cherry tomatoes, cucumber, feta, olive oil, and lemon. Top with shrimp."
+  },
+  {
+    "name": "Paleo Chicken Sweet Potato Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "paprika",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Dice sweet potato; roast with oil, salt, paprika at 400\u00b0F 20 min. Pan-cook chicken 6 min per side. Slice and serve over spinach with sweet potato."
+  },
+  {
+    "name": "Paleo Beef Lettuce Wrap",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook ground beef with onion, cumin, and olive oil until browned. Spoon into romaine leaves. Top with salsa and sliced avocado."
+  },
+  {
+    "name": "Paleo Salmon Avocado Mixed Green Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pan-sear salmon skin-side down 4 min; flip and cook 2 min. Flake over greens with sliced avocado. Dress with olive oil and lemon."
+  },
+  {
+    "name": "Paleo Turkey Veggie Roasted Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "turkey breast, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "paprika",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast cubed sweet potato and broccoli with oil and paprika at 400\u00b0F 20 min. Pan-cook turkey 6 min per side. Slice and serve with vegetables."
+  },
+  {
+    "name": "Paleo Lamb Roasted Vegetable Plate",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "lamb, rib chop, lean, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "rosemary, fresh",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss sliced zucchini and peppers with oil, rosemary, salt; roast at 400\u00b0F 15 min. Season lamb chop; sear 3-4 min per side. Serve with vegetables."
+  },
+  {
+    "name": "Paleo Beef and Beet Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "beets, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "arugula, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "walnuts, raw",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "balsamic vinegar",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast beets at 400\u00b0F 45 min; peel and slice. Sear steak 3 min per side; rest and slice. Toss arugula with oil and balsamic. Top with steak, beets, walnuts."
+  },
+  {
+    "name": "Paleo Chicken Butternut Squash Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "butternut squash, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube squash; roast with oil, cinnamon, salt at 400\u00b0F 20 min. Pan-cook chicken 6 min per side. Slice and serve over spinach with roasted squash."
+  },
+  {
+    "name": "Paleo Ground Turkey Zucchini Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground turkey, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Brown ground turkey with onion and garlic in olive oil. Season with Italian seasoning. Slice zucchini; fold into turkey and cook 3 more min."
+  },
+  {
+    "name": "Paleo Pork Apple Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "apples, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "walnuts, raw",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "balsamic vinegar",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season pork; sear 3 min per side, finish at 400\u00b0F 10 min. Slice thin. Toss greens, sliced apple, walnuts with oil and balsamic. Top with pork."
+  },
+  {
+    "name": "Paleo Shrimp and Vegetable Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook shrimp in olive oil with salt 2 min per side. Chill briefly. Toss greens, julienned carrots, avocado with lemon and oil. Top with shrimp."
+  },
+  {
+    "name": "Mediterranean Chicken Quinoa Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Pan-grill chicken 6 min per side; slice thin. Toss quinoa with tomatoes, cucumber, feta, olive oil, and lemon. Top with sliced chicken."
+  },
+  {
+    "name": "Mediterranean Lentil Tomato Soup",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Saut\u00e9 onion and garlic in olive oil 4 min. Add lentils, diced tomatoes, cumin, salt, 400ml water. Simmer 15 min. Serve with olive oil drizzle."
+  },
+  {
+    "name": "Mediterranean Falafel Hummus Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "hummus, commercial",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "paprika",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast chickpeas with paprika at 400\u00b0F 25 min until crispy. Spread hummus in bowl. Top with crispy chickpeas, cucumber, tomatoes. Drizzle with olive oil and lemon."
+  },
+  {
+    "name": "Mediterranean Shrimp Tuna Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 30,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook shrimp 2 min per side; chill. Toss greens and tomatoes with olive oil and lemon. Top with shrimp, tuna, and crumbled feta."
+  },
+  {
+    "name": "Mediterranean Salmon Arugula Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "keto",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "arugula, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "balsamic vinegar",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pan-sear salmon 4 min per side. Toss arugula and tomatoes with olive oil and balsamic. Top with flaked salmon and crumbled feta."
+  },
+  {
+    "name": "Mediterranean Greek Veggie Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "hummus, commercial",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Bowl: quinoa base topped with hummus. Add cucumber and cherry tomatoes. Drizzle with olive oil and lemon juice."
+  },
+  {
+    "name": "Mediterranean Chicken Eggplant Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "high-protein",
+      "balanced",
+      "paleo"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 160,
+        "unit": "g"
+      },
+      {
+        "item": "eggplant, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cube eggplant; saut\u00e9 in olive oil with garlic and Italian seasoning 5 min. Add tomatoes; simmer 10 min. Pan-cook chicken 6 min per side, slice; serve over eggplant."
+  },
+  {
+    "name": "Mediterranean Tuna Olive Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "mediterranean",
+      "pescatarian",
+      "high-protein",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 140,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 25,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss greens, cucumber, and tomatoes with olive oil and lemon. Top with drained tuna; season with salt."
+  }
+]
