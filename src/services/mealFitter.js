@@ -85,13 +85,28 @@ export function isAllergenExcluded(recipe, allergens) {
   return allergens.some(a => tags.includes(a));
 }
 
+// Mirrors DIET_INCLUDES in fuel.jsx — must stay in sync.
+// Defines which recipe diet_tags qualify for a given chosen diet.
+const _DIET_INCLUDES = {
+  vegan:         ['vegan'],
+  vegetarian:    ['vegetarian','vegan'],
+  pescatarian:   ['pescatarian','vegetarian','vegan'],
+  mediterranean: ['mediterranean'],
+  keto:          ['keto'],
+  paleo:         ['paleo'],
+  'low-carb':    ['low-carb'],
+  carnivore:     ['carnivore'],
+};
+
 /**
  * Diet match: recipe satisfies the requested diet.
  * 'balanced', null, or undefined → any recipe qualifies.
+ * Uses inclusion map so sub-diets (e.g. vegan ⊂ vegetarian ⊂ pescatarian) pass.
  */
 export function meetsDiet(recipe, diet) {
   if (!diet || diet === 'balanced') return true;
-  return (recipe.diet_tags || []).includes(diet);
+  const allowed = _DIET_INCLUDES[diet] || [diet];
+  return (recipe.diet_tags || []).some(t => allowed.includes(t));
 }
 
 /**

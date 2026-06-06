@@ -330,18 +330,31 @@ for (const allergen of ALL_ALLERGENS) {
 
 console.log('\n── DIET FILTER invariant ──');
 
+// Inclusion map mirrors _DIET_INCLUDES in mealFitter.js — kept in sync manually.
+const _HARNESS_DIET_INCLUDES = {
+  vegan:         ['vegan'],
+  vegetarian:    ['vegetarian','vegan'],
+  pescatarian:   ['pescatarian','vegetarian','vegan'],
+  mediterranean: ['mediterranean'],
+  keto:          ['keto'],
+  paleo:         ['paleo'],
+  'low-carb':    ['low-carb'],
+  carnivore:     ['carnivore'],
+};
+
 const DIETS_TO_TEST = ['keto','vegan','vegetarian','carnivore','pescatarian','paleo','high-protein','mediterranean'];
 for (const diet of DIETS_TO_TEST) {
   for (const seed of [0, 5]) {
     const result = fitDay({ dayTarget: TARGET_2200, mealCount: 3, diet,
                             allergens: [], pool: POOL, seed });
     const filled = result.meals.filter(m => !m.unfillable);
-    // All filled meals must carry the diet tag
-    const allCorrect = filled.every(m => (m.recipe.diet_tags || []).includes(diet));
+    // All filled meals must carry at least one tag from the allowed set for this diet
+    const allowed = _HARNESS_DIET_INCLUDES[diet] || [diet];
+    const allCorrect = filled.every(m => (m.recipe.diet_tags || []).some(t => allowed.includes(t)));
     assert(
-      `diet="${diet}" seed=${seed}: all filled recipes carry diet tag`,
+      `diet="${diet}" seed=${seed}: all filled recipes satisfy diet (incl. sub-diets)`,
       allCorrect,
-      `A recipe was returned that lacks the "${diet}" tag`,
+      `A recipe was returned that doesn't satisfy "${diet}" (allowed: ${allowed})`,
     );
   }
 }

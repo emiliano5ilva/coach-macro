@@ -1439,6 +1439,20 @@ const ALLERGEN_CHIP_TO_TAG = {
   'No Shellfish':'shellfish','No Eggs':'eggs','No Nuts':'nuts',
 };
 
+// Diet expansion: a chosen diet pulls its compatible sub-diets so the pool
+// includes all dishes the user can eat, not just the exact-tagged subset.
+// 'balanced' is omitted — stays unfiltered (whole library).
+const DIET_INCLUDES = {
+  vegan:         ['vegan'],
+  vegetarian:    ['vegetarian','vegan'],
+  pescatarian:   ['pescatarian','vegetarian','vegan'],
+  mediterranean: ['mediterranean'],
+  keto:          ['keto'],
+  paleo:         ['paleo'],
+  'low-carb':    ['low-carb'],
+  carnivore:     ['carnivore'],
+};
+
 // Format a scaled ingredient quantity for display: "200g", "1.5 cups", etc.
 function fmtIngAmt(qty, unit) {
   if (!qty || !unit) return '';
@@ -1453,7 +1467,10 @@ async function loadMealPool(diet, allergenTags) {
     .from('recipes')
     .select('id,name,meal_slot,diet_tags,allergen_tags,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,servings_count,ingredients,use_count,last_used')
     .is('user_id', null);
-  if (diet && diet !== 'balanced') q = q.contains('diet_tags', [diet]);
+  if (diet && diet !== 'balanced') {
+    const allowed = DIET_INCLUDES[diet] || [diet];
+    q = q.overlaps('diet_tags', allowed);
+  }
   // ALLERGEN GATE (DB layer): NOT (allergen_tags && ARRAY[allergens])
   if (allergenTags.length > 0) q = q.not('allergen_tags', 'ov', `{${allergenTags.join(',')}}`);
   const { data, error } = await q;
