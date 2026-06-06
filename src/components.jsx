@@ -190,9 +190,14 @@ export function hapHeavy()     { try{navigator.vibrate?.([10,30,10]);}catch{} }
 export function hapSuccess()   { try{navigator.vibrate?.([8,40,8]);}catch{} }
 export function hapPR()        { try{navigator.vibrate?.([10,30,10,30,10]);}catch{} }
 export function pad2(n)        { return String(Math.max(0,Math.floor(n))).padStart(2,"0"); }
-export function autoFocus(sch,splitType) {
+export function autoFocus(sch,splitType,longRunDay) {
   const cycles=SPLIT_CYCLES[splitType]||["Full Body"]; const f={}; let i=0;
-  WDAYS.forEach(d=>{ if(sch[d]==="training")f[d]=cycles[i++%cycles.length]; else if(["cardio","run","hyrox"].includes(sch[d]))f[d]=(DAY_CFG[sch[d]]||DAY_CFG.rest).label; else f[d]="Rest"; });
+  WDAYS.forEach(d=>{
+    if(sch[d]==="training")f[d]=cycles[i++%cycles.length];
+    else if(["cardio","run","hyrox"].includes(sch[d])){
+      f[d]=(longRunDay&&d===longRunDay&&(sch[d]==='run'||sch[d]==='cardio'))?"Long Run":(DAY_CFG[sch[d]]||DAY_CFG.rest).label;
+    }else f[d]="Rest";
+  });
   return f;
 }
 

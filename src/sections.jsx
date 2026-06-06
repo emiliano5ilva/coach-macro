@@ -6442,8 +6442,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               const LIFT=['training','hyrox','hybrid'];
               async function applyLongRun(d){
                 const cur=schedule[d];
-                // If the day isn't already a run/cardio day, upgrade it to 'run'
-                const newSchedule=(cur==='run'||cur==='cardio')?schedule:{...schedule,[d]:'run'};
+                const oldLrd=wPrefs?.longRunDay;
+                const newSchedule={...schedule};
+                // Demote the previous long-run day (only if it's still run/cardio)
+                if(oldLrd&&oldLrd!==d&&(newSchedule[oldLrd]==='run'||newSchedule[oldLrd]==='cardio')){
+                  newSchedule[oldLrd]='rest';
+                }
+                // Promote the new day to 'run' if not already run/cardio
+                if(cur!=='run'&&cur!=='cardio'){
+                  newSchedule[d]='run';
+                }
                 const wp={...wPrefs,longRunDay:d};
                 setSchedule(newSchedule);
                 setWPrefs(wp);

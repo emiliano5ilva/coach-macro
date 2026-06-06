@@ -895,14 +895,16 @@ export default function NativeApp() {
   useEffect(()=>{
     if(!profile)return;
     const cycles=SPLIT_CYCLES[wPrefs.splitType]||["Full Body"];
+    const lrd=wPrefs.longRunDay||null;
     const f={};let i=0;
     WDAYS.forEach(d=>{
       if(schedule[d]==="training")f[d]=cycles[i++%cycles.length];
-      else if(["cardio","run","hyrox"].includes(schedule[d]))f[d]=(DAY_CFG[schedule[d]]||DAY_CFG.rest).label;
-      else f[d]="Rest";
+      else if(["cardio","run","hyrox"].includes(schedule[d])){
+        f[d]=(lrd&&d===lrd&&(schedule[d]==='run'||schedule[d]==='cardio'))?"Long Run":(DAY_CFG[schedule[d]]||DAY_CFG.rest).label;
+      }else f[d]="Rest";
     });
     setDayFocus(f);
-  },[wPrefs.splitType,schedule,profile]);
+  },[wPrefs.splitType,wPrefs.longRunDay,schedule,profile]);
 
   if(phase==="splash")return<SplashScreen onDone={()=>setPhase("session-check")}/>;
 
