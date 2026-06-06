@@ -462,9 +462,16 @@ export function getDailyWaterTarget(profile, todayType, todayFocus) {
 
 export function getWeekNutrition(schedule, baseCals, bodyweightKg, profile) {
   const WDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  // profile.longRunDay ('Sat', 'Sun', …) designates which run day is the long run.
+  // Only that day upgrades from easy_run to long_run (+500 kcal, high carbs).
+  // Other run days and non-run days are unaffected.
+  const longRunDay = profile?.longRunDay || null;
   return WDAYS.map(day => {
     const schedType = schedule?.[day] || 'rest';
-    const dayType   = getDayType(schedType, null, profile);
+    const isRunSched = schedType === 'run' || schedType === 'cardio';
+    const dayType = (isRunSched && longRunDay && day === longRunDay)
+      ? DAY_TYPES.LONG_RUN
+      : getDayType(schedType, null, profile);
     const nutrition = getDayTypeNutrition(baseCals, bodyweightKg, dayType, profile);
     return { day, schedType, dayType, ...nutrition };
   });

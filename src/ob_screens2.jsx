@@ -5516,11 +5516,22 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const _bodyweightKg=profile?.wUnit==="lbs"?parseFloat(profile?.weight||160)*0.4536:parseFloat(profile?.weight||70);
   const periodizationInfo=_phase?{phase:_phase.phase,wks:_phase.wks,cycleWeek,note:_phase.note}:null;
 
-  // Day-type specific nutrition (uses active workout exercises when available)
-  const _profileWithDeload={...profile,deloadActive};
-  const todayDayType=getDayType(todayType,activeWorkout,_profileWithDeload);
+  // Day-type specific nutrition (uses active workout exercises when available).
+  // longRunDay from wPrefs designates which run/cardio day is the long run — passed
+  // through profile so getWeekNutrition can upgrade that day to LONG_RUN.
+  const _profileWithDeload={...profile,deloadActive,longRunDay:wPrefs?.longRunDay??null};
+
+  // For today's ring: if today is the designated long-run day and no live workout
+  // already overrides the run type (e.g. user logged it as easy), resolve LONG_RUN
+  // directly so the ring matches the plan.
+  const _todayIsRunSched = todayType==='run' || todayType==='cardio';
+  const _hasLiveRunType  = !!(activeWorkout?.runType || activeWorkout?.distance);
+  const todayDayType = (
+    _todayIsRunSched && wPrefs?.longRunDay && wPrefs.longRunDay===todayKey && !_hasLiveRunType
+  ) ? 'long_run' : getDayType(todayType,activeWorkout,_profileWithDeload);
+
   const dayNutrition=getDayTypeNutrition(profile.goalCals||_baseTDEE,_bodyweightKg,todayDayType,_profileWithDeload);
-  const weekMacros=useMemo(()=>getWeekNutrition(schedule,profile.goalCals||_baseTDEE,_bodyweightKg,_profileWithDeload),[schedule,profile.goalCals,_bodyweightKg,profile.goal,deloadActive]);
+  const weekMacros=useMemo(()=>getWeekNutrition(schedule,profile.goalCals||_baseTDEE,_bodyweightKg,_profileWithDeload),[schedule,profile.goalCals,_bodyweightKg,profile.goal,deloadActive,wPrefs?.longRunDay]);
 
   let macros;
   if(wPrefs.nutritionPeriodization&&_phase){
