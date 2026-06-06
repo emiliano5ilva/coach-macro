@@ -5779,7 +5779,7 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
 }
 
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
-export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury}) {
+export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury,onProfileUpdate}) {
   const [delStep,setDelStep]=useState(0);
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
@@ -5791,6 +5791,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [localHeight,setLocalHeight]=useState(String(profile?.height||""));
   const [showGoalSelector,setShowGoalSelector]=useState(false);
   const [showSkillSelector,setShowSkillSelector]=useState(false);
+  // Plan & Nutrition modal states
+  const [showDietPicker,setShowDietPicker]=useState(false);
+  const [showRecoveryPicker,setShowRecoveryPicker]=useState(false);
+  const [showLongRunPicker,setShowLongRunPicker]=useState(false);
+  const [showRaceTypePicker,setShowRaceTypePicker]=useState(false);
+  const [showRaceDatePicker,setShowRaceDatePicker]=useState(false);
   const [stravaConnected,setStravaConnected]=useState(false);
   const [stravaLoading,setStravaLoading]=useState(false);
   const [stravaAthlete,setStravaAthlete]=useState(null);
@@ -5891,6 +5897,77 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
         <MeRow label="Weight" value={localWeight?(localWeight+" "+wUnit):"—"} onPress={()=>{setEditModal("weight");setEditValue(localWeight);}}/>
         <MeRow label="Height" value={localHeight?(localHeight+" cm"):"—"} onPress={()=>{setEditModal("height");setEditValue(localHeight);}} isLast/>
+      </div>
+
+      {/* ── PLAN & NUTRITION ── */}
+      <div style={eyebrowStyle}>// Plan & Nutrition</div>
+      <div style={cardStyle}>
+        {/* A. Diet Preset */}
+        {(()=>{
+          const DIET_OPTS=[
+            {id:'balanced',label:'Balanced'},{id:'high-protein',label:'High Protein'},
+            {id:'keto',label:'Keto'},{id:'vegan',label:'Vegan'},
+            {id:'vegetarian',label:'Vegetarian'},{id:'carnivore',label:'Carnivore'},
+            {id:'low-carb',label:'Low Carb'},{id:'pescatarian',label:'Pescatarian'},
+            {id:'mediterranean',label:'Mediterranean'},
+          ];
+          const currentDiet=wPrefs?.mealPrepDiet||'balanced';
+          const currentDietLabel=DIET_OPTS.find(d=>d.id===currentDiet)?.label||'Balanced';
+          return <MeRow label="Diet Preset" value={currentDietLabel} onPress={()=>setShowDietPicker(true)}/>;
+        })()}
+        {/* B. Allergens / Restrictions — chip multi-select */}
+        {(()=>{
+          const ALLERGEN_OPTS=[
+            {v:'vegetarian',l:'Vegetarian'},{v:'vegan',l:'Vegan'},
+            {v:'gluten',l:'Gluten Free'},{v:'dairy',l:'Dairy Free'},
+            {v:'nuts',l:'No Nuts'},{v:'eggs',l:'No Eggs'},
+            {v:'shellfish',l:'No Shellfish'},{v:'halal',l:'Halal'},
+            {v:'kosher',l:'Kosher'},
+          ];
+          const current=(profile?.dietary||[]).filter(d=>d!=='none');
+          return(
+            <div style={{padding:"14px 16px",borderTop:"1px solid rgba(245,245,240,0.06)"}}>
+              <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:6}}>Dietary Restrictions</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
+                {ALLERGEN_OPTS.map(({v,l})=>{
+                  const active=current.includes(v);
+                  return(
+                    <button key={v} onClick={async()=>{
+                      const next=active?current.filter(x=>x!==v):[...current,v];
+                      await sb.from("profiles").upsert({id:user.id,profile_data:{...profile,dietary:next}},{onConflict:"id"});
+                      onProfileUpdate?.({dietary:next});
+                    }} style={{padding:"6px 14px",borderRadius:20,border:active?"none":"1px solid rgba(245,245,240,0.15)",background:active?"var(--accent)":"transparent",color:active?"#fff":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
+                      {l}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+        {/* C. Recovery Capacity */}
+        {(()=>{
+          const RC_LABELS={fast:"Very fast",normal:"Normal",slow:"Slower",very_slow:"Very slow"};
+          const currentRC=wPrefs?.recoveryCapacity||profile?.recovery_capacity||'normal';
+          return <MeRow label="Recovery Capacity" value={RC_LABELS[currentRC]||currentRC} onPress={()=>setShowRecoveryPicker(true)}/>;
+        })()}
+        {/* D. Long Run Day */}
+        {(()=>{
+          const currentLRD=wPrefs?.longRunDay;
+          return <MeRow label="Long Run Day" value={currentLRD||'—'} onPress={()=>setShowLongRunPicker(true)}/>;
+        })()}
+        {/* E. Race Type + Race Date */}
+        {(()=>{
+          const RACE_LABELS={'5k':'5K','10k':'10K','half_marathon':'Half Marathon','marathon':'Marathon','ultra':'Ultra','obstacle':'Obstacle / OCR','general':'General Fitness'};
+          const currentRT=profile?.run_race_type;
+          const currentRD=profile?.run_race_date;
+          return(
+            <>
+              <MeRow label="Race Type" value={currentRT?RACE_LABELS[currentRT]||currentRT:'—'} onPress={()=>setShowRaceTypePicker(true)}/>
+              <MeRow label="Race Date" value={currentRD?new Date(currentRD+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'} onPress={()=>setShowRaceDatePicker(true)} isLast/>
+            </>
+          );
+        })()}
       </div>
 
       {/* ── DISPLAY ── */}
@@ -6304,6 +6381,116 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 </button>
               ))}
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── DIET PRESET MODAL ── */}
+      {showDietPicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowDietPicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Diet Preset</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[{id:'balanced',label:'Balanced'},{id:'high-protein',label:'High Protein'},{id:'keto',label:'Keto'},{id:'vegan',label:'Vegan'},{id:'vegetarian',label:'Vegetarian'},{id:'carnivore',label:'Carnivore'},{id:'low-carb',label:'Low Carb'},{id:'pescatarian',label:'Pescatarian'},{id:'mediterranean',label:'Mediterranean'}].map(({id,label})=>{
+                const sel=(wPrefs?.mealPrepDiet||'balanced')===id;
+                return(
+                  <button key={id} onClick={async()=>{const wp={...wPrefs,mealPrepDiet:id};setWPrefs(wp);await saveSettings(wp,null);setShowDietPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    {label}{sel&&<span>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── RECOVERY CAPACITY MODAL ── */}
+      {showRecoveryPicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRecoveryPicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Recovery Capacity</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[{v:'fast',l:'Very fast',d:'Ready to go the next day'},{v:'normal',l:'Normal',d:'A bit sore for about a day'},{v:'slow',l:'Slower',d:'Need 2–3 days to feel fresh'},{v:'very_slow',l:'Very slow',d:'4+ days to fully bounce back'}].map(({v,l,d})=>{
+                const sel=(wPrefs?.recoveryCapacity||profile?.recovery_capacity||'normal')===v;
+                return(
+                  <button key={v} onClick={async()=>{
+                    await saveProfileField('recovery_capacity',v);
+                    const wp={...wPrefs,recoveryCapacity:v};setWPrefs(wp);await saveSettings(wp,null);
+                    onProfileUpdate?.({recovery_capacity:v});
+                    setShowRecoveryPicker(false);
+                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div><div>{l}</div><div style={{fontSize:12,color:"rgba(245,245,240,0.4)",marginTop:2}}>{d}</div></div>
+                    {sel&&<span>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── LONG RUN DAY MODAL ── */}
+      {showLongRunPicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowLongRunPicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Long Run Day</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>{
+                const sel=wPrefs?.longRunDay===day;
+                return(
+                  <button key={day} onClick={async()=>{const wp={...wPrefs,longRunDay:day};setWPrefs(wp);await saveSettings(wp,null);setShowLongRunPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    {day}{sel&&<span>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── RACE TYPE MODAL ── */}
+      {showRaceTypePicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRaceTypePicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Type</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[{v:'5k',l:'5K'},{v:'10k',l:'10K'},{v:'half_marathon',l:'Half Marathon'},{v:'marathon',l:'Marathon'},{v:'ultra',l:'Ultra'},{v:'obstacle',l:'Obstacle / OCR'},{v:'general',l:'General Fitness'}].map(({v,l})=>{
+                const sel=profile?.run_race_type===v;
+                return(
+                  <button key={v} onClick={async()=>{
+                    await saveProfileField('run_race_type',v);
+                    onProfileUpdate?.({run_race_type:v});
+                    setShowRaceTypePicker(false);
+                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    {l}{sel&&<span>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── RACE DATE PICKER ── */}
+      {showRaceDatePicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRaceDatePicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Date</div>
+            <input type="date" defaultValue={profile?.run_race_date||''} min={new Date().toISOString().split('T')[0]}
+              style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none",colorScheme:"dark"}}
+              onChange={async(e)=>{
+                const val=e.target.value;
+                if(!val)return;
+                await saveProfileField('run_race_date',val);
+                onProfileUpdate?.({run_race_date:val});
+                setShowRaceDatePicker(false);
+              }}/>
+            <button onClick={()=>setShowRaceDatePicker(false)} style={{width:"100%",padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
           </div>
         </div>,
         document.body
