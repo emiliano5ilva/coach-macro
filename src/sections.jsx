@@ -4446,7 +4446,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <span style={{background:c.bg,color:c.color,fontSize:9,fontWeight:700,letterSpacing:1,padding:"2px 8px",borderRadius:20,textTransform:"uppercase"}}>{f}</span>
                   </div>
                   <div style={{display:"flex",gap:4}}>
-                    {[["training","T"],["cardio","C"],["run","R"],["hyrox","H"],["rest","—"]].map(([tp,lbl])=>(<button key={tp} onClick={()=>setSchedule(s=>({...s,[day]:tp}))} style={{fontSize:10,fontWeight:700,fontFamily:"var(--mono)",padding:"4px 7px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.bd}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",color:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.mu,cursor:"pointer"}}>{lbl}</button>))}
+                    {[["training","T"],["cardio","C"],["run","R"],["hyrox","H"],["rest","—"]].map(([tp,lbl])=>(<button key={tp} onClick={()=>{const next={...schedule,[day]:tp};setSchedule(next);if(user)sb.from("profiles").upsert({id:user.id,schedule:next},{onConflict:"id"}).then(({error})=>{if(error)console.error('[schedule persist]',error);});}} style={{fontSize:10,fontWeight:700,fontFamily:"var(--mono)",padding:"4px 7px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.bd}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",color:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.mu,cursor:"pointer"}}>{lbl}</button>))}
                   </div>
                 </div>
               );})}
@@ -5795,6 +5795,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [showDietPicker,setShowDietPicker]=useState(false);
   const [showRecoveryPicker,setShowRecoveryPicker]=useState(false);
   const [showLongRunPicker,setShowLongRunPicker]=useState(false);
+  const [lrdOverrideDay,setLrdOverrideDay]=useState(null); // confirm before replacing a lift day
   const [showRaceTypePicker,setShowRaceTypePicker]=useState(false);
   const [showRaceDatePicker,setShowRaceDatePicker]=useState(false);
   const [stravaConnected,setStravaConnected]=useState(false);
@@ -6434,19 +6435,56 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
       {/* ── LONG RUN DAY MODAL ── */}
       {showLongRunPicker&&ReactDOM.createPortal(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowLongRunPicker(false)}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>{setShowLongRunPicker(false);setLrdOverrideDay(null);}}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
             <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Long Run Day</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>{
-                const sel=wPrefs?.longRunDay===day;
-                return(
-                  <button key={day} onClick={async()=>{const wp={...wPrefs,longRunDay:day};setWPrefs(wp);await saveSettings(wp,null);setShowLongRunPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    {day}{sel&&<span>✓</span>}
-                  </button>
-                );
-              })}
-            </div>
+            {(()=>{
+              const LIFT=['training','hyrox','hybrid'];
+              async function applyLongRun(d){
+                const cur=schedule[d];
+                // If the day isn't already a run/cardio day, upgrade it to 'run'
+                const newSchedule=(cur==='run'||cur==='cardio')?schedule:{...schedule,[d]:'run'};
+                const wp={...wPrefs,longRunDay:d};
+                setSchedule(newSchedule);
+                setWPrefs(wp);
+                await saveSettings(wp,newSchedule); // persists BOTH wprefs + schedule
+                setLrdOverrideDay(null);
+                setShowLongRunPicker(false);
+              }
+              return(
+                <>
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=>{
+                      const sel=wPrefs?.longRunDay===day;
+                      const cur=schedule[day];
+                      return(
+                        <button key={day} onClick={()=>{
+                          if(LIFT.includes(cur)){setLrdOverrideDay(day);}
+                          else{applyLongRun(day);}
+                        }} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <div>
+                            {day}
+                            {cur&&cur!=='rest'&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.35)",marginLeft:8}}>{DAY_CFG[cur]?.label||cur}</span>}
+                          </div>
+                          {sel&&<span>✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Inline guardrail: confirm before replacing a lift/structured day */}
+                  {lrdOverrideDay&&(
+                    <div style={{background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:10,padding:14,marginTop:12}}>
+                      <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:6}}>{lrdOverrideDay} is your {DAY_CFG[schedule[lrdOverrideDay]]?.label||'training'} day — replace it with your long run?</div>
+                      <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:10}}>This changes the schedule type to Run for {lrdOverrideDay}.</div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>setLrdOverrideDay(null)} style={{flex:1,padding:"10px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                        <button onClick={()=>applyLongRun(lrdOverrideDay)} style={{flex:1,padding:"10px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Replace</button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>,
         document.body
