@@ -2049,6 +2049,7 @@ Reply with ONLY a valid JSON object, no markdown:
   const [checkedGroceryItems,setCheckedGroceryItems]=useState(()=>{try{const s=localStorage.getItem('mp_checked');return s?new Set(JSON.parse(s)):new Set();}catch{return new Set();}});
   const [regeneratingMeal,setRegeneratingMeal]=useState(null);
   const [regeneratingDay,setRegeneratingDay]=useState(null);
+  const [swappingSlot,setSwappingSlot]=useState(null); // slot number being re-fitted for planned card
   const [mealPrepError,setMealPrepError]=useState(null);
   const [mpSaveConfirm,setMpSaveConfirm]=useState(false);
   const [mpStatusIdx,setMpStatusIdx]=useState(0);
@@ -2175,6 +2176,67 @@ Reply with ONLY a valid JSON object, no markdown:
       setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex]=updated;return u;});
     }catch(e){console.error('[regenerateDay (fitter)]',e);}
     setRegeneratingDay(null);
+  }
+
+  // ── Planned-card part-B actions ──────────────────────────────────────────────
+
+  // CONFIRM: build entry from planned meal, run same lock-gate check as + button,
+  // then call the existing logEntry — does NOT fork the write path.
+  function handleConfirmPlanned(meal,slot){
+    const entry={food:meal.name,calories:meal.calories,protein:meal.protein,carbs:meal.carbs,fat:meal.fat,slot,method:'mealprep'};
+    const pendingIdx=mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0;
+    const slotToLock=mealSlots.find(s=>s<slot&&log.some(e=>getEntrySlot(e)===s)&&!(lockedSlots||[]).includes(s));
+    if(slotToLock){
+      // Attach pendingEntry to lockGate so the modal's YES/NOT YET handlers log it
+      setLockGate({slotToLock,pendingIdx,pendingEntry:entry});
+    }else{
+      logEntry(entry);
+    }
+  }
+
+  // SWAP: re-fit just this slot with a new seed, same diet/allergens/pool,
+  // excluding the current recipe. Updates mealPrepPlan state (→ localStorage).
+  // Never logs anything.
+  async function handleSwapPlanned(slot,currentRecipeId){
+    if(!mealPrepPlan)return;
+    const dayIdx=mealPrepPlan.days.findIndex(d=>d.day.slice(0,3)===todayKey);
+    if(dayIdx<0)return;
+    const mealIdx=mealPrepPlan.days[dayIdx].meals.findIndex(m=>m.slot===slot);
+    if(mealIdx<0)return;
+    setSwappingSlot(slot);
+    try{
+      const diet=mealPrepPrefs.dietPreset||'balanced';
+      const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
+      const dayEntry=weekMacros?.find(d=>d.day===mealPrepPlan.days[dayIdx].day.slice(0,3));
+      const dayTarget=dayEntry
+        ?{cal:dayEntry.calories,pro:dayEntry.protein,carb:dayEntry.carbs,fat:dayEntry.fat}
+        :{cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
+      const pool=await loadMealPool(diet,allergenTags);
+      const swapPool=currentRecipeId?pool.filter(r=>r.id!==currentRecipeId):pool;
+      const mealCount=mealPrepPlan.days[dayIdx].meals.length;
+      const result=fitDay({dayTarget,mealCount,diet,allergens:allergenTags,pool:swapPool,seed:Date.now()%100000});
+      const replacement=result.meals.find(m=>m.slot===slot&&!m.unfillable);
+      if(replacement){
+        const{recipe,servings,scaledMacros}=replacement;
+        const newMeal={
+          name:recipe.name,
+          calories:Math.round(scaledMacros.cal),protein:Math.round(scaledMacros.pro*10)/10,
+          carbs:Math.round(scaledMacros.carb*10)/10,fat:Math.round(scaledMacros.fat*10)/10,
+          ingredients:(recipe.ingredients||[]).map(ing=>({item:ing.item,amount:fmtIngAmt((ing.qty||0)*servings,ing.unit)})),
+          instructions:recipe.instructions||null,slot,servings,_recipeId:recipe.id,unfillable:false,
+        };
+        setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIdx].meals[mealIdx]=newMeal;return u;});
+      }
+    }catch(e){console.error('[handleSwapPlanned]',e);}
+    setSwappingSlot(null);
+  }
+
+  // SKIP: add slot to skipped_slots via existing saveSkippedSlots.
+  // Per part-A precedence a skipped slot shows SKIPPED (not planned).
+  // Budget redistributes automatically via getSlotTargets. Never logs.
+  function handleSkipPlanned(slot){
+    const newSkipped=[...(skippedSlots||[]),slot];
+    onSkipSlots?.(newSkipped);
   }
 
   async function saveMealPrepPlan(){
@@ -3063,19 +3125,36 @@ Reply with ONLY a valid JSON object, no markdown:
                               </div>
                             </SwipeRow>
                           ))}
-                          {/* ── PLANNED card (read-only, part A) ── */}
+                          {/* ── PLANNED card — part B: confirm / swap / skip ── */}
                           {plannedMeal&&(
                             <div style={{marginTop:4,padding:"10px 12px",border:"1.5px dashed rgba(245,245,240,0.12)",borderRadius:10,background:"rgba(232,52,28,0.04)"}}>
-                              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(232,52,28,0.55)",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:3}}>// planned</div>
-                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(232,52,28,0.55)",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:4}}>// planned</div>
+                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,color:"rgba(245,245,240,0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{plannedMeal.name}</div>
                                   <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.28)",marginTop:2}}>
                                     <span style={{color:"rgba(34,197,94,0.45)"}}>P {Math.round(plannedMeal.protein)}g</span>{' · '}{Math.round(plannedMeal.calories)} kcal
                                   </div>
                                 </div>
-                                {/* part-B: [✓ Ate this] / [Swap] buttons will replace this label */}
-                                <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.18)",letterSpacing:"0.12em",textTransform:"uppercase",flexShrink:0}}>not logged</div>
+                              </div>
+                              {/* Action row: primary confirm, secondary swap, tertiary skip */}
+                              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                                <button
+                                  onClick={()=>handleConfirmPlanned(plannedMeal,slot)}
+                                  style={{flex:2,padding:"7px 10px",background:"#e8341c",border:"none",borderRadius:8,fontFamily:"var(--mono)",fontWeight:700,fontSize:9,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
+                                  ✓ Ate this
+                                </button>
+                                <button
+                                  onClick={()=>swappingSlot!==slot&&handleSwapPlanned(slot,plannedMeal._recipeId)}
+                                  disabled={swappingSlot===slot}
+                                  style={{flex:1,padding:"7px 10px",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.12)",borderRadius:8,fontFamily:"var(--mono)",fontWeight:700,fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:swappingSlot===slot?"default":"pointer",opacity:swappingSlot===slot?0.5:1}}>
+                                  {swappingSlot===slot?"…":"Swap"}
+                                </button>
+                                <button
+                                  onClick={()=>handleSkipPlanned(slot)}
+                                  style={{padding:"7px 8px",background:"none",border:"none",fontFamily:"var(--mono)",fontWeight:700,fontSize:8,color:"rgba(245,245,240,0.22)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>
+                                  Skip
+                                </button>
                               </div>
                             </div>
                           )}
@@ -4726,15 +4805,25 @@ Reply with ONLY a valid JSON object, no markdown:
                   onClick={()=>{
                     const newLocked=[...(lockedSlots||[]),lockGate.slotToLock];
                     if(onLockSlots)onLockSlots(newLocked);
-                    pendingLogSlotRef.current=lockGate.pendingIdx;
-                    setLockGate(null);
-                    setFuelScreen('log');
+                    if(lockGate.pendingEntry){
+                      // Came from planned-card confirm → log the entry directly after locking
+                      logEntry(lockGate.pendingEntry);
+                      setLockGate(null);
+                    }else{
+                      pendingLogSlotRef.current=lockGate.pendingIdx;
+                      setLockGate(null);
+                      setFuelScreen('log');
+                    }
                   }}
                   style={{flex:2,padding:"14px",background:"#e8341c",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
                   YES — LOCK IT
                 </button>
                 <button
-                  onClick={()=>setLockGate(null)}
+                  onClick={()=>{
+                    // If from planned-card confirm, log without locking the earlier slot
+                    if(lockGate.pendingEntry)logEntry(lockGate.pendingEntry);
+                    setLockGate(null);
+                  }}
                   style={{flex:1,padding:"14px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.1)",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"rgba(245,245,240,0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>
                   NOT YET
                 </button>
