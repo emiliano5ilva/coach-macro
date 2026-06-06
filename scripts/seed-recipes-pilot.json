@@ -1,0 +1,360 @@
+[
+  {
+    "name": "Greek Yogurt Protein Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": ["high-protein", "balanced", "vegetarian"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "Greek yogurt, plain, nonfat", "qty": 200, "unit": "g"},
+      {"item": "rolled oats", "qty": 40, "unit": "g"},
+      {"item": "blueberries, raw", "qty": 80, "unit": "g"},
+      {"item": "honey", "qty": 15, "unit": "g"},
+      {"item": "almonds, raw", "qty": 20, "unit": "g"}
+    ],
+    "instructions": "Mix Greek yogurt with rolled oats. Top with blueberries, drizzle honey, and scatter almonds. Let sit 5 minutes to soften oats slightly."
+  },
+  {
+    "name": "Scrambled Eggs with Spinach",
+    "meal_slot": "breakfast",
+    "diet_tags": ["high-protein", "balanced", "vegetarian", "keto", "paleo", "low-carb", "mediterranean"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "egg, whole, raw", "qty": 3, "unit": "whole"},
+      {"item": "spinach, raw", "qty": 60, "unit": "g"},
+      {"item": "olive oil", "qty": 10, "unit": "ml"},
+      {"item": "cheddar cheese", "qty": 20, "unit": "g"},
+      {"item": "salt", "qty": 2, "unit": "g"}
+    ],
+    "instructions": "Heat olive oil in a pan. Sauté spinach until wilted. Whisk eggs, pour over spinach, and scramble gently. Top with cheddar cheese and season."
+  },
+  {
+    "name": "Oatmeal with Banana and Whey",
+    "meal_slot": "breakfast",
+    "diet_tags": ["high-protein", "balanced", "vegetarian"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "rolled oats", "qty": 80, "unit": "g"},
+      {"item": "whole milk", "qty": 200, "unit": "ml"},
+      {"item": "banana, raw", "qty": 1, "unit": "whole"},
+      {"item": "whey protein powder", "qty": 30, "unit": "g"}
+    ],
+    "instructions": "Cook oats in milk over medium heat 5 minutes. Remove from heat and stir in protein powder. Slice banana on top."
+  },
+  {
+    "name": "Smoked Salmon Avocado Toast",
+    "meal_slot": "breakfast",
+    "diet_tags": ["balanced", "high-protein", "mediterranean", "pescatarian"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "whole wheat bread", "qty": 2, "unit": "slice"},
+      {"item": "avocado, raw", "qty": 0.5, "unit": "whole"},
+      {"item": "smoked salmon", "qty": 60, "unit": "g"},
+      {"item": "lemon juice, raw", "qty": 10, "unit": "ml"},
+      {"item": "egg, whole, raw", "qty": 1, "unit": "whole"}
+    ],
+    "instructions": "Toast bread. Mash avocado with lemon juice and spread on toast. Poach egg and lay on top with smoked salmon slices."
+  },
+  {
+    "name": "Keto Bacon and Egg Cups",
+    "meal_slot": "breakfast",
+    "diet_tags": ["keto", "high-protein", "low-carb", "carnivore", "paleo"],
+    "servings": 2,
+    "ingredients": [
+      {"item": "egg, whole, raw", "qty": 4, "unit": "whole"},
+      {"item": "bacon, cured, pan-fried", "qty": 60, "unit": "g"},
+      {"item": "cheddar cheese", "qty": 30, "unit": "g"},
+      {"item": "heavy cream", "qty": 30, "unit": "ml"}
+    ],
+    "instructions": "Line muffin tin with bacon. Whisk eggs with cream and cheese. Pour into bacon cups. Bake 18 minutes at 375°F until set."
+  },
+  {
+    "name": "Vegan Chia Pudding",
+    "meal_slot": "breakfast",
+    "diet_tags": ["vegan", "vegetarian", "balanced", "mediterranean", "low-carb"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "chia seeds", "qty": 40, "unit": "g"},
+      {"item": "coconut milk", "qty": 200, "unit": "ml"},
+      {"item": "strawberries, raw", "qty": 80, "unit": "g"},
+      {"item": "maple syrup", "qty": 15, "unit": "ml"}
+    ],
+    "instructions": "Mix chia seeds with coconut milk and maple syrup. Refrigerate overnight or 4 hours. Top with sliced strawberries before serving."
+  },
+  {
+    "name": "Chicken Rice Power Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": ["high-protein", "balanced", "mediterranean"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "chicken breast, broilers or fryers, cooked, roasted", "qty": 200, "unit": "g"},
+      {"item": "brown rice, cooked", "qty": 150, "unit": "g"},
+      {"item": "broccoli, raw", "qty": 100, "unit": "g"},
+      {"item": "olive oil", "qty": 15, "unit": "ml"},
+      {"item": "soy sauce", "qty": 15, "unit": "ml"}
+    ],
+    "instructions": "Cook rice. Steam broccoli 5 minutes. Slice chicken and arrange over rice. Drizzle olive oil and soy sauce."
+  },
+  {
+    "name": "Tuna Nicoise Salad",
+    "meal_slot": "lunch",
+    "diet_tags": ["high-protein", "balanced", "mediterranean", "pescatarian", "paleo"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "tuna, canned in water, drained", "qty": 150, "unit": "g"},
+      {"item": "egg, whole, hard-boiled", "qty": 2, "unit": "whole"},
+      {"item": "green beans, raw", "qty": 80, "unit": "g"},
+      {"item": "tomatoes, cherry", "qty": 100, "unit": "g"},
+      {"item": "olive oil", "qty": 20, "unit": "ml"},
+      {"item": "lemon juice, raw", "qty": 15, "unit": "ml"}
+    ],
+    "instructions": "Blanch green beans 3 minutes. Arrange tuna, halved eggs, beans, and tomatoes in a bowl. Dress with olive oil and lemon."
+  },
+  {
+    "name": "Lean Turkey Wrap",
+    "meal_slot": "lunch",
+    "diet_tags": ["high-protein", "balanced"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "turkey breast, deli, sliced", "qty": 120, "unit": "g"},
+      {"item": "flour tortilla, large", "qty": 1, "unit": "whole"},
+      {"item": "avocado, raw", "qty": 0.5, "unit": "whole"},
+      {"item": "romaine lettuce", "qty": 40, "unit": "g"},
+      {"item": "tomatoes, raw", "qty": 60, "unit": "g"},
+      {"item": "mustard, prepared", "qty": 10, "unit": "g"}
+    ],
+    "instructions": "Lay tortilla flat. Spread avocado and mustard. Layer turkey, lettuce, and tomato. Roll tightly and slice."
+  },
+  {
+    "name": "Keto Cobb Salad",
+    "meal_slot": "lunch",
+    "diet_tags": ["keto", "high-protein", "low-carb", "balanced", "mediterranean"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "chicken breast, broilers or fryers, cooked, roasted", "qty": 150, "unit": "g"},
+      {"item": "egg, whole, hard-boiled", "qty": 2, "unit": "whole"},
+      {"item": "bacon, cured, pan-fried", "qty": 30, "unit": "g"},
+      {"item": "avocado, raw", "qty": 0.5, "unit": "whole"},
+      {"item": "cheddar cheese", "qty": 30, "unit": "g"},
+      {"item": "romaine lettuce", "qty": 80, "unit": "g"},
+      {"item": "olive oil", "qty": 20, "unit": "ml"}
+    ],
+    "instructions": "Chop all ingredients. Arrange in rows over lettuce. Drizzle with olive oil. Season with salt and pepper."
+  },
+  {
+    "name": "Vegan Lentil and Quinoa Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": ["vegan", "vegetarian", "high-protein", "balanced", "mediterranean"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "lentils, mature seeds, cooked, boiled", "qty": 150, "unit": "g"},
+      {"item": "quinoa, cooked", "qty": 100, "unit": "g"},
+      {"item": "spinach, raw", "qty": 60, "unit": "g"},
+      {"item": "tomatoes, raw", "qty": 100, "unit": "g"},
+      {"item": "olive oil", "qty": 15, "unit": "ml"},
+      {"item": "lemon juice, raw", "qty": 15, "unit": "ml"},
+      {"item": "cumin, ground", "qty": 2, "unit": "g"}
+    ],
+    "instructions": "Cook lentils and quinoa. Wilt spinach briefly in a pan. Combine everything with chopped tomatoes. Dress with olive oil, lemon, and cumin."
+  },
+  {
+    "name": "Beef and Vegetable Stir Fry",
+    "meal_slot": "dinner",
+    "diet_tags": ["high-protein", "balanced", "paleo"],
+    "servings": 2,
+    "ingredients": [
+      {"item": "beef, sirloin steak, lean, raw", "qty": 300, "unit": "g"},
+      {"item": "broccoli, raw", "qty": 150, "unit": "g"},
+      {"item": "bell peppers, raw", "qty": 100, "unit": "g"},
+      {"item": "soy sauce", "qty": 30, "unit": "ml"},
+      {"item": "sesame oil", "qty": 10, "unit": "ml"},
+      {"item": "garlic, raw", "qty": 3, "unit": "whole"},
+      {"item": "ginger root, raw", "qty": 10, "unit": "g"}
+    ],
+    "instructions": "Slice beef thin. Stir fry garlic and ginger 1 minute in sesame oil. Add beef, cook 3 minutes. Add vegetables and soy sauce, cook 4 more minutes."
+  },
+  {
+    "name": "Baked Salmon with Asparagus",
+    "meal_slot": "dinner",
+    "diet_tags": ["high-protein", "balanced", "keto", "paleo", "mediterranean", "pescatarian", "low-carb"],
+    "servings": 2,
+    "ingredients": [
+      {"item": "salmon, atlantic, farmed, raw", "qty": 300, "unit": "g"},
+      {"item": "asparagus, raw", "qty": 200, "unit": "g"},
+      {"item": "olive oil", "qty": 20, "unit": "ml"},
+      {"item": "lemon juice, raw", "qty": 20, "unit": "ml"},
+      {"item": "garlic, raw", "qty": 2, "unit": "whole"}
+    ],
+    "instructions": "Place salmon fillets on a baking sheet. Surround with asparagus. Drizzle olive oil and lemon. Bake at 400°F for 18 minutes."
+  },
+  {
+    "name": "Chicken Tikka Masala",
+    "meal_slot": "dinner",
+    "diet_tags": ["high-protein", "balanced", "mediterranean"],
+    "servings": 3,
+    "ingredients": [
+      {"item": "chicken breast, broilers or fryers, raw", "qty": 500, "unit": "g"},
+      {"item": "tomato products, canned, puree", "qty": 200, "unit": "g"},
+      {"item": "heavy cream", "qty": 100, "unit": "ml"},
+      {"item": "olive oil", "qty": 20, "unit": "ml"},
+      {"item": "onions, raw", "qty": 100, "unit": "g"},
+      {"item": "garlic, raw", "qty": 4, "unit": "whole"},
+      {"item": "ginger root, raw", "qty": 15, "unit": "g"},
+      {"item": "brown rice, cooked", "qty": 300, "unit": "g"}
+    ],
+    "instructions": "Cube chicken and marinate in yogurt and spices. Brown onion, garlic, and ginger in oil. Add chicken, cook through. Add tomato puree and cream, simmer 15 minutes. Serve over rice."
+  },
+  {
+    "name": "Keto Beef Meatballs with Zucchini Noodles",
+    "meal_slot": "dinner",
+    "diet_tags": ["keto", "high-protein", "low-carb", "carnivore"],
+    "servings": 2,
+    "ingredients": [
+      {"item": "ground beef, 80% lean, raw", "qty": 350, "unit": "g"},
+      {"item": "zucchini, raw", "qty": 300, "unit": "g"},
+      {"item": "egg, whole, raw", "qty": 1, "unit": "whole"},
+      {"item": "parmesan cheese, shredded", "qty": 30, "unit": "g"},
+      {"item": "olive oil", "qty": 20, "unit": "ml"},
+      {"item": "garlic, raw", "qty": 2, "unit": "whole"}
+    ],
+    "instructions": "Mix beef with egg, parmesan, and garlic. Form meatballs and bake at 400°F 20 minutes. Spiralize zucchini and sauté in olive oil 3 minutes. Serve meatballs over zucchini noodles."
+  },
+  {
+    "name": "Vegan Chickpea Curry",
+    "meal_slot": "dinner",
+    "diet_tags": ["vegan", "vegetarian", "balanced", "high-protein", "mediterranean"],
+    "servings": 3,
+    "ingredients": [
+      {"item": "chickpeas, mature seeds, canned, drained", "qty": 400, "unit": "g"},
+      {"item": "tomato products, canned, diced", "qty": 200, "unit": "g"},
+      {"item": "coconut milk", "qty": 200, "unit": "ml"},
+      {"item": "onions, raw", "qty": 100, "unit": "g"},
+      {"item": "garlic, raw", "qty": 3, "unit": "whole"},
+      {"item": "olive oil", "qty": 15, "unit": "ml"},
+      {"item": "brown rice, cooked", "qty": 300, "unit": "g"}
+    ],
+    "instructions": "Sauté onion and garlic in oil until soft. Add chickpeas, tomatoes, and coconut milk. Simmer 20 minutes. Serve over brown rice."
+  },
+  {
+    "name": "Lamb Chops with Roasted Sweet Potato",
+    "meal_slot": "dinner",
+    "diet_tags": ["high-protein", "balanced", "paleo", "mediterranean"],
+    "servings": 2,
+    "ingredients": [
+      {"item": "lamb, rib chop, lean, raw", "qty": 280, "unit": "g"},
+      {"item": "sweet potato, raw", "qty": 250, "unit": "g"},
+      {"item": "olive oil", "qty": 20, "unit": "ml"},
+      {"item": "rosemary, fresh", "qty": 5, "unit": "g"},
+      {"item": "garlic, raw", "qty": 2, "unit": "whole"}
+    ],
+    "instructions": "Cube sweet potato, toss with olive oil and garlic, roast 30 minutes at 400°F. Season lamb chops with rosemary and pan-sear 4 minutes each side."
+  },
+  {
+    "name": "Protein Pancakes",
+    "meal_slot": "breakfast",
+    "diet_tags": ["high-protein", "balanced", "vegetarian"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "banana, raw", "qty": 1, "unit": "whole"},
+      {"item": "egg, whole, raw", "qty": 2, "unit": "whole"},
+      {"item": "whey protein powder", "qty": 30, "unit": "g"},
+      {"item": "rolled oats", "qty": 30, "unit": "g"},
+      {"item": "whole milk", "qty": 60, "unit": "ml"}
+    ],
+    "instructions": "Blend all ingredients until smooth. Pour onto a non-stick pan over medium heat. Cook 2 minutes per side until golden. Stack and serve."
+  },
+  {
+    "name": "Cottage Cheese and Fruit Bowl",
+    "meal_slot": "snack",
+    "diet_tags": ["high-protein", "balanced", "vegetarian"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "cottage cheese, lowfat", "qty": 150, "unit": "g"},
+      {"item": "strawberries, raw", "qty": 80, "unit": "g"},
+      {"item": "blueberries, raw", "qty": 60, "unit": "g"},
+      {"item": "honey", "qty": 10, "unit": "g"}
+    ],
+    "instructions": "Scoop cottage cheese into a bowl. Top with berries and drizzle with honey. Serve immediately."
+  },
+  {
+    "name": "Almond Butter and Banana",
+    "meal_slot": "snack",
+    "diet_tags": ["balanced", "vegetarian", "paleo"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "banana, raw", "qty": 1, "unit": "whole"},
+      {"item": "almond butter", "qty": 32, "unit": "g"}
+    ],
+    "instructions": "Slice banana into rounds. Serve with almond butter for dipping."
+  },
+  {
+    "name": "Hard Boiled Eggs with Hummus",
+    "meal_slot": "snack",
+    "diet_tags": ["high-protein", "balanced", "vegetarian", "mediterranean"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "egg, whole, hard-boiled", "qty": 2, "unit": "whole"},
+      {"item": "hummus, commercial", "qty": 60, "unit": "g"},
+      {"item": "carrots, raw", "qty": 80, "unit": "g"},
+      {"item": "bell peppers, raw", "qty": 60, "unit": "g"}
+    ],
+    "instructions": "Peel and halve eggs. Serve with hummus and raw cut vegetables for dipping."
+  },
+  {
+    "name": "Vegan Energy Balls",
+    "meal_slot": "snack",
+    "diet_tags": ["vegan", "vegetarian", "balanced"],
+    "servings": 4,
+    "ingredients": [
+      {"item": "rolled oats", "qty": 100, "unit": "g"},
+      {"item": "almond butter", "qty": 64, "unit": "g"},
+      {"item": "honey", "qty": 40, "unit": "g"},
+      {"item": "dark chocolate chips", "qty": 40, "unit": "g"},
+      {"item": "chia seeds", "qty": 20, "unit": "g"}
+    ],
+    "instructions": "Mix all ingredients in a bowl. Roll into balls using a tablespoon measure. Refrigerate 30 minutes to firm up. Makes ~12 balls / 4 servings."
+  },
+  {
+    "name": "Protein Shake with Oats",
+    "meal_slot": "snack",
+    "diet_tags": ["high-protein", "balanced", "vegetarian"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "whey protein powder", "qty": 40, "unit": "g"},
+      {"item": "whole milk", "qty": 300, "unit": "ml"},
+      {"item": "rolled oats", "qty": 30, "unit": "g"},
+      {"item": "banana, raw", "qty": 0.5, "unit": "whole"}
+    ],
+    "instructions": "Blend all ingredients until smooth. Drink immediately for best texture."
+  },
+  {
+    "name": "Salmon and Quinoa Buddha Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": ["high-protein", "balanced", "mediterranean", "pescatarian"],
+    "servings": 1,
+    "ingredients": [
+      {"item": "salmon, atlantic, farmed, raw", "qty": 150, "unit": "g"},
+      {"item": "quinoa, cooked", "qty": 120, "unit": "g"},
+      {"item": "spinach, raw", "qty": 60, "unit": "g"},
+      {"item": "avocado, raw", "qty": 0.5, "unit": "whole"},
+      {"item": "lemon juice, raw", "qty": 10, "unit": "ml"},
+      {"item": "olive oil", "qty": 10, "unit": "ml"}
+    ],
+    "instructions": "Pan-sear salmon 4 minutes per side. Assemble bowl with quinoa base, spinach, salmon, and sliced avocado. Dress with lemon and olive oil."
+  },
+  {
+    "name": "Beef and Broccoli with Rice",
+    "meal_slot": "dinner",
+    "diet_tags": ["high-protein", "balanced"],
+    "servings": 2,
+    "ingredients": [
+      {"item": "beef, sirloin steak, lean, raw", "qty": 300, "unit": "g"},
+      {"item": "broccoli, raw", "qty": 250, "unit": "g"},
+      {"item": "brown rice, cooked", "qty": 200, "unit": "g"},
+      {"item": "soy sauce", "qty": 30, "unit": "ml"},
+      {"item": "sesame oil", "qty": 10, "unit": "ml"},
+      {"item": "garlic, raw", "qty": 3, "unit": "whole"},
+      {"item": "cornstarch", "qty": 10, "unit": "g"}
+    ],
+    "instructions": "Slice beef. Mix soy sauce, sesame oil, and cornstarch. Stir fry garlic, then beef until browned. Add broccoli, pour sauce, cook 5 minutes. Serve over rice."
+  }
+]
