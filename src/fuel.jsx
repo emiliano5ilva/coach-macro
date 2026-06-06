@@ -2034,7 +2034,7 @@ Reply with ONLY a valid JSON object, no markdown:
   });
   const [mealPrepPrefs,setMealPrepPrefs]=useState(()=>{
     // Pre-fill from onboarding profile
-    const freq=Math.min(4,Math.max(2,parseInt(String(wPrefs?.mealFreq||profile?.mealFreq))||3));
+    const freq=Math.min(6,Math.max(2,parseInt(String(profile?.mealFreq||wPrefs?.mealFreq))||3));
     const CHIP_MAP={'dairy':'No Dairy','gluten':'No Gluten','nuts':'No Nuts','halal':'No Pork'};
     const DIET_MAP={'vegan':'vegan','vegetarian':'vegetarian'};
     const stored=(profile?.dietary||[]).filter(d=>d&&d!=='none');
@@ -4245,17 +4245,23 @@ Reply with ONLY a valid JSON object, no markdown:
                   style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,59,48,0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 4px 18px rgba(0,0,0,0.35)'}}>
                   <div style={{...mno,fontSize:8,color:'#FF3B30',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:12}}>// MEALS PER DAY</div>
                   <div style={{display:'flex',gap:8}}>
-                    {[2,3,4].map(n=>{
+                    {[2,3,4,6].map(n=>{
                       const sel=mealPrepPrefs.mealsPerDay===n;
                       return(
                         <motion.button key={n} whileTap={{scale:0.9}} onPointerDown={()=>_hL()}
                           onClick={()=>{
                             _hM();
+                            // 1. Update fitter immediately
                             setMealPrepPrefs(p=>({...p,mealsPerDay:n}));
+                            // 2. Update slot-row display immediately (no reload needed)
+                            setMealSlots(getSlotsForFreq(n));
+                            // 3. Persist wprefs.mealFreq (existing path)
                             try{saveFlexPrefs({...(wPrefs||{}),mealFreq:String(n)});}catch{}
+                            // 4. Persist profile_data.mealFreq (canonical source; merges, no clobber)
+                            if(user)(async()=>{try{await sb.from("profiles").upsert({id:user.id,profile_data:{...(profile||{}),mealFreq:n}},{onConflict:"id"});}catch(e){console.error("[mealFreq upsert]",e);}})();
                           }}
                           style={{flex:1,background:sel?'rgba(255,59,48,0.14)':'rgba(255,255,255,0.04)',border:sel?'1.5px solid #FF3B30':'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'16px 0',...mno,fontSize:sel?13:10,fontWeight:700,color:sel?'#FF3B30':'rgba(245,245,240,0.5)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 0 12px rgba(255,59,48,0.2)':'none',transition:'all 0.15s'}}>
-                          {n} MEALS
+                          {n}
                         </motion.button>
                       );
                     })}
