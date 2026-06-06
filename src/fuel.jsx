@@ -25,7 +25,7 @@ const _FUEL_GOCLUB_CSS=`
 `;
 import { showToast } from "./utils/toast.js";
 import { mealHasAllergen, scanTextAllergens } from "./utils/allergenFilter.js";
-import { fitWeek, fitDay } from "./services/mealFitter.js";
+import { fitWeek, fitDay, orderPlanMeals } from "./services/mealFitter.js";
 import { sb, ai, streamAI, aiWithTools } from "./client.js";
 import { track, EVENTS } from "./services/analytics.js";
 import { getCyclePhase } from "./utils/ait.js";
@@ -2222,7 +2222,11 @@ Reply with ONLY a valid JSON object, no markdown:
     if(!mealPrepPlan)return;
     const dayIdx=mealPrepPlan.days.findIndex(d=>d.day.slice(0,3)===todayKey);
     if(dayIdx<0)return;
-    const mealIdx=mealPrepPlan.days[dayIdx].meals.findIndex(m=>m.slot===slot);
+    // Positional lookup: numeric slot 1/2/3 → ordered meal at index slot-1
+    const ordered=orderPlanMeals(mealPrepPlan.days[dayIdx].meals);
+    const targetMeal=ordered[slot-1];
+    if(!targetMeal)return;
+    const mealIdx=mealPrepPlan.days[dayIdx].meals.indexOf(targetMeal);
     if(mealIdx<0)return;
     setSwappingSlot(slot);
     try{
@@ -2236,15 +2240,16 @@ Reply with ONLY a valid JSON object, no markdown:
       const swapPool=currentRecipeId?pool.filter(r=>r.id!==currentRecipeId):pool;
       const mealCount=mealPrepPlan.days[dayIdx].meals.length;
       const result=fitDay({dayTarget,mealCount,diet,allergens:allergenTags,pool:swapPool,seed:Date.now()%100000});
-      const replacement=result.meals.find(m=>m.slot===slot&&!m.unfillable);
-      if(replacement){
+      // Positional pick from result: same index as the slot being replaced
+      const replacement=orderPlanMeals(result.meals)[slot-1];
+      if(replacement&&!replacement.unfillable){
         const{recipe,servings,scaledMacros}=replacement;
         const newMeal={
           name:recipe.name,
           calories:Math.round(scaledMacros.cal),protein:Math.round(scaledMacros.pro*10)/10,
           carbs:Math.round(scaledMacros.carb*10)/10,fat:Math.round(scaledMacros.fat*10)/10,
           ingredients:(recipe.ingredients||[]).map(ing=>({item:ing.item,amount:fmtIngAmt((ing.qty||0)*servings,ing.unit)})),
-          instructions:recipe.instructions||null,slot,servings,_recipeId:recipe.id,unfillable:false,
+          instructions:recipe.instructions||null,slot:targetMeal.slot,servings,_recipeId:recipe.id,unfillable:false,
         };
         setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIdx].meals[mealIdx]=newMeal;return u;});
       }
@@ -3029,7 +3034,7 @@ Reply with ONLY a valid JSON object, no markdown:
               // Read-only: today's plan day → slot→meal map (part A; does NOT touch log or consumed totals)
               const todayPlanDay=mealPrepPlan?.days?.find(d=>d.day.slice(0,3)===todayKey);
               const plannedBySlot={};
-              if(todayPlanDay){for(const m of todayPlanDay.meals){if(!m.unfillable&&m.name&&typeof m.slot==='number')plannedBySlot[m.slot]=m;}}
+              if(todayPlanDay){orderPlanMeals(todayPlanDay.meals).forEach((m,i)=>{plannedBySlot[i+1]=m;});}
               return(
                 <StaggerItem i={2}>
                 <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>

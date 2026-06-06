@@ -23,11 +23,19 @@ const MIN_SERVINGS = 0.5;
 const MAX_SERVINGS = 3.0;
 
 // Calorie fraction allocated to each slot
+const SLOT_RATIOS_2 = { lunch: 0.45, dinner: 0.55 };
 const SLOT_RATIOS_3 = { breakfast: 0.25, lunch: 0.35, dinner: 0.40 };
 const SLOT_RATIOS_4 = { breakfast: 0.25, lunch: 0.30, dinner: 0.35, snack: 0.10 };
 
 // Canonical slot ordering for output stability
 const SLOT_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+
+// Sort filled plan meals into canonical order so positional mapping (index+1 → slot number) is stable.
+export function orderPlanMeals(meals) {
+  return (meals || [])
+    .filter(m => m && !m.unfillable && m.name)
+    .sort((a, b) => (SLOT_ORDER[a.slot] ?? 9) - (SLOT_ORDER[b.slot] ?? 9));
+}
 
 // Macro scoring weights — protein is weighted 3× to prioritise hitting it
 const W = { cal: 1, pro: 3, carb: 1, fat: 1 };
@@ -88,7 +96,9 @@ export function filterPool(pool, diet, allergens) {
  * Returns plain object: { breakfast: {cal,pro,carb,fat}, ... }
  */
 export function slotTargets(dayTarget, mealCount) {
-  const ratios = mealCount === 4 ? SLOT_RATIOS_4 : SLOT_RATIOS_3;
+  const ratios = mealCount === 2 ? SLOT_RATIOS_2
+               : mealCount === 4 ? SLOT_RATIOS_4
+               : SLOT_RATIOS_3;
   const out = {};
   for (const [slot, ratio] of Object.entries(ratios)) {
     out[slot] = {
