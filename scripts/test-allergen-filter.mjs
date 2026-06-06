@@ -436,6 +436,210 @@ const multiText = 'Breakfast: scrambled eggs with cheddar cheese and turkey saus
 expect('eggs + dairy detected in text', scanTextAllergens(multiText, ['No Eggs', 'No Dairy', 'No Pork']),
   r => r.includes('No Eggs') && r.includes('No Dairy') && !r.includes('No Pork'));
 
+// ── COMPOSITIONAL TESTS (safe phrase must not mask OTHER allergens) ───────────
+//
+// These test the multi-ingredient scenario where a safe phrase for allergen A
+// must NOT suppress detection of allergen B (or A itself) elsewhere in the text.
+// They exercise the per-fragment fix: each comma/newline-delimited token is
+// checked independently so safe phrases are scoped to their own token only.
+
+console.log('\n── Compositional: safe phrase must not mask OTHER real allergens ──');
+
+// "almond butter" is a dairy safe-phrase, but "whole milk" and "whey" must still
+// flag dairy. "almond butter" must still flag nuts.
+mustFlagAll(
+  'almond butter + whole milk + whey → dairy AND nuts',
+  'almond butter, whole milk, whey, banana',
+  ['No Dairy', 'No Nuts'],
+);
+
+// "butternut squash" is a nuts safe-phrase. "coconut milk" on a different line
+// must still flag nuts. (This was the Paleo Beef Butternut Squash Curry bug.)
+mustFlagAll(
+  'butternut squash + coconut milk + beef → nuts',
+  'butternut squash, coconut milk, beef',
+  ['No Nuts'],
+);
+
+// Coconut milk must flag nuts (coconut is a tree nut per FDA).
+// Without any dairy blocklist word, dairy must NOT be flagged.
+mustFlag(
+  'coconut milk flags nuts',
+  'coconut milk, chicken',
+  'No Nuts',
+);
+mustSafe(
+  'coconut milk alone does NOT flag dairy',
+  'coconut milk, chicken',
+  'No Dairy',
+);
+
+// "butter lettuce" is a dairy safe-phrase on its own token.
+// "shrimp" on a different token must still flag shellfish.
+// Dairy must NOT be flagged (butter lettuce is safe).
+mustFlag(
+  'butter lettuce + shrimp → shellfish',
+  'butter lettuce, shrimp, olive oil',
+  'No Shellfish',
+);
+mustSafe(
+  'butter lettuce + shrimp → NOT dairy',
+  'butter lettuce, shrimp, olive oil',
+  'No Dairy',
+);
+
+// "almond milk" is a dairy safe-phrase, but "cheddar cheese" must still flag dairy.
+// "almond" (in almond milk) must still flag nuts.
+mustFlagAll(
+  'almond milk + cheddar cheese → dairy AND nuts',
+  'almond milk, cheddar cheese',
+  ['No Dairy', 'No Nuts'],
+);
+
+// "peanut butter" is a dairy safe-phrase, but "greek yogurt" must still flag dairy.
+// "peanut" (in peanut butter) must still flag nuts.
+mustFlagAll(
+  'peanut butter + greek yogurt → dairy AND nuts',
+  'peanut butter, greek yogurt',
+  ['No Dairy', 'No Nuts'],
+);
+
+// "corn tortilla" is NOT in the gluten blocklist. "tilapia" has no allergens.
+// This confirms no false gluten flag for corn-based products.
+mustSafeAll(
+  'corn tortilla + tilapia → no allergens (no false gluten)',
+  'corn tortilla, tilapia',
+  ['No Gluten', 'No Dairy', 'No Eggs', 'No Pork', 'No Shellfish', 'No Nuts'],
+);
+
+// Per-allergen compositional cases ──────────────────────────────────────────
+
+// DAIRY: dairy safe-phrase does not mask dairy on another ingredient
+mustFlagAll(
+  'coconut milk (safe) + cheddar → dairy',
+  'coconut milk, cheddar cheese',
+  ['No Dairy'],
+);
+mustFlagAll(
+  'oat milk (safe) + cream cheese → dairy',
+  'oat milk, cream cheese',
+  ['No Dairy'],
+);
+mustFlagAll(
+  'cashew butter (safe for dairy) + whole milk → dairy',
+  'cashew butter, whole milk',
+  ['No Dairy'],
+);
+// Dairy safe-phrase still correctly suppresses its own token
+mustSafeAll(
+  'butternut squash alone → NOT dairy',
+  'butternut squash',
+  ['No Dairy'],
+);
+mustSafeAll(
+  'almond butter alone → NOT dairy',
+  'almond butter',
+  ['No Dairy'],
+);
+
+// NUTS: nuts safe-phrase does not mask nuts on another ingredient
+mustFlagAll(
+  'butternut squash (safe) + walnuts → nuts',
+  'butternut squash, walnuts',
+  ['No Nuts'],
+);
+mustFlagAll(
+  'nutmeg (safe) + cashews → nuts',
+  'nutmeg, cashews',
+  ['No Nuts'],
+);
+mustFlagAll(
+  'butternut (safe) + almond butter → nuts (almond)',
+  'butternut, almond butter',
+  ['No Nuts'],
+);
+// coconut milk (on its own) still flags nuts (coconut = tree nut)
+mustFlag(
+  'coconut milk alone flags nuts',
+  'coconut milk',
+  'No Nuts',
+);
+
+// EGGS: eggs safe-phrase does not mask eggs on another ingredient
+mustFlagAll(
+  'eggplant (safe) + egg white → eggs',
+  'eggplant, egg white',
+  ['No Eggs'],
+);
+mustFlagAll(
+  'eggplant (safe) + scrambled eggs → eggs',
+  'eggplant, scrambled eggs',
+  ['No Eggs'],
+);
+// eggplant alone still safe
+mustSafeAll(
+  'eggplant alone → NOT eggs',
+  'eggplant',
+  ['No Eggs'],
+);
+
+// PORK: pork safe-phrase does not mask pork on another ingredient
+mustFlagAll(
+  'turkey bacon (safe) + pork chop → pork',
+  'turkey bacon, pork chop, lean, raw',
+  ['No Pork'],
+);
+mustFlagAll(
+  'chicken sausage (safe) + bacon → pork',
+  'chicken sausage, bacon',
+  ['No Pork'],
+);
+// turkey bacon alone still safe
+mustSafeAll(
+  'turkey bacon alone → NOT pork',
+  'turkey bacon',
+  ['No Pork'],
+);
+
+// NEWLINE-SEPARATED (mirrors seeder join: ingredients.map(i=>i.item).join("\n"))
+mustFlagAll(
+  'newline join: almond butter\\nwhole milk\\nwhey → dairy AND nuts',
+  'almond butter\nwhole milk\nwhey protein powder',
+  ['No Dairy', 'No Nuts'],
+);
+mustFlagAll(
+  'newline join: butternut squash\\ncoconut milk → nuts',
+  'butternut squash\ncoconut milk',
+  ['No Nuts'],
+);
+mustFlagAll(
+  'newline join: butter lettuce\\nshrimp → shellfish NOT dairy',
+  'butter lettuce\nshrimp, raw',
+  ['No Shellfish'],
+);
+mustSafeAll(
+  'newline join: butter lettuce\\nshrimp → NOT dairy',
+  'butter lettuce\nshrimp, raw',
+  ['No Dairy'],
+);
+
+// almond butter (nuts safe-phrase NOT present) must STILL flag nuts
+mustFlag(
+  'almond butter standalone flags nuts',
+  'almond butter',
+  'No Nuts',
+);
+mustFlag(
+  'peanut butter standalone flags nuts',
+  'peanut butter, smooth',
+  'No Nuts',
+);
+mustFlag(
+  'cashew butter standalone flags nuts',
+  'cashew butter',
+  'No Nuts',
+);
+
 // ── isSafe convenience wrapper ────────────────────────────────────────────────
 
 console.log('\n── isSafe wrapper ──');

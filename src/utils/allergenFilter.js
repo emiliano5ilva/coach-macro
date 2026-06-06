@@ -95,33 +95,49 @@ function _norm(s) {
  * Returns every allergen chip from activeChips that the text violates.
  *
  * Matching rules:
- *  - Both the input text and safe phrases are normalized (lowercase, symbols→space)
- *    so "gluten-free" and "gluten free" compare equal.
- *  - Blocklist keywords use a word-boundary regex with optional trailing 's' to
- *    catch common plurals (scallops, almonds, mussels, etc.) without false positives.
- *  - Safe phrases run FIRST and short-circuit to "safe" for that chip.
+ *  - Text is split on commas and newlines into per-ingredient fragments.
+ *    Each fragment is checked independently so that a safe phrase in one
+ *    fragment (e.g. "almond butter" for No Dairy) cannot suppress allergen
+ *    detection from a different fragment (e.g. "whole milk" or "whey").
+ *  - Within each fragment: safe phrases are normalized and checked as a
+ *    substring BEFORE the blocklist. Any safe-phrase match short-circuits
+ *    that chip for THAT FRAGMENT ONLY.
+ *  - Blocklist keywords use a word-boundary regex with optional trailing 's'
+ *    to catch common plurals without false positives.
  *
- * @param {string}   text        - ingredient name, meal name, recipe line, etc.
+ * @param {string}   text        - ingredient name(s), meal name, recipe line, etc.
  * @param {string[]} activeChips - e.g. ['No Dairy', 'No Gluten']
  * @returns {string[]}           - violated chip names (empty = clean)
  */
 export function findAllergens(text, activeChips) {
   if (!activeChips || !activeChips.length || text == null) return [];
-  const norm = _norm(text);
-  const violated = [];
-  for (const chip of activeChips) {
-    // Safe-phrase override: normalize each phrase and check as substring
-    const safePhrases = ALLERGEN_SAFE_PHRASES[chip] || [];
-    if (safePhrases.some(ph => norm.includes(_norm(ph)))) continue;
-    // Blocklist: word-boundary match with optional trailing 's' for plurals
-    const kws = ALLERGEN_BLOCKLIST[chip] || [];
-    const hit = kws.some(kw => {
-      const re = new RegExp('(^|[^a-z0-9])' + _esc(_norm(kw)) + 's?($|[^a-z0-9])', 'i');
-      return re.test(norm);
-    });
-    if (hit) violated.push(chip);
+
+  // Split on commas and newlines so each ingredient/token is checked on its
+  // own. A safe phrase in one fragment (e.g. "almond butter") cannot mask a
+  // real allergen in a different fragment (e.g. "whole milk", "whey").
+  const fragments = String(text).split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+
+  const violated = new Set();
+
+  for (const fragment of fragments) {
+    const norm = _norm(fragment);
+    for (const chip of activeChips) {
+      if (violated.has(chip)) continue; // already found for this chip
+      // Safe-phrase override: if this fragment contains a safe phrase for this
+      // chip, skip the blocklist check for THIS FRAGMENT only.
+      const safePhrases = ALLERGEN_SAFE_PHRASES[chip] || [];
+      if (safePhrases.some(ph => norm.includes(_norm(ph)))) continue;
+      // Blocklist: word-boundary match with optional trailing 's' for plurals
+      const kws = ALLERGEN_BLOCKLIST[chip] || [];
+      const hit = kws.some(kw => {
+        const re = new RegExp('(^|[^a-z0-9])' + _esc(_norm(kw)) + 's?($|[^a-z0-9])', 'i');
+        return re.test(norm);
+      });
+      if (hit) violated.add(chip);
+    }
   }
-  return violated;
+
+  return [...violated];
 }
 
 /**
