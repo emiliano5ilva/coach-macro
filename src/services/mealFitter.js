@@ -31,9 +31,10 @@ const SLOT_RATIOS_4 = { breakfast: 0.25, lunch: 0.30, dinner: 0.35, snack: 0.10 
 const SLOT_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
 
 // Sort filled plan meals into canonical order so positional mapping (index+1 → slot number) is stable.
+// Accepts both shaped plan meals (m.name) and raw fitDay output (m.recipe).
 export function orderPlanMeals(meals) {
   return (meals || [])
-    .filter(m => m && !m.unfillable && m.name)
+    .filter(m => m && !m.unfillable && (m.name || m.recipe))
     .sort((a, b) => (SLOT_ORDER[a.slot] ?? 9) - (SLOT_ORDER[b.slot] ?? 9));
 }
 

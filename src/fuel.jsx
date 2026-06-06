@@ -2050,6 +2050,9 @@ Reply with ONLY a valid JSON object, no markdown:
   const [regeneratingMeal,setRegeneratingMeal]=useState(null);
   const [regeneratingDay,setRegeneratingDay]=useState(null);
   const [swappingSlot,setSwappingSlot]=useState(null); // slot number being re-fitted for planned card
+  const [dismissedPlanned,setDismissedPlanned]=useState(()=>{
+    try{const t=new Date().toISOString().split('T')[0];const s=localStorage.getItem(`cm_dismissed_planned_${t}`);return s?JSON.parse(s):[];}catch{return [];}
+  });
   const [mealPrepError,setMealPrepError]=useState(null);
   const [mpSaveConfirm,setMpSaveConfirm]=useState(false);
   const [mpStatusIdx,setMpStatusIdx]=useState(0);
@@ -2257,12 +2260,15 @@ Reply with ONLY a valid JSON object, no markdown:
     setSwappingSlot(null);
   }
 
-  // SKIP: add slot to skipped_slots via existing saveSkippedSlots.
-  // Per part-A precedence a skipped slot shows SKIPPED (not planned).
-  // Budget redistributes automatically via getSlotTargets. Never logs.
-  function handleSkipPlanned(slot){
-    const newSkipped=[...(skippedSlots||[]),slot];
-    onSkipSlots?.(newSkipped);
+  // DISMISS: hides this suggestion for today without touching skippedSlots or budget.
+  // Keyed by recipe id (falling back to name) and persisted per-day in localStorage.
+  function handleDismissPlanned(key){
+    if(key==null)return;
+    setDismissedPlanned(prev=>{
+      const next=prev.includes(key)?prev:[...prev,key];
+      try{localStorage.setItem(`cm_dismissed_planned_${today}`,JSON.stringify(next));}catch{}
+      return next;
+    });
   }
 
   async function saveMealPrepPlan(){
@@ -3061,7 +3067,8 @@ Reply with ONLY a valid JSON object, no markdown:
                       // Only show planned when slot is empty, not skipped, not locked, and plan has a meal for this slot.
                       // If mealFreq differs from plan meal count, slot integers may not align — plannedBySlot[slot]
                       // returns undefined for non-matching slots and the card is simply absent (graceful skip).
-                      const plannedMeal=slotItems.length===0&&!isSkipped&&!isLocked?(plannedBySlot[slot]||null):null;
+                      const candidate=slotItems.length===0&&!isSkipped&&!isLocked?(plannedBySlot[slot]||null):null;
+                      const plannedMeal=candidate&&!dismissedPlanned.includes(candidate._recipeId||candidate.name)?candidate:null;
                       return(
                         <div key={slot} style={{marginBottom:12,opacity:isSkipped?0.4:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:slotItems.length>0?6:4}}>
@@ -3177,9 +3184,9 @@ Reply with ONLY a valid JSON object, no markdown:
                                   {swappingSlot===slot?"…":"Swap"}
                                 </button>
                                 <button
-                                  onClick={()=>handleSkipPlanned(slot)}
+                                  onClick={()=>handleDismissPlanned(plannedMeal._recipeId||plannedMeal.name)}
                                   style={{padding:"7px 8px",background:"none",border:"none",fontFamily:"var(--mono)",fontWeight:700,fontSize:8,color:"rgba(245,245,240,0.22)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>
-                                  Skip
+                                  Dismiss
                                 </button>
                               </div>
                             </div>
