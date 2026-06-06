@@ -41,7 +41,8 @@ export async function getTodayNutritionProtocol(userId) {
   const isTrainingDay = todayType !== 'rest';
 
   const refeedInterval = wp.refeed_day_interval ?? profileRow.refeed_day_interval ?? 7;
-  const calorieCyclingEnabled = wp.calorie_cycling_enabled ?? profileRow.calorie_cycling_enabled ?? false;
+  // calorie_cycling_enabled (build_muscle +250 branch) removed in Phase 4 rationalisation.
+  // getDayTypeNutrition is now the single per-day target system for ring + plan.
 
   let protocolType = 'standard';
   let adjustedCalories = baseCalories;
@@ -93,19 +94,6 @@ export async function getTodayNutritionProtocol(userId) {
     }
   }
 
-  // P3: Calorie cycling (build_muscle / get_stronger)
-  else if ((goal === 'build_muscle' || goal === 'get_stronger') && calorieCyclingEnabled) {
-    if (isTrainingDay) {
-      protocolType = 'training_day';
-      adjustedCalories = baseCalories + 250;
-      adjustedCarbs = baseCarbs + Math.round(250 / 4);
-      reason = `Training day — extra carbs to fuel performance and support muscle growth.`;
-    } else {
-      protocolType = 'rest_day';
-      reason = 'Rest day — base calories. Recovery focus.';
-    }
-  }
-
   // P4: Heavy session boost (leg / lower / full body day)
   else if (isTrainingDay && (
     todayFocusVal.includes('leg') || todayFocusVal.includes('lower') || todayFocusVal.includes('full')
@@ -117,13 +105,6 @@ export async function getTodayNutritionProtocol(userId) {
   }
 
   if (protocolType === 'standard') return null;
-
-  // rest_day: no macro adjustment — use base values
-  if (protocolType === 'rest_day') {
-    adjustedCalories = baseCalories;
-    adjustedCarbs = baseCarbs;
-    adjustedFat = baseFat;
-  }
 
   const { data: protocol } = await sb
     .from('nutrition_protocols')

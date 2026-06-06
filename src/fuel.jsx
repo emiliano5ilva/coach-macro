@@ -2807,10 +2807,21 @@ Reply with ONLY a valid JSON object, no markdown:
                       </div>
                     ))}
                   </div>
-                  {/* keyInsight — coaching line surfaced from weekMacros */}
-                  {GOCLUB_REDESIGN&&todayWeekEntry?.keyInsight&&(
-                    <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)',fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.55)',lineHeight:1.5}}>
-                      {todayWeekEntry.keyInsight}
+                  {/* Day-type label + keyInsight — from getDayTypeNutrition via weekMacros.
+                      label: "Long Run Day" / "Rest Day" / "Heavy Leg Day" etc.
+                      keyInsight: coaching rationale for today's target. */}
+                  {GOCLUB_REDESIGN&&todayWeekEntry&&(todayWeekEntry.label||todayWeekEntry.keyInsight)&&(
+                    <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                      {todayWeekEntry.label&&(
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:todayWeekEntry.color||'#FF3B30',fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:4}}>
+                          // {todayWeekEntry.label.toUpperCase()}
+                        </div>
+                      )}
+                      {todayWeekEntry.keyInsight&&(
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.55)',lineHeight:1.5}}>
+                          {todayWeekEntry.keyInsight}
+                        </div>
+                      )}
                     </div>
                   )}
 
