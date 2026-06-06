@@ -87,7 +87,17 @@ function applyGoalAdjustment(dayType, baseCals, rawCalories, goal) {
   };
   const floor = hardFloors[dayType] || 0;
   const normGoal = (goal || '').toLowerCase().replace(/\s+/g, '_');
-  const cap   = softCaps[normGoal] || baseCals + 350;
+  // Map app goal strings → soft-cap keys.  build_muscle/get_stronger were falling
+  // through to the maintain default (+350) instead of bulk (+500).
+  const GOAL_TO_CAP_KEY = {
+    lose_fat:     'cut',
+    recomp:       'recomp',
+    maintain:     'maintain',
+    build_muscle: 'bulk',
+    get_stronger: 'bulk',
+  };
+  const capKey = GOAL_TO_CAP_KEY[normGoal] || 'maintain';
+  const cap   = softCaps[capKey] || baseCals + 350;
   // Floor always beats cap — a runner in a cut still needs fuel
   return Math.max(floor, Math.min(rawCalories, cap));
 }
