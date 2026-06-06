@@ -2122,6 +2122,9 @@ Reply with ONLY a valid JSON object, no markdown:
 
       setMealPrepPlan(plan);
       setMealPrepScreen('plan');
+      // Fresh plan — clear today's dismissed suggestions so nothing stays hidden
+      setDismissedPlanned([]);
+      try{localStorage.removeItem(`cm_dismissed_planned_${today}`);}catch{}
 
       // Surface any thin-pool slots with an honest warning
       const thin=days.flatMap(d=>d.meals.filter(m=>m.unfillable).map(m=>`${d.day} ${m.slot}`));
@@ -4259,6 +4262,9 @@ Reply with ONLY a valid JSON object, no markdown:
                             try{saveFlexPrefs({...(wPrefs||{}),mealFreq:String(n)});}catch{}
                             // 4. Persist profile_data.mealFreq (canonical source; merges, no clobber)
                             if(user)(async()=>{try{await sb.from("profiles").upsert({id:user.id,profile_data:{...(profile||{}),mealFreq:n}},{onConflict:"id"});}catch(e){console.error("[mealFreq upsert]",e);}})();
+                            // 5. Freq change means a new plan will be generated — clear stale dismissals
+                            setDismissedPlanned([]);
+                            try{localStorage.removeItem(`cm_dismissed_planned_${today}`);}catch{}
                           }}
                           style={{flex:1,background:sel?'rgba(255,59,48,0.14)':'rgba(255,255,255,0.04)',border:sel?'1.5px solid #FF3B30':'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'16px 0',...mno,fontSize:sel?13:10,fontWeight:700,color:sel?'#FF3B30':'rgba(245,245,240,0.5)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 0 12px rgba(255,59,48,0.2)':'none',transition:'all 0.15s'}}>
                           {n}
