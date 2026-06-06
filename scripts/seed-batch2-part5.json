@@ -1,0 +1,370 @@
+[
+  {
+    "name": "Paleo Salmon with Mango Avocado Salsa",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "paleo",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "mango, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Grill salmon fillet 4 minutes per side. Dice mango and avocado; toss with lemon juice for salsa. Plate salmon and top generously with salsa."
+  },
+  {
+    "name": "Vegan Black Bean Sweet Potato Bowl",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "black beans, canned, drained",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 60,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast cubed sweet potato with olive oil at 400\u00b0F 20 minutes. Saut\u00e9 onions with beans and cumin. Serve over rice with sweet potato and top with salsa."
+  },
+  {
+    "name": "Vegan Dark Chocolate Almond Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 4,
+    "ingredients": [
+      {
+        "item": "almond butter",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "rolled oats",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "dark chocolate chips",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "item": "maple syrup",
+        "qty": 20,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Mix almond butter, maple syrup, oats, chia seeds, and chocolate chips until combined. Roll into 12 balls. Refrigerate 30 minutes until firm. Serve 3 balls per portion."
+  },
+  {
+    "name": "Keto Turkey Cheese Roll-Ups",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "turkey breast, deli, sliced",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spread cream cheese and dijon onto turkey slices. Lay cheddar on top and roll tightly. Secure with a toothpick. Serve immediately or refrigerate."
+  },
+  {
+    "name": "Carnivore Beef and Egg Protein Bites",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, hard-boiled",
+        "qty": 2,
+        "unit": "whole"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season ground beef; form into small patties and cook in a dry skillet 3 minutes per side. Slice hard-boiled eggs. Plate patties with egg slices and season."
+  },
+  {
+    "name": "High-Protein Cottage Cheese Bowl",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegetarian",
+      "high-protein",
+      "balanced",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cottage cheese, lowfat",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "hemp seeds, hulled",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spoon cottage cheese into a bowl. Top with blueberries, hemp seeds, and chia seeds. Serve immediately or refrigerate for up to 2 hours."
+  },
+  {
+    "name": "Walnut Blueberry Trail Mix",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "walnuts, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "pumpkin seeds, raw",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "dark chocolate chips",
+        "qty": 20,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Combine all ingredients in a bowl or resealable bag. Serve half as one portion. Store remainder at room temperature for up to 3 days."
+  },
+  {
+    "name": "Keto Pumpkin Seed Snack Mix",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "pumpkin seeds, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "almonds, raw",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "sunflower seeds, raw",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Toss seeds and almonds with sea salt. Toast in a dry pan 3-4 minutes until fragrant. Cool and serve or store in an airtight container."
+  },
+  {
+    "name": "Hemp Seed Protein Snack Bowl",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "hemp seeds, hulled",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "strawberries, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 60,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Combine hemp seeds and chia seeds in a bowl with coconut milk. Top with strawberries and blueberries. Stir and serve immediately."
+  },
+  {
+    "name": "Greek Yogurt with Walnuts and Honey",
+    "meal_slot": "snack",
+    "diet_tags": [
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "greek yogurt, plain, nonfat",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "walnuts, raw",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "honey",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spoon yogurt into a bowl. Top with walnuts and blueberries. Drizzle honey and serve immediately."
+  }
+]

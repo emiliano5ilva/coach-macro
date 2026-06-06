@@ -1,0 +1,448 @@
+[
+  {
+    "name": "Keto Avocado Egg Cups",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "keto",
+      "paleo",
+      "vegetarian",
+      "low-carb",
+      "high-protein"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "egg, whole, raw",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "paprika",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice avocado in half and remove pit. Scoop slightly to fit eggs. Crack one egg into each half (reserve one scrambled on side). Bake at 425\u00b0F for 12 minutes. Season with paprika and salt."
+  },
+  {
+    "name": "Blueberry Protein Yogurt Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "greek yogurt, plain, nonfat",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "whey protein powder",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "almonds, raw",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "honey",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Stir protein powder into yogurt until smooth. Top with blueberries and almonds. Drizzle honey and serve."
+  },
+  {
+    "name": "Vegan Tempeh Brown Rice Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tempeh",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Slice tempeh and pan-fry in sesame oil until golden. Add broccoli and garlic; stir-fry 4 minutes. Add soy sauce and toss with rice. Serve warm."
+  },
+  {
+    "name": "Keto Tuna Avocado Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "paleo",
+      "high-protein",
+      "low-carb",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "romaine lettuce",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Dice avocado and combine with tuna. Arrange over romaine with cucumber. Whisk lemon juice and olive oil into a dressing, drizzle and serve."
+  },
+  {
+    "name": "Keto Greek Salad with Feta",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegetarian",
+      "keto",
+      "mediterranean",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "feta cheese",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, cherry",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "arugula, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "balsamic vinegar",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Chop cucumber and halve cherry tomatoes. Arrange over arugula. Crumble feta on top. Drizzle with olive oil and balsamic vinegar. Toss gently and serve."
+  },
+  {
+    "name": "Grilled Chicken Quinoa Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "high-protein",
+      "mediterranean",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season and grill chicken breast until cooked through; slice. Assemble quinoa in a bowl. Top with cucumber, tomatoes, feta, and sliced chicken. Drizzle olive oil and lemon juice."
+  },
+  {
+    "name": "Vegan Lentil Vegetable Soup",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced",
+      "mediterranean",
+      "high-protein"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "lentils, mature seeds, cooked, boiled",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "celery, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Saut\u00e9 onions, garlic, and carrots in olive oil 5 minutes. Add tomatoes, celery, cumin, and lentils with 2 cups water. Simmer 20 minutes until thickened. Season and serve."
+  },
+  {
+    "name": "Paleo Sweet Potato Turkey Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "turkey breast, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "paprika",
+        "qty": 2,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roast cubed sweet potato at 400\u00b0F 20 minutes. Season turkey with paprika; cook in olive oil with garlic until done. Steam broccoli. Assemble in a bowl."
+  },
+  {
+    "name": "Shrimp and Avocado Grain Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season shrimp with salt and cook in olive oil 2 minutes per side. Assemble rice in a bowl with mixed greens. Top with shrimp and avocado. Drizzle lemon juice."
+  },
+  {
+    "name": "Keto Cauliflower Fried Rice",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "low-carb",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "cauliflower, raw",
+        "qty": 400,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 8,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pulse cauliflower into rice-sized pieces. Cook bacon; set aside. In the same pan, fry garlic in sesame oil, add cauliflower rice and stir-fry 4 minutes. Push aside, scramble eggs in, then mix everything with soy sauce."
+  }
+]

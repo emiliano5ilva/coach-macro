@@ -1,0 +1,431 @@
+[
+  {
+    "name": "Vegan Chickpea Quinoa Buddha Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "mediterranean",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "tahini",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Arrange quinoa and spinach in a bowl. Top with chickpeas and avocado. Whisk tahini with lemon juice and 2 tbsp water into a dressing. Drizzle over bowl and serve."
+  },
+  {
+    "name": "Tuna Quinoa Protein Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "pescatarian",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tuna, canned in water, drained",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "quinoa, cooked",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Combine quinoa with tuna, diced cucumber, and tomatoes. Dress with olive oil and lemon juice. Toss well and serve chilled or at room temperature."
+  },
+  {
+    "name": "Paleo Mango Chicken Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "mango, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "mixed greens",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "avocado, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Grill chicken breast and slice. Dice mango and avocado. Toss mixed greens with lemon juice and olive oil. Top with chicken, mango, and avocado. Serve immediately."
+  },
+  {
+    "name": "Keto Ground Beef Cauliflower Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "keto",
+      "low-carb",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 80% lean, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "cauliflower, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "cheddar cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Steam cauliflower until tender; mash roughly. Brown ground beef with onions in olive oil. Season to taste. Serve beef over cauliflower mash and top with cheddar."
+  },
+  {
+    "name": "Mediterranean Quinoa Veggie Salad",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegetarian",
+      "mediterranean",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "quinoa, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "feta cheese",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Combine quinoa and chickpeas. Add diced cucumber and tomatoes. Crumble feta over top. Dress with olive oil and lemon juice, toss gently and serve."
+  },
+  {
+    "name": "Edamame Brown Rice Power Bowl",
+    "meal_slot": "lunch",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced",
+      "high-protein"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "edamame, frozen, prepared",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "brown rice, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "cucumber, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "sesame oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "soy sauce",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Assemble rice in a bowl. Top with edamame, shredded carrots, and sliced cucumber. Drizzle sesame oil and soy sauce. Toss and serve at room temperature."
+  },
+  {
+    "name": "Carnivore Ribeye Steak",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef, sirloin steak, lean, raw",
+        "qty": 280,
+        "unit": "g"
+      },
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 60,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season steak generously with salt and pepper. Sear in a hot cast-iron skillet 3-4 minutes per side. Rest 5 minutes. Deglaze with beef broth and serve with crispy bacon."
+  },
+  {
+    "name": "Keto Salmon with Parmesan Cream Sauce",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "salmon, atlantic, farmed, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 80,
+        "unit": "ml"
+      },
+      {
+        "item": "parmesan cheese",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Sear salmon in olive oil 4 minutes per side; set aside. Saut\u00e9 garlic, add cream and parmesan; simmer 2 minutes. Add spinach until wilted. Plate salmon and pour sauce over."
+  },
+  {
+    "name": "Halibut with Asparagus and Lemon",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "paleo",
+      "keto",
+      "high-protein",
+      "low-carb",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "halibut, atlantic, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "asparagus, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Season halibut with salt and cook in olive oil 4 minutes per side. Roast asparagus with garlic in the same pan. Finish both with lemon juice and serve together."
+  },
+  {
+    "name": "Paleo Almond-Crusted Chicken Breast",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "keto",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "almonds, raw",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "rosemary, fresh",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Pulse almonds with rosemary and garlic into a coarse crumb. Press onto chicken breast. Bake at 400\u00b0F for 22-25 minutes until golden and cooked through."
+  }
+]

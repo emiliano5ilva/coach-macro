@@ -1,0 +1,417 @@
+[
+  {
+    "name": "Keto Cream Cheese Pancakes",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "keto",
+      "vegetarian",
+      "low-carb",
+      "high-protein"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "egg, whole, raw",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "almond flour",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "coconut oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "vanilla extract",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Blend eggs, cream cheese, almond flour, cinnamon, and vanilla until smooth. Heat coconut oil in a nonstick skillet over medium heat. Pour small rounds and cook 2-3 minutes per side until golden. Serve immediately."
+  },
+  {
+    "name": "Vegan Tofu Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "tofu, firm, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "nutritional yeast",
+        "qty": 15,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Crumble tofu into a hot skillet with olive oil. Add onions and peppers; cook 3 minutes. Add spinach and cumin; toss until wilted. Finish with nutritional yeast and serve."
+  },
+  {
+    "name": "Carnivore Ground Beef and Egg Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "beef broth",
+        "qty": 50,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Brown ground beef in a skillet over medium-high heat. Push to the side, crack in eggs, and scramble. Deglaze with beef broth and season. Serve immediately."
+  },
+  {
+    "name": "Three-Egg Veggie Omelette",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "vegetarian",
+      "keto",
+      "paleo",
+      "low-carb",
+      "high-protein"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "egg, whole, raw",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "mushrooms, portobello, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Saut\u00e9 peppers and mushrooms in olive oil 3 minutes. Beat eggs and pour over vegetables. Add spinach; fold omelette when edges set. Cook 1 more minute and serve."
+  },
+  {
+    "name": "Vegan Quinoa Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "quinoa, cooked",
+        "qty": 185,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "almond butter",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "maple syrup",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "cinnamon, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Warm quinoa in a bowl. Top with blueberries, drizzle almond butter and maple syrup. Sprinkle chia seeds and cinnamon. Serve immediately."
+  },
+  {
+    "name": "Smoked Salmon Spinach Scramble",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "pescatarian",
+      "keto",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "smoked salmon",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 3,
+        "unit": "whole"
+      },
+      {
+        "item": "cream cheese",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Heat olive oil in a skillet. Scramble eggs with cream cheese until just set. Fold in spinach and smoked salmon. Serve warm."
+  },
+  {
+    "name": "Almond Butter Protein Smoothie",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "vegetarian",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "almond butter",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "banana, raw",
+        "qty": 1,
+        "unit": "whole"
+      },
+      {
+        "item": "whole milk",
+        "qty": 240,
+        "unit": "ml"
+      },
+      {
+        "item": "whey protein powder",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Blend all ingredients until smooth. Add ice for a thicker texture. Serve immediately."
+  },
+  {
+    "name": "Carnivore Bacon Egg Skillet",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 4,
+        "unit": "whole"
+      },
+      {
+        "item": "beef broth",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 1,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Cook bacon until crispy in a cast-iron skillet. Crack eggs into bacon fat and cook sunny-side up. Deglaze with beef broth, season, and serve."
+  },
+  {
+    "name": "Paleo Primal Breakfast Bowl",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "keto",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "ground beef, 90% lean, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "egg, whole, raw",
+        "qty": 2,
+        "unit": "whole"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Brown beef in olive oil with garlic. Add kale and wilt 2 minutes. Push aside and fry eggs to your liking. Plate together and serve."
+  },
+  {
+    "name": "Vegan Overnight Oats with Chia",
+    "meal_slot": "breakfast",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "rolled oats",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "chia seeds",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "item": "blueberries, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "maple syrup",
+        "qty": 10,
+        "unit": "ml"
+      },
+      {
+        "item": "almond butter",
+        "qty": 20,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Stir oats, coconut milk, chia seeds, and maple syrup in a jar. Refrigerate overnight. Top with blueberries and almond butter in the morning."
+  }
+]

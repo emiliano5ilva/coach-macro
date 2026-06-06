@@ -1,0 +1,448 @@
+[
+  {
+    "name": "Turkey Meatball Zucchini Marinara",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "ground turkey, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "tomato products, canned, diced",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Roll turkey into balls; brown in olive oil. Spiralize or slice zucchini thin. Saut\u00e9 garlic; add diced tomatoes and italian seasoning; simmer 10 minutes. Add meatballs and serve over zucchini."
+  },
+  {
+    "name": "Carnivore Beef Liver and Bacon",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "carnivore",
+      "keto",
+      "paleo",
+      "high-protein",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "beef liver, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "bacon, cured, pan-fried",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "beef broth",
+        "qty": 100,
+        "unit": "ml"
+      },
+      {
+        "item": "sea salt",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "item": "black pepper, ground",
+        "qty": 1,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season liver with salt and pepper. Cook bacon until crispy; set aside. Sear liver slices in bacon fat 2-3 minutes per side. Deglaze with beef broth and serve with bacon."
+  },
+  {
+    "name": "Mediterranean Baked Cod with Tomatoes",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "mediterranean",
+      "paleo",
+      "high-protein",
+      "keto",
+      "low-carb"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "cod, atlantic, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "tomatoes, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "italian seasoning",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Place cod in a baking dish. Top with sliced tomatoes, garlic, and italian seasoning. Drizzle olive oil and lemon juice. Bake at 400\u00b0F for 18 minutes until flaky."
+  },
+  {
+    "name": "Keto Shrimp with Zucchini Noodles",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "pescatarian",
+      "low-carb",
+      "high-protein",
+      "mediterranean"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "shrimp, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "zucchini, raw",
+        "qty": 300,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 60,
+        "unit": "ml"
+      },
+      {
+        "item": "parmesan cheese",
+        "qty": 20,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Spiralize zucchini. Saut\u00e9 garlic in olive oil, add shrimp and cook 2 minutes per side. Add cream and parmesan; simmer 2 minutes. Toss with zucchini noodles and serve."
+  },
+  {
+    "name": "Paleo Chicken Vegetable Soup",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced",
+      "low-carb"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chicken breast, broilers or fryers, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "carrots, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "celery, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "chicken broth",
+        "qty": 400,
+        "unit": "ml"
+      },
+      {
+        "item": "kale, raw",
+        "qty": 80,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Dice chicken and vegetables. Saut\u00e9 onions, carrots, celery, and garlic in a pot 5 minutes. Add chicken, broth, and bring to a boil. Simmer 20 minutes. Stir in kale and serve."
+  },
+  {
+    "name": "Pork Tenderloin with Roasted Sweet Potato",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "sweet potato, raw",
+        "qty": 180,
+        "unit": "g"
+      },
+      {
+        "item": "broccoli, raw",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "rosemary, fresh",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Rub pork with rosemary, garlic, and olive oil. Roast at 400\u00b0F alongside cubed sweet potato for 25 minutes. Steam broccoli. Slice pork and serve with vegetables."
+  },
+  {
+    "name": "Mahi-Mahi with Pineapple Salsa",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "paleo",
+      "high-protein",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "mahi-mahi, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "pineapple, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "bell peppers, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "instructions": "Grill mahi-mahi 3-4 minutes per side with olive oil. Dice pineapple and peppers; toss with lemon juice for salsa. Plate fish and top with salsa."
+  },
+  {
+    "name": "Tilapia Fish Tacos with Cabbage Slaw",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "pescatarian",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "tilapia, raw",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "corn tortilla",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "item": "cabbage, raw",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "item": "lemon juice, raw",
+        "qty": 20,
+        "unit": "ml"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "salsa, ready-to-serve",
+        "qty": 40,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Season tilapia and cook in olive oil 3 minutes per side; flake. Shred cabbage and toss with lemon juice. Warm tortillas, fill with fish, slaw, and salsa."
+  },
+  {
+    "name": "Vegan Coconut Chickpea Curry",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "vegan",
+      "vegetarian",
+      "balanced",
+      "mediterranean"
+    ],
+    "servings": 2,
+    "ingredients": [
+      {
+        "item": "chickpeas, mature seeds, canned, drained",
+        "qty": 250,
+        "unit": "g"
+      },
+      {
+        "item": "coconut milk",
+        "qty": 200,
+        "unit": "ml"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "onions, raw",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "ginger root, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "cumin, ground",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Saut\u00e9 onions, garlic, and ginger in olive oil 3 minutes. Add cumin; cook 30 seconds. Add chickpeas and coconut milk; simmer 15 minutes. Stir in spinach until wilted."
+  },
+  {
+    "name": "Keto Pork Tenderloin with Herb Cream",
+    "meal_slot": "dinner",
+    "diet_tags": [
+      "keto",
+      "high-protein",
+      "low-carb",
+      "balanced"
+    ],
+    "servings": 1,
+    "ingredients": [
+      {
+        "item": "pork tenderloin, raw",
+        "qty": 200,
+        "unit": "g"
+      },
+      {
+        "item": "heavy cream",
+        "qty": 80,
+        "unit": "ml"
+      },
+      {
+        "item": "garlic, raw",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "item": "spinach, raw",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "item": "olive oil",
+        "qty": 15,
+        "unit": "ml"
+      },
+      {
+        "item": "dijon mustard",
+        "qty": 10,
+        "unit": "g"
+      }
+    ],
+    "instructions": "Sear pork in olive oil 4 minutes per side. Rest and slice. In the same pan, saut\u00e9 garlic, whisk in cream and mustard; simmer until thickened. Add spinach. Pour over pork."
+  }
+]
