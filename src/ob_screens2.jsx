@@ -3934,7 +3934,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
           const _pref=_td.includes('Sat')?'Sat':_td.includes('Sun')?'Sun':(_td[_td.length-1]||null);
           const _lrd=longRunDay||_pref;
           return _lrd?{longRunDay:_lrd}:{};
-        })():{},),
+        })():{}),
         ...(focus==="hybrid"&&hybridTemplate?{hybridTemplate}:{}),
         ...(focus==="hybrid"&&dayPlan?{dayPlan}:{}),
         ...(focus==="hyrox"&&hyroxProgram?{hyroxProgram}:{}),
@@ -6059,7 +6059,7 @@ Rules:
       const workoutCount=(workoutLogsRaw.length||0)+1;
       if(isNative&&workoutCount>=5&&!localStorage.getItem("rating_prompt_shown")){
         localStorage.setItem("rating_prompt_shown","1");
-        try{const m=await import(/* @vite-ignore */ "@capacitor-community/in-app-review");await(m.InAppReview||m.AppReview)?.requestReview?.();}catch{}
+        try{const _pkg="@capacitor-community/in-app-review";const m=await import(/* @vite-ignore */ _pkg);await(m.InAppReview||m.AppReview)?.requestReview?.();}catch{}
       }
 
       // Plateau detection and resolution

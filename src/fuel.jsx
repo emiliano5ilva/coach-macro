@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { MN, MotionArc, StaggerItem, Pressable } from './motion-layer.jsx';
+import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
 const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
 import FoodIcon from "./FoodIcon.jsx";
