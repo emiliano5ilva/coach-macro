@@ -2180,6 +2180,27 @@ Reply with ONLY a valid JSON object, no markdown:
 
   // ── Planned-card part-B actions ──────────────────────────────────────────────
 
+  // Restaurant AI → log: same lock-gate check as handleConfirmPlanned, same logEntry path.
+  function handleAddRestaurantDish(b){
+    const slot=restaurantAI.slot;
+    const entry={
+      food:b.item,
+      calories:b.estimated_macros?.calories||0,
+      protein:b.estimated_macros?.protein_g||0,
+      carbs:b.estimated_macros?.carbs_g||0,
+      fat:b.estimated_macros?.fat_g||0,
+      slot,
+      method:'restaurant',
+    };
+    const slotToLock=mealSlots.find(s=>s<slot&&log.some(e=>getEntrySlot(e)===s)&&!(lockedSlots||[]).includes(s));
+    setRestaurantAI(null);
+    if(slotToLock){
+      setLockGate({slotToLock,pendingIdx:mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0,pendingEntry:entry});
+    }else{
+      logEntry(entry);
+    }
+  }
+
   // CONFIRM: build entry from planned meal, run same lock-gate check as + button,
   // then call the existing logEntry — does NOT fork the write path.
   function handleConfirmPlanned(meal,slot){
@@ -3861,6 +3882,10 @@ Reply with ONLY a valid JSON object, no markdown:
                               </div>
                             )}
                           </div>
+                          <button
+                            onClick={()=>handleAddRestaurantDish(b)}
+                            style={{width:"100%",padding:"14px",background:"#e8341c",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:16}}
+                          >ADD TO MEAL {restaurantAI.slot}</button>
                           {(raResult.backup_options||[]).length>0&&(
                             <div style={{marginBottom:16}}>
                               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
@@ -4973,6 +4998,10 @@ Reply with ONLY a valid JSON object, no markdown:
                             </div>
                           )}
                         </div>
+                        <button
+                          onClick={()=>handleAddRestaurantDish(b)}
+                          style={{width:"100%",padding:"14px",background:"#e8341c",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:16}}
+                        >ADD TO MEAL {restaurantAI.slot}</button>
 
                         {/* ALSO GOOD */}
                         {(raResult.backup_options||[]).length>0&&(
