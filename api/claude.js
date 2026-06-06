@@ -16,8 +16,8 @@ LANGUAGE: Never say "no pain no gain", "push through the pain", or "pain is weak
 // Max tokens per request per feature
 const TOKEN_LIMITS = {
   restaurant_ai:   { input: 800, output: 600 },
-  restaurant_pick: { input: 1200, output: 900 },
-  menu_scan:       { input: 8000, output: 900 },
+  restaurant_pick: { input: 1200, output: 2000 }, // raised: 900 truncated tool-use response
+  menu_scan:       { input: 8000, output: 2000 }, // raised: same fix for menu scan path
   adapt_now:       { input: 600, output: 500 },
   morning_brief:   { input: 2500, output: 700 },
   meal_suggestion: { input: 300, output: 200 },
@@ -249,6 +249,13 @@ export default withLogging(async function handler(req, res) {
 
   // ── 4b. Non-streaming response ─────────────────────────────────────────────
   try {
+    // For tool_choice calls, use max(clientMax, serverLimit) so forced tool-use
+    // requests (e.g. Restaurant AI) never get silently truncated by the server cap.
+    const clientMax = typeof bodyRest.max_tokens === 'number' ? bodyRest.max_tokens : 0;
+    const max_tokens = bodyRest.tool_choice
+      ? Math.min(Math.max(clientMax, limits.output), 8192)
+      : limits.output;
+
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
       headers: {
@@ -260,7 +267,7 @@ export default withLogging(async function handler(req, res) {
         ...bodyRest,
         messages,
         system:     SAFETY_SYSTEM_PROMPT,
-        max_tokens: limits.output,
+        max_tokens,
       }),
     });
 
