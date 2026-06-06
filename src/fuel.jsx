@@ -2092,9 +2092,15 @@ Reply with ONLY a valid JSON object, no markdown:
       const diet=mealPrepPrefs.dietPreset||'balanced';
       const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
 
-      // PHASE 4 SEAM: replace with per-day Fuel Flow targets (training vs rest)
-      const dayTarget={cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
-      const dayTargets=sel.map(()=>dayTarget);
+      // PHASE 4: per-day training-aware targets from getWeekNutrition (via weekMacros prop).
+      // weekMacros = [{day:'Mon',calories,protein,carbs,fat,...}, ...] — same system that
+      // drives the displayed daily target ring. No earnedCals, no todayProtocol override:
+      // these are PLANNED day-type targets, not today-only adjustments.
+      const _flatFallback={cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
+      const dayTargets=sel.map(dayName=>{
+        const e=weekMacros?.find(d=>d.day===dayName);
+        return e?{cal:e.calories,pro:e.protein,carb:e.carbs,fat:e.fat}:_flatFallback;
+      });
 
       // Load pool (DB-level pre-filter; fitter re-checks allergen gate internally)
       const pool=await loadMealPool(diet,allergenTags);
@@ -2126,7 +2132,9 @@ Reply with ONLY a valid JSON object, no markdown:
     try{
       const diet=mealPrepPrefs.dietPreset||'balanced';
       const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
-      const dayTarget={cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
+      const _swapDayName=mealPrepPlan.days[dayIndex].day;
+      const _swapEntry=weekMacros?.find(d=>d.day===_swapDayName);
+      const dayTarget=_swapEntry?{cal:_swapEntry.calories,pro:_swapEntry.protein,carb:_swapEntry.carbs,fat:_swapEntry.fat}:{cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
       const currentSlot=mealPrepPlan.days[dayIndex].meals[mealIndex]?.slot||'lunch';
       const currentId=mealPrepPlan.days[dayIndex].meals[mealIndex]?._recipeId;
       const pool=await loadMealPool(diet,allergenTags);
@@ -2154,10 +2162,11 @@ Reply with ONLY a valid JSON object, no markdown:
     try{
       const diet=mealPrepPrefs.dietPreset||'balanced';
       const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
-      const dayTarget={cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
+      const dayName=mealPrepPlan.days[dayIndex].day;
+      const _rdEntry=weekMacros?.find(d=>d.day===dayName);
+      const dayTarget=_rdEntry?{cal:_rdEntry.calories,pro:_rdEntry.protein,carb:_rdEntry.carbs,fat:_rdEntry.fat}:{cal:macros?.calories||2000,pro:macros?.protein||150,carb:macros?.carbs||200,fat:macros?.fat||70};
       const pool=await loadMealPool(diet,allergenTags);
       const result=fitDay({dayTarget,mealCount:mealPrepPrefs.mealsPerDay||3,diet,allergens:allergenTags,pool,seed:Date.now()%100000});
-      const dayName=mealPrepPlan.days[dayIndex].day;
       const updated=fitterDayToShape(result,dayName,schedule?.[dayName]||'rest');
       setMealPrepPlan(prev=>{const u=JSON.parse(JSON.stringify(prev));u.days[dayIndex]=updated;return u;});
     }catch(e){console.error('[regenerateDay (fitter)]',e);}
