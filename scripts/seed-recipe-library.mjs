@@ -32,7 +32,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { findAllergens } from '../src/utils/allergenFilter.js';
+import { findAllergens, ALLERGEN_SAFE_PHRASES } from '../src/utils/allergenFilter.js';
 import { readFileSync } from 'fs';
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -43,7 +43,9 @@ const USDA_KEY        = process.env.USDA_API_KEY || 'DEMO_KEY';
 
 // Parse flags
 const GENERATE_MODE   = process.argv.includes('--generate');
-const PILOT_MODE      = process.argv.includes('--pilot') || !process.argv.includes('--full');
+const RETAG_MODE      = process.argv.includes('--retag');   // re-tag existing global rows only
+const SKIP_EXISTING   = process.argv.includes('--skip-existing'); // skip names already in DB
+const PILOT_MODE      = process.argv.includes('--pilot') || (!process.argv.includes('--full') && !RETAG_MODE);
 const FROM_FILE_ARG   = process.argv.find(a => a.startsWith('--from-file='));
 const FROM_FILE       = FROM_FILE_ARG ? FROM_FILE_ARG.replace('--from-file=', '') : null;
 const PILOT_COUNT     = 25;
@@ -140,6 +142,84 @@ const LOCAL_MACRO_CACHE = {
   // Supplements / processed
   'whey protein powder':                              {cal:352,pro:75.0,carb:7.5,fat:1.0,fdcId:0},
   'coconut milk':                                     {cal:230,pro:2.3,carb:5.5,fat:23.8,fdcId:170172},
+  // Additional proteins for full library
+  'tofu, firm, raw':                                  {cal:76,pro:8.1,carb:1.9,fat:4.3,fdcId:172461},
+  'tempeh':                                           {cal:193,pro:20.3,carb:7.6,fat:10.8,fdcId:174272},
+  'shrimp, raw':                                      {cal:106,pro:20.1,carb:0.9,fat:1.7,fdcId:175177},
+  'cod, atlantic, raw':                               {cal:82,pro:17.8,carb:0,fat:0.7,fdcId:171955},
+  'tilapia, raw':                                     {cal:96,pro:20.1,carb:0,fat:2.0,fdcId:175176},
+  'halibut, atlantic, raw':                           {cal:110,pro:22.5,carb:0,fat:2.3,fdcId:175171},
+  'mahi-mahi, raw':                                   {cal:93,pro:19.7,carb:0,fat:1.0,fdcId:175173},
+  'pork tenderloin, raw':                             {cal:121,pro:21.0,carb:0,fat:3.5,fdcId:167906},
+  'pork chop, lean, raw':                             {cal:136,pro:20.5,carb:0,fat:5.5,fdcId:167905},
+  'turkey breast, raw':                               {cal:109,pro:23.7,carb:0,fat:1.3,fdcId:171483},
+  'ground turkey, raw':                               {cal:163,pro:19.1,carb:0,fat:9.3,fdcId:171486},
+  'beef liver, raw':                                  {cal:135,pro:20.4,carb:3.9,fat:3.7,fdcId:168626},
+  'ground beef, 90% lean, raw':                       {cal:168,pro:20.0,carb:0,fat:9.4,fdcId:174036},
+  // Additional produce
+  'mushrooms, portobello, raw':                       {cal:22,pro:2.1,carb:3.9,fat:0.3,fdcId:169260},
+  'cauliflower, raw':                                 {cal:25,pro:1.9,carb:5.0,fat:0.3,fdcId:169986},
+  'kale, raw':                                        {cal:35,pro:2.9,carb:4.4,fat:1.5,fdcId:168421},
+  'brussels sprouts, raw':                            {cal:43,pro:3.4,carb:8.9,fat:0.3,fdcId:170383},
+  'cabbage, raw':                                     {cal:25,pro:1.3,carb:5.8,fat:0.1,fdcId:169975},
+  'celery, raw':                                      {cal:14,pro:0.7,carb:3.0,fat:0.2,fdcId:169988},
+  'eggplant, raw':                                    {cal:25,pro:1.0,carb:5.9,fat:0.2,fdcId:169967},
+  'beets, raw':                                       {cal:43,pro:1.6,carb:9.6,fat:0.2,fdcId:169145},
+  'butternut squash, raw':                            {cal:45,pro:1.0,carb:11.7,fat:0.1,fdcId:169971},
+  'arugula, raw':                                     {cal:25,pro:2.6,carb:3.7,fat:0.7,fdcId:170381},
+  'cucumber, raw':                                    {cal:15,pro:0.7,carb:3.6,fat:0.1,fdcId:168409},
+  'edamame, frozen, prepared':                        {cal:121,pro:11.9,carb:8.9,fat:5.2,fdcId:168411},
+  'apples, raw':                                      {cal:52,pro:0.3,carb:13.8,fat:0.2,fdcId:171688},
+  'oranges, raw':                                     {cal:47,pro:0.9,carb:11.8,fat:0.1,fdcId:169097},
+  'mango, raw':                                       {cal:60,pro:0.8,carb:15.0,fat:0.4,fdcId:169910},
+  'pineapple, raw':                                   {cal:50,pro:0.5,carb:13.1,fat:0.1,fdcId:169949},
+  'mixed greens':                                     {cal:22,pro:2.1,carb:3.6,fat:0.4,fdcId:168462},
+  // Additional legumes
+  'black beans, canned, drained':                     {cal:132,pro:8.9,carb:23.7,fat:0.5,fdcId:173735},
+  'kidney beans, canned, drained':                    {cal:115,pro:7.7,carb:20.7,fat:0.4,fdcId:173744},
+  'edamame, shelled':                                 {cal:121,pro:11.9,carb:8.9,fat:5.2,fdcId:168411},
+  // Additional dairy / alternatives
+  'greek yogurt, plain, whole milk':                  {cal:97,pro:9.0,carb:3.9,fat:4.9,fdcId:170903},
+  'ricotta cheese, whole milk':                       {cal:174,pro:11.3,carb:3.1,fat:12.5,fdcId:172182},
+  'mozzarella cheese':                                {cal:299,pro:22.2,carb:2.2,fat:22.4,fdcId:173420},
+  'feta cheese':                                      {cal:264,pro:14.2,carb:4.1,fat:21.3,fdcId:173420},
+  'parmesan cheese':                                  {cal:431,pro:38.5,carb:3.2,fat:28.6,fdcId:171245},
+  // Grains and starches
+  'barley, pearled, cooked':                          {cal:123,pro:2.3,carb:28.2,fat:0.4,fdcId:170285},
+  'oat bran, raw':                                    {cal:246,pro:17.3,carb:66.2,fat:7.0,fdcId:170289},
+  'white rice, cooked':                               {cal:130,pro:2.7,carb:28.6,fat:0.3,fdcId:168878},
+  'corn tortilla':                                    {cal:218,pro:5.7,carb:45.9,fat:2.9,fdcId:171400},
+  // Fats / oils / condiments
+  'coconut oil':                                      {cal:892,pro:0,carb:0,fat:99.1,fdcId:172316},
+  'tahini':                                           {cal:595,pro:17.0,carb:21.2,fat:53.8,fdcId:169426},
+  'peanut butter, smooth':                            {cal:598,pro:22.2,carb:22.3,fat:51.4,fdcId:172470},
+  'sunflower seeds, raw':                             {cal:584,pro:20.8,carb:20.0,fat:51.5,fdcId:170563},
+  'pumpkin seeds, raw':                               {cal:559,pro:30.2,carb:10.7,fat:49.1,fdcId:170556},
+  'walnuts, raw':                                     {cal:654,pro:15.2,carb:13.7,fat:65.2,fdcId:170187},
+  'cashews, raw':                                     {cal:553,pro:18.2,carb:30.2,fat:43.9,fdcId:170162},
+  'nutritional yeast':                                {cal:325,pro:40.0,carb:28.6,fat:6.3,fdcId:0},
+  'almond flour':                                     {cal:600,pro:21.4,carb:21.4,fat:53.6,fdcId:0},
+  'coconut flour':                                    {cal:400,pro:18.0,carb:60.0,fat:14.0,fdcId:0},
+  'fish sauce':                                       {cal:35,pro:5.1,carb:3.6,fat:0.0,fdcId:169988},
+  'worcestershire sauce':                             {cal:78,pro:0,carb:20.5,fat:0,fdcId:170710},
+  'balsamic vinegar':                                 {cal:88,pro:0.5,carb:17.0,fat:0,fdcId:170474},
+  'dijon mustard':                                    {cal:67,pro:3.9,carb:5.5,fat:3.3,fdcId:170418},
+  'salsa, ready-to-serve':                            {cal:36,pro:1.8,carb:7.1,fat:0.2,fdcId:170467},
+  'hot sauce':                                        {cal:34,pro:1.1,carb:7.4,fat:0.3,fdcId:170941},
+  'beef broth':                                       {cal:8,pro:1.3,carb:0.6,fat:0.1,fdcId:170469},
+  'chicken broth':                                    {cal:10,pro:1.5,carb:1.0,fat:0.1,fdcId:173726},
+  // Additional misc
+  'protein powder, plant-based':                      {cal:360,pro:70.0,carb:10.0,fat:5.0,fdcId:0},
+  'collagen peptides':                                {cal:360,pro:90.0,carb:0,fat:0,fdcId:0},
+  'flaxseed, ground':                                 {cal:534,pro:18.3,carb:28.9,fat:42.2,fdcId:169414},
+  'hemp seeds, hulled':                               {cal:553,pro:31.6,carb:8.7,fat:48.7,fdcId:170148},
+  'cocoa powder, unsweetened':                        {cal:228,pro:19.6,carb:57.9,fat:13.7,fdcId:169593},
+  'vanilla extract':                                  {cal:288,pro:0.1,carb:12.7,fat:0.1,fdcId:170500},
+  'cinnamon, ground':                                 {cal:247,pro:4.0,carb:80.6,fat:1.2,fdcId:171320},
+  'black pepper, ground':                             {cal:251,pro:10.4,carb:63.9,fat:3.3,fdcId:170931},
+  'sea salt':                                         {cal:0,pro:0,carb:0,fat:0,fdcId:0},
+  'italian seasoning':                                {cal:268,pro:7.6,carb:60.0,fat:4.0,fdcId:0},
+  'paprika':                                          {cal:282,pro:14.1,carb:54.0,fat:13.0,fdcId:170931},
 };
 
 // Normalize a key for cache lookup
@@ -340,39 +420,155 @@ function toGrams(qty, unit, itemHint = '') {
   }
 }
 
-// ── Diet tag validator ────────────────────────────────────────────────────────
-// Maps diet tag → list of ingredient keywords that DISQUALIFY that tag.
-const DIET_DISQUALIFIERS = {
-  'vegan':       ['chicken','beef','pork','lamb','salmon','tuna','shrimp','egg','eggs',
-                  'milk','cheese','butter','cream','yogurt','whey','honey','gelatin',
-                  'turkey','duck','fish','meat','anchovy'],
-  'vegetarian':  ['chicken','beef','pork','lamb','salmon','tuna','shrimp','turkey',
-                  'duck','fish','anchovy','gelatin','meat'],
-  'keto':        ['oats','oatmeal','rice','bread','pasta','potato','sweet potato',
-                  'corn','flour','sugar','honey','banana','apple','grape','lentil',
-                  'chickpea','black bean','kidney bean','quinoa'],
-  'paleo':       ['oats','oatmeal','bread','pasta','rice','corn','flour','dairy',
-                  'milk','cheese','butter','cream','soy','tofu','legume','bean',
-                  'lentil','peanut','sugar'],
-  'mediterranean':['soda','candy','processed','hot dog','fast food'],
-  'high-protein': [], // validated by macro ratio instead
-  'balanced':    [], // always valid
-  'low-carb':    ['rice','pasta','bread','potato','corn','oats','banana','sugar'],
-  'carnivore':   ['oats','rice','bread','pasta','potato','bean','lentil','vegetable',
-                  'fruit','nut','seed','tofu','quinoa'],
-  'pescatarian': ['chicken','beef','pork','lamb','turkey','duck','meat'],
+// ── Diet tag validator — shares allergenFilter.js safe-phrase + word-boundary arch ─
+//
+// Shared infrastructure: ALLERGEN_SAFE_PHRASES (imported above) is spread directly
+// into the diet-tag safe-phrase lists below, so both systems stay in sync from one
+// source of truth.  Specifically:
+//   • ALLERGEN_SAFE_PHRASES['No Dairy'] covers the confirmed false positives for
+//     vegan + paleo: "coconut milk" (not dairy), "almond butter" (not dairy-butter),
+//     "peanut butter", "cashew butter", "almond milk", "oat milk", "butter lettuce",
+//     "butternut", etc.
+//   • ALLERGEN_SAFE_PHRASES['No Eggs'] covers "eggplant" / "egg-free" for vegan +
+//     vegetarian (so eggplant never triggers the egg disqualifier).
+//
+// Confirmed false-positive fixes:
+//   "coconut milk"  → no longer strips vegan/paleo (matched "milk")  — FIXED ✓
+//   "almond butter" → no longer strips vegan/paleo (matched "butter") — FIXED ✓
+//   "green beans"   → no longer strips paleo (matched "bean")         — FIXED ✓
+//   "honey"         → still correctly strips vegan (no safe phrase)   — CORRECT ✓
+//
+// Matching algorithm mirrors allergenFilter.js findAllergens() exactly:
+//   1. Normalize text (lowercase, non-alphanumeric → space)
+//   2. Per-ingredient: safe-phrase override runs FIRST (substring of normalized text)
+//   3. Disqualifier word-boundary regex (with optional plural 's') runs SECOND
+//   4. Any disqualifier hit without a safe-phrase override → tag is dropped
+
+// _dietNorm / _dietEsc mirror allergenFilter.js _norm / _esc (not exported there).
+function _dietNorm(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function _dietEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Safe phrases: spread ALLERGEN_SAFE_PHRASES['No Dairy'] / ['No Eggs'] as the base,
+// then append diet-specific extras.  Single source of truth = allergenFilter.js.
+const DIET_SAFE_PHRASES = {
+  'vegan': [
+    ...ALLERGEN_SAFE_PHRASES['No Dairy'], // coconut milk, almond butter, peanut butter,
+                                          // cashew butter, almond milk, oat milk, soy milk,
+                                          // rice milk, cashew milk, hemp milk, coconut cream,
+                                          // coconut yogurt, butter lettuce, butternut, dairy-free…
+    ...ALLERGEN_SAFE_PHRASES['No Eggs'],  // eggplant, egg-free
+    'coconut water','vegan','plant-based',
+  ],
+  'vegetarian': [
+    ...ALLERGEN_SAFE_PHRASES['No Eggs'],  // eggplant, egg-free
+  ],
+  'paleo': [
+    ...ALLERGEN_SAFE_PHRASES['No Dairy'], // coconut milk, almond butter, peanut butter,
+                                          // coconut cream, almond milk, butter lettuce, butternut…
+    'green beans','green bean',           // green beans are NOT paleo-disqualifying legumes
+    'coconut aminos','coconut oil','coconut flour','almond flour','coconut water',
+  ],
+  'keto': [
+    // keto validated primarily by macros (<20g net carbs); minimal keyword exceptions
+    'almond flour','coconut flour',
+  ],
+  'low-carb': [
+    'almond flour','coconut flour','oat bran',
+  ],
+  'carnivore': [
+    'sea salt','black pepper',
+  ],
+  'pescatarian': [],
+  'mediterranean': [],
+  'high-protein': [],
+  'balanced': [],
 };
 
-function validateDietTags(dietTags, ingredients) {
-  const allIngredientText = ingredients.map(i => i.item.toLowerCase()).join(' ');
+// Disqualifier keywords per diet tag (word-boundary matched with optional plural 's')
+const DIET_DISQUALIFIERS = {
+  'vegan': [
+    'chicken','beef','pork','lamb','salmon','tuna','shrimp','prawn',
+    'egg','eggs','milk','cheese','butter','cream','yogurt','whey',
+    'honey','gelatin','turkey','duck','fish','meat','anchovy',
+    'bacon','ham','sausage','steak','bison','venison','lard',
+  ],
+  'vegetarian': [
+    'chicken','beef','pork','lamb','salmon','tuna','shrimp','prawn',
+    'turkey','duck','fish','anchovy','gelatin','meat','bacon','ham',
+    'sausage','steak','bison','venison',
+  ],
+  'keto': [
+    // keyword pre-filter only — macro validation (carbs>20g) runs afterward
+    'bread','pasta','oatmeal','flour tortilla',
+    'sugar','honey','maple syrup',
+    'banana','grape','apple','mango','pineapple',
+    'potato','sweet potato',
+  ],
+  'paleo': [
+    'oats','oatmeal','bread','pasta','rice','corn','cornstarch','flour tortilla',
+    'whole wheat','milk','cheese','butter','cream','yogurt','whey',
+    'soy sauce','tofu','tempeh','edamame',
+    'lentil','chickpea','black bean','kidney bean','navy bean',
+    'peanut',  // peanut butter excluded via safe phrase above
+    'sugar','honey','maple syrup','candy',
+  ],
+  'mediterranean': ['soda','candy','hot dog','fast food'],
+  'high-protein':  [],
+  'balanced':      [],
+  'low-carb':      ['rice','pasta','bread','potato','corn','banana','maple syrup'],
+  'carnivore':     [
+    'oats','rice','bread','pasta','potato','bean','lentil','chickpea',
+    'vegetable','fruit','nut','seed','tofu','quinoa','spinach',
+    'broccoli','kale','onion','tomato','pepper','garlic',
+  ],
+  'pescatarian': ['chicken','beef','pork','lamb','turkey','duck','meat','bacon','ham','sausage'],
+};
+
+/**
+ * Validate diet tags against ingredients using word-boundary regex + safe phrases.
+ * Reuses the same architecture as allergenFilter.js findAllergens():
+ *   - normalize both sides, safe-phrase override first, then word-boundary disqualifier
+ * Also applies macro-based validation for keto (carbs > 20g/serving → drop keto).
+ */
+function validateDietTags(dietTags, ingredients, macrosPerServing = null) {
   const corrections = [];
   const valid = [];
 
   for (const tag of dietTags) {
+    const safePhrases  = DIET_SAFE_PHRASES[tag]  || [];
     const disqualifiers = DIET_DISQUALIFIERS[tag] || [];
-    const offending = disqualifiers.filter(kw => allIngredientText.includes(kw));
-    if (offending.length > 0) {
-      corrections.push({ tag, reason: `contains: ${offending.slice(0, 3).join(', ')}` });
+    let offendingKw = null;
+
+    // Macro-based keto validation (belt-and-suspenders after keyword check)
+    if (tag === 'keto' && macrosPerServing && macrosPerServing.carb > 20) {
+      corrections.push({ tag, reason: `carbs ${macrosPerServing.carb}g/serving > 20g keto limit` });
+      continue;
+    }
+    if (tag === 'low-carb' && macrosPerServing && macrosPerServing.carb > 30) {
+      corrections.push({ tag, reason: `carbs ${macrosPerServing.carb}g/serving > 30g low-carb limit` });
+      continue;
+    }
+
+    // Per-ingredient check (same as allergenFilter — check each ingredient individually)
+    for (const ing of ingredients) {
+      const normIngItem = _dietNorm(ing.item);
+
+      // Safe-phrase override: if item contains a safe phrase, skip disqualifier check for this ingredient
+      const isSafe = safePhrases.some(ph => normIngItem.includes(_dietNorm(ph)));
+      if (isSafe) continue;
+
+      // Disqualifier word-boundary match with optional plural 's'
+      const hit = disqualifiers.find(kw => {
+        const re = new RegExp('(^|[^a-z0-9])' + _dietEsc(_dietNorm(kw)) + 's?($|[^a-z0-9])', 'i');
+        return re.test(normIngItem);
+      });
+      if (hit) { offendingKw = hit; break; }
+    }
+
+    if (offendingKw) {
+      corrections.push({ tag, reason: `contains: ${offendingKw}` });
     } else {
       valid.push(tag);
     }
@@ -507,14 +703,66 @@ Use the save_recipes tool to return all ${count} recipes.`;
   return toolUse.input.recipes;
 }
 
+// ── Re-tag: re-validate diet_tags for ALL global rows from their SOURCE seed file.
+// Uses source JSON (not current DB tags) so we can both drop wrong tags AND restore
+// ones wrongly removed by the old validator. Pass --from-file= to specify source.
+async function retagExisting(seedFile) {
+  console.log('\n══ RE-TAG MODE ══');
+  // Load source recipes (original diet_tags intended by authoring step)
+  const sourceRecipes = JSON.parse(readFileSync(seedFile, 'utf-8'));
+  const sourceByName = new Map(sourceRecipes.map(r => [r.name.toLowerCase(), r]));
+
+  const { data: rows, error } = await sb
+    .from('recipes').select('id, name, carbs_per_serving').is('user_id', null);
+  if (error) { console.error('Fetch error:', error.message); return; }
+  console.log(`  DB: ${rows.length} global rows | Source: ${sourceRecipes.length} recipes\n`);
+
+  let updated = 0, unchanged = 0, noSource = 0;
+  const allCorrections = [];
+
+  for (const row of rows) {
+    const src = sourceByName.get(row.name.toLowerCase());
+    if (!src) { noSource++; continue; }
+
+    const macrosPerServing = { carb: row.carbs_per_serving ?? 0 };
+    const { valid, corrections } = validateDietTags(src.diet_tags || [], src.ingredients, macrosPerServing);
+
+    if (corrections.length > 0) allCorrections.push({ name: row.name, corrections });
+
+    const newTags = [...new Set(valid)];
+    const { error: upErr } = await sb.from('recipes').update({ diet_tags: newTags }).eq('id', row.id);
+    if (upErr) { console.error(`  ✗ ${row.name}: ${upErr.message}`); }
+    else {
+      console.log(`  ${row.name}`);
+      console.log(`    diet_tags: [${newTags.join(', ')}]`);
+      updated++;
+    }
+  }
+
+  console.log(`\nRe-tag: ${updated} updated, ${unchanged} unchanged, ${noSource} no source match`);
+  if (allCorrections.length) {
+    console.log('\nTags corrected (removed from source intent):');
+    for (const {name, corrections} of allCorrections) {
+      for (const c of corrections) console.log(`  ${name}: removed "${c.tag}" — ${c.reason}`);
+    }
+  }
+  console.log('\nValidate via Supabase: SELECT name,diet_tags FROM recipes WHERE user_id IS NULL;');
+}
+
 // ── Main pipeline ─────────────────────────────────────────────────────────────
 async function run() {
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`Coach Macro — Recipe Library Seeding Pipeline`);
   const modeLabel = GENERATE_MODE ? 'GENERATE+SEED' : FROM_FILE ? `FROM-FILE: ${FROM_FILE}` : `FROM-FILE: ${DEFAULT_SEED_FILE}`;
-  console.log(`Mode: ${PILOT_MODE ? 'PILOT' : 'FULL'} — ${modeLabel}`);
+  console.log(`Mode: ${PILOT_MODE ? 'PILOT' : RETAG_MODE ? 'RETAG' : 'FULL'} — ${modeLabel}`);
   console.log(`USDA key: ${USDA_KEY === 'DEMO_KEY' ? 'DEMO_KEY (low-volume ok)' : 'custom key'}`);
   console.log(`${'═'.repeat(60)}\n`);
+
+  if (RETAG_MODE) {
+    const seedFile = FROM_FILE || DEFAULT_SEED_FILE;
+    await retagExisting(seedFile);
+    return;
+  }
 
   // ── Step 1: Recipe structures (generated or from file) ──────────────────────
   let rawRecipes;
@@ -557,8 +805,9 @@ async function run() {
     // Step 3: Allergen tags (deterministic)
     const allergenTags = computeAllergenTags(r.ingredients);
 
-    // Step 4: Diet tag validation
-    const { valid: validTags, corrections } = validateDietTags(r.diet_tags || [], r.ingredients);
+    // Step 4: Diet tag validation — pass macros/serving for keto/low-carb macro check
+    const macrosPerServing = { carb: Math.round(macros.carb / servings * 10) / 10 };
+    const { valid: validTags, corrections } = validateDietTags(r.diet_tags || [], r.ingredients, macrosPerServing);
     if (corrections.length > 0) {
       allDietCorrections.push({ recipe: r.name, corrections });
     }
@@ -591,8 +840,20 @@ async function run() {
   // ── Step 5: Insert into Supabase ────────────────────────────────────────────
   console.log('\nInserting into Supabase (user_id=NULL global rows)...');
 
-  let inserted = 0, insertErrors = 0;
+  // Build set of existing names to skip when --skip-existing is passed
+  let existingNames = new Set();
+  if (SKIP_EXISTING) {
+    const { data: existing } = await sb.from('recipes').select('name').is('user_id', null);
+    existingNames = new Set((existing || []).map(r => r.name.toLowerCase()));
+    console.log(`  Skipping ${existingNames.size} already-inserted recipes.`);
+  }
+
+  let inserted = 0, skipped = 0, insertErrors = 0;
   for (const { row } of processed) {
+    if (SKIP_EXISTING && existingNames.has(row.name.toLowerCase())) {
+      skipped++;
+      continue;
+    }
     const { error } = await sb.from('recipes').insert(row);
     if (error) {
       console.error(`  ✗ ${row.name}: ${error.message}`);
@@ -602,7 +863,7 @@ async function run() {
     }
   }
 
-  console.log(`  Inserted: ${inserted}, Errors: ${insertErrors}`);
+  console.log(`  Inserted: ${inserted}, Skipped (existing): ${skipped}, Errors: ${insertErrors}`);
 
   // ── Report ──────────────────────────────────────────────────────────────────
   printReport(processed, allUnmatched, allDietCorrections, inserted);
