@@ -1,4 +1,4 @@
-import { ai, aiWithVision } from '../client.js';
+import { aiWithTools, aiWithToolsAndVision } from '../client.js';
 
 const KNOWN_CHAINS = [
   "mcdonald","burger king","wendy","taco bell","subway","chipotle","chick-fil-a",
@@ -17,37 +17,78 @@ function isKnownChain(name) {
   return KNOWN_CHAINS.some(chain => lower.includes(chain));
 }
 
-const JSON_FORMAT = `{
-  "best_order": {
-    "item": "exact item name",
-    "customisation": "modifications or null",
-    "reason": "one sentence why this fits the meal target",
-    "estimated_macros": {
-      "calories": 0,
-      "protein_g": 0,
-      "carbs_g": 0,
-      "fat_g": 0,
-      "sodium_mg": 0,
-      "sugar_g": 0
+// Forced tool-use schema — model MUST fill this shape; no JSON parsing, no markdown fences.
+// Root cause of "Could not get recommendations": 900-token output cap truncated the JSON mid-response.
+// Tool-use path on the server uses max(clientMax, serverLimit) so 2000 tokens always gets through.
+const RESTAURANT_REC_TOOLS = [{
+  name: "restaurant_recommendation",
+  description: "Structured restaurant meal recommendation matching user macro targets",
+  input_schema: {
+    type: "object",
+    properties: {
+      best_order: {
+        type: "object",
+        description: "The single best dish to order",
+        properties: {
+          item: { type: "string" },
+          customisation: { type: "string" },
+          reason: { type: "string" },
+          estimated_macros: {
+            type: "object",
+            properties: {
+              calories:   { type: "number" },
+              protein_g:  { type: "number" },
+              carbs_g:    { type: "number" },
+              fat_g:      { type: "number" },
+              sodium_mg:  { type: "number" },
+              sugar_g:    { type: "number" },
+            },
+            required: ["calories","protein_g","carbs_g","fat_g","sodium_mg","sugar_g"],
+          },
+          protein_coverage_pct: { type: "number" },
+          warnings: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                nutrient: { type: "string" },
+                message:  { type: "string" },
+                fix:      { type: "string" },
+              },
+              required: ["nutrient","message","fix"],
+            },
+          },
+        },
+        required: ["item","reason","estimated_macros","protein_coverage_pct","warnings"],
+      },
+      backup_options: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            item:          { type: "string" },
+            customisation: { type: "string" },
+            reason:        { type: "string" },
+          },
+          required: ["item","reason"],
+        },
+      },
+      avoid: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            item:   { type: "string" },
+            reason: { type: "string" },
+          },
+          required: ["item","reason"],
+        },
+      },
+      coach_note: { type: "string" },
     },
-    "protein_coverage_pct": 0,
-    "warnings": [
-      {
-        "nutrient": "sodium",
-        "message": "1,840mg — 80% of daily limit in one meal",
-        "fix": "Ask for no sour cream to reduce by ~300mg"
-      }
-    ]
+    required: ["best_order","backup_options","avoid","coach_note"],
   },
-  "backup_options": [
-    { "item": "exact item name", "customisation": null, "reason": "one sentence" },
-    { "item": "exact item name", "customisation": null, "reason": "one sentence" }
-  ],
-  "avoid": [
-    { "item": "exact item name", "reason": "specific macro problem" }
-  ],
-  "coach_note": "one punchy sentence tying training to the recommendation"
-}`;
+}];
 
 export function buildUserContext(profile, slotTargets, currentSlot, totalMeals, trainedToday, sessionType) {
   const pd = profile?.profile_data || {};
@@ -118,18 +159,12 @@ FLAG WARNINGS IF:
 - Sodium > 1000mg${(healthConditions||[]).includes('hypertension') ? ' (flag above 800mg for hypertension)' : ''}
 - Sugar > 20g${(healthConditions||[]).includes('diabetes') ? ' (flag above 10g for diabetes)' : ''}
 
-RULES: Optimise for protein first. Stay within 110% of all targets. Never recommend alcohol. Be specific with exact item names.
-
-RESPOND IN THIS EXACT JSON FORMAT. Nothing before or after the JSON:
-${JSON_FORMAT}`;
+RULES: Optimise for protein first. Stay within 110% of all targets. Never recommend alcohol. Be specific with exact item names.`;
 }
 
 export async function getRestaurantRecs(restaurantName, _cuisineTypes, userContext) {
   const prompt = buildRestaurantPrompt(restaurantName, userContext);
-  const text = await ai(prompt, 900, 'restaurant_pick');
-  const clean = text.replace(/```json\n?|```/g, '').trim();
-  const jsonMatch = clean.match(/\{[\s\S]*\}/);
-  return JSON.parse(jsonMatch ? jsonMatch[0] : clean);
+  return aiWithTools(prompt, RESTAURANT_REC_TOOLS, 'restaurant_recommendation', 2000, 'restaurant_pick');
 }
 
 export async function getMenuScanRecs(base64Image, mediaType, userContext) {
@@ -148,13 +183,7 @@ Goal: ${goal} · Trained today: ${trainedToday}${dietStr}${scanHealthCtx ? `\n${
 
 Read the menu and recommend what to order. Apply the same warning thresholds: calories >110%, protein <80%, carbs/fat >110%, sodium >1000mg, sugar >20g.
 
-If no menu is visible in the image, return this exact JSON with coach_note set to "No menu detected. Try photographing the menu directly with good lighting." and leave item fields as "Unknown".
+If no menu is visible in the image, fill item fields with "Unknown" and set coach_note to "No menu detected. Try photographing the menu directly with good lighting."`;
 
-RESPOND IN THIS EXACT JSON FORMAT. Nothing before or after the JSON:
-${JSON_FORMAT}`;
-
-  const text = await aiWithVision(base64Image, mediaType, textPrompt, 900, 'menu_scan');
-  const clean = text.replace(/```json\n?|```/g, '').trim();
-  const jsonMatch = clean.match(/\{[\s\S]*\}/);
-  return JSON.parse(jsonMatch ? jsonMatch[0] : clean);
+  return aiWithToolsAndVision(base64Image, mediaType, textPrompt, RESTAURANT_REC_TOOLS, 'restaurant_recommendation', 2000, 'menu_scan');
 }

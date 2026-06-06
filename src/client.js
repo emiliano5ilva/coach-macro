@@ -217,3 +217,53 @@ export async function aiWithVision(base64Image, mediaType, textPrompt, max = 900
   }
   return d.content?.[0]?.text || "";
 }
+
+// aiWithToolsAndVision — forced tool use with a vision (image) message.
+// Same guarantees as aiWithTools: model MUST fill the schema, returns toolUse.input
+// directly (no JSON parsing), throws on truncation or empty output.
+export async function aiWithToolsAndVision(base64Image, mediaType, textPrompt, tools, toolName, max = 2000, feature = "default") {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.access_token) throw new Error("Not authenticated");
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: max,
+    feature,
+    tools,
+    tool_choice: { type: "tool", name: toolName },
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
+        { type: "text", text: textPrompt },
+      ],
+    }],
+  });
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`,
+  };
+  const response = await fetch(`${API_BASE}/api/claude`, { method: "POST", headers, body });
+  const text = await response.text();
+  const d = JSON.parse(text);
+  if (response.status === 402) {
+    window.dispatchEvent(new CustomEvent("cm:subscription-required", { detail: d }));
+    throw new Error(d.message || "Subscription required");
+  }
+  if (response.status === 429) {
+    window.dispatchEvent(new CustomEvent("cm:daily-limit-reached", { detail: d }));
+    throw Object.assign(new Error(d.message || "Daily AI limit reached"), { reason: d.reason, limitDetail: d });
+  }
+  if (!response.ok || d.type === "error") {
+    throw new Error(d.error?.message || d.error || "AI error");
+  }
+  if (d.stop_reason === 'max_tokens') {
+    console.error('[aiWithToolsAndVision] max_tokens hit — truncated. Requested:', max, 'Feature:', feature);
+    throw new Error('Could not read menu — tap Scan to try again');
+  }
+  const toolUse = d.content?.find(b => b.type === "tool_use" && b.name === toolName);
+  if (!toolUse || !toolUse.input || Object.keys(toolUse.input).length === 0) {
+    console.error("[aiWithToolsAndVision] missing or empty tool_use block", { stop_reason: d.stop_reason });
+    throw new Error("No structured output returned — tap Scan to try again");
+  }
+  return toolUse.input;
+}
