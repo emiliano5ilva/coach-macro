@@ -9267,7 +9267,7 @@ Rules:
           {/* Header row */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
             <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// Energy Expenditure</div>
-            <button onClick={()=>{ setShowInfo(v=>!v); if(!showInfo) trackUserEvent(user?.id,'view_expenditure_detail').catch(()=>{}); }} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",background:"rgba(245,245,240,0.06)"}}>
+            <button onClick={()=>{ setShowInfo(v=>!v); if(!showInfo) trackUserEvent(user?.id,'view_expenditure_detail').catch(()=>{}); }} style={{background:"rgba(245,245,240,0.06)",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%"}}>
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.4)" strokeWidth={2.5} strokeLinecap="round">
                 <circle cx={12} cy={12} r={10}/><line x1={12} y1={8} x2={12} y2={8}/><line x1={12} y1={12} x2={12} y2={16}/>
               </svg>
