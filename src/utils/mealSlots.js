@@ -38,24 +38,26 @@ export function calculateOverage(slotTarget, actualCalories, goal) {
   return Math.round(actualCalories - slotTarget);
 }
 
-export function getSlotTargets(calorieTarget, slots, skippedSlots = [], loggedSlots = [], overages = {}) {
-  const basePerSlot = calorieTarget / slots.length;
-  const freedFromSkips = skippedSlots.length * basePerSlot;
-  const totalOverage = Object.values(overages).reduce((sum, v) => sum + v, 0);
-  const remainingSlots = slots.filter(
+// Symmetric within-day redistribution.
+// Invariant: sum(targets over activeSlots) + loggedCaloriesTotal === calorieTarget
+//            whenever loggedCaloriesTotal <= calorieTarget.
+// Under-eating rolls leftover forward; over-eating reduces remaining; skipped
+// slots' budget flows to remaining unlogged meals — all via a single rule.
+export function getSlotTargets(calorieTarget, slots, skippedSlots = [], loggedSlots = [], loggedCaloriesTotal = 0) {
+  const activeSlots = slots.filter(
     s => !skippedSlots.includes(s) && !loggedSlots.includes(s)
   );
-  const netAdjustment = remainingSlots.length > 0
-    ? (freedFromSkips - totalOverage) / remainingSlots.length
-    : 0;
+  const remainingBudget = Math.max(0, calorieTarget - loggedCaloriesTotal);
+  const perSlot = activeSlots.length > 0 ? remainingBudget / activeSlots.length : 0;
+  const basePerSlot = calorieTarget / slots.length;
   const targets = {};
   slots.forEach(slot => {
     if (skippedSlots.includes(slot)) {
       targets[slot] = 0;
     } else if (loggedSlots.includes(slot)) {
-      targets[slot] = Math.round(basePerSlot);
+      targets[slot] = Math.round(basePerSlot); // historical display for done/locked slots
     } else {
-      targets[slot] = Math.max(Math.round(basePerSlot + netAdjustment), 100);
+      targets[slot] = Math.max(Math.round(perSlot), 0);
     }
   });
   return targets;

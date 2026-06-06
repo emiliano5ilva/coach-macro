@@ -1653,15 +1653,19 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(!slotNum)return;
     if(String(slotNum) in (slotOverages||{}))return;
     const lSlots=getLoggedSlots(log);
-    const targets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
+    const logTotal=log.reduce((s,e)=>s+(e.calories||0),0);
+    const targets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,logTotal);
     const target=targets[slotNum];
     if(!target||target===0)return;
     const slotCals=log.filter(e=>getEntrySlot(e)===slotNum).reduce((sum,e)=>sum+(e.calories||0),0);
     const overage=calculateOverage(target,slotCals,profile.goal);
     if(overage<=0)return;
     const newOverages={...(slotOverages||{}),[String(slotNum)]:overage};
-    const newTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,newOverages);
-    const oldTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
+    // Modal diff: show targets before slot N was logged vs now (for "your remaining meals adjusted" copy)
+    const prevLogTotal=logTotal-slotCals;
+    const prevLSlots=log.filter(e=>getEntrySlot(e)!==slotNum).length===0?lSlots.filter(s=>s!==slotNum):lSlots.filter(s=>s!==slotNum);
+    const newTargets=targets;
+    const oldTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],prevLSlots,prevLogTotal);
     const remaining=mealSlots.filter(s=>!lSlots.includes(s)&&!(skippedSlots||[]).includes(s)&&s!==slotNum);
     setOverageModal({slot:slotNum,overage,newOverages,remaining,oldTargets,newTargets});
     onSlotOverage?.(newOverages);
@@ -1701,7 +1705,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   function openRestaurantAI(){
     const slot=mealSlots[activeSlotIdx]||1;
     const lSlots=getLoggedSlots(log);
-    const calTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
+    const calTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,log.reduce((s,e)=>s+(e.calories||0),0));
     const slotCal=calTargets[slot]||Math.round(macros.calories/mealSlots.length);
     // Subtract what's already logged in this slot so Restaurant AI targets the REMAINING gap
     const alreadyInSlot=log.filter(e=>getEntrySlot(e)===slot).reduce((s,e)=>s+(e.calories||0),0);
@@ -2652,7 +2656,7 @@ Reply with ONLY a valid JSON object, no markdown:
           userRecipes={userRecipes}
           onLogRecipe={handleLogRecipe}
           recentMeals={qlRecentMeals}
-          slotTargets={getSlotTargets(macros.calories,mealSlots,skippedSlots||[],getLoggedSlots(log),slotOverages||{})}
+          slotTargets={getSlotTargets(macros.calories,mealSlots,skippedSlots||[],getLoggedSlots(log),log.reduce((s,e)=>s+(e.calories||0),0))}
         />
       )}
       {/* Sub-nav (non-GOCLUB) */}
@@ -2937,7 +2941,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* FOOD LOG — grouped by meal slots */}
             {(()=>{
               const lSlots=getLoggedSlots(log);
-              const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,slotOverages||{});
+              const slotTargets=getSlotTargets(macros.calories,mealSlots,skippedSlots||[],lSlots,log.reduce((s,e)=>s+(e.calories||0),0));
               const basePerSlot=Math.round(macros.calories/mealSlots.length);
               // Read-only: today's plan day → slot→meal map (part A; does NOT touch log or consumed totals)
               const todayPlanDay=mealPrepPlan?.days?.find(d=>d.day.slice(0,3)===todayKey);

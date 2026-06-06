@@ -5723,7 +5723,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
     const raProfileChips=dietaryCtx.filter(d=>!['vegan','vegetarian'].includes(d)).map(d=>_CHIP_MAP[d]).filter(Boolean);
     const slots=getSlotsForFreq(profile?.mealFreq||"3");
     const lSlots=getLoggedSlots(log);
-    const slotTargets=getSlotTargets(macros.calories,slots,skippedSlots||[],lSlots);
+    const slotTargets=getSlotTargets(macros.calories,slots,skippedSlots||[],lSlots,log.reduce((s,e)=>s+(e.calories||0),0));
     const nextSlot=slots.find(s=>!lSlots.includes(s)&&!(skippedSlots||[]).includes(s));
     const currentSlotTarget=nextSlot?slotTargets[nextSlot]:Math.round(macros.calories/slots.length);
     const remainingSlots=slots.filter(s=>!lSlots.includes(s)&&!(skippedSlots||[]).includes(s));
