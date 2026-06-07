@@ -3134,13 +3134,149 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       })()}
 
       {/* Pre-session Readiness Modal */}
-      {showReadiness&&(
+      {/* ── Pre-session check-in — paper/ink (GOCLUB redesign) ── */}
+      {showReadiness&&GOCLUB_REDESIGN&&(()=>{
+        const _ciMO="'DM Mono',monospace";
+        const _ciBC="'Barlow Condensed',sans-serif";
+        const _ciAF="'Barlow',sans-serif";
+        const _dispWk=programCurrentWeek||weekNum;
+        // shared pill style builders (no T.* tokens)
+        const _pillSel={background:"var(--cm-red)",color:"#fff",border:"1.5px solid var(--cm-red)"};
+        const _pillOff={background:"rgba(var(--cm-ink-rgb),.05)",color:"var(--cm-ink)",border:"1.5px solid rgba(var(--cm-ink-rgb),.12)"};
+        const _pillBase={borderRadius:9,fontWeight:700,cursor:"pointer",fontFamily:_ciAF,transition:"all .15s",minHeight:"auto",minWidth:"auto"};
+        const _labelStyle={fontFamily:_ciMO,fontSize:10,fontWeight:700,letterSpacing:".13em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.50)",marginBottom:8};
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",backdropFilter:"blur(4px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
+            <div style={{background:"var(--cm-paper)",borderRadius:"26px 26px 0 0",maxWidth:480,width:"100%",overflow:"hidden",boxShadow:"0 -6px 40px rgba(0,0,0,.18)"}} onClick={e=>e.stopPropagation()}>
+              {/* Drag handle */}
+              <div style={{width:36,height:4,borderRadius:2,background:"rgba(var(--cm-ink-rgb),.12)",margin:"14px auto 0"}}/>
+              {/* Red hero strip */}
+              <div style={{background:"var(--cm-red)",padding:"16px 20px 18px",marginTop:12}}>
+                <div style={{fontFamily:_ciMO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.65)",marginBottom:5}}>
+                  {todayFocus} · Week {_dispWk}
+                </div>
+                <div style={{fontFamily:_ciBC,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#fff",lineHeight:0.95,textTransform:"uppercase"}}>
+                  Ready to train?
+                </div>
+              </div>
+              {/* Form */}
+              <div style={{padding:"20px 20px 36px",overflowY:"auto",maxHeight:"65vh"}}>
+                {/* Sleep */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Last Night's Sleep</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {["4","5","6","7","8","9+"].map(v=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,sleep:v}))}
+                        style={{..._pillBase,...(rdAnswers.sleep===v?_pillSel:_pillOff),padding:"8px 14px",fontSize:14}}>
+                        {v}h
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Stress */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Stress Level</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["low","Low"],["medium","Medium"],["high","High"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,stress:v}))}
+                        style={{..._pillBase,...(rdAnswers.stress===v?_pillSel:_pillOff),flex:1,padding:"10px 6px",fontSize:13,textAlign:"center"}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Energy */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Energy</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["low","Low"],["normal","Normal"],["high","High"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,energy:v}))}
+                        style={{..._pillBase,...(rdAnswers.energy===v?_pillSel:_pillOff),flex:1,padding:"10px 6px",fontSize:13,textAlign:"center"}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Pain level */}
+                <div style={{marginBottom:18}}>
+                  <div style={_labelStyle}>Any Soreness?</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["none","None"],["minor","A little"],["significant","A lot"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))}
+                        style={{..._pillBase,...(rdAnswers.painLevel===v?_pillSel:_pillOff),flex:1,padding:"10px 6px",fontSize:13,textAlign:"center"}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Pain regions — shown only when non-None selected (already gated) */}
+                {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(
+                  <div style={{marginBottom:18}}>
+                    <div style={_labelStyle}>Where?</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","other"].map(r=>{
+                        const sel=(rdAnswers.painRegions||[]).includes(r);
+                        return(
+                          <button key={r}
+                            onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})}
+                            style={{..._pillBase,...(sel?_pillSel:_pillOff),padding:"7px 12px",fontSize:12,textTransform:"capitalize"}}>
+                            {r.replace("_"," ")}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* Pain type — shown only when regions selected (already gated) */}
+                {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(rdAnswers.painRegions||[]).length>0&&(
+                  <div style={{marginBottom:18}}>
+                    <div style={_labelStyle}>What kind?</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {[["soreness","Soreness"],["sharp_pain","Sharp Pain"],["stiffness","Stiffness"],["weakness","Weakness"],["swelling","Swelling"]].map(([v,l])=>(
+                        <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))}
+                          style={{..._pillBase,...(rdAnswers.painType===v?_pillSel:_pillOff),padding:"7px 12px",fontSize:12}}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Readiness preview — semantic color retained; text in ink tokens */}
+                {rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy&&(()=>{
+                  const s=scoreReadiness({sleep:rdAnswers.sleep,stress:rdAnswers.stress,energy:rdAnswers.energy});
+                  const tier=getReadinessTier(s);
+                  const cfg=READINESS_CONFIG[tier];
+                  return(
+                    <div style={{background:`${cfg.color}14`,border:`1.5px solid ${cfg.color}45`,borderRadius:12,padding:"12px 16px",marginBottom:18}}>
+                      <div style={{fontSize:10,color:cfg.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
+                      <div style={{fontFamily:_ciBC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",lineHeight:1.1}}>{cfg.label}</div>
+                      <div style={{fontFamily:_ciMO,fontSize:10,color:"rgba(var(--cm-ink-rgb),.55)",marginTop:3,lineHeight:1.5}}>{cfg.sub}</div>
+                    </div>
+                  );
+                })()}
+                {/* Submit */}
+                <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy}
+                  style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.08)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(var(--cm-ink-rgb),.3)",border:"none",borderRadius:14,fontWeight:700,fontSize:16,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:_ciBC,fontStyle:"italic",textTransform:"uppercase",letterSpacing:".04em",marginBottom:10,transition:"all .2s",minHeight:"auto"}}>
+                  Start Session →
+                </button>
+                {/* Skip — quiet ink link */}
+                <button onClick={skipReadiness}
+                  style={{width:"100%",padding:10,background:"transparent",color:"rgba(var(--cm-ink-rgb),.40)",border:"none",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:_ciAF,minHeight:"auto"}}>
+                  Skip check-in
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Pre-session check-in — dark legacy (non-redesign) ── */}
+      {showReadiness&&!GOCLUB_REDESIGN&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={skipReadiness}>
           <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
             <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",marginBottom:4,fontFamily:"var(--mono)"}}>Pre-Session Check-In</div>
             <div style={{fontFamily:"var(--condensed)",fontSize:24,fontWeight:900,marginBottom:20}}>How are you feeling?</div>
-            {/* Sleep */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Sleep last night</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -3149,7 +3285,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
-            {/* Stress */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Stress level</div>
               <div style={{display:"flex",gap:8}}>
@@ -3158,7 +3293,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
-            {/* Energy */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Energy</div>
               <div style={{display:"flex",gap:8}}>
@@ -3167,69 +3301,42 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 ))}
               </div>
             </div>
-            {/* Pain check */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Any pain or discomfort?</div>
               <div style={{display:"flex",gap:8}}>
                 {[["none","None"],["minor","Minor"],["significant","Significant"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))}
-                    style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.painLevel===v?T.prot:T.bd}`,
-                    background:rdAnswers.painLevel===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",
-                    fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
+                  <button key={v} onClick={()=>setRdAnswers(a=>({...a,painLevel:v,painRegions:[],painType:null}))} style={{flex:1,padding:"10px 6px",borderRadius:9,border:`1.5px solid ${rdAnswers.painLevel===v?T.prot:T.bd}`,background:rdAnswers.painLevel===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painLevel===v?T.prot:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>{l}</button>
                 ))}
               </div>
             </div>
-            {/* Pain regions */}
             {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Where?</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                   {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","other"].map(r=>{
                     const sel=(rdAnswers.painRegions||[]).includes(r);
-                    const label=r.replace("_"," ");
-                    return(
-                      <button key={r} onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})}
-                        style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${sel?T.prot:T.bd}`,
-                        background:sel?`rgba(var(--accent-rgb),0.09)`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,
-                        cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{label}</button>
-                    );
+                    return(<button key={r} onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})} style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${sel?T.prot:T.bd}`,background:sel?`rgba(var(--accent-rgb),0.09)`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{r.replace("_"," ")}</button>);
                   })}
                 </div>
               </div>
             )}
-            {/* Pain type */}
             {(rdAnswers.painLevel==="minor"||rdAnswers.painLevel==="significant")&&(rdAnswers.painRegions||[]).length>0&&(
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>What kind?</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                   {[["soreness","Soreness"],["sharp_pain","Sharp Pain"],["stiffness","Stiffness"],["weakness","Weakness"],["swelling","Swelling"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))}
-                      style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${rdAnswers.painType===v?T.prot:T.bd}`,
-                      background:rdAnswers.painType===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painType===v?T.prot:"#fff",
-                      fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
+                    <button key={v} onClick={()=>setRdAnswers(a=>({...a,painType:v}))} style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${rdAnswers.painType===v?T.prot:T.bd}`,background:rdAnswers.painType===v?`rgba(var(--accent-rgb),0.09)`:T.s2,color:rdAnswers.painType===v?T.prot:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
                   ))}
                 </div>
               </div>
             )}
-            {/* Preview tier when all answered */}
             {rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy&&(()=>{
               const s=scoreReadiness({sleep:rdAnswers.sleep,stress:rdAnswers.stress,energy:rdAnswers.energy});
               const tier=getReadinessTier(s);
               const cfg=READINESS_CONFIG[tier];
-              return(
-                <div style={{background:`${cfg.color}12`,border:`1.5px solid ${cfg.color}40`,borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:10,color:cfg.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div>
-                    <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{cfg.label}</div>
-                    <div style={{fontSize:11,color:T.mu,marginTop:2,maxWidth:220}}>{cfg.sub}</div>
-                  </div>
-                </div>
-              );
+              return(<div style={{background:`${cfg.color}12`,border:`1.5px solid ${cfg.color}40`,borderRadius:12,padding:"12px 16px",marginBottom:16}}><div style={{fontSize:10,color:cfg.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{cfg.badge}</div><div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{cfg.label}</div><div style={{fontSize:11,color:T.mu,marginTop:2,maxWidth:220}}>{cfg.sub}</div></div>);
             })()}
-            <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy}
-              style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(var(--accent-rgb),0.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>
-              Start Session →
-            </button>
+            <button onClick={confirmReadiness} disabled={!rdAnswers.sleep||!rdAnswers.stress||!rdAnswers.energy} style={{width:"100%",padding:15,background:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?T.prot:"rgba(var(--accent-rgb),0.06)",color:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"#fff":"rgba(245,245,240,.3)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:rdAnswers.sleep&&rdAnswers.stress&&rdAnswers.energy?"pointer":"not-allowed",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1,marginBottom:10,transition:"all .2s"}}>Start Session →</button>
             <button onClick={skipReadiness} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Skip Check-In</button>
           </div>
         </div>
