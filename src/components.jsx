@@ -192,11 +192,32 @@ export function hapPR()        { try{navigator.vibrate?.([10,30,10,30,10]);}catc
 
 // ─── Scroll-reveal primitives (Train + Fuel share these) ─────────────────────
 
-export function PaperCard({ children, style = {}, className = '', animate = false }) {
+export function PaperCard({ children, style = {}, className = '', animate = false, reveal = false, revealDelay = 0 }) {
+  const ref = useRef(null);
+  // Respect prefers-reduced-motion — start revealed so there's no flicker if motion is off
+  const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const [revealed, setRevealed] = useState(!reveal || prefersReduced);
+
+  useEffect(() => {
+    if (!reveal || prefersReduced || !ref.current) return;
+    const el = ref.current;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setRevealed(true); obs.disconnect(); } },
+      { threshold: 0.12 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [reveal, prefersReduced]);
+
+  const revealClass = reveal ? (revealed ? ' cm-revealed' : ' cm-reveal-pending') : '';
+  // Keep the delay on the element through both states so it's present when the class flip fires
+  const delayStyle = reveal && revealDelay > 0 ? { transitionDelay: `${revealDelay}ms` } : {};
+
   return (
     <div
-      className={`cm-paper-card${animate ? ' cm-card-enter' : ''}${className ? ' '+className : ''}`}
-      style={style}
+      ref={ref}
+      className={`cm-paper-card${animate ? ' cm-card-enter' : ''}${revealClass}${className ? ' '+className : ''}`}
+      style={{ ...delayStyle, ...style }}
     >
       {children}
     </div>
@@ -504,8 +525,22 @@ export const REDESIGN_CSS = `
   }
   .cm-card-enter { animation: cm-card-in 0.44s cubic-bezier(.2,.7,.3,1) forwards; }
 
+  /* Scroll-reveal — hidden until IntersectionObserver fires */
+  .cm-reveal-pending {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.5s cubic-bezier(.2,.7,.3,1), transform 0.5s cubic-bezier(.2,.7,.3,1);
+  }
+  .cm-revealed {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.5s cubic-bezier(.2,.7,.3,1), transform 0.5s cubic-bezier(.2,.7,.3,1);
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .cm-card-enter { animation: none; }
+    .cm-card-enter  { animation: none; }
+    .cm-reveal-pending { transform: none; opacity: 1; }
+    .cm-reveal-pending, .cm-revealed { transition: none; }
   }
 
   /* Bar grow (transform-origin:bottom set inline) */

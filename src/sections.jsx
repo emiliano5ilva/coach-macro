@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
-const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
-const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
+const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
+const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
@@ -3084,7 +3084,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   return (
-    <div className={GOCLUB_REDESIGN?"goclub tab-train":"page-enter"} style={{paddingBottom:isMobile?20:0,background:GOCLUB_REDESIGN?"#000":undefined}}>
+    <div className={GOCLUB_REDESIGN?"goclub tab-train":"page-enter"} style={{paddingBottom:isMobile?20:0}}>
       {GOCLUB_REDESIGN&&<style>{_TRAIN_GOCLUB_CSS}</style>}
       {/* Adapt Now Modal */}
       {showAdapt&&<AdaptNowModal wPrefs={wPrefs} profile={profile} todayFocus={todayFocus} todayExercises={Array.isArray(todayPrescription)?todayPrescription:[]} adaptationsLeft={adaptLeft} adaptationsUsed={adaptUsed} adaptLimit={adaptLimit} adaptResetDate={adaptResetDate} onUseAdapted={useAdaptedSession} onClose={()=>setShowAdapt(false)} user={user} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey}/>}
@@ -3625,7 +3625,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </PaperCard>
 
               {/* ══ PAPER CARD 2 — EXPLORE + NUTRITION ════════════════════════ */}
-              <PaperCard style={{margin:"12px 12px 0",padding:"22px 18px"}}>
+              <PaperCard reveal revealDelay={0} style={{margin:"12px 12px 0",padding:"22px 18px"}}>
                 {/* Nutrition context */}
                 {(()=>{
                   const displayPrefs=wPrefs?.displayPrefs||{};
@@ -3719,7 +3719,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </PaperCard>
 
               {/* ══ PAPER CARD 3 — WEEK & RECOVERY ════════════════════════════ */}
-              <PaperCard style={{margin:"12px 12px 80px",padding:"22px 18px"}}>
+              <PaperCard reveal revealDelay={60} style={{margin:"12px 12px 80px",padding:"22px 18px"}}>
                 <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType} lightSurface/>
                 <div style={{marginTop:16}}>
                   <MuscleRecovery userId={user?.id}/>

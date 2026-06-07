@@ -3,8 +3,8 @@ import ReactDOM from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
-const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
+const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
+const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
