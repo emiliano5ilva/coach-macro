@@ -189,6 +189,27 @@ export function hapMed()       { try{navigator.vibrate?.(15);}catch{} }
 export function hapHeavy()     { try{navigator.vibrate?.([10,30,10]);}catch{} }
 export function hapSuccess()   { try{navigator.vibrate?.([8,40,8]);}catch{} }
 export function hapPR()        { try{navigator.vibrate?.([10,30,10,30,10]);}catch{} }
+
+// ─── Scroll-reveal primitives (Train + Fuel share these) ─────────────────────
+
+export function PaperCard({ children, style = {}, className = '', animate = false }) {
+  return (
+    <div
+      className={`cm-paper-card${animate ? ' cm-card-enter' : ''}${className ? ' '+className : ''}`}
+      style={style}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function Pill({ label, bg, color = 'var(--cm-ink,#0A0A0A)', style: sx = {} }) {
+  return (
+    <span className="cm-pill" style={{ background: bg, color, ...sx }}>
+      {label}
+    </span>
+  );
+}
 export function pad2(n)        { return String(Math.max(0,Math.floor(n))).padStart(2,"0"); }
 export function autoFocus(sch,splitType,longRunDay) {
   const cycles=SPLIT_CYCLES[splitType]||["Full Body"]; const f={}; let i=0;
@@ -382,6 +403,15 @@ export const REDESIGN_CSS = `
     --cm-accent-rgb: 255,59,48;
     --cm-border:     rgba(17,17,17,0.10);
     --cm-nav-track:  rgba(255,255,255,0.05);
+
+    /* ── Canonical swappable palette ── edit these 6 vars to retheme: */
+    --cm-red:        #FF3B30;
+    --cm-red-rgb:    255,59,48;
+    --cm-paper:      #FFFFFF;
+    --cm-paper-rgb:  255,255,255;
+    --cm-ink:        #0A0A0A;
+    --cm-ink-rgb:    10,10,10;
+
     font-family: 'Archivo', sans-serif;
   }
 
@@ -426,6 +456,57 @@ export const REDESIGN_CSS = `
 
   /* Phase 3 — Today red field */
   .goclub.tab-today .app-screen { background: var(--cm-accent) !important; }
+
+  /* Train tab — full-bleed red field, matches Today's treatment */
+  .goclub.tab-train .app-screen { background: var(--cm-red) !important; }
+
+  /* ── Reusable primitives (Train + Fuel can share these) ── */
+
+  /* Floating paper card — all-corner rounded, soft shadow, lifts off red */
+  .cm-paper-card {
+    background: var(--cm-paper);
+    border-radius: 28px;
+    box-shadow:
+      0 8px 40px rgba(0,0,0,0.22),
+      0 2px 8px  rgba(0,0,0,0.10);
+    will-change: transform;
+  }
+
+  /* Pill label — bold uppercase, tokenized color via inline style */
+  .cm-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+
+  /* Paper-card section eyebrow */
+  .cm-card-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(var(--cm-ink-rgb,10,10,10),0.38);
+    margin-bottom: 14px;
+  }
+
+  /* 60fps card slide-in for paper cards on scroll-reveal surfaces */
+  @keyframes cm-card-in {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .cm-card-enter { animation: cm-card-in 0.44s cubic-bezier(.2,.7,.3,1) forwards; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cm-card-enter { animation: none; }
+  }
 
   /* Bar grow (transform-origin:bottom set inline) */
   @keyframes cm-bar-up {

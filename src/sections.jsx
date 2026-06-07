@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
+const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
@@ -12,6 +13,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
   Badge, getTier, getReferralBadge,
   hap, hapMed, hapSuccess, hapPR,
+  PaperCard, Pill,
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState,
   GOCLUB_REDESIGN } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
@@ -1884,14 +1886,17 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryM
 }
 
 // ─── WEEK STRIP ───────────────────────────────────────────────────────────────
-export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType }) {
+export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType, lightSurface = false }) {
   const todayIdx = WDAYS.indexOf(todayKey);
-  // First upcoming training day after today
   const firstUpNextIdx = WDAYS.findIndex((day,idx) => idx > todayIdx && schedule[day] && schedule[day] !== "rest");
 
   return (
-    <div style={{background:GOCLUB_REDESIGN?"rgba(255,255,255,0.04)":T.s1,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}}>
-      <div className="header-eyebrow" style={{marginBottom:10,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":undefined,fontStyle:GOCLUB_REDESIGN?"normal":undefined}}>// This Week</div>
+    <div style={lightSurface
+      ? {borderRadius:12,overflow:"hidden"}
+      : {background:GOCLUB_REDESIGN?"rgba(255,255,255,0.04)":T.s1,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}
+    }>
+      {!lightSurface&&<div className="header-eyebrow" style={{marginBottom:10,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":undefined,fontStyle:GOCLUB_REDESIGN?"normal":undefined}}>// This Week</div>}
+      {lightSurface&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(10,10,10,0.38)",marginBottom:14}}>THIS WEEK</div>}
       <div style={{display:"flex",flexDirection:"column"}}>
         {WDAYS.map((day,idx)=>{
           const t = schedule[day];
@@ -1900,13 +1905,25 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
           const isDone = idx < todayIdx && !isRest;
           const isUpNext = idx === firstUpNextIdx;
           const label = dayFocus[day] || (isRest ? "Rest" : DAY_CFG[t]?.label || "Training");
-
-          // Status text lives in the word — color is reinforcement only
           const statusText = isToday ? "today" : isDone ? "done" : isUpNext ? "up next" : "";
-          const rowBg = isToday ? "rgba(var(--accent-rgb),0.06)" : isDone ? "rgba(34,197,94,0.04)" : "transparent";
-          const dayCol = isToday ? "var(--accent)" : isDone ? "#22c55e" : "rgba(245,245,240,0.28)";
-          const labelCol = isToday ? "#ffffff" : isDone ? "rgba(245,245,240,0.85)" : isRest ? "rgba(245,245,240,0.22)" : "rgba(245,245,240,0.55)";
-          const statusCol = isToday ? "var(--accent)" : isDone ? "#22c55e" : isUpNext ? "rgba(245,245,240,0.4)" : "transparent";
+
+          // Dark surface colors (existing)
+          const rowBgDark = isToday ? "rgba(var(--accent-rgb),0.06)" : isDone ? "rgba(34,197,94,0.04)" : "transparent";
+          const dayColDark = isToday ? "var(--accent)" : isDone ? "#22c55e" : "rgba(245,245,240,0.28)";
+          const labelColDark = isToday ? "#ffffff" : isDone ? "rgba(245,245,240,0.85)" : isRest ? "rgba(245,245,240,0.22)" : "rgba(245,245,240,0.55)";
+          const statusColDark = isToday ? "var(--accent)" : isDone ? "#22c55e" : isUpNext ? "rgba(245,245,240,0.4)" : "transparent";
+
+          // Light surface colors (paper card)
+          const rowBgLight = isToday ? "rgba(255,59,48,0.07)" : isDone ? "rgba(34,197,94,0.07)" : "transparent";
+          const dayColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : "rgba(10,10,10,0.25)";
+          const labelColLight = isToday ? "#0A0A0A" : isDone ? "rgba(10,10,10,0.75)" : isRest ? "rgba(10,10,10,0.22)" : "rgba(10,10,10,0.45)";
+          const statusColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : isUpNext ? "rgba(10,10,10,0.30)" : "transparent";
+
+          const rowBg = lightSurface ? rowBgLight : rowBgDark;
+          const dayCol = lightSurface ? dayColLight : dayColDark;
+          const labelCol = lightSurface ? labelColLight : labelColDark;
+          const statusCol = lightSurface ? statusColLight : statusColDark;
+          const dividerColor = lightSurface ? "rgba(10,10,10,0.06)" : "rgba(245,245,240,0.04)";
 
           return (
             <div key={day} style={{
@@ -1914,17 +1931,14 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
               padding:"9px 10px",
               borderRadius:8,
               background:rowBg,
-              borderBottom: idx < 6 ? "1px solid rgba(245,245,240,0.04)" : "none",
+              borderBottom: idx < 6 ? `1px solid ${dividerColor}` : "none",
             }}>
-              {/* Day abbreviation */}
               <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
                 {day.toUpperCase()}
               </div>
-              {/* Focus label */}
               <div style={{flex:1,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?14:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
                 {label}
               </div>
-              {/* Status word */}
               <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:statusCol,flexShrink:0,minWidth:44,textAlign:"right"}}>
                 {statusText}
               </div>
@@ -1933,9 +1947,9 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
         })}
       </div>
       {sessionCount===0&&todayIdx>1&&todayType==="training"&&(
-        <div style={{marginTop:12,background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
-          <div style={{fontFamily:"var(--condensed)",fontSize:15,color:"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
+        <div style={{marginTop:12,background:lightSurface?"rgba(255,59,48,0.06)":"rgba(var(--accent-rgb),0.04)",border:lightSurface?"1px solid rgba(255,59,48,0.15)":"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
+          <div style={{fontFamily:lightSurface?"'Archivo',sans-serif":"var(--condensed)",fontSize:15,color:lightSurface?"rgba(10,10,10,0.45)":"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
         </div>
       )}
     </div>
@@ -1943,10 +1957,9 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
 }
 
 const _TRAIN_GOCLUB_CSS=`
-.goclub.tab-train{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E") repeat left top/200px 200px,radial-gradient(ellipse at 50% 15%,#1A0A08 0%,#0A0302 40%,#000000 72%)!important}
-.goclub.tab-train .screen-header{padding-top:4px!important}
-.goclub.tab-train .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.4)!important;text-transform:uppercase!important}
-.goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important}
+.goclub.tab-train .screen-header{padding-top:4px!important;background:rgba(var(--cm-red-rgb,255,59,48),0.88)!important;backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important}
+.goclub.tab-train .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.55)!important;text-transform:uppercase!important}
+.goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important;color:#ffffff!important}
 `;
 
 export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
@@ -3273,11 +3286,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         </div>
       )}
 
-      <div style={{padding:trainScreen==="routine-builder"?0:isMobile?"12px 18px":"0"}}>
+      <div style={{padding:trainScreen==="routine-builder"?0:GOCLUB_REDESIGN&&trainScreen==="today"?0:isMobile?"12px 18px":"0"}}>
 
         {/* ── Resume Workout Prompt ── */}
         {resumePrompt&&!activeWorkout&&(
-          <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
+          <div style={{margin:GOCLUB_REDESIGN?"12px 12px 0":"0 0 14px",padding:"14px 16px",background:GOCLUB_REDESIGN?"rgba(255,255,255,0.90)":"rgba(var(--accent-rgb),0.06)",border:GOCLUB_REDESIGN?"1px solid rgba(255,59,48,0.20)":"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
             <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
             </div>
@@ -3293,486 +3306,468 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── TODAY ── */}
-        {trainScreen==="today"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {/* ── GOCLUB: Week completion + Program arc ── */}
-            {GOCLUB_REDESIGN&&(()=>{
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _todayIdx=WDAYS.indexOf(todayKey);
-              const _weekDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_todayIdx+i);return d.toISOString().split('T')[0];});
-              const _thisWeekSet=new Set(_weekDates);
-              const _doneThisWeek=new Set(Object.values(history).flatMap(s=>s.filter(x=>_thisWeekSet.has(x.date)).map(x=>x.date))).size;
-              const _schedThisWeek=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
-              const _progInfo2=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
-              const _totalWks=_progInfo2?.weeks||null;
-              const _dispWk=programCurrentWeek||weekNum;
-              const _wkPct=_totalWks?Math.min(1,(_dispWk-1)/Math.max(1,_totalWks-1)):null;
-              const _r=16,_circ=2*Math.PI*_r;
-              const _donePct=_schedThisWeek>0?_doneThisWeek/_schedThisWeek:0;
-              return(
-                <StaggerItem i={0}>
-                <div style={{display:"flex",gap:10}}>
-                  {/* Week completion */}
-                  <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:14}}>
-                    <svg width={42} height={42} viewBox="0 0 42 42" style={{flexShrink:0}}>
-                      <circle cx={21} cy={21} r={_r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={3}/>
-                      <MotionArc cx={21} cy={21} r={_r} pct={_donePct}
-                        stroke="#FF3B30" strokeWidth={3}
-                        transform="rotate(-90 21 21)" />
+        {trainScreen==="today"&&(()=>{
+          // ── shared computed vars (train-today GOCLUB sandwich) ────────────
+          const _AF="'Archivo',sans-serif";
+          const _MO="'DM Mono',monospace";
+          const _todayIdx=WDAYS.indexOf(todayKey);
+          const _weekDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_todayIdx+i);return d.toISOString().split('T')[0];});
+          const _thisWeekSet=new Set(_weekDates);
+          const _doneThisWeek=new Set(Object.values(history).flatMap(s=>s.filter(x=>_thisWeekSet.has(x.date)).map(x=>x.date))).size;
+          const _schedThisWeek=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
+          const _progInfo2=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+          const _totalWks=_progInfo2?.weeks||null;
+          const _dispWk=programCurrentWeek||weekNum;
+          const _wkPct=_totalWks?Math.min(1,(_dispWk-1)/Math.max(1,_totalWks-1)):null;
+          const _r=16;
+          const _donePct=_schedThisWeek>0?_doneThisWeek/_schedThisWeek:0;
+          const heroLvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+          const heroIsNov=heroLvl==="beginner"||heroLvl==="novice";
+          const heroIsAdv=heroLvl==="advanced"||heroLvl==="elite";
+          const heroLevelColor=heroIsNov?"var(--green)":heroIsAdv?"#F87171":"var(--blue)";
+          const heroLvlBadge=heroIsNov?"Beginner":heroIsAdv?"Advanced":"Intermediate";
+          const _raceTypeLabels={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+          const _raceLabel=_raceTypeLabels[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
+          const progLabel=
+            wPrefs.isHyrox&&wPrefs.isHybrid?(wPrefs.hybridTemplate||"Hyrox Hybrid"):
+            wPrefs.isHyrox?(wPrefs.hyroxProgram||"Hyrox"):
+            wPrefs.isHybrid?(_raceLabel?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel}`:(wPrefs.hybridTemplate||"Hybrid")):
+            prescType==="running"?(_raceLabel||wPrefs.runPlan||"Running"):
+            wPrefs.splitType||"My Program";
+          const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement";
+          const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
+          const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
+          const estMin=exCount>0?Math.round(exCount*9+12):0;
+          // race phase
+          const _rp2=profile?.runProfile;
+          let _phaseLabel=null,_phaseColor="rgba(255,255,255,0.70)";
+          if(_rp2?.raceDate){
+            const _wToRace=Math.ceil((new Date(_rp2.raceDate)-new Date())/(7*24*60*60*1000));
+            const _tot2=_rp2.planWeeks??12;
+            _phaseLabel=_wToRace>_tot2*0.6?'Base Build':_wToRace>_tot2*0.3?'Build':_wToRace>_tot2*0.15?'Peak':_wToRace>0?'Taper':'Race Week';
+            _phaseColor=_phaseLabel==='Taper'?'#FFD60A':_phaseLabel==='Race Week'?'#FFE4E1':'rgba(255,255,255,0.75)';
+          }
+          return (
+            <div>
+              {/* ══ RED HERO ═══════════════════════════════════════════════════ */}
+              <div style={{paddingLeft:20,paddingRight:20,paddingTop:0,paddingBottom:160}}>
+                {/* Eyebrow: program · race phase */}
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:10,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  <span>{progLabel}</span>
+                  {_phaseLabel&&<><span style={{color:"rgba(255,255,255,0.22)"}}>·</span><span style={{color:_phaseColor}}>{_phaseLabel}</span></>}
+                </div>
+                {/* BIG session title */}
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:54,lineHeight:0.88,textTransform:"uppercase",color:"#ffffff",letterSpacing:"-0.02em",marginBottom:4}}>
+                  {(prescType==="running"||hybridRunDay)?(resolvedDayFocus[todayKey]||"Run Day"):todayFocus}
+                </div>
+                {/* Session brief */}
+                {exCount>0&&(
+                  <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:12,display:"flex",gap:10,alignItems:"center"}}>
+                    <span>~{estMin} min</span>
+                    <span style={{color:"rgba(255,255,255,0.22)"}}>·</span>
+                    <span>{exCount} exercises</span>
+                    <span style={{color:"rgba(255,255,255,0.22)"}}>·</span>
+                    <span>{totalSets} sets</span>
+                  </div>
+                )}
+                {/* Stat chips: week completion ring + program arc */}
+                <div style={{display:"flex",gap:10,marginTop:22}}>
+                  <div style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:16,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                    <svg width={38} height={38} viewBox="0 0 38 38" style={{flexShrink:0}}>
+                      <circle cx={19} cy={19} r={_r} fill="none" stroke="rgba(255,255,255,0.20)" strokeWidth={3}/>
+                      <MotionArc cx={19} cy={19} r={_r} pct={_donePct} stroke="#ffffff" strokeWidth={3} transform="rotate(-90 19 19)"/>
                     </svg>
                     <div>
                       <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1}}>
-                        <MN value={_doneThisWeek} /><span style={{color:"rgba(255,255,255,0.35)"}}>/<MN value={_schedThisWeek} /></span>
+                        <MN value={_doneThisWeek}/><span style={{color:"rgba(255,255,255,0.35)"}}>/<MN value={_schedThisWeek}/></span>
                       </div>
-                      <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>sessions this week</div>
+                      <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.50)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:3}}>sessions</div>
                     </div>
                   </div>
-                  {/* Program arc */}
                   {_totalWks&&(
-                    <div style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                      <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>program</div>
-                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,marginBottom:10}}>
-                        Wk <MN value={_dispWk} /><span style={{color:"rgba(255,255,255,0.35)"}}> / {_totalWks}</span>
+                    <div style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:16,padding:"12px 14px"}}>
+                      <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.50)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6}}>program</div>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,marginBottom:8}}>
+                        Wk <MN value={_dispWk}/><span style={{color:"rgba(255,255,255,0.35)"}}> / {_totalWks}</span>
                       </div>
-                      <div style={{height:3,background:"rgba(255,255,255,0.08)",borderRadius:2}}>
-                        <div style={{height:"100%",width:`${_wkPct*100}%`,background:"#FF3B30",borderRadius:2,transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
+                      <div style={{height:3,background:"rgba(255,255,255,0.20)",borderRadius:2}}>
+                        <div style={{height:"100%",width:`${(_wkPct||0)*100}%`,background:"#fff",borderRadius:2,transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
                       </div>
                     </div>
                   )}
                 </div>
-                </StaggerItem>
-              );
-            })()}
-            {/* Race periodization banner */}
-            {(()=>{
-              const rp=profile?.runProfile;
-              if(!rp?.raceDate)return null;
-              const today=new Date(),race=new Date(rp.raceDate);
-              const weeksToRace=Math.ceil((race-today)/(7*24*60*60*1000));
-              const total=rp.planWeeks??12;
-              const done=total-weeksToRace;
-              const phase=weeksToRace>total*0.6?'Base':weeksToRace>total*0.3?'Build':weeksToRace>total*0.15?'Peak':weeksToRace>0?'Taper':'Race Week';
-              const phaseColor=phase==='Taper'?'#FF9500':phase==='Race Week'?'#FF3B30':'rgba(245,245,240,0.6)';
-              return(
-                <div style={{fontFamily:"var(--mono)",fontSize:11,color:phaseColor,letterSpacing:"0.14em",textTransform:"uppercase",padding:"4px 0"}}>
-                  Week {Math.max(1,done)} of {total} — {phase}
-                </div>
-              );
-            })()}
-            {/* TODAY HERO CARD */}
-            {(()=>{
-              const heroLvl=(wPrefs.liftExp||profile?.liftExp||"intermediate").toLowerCase();
-              const heroIsNov=heroLvl==="beginner"||heroLvl==="novice";
-              const heroIsAdv=heroLvl==="advanced"||heroLvl==="elite";
-              const heroLevelColor=heroIsNov?"var(--green)":heroIsAdv?"#F87171":"var(--blue)";
-              const heroLvlBadge=heroIsNov?"Beginner":heroIsAdv?"Advanced":"Intermediate";
-              const _raceTypeLabels={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
-              const _raceLabel=_raceTypeLabels[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
-              const progLabel=
-                wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
-                wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
-                wPrefs.isHybrid  ? (_raceLabel?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel}`:(wPrefs.hybridTemplate||"Hybrid")) :
-                prescType==="running" ? (_raceLabel||wPrefs.runPlan||"Running") :
-                wPrefs.splitType||"My Program";
-              const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement — hit all major muscle patterns";
-              const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
-              const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
-              const estMin=exCount>0?Math.round(exCount*9+12):0;
-              return(
-            <StaggerItem i={1}>
-            <div style={{background:GOCLUB_REDESIGN?"rgba(255,255,255,0.05)":T.s2,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":"1px solid var(--white-border)",borderRadius:14,padding:16,borderLeft:"3px solid #FF3B30"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-                <div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.16em",color:"var(--red)",textTransform:"uppercase",marginBottom:6}}>// {progLabel}</div>
-                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?800:900,fontSize:GOCLUB_REDESIGN?34:30,lineHeight:1,textTransform:"uppercase",marginTop:6}}>{(prescType==="running"||hybridRunDay)?(resolvedDayFocus[todayKey]||"Run Day"):todayFocus}</div>
-                  {prescType==="lifting"&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
-                    <span style={{padding:"4px 9px",borderRadius:6,background:`${heroLevelColor}22`,border:`1px solid ${heroLevelColor}55`,fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:heroLevelColor,textTransform:"uppercase"}}>{heroLvlBadge} PROGRAM</span>
-                    {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span style={{padding:"4px 9px",borderRadius:6,background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.3)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.12em",color:"var(--accent)",textTransform:"uppercase"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
-                  </div>}
-                </div>
               </div>
-              <div style={{display:"flex",gap:14,marginTop:14,fontFamily:"var(--mono)",fontSize:11,color:"var(--white-dim)",letterSpacing:"0.06em"}}>
-                <div>{muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}</div>
-              </div>
-              {exCount>0&&(
-                <div style={{display:"flex",gap:18,marginTop:6,fontFamily:"var(--mono)",fontSize:11,color:"var(--white)"}}>
-                  <div>~{estMin} min</div><div>{exCount} exercises</div><div>Volume: {totalSets} sets</div>
+
+              {/* ══ PAPER CARD 1 — SESSION DETAILS ═════════════════════════════ */}
+              <PaperCard animate style={{margin:"-136px 12px 0",position:"relative",padding:"22px 18px 20px"}}>
+                {/* Pill row */}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
+                  <span className="cm-pill" style={{background:"#FF3B30",color:"#fff"}} onClick={()=>_hL()}>{prescType==="lifting"?"Lifting":prescType==="running"?"Running":prescType.charAt(0).toUpperCase()+prescType.slice(1)}</span>
+                  {prescType==="lifting"&&<span className="cm-pill" style={{background:heroLevelColor+"22",color:heroLevelColor}}>{heroLvlBadge}</span>}
+                  {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span className="cm-pill" style={{background:"rgba(255,59,48,0.10)",color:"#FF3B30"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
                 </div>
-              )}
-              {/* ── Adaptive coaching banners ── */}
-              {/* RED-S / Overreaching priority alert */}
-              {(()=>{
-                const reds=profile?.adaptive_profile?.redsDetected;
-                const over=profile?.adaptive_profile?.overreachDetected;
-                const alert=reds||over;
-                if(!alert)return null;
-                const [expanded,setExpanded]=React.useState(false);
-                const title=reds?'RED-S Pattern Detected':'Overreaching Detected';
-                const msg=reds?reds.message:over.message;
-                return(
-                  <div style={{background:'#1a0000',border:'2px solid #FF3B30',borderRadius:12,padding:'14px 16px',marginTop:10}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
-                      <span style={{fontSize:18}}>⚠️</span>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
-                      <span style={{marginLeft:'auto',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,.4)'}}>{expanded?'▲':'▼'}</span>
-                    </div>
-                    {expanded&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,.75)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,.2)',paddingTop:10,marginTop:4}}>{msg}</div>}
-                  </div>
-                );
-              })()}
-              {adaptiveSession?.injuryRisk==="high"&&adaptiveSession?.injuryNote&&(
-                <div style={{background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.35)",borderRadius:10,padding:"10px 14px",marginTop:10,display:"flex",gap:10,alignItems:"flex-start"}}>
-                  <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
-                  <div>
-                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Injury Risk</div>
-                    <div style={{fontSize:12,color:"rgba(245,245,240,0.85)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,0.45)",marginTop:3}}>Consider seeing a physio before continuing.</div>
-                  </div>
+                {/* Muscle focus */}
+                <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.45)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:14,lineHeight:1.5}}>
+                  {muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}
                 </div>
-              )}
-              {adaptiveSession?.modifier?.label&&adaptiveSession.modifier.label!=="full"&&(
-                <AdaptiveBanner modifier={adaptiveSession.modifier} analysis={adaptiveSession?.analysisInsight}/>
-              )}
-              {/* Session spacing alert */}
-              {adaptiveSession?.spacingAlert&&(
-                <div style={{background:adaptiveSession.spacingAlert.severity==='high'?'rgba(255,149,0,0.10)':'rgba(255,255,255,.04)',border:`1.5px solid ${adaptiveSession.spacingAlert.severity==='high'?'#FF9500':'rgba(255,255,255,.15)'}`,borderRadius:10,padding:'10px 14px',marginTop:8,display:'flex',gap:8,alignItems:'flex-start'}}>
-                  <span style={{fontSize:15,flexShrink:0}}>{adaptiveSession.spacingAlert.type==='conflict'?'⚠️':'💤'}</span>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,.75)',lineHeight:1.55}}>{adaptiveSession.spacingAlert.message}</div>
-                </div>
-              )}
-              {/* Pregnancy permanent safety banner */}
-              {profile?.lifeStage==="pregnant"&&(
-                <>
-                  <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--amber)" strokeWidth="1.5"/><path d="M8 5v4M8 11v.5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                    </div>
-                    <div>
-                      <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
-                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
-                    </div>
-                  </div>
-                  <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
-                  </div>
-                </>
-              )}
-              {/* Postpartum phase banner */}
-              {profile?.lifeStage==="postpartum"&&(()=>{const pp=getPostpartumPhase(profile.postpartumWeeks,profile.csection);return(
-                <>
-                  <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="var(--amber)" strokeWidth="1.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                    </div>
-                    <div>
-                      <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
-                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{pp.desc}</div>
-                    </div>
-                  </div>
-                  <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <div style={{fontSize:11,color:"rgba(245,245,240,.65)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider — especially with C-section recovery.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
-                  </div>
-                </>
-              );})()}
-              {/* ACL Prevention prehab for female users on leg days */}
-              {profile?.sex==="female"&&isLegDay(todayFocus)&&(()=>{
-                const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
-                const highLaxity=cp&&(cp.phase==="follicular"||cp.phase==="ovulation");
-                return(
-                  <div style={{background:"rgba(var(--accent-rgb),.06)",border:"1px solid rgba(var(--accent-rgb),.2)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
-                    <div style={{fontSize:10,color:"var(--red)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>ACL PREHAB · 5 MIN</div>
-                    {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:T.fat}}>Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
-                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                      {ACL_PREHAB.map((ex,i)=>(
-                        <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:T.s2,borderRadius:7}}>
-                          <span style={{fontWeight:600}}>{ex.name}</span>
-                          <span style={{color:T.mu}}>{ex.reps}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-              {(()=>{
-                const hc=(profile?.healthConditions||[]).filter(c=>c!=="none");
-                if(hc.length===0)return null;
-                return(
-                  <div style={{background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.25)",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
-                    <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SAFETY NOTES FOR YOUR SESSION</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:T.mu,lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
-                    </div>
-                    <a href="https://coach-macro.com/support" style={{fontSize:10,color:T.prot,textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
-                  </div>
-                );
-              })()}
-              {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
-                const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
-                const preFuel=todayPrescription.preFuel;
-                const postFuel=todayPrescription.postFuel;
-                const macroAdj=todayPrescription.macroAdjustment;
-                return(
-                <div style={{background:T.s2,borderRadius:12,padding:"14px 16px",border:`1px solid ${T.bd}`,marginBottom:14}}>
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:8}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                    {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:`rgba(var(--accent-rgb),0.09)`,color:T.prot,padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
-                    {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
-                    {todayPrescription.distance&&<span style={{fontSize:10,fontWeight:700,background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
-                    {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
-                    {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
-                  </div>
-                  {todayPrescription.description&&<div style={{fontSize:12,color:T.mu,lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
-                  {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(var(--accent-rgb),.05)",border:"1px solid rgba(var(--accent-rgb),.15)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
-                    <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
-                      {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
-                        <div key={l} style={{fontSize:11}}><span style={{color:T.mu}}>{l}: </span><span style={{color:"#fff",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
-                      ))}
-                    </div>
-                  </div>}
-                  {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                    <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
-                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{preFuel}</div>
-                  </div>}
-                  {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                    <div style={{fontSize:9,color:T.green,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
-                    <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{postFuel}</div>
-                  </div>}
-                  {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
-                    <div style={{background:"rgba(var(--accent-rgb),.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(var(--accent-rgb),.15)"}}>
-                      <div style={{fontSize:9,color:T.prot,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
-                      <div style={{fontSize:11,color:T.mu,lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
-                    </div>
-                  )}
-                </div>
-                );
-              })()}
-              {(()=>{
-                const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
-                if(!cp)return null;
-                return <div style={{background:`${cp.color}12`,border:`1px solid ${cp.color}30`,borderRadius:10,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:13}}>{cp.label.split(" ")[0]}</span>
-                  <div>
-                    <span style={{fontSize:11,fontWeight:700,color:cp.color}}>{cp.label}</span>
-                    <span style={{fontSize:10,color:T.mu,marginLeft:8}}>Cycle day ~{Math.floor((Date.now()-new Date(wPrefs?.lastPeriodDate||profile?.lastPeriodDate))/86400000)%28+1}</span>
-                  </div>
-                </div>;
-              })()}
-              {todayType==="training"&&!todayPrescription&&(
-                <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--white)",marginBottom:6}}>No Program Selected</div>
-                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
-                  <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:"var(--condensed)",textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
-                </div>
-              )}
-              {todayType==="training"&&(
-                <div style={{marginTop:14}}>
-                  {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
-                    <>
-                      {/* See more / Hide toggle */}
-                      <div onClick={()=>setSessionDetailExpanded(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(var(--accent-rgb),0.04)",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
-                        <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See more ↓"}</span>
-                        <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em"}}>{exCount} exercises · {totalSets} sets</span>
+                {/* RED-S / Overreaching */}
+                {(()=>{
+                  const reds=profile?.adaptive_profile?.redsDetected;
+                  const over=profile?.adaptive_profile?.overreachDetected;
+                  if(!reds&&!over)return null;
+                  const [expanded,setExpanded]=React.useState(false);
+                  const title=reds?'RED-S Pattern Detected':'Overreaching Detected';
+                  const msg=reds?reds.message:over.message;
+                  return(
+                    <div style={{background:'rgba(255,59,48,0.07)',border:'1.5px solid rgba(255,59,48,0.22)',borderRadius:12,padding:'14px 16px',marginBottom:10}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
+                        <span style={{fontSize:18}}>⚠️</span>
+                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
+                        <span style={{marginLeft:'auto',fontFamily:_MO,fontSize:9,color:'rgba(10,10,10,0.35)'}}>{expanded?'▲':'▼'}</span>
                       </div>
-                      {/* Expanded: numbered exercise list + Start Session */}
-                      {sessionDetailExpanded&&(
-                        <div>
-                          <div style={{display:"flex",flexDirection:"column",marginBottom:12}}>
-                            {todayPrescription.map((ex,i)=>(
-                              <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)"}}>
-                                <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(var(--accent-rgb),0.12)",border:"1px solid rgba(var(--accent-rgb),0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--mono)",fontSize:10,color:"var(--accent)",fontWeight:700,flexShrink:0}}>{i+1}</div>
-                                <div style={{flex:1}}>
-                                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?15:17,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
-                                  {(()=>{
-                                    const prog=adaptiveSession?.progressions?.[ex.name];
-                                    const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
-                                    const domsConflict=adaptiveSession?.domsConflicts?.find(c=>c.exercise===ex.name);
-                                    return(<>
-                                      {conflict&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {conflict.zone.replace(/_/g,' ')} still recovering</div>}
-                                      {!conflict&&domsConflict&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {domsConflict.zone} predicted soreness peak in {Math.abs(domsConflict.prediction.hoursToPeak)}h — consider reducing range of motion</div>}
-                                      {prog&&prog.action!=='new'&&<WeightSuggestion prog={prog}/>}
-                                    </>);
-                                  })()}
-                                </div>
-                                <div style={{fontFamily:"var(--mono)",fontSize:12,color:"rgba(245,245,240,0.7)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
-                              </div>
-                            ))}
+                      {expanded&&<div style={{fontFamily:_MO,fontSize:11,color:'rgba(10,10,10,0.60)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,0.12)',paddingTop:10,marginTop:4}}>{msg}</div>}
+                    </div>
+                  );
+                })()}
+                {adaptiveSession?.injuryRisk==="high"&&adaptiveSession?.injuryNote&&(
+                  <div style={{background:"rgba(255,59,48,0.07)",border:"1.5px solid rgba(255,59,48,0.18)",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
+                    <div>
+                      <div style={{fontFamily:_MO,fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Injury Risk</div>
+                      <div style={{fontSize:12,color:"rgba(10,10,10,0.75)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
+                      <div style={{fontSize:11,color:"rgba(10,10,10,0.40)",marginTop:3}}>Consider seeing a physio before continuing.</div>
+                    </div>
+                  </div>
+                )}
+                {adaptiveSession?.modifier?.label&&adaptiveSession.modifier.label!=="full"&&(
+                  <AdaptiveBanner modifier={adaptiveSession.modifier} analysis={adaptiveSession?.analysisInsight}/>
+                )}
+                {adaptiveSession?.spacingAlert&&(
+                  <div style={{background:adaptiveSession.spacingAlert.severity==='high'?'rgba(255,149,0,0.10)':'rgba(10,10,10,0.04)',border:`1.5px solid ${adaptiveSession.spacingAlert.severity==='high'?'#FF9500':'rgba(10,10,10,0.10)'}`,borderRadius:10,padding:'10px 14px',marginBottom:8,display:'flex',gap:8,alignItems:'flex-start'}}>
+                    <span style={{fontSize:15,flexShrink:0}}>{adaptiveSession.spacingAlert.type==='conflict'?'⚠️':'💤'}</span>
+                    <div style={{fontFamily:_MO,fontSize:11,color:'rgba(10,10,10,0.65)',lineHeight:1.55}}>{adaptiveSession.spacingAlert.message}</div>
+                  </div>
+                )}
+                {profile?.lifeStage==="pregnant"&&(
+                  <>
+                    <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                      <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--amber)" strokeWidth="1.5"/><path d="M8 5v4M8 11v.5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
+                        <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
+                      </div>
+                    </div>
+                    <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                      <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                    </div>
+                  </>
+                )}
+                {profile?.lifeStage==="postpartum"&&(()=>{const pp=getPostpartumPhase(profile.postpartumWeeks,profile.csection);return(
+                  <>
+                    <div style={{background:"rgba(245,158,11,.08)",border:"1.5px solid rgba(245,158,11,.3)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",gap:12,alignItems:"flex-start"}}>
+                      <div style={{flexShrink:0,width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="var(--amber)" strokeWidth="1.5"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
+                        <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>{pp.desc}</div>
+                      </div>
+                    </div>
+                    <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+                      <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                    </div>
+                  </>
+                );})()}
+                {profile?.sex==="female"&&isLegDay(todayFocus)&&(()=>{
+                  const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+                  const highLaxity=cp&&(cp.phase==="follicular"||cp.phase==="ovulation");
+                  return(
+                    <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.15)",borderRadius:12,padding:"12px 16px",marginBottom:14}}>
+                      <div style={{fontSize:10,color:"#FF3B30",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:8}}>ACL PREHAB · 5 MIN</div>
+                      {highLaxity&&<div style={{background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:11,color:"var(--amber)"}}>Higher ligament laxity during {cp.label} — warm up thoroughly, land softly, bend knees on impact.</div>}
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {ACL_PREHAB.map((ex,i)=>(
+                          <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:"rgba(10,10,10,0.04)",borderRadius:7}}>
+                            <span style={{fontWeight:600,color:"rgba(10,10,10,0.80)"}}>{ex.name}</span>
+                            <span style={{color:"rgba(10,10,10,0.40)"}}>{ex.reps}</span>
                           </div>
-                          {adaptiveSession?.hasPlateau&&(
-                            <div style={{background:"#1a1a1a",border:"1px solid rgba(255,59,48,0.3)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>You've pushed this program to its limit.</div>
-                              <div style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.55)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
-                              <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.12)",border:"1.5px solid rgba(255,59,48,0.35)",borderRadius:9,color:"#FF3B30",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
-                            </div>
-                          )}
-                          <button onClick={()=>startFromProgram()} style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer"}}>START SESSION →</button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {(()=>{
+                  const hc=(profile?.healthConditions||[]).filter(c=>c!=="none");
+                  if(hc.length===0)return null;
+                  return(
+                    <div style={{background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.25)",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
+                      <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SAFETY NOTES FOR YOUR SESSION</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                        {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:"rgba(10,10,10,0.60)",lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
+                      </div>
+                      <a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
+                    </div>
+                  );
+                })()}
+                {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
+                  const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
+                  const preFuel=todayPrescription.preFuel;
+                  const postFuel=todayPrescription.postFuel;
+                  const macroAdj=todayPrescription.macroAdjustment;
+                  return(
+                    <div style={{background:"rgba(10,10,10,0.04)",borderRadius:12,padding:"14px 16px",border:"1px solid rgba(10,10,10,0.08)",marginBottom:14}}>
+                      <div style={{fontWeight:700,fontSize:14,marginBottom:8,color:"rgba(10,10,10,0.85)"}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                        {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:"rgba(255,59,48,0.10)",color:"#FF3B30",padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
+                        {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
+                        {todayPrescription.distance&&<span style={{fontSize:10,fontWeight:700,background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
+                        {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
+                        {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
+                      </div>
+                      {todayPrescription.description&&<div style={{fontSize:12,color:"rgba(10,10,10,0.55)",lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
+                      {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                        <div style={{fontSize:9,color:"#FF3B30",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
+                          {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
+                            <div key={l} style={{fontSize:11}}><span style={{color:"rgba(10,10,10,0.45)"}}>{l}: </span><span style={{color:"rgba(10,10,10,0.85)",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
+                          ))}
+                        </div>
+                      </div>}
+                      {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                        <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
+                        <div style={{fontSize:11,color:"rgba(10,10,10,0.60)",lineHeight:1.6}}>{preFuel}</div>
+                      </div>}
+                      {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
+                        <div style={{fontSize:9,color:T.green,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
+                        <div style={{fontSize:11,color:"rgba(10,10,10,0.60)",lineHeight:1.6}}>{postFuel}</div>
+                      </div>}
+                      {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
+                        <div style={{background:"rgba(255,59,48,0.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(255,59,48,0.12)"}}>
+                          <div style={{fontSize:9,color:"#FF3B30",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
+                          <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
                         </div>
                       )}
-                    </>
-                  ):(
-                    /* No exercise list (non-lifting or no program) — Start Session always visible */
-                    <motion.button
-                      onClick={()=>todayPrescription?startFromProgram():startStructured(todayFocus)}
-                      onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
-                      whileTap={GOCLUB_REDESIGN?{scale:0.91}:undefined}
-                      transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
-                      style={{width:"100%",background:"var(--accent)",border:"none",borderRadius:12,padding:15,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>START SESSION →</motion.button>
-                  )}
-                </div>
-              )}
-            </div>
-            </StaggerItem>
-            );})()}
-
-            {/* ── QUICK ACCESS CAROUSEL ── */}
-            {(()=>{
-              const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
-              const totalWeeks=progInfo?.weeks||12;
-              const _raceTypeLabels2={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
-              const _raceLabel2=_raceTypeLabels2[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
-              const progName=
-                wPrefs.isHyrox&&wPrefs.isHybrid ? (wPrefs.hybridTemplate||"Hyrox Hybrid") :
-                wPrefs.isHyrox   ? (wPrefs.hyroxProgram||"Hyrox") :
-                wPrefs.isHybrid  ? (_raceLabel2?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel2}`:(wPrefs.hybridTemplate||"Hybrid")) :
-                prescType==="running" ? (_raceLabel2||wPrefs.runPlan||"Running") :
-                progInfo?.name||(wPrefs.splitType||"Custom Plan");
-              const displayWeek=programCurrentWeek||weekNum;
-              const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
-              const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
-              const cardStyle={minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",background:"#0d0d0d",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
-              return(
-                <>
-                  <div
-                    ref={carouselRef}
-                    onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||el.clientWidth||320;const idx=Math.min(2,Math.max(0,Math.round(el.scrollLeft/w)));setActiveCard(idx);}}
-                    style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:0,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
-                  >
-                    {/* Card 1 — YOUR PROGRAM */}
-                    <div onClick={()=>setTrainScreen("plan")} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.2)"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// YOUR PROGRAM</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{progName}<span style={{color:"var(--accent)"}}>.</span></div>
-                      </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Week {displayWeek} · {expLabel}</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
                     </div>
-                    {/* Card 2 — EXERCISE LIBRARY */}
-                    <div onClick={()=>setTrainScreen("library")} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.1)"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// FULL DATABASE</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY<span style={{color:"var(--accent)"}}>.</span></div>
-                      </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>800+ exercises</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
+                  );
+                })()}
+                {(()=>{
+                  const cp=getCyclePhase(wPrefs?.lastPeriodDate||profile?.lastPeriodDate);
+                  if(!cp)return null;
+                  return <div style={{background:`${cp.color}12`,border:`1px solid ${cp.color}30`,borderRadius:10,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:13}}>{cp.label.split(" ")[0]}</span>
+                    <div>
+                      <span style={{fontSize:11,fontWeight:700,color:cp.color}}>{cp.label}</span>
+                      <span style={{fontSize:10,color:"rgba(10,10,10,0.45)",marginLeft:8}}>Cycle day ~{Math.floor((Date.now()-new Date(wPrefs?.lastPeriodDate||profile?.lastPeriodDate))/86400000)%28+1}</span>
                     </div>
-                    {/* Card 3 — EXPLORE */}
-                    <div onClick={()=>setShowExploreSheet(true)} style={{...cardStyle,border:"1px solid rgba(var(--accent-rgb),0.1)"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// TOOLS & MORE</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>EXPLORE<span style={{color:"var(--accent)"}}>.</span></div>
-                      </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)"}}>Programs · Routines · Warm-up · Favorites</div>
-                      <div style={{position:"absolute",bottom:16,right:16,color:"var(--accent)",fontSize:18,lineHeight:1}}>→</div>
-                    </div>
+                  </div>;
+                })()}
+                {todayType==="training"&&!todayPrescription&&(
+                  <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.15)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
+                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",marginBottom:6}}>No Program Selected</div>
+                    <div style={{fontSize:13,color:"rgba(10,10,10,0.45)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
+                    <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"#FF3B30",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:_AF,textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                   </div>
-                  {/* Scroll indicator dots */}
-                  <div style={{display:"flex",gap:5,justifyContent:"center",marginBottom:16}}>
-                    {[0,1,2].map(i=>(
-                      <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"var(--accent)":"rgba(245,245,240,0.15)",transition:"background 0.2s"}}/>
+                )}
+                {todayType==="training"&&(
+                  <div style={{marginTop:8}}>
+                    {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
+                      <>
+                        <div onClick={()=>{_hL();setSessionDetailExpanded(s=>!s);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
+                          <span style={{fontFamily:_MO,fontSize:10,fontWeight:700,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
+                          <span style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)",letterSpacing:"0.08em"}}>{exCount} exercises · {totalSets} sets</span>
+                        </div>
+                        {sessionDetailExpanded&&(
+                          <div>
+                            <div style={{display:"flex",flexDirection:"column",marginBottom:12}}>
+                              {todayPrescription.map((ex,i)=>(
+                                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(10,10,10,0.06)"}}>
+                                  <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,59,48,0.10)",border:"1px solid rgba(255,59,48,0.20)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:_MO,fontSize:10,color:"#FF3B30",fontWeight:700,flexShrink:0}}>{i+1}</div>
+                                  <div style={{flex:1}}>
+                                    <div style={{fontFamily:_AF,fontWeight:700,fontSize:15,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                    {(()=>{
+                                      const prog=adaptiveSession?.progressions?.[ex.name];
+                                      const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
+                                      const domsConflict=adaptiveSession?.domsConflicts?.find(c=>c.exercise===ex.name);
+                                      return(<>
+                                        {conflict&&<div style={{fontFamily:_MO,fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {conflict.zone.replace(/_/g,' ')} still recovering</div>}
+                                        {!conflict&&domsConflict&&<div style={{fontFamily:_MO,fontSize:9,color:"#FF9500",letterSpacing:"0.08em",marginTop:3}}>⚠️ {domsConflict.zone} predicted soreness peak in {Math.abs(domsConflict.prediction.hoursToPeak)}h — consider reducing range of motion</div>}
+                                        {prog&&prog.action!=='new'&&<WeightSuggestion prog={prog}/>}
+                                      </>);
+                                    })()}
+                                  </div>
+                                  <div style={{fontFamily:_MO,fontSize:12,color:"rgba(10,10,10,0.50)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {adaptiveSession?.hasPlateau&&(
+                              <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.18)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+                                <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"rgba(10,10,10,0.85)",marginBottom:4}}>You've pushed this program to its limit.</div>
+                                <div style={{fontFamily:_MO,fontSize:11,color:"rgba(10,10,10,0.50)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
+                                <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.22)",borderRadius:9,color:"#FF3B30",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
+                              </div>
+                            )}
+                            <motion.button onClick={()=>{_hM();startFromProgram();}} onPointerDown={()=>_hL()} whileTap={{scale:0.94}} transition={{type:'spring',stiffness:600,damping:20}} style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                          </div>
+                        )}
+                      </>
+                    ):(
+                      <motion.button
+                        onClick={()=>{_hM();todayPrescription?startFromProgram():startStructured(todayFocus);}}
+                        onPointerDown={()=>_hL()}
+                        whileTap={{scale:0.94}}
+                        transition={{type:'spring',stiffness:600,damping:20}}
+                        style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
+                    )}
+                  </div>
+                )}
+              </PaperCard>
+
+              {/* ══ PAPER CARD 2 — EXPLORE + NUTRITION ════════════════════════ */}
+              <PaperCard style={{margin:"12px 12px 0",padding:"22px 18px"}}>
+                {/* Nutrition context */}
+                {(()=>{
+                  const displayPrefs=wPrefs?.displayPrefs||{};
+                  const currentSkill=(wPrefs?.liftExp||profile?.liftExp||"intermediate").toLowerCase();
+                  const showMacroCard=displayPrefs.full_macro_breakdown!=null?displayPrefs.full_macro_breakdown:currentSkill!=="beginner";
+                  if(!showMacroCard||!todayProtocol||!macros)return null;
+                  const p=todayProtocol;
+                  const base={cal:p.base_calories||macros.calories,prot:p.base_protein_g||macros.protein,carbs:p.base_carbs_g||macros.carbs};
+                  const adj={cal:p.adjusted_calories||macros.calories,prot:p.adjusted_protein_g||macros.protein,carbs:p.adjusted_carbs_g||macros.carbs};
+                  function arrow(a,b){if(a>b+5)return{sym:"↑",color:T.green};if(a<b-5)return{sym:"↓",color:"#ef4444"};return{sym:"→",color:"rgba(10,10,10,0.30)"};}
+                  const chips=[
+                    {label:"PROTEIN",val:`${adj.prot}g`,...arrow(adj.prot,base.prot)},
+                    {label:"CARBS",val:`${adj.carbs}g`,...arrow(adj.carbs,base.carbs)},
+                    {label:"CALORIES",val:String(adj.cal),...arrow(adj.cal,base.cal)},
+                  ];
+                  return(
+                    <div style={{background:"rgba(255,59,48,0.05)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:12,padding:"12px 14px",marginBottom:16,display:"flex",gap:0,position:"relative",overflow:"hidden"}}>
+                      <div style={{width:3,background:"#FF3B30",borderRadius:2,marginRight:12,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:_MO,fontSize:8,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>TODAY'S NUTRITION</div>
+                        <div style={{display:"flex",gap:6,marginBottom:6}}>
+                          {chips.map(c=>(
+                            <div key={c.label} style={{flex:1,background:"rgba(10,10,10,0.04)",borderRadius:8,padding:"7px 6px",textAlign:"center"}}>
+                              <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:c.color,lineHeight:1}}>{c.sym} {c.val}</div>
+                              <div style={{fontFamily:_MO,fontSize:7,color:"rgba(10,10,10,0.35)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:3}}>{c.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {p.reason&&<div style={{fontFamily:_MO,fontSize:8,color:"rgba(10,10,10,0.40)",lineHeight:1.5}}>{p.reason}</div>}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {/* Quick access eyebrow */}
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(10,10,10,0.38)",marginBottom:14}}>QUICK ACCESS</div>
+                {/* Carousel */}
+                {(()=>{
+                  const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+                  const _raceTypeLabels2={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+                  const _raceLabel2=_raceTypeLabels2[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
+                  const progName=
+                    wPrefs.isHyrox&&wPrefs.isHybrid?(wPrefs.hybridTemplate||"Hyrox Hybrid"):
+                    wPrefs.isHyrox?(wPrefs.hyroxProgram||"Hyrox"):
+                    wPrefs.isHybrid?(_raceLabel2?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel2}`:(wPrefs.hybridTemplate||"Hybrid")):
+                    prescType==="running"?(_raceLabel2||wPrefs.runPlan||"Running"):
+                    progInfo?.name||(wPrefs.splitType||"Custom Plan");
+                  const displayWeek=programCurrentWeek||weekNum;
+                  const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
+                  const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
+                  const cStyle={minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",background:"rgba(10,10,10,0.04)",border:"1px solid rgba(10,10,10,0.08)",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
+                  return(
+                    <>
+                      <div
+                        ref={carouselRef}
+                        onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||el.clientWidth||320;const idx=Math.min(2,Math.max(0,Math.round(el.scrollLeft/w)));setActiveCard(idx);}}
+                        style={{overflowX:"auto",display:"flex",flexDirection:"row",gap:0,paddingBottom:4,marginBottom:8,scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none"}}
+                      >
+                        <div onClick={()=>{_hL();setTrainScreen("plan");}} style={cStyle}>
+                          <div>
+                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>YOUR PROGRAM</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>{progName}</div>
+                          </div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)"}}>Week {displayWeek} · {expLabel}</div>
+                          <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
+                        </div>
+                        <div onClick={()=>{_hL();setTrainScreen("library");}} style={cStyle}>
+                          <div>
+                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>FULL DATABASE</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY</div>
+                          </div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)"}}>800+ exercises</div>
+                          <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
+                        </div>
+                        <div onClick={()=>{_hL();setShowExploreSheet(true);}} style={cStyle}>
+                          <div>
+                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>TOOLS & MORE</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>EXPLORE</div>
+                          </div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)"}}>Programs · Routines · Warm-up</div>
+                          <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:5,justifyContent:"center"}}>
+                        {[0,1,2].map(i=>(
+                          <div key={i} style={{width:5,height:5,borderRadius:"50%",background:activeCard===i?"#FF3B30":"rgba(10,10,10,0.12)",transition:"background 0.2s"}}/>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+              </PaperCard>
+
+              {/* ══ PAPER CARD 3 — WEEK & RECOVERY ════════════════════════════ */}
+              <PaperCard style={{margin:"12px 12px 80px",padding:"22px 18px"}}>
+                <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType} lightSurface/>
+                <div style={{marginTop:16}}>
+                  <MuscleRecovery userId={user?.id}/>
+                </div>
+                {balanceCorrections?.length>0&&(()=>{
+                  const top=balanceCorrections[0];
+                  if(!top?.recommendation)return null;
+                  return(
+                    <div style={{background:"rgba(10,10,10,0.04)",border:"1px solid rgba(10,10,10,0.08)",borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start",marginTop:12}}>
+                      <div style={{fontSize:16,flexShrink:0,lineHeight:1,paddingTop:1}}>⚖️</div>
+                      <div>
+                        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.38)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Balance insight</div>
+                        <div style={{fontFamily:_AF,fontSize:13,fontWeight:500,color:"rgba(10,10,10,0.70)",lineHeight:1.55}}>{top.recommendation}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </PaperCard>
+
+              {/* Explore bottom sheet — portalled */}
+              {showExploreSheet&&ReactDOM.createPortal(
+                <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end"}}>
+                  <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#ffffff",borderRadius:"24px 24px 0 0",padding:"24px 20px",paddingBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
+                    <div style={{width:36,height:4,background:"rgba(10,10,10,0.12)",borderRadius:2,margin:"0 auto 20px"}}/>
+                    <div style={{fontFamily:_MO,fontSize:11,color:"#FF3B30",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>EXPLORE</div>
+                    {[
+                      {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"plan"},
+                      {title:"MY ROUTINES",sub:"Your custom workouts",screen:"routine-builder"},
+                      {title:"WARM-UP",sub:"Movement prep by muscle group",screen:"warmup-protocols"},
+                      {title:"FAVORITES",sub:"Saved exercises and workouts",screen:"library"},
+                      {title:"CUSTOM ROUTINE",sub:"Build your own workout",screen:"routine-builder"},
+                      {title:"BROWSE EXERCISES",sub:"Search 800+ exercises",screen:"library"},
+                    ].map(({title,sub,screen})=>(
+                      <div key={title} onClick={()=>{_hL();setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(10,10,10,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+                        <div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>{title}</div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.40)",marginTop:2}}>{sub}</div>
+                        </div>
+                        <div style={{color:"#FF3B30",fontSize:16,flexShrink:0}}>→</div>
+                      </div>
                     ))}
                   </div>
-                </>
-              );
-            })()}
-
-            {/* ── TODAY'S NUTRITION CONTEXT ── */}
-            {(()=>{
-              const displayPrefs=wPrefs?.displayPrefs||{};
-              const currentSkill=(wPrefs?.liftExp||profile?.liftExp||"intermediate").toLowerCase();
-              const showMacroCard=displayPrefs.full_macro_breakdown!=null?displayPrefs.full_macro_breakdown:currentSkill!=="beginner";
-              if(!showMacroCard||!todayProtocol||!macros)return null;
-              const p=todayProtocol;
-              const base={cal:p.base_calories||macros.calories,prot:p.base_protein_g||macros.protein,carbs:p.base_carbs_g||macros.carbs};
-              const adj={cal:p.adjusted_calories||macros.calories,prot:p.adjusted_protein_g||macros.protein,carbs:p.adjusted_carbs_g||macros.carbs};
-              function arrow(adj,base){
-                if(adj>base+5)return{sym:"↑",color:T.green};
-                if(adj<base-5)return{sym:"↓",color:"#ef4444"};
-                return{sym:"→",color:"rgba(245,245,240,0.4)"};
-              }
-              const chips=[
-                {label:"PROTEIN",val:`${adj.prot}g`,...arrow(adj.prot,base.prot)},
-                {label:"CARBS",val:`${adj.carbs}g`,...arrow(adj.carbs,base.carbs)},
-                {label:"CALORIES",val:String(adj.cal),...arrow(adj.cal,base.cal)},
-              ];
-              return(
-                <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,padding:"12px 14px",marginBottom:10,display:"flex",gap:0,position:"relative",overflow:"hidden"}}>
-                  <div style={{width:3,background:"var(--accent)",borderRadius:2,marginRight:12,flexShrink:0}}/>
-                  <div style={{flex:1}}>
-                    <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S NUTRITION</div>
-                    <div style={{display:"flex",gap:6,marginBottom:8}}>
-                      {chips.map(c=>(
-                        <div key={c.label} style={{flex:1,background:"rgba(245,245,240,0.03)",borderRadius:8,padding:"7px 6px",textAlign:"center"}}>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:15,color:c.color,lineHeight:1}}>{c.sym} {c.val}</div>
-                          <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:3}}>{c.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {p.reason&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",lineHeight:1.5}}>{p.reason}</div>}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ── THIS WEEK ── */}
-            <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType}/>
-
-            {/* ── MUSCLE RECOVERY ── */}
-            <MuscleRecovery userId={user?.id}/>
-
-            {/* ── GOCLUB: Balance correction insight ── */}
-            {GOCLUB_REDESIGN&&balanceCorrections?.length>0&&(()=>{
-              const top=balanceCorrections[0];
-              if(!top?.recommendation)return null;
-              return(
-                <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
-                  <div style={{fontSize:16,flexShrink:0,lineHeight:1,paddingTop:1}}>⚖️</div>
-                  <div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Balance insight</div>
-                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.75)",lineHeight:1.55}}>{top.recommendation}</div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ── EXPLORE BOTTOM SHEET — portalled so position:fixed works on iOS ── */}
-            {showExploreSheet&&ReactDOM.createPortal(
-              <div onClick={()=>setShowExploreSheet(false)} style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
-                <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"calc(24px + env(safe-area-inset-bottom))"}}>
-                  <div style={{width:36,height:4,background:"rgba(245,245,240,0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>// EXPLORE</div>
-                  {[
-                    {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"plan"},
-                    {title:"MY ROUTINES",sub:"Your custom workouts",screen:"routine-builder"},
-                    {title:"WARM-UP",sub:"Movement prep by muscle group",screen:"warmup-protocols"},
-                    {title:"FAVORITES",sub:"Saved exercises and workouts",screen:"library"},
-                    {title:"CUSTOM ROUTINE",sub:"Build your own workout",screen:"routine-builder"},
-                    {title:"BROWSE EXERCISES",sub:"Search 800+ exercises",screen:"library"},
-                  ].map(({title,sub,screen})=>(
-                    <div key={title} onClick={()=>{setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(var(--accent-rgb),0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
-                      <div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{title}</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
-                      </div>
-                      <div style={{color:"var(--accent)",fontSize:16,flexShrink:0}}>→</div>
-                    </div>
-                  ))}
-                </div>
-              </div>,
-              document.body
-            )}
-          </div>
-        )}
+                </div>,
+                document.body
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── LIFT SMARTER BUILDER ── */}
         {trainScreen==="builder"&&<WorkoutBuilder profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} generateWorkout={generateWorkout} startStructured={startStructured} workout={workout} workoutLoading={workoutLoading} isMobile={isMobile} todayFocus={todayFocus} schedule={schedule} setActiveWorkout={setActiveWorkout} setTrainScreen={setTrainScreen}/>}
