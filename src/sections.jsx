@@ -3400,19 +3400,38 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
         {/* ── Resume Workout Prompt — today surface only ── */}
         {resumePrompt&&!activeWorkout&&trainScreen==="today"&&(
-          <div style={{margin:GOCLUB_REDESIGN?"12px 12px 0":"0 0 14px",padding:"14px 16px",background:GOCLUB_REDESIGN?"rgba(255,255,255,0.90)":"rgba(var(--accent-rgb),0.06)",border:GOCLUB_REDESIGN?"1px solid rgba(255,59,48,0.20)":"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
-            <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
+          GOCLUB_REDESIGN?(()=>{
+            const _minsAgo=resumePrompt?.ts?Math.round((Date.now()-resumePrompt.ts)/60000):0;
+            const _ta=_minsAgo<1?'':_minsAgo<60?`${_minsAgo}m ago`:`${Math.floor(_minsAgo/60)}h ago`;
+            const _sub=[todayFocus,_ta].filter(Boolean).join(' · ')||'Resume where you left off.';
+            return(
+              <div className="cm-resume-card" style={{margin:'12px 12px 0',padding:'13px 14px',background:'var(--cm-paper,#fff)',borderRadius:17,boxShadow:'0 8px 26px rgba(0,0,0,.22)',display:'flex',alignItems:'center',gap:12}}>
+                <div style={{flexShrink:0,width:9,height:9,borderRadius:'50%',background:'var(--cm-red,#FF3B30)',boxShadow:'0 0 0 4px rgba(255,59,48,.15)'}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,fontWeight:700,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.2,marginBottom:2}}>Unfinished session</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10.5,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',lineHeight:1.4}}>{_sub}</div>
+                </div>
+                <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'center'}}>
+                  <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:'8px 13px',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:20,color:'#fff',fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',minHeight:'auto'}}>Resume →</button>
+                  <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{width:30,height:30,borderRadius:'50%',background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,fontSize:14,color:'var(--cm-ink,#0A0A0A)',flexShrink:0,lineHeight:1,minHeight:'auto'}}>✕</button>
+                </div>
+              </div>
+            );
+          })():(
+            <div style={{margin:"0 0 14px",padding:"14px 16px",background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
+              <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>Unfinished session</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,0.5)"}}>You left a workout in progress. Continue where you left off?</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexShrink:0}}>
+                <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:T.prot,border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
+                <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{padding:"8px 10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Discard</button>
+              </div>
             </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:2}}>Unfinished session</div>
-              <div style={{fontSize:11,color:"rgba(245,245,240,0.5)"}}>You left a workout in progress. Continue where you left off?</div>
-            </div>
-            <div style={{display:"flex",gap:8,flexShrink:0}}>
-              <button onClick={()=>{setActiveWorkout(resumePrompt);setTrainScreen("active");setResumePrompt(null);hapMed();showToast("Session resumed","success");}} style={{padding:"8px 14px",background:T.prot,border:"none",borderRadius:9,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Resume →</button>
-              <button onClick={()=>{setResumePrompt(null);clearPersistedWorkout();}} style={{padding:"8px 10px",background:"none",border:`1px solid ${T.bd}`,borderRadius:9,color:T.mu,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Discard</button>
-            </div>
-          </div>
+          )
         )}
 
         {/* ── TODAY ── */}

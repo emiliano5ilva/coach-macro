@@ -839,6 +839,20 @@ export const REDESIGN_CSS = `
     @keyframes cm-bar-up      { from {} to {} }
   }
 
+  @keyframes cm-resume-bounce {
+    0%, 80%, 100% { transform: translateY(0) scale(1); }
+    85%            { transform: translateY(-7px) scale(1.03); }
+    89%            { transform: translateY(0) scale(1); }
+    93%            { transform: translateY(-3px) scale(1.015); }
+    97%            { transform: translateY(0) scale(1); }
+  }
+  .cm-resume-card {
+    animation: toast-in 0.22s ease forwards, cm-resume-bounce 3.6s ease-in-out 0.5s infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cm-resume-card { animation: none; }
+  }
+
   /* Plan tab — full-screen onboarding; give app-screen a definite height so flex children fill it */
   .goclub.tab-plan .app-screen {
     height: 100dvh;
