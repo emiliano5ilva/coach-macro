@@ -557,7 +557,7 @@ function isFreqCompatible(prog, profileFreq) {
   return prog.days <= userMaxDays;
 }
 
-export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScreen, user }) {
+export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScreen, user, onProfileUpdate }) {
   const defaultCategory = TRAINTYPE_DEFAULT_TAB[profile?.trainType] || "All";
   const [catFilter, setCatFilter] = useState(defaultCategory);
   const [levelFilter, setLevelFilter] = useState("All");
@@ -671,6 +671,9 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           profileUpdate.profile_data = { ...profile, goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false };
         }
         await sb.from("profiles").upsert(profileUpdate, { onConflict: "id" });
+        if (calc.delta !== 0) {
+          onProfileUpdate?.({ goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false });
+        }
       }
       setConfirmProg(null);
       setDetailProg(null);

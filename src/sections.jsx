@@ -1949,7 +1949,7 @@ const _TRAIN_GOCLUB_CSS=`
 .goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important}
 `;
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -4455,7 +4455,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── LIBRARY ── */}
-        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user}/>}
+        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user} onProfileUpdate={onProfileUpdate}/>}
 
         {/* ── CUSTOM ROUTINE BUILDER ── */}
         {trainScreen==="routine-builder"&&<CustomRoutineBuilder user={user} setTrainScreen={setTrainScreen} onSaved={()=>{}} />}
