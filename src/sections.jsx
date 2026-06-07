@@ -5798,6 +5798,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [lrdOverrideDay,setLrdOverrideDay]=useState(null); // confirm before replacing a lift day
   const [showRaceTypePicker,setShowRaceTypePicker]=useState(false);
   const [showRaceDatePicker,setShowRaceDatePicker]=useState(false);
+  const [showCaloriePicker,setShowCaloriePicker]=useState(false);
   const [stravaConnected,setStravaConnected]=useState(false);
   const [stravaLoading,setStravaLoading]=useState(false);
   const [stravaAthlete,setStravaAthlete]=useState(null);
@@ -5965,9 +5966,14 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           return(
             <>
               <MeRow label="Race Type" value={currentRT?RACE_LABELS[currentRT]||currentRT:'—'} onPress={()=>setShowRaceTypePicker(true)}/>
-              <MeRow label="Race Date" value={currentRD?new Date(currentRD+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'} onPress={()=>setShowRaceDatePicker(true)} isLast/>
+              <MeRow label="Race Date" value={currentRD?new Date(currentRD+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'} onPress={()=>setShowRaceDatePicker(true)}/>
             </>
           );
+        })()}
+        {/* F. Daily calorie target */}
+        {(()=>{
+          const currentCals=profile?.goalCals??profile?.calorie_target;
+          return <MeRow label="Daily calorie target" value={currentCals?`${currentCals} kcal`:'—'} onPress={()=>setShowCaloriePicker(true)} isLast/>;
         })()}
       </div>
 
@@ -6537,6 +6543,43 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 setShowRaceDatePicker(false);
               }}/>
             <button onClick={()=>setShowRaceDatePicker(false)} style={{width:"100%",padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── CALORIE TARGET PICKER ── */}
+      {showCaloriePicker&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowCaloriePicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>Daily Calorie Target</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginBottom:16}}>Moves the ring immediately. Enter a value between 800 and 7000 kcal.</div>
+            <input
+              type="number"
+              inputMode="numeric"
+              defaultValue={profile?.goalCals??profile?.calorie_target??''}
+              placeholder="e.g. 2200"
+              style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:20,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}
+              id="cal-target-input"
+            />
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setShowCaloriePicker(false)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={async()=>{
+                const raw=document.getElementById('cal-target-input')?.value;
+                const v=parseInt(raw,10);
+                if(!raw||isNaN(v)||v<800||v>7000){showToast("Enter a value between 800 and 7000","error");return;}
+                if(!user)return;
+                // Matches allergens row spread: {id, profile_data:{...profile, key:val}}
+                await sb.from("profiles").upsert(
+                  {id:user.id,
+                   calorie_target:v,
+                   profile_data:{...profile,goalCals:v,manual_calorie_target:true}},
+                  {onConflict:"id"});
+                onProfileUpdate?.({goalCals:v,calorie_target:v,manual_calorie_target:true});
+                showToast("Saved","success");
+                setShowCaloriePicker(false);
+              }} style={{flex:2,padding:14,background:"var(--accent)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+            </div>
           </div>
         </div>,
         document.body

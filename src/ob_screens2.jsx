@@ -2243,6 +2243,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
+  const [confirmOverrideCals, setConfirmOverrideCals] = useState(null); // guard: manual_calorie_target
   const touchStart = useRef(null);
 
   useEffect(() => {
@@ -2276,16 +2277,26 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
 
   async function handleApply() {
     if (!data?.adjustment?.calorieDelta || !userId) { onClose(); return; }
+    const newCals = (macros?.calories || 2000) + data.adjustment.calorieDelta;
+    // Guard: if user set a custom calorie target, confirm before overwriting it
+    if (profile?.manual_calorie_target) {
+      setConfirmOverrideCals(newCals);
+      return;
+    }
+    await doApply(newCals);
+  }
+
+  async function doApply(newCals) {
     setApplying(true);
     try {
-      const newCals = (macros?.calories || 2000) + data.adjustment.calorieDelta;
       await sb.from('profiles').upsert({
         id: userId,
-        profile_data: { ...(profile || {}), goalCals: newCals },
+        profile_data: { ...(profile || {}), goalCals: newCals, manual_calorie_target: false },
       }, { onConflict: 'id' });
       onApply?.(newCals);
     } catch {}
     setApplying(false);
+    setConfirmOverrideCals(null);
     onClose();
   }
 
@@ -2316,8 +2327,20 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         {!loading && cards[cardIdx] && <ReviewCard card={cards[cardIdx]} isLast={cardIdx===total-1} onApply={handleApply} applying={applying} data={data}/>}
       </div>
 
+      {/* Manual-override guard: confirm before replacing a user-set calorie target */}
+      {confirmOverrideCals&&(
+        <div style={{position:'absolute',bottom:0,left:0,right:0,background:'#0d0d0d',borderTop:'1px solid rgba(var(--accent-rgb),0.25)',padding:'20px 20px max(env(safe-area-inset-bottom),24px)'}}>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:8}}>// CUSTOM TARGET SET</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:'#f5f5f0',marginBottom:16}}>You set a custom calorie target. Replace it with the suggested {confirmOverrideCals} kcal?</div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>setConfirmOverrideCals(null)} style={{flex:1,padding:'11px',background:'rgba(245,245,240,0.05)',color:'rgba(245,245,240,0.5)',border:'1px solid rgba(245,245,240,0.1)',borderRadius:9,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Keep mine</button>
+            <button onClick={()=>doApply(confirmOverrideCals)} disabled={applying} style={{flex:1,padding:'11px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:9,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{applying?'Applying…':'Replace'}</button>
+          </div>
+        </div>
+      )}
+
       {/* Nav */}
-      {!loading && (
+      {!loading && !confirmOverrideCals && (
         <div style={{display:'flex',justifyContent:'space-between',padding:'16px 20px max(env(safe-area-inset-bottom),24px)'}}>
           <button onClick={()=>setCardIdx(i=>Math.max(0,i-1))} disabled={cardIdx===0}
             style={{background:'none',border:'1px solid rgba(245,245,240,0.1)',borderRadius:8,padding:'8px 20px',cursor:cardIdx===0?'default':'pointer',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:700,fontSize:14,color:cardIdx===0?'rgba(245,245,240,0.15)':'rgba(245,245,240,0.5)'}}>
