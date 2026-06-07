@@ -210,25 +210,32 @@ export function PaperCard({ children, style = {}, className = '', animate = fals
   const ref = useRef(null);
   // Read once at mount — matchMedia is live on device; false if user has Reduce Motion OFF (normal case)
   const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  // Start revealed=false only when reveal is requested AND motion is allowed.
-  // useEffect fires AFTER the first browser paint, so the cm-reveal-pending state
-  // (opacity:0 translateY28) is guaranteed to paint at least one frame before the
-  // observer callback can call setRevealed(true).
-  const [revealed, setRevealed] = useState(!reveal || prefersReduced);
+  // 'pending-below' = below viewport (initial), 'pending-above' = above viewport, 'revealed' = in view.
+  // Reduced-motion or no reveal prop → always 'revealed' (fully visible, no animation).
+  const [revealState, setRevealState] = useState(!reveal || prefersReduced ? 'revealed' : 'pending-below');
 
   useEffect(() => {
     if (!reveal || prefersReduced || !ref.current) return;
     const el = ref.current;
     // Use the real scroll container as root so off-screen cards stay pending.
-    // Without this, all cards inside .app-screen (overflow-y:auto) fire isIntersecting:true
-    // immediately because the viewport sees the entire scroll container as visible.
     const root = findScrollParent(el);
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setRevealed(true);
-          obs.disconnect();
+          setRevealState('revealed');
+        } else {
+          // Determine which edge the element exited through so the next entry
+          // animates from the correct direction.
+          const rb = entry.rootBounds;
+          if (rb && entry.boundingClientRect.top >= rb.bottom - 1) {
+            // Element is below the viewport bottom → will rise up on re-entry
+            setRevealState('pending-below');
+          } else {
+            // Element is above the viewport top → will descend on re-entry
+            setRevealState('pending-above');
+          }
         }
+        // No unobserve — stays active so every entry/exit toggles state.
       },
       { root, threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
     );
@@ -236,7 +243,7 @@ export function PaperCard({ children, style = {}, className = '', animate = fals
     return () => obs.disconnect();
   }, []); // deps intentionally empty — root/reveal don't change after mount
 
-  const revealClass = reveal ? (revealed ? ' cm-revealed' : ' cm-reveal-pending') : '';
+  const revealClass = reveal ? ` cm-reveal-base ${revealState}` : '';
   const delayStyle = reveal && revealDelay > 0 ? { transitionDelay: `${revealDelay}ms` } : {};
 
   return (
@@ -551,22 +558,34 @@ export const REDESIGN_CSS = `
   }
   .cm-card-enter { animation: cm-card-in 0.44s cubic-bezier(.2,.7,.3,1) forwards; }
 
-  /* Scroll-reveal — hidden until IntersectionObserver fires */
-  .cm-reveal-pending {
-    opacity: 0;
-    transform: translateY(28px);
-    transition: opacity 0.5s cubic-bezier(.2,.7,.3,1), transform 0.5s cubic-bezier(.2,.7,.3,1);
+  /* Scroll-reveal — bidirectional, direction-aware */
+  /* Persistent base class: always present when reveal=true; transition lives HERE so
+     both the enter (reveal) and the exit (re-hide) animate. */
+  .cm-reveal-base {
+    will-change: opacity, transform;
+    transition: opacity 0.32s cubic-bezier(.22,.61,.36,1), transform 0.32s cubic-bezier(.22,.61,.36,1);
   }
+  /* Off-screen below (initial state + after exiting bottom) → will RISE up */
+  .cm-pending-below {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  /* Off-screen above (after exiting top) → will DESCEND down */
+  .cm-pending-above {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  /* In-viewport */
   .cm-revealed {
     opacity: 1;
     transform: translateY(0);
-    transition: opacity 0.5s cubic-bezier(.2,.7,.3,1), transform 0.5s cubic-bezier(.2,.7,.3,1);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .cm-card-enter  { animation: none; }
-    .cm-reveal-pending { transform: none; opacity: 1; }
-    .cm-reveal-pending, .cm-revealed { transition: none; }
+    .cm-card-enter { animation: none; }
+    .cm-reveal-base { transition: none; will-change: auto; }
+    .cm-pending-below,
+    .cm-pending-above { transform: none; opacity: 1; }
   }
 
   /* Bar grow (transform-origin:bottom set inline) */
