@@ -3916,34 +3916,59 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         {/* ── LIFT SMARTER BUILDER ── */}
         {trainScreen==="builder"&&<WorkoutBuilder profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} generateWorkout={generateWorkout} startStructured={startStructured} workout={workout} workoutLoading={workoutLoading} isMobile={isMobile} todayFocus={todayFocus} schedule={schedule} setActiveWorkout={setActiveWorkout} setTrainScreen={setTrainScreen}/>}
 
-        {/* ── WARM-UP SCREEN ── */}
+        {/* ── WARM-UP SCREEN — paper/ink redesign ── */}
         {trainScreen==="warmup"&&ReactDOM.createPortal(
           <div style={{
             position:'fixed',
             top:0,left:0,right:0,bottom:0,
-            background:'#000000',
+            background:'var(--cm-red)',
             overflowY:'auto',
             zIndex:9000,
             display:'flex',
             flexDirection:'column',
-            fontFamily:"'Barlow Condensed',sans-serif",
             animation:'wuFadeIn 0.22s ease',
           }}>
           <style>{`@keyframes wuFadeIn{from{opacity:0}to{opacity:1}}`}</style>
-            {/* Header */}
-            <div style={{padding:'max(env(safe-area-inset-top),48px) 24px 0'}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:'0.2em',color:'var(--accent)',marginBottom:8}}>
-                {'// WARM-UP'}
-              </div>
-              <div style={{fontSize:36,fontWeight:900,fontStyle:'italic',color:'#f5f5f0',lineHeight:1,textTransform:'uppercase',marginBottom:14}}>
-                BEFORE {({'push':'PUSH SESSION','pull':'PULL SESSION','legs':'LEG SESSION','upper':'UPPER BODY SESSION','lower':'LOWER BODY SESSION','run':'RUN SESSION','hyrox':'HYROX SESSION'}[warmupSessionType||'push'])||'PUSH SESSION'}<span style={{color:'var(--accent)'}}>.</span>
-              </div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.4)',marginBottom:24,letterSpacing:'0.08em'}}>
-                COMPLETE BEFORE LOADING THE BAR
-              </div>
-            </div>
+            {/* RED HERO */}
+            {(()=>{
+              const _wuTitleMap={
+                push:'Prime for push',pull:'Prime for pull',legs:'Prime for legs',
+                upper:'Prime for upper body',lower:'Prime for lower body',
+                run:'Warm up to run',hyrox:'Prime for Hyrox',
+              };
+              const _wuSubMap={
+                push:'Open your chest and shoulders before loading.',
+                pull:'Decompress your spine and fire the lats.',
+                legs:'Open the hips and prep the posterior chain.',
+                upper:'Activate the shoulder girdle top to bottom.',
+                lower:'Loosen the hips, hamstrings, and ankles.',
+                run:'Ease into pace — cold muscles invite injury.',
+                hyrox:'Prime every system for the demands ahead.',
+              };
+              const _wt=warmupSessionType||'push';
+              const _title=_wuTitleMap[_wt]||'Get warm';
+              const _sub=_wuSubMap[_wt]||'Complete before your first working set.';
+              return(
+                <div style={{padding:'max(env(safe-area-inset-top),48px) 24px 24px'}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,
+                                letterSpacing:'0.20em',textTransform:'uppercase',
+                                color:'rgba(255,255,255,0.82)',marginBottom:10}}>
+                    WARM-UP · ~5 MIN
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',
+                                fontWeight:900,fontSize:38,lineHeight:0.95,textTransform:'uppercase',
+                                color:'#fff',marginBottom:10,letterSpacing:'-0.01em'}}>
+                    {_title}
+                  </div>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,
+                                color:'rgba(255,255,255,0.90)',lineHeight:1.5}}>
+                    {_sub}
+                  </div>
+                </div>
+              );
+            })()}
 
-            {/* Self-contained hardcoded exercises — no external data */}
+            {/* WHITE PAPER CARD — movement checklist */}
             {(()=>{
               try {
                 const wuExercises={
@@ -3995,63 +4020,82 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 };
                 const list=wuExercises[warmupSessionType||'push']||wuExercises.push;
                 return(
-                  <div style={{padding:'0 24px',paddingBottom:200}}>
+                  <PaperCard style={{margin:'0 18px',marginBottom:160,padding:0,overflow:'hidden'}}>
                     {list.map((ex,i)=>(
                       <div key={i} style={{
-                        background:'#0d0d0d',
-                        border:'1px solid rgba(var(--accent-rgb),0.08)',
-                        borderRadius:12,
-                        padding:'14px 16px',
-                        marginBottom:8,
-                        display:'flex',
-                        justifyContent:'space-between',
-                        alignItems:'center',
+                        display:'flex',alignItems:'center',gap:14,
+                        padding:'14px 18px',
+                        borderBottom:i<list.length-1?'1px solid rgba(var(--cm-ink-rgb),.07)':'none',
                       }}>
+                        {/* Number circle */}
+                        <div style={{width:28,height:28,borderRadius:'50%',
+                                     background:'rgba(var(--cm-ink-rgb),.06)',
+                                     border:'1px solid rgba(var(--cm-ink-rgb),.10)',
+                                     display:'flex',alignItems:'center',justifyContent:'center',
+                                     fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,
+                                     color:'var(--cm-ink)',flexShrink:0}}>
+                          {i+1}
+                        </div>
+                        {/* Name + note */}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:18,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1.1}}>
+                          <div style={{fontFamily:"'Barlow',sans-serif",fontWeight:700,fontSize:15,
+                                       color:'var(--cm-ink)',lineHeight:1.2}}>
                             {ex.name}
                           </div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',marginTop:3,letterSpacing:'0.1em'}}>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,
+                                       color:'rgba(var(--cm-ink-rgb),.50)',marginTop:2,
+                                       letterSpacing:'0.08em'}}>
                             {ex.note}
                           </div>
                         </div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'var(--accent)',letterSpacing:'0.1em',flexShrink:0,marginLeft:12,textAlign:'right'}}>
+                        {/* Sets */}
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,
+                                     color:'rgba(var(--cm-ink-rgb),.60)',letterSpacing:'0.08em',
+                                     flexShrink:0,textAlign:'right'}}>
                           {ex.sets}
                         </div>
                       </div>
                     ))}
-                  </div>
+                  </PaperCard>
                 );
               } catch(err) {
                 return(
-                  <div style={{padding:24,fontFamily:"'DM Mono',monospace",fontSize:12,color:'var(--accent)'}}>
+                  <div style={{padding:24,fontFamily:"'DM Mono',monospace",fontSize:12,
+                               color:'rgba(255,255,255,0.7)'}}>
                     {'Error: '+err.message}
                   </div>
                 );
               }
             })()}
 
-            {/* BEGIN SESSION + SKIP buttons */}
+            {/* BEGIN SESSION + SKIP — white button on red footer */}
             <div style={{
               position:'fixed',
               bottom:0,left:0,right:0,
               padding:'16px 24px',
               paddingBottom:'max(env(safe-area-inset-bottom),24px)',
-              background:'#000000',
-              borderTop:'1px solid rgba(245,245,240,0.06)',
+              background:'var(--cm-red)',
+              borderTop:'1px solid rgba(255,255,255,0.12)',
               display:'flex',
               flexDirection:'column',
               gap:10,
             }}>
               <button
                 onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':(prescType==='running'||hybridRunDay)?'run-picker':null);setTrainScreen("active");}}
-                style={{width:'100%',padding:'16px 0',background:'var(--accent)',border:'none',borderRadius:12,color:'#fff',fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}
+                style={{width:'100%',padding:'16px 0',background:'var(--cm-paper)',border:'none',
+                        borderRadius:14,color:'var(--cm-red)',fontFamily:"'Barlow Condensed',sans-serif",
+                        fontStyle:'italic',fontWeight:900,fontSize:17,letterSpacing:'0.04em',
+                        textTransform:'uppercase',cursor:'pointer',
+                        boxShadow:'0 4px 20px rgba(0,0,0,.18)',minHeight:'auto'}}
               >
-                BEGIN SESSION →
+                Begin Session →
               </button>
               <button
                 onClick={()=>{setSessionMode(prescType==='hyrox'||prescType==='hybrid-hyrox'?'hyrox-picker':(prescType==='running'||hybridRunDay)?'run-picker':null);setTrainScreen("active");}}
-                style={{width:'100%',padding:'13px 0',background:'transparent',border:'1px solid rgba(245,245,240,0.15)',borderRadius:12,color:'rgba(245,245,240,0.4)',fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:'0.16em',textTransform:'uppercase',cursor:'pointer'}}
+                style={{width:'100%',padding:'12px 0',background:'transparent',border:'none',
+                        borderRadius:12,color:'rgba(255,255,255,0.85)',fontFamily:"'DM Mono',monospace",
+                        fontSize:11,fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',
+                        cursor:'pointer',minHeight:'auto'}}
               >
                 SKIP WARM-UP →
               </button>
