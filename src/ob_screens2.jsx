@@ -2291,7 +2291,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
     try {
       await sb.from('profiles').upsert({
         id: userId,
-        profile_data: { ...(profile || {}), goalCals: newCals, manual_calorie_target: false },
+        profile_data: { ...(profile || {}), goalCals: newCals, calorie_target: newCals, manual_calorie_target: false },
       }, { onConflict: 'id' });
       onApply?.(newCals);
     } catch {}
@@ -6197,10 +6197,16 @@ Rules:
     if(!metabolicAdaptation||!user)return;
     const phases=metabolicAdaptation.protocol?.phases;
     if(!phases?.phase1?.calories)return;
-    // Update profile goalCals to phase 1 calories
+    // Update profile goalCals to phase 1 calories — write to profile_data.goalCals (what the ring reads)
     const newCals=phases.phase1.calories;
     try{
-      await sb.from("profiles").upsert({id:user.id,goalCals:newCals,updated_at:new Date().toISOString()},{onConflict:"id"});
+      await sb.from("profiles").upsert({
+        id:user.id,
+        calorie_target:newCals,
+        profile_data:{...profile,goalCals:newCals,calorie_target:newCals,manual_calorie_target:false},
+        updated_at:new Date().toISOString(),
+      },{onConflict:"id"});
+      onProfileUpdate?.({goalCals:newCals,calorie_target:newCals,manual_calorie_target:false});
       await startMetabolicProtocol(metabolicAdaptation.id);
       const updated={...metabolicAdaptation,status:"active",started_at:new Date().toISOString()};
       setMetabolicAdaptation(updated);
@@ -6222,7 +6228,15 @@ Rules:
     // Restore to phase 3 calories permanently
     const phase3Cals=metabolicAdaptation.protocol?.phases?.phase3?.calories;
     if(phase3Cals&&user){
-      try{await sb.from("profiles").upsert({id:user.id,goalCals:phase3Cals,updated_at:new Date().toISOString()},{onConflict:"id"});}catch(e){console.warn('[profiles upsert goalCals]',e);}
+      try{
+        await sb.from("profiles").upsert({
+          id:user.id,
+          calorie_target:phase3Cals,
+          profile_data:{...profile,goalCals:phase3Cals,calorie_target:phase3Cals,manual_calorie_target:false},
+          updated_at:new Date().toISOString(),
+        },{onConflict:"id"});
+        onProfileUpdate?.({goalCals:phase3Cals,calorie_target:phase3Cals,manual_calorie_target:false});
+      }catch(e){console.warn('[profiles upsert goalCals]',e);}
     }
     await completeProtocol(metabolicAdaptation.id).catch(()=>{});
     setMetabolicAdaptation(null);

@@ -666,7 +666,10 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       if (me) {
         const calc = recalculateNutritionForProgram(profile, prog);
         const profileUpdate = { id: me.id, wprefs: newWPrefs, startDate: newStartDate };
-        if (calc.delta !== 0) profileUpdate.goalCals = calc.goalCals;
+        if (calc.delta !== 0) {
+          profileUpdate.calorie_target = calc.goalCals;
+          profileUpdate.profile_data = { ...profile, goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false };
+        }
         await sb.from("profiles").upsert(profileUpdate, { onConflict: "id" });
       }
       setConfirmProg(null);

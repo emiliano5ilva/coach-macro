@@ -6573,7 +6573,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 await sb.from("profiles").upsert(
                   {id:user.id,
                    calorie_target:v,
-                   profile_data:{...profile,goalCals:v,manual_calorie_target:true}},
+                   profile_data:{...profile,goalCals:v,calorie_target:v,manual_calorie_target:true}},
                   {onConflict:"id"});
                 onProfileUpdate?.({goalCals:v,calorie_target:v,manual_calorie_target:true});
                 showToast("Saved","success");
