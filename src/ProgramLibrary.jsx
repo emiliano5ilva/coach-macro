@@ -1,13 +1,55 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { T, getDayMacros, Spinner } from "./components.jsx";
+import { T, getDayMacros, Spinner, WDAYS } from "./components.jsx";
 import { sb } from "./client.js";
 import { PROGRAM_LIBRARY } from "./programs.js";
 import { getProgramImage } from "./data/programImages.js";
 import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
 import RunProgramSetup from "./RunProgramSetup.jsx";
+import { PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
 
 const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
+
+// ─── MODE ACTIVATION HELPER ────────────────────────────────────────────────────
+// Derives all cross-mode fields needed when switching to a library program.
+// Mirrors PlanOnboarding's logic for: schedule day types, run_race_type, mode flags.
+// Returns { run_race_type, schedule, wPrefsUpdate } — caller merges and upserts.
+export function activateProgramMode({ prog, wPrefs, schedule }) {
+  const isRun    = !!prog.isRun;
+  const isHyrox  = !!prog.isHyrox;
+  const isHybrid = !!prog.isHybrid;
+
+  // run_race_type: from program name via the same PLAN_TO_RACE_TYPE map PlanOnboarding uses.
+  // Only set for pure-run programs; hybrid/hyrox/lifting clear it so prescType routing is clean.
+  const run_race_type = isRun ? (PLAN_TO_RACE_TYPE[prog.name] || 'general') : null;
+
+  // Schedule: preserve which days are non-rest; change their TYPE to match the new mode.
+  // Mirrors: focus==="run"?"run":focus==="hyrox"?"hyrox":"training" in PlanOnboarding.buildSchedule.
+  const dayType = isRun ? 'run' : isHyrox ? 'hyrox' : 'training';
+  const newSchedule = {};
+  WDAYS.forEach(d => {
+    const cur = schedule[d] || 'rest';
+    newSchedule[d] = cur === 'rest' ? 'rest' : dayType;
+  });
+
+  // wPrefs flags — matches doActualSwitch's existing mode-flag logic, extended with run identity fields.
+  const wPrefsUpdate = { _libraryId: prog.id, isHybrid, isHyrox };
+  if (isRun) {
+    // Run-only: clear splitType/dayPlan to prevent stale lifting/hybrid state leaking into routing.
+    Object.assign(wPrefsUpdate, { splitType: null, runPlan: prog.name, isRunFocus: true, isLifting: false });
+  } else if (isHyrox && isHybrid) {
+    Object.assign(wPrefsUpdate, { splitType: prog.name });
+  } else if (isHyrox) {
+    Object.assign(wPrefsUpdate, { splitType: prog.name });
+  } else if (isHybrid) {
+    Object.assign(wPrefsUpdate, { splitType: prog.name, hybridTemplate: prog.name });
+  } else {
+    // Lifting: restore identity fields so a previous run focus doesn't bleed through.
+    Object.assign(wPrefsUpdate, { splitType: prog.splitKey || prog.name, isRunFocus: false, isLifting: true });
+  }
+
+  return { run_race_type, schedule: newSchedule, wPrefsUpdate };
+}
 
 // ─── PROGRAM ENRICHMENT ────────────────────────────────────────────────────────
 const PROG_META = {
@@ -73,7 +115,7 @@ export function recalculateNutritionForProgram(profile, prog) {
 }
 
 // ─── FUEL AWARENESS MODAL ─────────────────────────────────────────────────────
-function FuelAwarenessModal({ prog, profile, onConfirm, onCancel, switching }) {
+function FuelAwarenessModal({ prog, profile, onConfirm, onCancel, switching, modeChange, newModeLabel }) {
   const calc = recalculateNutritionForProgram(profile, prog);
   const cur  = getDayMacros(profile?.goalCals || 2000, profile?.goal || "Maintain", "training");
   const delta = calc.delta;
@@ -90,7 +132,15 @@ function FuelAwarenessModal({ prog, profile, onConfirm, onCancel, switching }) {
 
         <div style={{ width:36, height:4, borderRadius:2, background:"rgba(255,255,255,.15)", margin:"0 auto 20px" }}/>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, letterSpacing:".02em", marginBottom:4 }}>Review Nutrition Plan</div>
-        <div style={{ fontSize:13, color:T.mu, marginBottom:20 }}>Starting <strong style={{ color:"#fff" }}>{prog?.name}</strong> — here's how your daily targets change.</div>
+        <div style={{ fontSize:13, color:T.mu, marginBottom:modeChange?12:20 }}>Starting <strong style={{ color:"#fff" }}>{prog?.name}</strong> — here's how your daily targets change.</div>
+
+        {/* Cross-mode notice */}
+        {modeChange && (
+          <div style={{ background:"rgba(255,149,0,.08)", border:"1px solid rgba(255,149,0,.3)", borderRadius:10, padding:"10px 14px", marginBottom:20, fontSize:12, color:"#FF9500", display:"flex", gap:8, alignItems:"flex-start" }}>
+            <span style={{ fontSize:15, flexShrink:0 }}>🔄</span>
+            <span>This switches you to <strong style={{ color:"#fff" }}>{newModeLabel}</strong> — your weekly schedule and calorie target will update automatically.</span>
+          </div>
+        )}
 
         {/* Macro comparison */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:20 }}>
@@ -557,7 +607,7 @@ function isFreqCompatible(prog, profileFreq) {
   return prog.days <= userMaxDays;
 }
 
-export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScreen, user, onProfileUpdate }) {
+export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScreen, user, onProfileUpdate, schedule = {}, setSchedule }) {
   const defaultCategory = TRAINTYPE_DEFAULT_TAB[profile?.trainType] || "All";
   const [catFilter, setCatFilter] = useState(defaultCategory);
   const [levelFilter, setLevelFilter] = useState("All");
@@ -651,13 +701,12 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
   async function doActualSwitch(prog) {
     setSwitching(true);
     try {
-      const newWPrefs = { ...wPrefs, _libraryId: prog.id };
-      if (prog.isRun)   { newWPrefs.splitType = prog.name; newWPrefs.runPlan = prog.name; newWPrefs.isHybrid = false; newWPrefs.isHyrox = false; }
-      else if (prog.isHyrox && prog.isHybrid) { newWPrefs.isHyrox = true; newWPrefs.isHybrid = true; newWPrefs.splitType = prog.name; }
-      else if (prog.isHyrox)  { newWPrefs.isHyrox = true; newWPrefs.isHybrid = false; newWPrefs.splitType = prog.name; }
-      else if (prog.isHybrid) { newWPrefs.isHybrid = true; newWPrefs.isHyrox = false; newWPrefs.splitType = prog.name; }
-      else if (prog.isConditioning) { newWPrefs.splitType = prog.name; newWPrefs.isHybrid = false; newWPrefs.isHyrox = false; }
-      else if (prog.splitKey) { newWPrefs.splitType = prog.splitKey; newWPrefs.isHybrid = false; newWPrefs.isHyrox = false; }
+      // activateProgramMode derives all cross-mode fields: schedule day types,
+      // run_race_type, and wPrefs mode flags — mirroring PlanOnboarding's logic.
+      const act = activateProgramMode({ prog, wPrefs, schedule });
+      const newWPrefs = { ...wPrefs, ...act.wPrefsUpdate };
+      // Stale dayPlan from a prior hybrid session breaks run-day routing (see PlanOnboarding comment).
+      if (prog.isRun) delete newWPrefs.dayPlan;
 
       const newStartDate = new Date().toISOString().split("T")[0];
       setWPrefs(newWPrefs);
@@ -665,15 +714,27 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       const { data: { user: me } } = await sb.auth.getUser();
       if (me) {
         const calc = recalculateNutritionForProgram(profile, prog);
-        const profileUpdate = { id: me.id, wprefs: newWPrefs, startDate: newStartDate };
+        const profileUpdate = {
+          id: me.id,
+          wprefs: newWPrefs,
+          startDate: newStartDate,
+          schedule: act.schedule,
+          run_race_type: act.run_race_type,
+          program_current_week: null, // reset; date-based weekNum=1 takes over via startDate
+        };
         if (calc.delta !== 0) {
           profileUpdate.calorie_target = calc.goalCals;
           profileUpdate.profile_data = { ...profile, goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false };
         }
         await sb.from("profiles").upsert(profileUpdate, { onConflict: "id" });
-        if (calc.delta !== 0) {
-          onProfileUpdate?.({ goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false });
-        }
+
+        // Live-update React state so the home surface reflects the new mode immediately.
+        setSchedule?.(act.schedule);
+        onProfileUpdate?.({
+          run_race_type: act.run_race_type,
+          program_current_week: null, // App intercepts this to reset programCurrentWeek state
+          ...(calc.delta !== 0 ? { goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false } : {}),
+        });
       }
       setConfirmProg(null);
       setDetailProg(null);
@@ -683,6 +744,14 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       console.error("[ProgramLibrary] switch error:", e);
       showToast("Switch failed", "error");
     } finally { setSwitching(false); }
+  }
+
+  function getModeInfo(prog) {
+    if (!prog) return { modeChange: false, newModeLabel: '' };
+    const curMode = wPrefs.isHyrox&&wPrefs.isHybrid?'hybrid-hyrox':wPrefs.isHyrox?'hyrox':wPrefs.isHybrid?'hybrid':profile?.run_race_type?'running':'lifting';
+    const newMode = prog.isRun?'running':prog.isHyrox&&prog.isHybrid?'hybrid-hyrox':prog.isHyrox?'hyrox':prog.isHybrid?'hybrid':'lifting';
+    const newModeLabel = prog.isRun?'Running':prog.isHyrox&&prog.isHybrid?'Hyrox Hybrid':prog.isHyrox?'Hyrox':prog.isHybrid?'Hybrid':'Strength';
+    return { modeChange: curMode !== newMode, newModeLabel };
   }
 
   async function confirmSwitch(prog) {
@@ -765,15 +834,17 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           onRate={rating => rateProgram(detailProg.id, rating)}
           onClose={() => setDetailProg(null)}
         />
-        {confirmProg && (
+        {confirmProg && (()=>{ const {modeChange,newModeLabel}=getModeInfo(confirmProg); return (
           <FuelAwarenessModal
             prog={confirmProg}
             profile={profile}
             switching={switching}
+            modeChange={modeChange}
+            newModeLabel={newModeLabel}
             onConfirm={() => confirmSwitch(confirmProg)}
             onCancel={() => !switching && setConfirmProg(null)}
           />
-        )}
+        ); })()}
         {MpSwitchWarnModal}
         {setupProgram && (
           <RunProgramSetup
@@ -932,15 +1003,17 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       </div>
 
       {/* Fuel awareness modal over the list */}
-      {confirmProg && (
+      {confirmProg && (()=>{ const {modeChange,newModeLabel}=getModeInfo(confirmProg); return (
         <FuelAwarenessModal
           prog={confirmProg}
           profile={profile}
           switching={switching}
+          modeChange={modeChange}
+          newModeLabel={newModeLabel}
           onConfirm={() => confirmSwitch(confirmProg)}
           onCancel={() => !switching && setConfirmProg(null)}
         />
-      )}
+      ); })()}
       {MpSwitchWarnModal}
       {setupProgram && (
         <RunProgramSetup

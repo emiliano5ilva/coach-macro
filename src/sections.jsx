@@ -4473,7 +4473,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         )}
 
         {/* ── LIBRARY ── */}
-        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user} onProfileUpdate={onProfileUpdate}/>}
+        {trainScreen==="library"&&<ProgramLibraryScreen wPrefs={wPrefs} setWPrefs={setWPrefs} profile={profile} setTrainScreen={setTrainScreen} user={user} onProfileUpdate={onProfileUpdate} schedule={schedule} setSchedule={setSchedule}/>}
 
         {/* ── CUSTOM ROUTINE BUILDER ── */}
         {trainScreen==="routine-builder"&&<CustomRoutineBuilder user={user} setTrainScreen={setTrainScreen} onSaved={()=>{}} />}
