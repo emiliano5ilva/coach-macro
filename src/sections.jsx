@@ -3291,8 +3291,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
       <div style={{padding:trainScreen==="routine-builder"?0:GOCLUB_REDESIGN&&(trainScreen==="today"||trainScreen==="plan")?0:isMobile?"12px 18px":"0"}}>
 
-        {/* ── Resume Workout Prompt ── */}
-        {resumePrompt&&!activeWorkout&&(
+        {/* ── Resume Workout Prompt — today surface only ── */}
+        {resumePrompt&&!activeWorkout&&trainScreen==="today"&&(
           <div style={{margin:GOCLUB_REDESIGN?"12px 12px 0":"0 0 14px",padding:"14px 16px",background:GOCLUB_REDESIGN?"rgba(255,255,255,0.90)":"rgba(var(--accent-rgb),0.06)",border:GOCLUB_REDESIGN?"1px solid rgba(255,59,48,0.20)":"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,display:"flex",alignItems:"center",gap:12,animation:"toast-in 0.22s ease forwards"}}>
             <div style={{flexShrink:0,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="18" y="10" width="4" height="4" rx="1" fill={T.prot}/><rect x="6" y="8" width="12" height="8" rx="2" fill={T.prot} opacity="0.7"/><rect x="10" y="11" width="4" height="2" rx="1" fill={T.prot}/></svg>
@@ -4516,13 +4516,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       >
                         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
                           {/* Day abbrev */}
-                          <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.06em",color:isToday?"var(--cm-red)":isDone?"rgba(var(--cm-ink-rgb),.28)":"rgba(var(--cm-ink-rgb),.42)",width:28,flexShrink:0,textTransform:"uppercase",paddingTop:2}}>
+                          <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.06em",color:isToday?"var(--cm-red)":isDone?"rgba(var(--cm-ink-rgb),.40)":"rgba(var(--cm-ink-rgb),.42)",width:28,flexShrink:0,textTransform:"uppercase",paddingTop:2}}>
                             {day.slice(0,3)}
                           </div>
                           {/* Content */}
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:isTraining&&!isExpanded?4:0}}>
-                              <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:isToday?"var(--cm-ink)":isDone?"rgba(var(--cm-ink-rgb),.35)":isRest?"rgba(var(--cm-ink-rgb),.38)":"var(--cm-ink)",textDecoration:isDone?"line-through":"none",lineHeight:1.2}}>
+                              <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:isToday?"var(--cm-ink)":isDone?"rgba(var(--cm-ink-rgb),.40)":isRest?"rgba(var(--cm-ink-rgb),.38)":"var(--cm-ink)",textDecoration:isDone?"line-through":"none",lineHeight:1.2}}>
                                 {focus}
                               </div>
                               {isDone&&(
@@ -4574,16 +4574,18 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         const isT=day===todayKey;
                         const f=resolvedDayFocus[day];
                         return(
-                          <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(var(--cm-ink-rgb),.06)"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontFamily:_MO,fontWeight:700,fontSize:11,color:isT?"var(--cm-red)":"var(--cm-ink)",width:28}}>{day}</span>
+                          <div key={day} style={{padding:"9px 0",borderBottom:"1px solid rgba(var(--cm-ink-rgb),.06)"}}>
+                            {/* Day name + current focus */}
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                              <span style={{fontFamily:_MO,fontWeight:700,fontSize:11,color:isT?"var(--cm-red)":"var(--cm-ink)",width:28,flexShrink:0}}>{day}</span>
                               <span style={{fontFamily:_AF,fontSize:11,color:"rgba(var(--cm-ink-rgb),.55)"}}>{f}</span>
                             </div>
-                            <div style={{display:"flex",gap:3}}>
-                              {[["training","T"],["cardio","C"],["run","R"],["hyrox","H"],["rest","—"]].map(([tp,lbl])=>(
+                            {/* Type pills — word labels, wrap naturally */}
+                            <div style={{display:"flex",flexWrap:"wrap",gap:5,paddingLeft:36}}>
+                              {[["training","Training"],["cardio","Cardio"],["run","Run"],["hyrox","Hyrox"],["rest","Rest"]].map(([tp,lbl])=>(
                                 <button key={tp}
                                   onClick={()=>{const next={...schedule,[day]:tp};setSchedule(next);if(user)sb.from("profiles").upsert({id:user.id,schedule:next},{onConflict:"id"}).then(({error})=>{if(error)console.error('[schedule persist]',error);});}}
-                                  style={{fontSize:10,fontWeight:700,fontFamily:_MO,padding:"4px 7px",borderRadius:6,border:`1px solid ${schedule[day]===tp?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.15)"}`,background:schedule[day]===tp?"rgba(var(--cm-red-rgb),.08)":"transparent",color:schedule[day]===tp?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.45)",cursor:"pointer",minHeight:"auto",minWidth:"auto"}}
+                                  style={{fontFamily:_AF,fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:999,border:`1px solid ${schedule[day]===tp?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.18)"}`,background:schedule[day]===tp?"var(--cm-red)":"transparent",color:schedule[day]===tp?"#fff":"rgba(var(--cm-ink-rgb),.50)",cursor:"pointer",minHeight:"auto",minWidth:"auto",lineHeight:1.3}}
                                 >{lbl}</button>
                               ))}
                             </div>
