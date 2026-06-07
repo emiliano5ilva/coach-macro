@@ -192,25 +192,51 @@ export function hapPR()        { try{navigator.vibrate?.([10,30,10,30,10]);}catc
 
 // ─── Scroll-reveal primitives (Train + Fuel share these) ─────────────────────
 
+// Walk up the DOM to find the nearest element that actually scrolls (overflow auto/scroll).
+// Passing this as IntersectionObserver root ensures the observer fires relative to what
+// the user sees, not the browser viewport. Without the correct root, overflow-y:auto
+// containers show every child as "intersecting" because all are within the viewport rect.
+function findScrollParent(el) {
+  let node = el?.parentElement;
+  while (node && node !== document.documentElement) {
+    const oy = window.getComputedStyle(node).overflowY;
+    if (oy === 'auto' || oy === 'scroll') return node;
+    node = node.parentElement;
+  }
+  return null; // null → viewport (should not happen inside .app-screen)
+}
+
 export function PaperCard({ children, style = {}, className = '', animate = false, reveal = false, revealDelay = 0 }) {
   const ref = useRef(null);
-  // Respect prefers-reduced-motion — start revealed so there's no flicker if motion is off
-  const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  // Read once at mount — matchMedia is live on device; false if user has Reduce Motion OFF (normal case)
+  const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  // Start revealed=false only when reveal is requested AND motion is allowed.
+  // useEffect fires AFTER the first browser paint, so the cm-reveal-pending state
+  // (opacity:0 translateY28) is guaranteed to paint at least one frame before the
+  // observer callback can call setRevealed(true).
   const [revealed, setRevealed] = useState(!reveal || prefersReduced);
 
   useEffect(() => {
     if (!reveal || prefersReduced || !ref.current) return;
     const el = ref.current;
+    // Use the real scroll container as root so off-screen cards stay pending.
+    // Without this, all cards inside .app-screen (overflow-y:auto) fire isIntersecting:true
+    // immediately because the viewport sees the entire scroll container as visible.
+    const root = findScrollParent(el);
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setRevealed(true); obs.disconnect(); } },
-      { threshold: 0.12 }
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setRevealed(true);
+          obs.disconnect();
+        }
+      },
+      { root, threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [reveal, prefersReduced]);
+  }, []); // deps intentionally empty — root/reveal don't change after mount
 
   const revealClass = reveal ? (revealed ? ' cm-revealed' : ' cm-reveal-pending') : '';
-  // Keep the delay on the element through both states so it's present when the class flip fires
   const delayStyle = reveal && revealDelay > 0 ? { transitionDelay: `${revealDelay}ms` } : {};
 
   return (

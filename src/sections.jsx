@@ -1896,7 +1896,7 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
       : {background:GOCLUB_REDESIGN?"rgba(255,255,255,0.04)":T.s1,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}
     }>
       {!lightSurface&&<div className="header-eyebrow" style={{marginBottom:10,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":undefined,fontStyle:GOCLUB_REDESIGN?"normal":undefined}}>// This Week</div>}
-      {lightSurface&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(10,10,10,0.38)",marginBottom:14}}>THIS WEEK</div>}
+      {lightSurface&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)",marginBottom:14}}>THIS WEEK</div>}
       <div style={{display:"flex",flexDirection:"column"}}>
         {WDAYS.map((day,idx)=>{
           const t = schedule[day];
@@ -1915,9 +1915,9 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
 
           // Light surface colors (paper card)
           const rowBgLight = isToday ? "rgba(255,59,48,0.07)" : isDone ? "rgba(34,197,94,0.07)" : "transparent";
-          const dayColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : "rgba(10,10,10,0.25)";
-          const labelColLight = isToday ? "#0A0A0A" : isDone ? "rgba(10,10,10,0.75)" : isRest ? "rgba(10,10,10,0.22)" : "rgba(10,10,10,0.45)";
-          const statusColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : isUpNext ? "rgba(10,10,10,0.30)" : "transparent";
+          const dayColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : "rgba(var(--cm-ink-rgb),0.45)";
+          const labelColLight = isToday ? "#0A0A0A" : isDone ? "var(--cm-ink)" : isRest ? "rgba(var(--cm-ink-rgb),0.40)" : "var(--cm-ink)";
+          const statusColLight = isToday ? "#FF3B30" : isDone ? "#16a34a" : isUpNext ? "rgba(var(--cm-ink-rgb),0.65)" : "transparent";
 
           const rowBg = lightSurface ? rowBgLight : rowBgDark;
           const dayCol = lightSurface ? dayColLight : dayColDark;
@@ -1949,7 +1949,7 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
       {sessionCount===0&&todayIdx>1&&todayType==="training"&&(
         <div style={{marginTop:12,background:lightSurface?"rgba(255,59,48,0.06)":"rgba(var(--accent-rgb),0.04)",border:lightSurface?"1px solid rgba(255,59,48,0.15)":"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
-          <div style={{fontFamily:lightSurface?"'Archivo',sans-serif":"var(--condensed)",fontSize:15,color:lightSurface?"rgba(10,10,10,0.45)":"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
+          <div style={{fontFamily:lightSurface?"'Archivo',sans-serif":"var(--condensed)",fontSize:15,color:lightSurface?"var(--cm-ink)":"rgba(245,245,240,0.45)",lineHeight:1.5}}>Missing sessions is normal. What matters is showing up today. Your body is ready.</div>
         </div>
       )}
     </div>
@@ -3407,7 +3407,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   {(profile?.primaryGoal||wPrefs?.primaryGoal)&&<span className="cm-pill" style={{background:"rgba(255,59,48,0.10)",color:"#FF3B30"}}>{getGoalLabel(profile?.primaryGoal||wPrefs?.primaryGoal)}</span>}
                 </div>
                 {/* Muscle focus */}
-                <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.45)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:14,lineHeight:1.5}}>
+                <div style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:14,lineHeight:1.5}}>
                   {muscleDesc?.replace(/\s*[\.\!\?].*$/,"").toUpperCase?.()}
                 </div>
                 {/* RED-S / Overreaching */}
@@ -3423,7 +3423,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer'}} onClick={()=>setExpanded(e=>!e)}>
                         <span style={{fontSize:18}}>⚠️</span>
                         <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:'#FF3B30',textTransform:'uppercase'}}>{title}</div>
-                        <span style={{marginLeft:'auto',fontFamily:_MO,fontSize:9,color:'rgba(10,10,10,0.35)'}}>{expanded?'▲':'▼'}</span>
+                        <span style={{marginLeft:'auto',fontFamily:_MO,fontSize:9,color:'rgba(var(--cm-ink-rgb),0.75)'}}>{expanded?'▲':'▼'}</span>
                       </div>
                       {expanded&&<div style={{fontFamily:_MO,fontSize:11,color:'rgba(10,10,10,0.60)',lineHeight:1.65,borderTop:'1px solid rgba(255,59,48,0.12)',paddingTop:10,marginTop:4}}>{msg}</div>}
                     </div>
@@ -3434,8 +3434,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
                     <div>
                       <div style={{fontFamily:_MO,fontSize:10,color:"#FF3B30",letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:3}}>Injury Risk</div>
-                      <div style={{fontSize:12,color:"rgba(10,10,10,0.75)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
-                      <div style={{fontSize:11,color:"rgba(10,10,10,0.40)",marginTop:3}}>Consider seeing a physio before continuing.</div>
+                      <div style={{fontSize:12,color:"var(--cm-ink)",lineHeight:1.55}}>{adaptiveSession.injuryNote}</div>
+                      <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb),0.75)",marginTop:3}}>Consider seeing a physio before continuing.</div>
                     </div>
                   </div>
                 )}
@@ -3445,7 +3445,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {adaptiveSession?.spacingAlert&&(
                   <div style={{background:adaptiveSession.spacingAlert.severity==='high'?'rgba(255,149,0,0.10)':'rgba(10,10,10,0.04)',border:`1.5px solid ${adaptiveSession.spacingAlert.severity==='high'?'#FF9500':'rgba(10,10,10,0.10)'}`,borderRadius:10,padding:'10px 14px',marginBottom:8,display:'flex',gap:8,alignItems:'flex-start'}}>
                     <span style={{fontSize:15,flexShrink:0}}>{adaptiveSession.spacingAlert.type==='conflict'?'⚠️':'💤'}</span>
-                    <div style={{fontFamily:_MO,fontSize:11,color:'rgba(10,10,10,0.65)',lineHeight:1.55}}>{adaptiveSession.spacingAlert.message}</div>
+                    <div style={{fontFamily:_MO,fontSize:11,color:'var(--cm-ink)',lineHeight:1.55}}>{adaptiveSession.spacingAlert.message}</div>
                   </div>
                 )}
                 {profile?.lifeStage==="pregnant"&&(
@@ -3456,11 +3456,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       </div>
                       <div>
                         <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>Pregnancy — Always consult your OB or midwife</div>
-                        <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
+                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Before continuing or modifying exercise during pregnancy. Stop immediately if you experience pain, dizziness, or shortness of breath.</div>
                       </div>
                     </div>
                     <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Exercise during pregnancy should be supervised by your OB-GYN or midwife. Coach Macro provides general guidance only.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                     </div>
                   </>
                 )}
@@ -3472,11 +3472,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       </div>
                       <div>
                         <div style={{fontSize:11,fontWeight:700,color:"var(--amber)",letterSpacing:".1em",textTransform:"uppercase",marginBottom:3}}>{pp.label}</div>
-                        <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>{pp.desc}</div>
+                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{pp.desc}</div>
                       </div>
                     </div>
                     <div style={{background:"rgba(245,158,11,.05)",border:"1px solid rgba(245,158,11,.15)",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                      <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>Return to exercise postpartum should be guided by your healthcare provider.<br/><a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                     </div>
                   </>
                 );})()}
@@ -3490,8 +3490,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <div style={{display:"flex",flexDirection:"column",gap:6}}>
                         {ACL_PREHAB.map((ex,i)=>(
                           <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:"rgba(10,10,10,0.04)",borderRadius:7}}>
-                            <span style={{fontWeight:600,color:"rgba(10,10,10,0.80)"}}>{ex.name}</span>
-                            <span style={{color:"rgba(10,10,10,0.40)"}}>{ex.reps}</span>
+                            <span style={{fontWeight:600,color:"var(--cm-ink)"}}>{ex.name}</span>
+                            <span style={{color:"rgba(var(--cm-ink-rgb),0.75)"}}>{ex.reps}</span>
                           </div>
                         ))}
                       </div>
@@ -3505,7 +3505,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div style={{background:"rgba(251,191,36,.06)",border:"1px solid rgba(251,191,36,.25)",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
                       <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SAFETY NOTES FOR YOUR SESSION</div>
                       <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                        {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:"rgba(10,10,10,0.60)",lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
+                        {hc.map(c=>{const info=HEALTH_CONDITIONS_SAFETY[c];return info?(<div key={c} style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.55}}><span style={{color:"var(--amber)",fontWeight:600}}>{info.label}:</span> {info.note}</div>):null;})}
                       </div>
                       <a href="https://coach-macro.com/support" style={{fontSize:10,color:"#FF3B30",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:6}}>Talk to a professional →</a>
                     </div>
@@ -3518,7 +3518,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const macroAdj=todayPrescription.macroAdjustment;
                   return(
                     <div style={{background:"rgba(10,10,10,0.04)",borderRadius:12,padding:"14px 16px",border:"1px solid rgba(10,10,10,0.08)",marginBottom:14}}>
-                      <div style={{fontWeight:700,fontSize:14,marginBottom:8,color:"rgba(10,10,10,0.85)"}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
+                      <div style={{fontWeight:700,fontSize:14,marginBottom:8,color:"var(--cm-ink)"}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                         {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:"rgba(255,59,48,0.10)",color:"#FF3B30",padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
                         {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
@@ -3526,27 +3526,27 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
                         {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                       </div>
-                      {todayPrescription.description&&<div style={{fontSize:12,color:"rgba(10,10,10,0.55)",lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
+                      {todayPrescription.description&&<div style={{fontSize:12,color:"var(--cm-ink)",lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
                       {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
                         <div style={{fontSize:9,color:"#FF3B30",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
                         <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
                           {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
-                            <div key={l} style={{fontSize:11}}><span style={{color:"rgba(10,10,10,0.45)"}}>{l}: </span><span style={{color:"rgba(10,10,10,0.85)",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
+                            <div key={l} style={{fontSize:11}}><span style={{color:"var(--cm-ink)"}}>{l}: </span><span style={{color:"var(--cm-ink)",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
                           ))}
                         </div>
                       </div>}
                       {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
                         <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
-                        <div style={{fontSize:11,color:"rgba(10,10,10,0.60)",lineHeight:1.6}}>{preFuel}</div>
+                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{preFuel}</div>
                       </div>}
                       {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
                         <div style={{fontSize:9,color:T.green,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
-                        <div style={{fontSize:11,color:"rgba(10,10,10,0.60)",lineHeight:1.6}}>{postFuel}</div>
+                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{postFuel}</div>
                       </div>}
                       {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
                         <div style={{background:"rgba(255,59,48,0.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(255,59,48,0.12)"}}>
                           <div style={{fontSize:9,color:"#FF3B30",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
-                          <div style={{fontSize:11,color:"rgba(10,10,10,0.55)",lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
+                          <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
                         </div>
                       )}
                     </div>
@@ -3559,14 +3559,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <span style={{fontSize:13}}>{cp.label.split(" ")[0]}</span>
                     <div>
                       <span style={{fontSize:11,fontWeight:700,color:cp.color}}>{cp.label}</span>
-                      <span style={{fontSize:10,color:"rgba(10,10,10,0.45)",marginLeft:8}}>Cycle day ~{Math.floor((Date.now()-new Date(wPrefs?.lastPeriodDate||profile?.lastPeriodDate))/86400000)%28+1}</span>
+                      <span style={{fontSize:10,color:"var(--cm-ink)",marginLeft:8}}>Cycle day ~{Math.floor((Date.now()-new Date(wPrefs?.lastPeriodDate||profile?.lastPeriodDate))/86400000)%28+1}</span>
                     </div>
                   </div>;
                 })()}
                 {todayType==="training"&&!todayPrescription&&(
                   <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.15)",borderRadius:14,padding:"18px 16px",marginBottom:8,textAlign:"center"}}>
-                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",marginBottom:6}}>No Program Selected</div>
-                    <div style={{fontSize:13,color:"rgba(10,10,10,0.45)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
+                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",marginBottom:6}}>No Program Selected</div>
+                    <div style={{fontSize:13,color:"var(--cm-ink)",marginBottom:14,lineHeight:1.5}}>Pick a structured program to see your session here every day.</div>
                     <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"#FF3B30",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:_AF,textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                   </div>
                 )}
@@ -3576,7 +3576,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                       <>
                         <div onClick={()=>{_hL();setSessionDetailExpanded(s=>!s);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:10,cursor:"pointer",marginBottom:sessionDetailExpanded?10:0,transition:"margin 0.2s"}}>
                           <span style={{fontFamily:_MO,fontSize:10,fontWeight:700,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase"}}>{sessionDetailExpanded?"Hide ↑":"See exercises ↓"}</span>
-                          <span style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)",letterSpacing:"0.08em"}}>{exCount} exercises · {totalSets} sets</span>
+                          <span style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)",letterSpacing:"0.08em"}}>{exCount} exercises · {totalSets} sets</span>
                         </div>
                         {sessionDetailExpanded&&(
                           <div>
@@ -3585,7 +3585,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:"1px solid rgba(10,10,10,0.06)"}}>
                                   <div style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,59,48,0.10)",border:"1px solid rgba(255,59,48,0.20)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:_MO,fontSize:10,color:"#FF3B30",fontWeight:700,flexShrink:0}}>{i+1}</div>
                                   <div style={{flex:1}}>
-                                    <div style={{fontFamily:_AF,fontWeight:700,fontSize:15,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                                    <div style={{fontFamily:_AF,fontWeight:700,fontSize:15,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
                                     {(()=>{
                                       const prog=adaptiveSession?.progressions?.[ex.name];
                                       const conflict=adaptiveSession?.soreConflicts?.find(c=>c.exercise===ex.name);
@@ -3597,14 +3597,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                       </>);
                                     })()}
                                   </div>
-                                  <div style={{fontFamily:_MO,fontSize:12,color:"rgba(10,10,10,0.50)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
+                                  <div style={{fontFamily:_MO,fontSize:12,color:"var(--cm-ink)",letterSpacing:"0.06em",flexShrink:0}}>{Array.isArray(ex.sets)?ex.sets.length:ex.sets}×{ex.reps}</div>
                                 </div>
                               ))}
                             </div>
                             {adaptiveSession?.hasPlateau&&(
                               <div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.18)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-                                <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"rgba(10,10,10,0.85)",marginBottom:4}}>You've pushed this program to its limit.</div>
-                                <div style={{fontFamily:_MO,fontSize:11,color:"rgba(10,10,10,0.50)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
+                                <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"var(--cm-ink)",marginBottom:4}}>You've pushed this program to its limit.</div>
+                                <div style={{fontFamily:_MO,fontSize:11,color:"var(--cm-ink)",lineHeight:1.55,marginBottom:10}}>Your coach has noticed {adaptiveSession.plateaus.join(', ')} have stalled. You're ready for the next level.</div>
                                 <button onClick={()=>setTrainScreen("library")} style={{padding:"8px 16px",background:"rgba(255,59,48,0.10)",border:"1.5px solid rgba(255,59,48,0.22)",borderRadius:9,color:"#FF3B30",fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>See next programs →</button>
                               </div>
                             )}
@@ -3635,7 +3635,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const p=todayProtocol;
                   const base={cal:p.base_calories||macros.calories,prot:p.base_protein_g||macros.protein,carbs:p.base_carbs_g||macros.carbs};
                   const adj={cal:p.adjusted_calories||macros.calories,prot:p.adjusted_protein_g||macros.protein,carbs:p.adjusted_carbs_g||macros.carbs};
-                  function arrow(a,b){if(a>b+5)return{sym:"↑",color:T.green};if(a<b-5)return{sym:"↓",color:"#ef4444"};return{sym:"→",color:"rgba(10,10,10,0.30)"};}
+                  function arrow(a,b){if(a>b+5)return{sym:"↑",color:T.green};if(a<b-5)return{sym:"↓",color:"#ef4444"};return{sym:"→",color:"rgba(var(--cm-ink-rgb),0.65)"};}
                   const chips=[
                     {label:"PROTEIN",val:`${adj.prot}g`,...arrow(adj.prot,base.prot)},
                     {label:"CARBS",val:`${adj.carbs}g`,...arrow(adj.carbs,base.carbs)},
@@ -3650,17 +3650,17 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           {chips.map(c=>(
                             <div key={c.label} style={{flex:1,background:"rgba(10,10,10,0.04)",borderRadius:8,padding:"7px 6px",textAlign:"center"}}>
                               <div style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:c.color,lineHeight:1}}>{c.sym} {c.val}</div>
-                              <div style={{fontFamily:_MO,fontSize:7,color:"rgba(10,10,10,0.35)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:3}}>{c.label}</div>
+                              <div style={{fontFamily:_MO,fontSize:7,color:"rgba(var(--cm-ink-rgb),0.75)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:3}}>{c.label}</div>
                             </div>
                           ))}
                         </div>
-                        {p.reason&&<div style={{fontFamily:_MO,fontSize:8,color:"rgba(10,10,10,0.40)",lineHeight:1.5}}>{p.reason}</div>}
+                        {p.reason&&<div style={{fontFamily:_MO,fontSize:8,color:"rgba(var(--cm-ink-rgb),0.75)",lineHeight:1.5}}>{p.reason}</div>}
                       </div>
                     </div>
                   );
                 })()}
                 {/* Quick access eyebrow */}
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(10,10,10,0.38)",marginBottom:14}}>QUICK ACCESS</div>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)",marginBottom:14}}>QUICK ACCESS</div>
                 {/* Carousel */}
                 {(()=>{
                   const progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
@@ -3686,25 +3686,25 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div onClick={()=>{_hL();setTrainScreen("plan");}} style={cStyle}>
                           <div>
                             <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>YOUR PROGRAM</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>{progName}</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{progName}</div>
                           </div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)"}}>Week {displayWeek} · {expLabel}</div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>Week {displayWeek} · {expLabel}</div>
                           <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
                         </div>
                         <div onClick={()=>{_hL();setTrainScreen("library");}} style={cStyle}>
                           <div>
                             <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>FULL DATABASE</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY</div>
                           </div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)"}}>800+ exercises</div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>800+ exercises</div>
                           <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
                         </div>
                         <div onClick={()=>{_hL();setShowExploreSheet(true);}} style={cStyle}>
                           <div>
                             <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>TOOLS & MORE</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>EXPLORE</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>EXPLORE</div>
                           </div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.35)"}}>Programs · Routines · Warm-up</div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>Programs · Routines · Warm-up</div>
                           <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
                         </div>
                       </div>
@@ -3731,8 +3731,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div style={{background:"rgba(10,10,10,0.04)",border:"1px solid rgba(10,10,10,0.08)",borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start",marginTop:12}}>
                       <div style={{fontSize:16,flexShrink:0,lineHeight:1,paddingTop:1}}>⚖️</div>
                       <div>
-                        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.38)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Balance insight</div>
-                        <div style={{fontFamily:_AF,fontSize:13,fontWeight:500,color:"rgba(10,10,10,0.70)",lineHeight:1.55}}>{top.recommendation}</div>
+                        <div style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Balance insight</div>
+                        <div style={{fontFamily:_AF,fontSize:13,fontWeight:500,color:"var(--cm-ink)",lineHeight:1.55}}>{top.recommendation}</div>
                       </div>
                     </div>
                   );
@@ -3755,8 +3755,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     ].map(({title,sub,screen})=>(
                       <div key={title} onClick={()=>{_hL();setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(10,10,10,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
                         <div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"rgba(10,10,10,0.85)",textTransform:"uppercase",lineHeight:1}}>{title}</div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(10,10,10,0.40)",marginTop:2}}>{sub}</div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:17,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>{title}</div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)",marginTop:2}}>{sub}</div>
                         </div>
                         <div style={{color:"#FF3B30",fontSize:16,flexShrink:0}}>→</div>
                       </div>
