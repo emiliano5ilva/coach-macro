@@ -3511,7 +3511,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     </div>
                   );
                 })()}
-                {todayType==="training"&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
+                {(todayType==="training"||todayType==="run"||todayType==="cardio"||hybridRunDay)&&todayPrescription&&!Array.isArray(todayPrescription)&&(()=>{
                   const runPaces=getPacesFromTime(wPrefs.current5KTime||profile?.current5KTime);
                   const preFuel=todayPrescription.preFuel;
                   const postFuel=todayPrescription.postFuel;
@@ -3570,6 +3570,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <button onClick={()=>setTrainScreen("plan")} style={{padding:"12px 24px",background:"#FF3B30",color:"#fff",fontWeight:700,fontSize:14,border:"none",borderRadius:12,cursor:"pointer",fontFamily:_AF,textTransform:"uppercase",letterSpacing:1}}>Pick a Program →</button>
                   </div>
                 )}
+                {/* ── LIFTING action region (unchanged) ── */}
                 {todayType==="training"&&(
                   <div style={{marginTop:8}}>
                     {Array.isArray(todayPrescription)&&todayPrescription.length>0?(
@@ -3620,6 +3621,28 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         transition={{type:'spring',stiffness:600,damping:20}}
                         style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
                     )}
+                  </div>
+                )}
+                {/* ── RUN action region: run/cardio day or hybrid-run day ── */}
+                {(todayType==="run"||todayType==="cardio"||hybridRunDay)&&(
+                  <div style={{marginTop:8}}>
+                    <motion.button
+                      onClick={()=>{_hM();startFromProgram();}}
+                      onPointerDown={()=>_hL()}
+                      whileTap={{scale:0.94}}
+                      transition={{type:'spring',stiffness:600,damping:20}}
+                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START RUN →</motion.button>
+                  </div>
+                )}
+                {/* ── HYROX action region: hyrox or hybrid-hyrox day ── */}
+                {todayType==="hyrox"&&(
+                  <div style={{marginTop:8}}>
+                    <motion.button
+                      onClick={()=>{_hM();startFromProgram();}}
+                      onPointerDown={()=>_hL()}
+                      whileTap={{scale:0.94}}
+                      transition={{type:'spring',stiffness:600,damping:20}}
+                      style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START HYROX →</motion.button>
                   </div>
                 )}
               </PaperCard>
