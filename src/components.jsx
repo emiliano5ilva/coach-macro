@@ -69,6 +69,121 @@ export const FOCUS_MUSCLES = {
   "Rest":          "Recovery day — no training, prioritize sleep and protein",
 };
 
+// ─── FOCUS → MUSCLE GROUPS MAP ───────────────────────────────────────────────
+// Design-intent muscles per training day label, sourced from FOCUS_MUSCLES +
+// MUSCLE_COVERAGE. Each entry: ordered groups, each group = { group, label, muscles }.
+// group → CSS token key (--mg-{group}-fill/text).
+// label → group-level pill text ('groups' variant).
+// muscles → exact sub-muscle pill texts ('exact' variant, Title Case).
+// Absent keys (Rest, Run, Cardio, Hyrox, Long Run) → MusclePills renders nothing.
+const _push = [
+  { group:'chest',     label:'Chest',     muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _pull = [
+  { group:'back',      label:'Back',      muscles:['Lats','Mid Traps','Rhomboids'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'shoulders', label:'Rear Delts',muscles:['Rear Delt'] },
+];
+const _legs = [
+  { group:'legs', label:'Quads',      muscles:['Quads'] },
+  { group:'legs', label:'Hamstrings', muscles:['Hamstrings'] },
+  { group:'legs', label:'Glutes',     muscles:['Glutes'] },
+  { group:'legs', label:'Calves',     muscles:['Gastrocnemius','Soleus'] },
+];
+const _upper = [
+  { group:'chest',     label:'Chest',     muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'back',      label:'Back',      muscles:['Lats','Traps'] },
+  { group:'arms',      label:'Arms',      muscles:['Biceps','Triceps'] },
+];
+const _lower = [
+  { group:'legs', label:'Quads',      muscles:['Quads'] },
+  { group:'legs', label:'Hamstrings', muscles:['Hamstrings'] },
+  { group:'legs', label:'Glutes',     muscles:['Glutes'] },
+  { group:'legs', label:'Calves',     muscles:['Gastrocnemius','Soleus'] },
+];
+const _full = [
+  { group:'legs',  label:'Legs',  muscles:['Quads','Hamstrings','Glutes'] },
+  { group:'back',  label:'Back',  muscles:['Lats','Traps'] },
+  { group:'chest', label:'Chest', muscles:['Chest'] },
+  { group:'core',  label:'Core',  muscles:['Core'] },
+];
+const _chest = [
+  { group:'chest', label:'Chest',   muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'arms',  label:'Triceps', muscles:['Triceps'] },
+];
+const _back = [
+  { group:'back', label:'Back',   muscles:['Lats','Traps','Rhomboids'] },
+  { group:'arms', label:'Biceps', muscles:['Biceps'] },
+];
+const _shoulders = [
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt','Rotator Cuff'] },
+];
+const _arms = [
+  { group:'arms', label:'Biceps',  muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'arms', label:'Triceps', muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _chestBack = [
+  { group:'chest', label:'Chest', muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'back',  label:'Back',  muscles:['Lats','Mid Traps','Rear Delt'] },
+];
+const _shouldersArms = [
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _arnoldA = [
+  { group:'chest',     label:'Chest',     muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _arnoldB = [
+  { group:'back',      label:'Back',      muscles:['Lats','Mid Traps','Rhomboids'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+  { group:'shoulders', label:'Rear Delts',muscles:['Rear Delt'] },
+];
+const _chestTriceps = [
+  { group:'chest', label:'Chest',   muscles:['Upper Chest','Mid Chest','Lower Chest'] },
+  { group:'arms',  label:'Triceps', muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+const _backBiceps = [
+  { group:'back', label:'Back',   muscles:['Lats','Traps','Rhomboids'] },
+  { group:'arms', label:'Biceps', muscles:['Biceps (Long)','Biceps (Short)','Brachialis'] },
+];
+const _shoulderArmsCombo = [
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'arms',      label:'Biceps',    muscles:['Biceps (Long)','Biceps (Short)'] },
+  { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
+];
+
+export const FOCUS_TO_MUSCLES = {
+  // ── PPL (3-day + 6-day A/B variants) ──
+  "Push":   _push,  "Push A": _push,  "Push B": _push,
+  "Pull":   _pull,  "Pull A": _pull,  "Pull B": _pull,
+  "Legs":   _legs,  "Legs A": _legs,  "Legs B": _legs,
+  // ── Upper / Lower ──
+  "Upper":  _upper, "Lower":  _lower,
+  // ── Full Body ──
+  "Full Body": _full,
+  // ── Bro Split individual days ──
+  "Chest":     _chest,
+  "Back":      _back,
+  "Shoulders": _shoulders,
+  "Arms":      _arms,
+  // ── Arnold Split (SPLIT_CYCLES keys) ──
+  "Chest & Back":    _chestBack,
+  "Shoulders & Arms":_shouldersArms,
+  // ── FOCUS_MUSCLES combo labels ──
+  "Chest+Triceps":  _chestTriceps,
+  "Back+Biceps":    _backBiceps,
+  "Shoulders+Arms": _shoulderArmsCombo,
+  "Arnold A":       _arnoldA,
+  "Arnold B":       _arnoldB,
+  // Rest / cardio / run → absent → MusclePills renders nothing
+};
+
 export const SPLIT_CYCLES = {
   "Push/Pull/Legs":  ["Push","Pull","Legs"],
   "Upper/Lower":     ["Upper","Lower"],
@@ -268,6 +383,61 @@ export function Pill({ label, bg, color = 'var(--cm-ink,#0A0A0A)', style: sx = {
     </span>
   );
 }
+
+// Token lookup for the 6 muscle groups
+const _MG_VARS = {
+  chest:     { fill:'var(--mg-chest-fill)',     text:'var(--mg-chest-text)' },
+  shoulders: { fill:'var(--mg-shoulders-fill)', text:'var(--mg-shoulders-text)' },
+  back:      { fill:'var(--mg-back-fill)',       text:'var(--mg-back-text)' },
+  arms:      { fill:'var(--mg-arms-fill)',       text:'var(--mg-arms-text)' },
+  legs:      { fill:'var(--mg-legs-fill)',       text:'var(--mg-legs-text)' },
+  core:      { fill:'var(--mg-core-fill)',       text:'var(--mg-core-text)' },
+};
+const _MG_PILL_STYLE = {
+  display:'inline-flex', alignItems:'center',
+  fontFamily:"'Barlow Condensed',sans-serif", fontWeight:600,
+  fontSize:'10.5px', borderRadius:'999px', padding:'3px 9px',
+  lineHeight:1.2, whiteSpace:'nowrap',
+};
+const _MG_OVERFLOW_STYLE = {
+  ..._MG_PILL_STYLE,
+  background:'rgba(var(--cm-ink-rgb,.6),.06)',
+  color:'rgba(var(--cm-ink-rgb),.5)',
+};
+
+// <MusclePills focus="Push" variant="groups"|"exact" max={N} />
+// variant='groups' → one pill per group entry (label = group.label).
+// variant='exact'  → one pill per sub-muscle (label = muscle name), colored by parent group.
+// max → shows first N pills + "+N more" overflow pill. Omit for no limit.
+// Renders nothing for unknown focus labels (Rest, Run, Cardio, Hyrox, etc.).
+export function MusclePills({ focus, variant = 'groups', max }) {
+  const groups = FOCUS_TO_MUSCLES[focus];
+  if (!groups || groups.length === 0) return null;
+
+  const pills = variant === 'groups'
+    ? groups.map(g => ({ label: g.label, group: g.group }))
+    : groups.flatMap(g => g.muscles.map(m => ({ label: m, group: g.group })));
+
+  const visible  = max != null ? pills.slice(0, max) : pills;
+  const overflow = max != null ? pills.length - visible.length : 0;
+
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:5, alignItems:'center' }}>
+      {visible.map((p, i) => {
+        const tok = _MG_VARS[p.group] || {};
+        return (
+          <span key={i} style={{ ..._MG_PILL_STYLE, background: tok.fill, color: tok.text }}>
+            {p.label}
+          </span>
+        );
+      })}
+      {overflow > 0 && (
+        <span style={_MG_OVERFLOW_STYLE}>+{overflow}</span>
+      )}
+    </div>
+  );
+}
+
 export function pad2(n)        { return String(Math.max(0,Math.floor(n))).padStart(2,"0"); }
 export function autoFocus(sch,splitType,longRunDay) {
   const cycles=SPLIT_CYCLES[splitType]||["Full Body"]; const f={}; let i=0;
@@ -470,7 +640,25 @@ export const REDESIGN_CSS = `
     --cm-ink:        #0A0A0A;
     --cm-ink-rgb:    10,10,10;
 
+    /* ── Muscle-group pill tokens — light (paper surface, active theme) ── */
+    --mg-chest-fill:     #FEF3C7; --mg-chest-text:     #92400E;
+    --mg-shoulders-fill: #EDE9FE; --mg-shoulders-text: #5B21B6;
+    --mg-back-fill:      #CCFBF1; --mg-back-text:      #115E59;
+    --mg-arms-fill:      #FFE4E6; --mg-arms-text:      #9F1239;
+    --mg-legs-fill:      #DCFCE7; --mg-legs-text:      #166534;
+    --mg-core-fill:      #E2E8F0; --mg-core-text:      #334155;
+
     font-family: 'Archivo', sans-serif;
+  }
+
+  /* Muscle-group pill tokens — dark overrides (future .cm-dark theme, not yet active) */
+  .goclub.cm-dark {
+    --mg-chest-fill:     rgba(251,191,36,.16);  --mg-chest-text:     #FCD34D;
+    --mg-shoulders-fill: rgba(167,139,250,.18); --mg-shoulders-text: #C4B5FD;
+    --mg-back-fill:      rgba(45,212,191,.16);  --mg-back-text:      #5EEAD4;
+    --mg-arms-fill:      rgba(251,113,133,.18); --mg-arms-text:      #FDA4AF;
+    --mg-legs-fill:      rgba(74,222,128,.16);  --mg-legs-text:      #86EFAC;
+    --mg-core-fill:      rgba(148,163,184,.2);  --mg-core-text:      #CBD5E1;
   }
 
   /* Per-tab nav track colour */
