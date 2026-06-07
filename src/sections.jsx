@@ -13,7 +13,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
   Badge, getTier, getReferralBadge,
   hap, hapMed, hapSuccess, hapPR,
-  PaperCard, Pill,
+  PaperCard, Pill, MusclePills,
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState,
   GOCLUB_REDESIGN } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
@@ -2210,6 +2210,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [activeCard,setActiveCard]=useState(0);
   const carouselRef=useRef(null);
   const [sessionDetailExpanded,setSessionDetailExpanded]=useState(false);
+  // Plan screen: which non-today day is expanded (exact pills), and whether the schedule editor is open
+  const [planExpandedDay,setPlanExpandedDay]=useState(null);
+  const [planShowAdjust,setPlanShowAdjust]=useState(false);
 
   // ── Adapt Now state ──────────────────────────────────────────────────────
   const [showAdapt,setShowAdapt]=useState(false);
@@ -3286,7 +3289,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         </div>
       )}
 
-      <div style={{padding:trainScreen==="routine-builder"?0:GOCLUB_REDESIGN&&trainScreen==="today"?0:isMobile?"12px 18px":"0"}}>
+      <div style={{padding:trainScreen==="routine-builder"?0:GOCLUB_REDESIGN&&(trainScreen==="today"||trainScreen==="plan")?0:isMobile?"12px 18px":"0"}}>
 
         {/* ── Resume Workout Prompt ── */}
         {resumePrompt&&!activeWorkout&&(
@@ -4433,8 +4436,170 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           />
         )}
 
-        {/* ── PLAN ── */}
-        {trainScreen==="plan"&&(
+        {/* ── PLAN — redesigned paper view ── */}
+        {trainScreen==="plan"&&GOCLUB_REDESIGN&&(()=>{
+          // Recompute progName/displayWeek/expLabel exactly as Quick Access carousel does
+          const _progInfo=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
+          const _rtl={half_marathon:'Half Marathon',half:'Half Marathon','5k':'5K','10k':'10K',marathon:'Marathon',general:'General Fitness'};
+          const _rl=_rtl[(profile?.run_race_type||'').toLowerCase()]||profile?.run_race_type||'';
+          const progName=
+            wPrefs.isHyrox&&wPrefs.isHybrid?(wPrefs.hybridTemplate||"Hyrox Hybrid"):
+            wPrefs.isHyrox?(wPrefs.hyroxProgram||"Hyrox"):
+            wPrefs.isHybrid?(_rl?`${wPrefs.hybridTemplate||"Hybrid"} · ${_rl}`:(wPrefs.hybridTemplate||"Hybrid")):
+            prescType==="running"?(_rl||wPrefs.runPlan||"Running"):
+            _progInfo?.name||(wPrefs.splitType||"Custom Plan");
+          const displayWeek=programCurrentWeek||weekNum;
+          const _liftExp=wPrefs?.liftExp||profile?.liftExp||"intermediate";
+          const expLabel=_liftExp.charAt(0).toUpperCase()+_liftExp.slice(1);
+          const _modeDesc=
+            wPrefs.isHyrox&&wPrefs.isHybrid?"Strength + Hyrox hybrid":
+            wPrefs.isHyrox?"Hyrox race prep":
+            wPrefs.isHybrid?"Strength + endurance":
+            prescType==="running"?`Training for ${_rl||"your race"}`:
+            `${daysPerWeek} day${daysPerWeek!==1?"s":""} a week`;
+          // Per-day done signal: ISO dates that had any logged exercise this week
+          const _tIdx=WDAYS.indexOf(todayKey);
+          const _wkDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_tIdx+i);return d.toISOString().split('T')[0];});
+          const _doneDates=new Set(Object.values(history||{}).flatMap(s=>s.filter(x=>_wkDates.includes(x.date)).map(x=>x.date)));
+          const _MO="'DM Mono',monospace";
+          const _AF="'Barlow',sans-serif";
+          const _BC="'Barlow Condensed',sans-serif";
+          return(
+            <div>
+              {/* RED HERO BAND */}
+              <div style={{paddingLeft:20,paddingRight:20,paddingTop:14,paddingBottom:84}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:8,display:"flex",gap:8,alignItems:"center"}}>
+                  <span>YOUR PLAN</span>
+                  <span style={{color:"rgba(255,255,255,0.25)"}}>·</span>
+                  <span style={{color:"rgba(255,255,255,0.75)"}}>{expLabel}</span>
+                </div>
+                <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:0.92,textTransform:"uppercase",color:"#fff",letterSpacing:"-0.01em",marginBottom:8}}>
+                  {progName}
+                </div>
+                <div style={{fontFamily:_MO,fontSize:10,color:"rgba(255,255,255,0.50)",letterSpacing:"0.06em"}}>
+                  {_modeDesc} · Week {displayWeek}
+                </div>
+              </div>
+
+              {/* PAPER CARD — THIS WEEK */}
+              <PaperCard style={{margin:"-60px 12px 0",padding:"20px 0 4px"}}>
+                {/* Card header */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",marginBottom:14}}>
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)"}}>THIS WEEK</div>
+                  <button onClick={()=>{_hL();setTrainScreen("library");}} style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--cm-red)",background:"none",border:"none",cursor:"pointer",padding:0,minHeight:"auto",minWidth:"auto"}}>
+                    Switch program →
+                  </button>
+                </div>
+
+                {/* 7-day rows */}
+                <div style={{display:"flex",flexDirection:"column"}}>
+                  {WDAYS.map((day,dayIdx)=>{
+                    const t=schedule[day];
+                    const isToday=day===todayKey;
+                    const isRest=!t||t==="rest";
+                    const isTraining=!isRest;
+                    const focus=resolvedDayFocus[day]||(isRest?"Rest":"Training");
+                    const isDone=!isToday&&_doneDates.has(_wkDates[dayIdx]);
+                    const isExpanded=isToday||(planExpandedDay===day);
+                    return(
+                      <div
+                        key={day}
+                        onClick={()=>{if(!isToday&&isTraining){_hL();setPlanExpandedDay(planExpandedDay===day?null:day);}}}
+                        style={{
+                          position:"relative",
+                          padding:isExpanded&&isTraining?"12px 16px 14px 14px":"10px 16px 10px 14px",
+                          borderLeft:isToday?"3px solid var(--cm-red)":"3px solid transparent",
+                          background:isToday?"rgba(var(--cm-red-rgb),.05)":"transparent",
+                          cursor:!isToday&&isTraining?"pointer":"default",
+                          transition:"background 0.15s",
+                        }}
+                      >
+                        <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                          {/* Day abbrev */}
+                          <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,letterSpacing:"0.06em",color:isToday?"var(--cm-red)":isDone?"rgba(var(--cm-ink-rgb),.28)":"rgba(var(--cm-ink-rgb),.42)",width:28,flexShrink:0,textTransform:"uppercase",paddingTop:2}}>
+                            {day.slice(0,3)}
+                          </div>
+                          {/* Content */}
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:isTraining&&!isExpanded?4:0}}>
+                              <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:isToday?"var(--cm-ink)":isDone?"rgba(var(--cm-ink-rgb),.35)":isRest?"rgba(var(--cm-ink-rgb),.38)":"var(--cm-ink)",textDecoration:isDone?"line-through":"none",lineHeight:1.2}}>
+                                {focus}
+                              </div>
+                              {isDone&&(
+                                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="20 6 9 17 4 12"/></svg>
+                              )}
+                            </div>
+                            {/* Collapsed training: group pills */}
+                            {isTraining&&!isExpanded&&(
+                              <MusclePills focus={focus} variant="groups" max={3}/>
+                            )}
+                            {/* Rest label */}
+                            {isRest&&(
+                              <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),.35)",letterSpacing:"0.05em",marginTop:2}}>
+                                Recover &amp; grow
+                              </div>
+                            )}
+                            {/* Expanded: exact sub-muscle pills */}
+                            {isExpanded&&isTraining&&(
+                              <div style={{marginTop:8}}>
+                                <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.38)",marginBottom:6}}>
+                                  MUSCLES WORKED
+                                </div>
+                                <MusclePills focus={focus} variant="exact"/>
+                              </div>
+                            )}
+                          </div>
+                          {/* Chevron for non-today training rows */}
+                          {!isToday&&isTraining&&(
+                            <div style={{color:"rgba(var(--cm-ink-rgb),.22)",fontSize:12,transform:isExpanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s",flexShrink:0,paddingTop:2}}>▾</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ADJUST MY WEEK — collapsed schedule editor */}
+                <div style={{margin:"12px 16px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb),.08)",paddingTop:12}}>
+                  <button
+                    onClick={()=>{_hL();setPlanShowAdjust(v=>!v);}}
+                    style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.48)",minHeight:"auto",minWidth:"auto"}}
+                  >
+                    <span>Adjust my week</span>
+                    <span style={{display:"inline-block",transform:planShowAdjust?"rotate(90deg)":"rotate(0deg)",transition:"transform 0.2s",fontStyle:"normal"}}>›</span>
+                  </button>
+                  {planShowAdjust&&(
+                    <div style={{marginTop:12}}>
+                      {WDAYS.map(day=>{
+                        const isT=day===todayKey;
+                        const f=resolvedDayFocus[day];
+                        return(
+                          <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(var(--cm-ink-rgb),.06)"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontFamily:_MO,fontWeight:700,fontSize:11,color:isT?"var(--cm-red)":"var(--cm-ink)",width:28}}>{day}</span>
+                              <span style={{fontFamily:_AF,fontSize:11,color:"rgba(var(--cm-ink-rgb),.55)"}}>{f}</span>
+                            </div>
+                            <div style={{display:"flex",gap:3}}>
+                              {[["training","T"],["cardio","C"],["run","R"],["hyrox","H"],["rest","—"]].map(([tp,lbl])=>(
+                                <button key={tp}
+                                  onClick={()=>{const next={...schedule,[day]:tp};setSchedule(next);if(user)sb.from("profiles").upsert({id:user.id,schedule:next},{onConflict:"id"}).then(({error})=>{if(error)console.error('[schedule persist]',error);});}}
+                                  style={{fontSize:10,fontWeight:700,fontFamily:_MO,padding:"4px 7px",borderRadius:6,border:`1px solid ${schedule[day]===tp?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.15)"}`,background:schedule[day]===tp?"rgba(var(--cm-red-rgb),.08)":"transparent",color:schedule[day]===tp?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.45)",cursor:"pointer",minHeight:"auto",minWidth:"auto"}}
+                                >{lbl}</button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </PaperCard>
+            </div>
+          );
+        })()}
+
+        {/* ── PLAN — dark legacy fallback (non-redesign) ── */}
+        {trainScreen==="plan"&&!GOCLUB_REDESIGN&&(
           <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
             <SectionCard title="Training Mode">
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
@@ -4455,7 +4620,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>))}
               </div>}
             </SectionCard>
-
             <SectionCard title="Weekly Schedule">
               {WDAYS.map(day=>{const t=schedule[day];const c=DAY_CFG[t]||DAY_CFG.rest;const isT=day===todayKey;const f=resolvedDayFocus[day];return(
                 <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}>

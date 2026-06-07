@@ -78,7 +78,7 @@ export const FOCUS_MUSCLES = {
 // Absent keys (Rest, Run, Cardio, Hyrox, Long Run) → MusclePills renders nothing.
 const _push = [
   { group:'chest',     label:'Chest',     muscles:['Upper Chest','Mid Chest','Lower Chest'] },
-  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt','Rear Delt'] },
+  { group:'shoulders', label:'Shoulders', muscles:['Front Delt','Side Delt'] },
   { group:'arms',      label:'Triceps',   muscles:['Triceps (Long)','Triceps (Lateral)','Triceps (Medial)'] },
 ];
 const _pull = [
@@ -395,7 +395,7 @@ const _MG_VARS = {
 };
 const _MG_PILL_STYLE = {
   display:'inline-flex', alignItems:'center',
-  fontFamily:"'Barlow Condensed',sans-serif", fontWeight:600,
+  fontFamily:"'Barlow',sans-serif", fontWeight:600,
   fontSize:'10.5px', borderRadius:'999px', padding:'3px 9px',
   lineHeight:1.2, whiteSpace:'nowrap',
 };
