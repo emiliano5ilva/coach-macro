@@ -3921,7 +3921,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <div style={{
             position:'fixed',
             top:0,left:0,right:0,bottom:0,
-            background:'var(--cm-red)',
+            background:'var(--cm-red,#FF3B30)',
             overflowY:'auto',
             zIndex:9000,
             display:'flex',
@@ -4074,7 +4074,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               bottom:0,left:0,right:0,
               padding:'16px 24px',
               paddingBottom:'max(env(safe-area-inset-bottom),24px)',
-              background:'var(--cm-red)',
+              background:'var(--cm-red,#FF3B30)',
               borderTop:'1px solid rgba(255,255,255,0.12)',
               display:'flex',
               flexDirection:'column',
