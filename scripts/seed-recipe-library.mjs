@@ -19,6 +19,8 @@
  * Optional:
  *   USDA_API_KEY          — FoodData Central key (defaults to DEMO_KEY, fine for pilot)
  *
+ * After seeding, run scripts/apply-mediterranean-tags.sql in the Supabase SQL editor (or psql) to tag Mediterranean recipes.
+ *
  * Usage:
  *   # Pilot (25 pre-generated recipes) — no API key needed:
  *   node scripts/seed-recipe-library.mjs --pilot
@@ -940,6 +942,7 @@ function printReport(processed, allUnmatched, allDietCorrections, inserted) {
   console.log('\n' + '═'.repeat(80));
   console.log('Next: query SELECT name,meal_slot,diet_tags,allergen_tags,calories_per_serving,protein_per_serving FROM recipes WHERE user_id IS NULL to verify.');
   console.log('Then re-run with --full for the complete 300-recipe library.');
+  console.log('✅ Recipes seeded. Now apply Mediterranean tags: run scripts/apply-mediterranean-tags.sql in the Supabase SQL editor (or psql)');
   console.log('═'.repeat(80) + '\n');
 }
 
