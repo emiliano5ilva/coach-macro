@@ -296,12 +296,12 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:998}}
+        style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:10000}}
       />
       {/* Sheet */}
       <div
         style={{
-          position:"fixed",bottom:0,left:0,right:0,zIndex:999,
+          position:"fixed",bottom:0,left:0,right:0,zIndex:10001,
           background:T.s1,borderRadius:"22px 22px 0 0",
           maxHeight:"91vh",overflowY:"auto",
           paddingBottom:"max(env(safe-area-inset-bottom,0px),20px)",

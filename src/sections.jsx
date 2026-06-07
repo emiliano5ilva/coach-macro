@@ -2140,7 +2140,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [editingSet,setEditingSet]=useState(null);
   const [sessionPRs,setSessionPRs]=useState({});
   const [editHintDismissed,setEditHintDismissed]=useState(false);
-  const [showSessionInsight,setShowSessionInsight]=useState(false);
   const [hyroxWeaknessStation,setHyroxWeaknessStation]=useState(null);
   const [runElapsed,setRunElapsed]=useState(0);
   const [runDistance,setRunDistance]=useState(0);
@@ -3097,7 +3096,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {swapModal&&(()=>{
         const opts=getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
         return(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:250,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:10000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
             <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
               <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
               <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SWAP EXERCISE</div>
@@ -4362,72 +4361,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </div>
                 </div>
 
-                {/* ── Session Insight strip — collapsed by default ── */}
-                {(activeWorkout.readinessTier||sessionPrediction!=null||acwrHighRisks?.length>0)&&(()=>{
-                  const _ri=activeWorkout.readinessTier;
-                  const _rc=_ri?READINESS_CONFIG[_ri]:null;
-                  const _isOpt=_ri==="optimal";
-                  const _bc=_isOpt?"#22c55e":_rc?.color||'#FF3B30';
-                  const _sp=sessionPrediction;
-                  const _isStrong=_sp?.probability>=75;
-                  const _isSolid=_sp?.probability>=50&&_sp?.probability<75;
-                  const _spColor=_isStrong?T.green:_isSolid?T.prot:T.fat;
-                  const _risk=acwrHighRisks?.length>0?acwrHighRisks[0]:null;
-                  const _parts=[];
-                  if(_rc)_parts.push(_rc.badge);
-                  if(_sp)_parts.push(`${_sp.probability}% PR`);
-                  if(_risk)_parts.push(`${_risk.region.replace("_"," ").toUpperCase()} RISK`);
-                  return(
-                    <>
-                      <div onClick={()=>setShowSessionInsight(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:'rgba(255,255,255,.15)',borderRadius:10,padding:"7px 14px",marginBottom:8,cursor:"pointer"}}>
-                        <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,color:'rgba(255,255,255,.92)',letterSpacing:"0.1em",textTransform:"uppercase"}}>{_parts.join(' · ')}</span>
-                        <span style={{color:'rgba(255,255,255,.75)',fontSize:11,fontWeight:700,marginLeft:8,lineHeight:1}}>{showSessionInsight?"▴":"▾"}</span>
-                      </div>
-                      {showSessionInsight&&(
-                        <div style={{marginBottom:8}}>
-                          {_ri&&_rc&&(
-                            <div style={{background:`${_bc}10`,border:`1.5px solid ${_bc}30`,borderRadius:14,padding:"12px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
-                              <div style={{flex:1}}>
-                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--accent)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:3}}>{_rc.badge}</div>
-                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",lineHeight:1.1}}>{_rc.label}</div>
-                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:3}}>{_rc.sub}</div>
-                              </div>
-                            </div>
-                          )}
-                          {_sp!=null&&(()=>{
-                            const color=_spColor;
-                            const badge=_isStrong?"STRONG DAY":_isSolid?"SOLID SESSION":"RECOVERY SESSION";
-                            const sub=_isStrong?"Conditions aligned — PR opportunity today":_isSolid?"Good session likely — execute your plan":"Suboptimal conditions — focus on technique";
-                            const factors=_sp.factors||[];
-                            return(
-                              <div style={{background:`${color}0d`,border:`1.5px solid ${color}30`,borderRadius:14,padding:"12px 16px",marginBottom:8}}>
-                                <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:15,color,letterSpacing:".06em",textTransform:"uppercase",marginBottom:4}}>{badge} — {_sp.probability}% PR PROBABILITY</div>
-                                <div style={{fontSize:11,color:"rgba(245,245,240,.55)",marginBottom:factors.length>0?8:0}}>{sub}</div>
-                                {factors.length>0&&(
-                                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                                    {factors.map((f,fi)=>(
-                                      <span key={fi} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,background:f.ok?"rgba(34,197,94,.12)":f.ok===false?"rgba(239,68,68,.12)":"rgba(var(--accent-rgb),0.06)",color:f.ok?T.green:f.ok===false?T.prot:"rgba(245,245,240,.4)",border:`1px solid ${f.ok?"rgba(34,197,94,.2)":f.ok===false?"rgba(239,68,68,.2)":"rgba(var(--accent-rgb),0.1)"}`}}>{f.ok?"✓":f.ok===false?"✗":"—"} {f.label}</span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                          {_risk&&(
-                            <div style={{background:"rgba(var(--accent-rgb),0.08)",border:"1.5px solid rgba(var(--accent-rgb),0.25)",borderRadius:14,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                              <div>
-                                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:13,color:"var(--red)",letterSpacing:".06em",textTransform:"uppercase"}}>{_risk.region.replace("_"," ").toUpperCase()} RISK ELEVATED</div>
-                                <div style={{fontSize:11,color:"rgba(245,245,240,.5)",marginTop:2}}>Consider reducing sets by 1 for safety</div>
-                              </div>
-                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:800,fontSize:18,color:"var(--red)"}}>{_risk.score}%</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-
                 {/* Momentum bar */}
                 <MomentumBar activeWorkout={activeWorkout} history={history}/>
 
@@ -4460,19 +4393,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 : ei+1}
                             </div>
                             {(()=>{
-                              const exMuscleData=getExerciseData(ex.name);
-                              const rawMuscle=(exMuscleData?.primary?.[0]||ex.primaryMuscles?.[0]||ex.muscleGroup||ex.muscles?.primary?.[0]||ex.bodyPart||ex.category||'chest').toLowerCase();
-                              const MUSCLE_MAP={chest:{color:'var(--accent)',letter:'C'},pec:{color:'var(--accent)',letter:'C'},lat:{color:'#60a5fa',letter:'B'},back:{color:'#60a5fa',letter:'B'},rhomboid:{color:'#60a5fa',letter:'B'},trap:{color:'#60a5fa',letter:'B'},teres:{color:'#60a5fa',letter:'B'},serratus:{color:'#60a5fa',letter:'B'},delt:{color:'#FEA020',letter:'S'},shoulder:{color:'#FEA020',letter:'S'},femoris:{color:'#22c55e',letter:'L'},vastus:{color:'#22c55e',letter:'L'},rectus:{color:'#22c55e',letter:'L'},gluteus:{color:'#22c55e',letter:'L'},glute:{color:'#22c55e',letter:'L'},adductor:{color:'#22c55e',letter:'L'},leg:{color:'#22c55e',letter:'L'},calf:{color:'#22c55e',letter:'L'},calves:{color:'#22c55e',letter:'L'},bicep:{color:'#9C6FFF',letter:'A'},tricep:{color:'#9C6FFF',letter:'A'},arm:{color:'#9C6FFF',letter:'A'},forearm:{color:'#9C6FFF',letter:'A'},brachialis:{color:'#9C6FFF',letter:'A'},abs:{color:'#14C4B3',letter:'CO'},oblique:{color:'#14C4B3',letter:'CO'},core:{color:'#14C4B3',letter:'CO'},default:{color:'var(--accent)',letter:'?'}};
-                              const muscleKey=Object.keys(MUSCLE_MAP).find(k=>k!=='default'&&rawMuscle.includes(k))||'default';
-                              const {color:fallbackBg,letter:mLetter}=MUSCLE_MAP[muscleKey];
-                              // Image source — check all possible field names
                               const imgSrc=ex.gif||ex.gifUrl||ex.image||ex.imageUrl||ex.thumbnail||getThumbnailUrl(ex.name)||null;
+                              if(!imgSrc)return null;
                               return(
-                                <div onClick={()=>openDetail(ex.name,ei)} style={{position:"relative",width:64,height:64,borderRadius:10,background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)',flexShrink:0,cursor:"pointer",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                  {imgSrc?(<img src={imgSrc} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>):null}
-                                  <div style={{position:"absolute",inset:0,display:imgSrc?"none":"flex",background:fallbackBg,borderRadius:10,alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff",lineHeight:1,textTransform:"uppercase"}}>{mLetter}</span>
-                                  </div>
+                                <div style={{position:"relative",width:64,height:64,borderRadius:10,background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)',flexShrink:0,overflow:"hidden"}}>
+                                  <img src={imgSrc} alt={ex.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.parentElement.style.display="none";}}/>
                                 </div>
                               );
                             })()}
@@ -4484,13 +4409,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 {ex.mobilitySubstituted&&<span style={{fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>MODIFIED</span>}
                               </div>
                             </div>
-                            <button onClick={()=>openDetail(ex.name,ei)} title="Exercise detail" style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',minHeight:"auto"}}>
+                            <button onClick={()=>{_hL();openDetail(ex.name,ei);}} title="Exercise detail" style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',minHeight:"auto"}}>
                               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                             </button>
-                            <button onClick={()=>toggleFavorite(ex.originalName||ex.name)} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:favorites.includes(ex.originalName||ex.name)?'var(--cm-red,#FF3B30)':"rgba(var(--cm-ink-rgb,10,10,10),.30)"}}>
-                              <svg width={15} height={15} viewBox="0 0 24 24" fill={favorites.includes(ex.originalName||ex.name)?"currentColor":"none"} style={{stroke:"currentColor",strokeWidth:1.7}}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                            </button>
-                            <button onClick={()=>setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name})} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(var(--cm-ink-rgb,10,10,10),.30)"}}>
+                            <button onClick={()=>{_hL();setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name});}} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(var(--cm-ink-rgb,10,10,10),.30)"}}>
                               <svg width={15} height={15} viewBox="0 0 24 24" fill="none"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </button>
                           </div>
