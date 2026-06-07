@@ -200,10 +200,14 @@ function findScrollParent(el) {
   let node = el?.parentElement;
   while (node && node !== document.documentElement) {
     const oy = window.getComputedStyle(node).overflowY;
-    if (oy === 'auto' || oy === 'scroll') return node;
+    // Guard: overflow-y:auto/scroll in CSS is necessary but not sufficient.
+    // .app-screen has overflow-y:auto but min-height:100% with no fixed height —
+    // the window scrolls instead. Only treat a node as the real scroll parent if
+    // its content actually overflows it (scrollHeight > clientHeight).
+    if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
     node = node.parentElement;
   }
-  return null; // null → viewport (should not happen inside .app-screen)
+  return null; // null → viewport (window is the real scroller)
 }
 
 export function PaperCard({ children, style = {}, className = '', animate = false, reveal = false, revealDelay = 0 }) {
@@ -243,7 +247,7 @@ export function PaperCard({ children, style = {}, className = '', animate = fals
     return () => obs.disconnect();
   }, []); // deps intentionally empty — root/reveal don't change after mount
 
-  const revealClass = reveal ? ` cm-reveal-base ${revealState}` : '';
+  const revealClass = reveal ? ` cm-reveal-base cm-${revealState}` : '';
   const delayStyle = reveal && revealDelay > 0 ? { transitionDelay: `${revealDelay}ms` } : {};
 
   return (
