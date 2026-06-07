@@ -3731,6 +3731,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         transition={{type:'spring',stiffness:600,damping:20}}
                         style={{width:"100%",background:"#FF3B30",border:"none",borderRadius:14,padding:16,fontFamily:_MO,fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",touchAction:"manipulation",boxShadow:"0 4px 20px rgba(255,59,48,0.35)"}}>START SESSION →</motion.button>
                     )}
+                    {/* Adapt today — secondary quiet pill, only when a session exists + quota remains */}
+                    {Array.isArray(todayPrescription)&&todayPrescription.length>0&&adaptLeft>0&&(
+                      <button onClick={()=>{_hL();setShowAdapt(true);}}
+                        style={{width:"100%",marginTop:8,padding:"11px 0",background:"transparent",
+                                border:"1px solid rgba(var(--cm-ink-rgb),.15)",borderRadius:12,
+                                color:"rgba(var(--cm-ink-rgb),.60)",fontFamily:_MO,fontSize:10,
+                                fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",
+                                cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+                                gap:6,minHeight:"auto",minWidth:"auto"}}>
+                        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M13 2L4.5 13.5h7L8.5 22 19 10h-7z"/></svg>
+                        ADAPT TODAY
+                      </button>
+                    )}
                   </div>
                 )}
                 {/* ── RUN action region: run/cardio day or hybrid-run day ── */}
@@ -3826,10 +3839,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         </div>
                         <div onClick={()=>{_hL();setTrainScreen("library");}} style={cStyle}>
                           <div>
-                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>FULL DATABASE</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>EXERCISE LIBRARY</div>
+                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>PROGRAMS</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>TRAINING PLANS</div>
                           </div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>800+ exercises</div>
+                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>PPL, Arnold, Hyrox…</div>
                           <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
                         </div>
                         <div onClick={()=>{_hL();setShowExploreSheet(true);}} style={cStyle}>
@@ -3879,12 +3892,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     <div style={{width:36,height:4,background:"rgba(10,10,10,0.12)",borderRadius:2,margin:"0 auto 20px"}}/>
                     <div style={{fontFamily:_MO,fontSize:11,color:"#FF3B30",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:16}}>EXPLORE</div>
                     {[
-                      {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"plan"},
+                      {title:"PROGRAM LIBRARY",sub:"Browse all training programs",screen:"library"},
                       {title:"MY ROUTINES",sub:"Your custom workouts",screen:"routine-builder"},
                       {title:"WARM-UP",sub:"Movement prep by muscle group",screen:"warmup-protocols"},
-                      {title:"FAVORITES",sub:"Saved exercises and workouts",screen:"library"},
                       {title:"CUSTOM ROUTINE",sub:"Build your own workout",screen:"routine-builder"},
-                      {title:"BROWSE EXERCISES",sub:"Search 800+ exercises",screen:"library"},
                     ].map(({title,sub,screen})=>(
                       <div key={title} onClick={()=>{_hL();setShowExploreSheet(false);setTrainScreen(screen);}} style={{padding:"14px 0",borderBottom:"1px solid rgba(10,10,10,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
                         <div>
