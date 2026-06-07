@@ -54,16 +54,16 @@ function fmtSecs(secs) {
 function TapCard({ label, sub, icon, selected, onClick }) {
   return (
     <div onClick={onClick} style={{
-      background: selected ? "rgba(var(--accent-rgb),0.08)" : "#0d0d0d",
-      border: `1.5px solid ${selected ? AC : "rgba(var(--accent-rgb),0.08)"}`,
+      background: selected ? "rgba(var(--cm-red-rgb),0.08)" : "rgba(var(--cm-ink-rgb),.04)",
+      border: `1.5px solid ${selected ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.12)"}`,
       borderRadius:13, padding:"14px 18px", cursor:"pointer",
       display:"flex", alignItems:"center", gap:14, marginBottom:8,
       transition:"all 0.18s",
     }}>
       {icon && <div style={{ fontSize:22, flexShrink:0, width:28, textAlign:"center" }}>{icon}</div>}
       <div style={{ flex:1 }}>
-        <div style={{ fontSize:15, fontWeight:700, color: selected ? AC : "#f5f5f0" }}>{label}</div>
-        {sub && <div style={{ fontSize:12, color:"rgba(245,245,240,.55)", marginTop:3 }}>{sub}</div>}
+        <div style={{ fontSize:15, fontWeight:700, color: selected ? "var(--cm-red)" : "var(--cm-ink)" }}>{label}</div>
+        {sub && <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginTop:3 }}>{sub}</div>}
       </div>
       {selected && <div style={{ color:AC, fontSize:15, flexShrink:0 }}>✓</div>}
     </div>
@@ -75,15 +75,15 @@ function Eyebrow({ children }) {
 }
 
 function Heading({ children }) {
-  return <div style={{ ...COND, fontSize:30, textTransform:"uppercase", lineHeight:1.05, color:"#f5f5f0", marginBottom:8 }}>{children}</div>;
+  return <div style={{ ...COND, fontSize:30, textTransform:"uppercase", lineHeight:1.05, color:"var(--cm-ink)", marginBottom:8 }}>{children}</div>;
 }
 
 function ProjRow({ label, value, isCurrent }) {
   return (
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: isCurrent ? "rgba(var(--accent-rgb),.07)" : "rgba(255,255,255,.03)", borderRadius:8, marginBottom:4, border: isCurrent ? "1px solid rgba(var(--accent-rgb),.22)" : "1px solid rgba(255,255,255,.05)" }}>
-      <span style={{ fontSize:13, color: isCurrent ? "#f5f5f0" : "rgba(245,245,240,.7)" }}>{label}</span>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: isCurrent ? "rgba(var(--cm-red-rgb),.07)" : "rgba(var(--cm-ink-rgb),.04)", borderRadius:8, marginBottom:4, border: isCurrent ? "1px solid rgba(var(--cm-red-rgb),.22)" : "1px solid rgba(var(--cm-ink-rgb),.08)" }}>
+      <span style={{ fontSize:13, color: isCurrent ? "var(--cm-ink)" : "rgba(var(--cm-ink-rgb),.7)" }}>{label}</span>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <span style={{ ...MONO, fontSize:14, fontWeight: isCurrent ? 700 : 400, color:"#f5f5f0" }}>{value}</span>
+        <span style={{ ...MONO, fontSize:14, fontWeight: isCurrent ? 700 : 400, color:"var(--cm-ink)" }}>{value}</span>
         {isCurrent && <span style={{ ...MONO, fontSize:9, color:AC, letterSpacing:"0.1em" }}>← actual</span>}
       </div>
     </div>
@@ -94,10 +94,10 @@ function SummaryRow({ label, value, sub, accent }) {
   return (
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:12 }}>
       <div>
-        <div style={{ fontSize:12, color:"rgba(245,245,240,.5)" }}>{label}</div>
-        {sub && <div style={{ fontSize:10, color:"rgba(245,245,240,.3)", marginTop:1 }}>{sub}</div>}
+        <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.5)" }}>{label}</div>
+        {sub && <div style={{ fontSize:10, color:"rgba(var(--cm-ink-rgb),.4)", marginTop:1 }}>{sub}</div>}
       </div>
-      <div style={{ ...MONO, fontSize: accent ? 20 : 15, fontWeight: accent ? 700 : 600, color: accent ? AC : "#f5f5f0" }}>{value}</div>
+      <div style={{ ...MONO, fontSize: accent ? 20 : 15, fontWeight: accent ? 700 : 600, color: accent ? "var(--cm-red)" : "var(--cm-ink)" }}>{value}</div>
     </div>
   );
 }
@@ -105,8 +105,8 @@ function SummaryRow({ label, value, sub, accent }) {
 function PaceRow({ label, value }) {
   return (
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-      <span style={{ fontSize:13, color:"rgba(245,245,240,.7)" }}>{label}</span>
-      <span style={{ ...MONO, fontSize:15, color:"#f5f5f0", fontWeight:600 }}>{value}</span>
+      <span style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.7)" }}>{label}</span>
+      <span style={{ ...MONO, fontSize:15, color:"var(--cm-ink)", fontWeight:600 }}>{value}</span>
     </div>
   );
 }
@@ -115,8 +115,8 @@ function CTABtn({ onClick, disabled, loading, children }) {
   return (
     <button onClick={onClick} disabled={disabled||loading} style={{
       width:"100%", padding:16,
-      background: (disabled||loading) ? "rgba(255,255,255,.08)" : AC,
-      color: (disabled||loading) ? "rgba(245,245,240,.35)" : "#fff",
+      background: (disabled||loading) ? "rgba(var(--cm-ink-rgb),.08)" : AC,
+      color: (disabled||loading) ? "rgba(var(--cm-ink-rgb),.35)" : "#fff",
       border:"none", borderRadius:14,
       cursor: (disabled||loading) ? "not-allowed" : "pointer",
       ...COND, fontSize:18, letterSpacing:"0.05em", textTransform:"uppercase",
@@ -130,18 +130,18 @@ function CTABtn({ onClick, disabled, loading, children }) {
 function TimeInputMMSS({ min, onMin, sec, onSec, label }) {
   return (
     <div style={{ marginTop:14 }}>
-      {label && <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>{label}</div>}
+      {label && <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>{label}</div>}
       <div style={{ display:"flex", gap:8, alignItems:"center" }}>
         <div style={{ flex:1 }}>
-          <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.4)", marginBottom:4 }}>MM</div>
+          <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:4 }}>MM</div>
           <input type="number" min={0} max={99} value={min} onChange={e=>onMin(e.target.value)} placeholder="28"
-            style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 8px", color:"#fff", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
+            style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 8px", color:"var(--cm-ink)", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
         </div>
-        <div style={{ fontSize:22, color:"rgba(245,245,240,.3)", paddingTop:18 }}>:</div>
+        <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:18 }}>:</div>
         <div style={{ flex:1 }}>
-          <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.4)", marginBottom:4 }}>SS</div>
+          <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:4 }}>SS</div>
           <input type="number" min={0} max={59} value={sec} onChange={e=>onSec(e.target.value)} placeholder="15"
-            style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 8px", color:"#fff", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
+            style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 8px", color:"var(--cm-ink)", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
         </div>
       </div>
     </div>
@@ -157,11 +157,11 @@ function HMSInput({ hVal, mVal, sVal, onH, onM, onS }) {
         { val:sVal, set:onS, label:"SS", ph:"00" },
       ].map(({ val, set, label, ph }, i) => (
         <React.Fragment key={label}>
-          {i > 0 && <div style={{ fontSize:22, color:"rgba(245,245,240,.3)", paddingTop:18 }}>:</div>}
+          {i > 0 && <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:18 }}>:</div>}
           <div style={{ flex: i===0 ? 0.7 : 1 }}>
-            <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.4)", marginBottom:4 }}>{label}</div>
+            <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:4 }}>{label}</div>
             <input type="number" min={0} value={val} onChange={e=>set(e.target.value)} placeholder={ph}
-              style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 8px", color:"#fff", fontSize:18, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
+              style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 8px", color:"var(--cm-ink)", fontSize:18, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
           </div>
         </React.Fragment>
       ))}
@@ -175,9 +175,9 @@ function DistSelector({ value, onChange, options }) {
       {options.map(d => (
         <button key={d} onClick={()=>onChange(d)} style={{
           padding:"8px 14px", borderRadius:20,
-          border: `1.5px solid ${value===d ? AC : "rgba(255,255,255,.12)"}`,
-          background: value===d ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.04)",
-          color: value===d ? AC : "rgba(245,245,240,.7)",
+          border: `1.5px solid ${value===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+          background: value===d ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+          color: value===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.7)",
           fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s",
         }}>
           {DIST_LABELS[d]}
@@ -362,14 +362,14 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
     const goBack = step > 1 ? () => setStep(s => s - 1) : onCancel;
     const backLabel = step > 1 ? "← Back" : "✕ Cancel";
     return (
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 20px 16px", borderBottom:"1px solid rgba(255,255,255,.07)", position:"sticky", top:0, background:"#000", zIndex:2 }}>
-        <button onClick={goBack} style={{ background:"none", border:"none", color:"rgba(245,245,240,.5)", cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 20px 16px", borderBottom:"1px solid rgba(var(--cm-ink-rgb),.10)", position:"sticky", top:0, background:"var(--cm-paper)", zIndex:2 }}>
+        <button onClick={goBack} style={{ background:"none", border:"none", color:"var(--cm-red)", cursor:"pointer", fontSize:13, fontFamily:"inherit" }}>
           {backLabel}
         </button>
-        <div style={{ ...COND, fontSize:16, letterSpacing:"0.04em", color:"#f5f5f0" }}>
+        <div style={{ ...COND, fontSize:16, letterSpacing:"0.04em", color:"var(--cm-ink)" }}>
           {program.name.toUpperCase()}
         </div>
-        <div style={{ ...MONO, fontSize:11, color:"rgba(245,245,240,.4)", letterSpacing:"0.1em" }}>
+        <div style={{ ...MONO, fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", letterSpacing:"0.1em" }}>
           {step} of {TOTAL_STEPS}
         </div>
       </div>
@@ -383,7 +383,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Baseline</Eyebrow>
         <Heading>Where are you<br/><span style={{color:AC}}>starting from?</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:24, lineHeight:1.6 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:24, lineHeight:1.6 }}>
           Before we build your plan, we need to know your current fitness.
         </div>
 
@@ -393,7 +393,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
         {baselineChoice === "other" && (
           <div style={{ marginTop:8 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>Select your distance:</div>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>Select your distance:</div>
             <DistSelector value={baselineDist} onChange={setBaselineDist} options={["5k","10k","half","full"]} />
           </div>
         )}
@@ -424,7 +424,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Baseline</Eyebrow>
         <Heading>Your Hyrox<br/><span style={{color:AC}}>starting point.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:24, lineHeight:1.6 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:24, lineHeight:1.6 }}>
           Have you done a Hyrox race before?
         </div>
 
@@ -433,7 +433,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
         {hyroxChoice === "yes" && (
           <div style={{ marginTop:16 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>Your Hyrox finish time:</div>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>Your Hyrox finish time:</div>
             <HMSInput hVal={hxH} mVal={hxM} sVal={hxS} onH={setHxH} onM={setHxM} onS={setHxS} />
           </div>
         )}
@@ -471,8 +471,8 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Training Schedule</Eyebrow>
         <Heading>Which days work<br/><span style={{color:AC}}>for training?</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:20, lineHeight:1.5 }}>
-          This plan needs <span style={{color:"#f5f5f0", fontWeight:600}}>{minDays} sessions/week</span> — select at least that many days.
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:20, lineHeight:1.5 }}>
+          This plan needs <span style={{color:"var(--cm-ink)", fontWeight:600}}>{minDays} sessions/week</span> — select at least that many days.
         </div>
 
         {/* 7-day grid */}
@@ -482,9 +482,9 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             return (
               <button key={d} onClick={() => toggleDay(d)} style={{
                 padding:"11px 0", borderRadius:10,
-                border: `1.5px solid ${sel ? AC : "rgba(255,255,255,.22)"}`,
-                background: sel ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.03)",
-                color: sel ? AC : "rgba(245,245,240,.6)",
+                border: `1.5px solid ${sel ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+                background: sel ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+                color: sel ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.6)",
                 fontSize:10, fontWeight:700, cursor:"pointer",
                 fontFamily:"'DM Mono',monospace", transition:"all 0.15s",
                 textAlign:"center",
@@ -496,7 +496,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         </div>
 
         {deficit > 0 && trainDays.length > 0 && (
-          <div style={{ ...MONO, fontSize:11, color:"rgba(245,245,240,.4)", marginBottom:16, marginTop:4 }}>
+          <div style={{ ...MONO, fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:16, marginTop:4 }}>
             {deficit} more day{deficit !== 1 ? "s" : ""} needed
           </div>
         )}
@@ -505,16 +505,16 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         {/* Long run day selector */}
         {trainDays.length > 0 && (
           <div style={{ marginBottom: isHyrox ? 0 : 4 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:10, fontWeight:600 }}>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:10, fontWeight:600 }}>
               Which day is your long run?
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {trainDays.map(d => (
                 <button key={d} onClick={() => setLongRunDay(longRunDay === d ? null : d)} style={{
                   padding:"8px 14px", borderRadius:20,
-                  border: `1.5px solid ${longRunDay===d ? AC : "rgba(255,255,255,.2)"}`,
-                  background: longRunDay===d ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.04)",
-                  color: longRunDay===d ? AC : "rgba(245,245,240,.65)",
+                  border: `1.5px solid ${longRunDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+                  background: longRunDay===d ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+                  color: longRunDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.65)",
                   fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s",
                 }}>
                   {d}
@@ -527,16 +527,16 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         {/* Station day selector (Hyrox only) */}
         {isHyrox && trainDays.length > 0 && (
           <div style={{ marginTop:20 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:10, fontWeight:600 }}>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:10, fontWeight:600 }}>
               Which day for station work?
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {trainDays.map(d => (
                 <button key={d} onClick={() => setStationDay(stationDay === d ? null : d)} style={{
                   padding:"8px 14px", borderRadius:20,
-                  border: `1.5px solid ${stationDay===d ? AC : "rgba(255,255,255,.2)"}`,
-                  background: stationDay===d ? "rgba(var(--accent-rgb),.1)" : "rgba(255,255,255,.04)",
-                  color: stationDay===d ? AC : "rgba(245,245,240,.65)",
+                  border: `1.5px solid ${stationDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.15)"}`,
+                  background: stationDay===d ? "rgba(var(--cm-red-rgb),.08)" : "rgba(var(--cm-ink-rgb),.04)",
+                  color: stationDay===d ? "var(--cm-red)" : "rgba(var(--cm-ink-rgb),.65)",
                   fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s",
                 }}>
                   {d}
@@ -567,7 +567,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Your Fitness</Eyebrow>
         <Heading>Based on your<br/><span style={{color:AC}}>{DIST_LABELS[actualDist]} time.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:16, lineHeight:1.5 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:16, lineHeight:1.5 }}>
           Your current predicted race times:
         </div>
         <div style={{ marginBottom:20 }}>
@@ -583,7 +583,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             );
           })}
         </div>
-        <div style={{ ...MONO, fontSize:11, color:"rgba(245,245,240,.4)", marginBottom:24, lineHeight:1.6 }}>
+        <div style={{ ...MONO, fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:24, lineHeight:1.6 }}>
           Daniels VDOT formula · Your fitness score: <span style={{color:AC}}>{vdot?.toFixed(1)}</span>
         </div>
         <CTABtn onClick={() => setStep(4)}>Set Your Goal →</CTABtn>
@@ -598,21 +598,21 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Station Breakdown</Eyebrow>
         <Heading>Current station<br/><span style={{color:AC}}>targets.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:16 }}>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:16 }}>
           Based on {fmtSecs(currentHyroxSecs)} total · Run pace {hyroxData.currentKmPaceFormatted}
         </div>
 
-        <div style={{ background:"rgba(255,255,255,.03)", borderRadius:12, overflow:"hidden", border:"1px solid rgba(255,255,255,.08)", marginBottom:20 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderBottom:"1px solid rgba(255,255,255,.06)" }}>
-            <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.35)", padding:"10px 14px", letterSpacing:"0.1em", textTransform:"uppercase" }}>Station</div>
-            <div style={{ ...MONO, fontSize:9, color:"rgba(245,245,240,.35)", padding:"10px 12px", textAlign:"right", letterSpacing:"0.1em", textTransform:"uppercase" }}>Now</div>
+        <div style={{ background:"rgba(var(--cm-ink-rgb),.04)", borderRadius:12, overflow:"hidden", border:"1px solid rgba(var(--cm-ink-rgb),.08)", marginBottom:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderBottom:"1px solid rgba(var(--cm-ink-rgb),.10)" }}>
+            <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.4)", padding:"10px 14px", letterSpacing:"0.1em", textTransform:"uppercase" }}>Station</div>
+            <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.4)", padding:"10px 12px", textAlign:"right", letterSpacing:"0.1em", textTransform:"uppercase" }}>Now</div>
             <div style={{ ...MONO, fontSize:9, color:AC, padding:"10px 14px", textAlign:"right", letterSpacing:"0.1em", textTransform:"uppercase" }}>Goal</div>
           </div>
           {Object.entries(hyroxData.stationTargets).map(([key, s], i) => (
-            <div key={key} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderTop: i===0 ? "none" : "1px solid rgba(255,255,255,.04)", background: i%2===0 ? "rgba(255,255,255,.01)" : "transparent" }}>
-              <div style={{ fontSize:12, color:"rgba(245,245,240,.75)", padding:"10px 14px" }}>{STATION_LABELS[key] || key}</div>
-              <div style={{ ...MONO, fontSize:12, color:"rgba(245,245,240,.5)", padding:"10px 12px", textAlign:"right" }}>{fmtSecs(s.current)}</div>
-              <div style={{ ...MONO, fontSize:12, color:"#f5f5f0", fontWeight:700, padding:"10px 14px", textAlign:"right" }}>{fmtSecs(s.goal)}</div>
+            <div key={key} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", borderTop: i===0 ? "none" : "1px solid rgba(var(--cm-ink-rgb),.06)", background: i%2===0 ? "rgba(var(--cm-ink-rgb),.02)" : "transparent" }}>
+              <div style={{ fontSize:12, color:"var(--cm-ink)", padding:"10px 14px" }}>{STATION_LABELS[key] || key}</div>
+              <div style={{ ...MONO, fontSize:12, color:"rgba(var(--cm-ink-rgb),.5)", padding:"10px 12px", textAlign:"right" }}>{fmtSecs(s.current)}</div>
+              <div style={{ ...MONO, fontSize:12, color:"var(--cm-ink)", fontWeight:700, padding:"10px 14px", textAlign:"right" }}>{fmtSecs(s.goal)}</div>
             </div>
           ))}
         </div>
@@ -628,36 +628,36 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <Eyebrow>// Goal</Eyebrow>
         <Heading>What are you<br/><span style={{color:AC}}>training for?</span></Heading>
 
-        <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:10, marginTop:8 }}>Goal distance:</div>
+        <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:10, marginTop:8 }}>Goal distance:</div>
         <DistSelector value={goalDist} onChange={d=>{setGoalDist(d); setRealisticSug(null);}} options={["5k","10k","half","full"]} />
 
         <div style={{ marginTop:16, marginBottom:8 }}>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:4 }}>Your goal time for {DIST_LABELS[goalDist]}:</div>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:4 }}>Your goal time for {DIST_LABELS[goalDist]}:</div>
         </div>
         <TimeInputMMSS min={gMin} onMin={setGMin} sec={gSec} onSec={setGSec} />
 
-        <button onClick={computeRealistic} style={{ width:"100%", marginTop:16, padding:"12px 16px", background:"rgba(255,255,255,.04)", border:"1.5px solid rgba(255,255,255,.12)", borderRadius:12, color:"rgba(245,245,240,.75)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+        <button onClick={computeRealistic} style={{ width:"100%", marginTop:16, padding:"12px 16px", background:"rgba(var(--cm-ink-rgb),.04)", border:"1.5px solid rgba(var(--cm-ink-rgb),.12)", borderRadius:12, color:"rgba(var(--cm-ink-rgb),.75)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
           What's realistic for me?
         </button>
 
         {realisticSug && (
           <div style={{ background:"rgba(var(--accent-rgb),.06)", border:"1px solid rgba(var(--accent-rgb),.2)", borderRadius:12, padding:"14px 16px", marginTop:10 }}>
-            <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:6 }}>Based on your fitness, a realistic 12-week goal:</div>
+            <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:6 }}>Based on your fitness, a realistic 12-week goal:</div>
             <div style={{ ...MONO, fontSize:24, color:AC, fontWeight:700, marginBottom:2 }}>{fmtSecs(realisticSug.time)}</div>
-            <div style={{ fontSize:11, color:"rgba(245,245,240,.45)" }}>{DIST_LABELS[goalDist]} · already applied to the fields above</div>
+            <div style={{ fontSize:11, color:"rgba(var(--cm-ink-rgb),.45)" }}>{DIST_LABELS[goalDist]} · already applied to the fields above</div>
           </div>
         )}
 
         {/* Optional race date */}
         <div style={{ marginTop:20, marginBottom:4 }}>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:6 }}>Race date <span style={{ color:"rgba(245,245,240,.35)" }}>(optional)</span></div>
-          <div style={{ fontSize:11, color:"rgba(245,245,240,.4)", marginBottom:8 }}>If you have a race booked, we'll build your peak fitness around it.</div>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:6 }}>Race date <span style={{ color:"rgba(var(--cm-ink-rgb),.35)" }}>(optional)</span></div>
+          <div style={{ fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:8 }}>If you have a race booked, we'll build your peak fitness around it.</div>
           <input
             type="date"
             value={raceDate}
             onChange={e => setRaceDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            style={{ width:"100%", background:"rgba(255,255,255,.07)", border:"1px solid rgba(255,255,255,.15)", borderRadius:10, padding:"12px 14px", color:"#fff", fontSize:15, ...MONO, outline:"none", boxSizing:"border-box", colorScheme:"dark" }}
+            style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 14px", color:"var(--cm-ink)", fontSize:15, ...MONO, outline:"none", boxSizing:"border-box", colorScheme:"light" }}
           />
         </div>
 
@@ -672,10 +672,10 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       <div style={{ padding:"24px 20px 48px" }}>
         <Eyebrow>// Goal</Eyebrow>
         <Heading>Your target<br/><span style={{color:AC}}>finish time.</span></Heading>
-        <div style={{ fontSize:13, color:"rgba(245,245,240,.6)", marginBottom:20 }}>
-          Current: <span style={{...MONO, color:"#f5f5f0"}}>{fmtSecs(currentHyroxSecs)}</span>
+        <div style={{ fontSize:13, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:20 }}>
+          Current: <span style={{...MONO, color:"var(--cm-ink)"}}>{fmtSecs(currentHyroxSecs)}</span>
         </div>
-        <div style={{ fontSize:12, color:"rgba(245,245,240,.6)", marginBottom:8 }}>Goal finish time:</div>
+        <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>Goal finish time:</div>
         <HMSInput hVal={goalH} mVal={goalM} sVal={goalS} onH={setGoalH} onM={setGoalM} onS={setGoalS} />
         {goalError && <div style={{ color:"#F87171", fontSize:12, marginTop:10 }}>{goalError}</div>}
         <CTABtn onClick={proceedToConfirm}>See My Plan →</CTABtn>
@@ -695,7 +695,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <Eyebrow>// Your Plan</Eyebrow>
         <Heading>Your plan<br/><span style={{color:AC}}>is ready.</span></Heading>
 
-        <div style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
+        <div style={{ background:"rgba(var(--cm-ink-rgb),.04)", border:"1px solid rgba(var(--cm-ink-rgb),.10)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
           <SummaryRow label="Current" value={fmtSecs(baselineSecs)} sub={DIST_LABELS[actualDist]} />
           <SummaryRow label="Goal" value={fmtSecs(gs)} sub={DIST_LABELS[goalDist]} accent />
           <SummaryRow label="Plan length" value={`${weeks} weeks`} />
@@ -705,16 +705,16 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
           {paces && (
             <>
-              <div style={{ height:1, background:"rgba(255,255,255,.08)", margin:"14px 0" }}/>
-              <div style={{ ...MONO, fontSize:10, color:"rgba(245,245,240,.4)", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:10 }}>Your training paces</div>
+              <div style={{ height:1, background:"rgba(var(--cm-ink-rgb),.10)", margin:"14px 0" }}/>
+              <div style={{ ...MONO, fontSize:10, color:"rgba(var(--cm-ink-rgb),.45)", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:10 }}>Your training paces</div>
               <PaceRow label="Easy" value={formatPace(paces.easy)} />
               <PaceRow label="Tempo" value={formatPace(paces.tempo)} />
               <PaceRow label="Intervals" value={formatPace(paces.interval)} />
             </>
           )}
 
-          <div style={{ height:1, background:"rgba(255,255,255,.08)", margin:"14px 0" }}/>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.55)", lineHeight:1.6, fontStyle:"italic" }}>
+          <div style={{ height:1, background:"rgba(var(--cm-ink-rgb),.10)", margin:"14px 0" }}/>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.55)", lineHeight:1.6, fontStyle:"italic" }}>
             "Every session shows your personal paces — not generic effort levels."
           </div>
         </div>
@@ -731,7 +731,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <Eyebrow>// Your Plan</Eyebrow>
         <Heading>Your Hyrox<br/><span style={{color:AC}}>plan is ready.</span></Heading>
 
-        <div style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
+        <div style={{ background:"rgba(var(--cm-ink-rgb),.04)", border:"1px solid rgba(var(--cm-ink-rgb),.10)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
           <SummaryRow label="Current time" value={fmtSecs(currentHyroxSecs)} />
           <SummaryRow label="Goal time" value={fmtSecs(gs)} accent />
           <SummaryRow label="Plan length" value={`${data.planWeeks} weeks`} />
@@ -740,8 +740,8 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             <SummaryRow label="Training days" value={trainDays.join(" · ")} />
           )}
 
-          <div style={{ height:1, background:"rgba(255,255,255,.08)", margin:"14px 0" }}/>
-          <div style={{ fontSize:12, color:"rgba(245,245,240,.55)", lineHeight:1.6, fontStyle:"italic" }}>
+          <div style={{ height:1, background:"rgba(var(--cm-ink-rgb),.10)", margin:"14px 0" }}/>
+          <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.55)", lineHeight:1.6, fontStyle:"italic" }}>
             "Every session shows your personal pace and station targets."
           </div>
         </div>
@@ -769,7 +769,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   }
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"#000000", zIndex:500, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+    <div style={{ position:"fixed", inset:0, background:"var(--cm-paper)", zIndex:500, overflowY:"auto", display:"flex", flexDirection:"column" }}>
       <Header />
       <div style={{ flex:1 }}>
         {renderStep()}
