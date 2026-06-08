@@ -2022,9 +2022,61 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
   const prevVol=workoutSummary?.previousVolume??null;
   const curVol=totalVolumeLogged;
   const tonnagePct=(prevVol!=null&&prevVol>0&&curVol>0)?Math.round(((curVol-prevVol)/prevVol)*100):null;
+  // ── ANIMATION ──────────────────────────────────────────────────────────────
+  const UNWORKED_COLOR='rgba(var(--cm-ink-rgb,10,10,10),.08)';
+  const IGNITE_ORDER=['chest','shoulders-f','biceps','triceps','forearms-f','forearms-b','abs','hip-flexors','traps','lats','rear-delts','lower-back','glutes','quads','hamstrings','calves-f','calves-b'];
+  // litColors drives BodyMap: starts all-unworked (fully lit immediately for reduced-motion)
+  const [litColors,setLitColors]=useState(()=>_trainEyeRedMo?{...bodyColors}:ALL_REGIONS.reduce((c,r)=>({...c,[r]:UNWORKED_COLOR}),{}));
+  const [countReady,setCountReady]=useState(false);
+  const [doneVisible,setDoneVisible]=useState(!!_trainEyeRedMo);
+  // count-up: always call unconditionally; gate = countReady; reduced-motion reads final directly
+  const setsTarget=workoutSummary?.completedSets??totalSetsLogged;
+  const tonnageAbsTarget=tonnagePct!=null?Math.abs(tonnagePct):0;
+  const countedSets=useCountUp(countReady?setsTarget:0,1200);
+  const countedTonnage=useCountUp(countReady?tonnageAbsTarget:0,1200);
+  const displaySets=_trainEyeRedMo?setsTarget:countedSets;
+  const displayTonnage=_trainEyeRedMo?tonnageAbsTarget:countedTonnage;
+  const scrollRef=useRef(null);
+  const bodyMapRef=useRef(null);
+  // stable refs — captured on first render; completedWorkout/workoutSummary don't mutate while portal is open
+  const _igniteBC=useRef(bodyColors);
+  const _igniteWR=useRef(workedRegions);
+  // Effect 1: unlock count-up after 350ms
+  useEffect(()=>{
+    if(_trainEyeRedMo)return;
+    const t=setTimeout(()=>setCountReady(true),350);
+    return()=>clearTimeout(t);
+  },[_trainEyeRedMo]);
+  // Effect 2: auto-scroll to body-map at 1500ms — yields if user already touched/scrolled
+  useEffect(()=>{
+    if(_trainEyeRedMo||!_igniteWR.current.size)return;
+    const el=scrollRef.current;
+    if(!el)return;
+    let userScrolled=false;
+    const mark=()=>{userScrolled=true;};
+    el.addEventListener('scroll',mark,{passive:true});
+    el.addEventListener('touchstart',mark,{passive:true});
+    const t=setTimeout(()=>{
+      if(!userScrolled&&el.scrollTop<40)bodyMapRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+      el.removeEventListener('scroll',mark);
+      el.removeEventListener('touchstart',mark);
+    },1500);
+    return()=>{clearTimeout(t);el.removeEventListener('scroll',mark);el.removeEventListener('touchstart',mark);};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  // Effect 3: ignite muscles in anatomical order starting at 1900ms
+  useEffect(()=>{
+    const bc=_igniteBC.current,wr=_igniteWR.current;
+    if(_trainEyeRedMo){setLitColors({...bc});setDoneVisible(true);return;}
+    const seq=IGNITE_ORDER.filter(r=>wr.has(r));
+    const ids=seq.map((region,i)=>setTimeout(()=>setLitColors(prev=>({...prev,[region]:bc[region]})),1900+i*120));
+    ids.push(setTimeout(()=>setDoneVisible(true),1900+seq.length*120+200));
+    return()=>ids.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   return(
-    <div style={{position:'fixed',inset:0,background:'var(--cm-red,#FF3B30)',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
-      <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}`}</style>
+    <div ref={scrollRef} style={{position:'fixed',inset:0,background:'var(--cm-red,#FF3B30)',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+      <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}@keyframes sumClank{from{transform:scale(0.88)}60%{transform:scale(1.04)}to{transform:scale(1)}}`}</style>
       {isFirstSession&&(
         <div style={{maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),40px) 24px 0',boxSizing:'border-box'}}>
           <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'28px 24px 24px',textAlign:'center',boxShadow:'0 2px 20px rgba(0,0,0,.14)'}}>
@@ -2047,26 +2099,28 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
         </div>
 
         {/* Headline */}
-        <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
-          <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </div>
-        <div style={{...cnd,fontSize:68,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>
-          SESSION<br/>COMPLETE
-        </div>
-        {workoutSummary?.title&&<div style={{...cnd,fontSize:28,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.01em'}}>{workoutSummary.title.toUpperCase()}</div>}
-        <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.5)',marginBottom:32,letterSpacing:'0.08em'}}>
-          {dateStr} · {durStr}
+        <div style={{transformOrigin:'center top',animation:_trainEyeRedMo?'none':'sumClank 0.45s ease-out'}}>
+          <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <div style={{...cnd,fontSize:68,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>
+            SESSION<br/>COMPLETE
+          </div>
+          {workoutSummary?.title&&<div style={{...cnd,fontSize:28,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.01em'}}>{workoutSummary.title.toUpperCase()}</div>}
+          <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.5)',marginBottom:32,letterSpacing:'0.08em'}}>
+            {dateStr} · {durStr}
+          </div>
         </div>
 
         {/* Stats row */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:24}}>
           <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-            <div style={{...cnd,fontSize:24,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{workoutSummary?.completedSets??totalSetsLogged}<span style={{fontSize:15,fontWeight:400,fontStyle:'normal'}}>/{workoutSummary?.totalSets??'?'}</span></div>
+            <div style={{...cnd,fontSize:24,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{displaySets}<span style={{fontSize:15,fontWeight:400,fontStyle:'normal'}}>/{workoutSummary?.totalSets??'?'}</span></div>
             <div style={{...mno,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.12em',marginTop:4}}>SETS DONE</div>
           </div>
           <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
             <div style={{...cnd,fontSize:24,lineHeight:1,color:tonnagePct!=null&&tonnagePct>0?'#22c55e':'var(--cm-ink,#0A0A0A)'}}>
-              {curVol===0?'—':tonnagePct!=null?`${tonnagePct>=0?'+':''}${tonnagePct}%`:'1ST'}
+              {curVol===0?'—':tonnagePct!=null?`${tonnagePct>=0?'+':''}${displayTonnage}%`:'1ST'}
             </div>
             <div style={{...mno,fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.1em',marginTop:4,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {curVol===0?'TONNAGE':tonnagePct!=null?`VS LAST ${(workoutSummary?.title||'').toUpperCase()}`:`FIRST ${(workoutSummary?.title||'').toUpperCase()}`}
@@ -2092,9 +2146,9 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
 
         {/* Muscles worked */}
         {workedRegions.size>0&&(
-          <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+          <div ref={bodyMapRef} style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
             <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
-            <BodyMap colors={bodyColors}/>
+            <BodyMap colors={litColors}/>
             {workedChips.length>0&&(
               <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:16}}>
                 {workedChips.map(({label,color})=>(
@@ -2144,7 +2198,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
         </div>
 
         {/* Back to home */}
-        <button onClick={onClose} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#fff)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:24}}>
+        <button onClick={onClose} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#fff)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:24,opacity:doneVisible?1:0,transition:'opacity 0.4s ease',pointerEvents:doneVisible?'auto':'none'}}>
           BACK TO HOME →
         </button>
 
