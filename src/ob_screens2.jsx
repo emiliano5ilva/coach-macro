@@ -2028,7 +2028,7 @@ function PRFeed({dbPRs,wUnit}){
   );
 }
 
-function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLastWeek,protHitDays,calHitDays,twStart,macros,user,setsThisWeek=0,timeThisWeek=0,prsThisWeek={count:0,list:[]},weekDays=[],trainingDaysThisWeek=0,lastWeekTrainingDays=0,wUnit='lbs'}){
+function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLastWeek,protHitDays,calHitDays,twStart,macros,user,setsThisWeek=0,timeThisWeek=0,prsThisWeek={count:0,list:[]},weekDays=[],trainingDaysThisWeek=0,lastWeekTrainingDays=0,wUnit='lbs',onTap}){
   const weekStart=new Date(twStart+'T12:00:00');
   const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
   const fmtShort=(d)=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -2047,7 +2047,7 @@ function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLast
   const red='var(--cm-red,#FF3B30)';
 
   return(
-    <div style={{margin:"0 16px 14px",background:"var(--cm-paper,#fff)",border:`1px solid ${inkFainter}`,borderRadius:16,overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,.07)'}}>
+    <div onClick={onTap} style={{margin:"0 16px 14px",background:"var(--cm-paper,#fff)",border:`1px solid ${inkFainter}`,borderRadius:16,overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,.07)',cursor:onTap?'pointer':'default'}}>
 
       {/* Header */}
       <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
@@ -2116,6 +2116,11 @@ function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLast
               {prsThisWeek.list.slice(0,3).map(p=>`${p.name} ${p.weight}${wUnit}×${p.reps}`).join(' · ')}
             </div>
           </div>
+        </div>
+      )}
+      {onTap&&(
+        <div style={{borderTop:`1px solid ${inkFainter}`,padding:"7px 16px",display:"flex",justifyContent:"flex-end",alignItems:"center"}}>
+          <span style={{..._MO,fontSize:8,color:red,letterSpacing:"0.10em",textTransform:"uppercase"}}>Full review ↗</span>
         </div>
       )}
     </div>
@@ -2264,18 +2269,15 @@ function PatternAlertCard({ detection, onDismiss, onAction }) {
 
 // ── Weekly Review Modal ────────────────────────────────────────────────────────
 function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, onClose, onApply}) {
-  const [cardIdx, setCardIdx] = useState(0);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [confirmOverrideCals, setConfirmOverrideCals] = useState(null); // guard: manual_calorie_target
-  const touchStart = useRef(null);
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
     const since = new Date(new Date(twStart).getTime() - 7 * 864e5).toISOString().split('T')[0];
     const weekAgo = twStart;
-
     Promise.all([
       sb.from('food_logs').select('date,entries').eq('user_id', userId).gte('date', since),
       sb.from('bodyweight_logs').select('weight,date,created_at').eq('user_id', userId).gte('created_at', since).order('created_at'),
@@ -2287,27 +2289,11 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
     }).catch(() => setLoading(false));
   }, [userId, twStart]);
 
-  const cards = data ? buildCards(data, macros, profile) : [];
-  const total = cards.length;
-
-  function onTouchStart(e) { touchStart.current = e.touches[0].clientX; }
-  function onTouchEnd(e) {
-    if (!touchStart.current) return;
-    const dx = touchStart.current - e.changedTouches[0].clientX;
-    touchStart.current = null;
-    if (Math.abs(dx) < 40) return;
-    if (dx > 0 && cardIdx < total - 1) setCardIdx(i => i + 1);
-    else if (dx < 0 && cardIdx > 0) setCardIdx(i => i - 1);
-  }
-
+  // Bug fix: was data?.adjustment?.calorieDelta (data.adjustment is undefined). Correct: data?.calorieDelta.
   async function handleApply() {
-    if (!data?.adjustment?.calorieDelta || !userId) { onClose(); return; }
-    const newCals = (macros?.calories || 2000) + data.adjustment.calorieDelta;
-    // Guard: if user set a custom calorie target, confirm before overwriting it
-    if (profile?.manual_calorie_target) {
-      setConfirmOverrideCals(newCals);
-      return;
-    }
+    if (!data?.calorieDelta || !userId) { onClose(); return; }
+    const newCals = (macros?.calories || 2000) + data.calorieDelta;
+    if (profile?.manual_calorie_target) { setConfirmOverrideCals(newCals); return; }
     await doApply(newCals);
   }
 
@@ -2325,65 +2311,201 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
     onClose();
   }
 
+  // Derive training stats from existing props (workoutLogsRaw + twStart)
+  const wUnit = profile?.wUnit || 'lbs';
+  const _lwStart = new Date(twStart+'T12:00:00'); _lwStart.setDate(_lwStart.getDate()-7);
+  const _lwStr = _lwStart.toISOString().split('T')[0];
+  const logsThisWeek = (workoutLogsRaw||[]).filter(l=>l.date>=twStart);
+  const workoutsThisWeek = logsThisWeek.length;
+  const setsThisWeek = logsThisWeek.reduce((t,l)=>t+(l.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).filter(s=>s.done).length,0),0);
+  const timeThisWeek = logsThisWeek.reduce((s,l)=>s+(l.session_duration_mins||0),0);
+  const trainingDaysThisWeek = new Set(logsThisWeek.map(l=>l.date)).size;
+  const lastWeekTrainingDays = new Set((workoutLogsRaw||[]).filter(l=>l.date>=_lwStr&&l.date<twStart).map(l=>l.date)).size;
+  const weekDaysArr = (()=>{
+    const letters=['S','M','T','W','T','F','S'];
+    return Array.from({length:7},(_,i)=>{
+      const d=new Date(twStart+'T12:00:00');d.setDate(d.getDate()+i);
+      const ds=d.toISOString().split('T')[0];
+      const log=(workoutLogsRaw||[]).find(l=>l.date===ds);
+      const t=log?.workout?.type||'';
+      return{letter:letters[i],trained:!!log,kind:log?(t==='run'||t==='cardio'?'run':'lift'):null};
+    });
+  })();
+  // PRs from buildReviewData's personal_records fetch once loaded
+  const prsThisWeek = data
+    ? {count:(data.prs||[]).length,list:(data.prs||[]).slice(0,3).map(p=>({name:p.exercise_name,weight:p.weight,reps:p.reps}))}
+    : {count:0,list:[]};
+
+  // Style helpers
+  const ink='var(--cm-ink,#0A0A0A)';
+  const inkFaint='rgba(var(--cm-ink-rgb,10,10,10),.45)';
+  const inkFainter='rgba(var(--cm-ink-rgb,10,10,10),.12)';
+  const red='var(--cm-red,#FF3B30)';
+  const _MO={fontFamily:"'DM Mono',monospace"};
+  const _BC={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
+  const _paper={background:'var(--cm-paper,#fff)',borderRadius:16};
+
+  const weekStart=new Date(twStart+'T12:00:00');
+  const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
+  const fmtShort=(d)=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const dateRange=`${fmtShort(weekStart)} – ${fmtShort(weekEnd)}`;
+  const dayDelta=trainingDaysThisWeek-lastWeekTrainingDays;
+  const timeH=Math.floor(timeThisWeek/60);
+  const timeM=timeThisWeek%60;
+  const timeStr=timeThisWeek>0?(timeH>0?`${timeH}h ${timeM}m`:`${timeM}m`):'—';
+
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.96)',zIndex:10010,display:'flex',flexDirection:'column'}}
-      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      {/* Header */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'max(env(safe-area-inset-top),20px) 20px 16px'}}>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.16em',textTransform:'uppercase'}}>// Weekly Review</div>
-        <button onClick={onClose} style={{background:'none',border:'none',padding:4,cursor:'pointer',fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',textTransform:'uppercase',letterSpacing:'0.1em'}}>close</button>
+    <div style={{position:'fixed',inset:0,background:red,zIndex:10010,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+
+      {/* Calorie-override guard — fixed so it overlays even when scrolled */}
+      {confirmOverrideCals&&(
+        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:10011,background:'var(--cm-paper,#fff)',borderTop:`2px solid ${red}`,borderRadius:'20px 20px 0 0',padding:'20px 20px max(env(safe-area-inset-bottom),24px)'}}>
+          <div style={{..._MO,fontSize:9,color:red,letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:8}}>// CUSTOM TARGET SET</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:ink,marginBottom:16}}>You set a custom calorie target. Replace it with the suggested {confirmOverrideCals} kcal?</div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>setConfirmOverrideCals(null)} style={{flex:1,padding:'12px',background:'none',color:inkFaint,border:`1px solid ${inkFainter}`,borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Keep mine</button>
+            <button onClick={()=>doApply(confirmOverrideCals)} disabled={applying} style={{flex:1,padding:'12px',background:red,color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{applying?'Applying…':'Replace'}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Red header */}
+      <div style={{padding:'max(env(safe-area-inset-top),20px) 20px 24px',maxWidth:480,margin:'0 auto'}}>
+        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#fff',fontSize:16,fontFamily:'inherit'}}>✕</button>
+        </div>
+        <div style={{..._MO,fontSize:9,color:'rgba(255,255,255,0.60)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>// WEEK IN REVIEW</div>
+        <div style={{..._BC,fontSize:38,color:'#fff',lineHeight:0.95,textTransform:'uppercase',marginBottom:12}}>{dateRange}</div>
+        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:15,color:'rgba(255,255,255,0.80)',lineHeight:1.4}}>
+          You showed up {trainingDaysThisWeek} day{trainingDaysThisWeek!==1?'s':''}.{prsThisWeek.count>0?` ${prsThisWeek.count} new PR${prsThisWeek.count>1?'s':''}.`:''}
+        </div>
       </div>
 
-      {/* Pip indicators */}
-      <div style={{display:'flex',gap:5,justifyContent:'center',marginBottom:16}}>
-        {Array.from({length: total}).map((_,i) => (
-          <div key={i} onClick={()=>setCardIdx(i)} style={{width: i===cardIdx?20:6,height:6,borderRadius:3,background: i===cardIdx?'var(--accent)':'rgba(245,245,240,0.15)',transition:'all 0.3s ease',cursor:'pointer'}}/>
-        ))}
-      </div>
+      {/* Paper sections */}
+      <div style={{padding:'0 16px max(env(safe-area-inset-bottom),32px)',maxWidth:480,margin:'0 auto',display:'flex',flexDirection:'column',gap:10}}>
 
-      {/* Card */}
-      <div style={{flex:1,overflowY:'auto',padding:'0 20px'}}>
-        {loading && (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh',flexDirection:'column',gap:12}}>
-            <div style={{width:24,height:24,borderRadius:'50%',border:'2px solid rgba(var(--accent-rgb),0.3)',borderTopColor:'var(--accent)',animation:'spin 0.9s linear infinite'}}/>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Loading your week…</div>
+        {/* Consistency strip */}
+        <div style={{..._paper,padding:'16px'}}>
+          <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:8}}>Consistency · {trainingDaysThisWeek} of 7 days</div>
+          <div style={{display:'flex',gap:4}}>
+            {weekDaysArr.map((day,i)=>(
+              <div key={i} style={{flex:1,height:40,borderRadius:8,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:day.trained?red:inkFainter}}>
+                {day.trained&&(
+                  <div style={{color:'#fff',lineHeight:1}}>
+                    {day.kind==='run'
+                      ?<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M13 4a1 1 0 1 0 2 0 1 1 0 0 0-2 0M7 20l3-6 2 2 3-4"/></svg>
+                      :<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12M6 21h12M4 12h2m12 0h2M8 7v10M16 7v10"/></svg>
+                    }
+                  </div>
+                )}
+                <div style={{..._MO,fontSize:7,color:day.trained?'#fff':inkFaint,letterSpacing:'0.04em'}}>{day.letter}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div style={{..._paper,overflow:'hidden'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr'}}>
+            {[
+              {label:'SESSIONS',value:workoutsThisWeek},
+              {label:'SETS',value:setsThisWeek},
+              {label:'TIME',value:timeStr},
+              {label:'PRs',value:prsThisWeek.count,green:true},
+            ].map(({label,value,green},i)=>(
+              <div key={label} style={{padding:'14px 4px',textAlign:'center',borderRight:i<3?`1px solid ${inkFainter}`:'none'}}>
+                <div style={{..._BC,fontSize:26,color:green&&prsThisWeek.count>0?'#22c55e':ink,lineHeight:1,marginBottom:3}}>{value}</div>
+                <div style={{..._MO,fontSize:7,color:inkFaint,letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Vs last week */}
+        <div style={{..._paper,padding:'12px 16px',display:'flex',alignItems:'center',gap:8}}>
+          <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.06em',textTransform:'uppercase',flex:1}}>Training days vs last week</div>
+          <div style={{..._MO,fontSize:9,fontWeight:700,color:dayDelta>0?'#22c55e':dayDelta<0?red:inkFaint}}>
+            {dayDelta>0?`▲ +${dayDelta}`:dayDelta<0?`▼ ${dayDelta}`:'→ same'}
+          </div>
+        </div>
+
+        {/* PR highlight — conditional; list available once Supabase fetch completes */}
+        {prsThisWeek.count>0&&(
+          <div style={{..._paper,padding:'14px 16px',display:'flex',gap:12,alignItems:'flex-start'}}>
+            <div style={{fontSize:20,flexShrink:0}}>🏆</div>
+            <div>
+              <div style={{..._BC,fontSize:16,color:'#22c55e',marginBottom:3}}>{prsThisWeek.count} PR{prsThisWeek.count>1?'s':''} this week</div>
+              <div style={{..._MO,fontSize:8,color:'rgba(34,197,94,.80)',lineHeight:1.6}}>
+                {prsThisWeek.list.map(p=>`${p.name} ${p.weight}${wUnit}×${p.reps}`).join(' · ')}
+              </div>
+            </div>
           </div>
         )}
-        {!loading && cards[cardIdx] && <ReviewCard card={cards[cardIdx]} isLast={cardIdx===total-1} onApply={handleApply} applying={applying} data={data}/>}
-      </div>
 
-      {/* Manual-override guard: confirm before replacing a user-set calorie target */}
-      {confirmOverrideCals&&(
-        <div style={{position:'absolute',bottom:0,left:0,right:0,background:'#0d0d0d',borderTop:'1px solid rgba(var(--accent-rgb),0.25)',padding:'20px 20px max(env(safe-area-inset-bottom),24px)'}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:8}}>// CUSTOM TARGET SET</div>
-          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:'#f5f5f0',marginBottom:16}}>You set a custom calorie target. Replace it with the suggested {confirmOverrideCals} kcal?</div>
-          <div style={{display:'flex',gap:10}}>
-            <button onClick={()=>setConfirmOverrideCals(null)} style={{flex:1,padding:'11px',background:'rgba(245,245,240,0.05)',color:'rgba(245,245,240,0.5)',border:'1px solid rgba(245,245,240,0.1)',borderRadius:9,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Keep mine</button>
-            <button onClick={()=>doApply(confirmOverrideCals)} disabled={applying} style={{flex:1,padding:'11px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:9,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{applying?'Applying…':'Replace'}</button>
+        {/* Nutrition / insight sections from Supabase fetch */}
+        {loading ? (
+          <div style={{..._paper,padding:'20px 16px',display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:16,height:16,borderRadius:'50%',border:`2px solid ${inkFainter}`,borderTopColor:red,animation:'spin 0.9s linear infinite',flexShrink:0}}/>
+            <div style={{..._MO,fontSize:8,color:inkFaint,textTransform:'uppercase',letterSpacing:'0.1em'}}>Loading nutrition data…</div>
           </div>
-        </div>
-      )}
+        ) : data ? (
+          <>
+            {/* Nutrition adherence */}
+            <div style={{..._paper,padding:'16px'}}>
+              <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>// NUTRITION</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                {[
+                  {label:'Cal days',value:`${data.calHit}/7`,green:data.calHit>=5},
+                  {label:'Prot days',value:`${data.protHit}/7`,green:data.protHit>=5},
+                  {label:'Avg kcal',value:data.avgCals?Math.round(data.avgCals):'—'},
+                ].map(({label,value,green})=>(
+                  <div key={label} style={{textAlign:'center',padding:'10px 4px',background:'rgba(var(--cm-ink-rgb,10,10,10),.03)',borderRadius:10}}>
+                    <div style={{..._BC,fontSize:20,color:green?'#22c55e':ink,lineHeight:1,marginBottom:2}}>{value}</div>
+                    <div style={{..._MO,fontSize:7,color:inkFaint,textTransform:'uppercase',letterSpacing:'0.1em'}}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-      {/* Nav */}
-      {!loading && !confirmOverrideCals && (
-        <div style={{display:'flex',justifyContent:'space-between',padding:'16px 20px max(env(safe-area-inset-bottom),24px)'}}>
-          <button onClick={()=>setCardIdx(i=>Math.max(0,i-1))} disabled={cardIdx===0}
-            style={{background:'none',border:'1px solid rgba(245,245,240,0.1)',borderRadius:8,padding:'8px 20px',cursor:cardIdx===0?'default':'pointer',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:700,fontSize:14,color:cardIdx===0?'rgba(245,245,240,0.15)':'rgba(245,245,240,0.5)'}}>
-            ← Back
-          </button>
-          {cardIdx < total - 1 ? (
-            <button onClick={()=>setCardIdx(i=>i+1)}
-              style={{background:'var(--accent)',border:'none',borderRadius:8,padding:'8px 24px',cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:14,color:'#000'}}>
-              Next →
-            </button>
-          ) : (
-            <button onClick={handleApply} disabled={applying}
-              style={{background:'var(--accent)',border:'none',borderRadius:8,padding:'8px 20px',cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:14,color:'#000'}}>
-              {applying ? 'Applying…' : data?.adjustment?.calorieDelta ? 'Apply Changes' : 'Done'}
-            </button>
-          )}
-        </div>
-      )}
+            {/* Weight trend */}
+            {data.wtChange!==null&&(
+              <div style={{..._paper,padding:'12px 16px',display:'flex',alignItems:'center',gap:8}}>
+                <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.06em',textTransform:'uppercase',flex:1}}>Weight this week</div>
+                <div style={{..._BC,fontSize:20,color:data.wtChange>0.1?'#f59e0b':data.wtChange<-0.1?'#22c55e':inkFaint}}>
+                  {data.wtChange>0?'+':''}{data.wtChange.toFixed(1)} lbs
+                </div>
+              </div>
+            )}
+
+            {/* Coach signal + calorie adjustment */}
+            {(data.topInsight||data.calorieDelta)&&(
+              <div style={{..._paper,padding:'16px'}}>
+                <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>// COACH SIGNAL</div>
+                {data.topInsight&&<div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:ink,lineHeight:1.6,marginBottom:data.calorieDelta?12:0}}>{data.topInsight.message}</div>}
+                {data.calorieDelta&&(
+                  <div style={{background:`${red}0F`,border:`1px solid ${red}30`,borderRadius:10,padding:'12px'}}>
+                    <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:4}}>
+                      {data.calorieDelta>0?'Increase':'Decrease'} daily target by {Math.abs(data.calorieDelta)} kcal
+                    </div>
+                    <div style={{..._MO,fontSize:9,color:inkFaint,marginBottom:10}}>
+                      {macros?.calories||2000} → {(macros?.calories||2000)+data.calorieDelta} kcal/day
+                    </div>
+                    <button onClick={handleApply} disabled={applying} style={{width:'100%',padding:'11px',background:red,color:'#fff',border:'none',borderRadius:9,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
+                      {applying?'Applying…':'Apply Change'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {/* Done */}
+        <button onClick={onClose} style={{width:'100%',padding:'15px',background:'rgba(255,255,255,0.18)',border:'1px solid rgba(255,255,255,0.20)',borderRadius:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:'#fff',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer',marginTop:4}}>
+          Done
+        </button>
+
+      </div>
     </div>
   );
 }
@@ -9667,14 +9789,8 @@ Rules:
               trainingDaysThisWeek={trainingDaysThisWeek}
               lastWeekTrainingDays={lastWeekTrainingDays}
               wUnit={profile?.wUnit||'lbs'}
+              onTap={()=>setShowWeeklyReviewModal(true)}
             />}
-            {workoutLogsRaw.length>0&&(
-              <div style={{margin:"-4px 16px 14px",display:"flex",justifyContent:"flex-end"}}>
-                <button onClick={()=>setShowWeeklyReviewModal(true)} style={{background:"none",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.14)",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
-                  Full Weekly Review →
-                </button>
-              </div>
-            )}
             {/* Empty state — fewer than 3 sessions */}
             {workoutLogsRaw.length<3&&(
               <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
