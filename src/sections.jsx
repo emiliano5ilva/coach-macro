@@ -3233,7 +3233,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{marginBottom:18}}>
                     <div style={_labelStyle}>Where?</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                      {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","other"].map(r=>{
+                      {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","quads","hamstrings","calves","glutes","shins","other"].map(r=>{
                         const sel=(rdAnswers.painRegions||[]).includes(r);
                         return(
                           <button key={r}
@@ -3332,7 +3332,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,color:T.mu,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Where?</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","other"].map(r=>{
+                  {["shoulder","elbow","wrist","lower_back","hip","knee","ankle","neck","quads","hamstrings","calves","glutes","shins","other"].map(r=>{
                     const sel=(rdAnswers.painRegions||[]).includes(r);
                     return(<button key={r} onClick={()=>setRdAnswers(a=>{const cur=a.painRegions||[];return{...a,painRegions:sel?cur.filter(x=>x!==r):[...cur,r]};})} style={{padding:"7px 12px",borderRadius:8,border:`1.5px solid ${sel?T.prot:T.bd}`,background:sel?`rgba(var(--accent-rgb),0.09)`:T.s2,color:sel?T.prot:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{r.replace("_"," ")}</button>);
                   })}
@@ -4432,7 +4432,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                             </button>
                             <button onClick={()=>{_hL();setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name});}} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(var(--cm-ink-rgb,10,10,10),.30)"}}>
-                              <svg width={15} height={15} viewBox="0 0 24 24" fill="none"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M16 3l4 4-4 4M20 17H4M8 21l-4-4 4-4"/></svg>
                             </button>
                           </div>
                           {ex.notes&&<div style={{fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)',marginLeft:32}}>{ex.notes}</div>}

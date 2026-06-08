@@ -341,23 +341,23 @@ export function PaperCard({ children, style = {}, className = '', animate = fals
     const root = findScrollParent(el);
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        const ratio = entry.intersectionRatio;
+        if (ratio >= 0.12) {
+          // Clearly entering — reveal.
           setRevealState('revealed');
-        } else {
-          // Determine which edge the element exited through so the next entry
-          // animates from the correct direction.
+        } else if (ratio <= 0.02) {
+          // Clearly exiting — set pending with direction awareness.
+          // The 0.02–0.12 deadzone prevents flicker for cards sitting at the boundary.
           const rb = entry.rootBounds;
           if (rb && entry.boundingClientRect.top >= rb.bottom - 1) {
-            // Element is below the viewport bottom → will rise up on re-entry
             setRevealState('pending-below');
           } else {
-            // Element is above the viewport top → will descend on re-entry
             setRevealState('pending-above');
           }
         }
-        // No unobserve — stays active so every entry/exit toggles state.
+        // ratio between 0.02 and 0.12: do nothing — card is in the deadzone.
       },
-      { root, threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+      { root, threshold: [0, 0.02, 0.12], rootMargin: '0px 0px -8% 0px' }
     );
     obs.observe(el);
     return () => obs.disconnect();
