@@ -3727,24 +3727,50 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           const exCount=Array.isArray(todayPrescription)?todayPrescription.length:0;
           const totalSets=Array.isArray(todayPrescription)?todayPrescription.reduce((a,ex)=>a+(Number(ex.sets)||3),0):0;
           const estMin=exCount>0?Math.round(exCount*9+12):0;
-          // race phase
-          const _rp2=profile?.runProfile;
-          let _phaseLabel=null,_phaseColor="rgba(255,255,255,0.70)";
-          if(_rp2?.raceDate){
-            const _wToRace=Math.ceil((new Date(_rp2.raceDate)-new Date())/(7*24*60*60*1000));
-            const _tot2=_rp2.planWeeks??12;
-            _phaseLabel=_wToRace>_tot2*0.6?'Base Build':_wToRace>_tot2*0.3?'Build':_wToRace>_tot2*0.15?'Peak':_wToRace>0?'Taper':'Race Week';
-            _phaseColor=_phaseLabel==='Taper'?'#FFD60A':_phaseLabel==='Race Week'?'#FFE4E1':'rgba(255,255,255,0.75)';
-          }
+          // race countdown — single source of phase truth via getRunningPhase
+          const _raceDate = profile?.runProfile?.raceDate || profile?.run_race_date || null;
+          const _phase = getRunningPhase(_raceDate);
           return (
             <div>
               {/* ══ RED HERO ═══════════════════════════════════════════════════ */}
               <div style={{paddingLeft:20,paddingRight:20,paddingTop:0,paddingBottom:160}}>
-                {/* Eyebrow: program · race phase */}
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:10,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                  <span>{progLabel}</span>
-                  {_phaseLabel&&<><span style={{color:"rgba(255,255,255,0.22)"}}>·</span><span style={{color:_phaseColor}}>{_phaseLabel}</span></>}
-                </div>
+                {/* Eyebrow: program */}
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:_phase?16:10}}>
+                    <span>{progLabel}</span>
+                  </div>
+                  {/* ── RACE COUNTDOWN ── */}
+                  {_phase&&(()=>{
+                    const _msDay=86400000;
+                    const _p=String(_raceDate).slice(0,10).split('-');
+                    let _days=null;
+                    if(_p.length===3){const _rd=new Date(+_p[0],+_p[1]-1,+_p[2]);_rd.setHours(0,0,0,0);const _td=new Date();_td.setHours(0,0,0,0);_days=Math.round((_rd-_td)/_msDay);}
+                    const _isRaceDay=_days!=null&&_days<=0;
+                    const _useDays=_days!=null&&_days>0&&_days<=14;
+                    const _num=_useDays?_days:_phase.weeksUntilRace;
+                    const _unit=_useDays?(_days===1?"Day":"Days"):(_phase.weeksUntilRace===1?"Week":"Weeks");
+                    return (
+                      <div style={{marginBottom:18}}>
+                        {_isRaceDay?(
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,lineHeight:0.85,color:"#fff",textTransform:"uppercase",letterSpacing:"-0.02em",marginBottom:8}}>Race Day</div>
+                        ):(
+                          <div style={{display:"flex",alignItems:"flex-end",gap:11,marginBottom:8}}>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:64,lineHeight:0.78,color:"#fff",letterSpacing:"-0.03em"}}>{_num}</div>
+                            <div style={{paddingBottom:6}}>
+                              <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,lineHeight:0.9,color:"#fff",textTransform:"uppercase"}}>{_unit}</div>
+                              <div style={{fontFamily:_MO,fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.6)"}}>to race day</div>
+                            </div>
+                          </div>
+                        )}
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          <span style={{display:"inline-flex",alignItems:"center",gap:6,fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(255,255,255,0.16)",color:"#fff",padding:"4px 10px",borderRadius:6}}>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:_phase.color,display:"inline-block"}}></span>
+                            {_phase.label}
+                          </span>
+                          {_phase.focusWorkout&&<span style={{fontFamily:_MO,fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:"rgba(255,255,255,0.75)"}}>{_phase.focusWorkout}</span>}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 {/* BIG session title */}
                 <div style={{fontFamily:_AF,fontWeight:800,fontSize:54,lineHeight:0.88,textTransform:"uppercase",color:"#ffffff",letterSpacing:"-0.02em",marginBottom:4}}>
                   {(prescType==="running"||hybridRunDay)?(resolvedDayFocus[todayKey]||"Run Day"):todayFocus}
@@ -6243,6 +6269,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const [showSkillSelector,setShowSkillSelector]=useState(false);
   // Plan & Nutrition modal states
   const [showDietPicker,setShowDietPicker]=useState(false);
+  const [showEquipmentPicker,setShowEquipmentPicker]=useState(false);
   const [showRecoveryPicker,setShowRecoveryPicker]=useState(false);
   const [showLongRunPicker,setShowLongRunPicker]=useState(false);
   const [lrdOverrideDay,setLrdOverrideDay]=useState(null); // confirm before replacing a lift day
@@ -6347,6 +6374,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
         <MeRow label="Goal" value={GOAL_LABELS[currentGoal]||"—"} onPress={()=>setShowGoalSelector(true)}/>
         <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
+        <MeRow label="Equipment" value={wPrefs?.equipment||"Full Gym"} onPress={()=>setShowEquipmentPicker(true)}/>
         <MeRow label="Weight" value={localWeight?(localWeight+" "+wUnit):"—"} onPress={()=>{setEditModal("weight");setEditValue(localWeight);}}/>
         <MeRow label="Height" value={localHeight?(localHeight+" cm"):"—"} onPress={()=>{setEditModal("height");setEditValue(localHeight);}} isLast/>
       </div>
@@ -6844,6 +6872,32 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       )}
 
       {/* ── DIET PRESET MODAL ── */}
+      {showEquipmentPicker&&ReactDOM.createPortal(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowEquipmentPicker(false)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>Training Equipment</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.45)",marginBottom:16}}>Changing this updates how your workouts are built and which exercises get substituted.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {[
+                  {v:"Full Gym",sub:"Barbells, cables, machines, dumbbells — everything"},
+                  {v:"Home Gym",sub:"Dumbbells, barbell, maybe a rack"},
+                  {v:"Dumbbells Only",sub:"Limited equipment — we'll substitute intelligently"},
+                  {v:"Bodyweight Only",sub:"No equipment — calisthenics progressions"},
+                ].map(({v,sub})=>{
+                  const sel=(wPrefs?.equipment||"Full Gym")===v;
+                  return(
+                    <button key={v} onClick={async()=>{const wp={...wPrefs,equipment:v};setWPrefs(wp);await saveSettings(wp,null);setShowEquipmentPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",gap:3}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:600,color:sel?"var(--accent)":"#f5f5f0",display:"flex",alignItems:"center",justifyContent:"space-between"}}>{v}{sel&&<span>✓</span>}</span>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:12,fontWeight:400,color:sel?"rgba(var(--accent-rgb),0.7)":"rgba(245,245,240,0.4)"}}>{sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
       {showDietPicker&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowDietPicker(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
