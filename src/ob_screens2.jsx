@@ -73,6 +73,9 @@ import SpotlightTour from "./components/SpotlightTour.jsx";
 import FeatureUnlockCard from "./components/FeatureUnlockCard.jsx";
 import { checkFeatureUnlocks, getPendingUnlock, getUserStats, markUnlockShown, markAppTourComplete, triggerEventUnlock, APP_TOUR_STEPS } from "./services/featureUnlockService.js";
 import WinScreen from "./components/WinScreen.jsx";
+import BodyMap from "./components/BodyMap.jsx";
+import { getExerciseData } from "./data/exerciseMuscleMap.js";
+import { MUSCLE_TO_BODYMAP, BODYMAP_COLOR, ALL_REGIONS } from "./data/bodyMapRegions.js";
 import StreakCard from "./components/StreakCard.jsx";
 import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
 import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
@@ -2336,6 +2339,22 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
     ? {count:(data.prs||[]).length,list:(data.prs||[]).slice(0,3).map(p=>({name:p.exercise_name,weight:p.weight,reps:p.reps}))}
     : {count:0,list:[]};
 
+  // Weekly muscle coverage — union worked regions across all sessions, done sets only
+  const weekWorked = new Set();
+  (workoutLogsRaw||[]).filter(l=>l.date>=twStart).forEach(l=>{
+    (l.workout?.exercises||[]).forEach(ex=>{
+      const did=(ex.sets||[]).some(s=>s.done);
+      if(!did)return;
+      const md=getExerciseData(ex.name);
+      if(md)md.primary.forEach(m=>{const r=MUSCLE_TO_BODYMAP[m];if(r)weekWorked.add(r);});
+    });
+  });
+  const bodyColors={};
+  ALL_REGIONS.forEach(r=>{bodyColors[r]=weekWorked.has(r)?BODYMAP_COLOR[r]:'rgba(var(--cm-ink-rgb,10,10,10),.08)';});
+  const MAJOR_GROUPS={Chest:['chest'],Back:['lats','traps','lower-back'],Shoulders:['shoulders-f','rear-delts'],Arms:['biceps','triceps','forearms-f','forearms-b'],Legs:['quads','hamstrings','glutes','calves-f','calves-b'],Core:['abs','hip-flexors']};
+  const trainedGroups=Object.entries(MAJOR_GROUPS).filter(([,regions])=>regions.some(r=>weekWorked.has(r))).map(([name])=>name);
+  const skippedGroups=Object.keys(MAJOR_GROUPS).filter(g=>!trainedGroups.includes(g));
+
   // Style helpers
   const ink='var(--cm-ink,#0A0A0A)';
   const inkFaint='rgba(var(--cm-ink-rgb,10,10,10),.45)';
@@ -2441,6 +2460,31 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
             </div>
           </div>
         )}
+
+        {/* Muscle coverage card */}
+        <div style={{..._paper,padding:'16px'}}>
+          <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>MUSCLES TRAINED THIS WEEK</div>
+          <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+            <div style={{width:100,flexShrink:0}}>
+              <BodyMap colors={bodyColors}/>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              {trainedGroups.length>0&&(
+                <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}}>
+                  {trainedGroups.map(g=>(
+                    <span key={g} style={{..._MO,fontSize:7,letterSpacing:'0.08em',textTransform:'uppercase',padding:'3px 8px',borderRadius:20,background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',color:ink}}>{g}</span>
+                  ))}
+                </div>
+              )}
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:inkFaint,lineHeight:1.55}}>
+                {skippedGroups.length===0
+                  ?'Full-body coverage this week — every major group hit.'
+                  :`Solid coverage — but no direct ${skippedGroups.join(', ')} work this week.`
+                }
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Nutrition / insight sections from Supabase fetch */}
         {loading ? (
