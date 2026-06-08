@@ -854,6 +854,10 @@ export const REDESIGN_CSS = `
     .cm-resume-card { animation: none; }
   }
 
+  @keyframes prog-fade { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+  .prog-cycle-name { animation: prog-fade 0.28s ease; }
+  @media (prefers-reduced-motion: reduce) { .prog-cycle-name { animation: none; } }
+
   /* Plan tab — full-screen onboarding; give app-screen a definite height so flex children fill it */
   .goclub.tab-plan .app-screen {
     height: 100dvh;

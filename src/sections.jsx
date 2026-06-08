@@ -1986,6 +1986,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const _trainEyeX=useRef(0);
   const _trainEyeY=useRef(0);
   const _trainEyeRedMo=useReducedMotion();
+  const [_switchProgIdx,_setSwitchProgIdx]=useState(0);
+  useEffect(()=>{
+    if(_trainEyeRedMo)return;
+    const _t=setInterval(()=>_setSwitchProgIdx(i=>(i+1)%7),2500);
+    return()=>clearInterval(_t);
+  },[_trainEyeRedMo]);
   useEffect(()=>{
     if(!GOCLUB_REDESIGN||!user?.id)return;
     getRecoveryData(user.id).then(d=>{
@@ -3109,38 +3115,38 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       {swapModal&&(()=>{
         const opts=getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
         return(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(8px)",zIndex:10000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
-            <div style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:"18px 18px 0 0",padding:"20px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
-              <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-              <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>SWAP EXERCISE</div>
-              <div style={{fontSize:18,fontWeight:700,marginBottom:2}}>{swapModal.exerciseName}</div>
-              <div style={{fontSize:12,color:"rgba(245,245,240,.4)",marginBottom:18}}>Choose a replacement — same muscle group</div>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",backdropFilter:"blur(8px)",zIndex:10000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
+            <div style={{background:"var(--cm-paper,#fff)",border:"none",borderRadius:"24px 24px 0 0",padding:"20px 20px",paddingBottom:"max(env(safe-area-inset-bottom),32px)",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:36,height:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:2,margin:"0 auto 20px"}}/>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:6}}>SWAP EXERCISE</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{swapModal.exerciseName}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",marginBottom:16}}>Choose a replacement — same muscle group</div>
               {opts.length>0
                 ?<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
                   {opts.map((opt,i)=>(
                     <button key={i} onClick={()=>setSelectedSwap(selectedSwap===opt.name?null:opt.name)}
-                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(var(--accent-rgb),.12)":"rgba(var(--accent-rgb),0.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(var(--accent-rgb),.45)":"rgba(var(--accent-rgb),0.08)"}`,borderRadius:10,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
-                      <span style={{fontSize:14,fontWeight:600,color:"#fff"}}>{opt.name}</span>
-                      {selectedSwap===opt.name&&<span style={{fontSize:14,color:T.prot}}>✓</span>}
+                      style={{padding:"12px 16px",background:selectedSwap===opt.name?"rgba(255,59,48,.07)":"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:`1.5px solid ${selectedSwap===opt.name?"rgba(255,59,48,.30)":"rgba(var(--cm-ink-rgb,10,10,10),.10)"}`,borderRadius:12,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit"}}>
+                      <span style={{fontSize:14,fontWeight:600,color:"var(--cm-ink,#0A0A0A)"}}>{opt.name}</span>
+                      {selectedSwap===opt.name&&<span style={{fontSize:16,color:"var(--cm-red,#FF3B30)",fontWeight:700}}>✓</span>}
                     </button>
                   ))}
                 </div>
-                :<div style={{fontSize:13,color:"rgba(245,245,240,.4)",textAlign:"center",padding:"16px 0",marginBottom:18}}>No alternatives for this equipment setup.</div>
+                :<div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",textAlign:"center",padding:"16px 0",marginBottom:18}}>No alternatives for this equipment setup.</div>
               }
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(var(--accent-rgb),0.03)",borderRadius:10,border:"1px solid rgba(var(--accent-rgb),0.06)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,padding:"12px 14px",background:"rgba(var(--cm-ink-rgb,10,10,10),.04)",borderRadius:12,border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)"}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Make permanent</div>
-                  <div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Always replace this exercise in my plan</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--cm-ink,#0A0A0A)"}}>Make permanent</div>
+                  <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)"}}>Always replace this exercise in my plan</div>
                 </div>
-                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:40,height:24,borderRadius:12,border:"none",background:swapPermanent?T.prot:"rgba(var(--accent-rgb),0.12)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
-                  <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .2s",left:swapPermanent?19:3}}/>
+                <button onClick={()=>setSwapPermanent(p=>!p)} style={{width:48,height:28,borderRadius:"999px",border:"none",background:swapPermanent?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),.14)",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0,minHeight:"auto"}}>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:"#fff",position:"absolute",top:3,transition:"left .18s",left:swapPermanent?23:3,boxShadow:"0 1px 4px rgba(0,0,0,.20)"}}/>
                 </button>
               </div>
               <button onClick={()=>selectedSwap&&applySwap(swapModal.exerciseIdx,selectedSwap,swapPermanent,swapModal.originalName)} disabled={!selectedSwap}
-                style={{width:"100%",padding:15,background:selectedSwap?T.prot:"rgba(var(--accent-rgb),0.05)",color:selectedSwap?"#fff":"rgba(245,245,240,.25)",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
+                style={{width:"100%",padding:15,background:selectedSwap?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),.06)",color:selectedSwap?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),.35)",border:"none",borderRadius:14,fontWeight:700,fontSize:15,cursor:selectedSwap?"pointer":"not-allowed",fontFamily:"inherit",marginBottom:10,transition:"all .2s"}}>
                 Swap Exercise →
               </button>
-              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(245,245,240,.4)",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setSwapModal(null)} style={{width:"100%",padding:13,background:"transparent",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
             </div>
           </div>
         );
@@ -4638,9 +4644,18 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {/* Card header */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",marginBottom:14}}>
                   <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)"}}>THIS WEEK</div>
-                  <button onClick={()=>{_hL();setTrainScreen("library");}} style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"var(--cm-red)",background:"none",border:"none",cursor:"pointer",padding:0,minHeight:"auto",minWidth:"auto"}}>
-                    Switch program →
-                  </button>
+                  {(()=>{const _names=["Push/Pull/Legs","Arnold Split","5/3/1","Tom Platz Volume","Half Marathon","Hyrox 12-Week","Upper/Lower"];return(
+                    <div onClick={()=>{_hL();setTrainScreen("library");}} style={{display:"flex",alignItems:"center",gap:10,background:"var(--cm-paper,#fff)",borderRadius:18,boxShadow:"0 4px 18px rgba(0,0,0,.12)",padding:"10px 14px",cursor:"pointer",border:"none",marginTop:-4}}>
+                      <div style={{width:32,height:32,borderRadius:9,background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></svg>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:1}}>SWITCH PROGRAM</div>
+                        <div key={_switchProgIdx} className="prog-cycle-name" style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{_names[_switchProgIdx]}</div>
+                      </div>
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
+                    </div>
+                  );})()}
                 </div>
 
                 {/* 7-day rows */}

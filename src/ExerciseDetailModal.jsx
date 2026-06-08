@@ -224,7 +224,7 @@ function ExercisePlaceholder({ exerciseName }) {
 
 function GifSkeleton() {
   return (
-    <div style={{width:"100%",aspectRatio:"4/3",background:`linear-gradient(90deg,${T.s2} 25%,${T.s3} 50%,${T.s2} 75%)`,backgroundSize:"200% 100%",borderRadius:14,marginBottom:20,animation:"shimmer 1.4s infinite"}}/>
+    <div style={{width:"100%",aspectRatio:"4/3",background:"linear-gradient(90deg,rgba(0,0,0,.05) 25%,rgba(0,0,0,.09) 50%,rgba(0,0,0,.05) 75%)",backgroundSize:"200% 100%",borderRadius:14,marginBottom:20,animation:"shimmer 1.4s infinite"}}/>
   );
 }
 
@@ -302,25 +302,25 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
       <div
         style={{
           position:"fixed",bottom:0,left:0,right:0,zIndex:10001,
-          background:T.s1,borderRadius:"22px 22px 0 0",
+          background:"var(--cm-paper,#fff)",borderRadius:"22px 22px 0 0",
           maxHeight:"91vh",overflowY:"auto",
           paddingBottom:"max(env(safe-area-inset-bottom,0px),20px)",
         }}
       >
         {/* Drag handle */}
         <div style={{display:"flex",justifyContent:"center",padding:"14px 0 0"}}>
-          <div style={{width:36,height:4,background:T.bd,borderRadius:2}}/>
+          <div style={{width:36,height:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:2}}/>
         </div>
 
         {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px 4px"}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,lineHeight:1.1}}>{exerciseName}</div>
-          <button onClick={onClose} style={{width:32,height:32,borderRadius:"50%",background:T.s2,border:`1px solid ${T.bd}`,cursor:"pointer",fontSize:18,color:T.mu,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit",flexShrink:0}}>×</button>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,lineHeight:1.1,color:"var(--cm-ink,#0A0A0A)"}}>{exerciseName}</div>
+          <button onClick={onClose} style={{width:32,height:32,borderRadius:"50%",background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)",cursor:"pointer",fontSize:18,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit",flexShrink:0}}>×</button>
         </div>
 
         {exData?.equipment&&(
           <div style={{padding:"2px 20px 12px"}}>
-            <span style={{fontSize:10,color:T.mu,textTransform:"capitalize"}}>{exData.equipment}{exData.body_part?` · ${exData.body_part}`:""}</span>
+            <span style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",textTransform:"capitalize"}}>{exData.equipment}{exData.body_part?` · ${exData.body_part}`:""}</span>
           </div>
         )}
 
@@ -340,10 +340,10 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
                 </div>
               </>}
               {exData.secondary_muscles?.length>0&&<>
-                <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>SECONDARY</div>
+                <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>SECONDARY</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {exData.secondary_muscles.map(m=>(
-                    <span key={m} style={{padding:"4px 11px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:20,fontSize:11,color:T.mu,textTransform:"capitalize"}}>{m}</span>
+                    <span key={m} style={{padding:"4px 11px",background:"rgba(var(--cm-ink-rgb,10,10,10),.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:20,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.55)",textTransform:"capitalize"}}>{m}</span>
                   ))}
                 </div>
               </>}
@@ -353,11 +353,11 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
           {/* Instructions */}
           {!loading && exData?.instructions?.length>0 && (
             <div style={{marginBottom:20}}>
-              <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>HOW TO DO IT</div>
+              <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>HOW TO DO IT</div>
               {exData.instructions.map((step,i)=>(
                 <div key={i} style={{display:"flex",gap:12,marginBottom:10,alignItems:"flex-start"}}>
-                  <div style={{width:22,height:22,borderRadius:"50%",background:T.s2,border:`1px solid ${T.bd}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.mu,flexShrink:0,marginTop:1}}>{i+1}</div>
-                  <div style={{fontSize:13,color:"#ddd",lineHeight:1.65,paddingTop:1}}>{step}</div>
+                  <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.10)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",flexShrink:0,marginTop:1}}>{i+1}</div>
+                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.65,paddingTop:1}}>{step}</div>
                 </div>
               ))}
             </div>
@@ -366,24 +366,24 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
           {/* Coaching cues */}
           {cues && (
             <div style={{marginBottom:20}}>
-              <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>COACHING CUES</div>
+              <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>COACHING CUES</div>
               <div style={{background:`${T.carb}12`,border:`1px solid ${T.carb}28`,borderRadius:12,padding:"14px 16px",marginBottom:8}}>
                 <div style={{fontSize:10,color:T.carb,fontWeight:700,letterSpacing:1,marginBottom:5}}>🔑 KEY CUE</div>
-                <div style={{fontSize:14,fontWeight:600,color:"#fff",lineHeight:1.5}}>{cues.cue}</div>
+                <div style={{fontSize:14,fontWeight:600,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.5}}>{cues.cue}</div>
               </div>
               {cues.setup && (
-                <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"12px 16px",marginBottom:8}}>
-                  <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,marginBottom:4}}>📐 SETUP</div>
-                  <div style={{fontSize:13,color:"#ccc",lineHeight:1.5}}>{cues.setup}</div>
+                <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:12,padding:"12px 16px",marginBottom:8}}>
+                  <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:1,marginBottom:4}}>📐 SETUP</div>
+                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.5}}>{cues.setup}</div>
                 </div>
               )}
-              <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.22)",borderRadius:12,padding:"12px 16px",marginBottom:8}}>
+              <div style={{background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.18)",borderRadius:12,padding:"12px 16px",marginBottom:8}}>
                 <div style={{fontSize:10,color:"#EF4444",fontWeight:700,letterSpacing:1,marginBottom:4}}>⚠️ COMMON MISTAKE</div>
-                <div style={{fontSize:13,color:"#ddd",lineHeight:1.5}}>{cues.common_mistake}</div>
+                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.5}}>{cues.common_mistake}</div>
               </div>
-              <div style={{background:`${T.prot}08`,border:`1px solid ${T.prot}22`,borderRadius:12,padding:"12px 16px"}}>
-                <div style={{fontSize:10,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:4}}>💪 FEEL IT HERE</div>
-                <div style={{fontSize:13,color:"#ddd",lineHeight:1.5}}>{cues.feel}</div>
+              <div style={{background:"rgba(255,59,48,.05)",border:"1px solid rgba(255,59,48,.14)",borderRadius:12,padding:"12px 16px"}}>
+                <div style={{fontSize:10,color:"var(--cm-red,#FF3B30)",fontWeight:700,letterSpacing:1,marginBottom:4}}>💪 FEEL IT HERE</div>
+                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.70)",lineHeight:1.5}}>{cues.feel}</div>
               </div>
             </div>
           )}
@@ -391,8 +391,8 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
           {/* Weight history */}
           {wxHistory.length>0 && (
             <div style={{marginBottom:20}}>
-              <div style={{fontSize:9,color:T.mu,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>YOUR HISTORY</div>
-              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,overflow:"hidden"}}>
+              <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>YOUR HISTORY</div>
+              <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:12,overflow:"hidden"}}>
                 {wxHistory.map((h,i)=>{
                   const weights = h.sets.map(s=>parseFloat(s.weight)||0);
                   const maxW = Math.max(...weights);
@@ -402,8 +402,8 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
                   const d = new Date(h.date+"T12:00:00");
                   const label = d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
                   return (
-                    <div key={i} style={{padding:"12px 16px",borderBottom:i<wxHistory.length-1?`1px solid ${T.bd}`:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div style={{fontSize:12,color:T.mu,minWidth:60}}>{label}</div>
+                    <div key={i} style={{padding:"12px 16px",borderBottom:i<wxHistory.length-1?"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)":"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",minWidth:60}}>{label}</div>
                       <div style={{fontSize:13,fontWeight:700,flex:1,paddingLeft:8}}>
                         {maxW>0?`${maxW} lbs`:"Bodyweight"} × {h.sets.length} sets × {h.sets[0]?.reps||"?"} reps
                       </div>
@@ -417,7 +417,7 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
 
           {/* Swap button */}
           {onSwap && (
-            <button onClick={onSwap} style={{width:"100%",padding:"13px",background:"none",border:`1.5px solid ${T.bd}`,borderRadius:12,color:T.mu,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginTop:4}}>
+            <button onClick={onSwap} style={{width:"100%",padding:"13px",background:"none",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginTop:4}}>
               Swap This Exercise →
             </button>
           )}
