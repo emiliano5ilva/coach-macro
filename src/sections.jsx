@@ -1969,7 +1969,7 @@ const _TRAIN_GOCLUB_CSS=`
 .goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important;color:#ffffff!important}
 `;
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -2430,6 +2430,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
       }
     }
+  }
+
+  // Pause: sets resumePrompt (TrainSection-local state) then delegates session cleanup to ob_screens2.
+  // setResumePrompt lives here, not in ob_screens2, so this wrapper is the right place for it.
+  function _handlePause(){
+    if(activeWorkout)setResumePrompt({...activeWorkout,ts:Date.now()});
+    pauseWorkout?.();
   }
 
   function startFromProgram(){
@@ -4311,13 +4318,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <div style={{background:'var(--cm-red,#FF3B30)',position:'fixed',inset:0,zIndex:9999,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* End Session confirmation overlay */}
             {endConfirm&&(
-              <div style={{position:"fixed",inset:0,zIndex:10001,background:"rgba(5,8,16,0.92)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-                <div style={{background:"#0a0e1a",border:"1px solid rgba(245,245,240,0.12)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",marginBottom:10}}>End Session?</div>
-                  <div style={{fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.6,marginBottom:24}}>Your progress will be saved before closing.</div>
+              <div style={{position:"fixed",inset:0,zIndex:10001,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+                <div style={{background:"var(--cm-paper,#fff)",border:"none",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,.30)"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,textTransform:"uppercase",color:"var(--cm-ink,#0A0A0A)",marginBottom:6}}>Take a break?</div>
+                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",lineHeight:1.55,marginBottom:8}}>Your completed sets are already saved.</div>
+                  <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontFamily:"'DM Mono',monospace",lineHeight:1.5,marginBottom:22,letterSpacing:"0.02em"}}>Pause saves your session — pick up where you left off from the home screen.</div>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    <button onClick={()=>{setEndConfirm(false);finishWorkout();}} style={{padding:"14px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:800,fontSize:14,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>End Session</button>
-                    <button onClick={()=>setEndConfirm(false)} style={{padding:"13px",background:"none",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,color:"rgba(245,245,240,0.65)",fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>Keep Going</button>
+                    <button onClick={()=>setEndConfirm(false)} style={{padding:"15px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,letterSpacing:"0.04em",textTransform:"uppercase",cursor:"pointer"}}>Keep Going →</button>
+                    <button onClick={()=>{setEndConfirm(false);_handlePause();}} style={{padding:"14px",background:"none",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),.18)",borderRadius:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>Pause — resume later</button>
+                    <button onClick={()=>{setEndConfirm(false);finishWorkout();}} style={{padding:"11px",background:"none",border:"none",borderRadius:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.40)",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>End &amp; save session</button>
                   </div>
                 </div>
               </div>
