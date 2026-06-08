@@ -2064,19 +2064,32 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
     return()=>{clearTimeout(t);el.removeEventListener('scroll',mark);el.removeEventListener('touchstart',mark);};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
-  // Effect 3: ignite muscles in anatomical order starting at 1900ms
+  // Effect 3: ignite muscles in anatomical order starting at 2400ms with colour-flash pulse
   useEffect(()=>{
     const bc=_igniteBC.current,wr=_igniteWR.current;
     if(_trainEyeRedMo){setLitColors({...bc});setDoneVisible(true);return;}
+    // brighter flash colours — each region briefly pops to a lighter variant then settles
+    const FLASH={
+      chest:'#FF8C87','shoulders-f':'#FFC870','rear-delts':'#FFC870',
+      biceps:'#BFA8FF',triceps:'#BFA8FF','forearms-f':'#BFA8FF','forearms-b':'#BFA8FF',
+      abs:'#5DE0D5','hip-flexors':'#5DE0D5',
+      quads:'#6EE78F',hamstrings:'#6EE78F',glutes:'#6EE78F','calves-f':'#6EE78F','calves-b':'#6EE78F',
+      lats:'#93C5FD',traps:'#93C5FD','lower-back':'#93C5FD',
+    };
     const seq=IGNITE_ORDER.filter(r=>wr.has(r));
-    const ids=seq.map((region,i)=>setTimeout(()=>setLitColors(prev=>({...prev,[region]:bc[region]})),1900+i*120));
-    ids.push(setTimeout(()=>setDoneVisible(true),1900+seq.length*120+200));
+    const ids=[];
+    seq.forEach((region,i)=>{
+      const t0=2400+i*260;
+      ids.push(setTimeout(()=>setLitColors(prev=>({...prev,[region]:FLASH[region]||bc[region]})),t0));
+      ids.push(setTimeout(()=>setLitColors(prev=>({...prev,[region]:bc[region]})),t0+180));
+    });
+    ids.push(setTimeout(()=>setDoneVisible(true),2400+seq.length*260+400));
     return()=>ids.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   return(
     <div ref={scrollRef} style={{position:'fixed',inset:0,background:'var(--cm-red,#FF3B30)',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
-      <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}@keyframes sumClank{from{transform:scale(0.88)}60%{transform:scale(1.04)}to{transform:scale(1)}}`}</style>
+      <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}@keyframes sumClank{from{transform:scale(0.82)}50%{transform:scale(1.06)}75%{transform:scale(0.99)}to{transform:scale(1)}}@keyframes sumShake{0%{transform:translate(0,0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,-1px)}100%{transform:translate(0,0)}}`}</style>
       {isFirstSession&&(
         <div style={{maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),40px) 24px 0',boxSizing:'border-box'}}>
           <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'28px 24px 24px',textAlign:'center',boxShadow:'0 2px 20px rgba(0,0,0,.14)'}}>
@@ -2091,7 +2104,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
           </div>
         </div>
       )}
-      <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:isFirstSession?'24px 24px 0':'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
+      <div style={{animation:_trainEyeRedMo?'sumIn 0.22s ease':'sumIn 0.22s ease,sumShake 0.4s ease-out 0.3s',maxWidth:480,margin:'0 auto',padding:isFirstSession?'24px 24px 0':'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
 
         {/* Close */}
         <div onClick={onClose} style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',marginBottom:24}}>
@@ -2099,7 +2112,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
         </div>
 
         {/* Headline */}
-        <div style={{transformOrigin:'center top',animation:_trainEyeRedMo?'none':'sumClank 0.45s ease-out'}}>
+        <div style={{transformOrigin:'center top',animation:_trainEyeRedMo?'none':'sumClank 0.65s ease-out'}}>
           <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
             <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
