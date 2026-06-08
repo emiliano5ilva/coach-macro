@@ -797,8 +797,14 @@ export const EQUIPMENT_ALTERNATIVES = {
 };
 
 export function getEquipmentExercise(exerciseName, equipment) {
-  const alternatives = EQUIPMENT_ALTERNATIVES[exerciseName];
-  if(!alternatives) return exerciseName;
+  // Resolver chain: direct → superset-stripped → alias-resolved → passthrough
+  const stripped = stripSupersetLabel(exerciseName);
+  const aliased  = resolveAlias(exerciseName);
+  const alternatives =
+    EQUIPMENT_ALTERNATIVES[exerciseName]
+    || EQUIPMENT_ALTERNATIVES[stripped]
+    || (aliased ? EQUIPMENT_ALTERNATIVES[aliased] : null);
+  if (!alternatives) return exerciseName;
   return alternatives[equipment] || alternatives["Full Gym"] || exerciseName;
 }
 
@@ -1496,8 +1502,20 @@ export const EQUIPMENT_POOLS = {
   ],
 };
 
+// Maps wPrefs.equipment (Title-Case) → EQUIPMENT_POOLS snake_case keys.
+// NOTE: wPrefs has 4 settings; EQUIPMENT_POOLS has 5 pools (resistance_bands has no
+// wPrefs equivalent, "Cables Only" / "Machines Only" from EQUIPMENT_ALTERNATIVES also
+// have no pool). resistance_bands is still reachable by passing the key directly.
+export const EQUIP_KEY = {
+  "Full Gym":       "full_gym",
+  "Home Gym":       "home_barbell",
+  "Dumbbells Only": "dumbbells_only",
+  "Bodyweight Only":"bodyweight_only",
+};
+
 export function getExercisesForEquipment(equipmentSetup) {
-  return EQUIPMENT_POOLS[equipmentSetup] || EQUIPMENT_POOLS.full_gym;
+  const key = EQUIP_KEY[equipmentSetup] || equipmentSetup || "full_gym";
+  return EQUIPMENT_POOLS[key] || EQUIPMENT_POOLS.full_gym;
 }
 
 export function getSwapOptionsForEquipment(exerciseName, equipmentSetup, count=6) {
