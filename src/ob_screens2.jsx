@@ -5693,6 +5693,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
   function skipRest(){
     clearTimeout(notifTimeoutRef.current);
     clearInterval(restInterval.current);setRestActive(false);setRestTimer(0);setLastLoggedSet(null);
+    setShowLocalRest(false);setLocalRestSecs(90);
   }
 
   function adjustRest(delta){
@@ -10464,22 +10465,6 @@ Rules:
         document.body
       )}
 
-      {showLocalRest&&ReactDOM.createPortal(
-        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10002,background:"var(--cm-paper,#fff)",borderTop:"2px solid var(--cm-red,#FF3B30)",borderRadius:"20px 20px 0 0",padding:"24px 20px",paddingBottom:"max(env(safe-area-inset-bottom),40px)"}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8,textAlign:"center"}}>// REST</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:72,color:"var(--cm-ink,#0A0A0A)",textAlign:"center",lineHeight:1,marginBottom:16}}>
-            {Math.floor(localRestSecs/60)}:{(localRestSecs%60).toString().padStart(2,'0')}
-          </div>
-          <div style={{height:3,background:"rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
-            <div style={{height:"100%",background:"var(--cm-red,#FF3B30)",borderRadius:2,width:Math.max(0,Math.min(100,(localRestSecs/90)*100))+'%',transition:"width 1s linear"}}/>
-          </div>
-          <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>setLocalRestSecs(s=>Math.max(0,s-30))} style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:12,padding:13,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.14em",cursor:"pointer"}}>−30s</button>
-            <button onClick={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} style={{flex:2,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:12,padding:13,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
-          </div>
-        </div>,
-        document.body
-      )}
 
       <div className="app-tab-bar">
         {activeNav.map(item=>(

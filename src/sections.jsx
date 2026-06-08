@@ -4659,6 +4659,22 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                       <button onClick={()=>{const u={...activeWorkout};u.exercises[ei].sets=[...u.exercises[ei].sets,{reps:u.exercises[ei].sets[0]?.reps||10,weight:u.exercises[ei].sets[0]?.weight||"",done:false}];setActiveWorkout(u);}} style={{width:"100%",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',background:"none",border:'1px dashed rgba(var(--cm-ink-rgb,10,10,10),.15)',borderRadius:8,padding:"8px",cursor:"pointer",fontFamily:"inherit",marginTop:4}}>+ Add Set</button>
 
+                      {showLocalRest&&(
+                        <div style={{background:"var(--cm-paper,#fff)",border:"2px solid var(--cm-red,#FF3B30)",borderRadius:14,padding:"14px 16px",marginTop:12,marginBottom:4}}>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6,textAlign:"center"}}>// REST</div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:56,color:"var(--cm-ink,#0A0A0A)",textAlign:"center",lineHeight:1,marginBottom:10}}>
+                            {Math.floor(localRestSecs/60)}:{(localRestSecs%60).toString().padStart(2,'0')}
+                          </div>
+                          <div style={{height:3,background:"rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:2,marginBottom:12,overflow:"hidden"}}>
+                            <div style={{height:"100%",background:"var(--cm-red,#FF3B30)",borderRadius:2,width:Math.max(0,Math.min(100,(localRestSecs/90)*100))+'%',transition:"width 1s linear"}}/>
+                          </div>
+                          <div style={{display:"flex",gap:8}}>
+                            <button onClick={onReduceLocalRest} style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.12)",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.14em",cursor:"pointer"}}>−30s</button>
+                            <button onClick={onSkipLocalRest} style={{flex:2,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,padding:11,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>SKIP REST →</button>
+                          </div>
+                        </div>
+                      )}
+
                       {allDone&&(
                         <div style={{marginTop:14,padding:"12px 14px",background:'rgba(var(--cm-ink-rgb,10,10,10),.04)',borderRadius:12,border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)'}}>
                           <div style={{fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:10}}>Quick Feedback</div>
