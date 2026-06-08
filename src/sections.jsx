@@ -1430,14 +1430,14 @@ function MomentumBar({ activeWorkout, history }) {
   if (completedSets === 0) return null;
 
   const label = score >= 90 ? "Elite session" : score >= 75 ? "Strong session" : score >= 60 ? "Solid session" : "Recovery session";
-  const barColor = score >= 90 ? T.green : score >= 75 ? T.fat : score >= 60 ? T.fat : T.prot;
+  const barColor = score >= 90 ? T.green : score >= 75 ? T.fat : score >= 60 ? T.fat : 'var(--cm-red,#FF3B30)';
   return (
-    <div style={{padding:"10px 14px",background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:12,marginBottom:12}}>
+    <div style={{padding:"10px 14px",background:"var(--cm-paper,#fff)",border:"none",borderRadius:12,marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,.12)"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.38)",letterSpacing:"0.18em",textTransform:"uppercase"}}>Workout Momentum</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.18em",textTransform:"uppercase"}}>Workout Momentum</div>
         <div style={{fontFamily:"var(--mono)",fontSize:11,color:barColor,fontWeight:700}}>{score}% — {label}</div>
       </div>
-      <div style={{height:4,background:"rgba(245,245,240,0.07)",borderRadius:2,overflow:"hidden"}}>
+      <div style={{height:4,background:"rgba(var(--cm-ink-rgb,10,10,10),.10)",borderRadius:2,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${score}%`,background:barColor,borderRadius:2,transition:"width 0.6s ease"}}/>
       </div>
     </div>
