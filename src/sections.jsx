@@ -4185,7 +4185,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               if(md)md.primary.forEach(m=>{primaryMuscleNames.add(m);const r=MUSCLE_TO_BODYMAP[m];if(r)workedRegions.add(r);});
             });
             const bodyColors={};
-            ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?BODYMAP_COLOR[r]:'rgba(245,245,240,0.08)';});
+            ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?BODYMAP_COLOR[r]:'rgba(var(--cm-ink-rgb,10,10,10),.08)';});
             const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:BODYMAP_COLOR[r]||'var(--accent)'}));
             const tomorrowIdx=(WDAYS.indexOf(todayKey)+1)%7;
             const tomorrowKey=WDAYS[tomorrowIdx];
@@ -4198,61 +4198,90 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             const mno={fontFamily:"'DM Mono',monospace"};
             const cnd={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
             const isFirstSession=sessionCount<=1;
+            const doneSets=srcExercises.flatMap(ex=>(ex.sets||[]).filter(s=>s.done).map(s=>({weight:parseFloat(s.weight)||0,reps:parseReps(s.reps),exerciseName:ex.name})));
+            const weightedDoneSets=doneSets.filter(s=>s.weight>0);
+            const topSet=weightedDoneSets.length>0?weightedDoneSets.reduce((b,s)=>s.weight>b.weight?s:b):doneSets.length>0?doneSets.reduce((b,s)=>s.reps>b.reps?s:b):null;
+            const prevVol=workoutSummary?.previousVolume??null;
+            const curVol=totalVolumeLogged;
+            const tonnagePct=(prevVol!=null&&prevVol>0&&curVol>0)?Math.round(((curVol-prevVol)/prevVol)*100):null;
             return(
-              <div style={{position:'fixed',inset:0,background:'#000000',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+              <div style={{position:'fixed',inset:0,background:'var(--cm-red,#FF3B30)',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
                 <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}`}</style>
                 {isFirstSession&&(
-                  <div style={{background:'linear-gradient(180deg,rgba(var(--accent-rgb),0.15) 0%,transparent 100%)',padding:'40px 24px 24px',textAlign:'center',maxWidth:480,margin:'0 auto',boxSizing:'border-box'}}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// FIRST SESSION COMPLETE'}</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:64,color:'#f5f5f0',lineHeight:0.88,marginBottom:16,textTransform:'uppercase'}}>YOU<br/>SHOWED<br/>UP.</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,color:'rgba(245,245,240,0.6)',lineHeight:1.4,marginBottom:24}}>That's the hardest part. Most people never start. You did.</div>
-                    <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
-                      {['FIRST SESSION','STREAK STARTED','COACH ACTIVE'].map(chip=>(
-                        <span key={chip} style={{background:'rgba(var(--accent-rgb),0.1)',border:'1px solid rgba(var(--accent-rgb),0.2)',borderRadius:20,padding:'6px 14px',fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--accent)',letterSpacing:'0.1em'}}>{chip} ✓</span>
-                      ))}
+                  <div style={{maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),40px) 24px 0',boxSizing:'border-box'}}>
+                    <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'28px 24px 24px',textAlign:'center',boxShadow:'0 2px 20px rgba(0,0,0,.14)'}}>
+                      <div style={{...mno,fontSize:10,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// FIRST SESSION COMPLETE'}</div>
+                      <div style={{...cnd,fontSize:56,color:'var(--cm-ink,#0A0A0A)',lineHeight:0.88,marginBottom:16,textTransform:'uppercase'}}>YOU<br/>SHOWED<br/>UP.</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,color:'rgba(var(--cm-ink-rgb,10,10,10),.6)',lineHeight:1.4,marginBottom:24}}>That's the hardest part. Most people never start. You did.</div>
+                      <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+                        {['FIRST SESSION','STREAK STARTED','COACH ACTIVE'].map(chip=>(
+                          <span key={chip} style={{background:'rgba(var(--accent-rgb),0.08)',border:'1px solid rgba(var(--accent-rgb),0.2)',borderRadius:20,padding:'6px 14px',...mno,fontSize:9,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.1em'}}>{chip} ✓</span>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{height:1,background:'rgba(var(--accent-rgb),0.08)',marginTop:24}}/>
                   </div>
                 )}
                 <div style={{animation:'sumIn 0.22s ease',maxWidth:480,margin:'0 auto',padding:isFirstSession?'24px 24px 0':'max(env(safe-area-inset-top),48px) 24px 0',paddingBottom:'max(env(safe-area-inset-bottom),48px)'}}>
 
                   {/* Close */}
-                  <div onClick={clearWorkoutSummary} style={{width:36,height:36,borderRadius:10,background:'rgba(245,245,240,0.06)',border:'1px solid rgba(245,245,240,0.1)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',marginBottom:24}}>
-                    <span style={{color:'rgba(245,245,240,0.5)',fontSize:16,lineHeight:1,fontFamily:'sans-serif',userSelect:'none'}}>&#x2715;</span>
+                  <div onClick={clearWorkoutSummary} style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',marginBottom:24}}>
+                    <span style={{color:'rgba(255,255,255,0.85)',fontSize:16,lineHeight:1,fontFamily:'sans-serif',userSelect:'none'}}>&#x2715;</span>
                   </div>
 
                   {/* Headline */}
-                  <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:12}}>{'// SESSION COMPLETE'}</div>
-                  <div style={{...cnd,fontSize:72,color:'#f5f5f0',lineHeight:0.9,textTransform:'uppercase',marginBottom:12,letterSpacing:'-0.01em'}}>
-                    SESSION<br/>COMPLETE<span style={{color:'var(--accent)'}}>.</span>
+                  <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
+                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
-                  <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.35)',marginBottom:36,letterSpacing:'0.08em'}}>
+                  <div style={{...mno,fontSize:9,color:'rgba(255,255,255,0.75)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:10}}>{'// SESSION COMPLETE'}</div>
+                  <div style={{...cnd,fontSize:68,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>
+                    SESSION<br/>COMPLETE<span style={{color:'rgba(255,255,255,0.45)'}}>.</span>
+                  </div>
+                  {workoutSummary?.title&&<div style={{...cnd,fontSize:28,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.01em'}}>{workoutSummary.title.toUpperCase()}</div>}
+                  <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.5)',marginBottom:32,letterSpacing:'0.08em'}}>
                     {dateStr} · {durStr}
                   </div>
 
                   {/* Stats row */}
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:32}}>
-                    {[
-                      {val:totalSetsLogged,label:'SETS'},
-                      {val:totalVolumeLogged>0?(totalVolumeLogged>=1000?(totalVolumeLogged/1000).toFixed(1)+'K lbs':Math.round(totalVolumeLogged)+' lbs'):'—',label:'VOLUME'},
-                      {val:exercisesWorked.length||0,label:'EXERCISES'},
-                    ].map(({val,label})=>(
-                      <div key={label} style={{background:'#0d0d0d',border:'1px solid rgba(var(--accent-rgb),0.1)',borderRadius:12,padding:'14px 12px',textAlign:'center'}}>
-                        <div style={{...cnd,fontSize:32,color:'#f5f5f0',lineHeight:1}}>{val}</div>
-                        <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',marginTop:4}}>{label}</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:24}}>
+                    <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                      <div style={{...cnd,fontSize:24,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{workoutSummary?.completedSets??totalSetsLogged}<span style={{fontSize:15,fontWeight:400,fontStyle:'normal'}}>/{workoutSummary?.totalSets??'?'}</span></div>
+                      <div style={{...mno,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.12em',marginTop:4}}>SETS DONE</div>
+                    </div>
+                    <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                      <div style={{...cnd,fontSize:24,lineHeight:1,color:tonnagePct!=null&&tonnagePct>0?'#22c55e':'var(--cm-ink,#0A0A0A)'}}>
+                        {curVol===0?'—':tonnagePct!=null?`${tonnagePct>=0?'+':''}${tonnagePct}%`:'1ST'}
                       </div>
-                    ))}
+                      <div style={{...mno,fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.1em',marginTop:4,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                        {curVol===0?'TONNAGE':tonnagePct!=null?`VS LAST ${(workoutSummary?.title||'').toUpperCase()}`:`FIRST ${(workoutSummary?.title||'').toUpperCase()}`}
+                      </div>
+                    </div>
+                    <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'14px 10px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                      {topSet&&topSet.weight>0?(
+                        <>
+                          <div style={{...cnd,fontSize:20,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{topSet.weight}<span style={{fontSize:12}}>×{topSet.reps}</span></div>
+                          <div style={{...mno,fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.08em',marginTop:3,textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topSet.exerciseName}</div>
+                        </>
+                      ):topSet?(
+                        <>
+                          <div style={{...cnd,fontSize:20,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{topSet.reps}<span style={{fontSize:12}}> reps</span></div>
+                          <div style={{...mno,fontSize:7,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.08em',marginTop:3}}>BODYWEIGHT</div>
+                        </>
+                      ):(
+                        <div style={{...cnd,fontSize:26,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>—</div>
+                      )}
+                      <div style={{...mno,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',letterSpacing:'0.12em',marginTop:4}}>TOP SET</div>
+                    </div>
                   </div>
 
                   {/* Muscles worked */}
                   {workedRegions.size>0&&(
-                    <div style={{marginBottom:32}}>
-                      <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
+                    <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                      <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:16}}>{'// MUSCLES WORKED'}</div>
                       <BodyMap colors={bodyColors}/>
                       {workedChips.length>0&&(
                         <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:16}}>
                           {workedChips.map(({label,color})=>(
-                            <span key={label} style={{background:`${color}15`,border:`1px solid ${color}30`,borderRadius:20,padding:'4px 12px',...mno,fontSize:9,color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</span>
+                            <span key={label} style={{background:`${color}18`,border:`1px solid ${color}35`,borderRadius:20,padding:'4px 12px',...mno,fontSize:9,color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</span>
                           ))}
                         </div>
                       )}
@@ -4261,16 +4290,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                   {/* PRs */}
                   {workoutSummary?.prs?.length>0&&(
-                    <div style={{marginBottom:32}}>
-                      <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEW RECORDS'}</div>
+                    <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                      <div style={{...mno,fontSize:9,color:'#22c55e',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14,display:'flex',alignItems:'center',gap:6}}><span>🏆</span>NEW PERSONAL RECORD</div>
                       {workoutSummary.prs.map((pr,i)=>(
-                        <div key={i} style={{background:'rgba(34,197,94,0.05)',border:'1px solid rgba(34,197,94,0.15)',borderRadius:12,padding:'14px 16px',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <div>
-                            <div style={{...cnd,fontSize:18,color:'#f5f5f0',textTransform:'uppercase'}}>{pr.name}</div>
-                            {pr.reps&&<div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',marginTop:2}}>{pr.reps} REPS</div>}
-                          </div>
-                          <div style={{...cnd,fontSize:28,color:'#22c55e',textAlign:'right'}}>
-                            {pr.weight}<span style={{...mno,fontSize:10,fontStyle:'normal',fontWeight:400}}> lbs</span>
+                        <div key={i} style={{...(i>0?{borderTop:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)',paddingTop:12,marginTop:12}:{}),display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <div style={{...cnd,fontSize:18,color:'var(--cm-ink,#0A0A0A)',textTransform:'uppercase'}}>{pr.name}</div>
+                          <div style={{textAlign:'right'}}>
+                            <div style={{...cnd,fontSize:26,color:'#22c55e'}}>{pr.weight}<span style={{...mno,fontSize:10,fontStyle:'normal',fontWeight:400}}> lbs</span></div>
+                            {pr.reps&&<div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',marginTop:2}}>{pr.reps} REPS</div>}
                           </div>
                         </div>
                       ))}
@@ -4278,31 +4305,29 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   )}
 
                   {/* Fuel up */}
-                  <div style={{marginBottom:32}}>
-                    <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// FUEL UP'}</div>
-                    <div style={{background:'#0d0d0d',border:'1px solid rgba(var(--accent-rgb),0.1)',borderRadius:12,padding:16}}>
-                      <div style={{...cnd,fontSize:20,color:'#f5f5f0',textTransform:'uppercase',marginBottom:6}}>
-                        {macros?`${Math.round((macros.protein||150)*0.35)}G PROTEIN · ${Math.round((macros.carbs||200)*0.3)}G CARBS`:'40–50G PROTEIN · MODERATE CARBS'}
-                      </div>
-                      <div style={{...mno,fontSize:9,color:'rgba(245,245,240,0.4)',lineHeight:1.6}}>
-                        Post-workout window is open. Hit protein within the next 45 minutes.
-                      </div>
+                  <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                    <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// FUEL UP'}</div>
+                    <div style={{...cnd,fontSize:20,color:'var(--cm-ink,#0A0A0A)',textTransform:'uppercase',marginBottom:6}}>
+                      {macros?`${Math.round((macros.protein||150)*0.35)}G PROTEIN · ${Math.round((macros.carbs||200)*0.3)}G CARBS`:'40–50G PROTEIN · MODERATE CARBS'}
+                    </div>
+                    <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',lineHeight:1.6}}>
+                      Post-workout window is open. Hit protein within the next 45 minutes.
                     </div>
                   </div>
 
                   {/* Next session */}
-                  <div style={{marginBottom:48}}>
-                    <div style={{...mno,fontSize:9,color:'var(--accent)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEXT UP'}</div>
-                    <div style={{...cnd,fontSize:28,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:8}}>
+                  <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'20px',marginBottom:20,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                    <div style={{...mno,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:14}}>{'// NEXT UP'}</div>
+                    <div style={{...cnd,fontSize:26,color:'var(--cm-ink,#0A0A0A)',textTransform:'uppercase',lineHeight:1,marginBottom:8}}>
                       {tomorrowFullDay} · {tomorrowFocus}
                     </div>
-                    <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.4)',lineHeight:1.6}}>
+                    <div style={{...mno,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),.5)',lineHeight:1.6}}>
                       {tomorrowType==='rest'?'Rest day tomorrow. Focus on sleep and nutrition for full recovery.':'Rest well tonight. Your next session is in 24 hours.'}
                     </div>
                   </div>
 
                   {/* Back to home */}
-                  <button onClick={clearWorkoutSummary} style={{width:'100%',padding:'18px 0',background:'var(--accent)',border:'none',borderRadius:12,color:'#fff',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:16}}>
+                  <button onClick={clearWorkoutSummary} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#fff)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',...mno,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',marginBottom:24}}>
                     BACK TO HOME →
                   </button>
 

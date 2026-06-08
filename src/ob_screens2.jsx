@@ -5977,6 +5977,7 @@ Rules:
       const prs=[];
       let totalVolume=0;
       const totalSets=activeWorkout.exercises.reduce((a,e)=>a+(e.sets?.length||0),0);
+      const normFocus=f=>{if(!f)return'';return f.toLowerCase().replace(/\s+(day|session|workout)s?\s*$/,'').replace(/\bleg\b/,'legs').trim();};
 
       activeWorkout.exercises.forEach(ex=>{
         const k=ex.name.toLowerCase().replace(/\s+/g,"_");
@@ -6017,7 +6018,7 @@ Rules:
           await sb.from("workout_logs").insert({
             user_id:user.id,
             date:today,
-            workout:{focus:todayFocus,exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData},
+            workout:{focus:normFocus(todayFocus),exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData},
             volume_lbs:Math.round(totalVolume),
             total_sets:setsLogged.reduce((a,e)=>a+e.sets.length,0),
             total_reps:setsLogged.reduce((a,e)=>a+e.sets.reduce((b,s)=>b+(parseInt(s.reps)||0),0),0),
@@ -6136,11 +6137,14 @@ Rules:
         }).catch(()=>{});
       }
 
+      const _normToday=normFocus(todayFocus);
+      const _prevLog=workoutLogsRaw.find(w=>normFocus(w.workout?.focus)===_normToday&&(w.volume_lbs||0)>0);
+      const previousVolume=_prevLog?.volume_lbs||null;
       setWorkoutSummary({
         title:todayFocus,duration,burn,
         totalVolume:Math.round(totalVolume),
         totalSets,completedSets:totalSetsLogged,
-        prs,exercises:setsLogged,plateausBroken,
+        prs,exercises:setsLogged,plateausBroken,previousVolume,
       });
       // First workout win
       if(workoutCount===1){
