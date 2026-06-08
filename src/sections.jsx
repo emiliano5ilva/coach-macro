@@ -4232,9 +4232,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
                     <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
-                  <div style={{...mno,fontSize:9,color:'rgba(255,255,255,0.75)',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:10}}>{'// SESSION COMPLETE'}</div>
                   <div style={{...cnd,fontSize:68,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>
-                    SESSION<br/>COMPLETE<span style={{color:'rgba(255,255,255,0.45)'}}>.</span>
+                    SESSION<br/>COMPLETE
                   </div>
                   {workoutSummary?.title&&<div style={{...cnd,fontSize:28,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.01em'}}>{workoutSummary.title.toUpperCase()}</div>}
                   <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.5)',marginBottom:32,letterSpacing:'0.08em'}}>
