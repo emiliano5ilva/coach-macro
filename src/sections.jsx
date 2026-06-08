@@ -46,6 +46,7 @@ import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import BodyMap from "./components/BodyMap.jsx";
 import { getExerciseData, getMuscleColor } from "./data/exerciseMuscleMap.js";
 import { MUSCLE_TO_BODYMAP, BODYMAP_COLOR, REGION_LABELS, ALL_REGIONS } from "./data/bodyMapRegions.js";
+import { thermalAt, THERMAL_NODATA } from "./data/thermalPalette.js";
 import { getPrescription, getRestTime, getGoalLabel, getGoalContext } from "./data/prescription.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
 import { getReferralData, getReferrals, REFERRAL_TIERS } from "./services/referralService.js";
@@ -1982,9 +1983,10 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
     const md=getExerciseData(ex.name);
     if(md)md.primary.forEach(m=>{primaryMuscleNames.add(m);const r=MUSCLE_TO_BODYMAP[m];if(r)workedRegions.add(r);});
   });
+  const _workedTone=thermalAt(0.62); // #CC1100 — primed/optimal tone, unified with thermal palette
   const bodyColors={};
-  ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?BODYMAP_COLOR[r]:'rgba(var(--cm-ink-rgb,10,10,10),.08)';});
-  const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:BODYMAP_COLOR[r]||'var(--accent)'}));
+  ALL_REGIONS.forEach(r=>{bodyColors[r]=workedRegions.has(r)?_workedTone:THERMAL_NODATA;});
+  const workedChips=[...workedRegions].map(r=>({label:REGION_LABELS[r]||r,color:_workedTone}));
   const tomorrowIdx=(WDAYS.indexOf(todayKey)+1)%7;
   const tomorrowKey=WDAYS[tomorrowIdx];
   const tomorrowType=schedule?.[tomorrowKey]||'rest';
@@ -2003,7 +2005,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
   const curVol=totalVolumeLogged;
   const tonnagePct=(prevVol!=null&&prevVol>0&&curVol>0)?Math.round(((curVol-prevVol)/prevVol)*100):null;
   // ── ANIMATION ──────────────────────────────────────────────────────────────
-  const UNWORKED_COLOR='rgba(var(--cm-ink-rgb,10,10,10),.08)';
+  const UNWORKED_COLOR=THERMAL_NODATA;
   const IGNITE_ORDER=['chest','shoulders-f','biceps','triceps','forearms-f','forearms-b','abs','hip-flexors','traps','lats','rear-delts','lower-back','glutes','quads','hamstrings','calves-f','calves-b'];
   // litColors drives BodyMap: starts all-unworked (fully lit immediately for reduced-motion)
   const [litColors,setLitColors]=useState(()=>_trainEyeRedMo?{...bodyColors}:ALL_REGIONS.reduce((c,r)=>({...c,[r]:UNWORKED_COLOR}),{}));

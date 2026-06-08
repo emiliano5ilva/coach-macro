@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import BodyMap from './BodyMap';
 import { getRecoveryData, getOptimizationData } from '../services/recoveryService';
-
-const THERMAL = {
-  hot:  '#FFE500',
-  warm: '#FF6D00',
-  red:  '#CC1100',
-  cool: '#00BFFF',
-  cold: '#2a2a2a',
-};
+import { thermalAt, THERMAL_NODATA, THERMAL_CSS } from '../data/thermalPalette';
 
 const MUSCLE_MAP = {
   chest:     ['chest'],
@@ -21,19 +14,19 @@ const MUSCLE_MAP = {
 
 const NAMES = { chest:'Chest', back:'Back', shoulders:'Shoulders', arms:'Arms', core:'Core', legs:'Legs' };
 
+// Recovery: pct 0–100 where 100=fully rested (cold/blue), 0=just trained (hot/yellow)
+// t = 1 - pct/100 → pct=100→t=0→blue, pct=0→t=1→yellow
 function thermalColor(pct) {
-  if (pct === null || pct === undefined) return THERMAL.cold;
-  if (pct >= 85) return THERMAL.cool;
-  if (pct >= 70) return THERMAL.red;
-  if (pct >= 50) return THERMAL.warm;
-  return THERMAL.hot;
+  if (pct === null || pct === undefined) return THERMAL_NODATA;
+  return thermalAt(1 - pct / 100);
 }
 
+// Optimization: 4 representative positions on the gradient
 function optColor(status) {
-  if (status === 'OVERLOADED')   return THERMAL.hot;
-  if (status === 'OPTIMAL')      return THERMAL.red;
-  if (status === 'UNDERTRAINED') return THERMAL.cool;
-  return THERMAL.cold;
+  if (status === 'OVERLOADED')   return thermalAt(0.95); // hot
+  if (status === 'OPTIMAL')      return thermalAt(0.62); // red/primed
+  if (status === 'UNDERTRAINED') return thermalAt(0.10); // cold
+  return THERMAL_NODATA;                                 // UNTRAINED / no data
 }
 
 function recoveryStatus(pct) {
@@ -289,7 +282,7 @@ const s = {
     height: 6,
     borderRadius: 3,
     margin: '0 8px',
-    background: 'linear-gradient(to right, #2a2a2a, #00BFFF, #CC1100, #FF6D00, #FFE500)',
+    background: THERMAL_CSS,
   },
   chipGrid: {
     display: 'flex',

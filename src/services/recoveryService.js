@@ -4,7 +4,7 @@ import { EXERCISE_MUSCLE_GROUP } from '../exercise_database';
 import { computeLoadMetrics } from './trainingLoadService';
 import { getCycleAdjustment } from './cyclePatternService';
 
-const GROUP_TO_SVG = {
+export const GROUP_TO_SVG = {
   chest:     ['chest'],
   back:      ['traps', 'lats', 'lower-back'],
   shoulders: ['shoulders-f', 'rear-delts'],
@@ -23,7 +23,7 @@ const NORMALIZE_GROUP = {
 
 const ALL_GROUPS = ['chest', 'back', 'shoulders', 'arms', 'core', 'legs'];
 
-const OPTIMAL_SETS = {
+export const OPTIMAL_SETS = {
   chest:     [10, 20],
   back:      [10, 20],
   shoulders: [12, 20],

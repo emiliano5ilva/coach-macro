@@ -76,6 +76,8 @@ import WinScreen from "./components/WinScreen.jsx";
 import BodyMap from "./components/BodyMap.jsx";
 import { getExerciseData } from "./data/exerciseMuscleMap.js";
 import { MUSCLE_TO_BODYMAP, BODYMAP_COLOR, ALL_REGIONS } from "./data/bodyMapRegions.js";
+import { thermalAt, THERMAL_NODATA, THERMAL_CSS } from "./data/thermalPalette.js";
+import { OPTIMAL_SETS, GROUP_TO_SVG } from "./services/recoveryService.js";
 import StreakCard from "./components/StreakCard.jsx";
 import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
 import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
@@ -2339,21 +2341,42 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
     ? {count:(data.prs||[]).length,list:(data.prs||[]).slice(0,3).map(p=>({name:p.exercise_name,weight:p.weight,reps:p.reps}))}
     : {count:0,list:[]};
 
-  // Weekly muscle coverage — union worked regions across all sessions, done sets only
-  const weekWorked = new Set();
+  // Weekly muscle coverage — sets per group, driven by done sets, thermal-colored
+  // regionToGroup: invert GROUP_TO_SVG (includes lower-back under back)
+  const _regionToGroup={};
+  Object.entries(GROUP_TO_SVG).forEach(([grp,ids])=>ids.forEach(id=>{_regionToGroup[id]=grp;}));
+  // count done sets per group via getExerciseData → MUSCLE_TO_BODYMAP → regionToGroup
+  const setsPerGroup=Object.fromEntries(Object.keys(GROUP_TO_SVG).map(g=>[g,0]));
   (workoutLogsRaw||[]).filter(l=>l.date>=twStart).forEach(l=>{
     (l.workout?.exercises||[]).forEach(ex=>{
-      const did=(ex.sets||[]).some(s=>s.done);
-      if(!did)return;
+      const done=(ex.sets||[]).filter(s=>s.done).length;
+      if(!done)return;
       const md=getExerciseData(ex.name);
-      if(md)md.primary.forEach(m=>{const r=MUSCLE_TO_BODYMAP[m];if(r)weekWorked.add(r);});
+      if(!md)return;
+      const grpsHit=new Set();
+      md.primary.forEach(m=>{const r=MUSCLE_TO_BODYMAP[m];if(r&&_regionToGroup[r])grpsHit.add(_regionToGroup[r]);});
+      grpsHit.forEach(g=>{setsPerGroup[g]+=done;});
     });
   });
+  // sets → thermal t: 0=nodata, 1..min→cold(0.12..0.45), min..max→optimal(0.45..0.70), >max→hot(0.70..0.95)
+  function _setsToT(sets,grp){
+    if(sets===0)return null;
+    const[min,max]=OPTIMAL_SETS[grp]||[10,20];
+    if(sets<min)return 0.12+(sets/min)*(0.45-0.12);
+    if(sets<=max)return 0.45+((sets-min)/(max-min))*(0.70-0.45);
+    return 0.70+Math.min(1,(sets-max)/(max*0.5))*(0.95-0.70);
+  }
   const bodyColors={};
-  ALL_REGIONS.forEach(r=>{bodyColors[r]=weekWorked.has(r)?BODYMAP_COLOR[r]:'rgba(var(--cm-ink-rgb,10,10,10),.08)';});
-  const MAJOR_GROUPS={Chest:['chest'],Back:['lats','traps','lower-back'],Shoulders:['shoulders-f','rear-delts'],Arms:['biceps','triceps','forearms-f','forearms-b'],Legs:['quads','hamstrings','glutes','calves-f','calves-b'],Core:['abs','hip-flexors']};
-  const trainedGroups=Object.entries(MAJOR_GROUPS).filter(([,regions])=>regions.some(r=>weekWorked.has(r))).map(([name])=>name);
-  const skippedGroups=Object.keys(MAJOR_GROUPS).filter(g=>!trainedGroups.includes(g));
+  ALL_REGIONS.forEach(r=>{
+    const grp=_regionToGroup[r];
+    if(!grp){bodyColors[r]=THERMAL_NODATA;return;}
+    const t=_setsToT(setsPerGroup[grp],grp);
+    bodyColors[r]=t===null?THERMAL_NODATA:thermalAt(t);
+  });
+  // skipped = groups with 0 sets this week (for the callout)
+  const _groupNames={chest:'Chest',back:'Back',shoulders:'Shoulders',arms:'Arms',core:'Core',legs:'Legs'};
+  const trainedGroups=Object.keys(GROUP_TO_SVG).filter(g=>setsPerGroup[g]>0).map(g=>_groupNames[g]||g);
+  const skippedGroups=Object.keys(GROUP_TO_SVG).filter(g=>setsPerGroup[g]===0).map(g=>_groupNames[g]||g);
 
   // Style helpers
   const ink='var(--cm-ink,#0A0A0A)';
@@ -2467,6 +2490,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
           <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
             <div style={{width:100,flexShrink:0}}>
               <BodyMap colors={bodyColors}/>
+              <div style={{height:4,borderRadius:2,marginTop:6,background:THERMAL_CSS}}/>
             </div>
             <div style={{flex:1,minWidth:0}}>
               {trainedGroups.length>0&&(
