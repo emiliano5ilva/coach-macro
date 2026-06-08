@@ -1678,8 +1678,6 @@ function WorkoutSummaryScreen({ summary, history, profile, onSaveAndExit, onLogM
   if (!summary) return null;
   const wUnit = profile?.wUnit || "lbs";
   const compPct = summary.totalSets > 0 ? Math.round(summary.completedSets / summary.totalSets * 100) : 100;
-  // TEMP DEBUG
-  console.log('[DEBUG] WorkoutSummaryScreen RENDER',{summaryExercises:summary?.exercises?.map(e=>e.name)});
   return (
     <div style={{animation:"fade-in 0.3s"}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -2088,18 +2086,9 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
     return()=>ids.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
-  // TEMP DEBUG
-  console.log('[DEBUG] SummaryPortal RENDER',{exercisesWorked:exercisesWorked.map(e=>e.name),setsFlags:exercisesWorked.map(e=>(e.sets||[]).map(s=>s.done)),workedRegions:[...workedRegions]});
   return(
     <div ref={scrollRef} style={{position:'fixed',inset:0,background:'var(--cm-red,#FF3B30)',zIndex:9001,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
       <style>{`@keyframes sumIn{from{opacity:0}to{opacity:1}}@keyframes sumClank{from{transform:scale(0.82)}50%{transform:scale(1.06)}75%{transform:scale(0.99)}to{transform:scale(1)}}@keyframes sumShake{0%{transform:translate(0,0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,-1px)}100%{transform:translate(0,0)}}`}</style>
-      {/* TEMP DEBUG — REMOVE */}
-      <div style={{position:'sticky',top:0,zIndex:10000,background:'#FFD700',padding:'8px 10px',fontFamily:'monospace',fontSize:9,color:'#000',lineHeight:1.5,wordBreak:'break-all'}}>
-        <b>perf:</b> {exercisesWorked.map(e=>e.name).join(', ')}<br/>
-        <b>flags:</b> {exercisesWorked.map(e=>JSON.stringify((e.sets||[]).map(s=>s.done))).join(' | ')}<br/>
-        <b>regions:</b> {[...workedRegions].join(', ')}<br/>
-        <b>src:</b> {completedWorkout?'completedWorkout':'workoutSummary'}
-      </div>
       {isFirstSession&&(
         <div style={{maxWidth:480,margin:'0 auto',padding:'max(env(safe-area-inset-top),40px) 24px 0',boxSizing:'border-box'}}>
           <div style={{background:'var(--cm-paper,#fff)',borderRadius:22,padding:'28px 24px 24px',textAlign:'center',boxShadow:'0 2px 20px rgba(0,0,0,.14)'}}>
