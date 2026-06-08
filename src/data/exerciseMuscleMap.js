@@ -1,4 +1,5 @@
 import { stripSupersetLabel, resolveAlias } from './exerciseNames.js';
+import { getCanonicalExerciseData } from './canonicalExerciseData';
 
 const MUSCLE_COLORS = {
   'Sternal Pec':         '#e8341c',
@@ -671,10 +672,12 @@ export function getExerciseData(exerciseName) {
   if (!exerciseName) return null;
   const stripped = stripSupersetLabel(exerciseName);
   const alias = resolveAlias(exerciseName);
-  return (
+  const curated =
     _cascade(exerciseName)
     || (stripped !== exerciseName ? _cascade(stripped) : null)
-    || (alias ? _cascade(alias) : null)
-    || null
-  );
+    || (alias ? _cascade(alias) : null);
+  if (curated) return curated;
+  const canon = getCanonicalExerciseData(exerciseName);
+  if (canon) return { primary: canon.primary, secondary: canon.secondary, note: null };
+  return null;
 }

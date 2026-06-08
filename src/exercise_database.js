@@ -3,6 +3,7 @@
 // So no user ever hits a dead end
 
 import { stripSupersetLabel, resolveAlias } from './data/exerciseNames.js';
+import { getCanonicalMuscleGroup, getCanonicalEquipment, getCanonicalExerciseData } from './data/canonicalExerciseData';
 
 export const EQUIPMENT_ALTERNATIVES = {
   // ── CHEST ──────────────────────────────────────────────────────────────────
@@ -796,6 +797,51 @@ export const EQUIPMENT_ALTERNATIVES = {
   }
 };
 
+// Equipment compatibility: which canonical equipment tags each setup allows.
+const EQUIP_COMPAT = {
+  "Bodyweight Only": ["bodyweight"],
+  "Dumbbells Only":  ["dumbbell","bodyweight"],
+  "Home Gym":        ["barbell","dumbbell","bodyweight"],
+  "Full Gym":        ["barbell","dumbbell","cable","machine","kettlebell","bands","bodyweight","other"],
+};
+
+function _canonRegions(name) {
+  const d = getCanonicalExerciseData(name);
+  return d && d.regions ? d.regions : [];
+}
+
+// Is this exercise doable with the given equipment setup?
+function isEquipmentCompatible(name, equipment) {
+  const key = EQUIP_KEY[equipment];
+  const pool = key ? EQUIPMENT_POOLS[key] : null;
+  // Pool membership = author-vetted compatible (e.g. bodyweight single-leg RDL).
+  if (pool && (pool.includes(name) || pool.includes(stripSupersetLabel(name)))) return true;
+  const allowed = EQUIP_COMPAT[equipment];
+  if (!allowed) return true;                 // unknown setup -> don't block
+  const eq = getCanonicalEquipment(name);
+  if (!eq) return true;                      // unknown exercise -> don't block
+  return allowed.includes(eq);
+}
+
+// Pick a same-group exercise from the setup's pool, preferring region overlap.
+function substituteFromPool(name, equipment) {
+  const key = EQUIP_KEY[equipment] || "full_gym";
+  const pool = EQUIPMENT_POOLS[key] || [];
+  if (!pool.length) return null;
+  const grp = getMuscleGroup(name);
+  const oReg = _canonRegions(name);
+  let best = null, bestScore = -1;
+  for (const p of pool) {
+    const pGrp = getMuscleGroup(p);
+    if (grp && pGrp && pGrp !== grp) continue;   // require same muscle group when both known
+    const pReg = _canonRegions(p);
+    const overlap = oReg.filter(r => pReg.includes(r)).length;
+    const score = overlap * 10 + (pGrp === grp ? 1 : 0);
+    if (score > bestScore) { bestScore = score; best = p; }
+  }
+  return best || pool.find(p => getMuscleGroup(p) === grp) || pool[0];
+}
+
 export function getEquipmentExercise(exerciseName, equipment) {
   // Resolver chain: direct → superset-stripped → alias-resolved → passthrough
   const stripped = stripSupersetLabel(exerciseName);
@@ -804,8 +850,15 @@ export function getEquipmentExercise(exerciseName, equipment) {
     EQUIPMENT_ALTERNATIVES[exerciseName]
     || EQUIPMENT_ALTERNATIVES[stripped]
     || (aliased ? EQUIPMENT_ALTERNATIVES[aliased] : null);
-  if (!alternatives) return exerciseName;
-  return alternatives[equipment] || alternatives["Full Gym"] || exerciseName;
+  let result = alternatives
+    ? (alternatives[equipment] || alternatives["Full Gym"] || exerciseName)
+    : exerciseName;
+  // Guard: if the result still isn't doable with this equipment, substitute by muscle group.
+  if (!isEquipmentCompatible(result, equipment)) {
+    const sub = substituteFromPool(result, equipment);
+    if (sub) result = sub;
+  }
+  return result;
 }
 
 export function applyEquipmentToWorkout(exercises, equipment) {
@@ -888,6 +941,7 @@ export function getMuscleGroup(name) {
     EXERCISE_MUSCLE_GROUP[name]
     || EXERCISE_MUSCLE_GROUP[stripSupersetLabel(name)]
     || (resolveAlias(name) ? EXERCISE_MUSCLE_GROUP[resolveAlias(name)] : null)
+    || getCanonicalMuscleGroup(name)
     || null
   );
 }

@@ -16,6 +16,9 @@ export const MUSCLE_TO_BODYMAP={
   'Levator Scapulae':'traps',
   'Lower Back':'lower-back',
   'Tensor Fasciae Latae':'glutes',
+  'Chest':'chest','Shoulders':'shoulders-f','Triceps':'triceps','Biceps':'biceps',
+  'Middle Back':'lats','Traps':'traps','Abdominals':'abs','Quadriceps':'quads',
+  'Hamstrings':'hamstrings','Glutes':'glutes','Abductors':'glutes',
 };
 
 export const BODYMAP_COLOR={
