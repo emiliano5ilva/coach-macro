@@ -2360,7 +2360,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
       {/* Calorie-override guard — fixed so it overlays even when scrolled */}
       {confirmOverrideCals&&(
         <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:10011,background:'var(--cm-paper,#fff)',borderTop:`2px solid ${red}`,borderRadius:'20px 20px 0 0',padding:'20px 20px max(env(safe-area-inset-bottom),24px)'}}>
-          <div style={{..._MO,fontSize:9,color:red,letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:8}}>// CUSTOM TARGET SET</div>
+          <div style={{..._MO,fontSize:9,color:red,letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:8}}>CUSTOM TARGET SET</div>
           <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:ink,marginBottom:16}}>You set a custom calorie target. Replace it with the suggested {confirmOverrideCals} kcal?</div>
           <div style={{display:'flex',gap:10}}>
             <button onClick={()=>setConfirmOverrideCals(null)} style={{flex:1,padding:'12px',background:'none',color:inkFaint,border:`1px solid ${inkFainter}`,borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Keep mine</button>
@@ -2374,7 +2374,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
           <button onClick={onClose} style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#fff',fontSize:16,fontFamily:'inherit'}}>✕</button>
         </div>
-        <div style={{..._MO,fontSize:9,color:'rgba(255,255,255,0.60)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>// WEEK IN REVIEW</div>
+        <div style={{..._MO,fontSize:9,color:'rgba(255,255,255,0.60)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>WEEK IN REVIEW</div>
         <div style={{..._BC,fontSize:38,color:'#fff',lineHeight:0.95,textTransform:'uppercase',marginBottom:12}}>{dateRange}</div>
         <div style={{fontFamily:"'Barlow',sans-serif",fontSize:15,color:'rgba(255,255,255,0.80)',lineHeight:1.4}}>
           You showed up {trainingDaysThisWeek} day{trainingDaysThisWeek!==1?'s':''}.{prsThisWeek.count>0?` ${prsThisWeek.count} new PR${prsThisWeek.count>1?'s':''}.`:''}
@@ -2452,7 +2452,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
           <>
             {/* Nutrition adherence */}
             <div style={{..._paper,padding:'16px'}}>
-              <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>// NUTRITION</div>
+              <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>NUTRITION</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                 {[
                   {label:'Cal days',value:`${data.calHit}/7`,green:data.calHit>=5},
@@ -2480,7 +2480,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
             {/* Coach signal + calorie adjustment */}
             {(data.topInsight||data.calorieDelta)&&(
               <div style={{..._paper,padding:'16px'}}>
-                <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>// COACH SIGNAL</div>
+                <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>COACH SIGNAL</div>
                 {data.topInsight&&<div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:ink,lineHeight:1.6,marginBottom:data.calorieDelta?12:0}}>{data.topInsight.message}</div>}
                 {data.calorieDelta&&(
                   <div style={{background:`${red}0F`,border:`1px solid ${red}30`,borderRadius:10,padding:'12px'}}>
