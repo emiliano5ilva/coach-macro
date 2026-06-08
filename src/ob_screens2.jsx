@@ -2028,69 +2028,94 @@ function PRFeed({dbPRs,wUnit}){
   );
 }
 
-function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLastWeek,protHitDays,calHitDays,twStart,macros,user}){
-  const [insight,setInsight]=useState(()=>{
-    const key='cm_week_insight_'+twStart;
-    try{return localStorage.getItem(key)||'';}catch{return '';}
-  });
-  const [insightLoading,setInsightLoading]=useState(false);
-
-  useEffect(()=>{
-    if(insight||insightLoading||!user?.id||workoutsThisWeek===0)return;
-    const key='cm_week_insight_'+twStart;
-    setInsightLoading(true);
-    const prompt=`You are a fitness coach. In one punchy sentence (under 20 words), give a weekly performance insight based on these stats: ${workoutsThisWeek} sessions, ${volumeThisWeek.toLocaleString()} lbs volume (last week: ${volumeLastWeek.toLocaleString()} lbs), protein target hit ${protHitDays}/7 days, calorie target hit ${calHitDays}/7 days. Be specific, motivating, and direct. No fluff.`;
-    ai(prompt,60,'week_insight').then(text=>{
-      const clean=text.replace(/^["']|["']$/g,'').trim();
-      setInsight(clean);
-      try{localStorage.setItem('cm_week_insight_'+twStart,clean);}catch{}
-    }).catch(()=>{}).finally(()=>setInsightLoading(false));
-  },[workoutsThisWeek,user?.id]);
-
+function WeeklyReview({workoutLogsRaw,workoutsThisWeek,volumeThisWeek,volumeLastWeek,protHitDays,calHitDays,twStart,macros,user,setsThisWeek=0,timeThisWeek=0,prsThisWeek={count:0,list:[]},weekDays=[],trainingDaysThisWeek=0,lastWeekTrainingDays=0,wUnit='lbs'}){
   const weekStart=new Date(twStart+'T12:00:00');
   const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
-  const fmt=(d)=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase();
-  const dateRange=`${fmt(weekStart)} – ${fmt(weekEnd)}`;
+  const fmtShort=(d)=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const dateRange=`${fmtShort(weekStart)} – ${fmtShort(weekEnd)}`;
 
-  const lastWeekStart=new Date(weekStart);lastWeekStart.setDate(lastWeekStart.getDate()-7);
-  const lastWeekStr=lastWeekStart.toISOString().split('T')[0];
-  const lastWeekWorkouts=(workoutLogsRaw||[]).filter(l=>l.date>=lastWeekStr&&l.date<twStart).length;
+  const dayDelta=trainingDaysThisWeek-lastWeekTrainingDays;
+  const timeH=Math.floor(timeThisWeek/60);
+  const timeM=timeThisWeek%60;
+  const timeStr=timeThisWeek>0?(timeH>0?`${timeH}h ${timeM}m`:`${timeM}m`):'—';
 
-  const sessionDelta=workoutsThisWeek-lastWeekWorkouts;
-  const volDelta=volumeThisWeek-volumeLastWeek;
-  const protPct=Math.round(protHitDays/7*100);
-  const logDays=new Set([...(workoutLogsRaw||[]).filter(l=>l.date>=twStart).map(l=>l.date)]).size;
+  const _MO={fontFamily:"'DM Mono',monospace"};
+  const _BC={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
+  const ink='var(--cm-ink,#0A0A0A)';
+  const inkFaint='rgba(var(--cm-ink-rgb,10,10,10),.45)';
+  const inkFainter='rgba(var(--cm-ink-rgb,10,10,10),.12)';
+  const red='var(--cm-red,#FF3B30)';
 
   return(
-    <div style={{margin:"0 16px 14px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:14}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// WEEK IN REVIEW</div>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)"}}>{dateRange}</div>
+    <div style={{margin:"0 16px 14px",background:"var(--cm-paper,#fff)",border:`1px solid ${inkFainter}`,borderRadius:16,overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,.07)'}}>
+
+      {/* Header */}
+      <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+        <div style={{..._MO,fontSize:9,color:red,letterSpacing:"0.16em",textTransform:"uppercase"}}>// WEEK IN REVIEW</div>
+        <div style={{..._MO,fontSize:9,color:inkFaint}}>{dateRange}</div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+
+      {/* Summary line */}
+      <div style={{padding:"4px 16px 12px"}}>
+        <div style={{..._BC,fontSize:18,color:ink,lineHeight:1.2}}>
+          You showed up {trainingDaysThisWeek} day{trainingDaysThisWeek!==1?'s':''}.{prsThisWeek.count>0?` ${prsThisWeek.count} new PR${prsThisWeek.count>1?'s':''}.`:''}</div>
+      </div>
+
+      {/* Consistency strip */}
+      <div style={{padding:"0 16px 12px"}}>
+        <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6}}>Consistency · {trainingDaysThisWeek} of 7 days</div>
+        <div style={{display:"flex",gap:4}}>
+          {(weekDays.length?weekDays:Array.from({length:7},(_,i)=>({letter:['S','M','T','W','T','F','S'][i],trained:false,kind:null}))).map((day,i)=>(
+            <div key={i} style={{flex:1,height:36,borderRadius:6,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,
+              background:day.trained?red:inkFainter,
+              transition:"background .2s"}}>
+              {day.trained&&(
+                <div style={{color:"#fff",lineHeight:1,fontSize:11}}>
+                  {day.kind==='run'
+                    ?<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M13 4a1 1 0 1 0 2 0 1 1 0 0 0-2 0M7 20l3-6 2 2 3-4"/></svg>
+                    :<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12M6 21h12M4 12h2m12 0h2M8 7v10M16 7v10"/></svg>
+                  }
+                </div>
+              )}
+              <div style={{..._MO,fontSize:7,color:day.trained?"#fff":inkFaint,letterSpacing:"0.04em"}}>{day.letter}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:1,borderTop:`1px solid ${inkFainter}`,borderBottom:`1px solid ${inkFainter}`}}>
         {[
-          {label:"SESSIONS",value:workoutsThisWeek,delta:sessionDelta,unit:''},
-          {label:"VOLUME",value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek||0),delta:volDelta,unit:'lbs'},
-          {label:"PROTEIN",value:`${protPct}%`,delta:null,unit:'of target'},
-          {label:"LOGGED",value:`${logDays}/7`,delta:null,unit:'days'},
-        ].map(({label,value,delta,unit})=>(
-          <div key={label} style={{background:"rgba(var(--accent-rgb),0.04)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:1,marginBottom:2}}>{value}</div>
-            {unit&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",marginBottom:4}}>{unit}</div>}
-            {delta!==null&&delta!==0&&(
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:delta>0?"#22c55e":"var(--accent)"}}>{delta>0?'+':''}{typeof delta==='number'&&Math.abs(delta)>999?`${(delta/1000).toFixed(1)}k`:delta} vs last wk</div>
-            )}
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginTop:4}}>{label}</div>
+          {label:"SESSIONS",value:workoutsThisWeek},
+          {label:"SETS",value:setsThisWeek},
+          {label:"TIME",value:timeStr},
+          {label:"PRs",value:prsThisWeek.count,green:true},
+        ].map(({label,value,green},i)=>(
+          <div key={label} style={{padding:"10px 4px",textAlign:"center",borderRight:i<3?`1px solid ${inkFainter}`:'none'}}>
+            <div style={{..._BC,fontSize:22,color:green&&prsThisWeek.count>0?'#22c55e':ink,lineHeight:1,marginBottom:2}}>{value}</div>
+            <div style={{..._MO,fontSize:7,color:inkFaint,letterSpacing:"0.1em",textTransform:"uppercase"}}>{label}</div>
           </div>
         ))}
       </div>
-      {(insight||insightLoading)&&(
-        <div style={{borderLeft:"2px solid var(--accent)",paddingLeft:12,marginTop:2}}>
-          {insightLoading?(
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:15,color:"rgba(245,245,240,0.35)"}}>Analyzing your week...</div>
-          ):(
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:17,color:"rgba(245,245,240,0.55)",lineHeight:1.4}}>{insight}</div>
-          )}
+
+      {/* Vs last week */}
+      <div style={{padding:"8px 16px",display:"flex",alignItems:"center",gap:6}}>
+        <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:"0.06em",textTransform:"uppercase"}}>Training days</div>
+        <div style={{..._MO,fontSize:8,fontWeight:700,color:dayDelta>0?'#22c55e':dayDelta<0?red:inkFaint}}>
+          {dayDelta>0?`▲ +${dayDelta}`:dayDelta<0?`▼ ${dayDelta}`:'→ same'} from last week
+        </div>
+      </div>
+
+      {/* PR highlight — conditional */}
+      {prsThisWeek.count>0&&(
+        <div style={{margin:"0 12px 12px",padding:"10px 12px",background:"rgba(34,197,94,.06)",border:"1px solid rgba(34,197,94,.18)",borderRadius:10,display:"flex",gap:10,alignItems:"flex-start"}}>
+          <div style={{fontSize:14,flexShrink:0,lineHeight:1.1}}>🏆</div>
+          <div>
+            <div style={{..._BC,fontSize:14,color:'#22c55e',marginBottom:2}}>{prsThisWeek.count} PR{prsThisWeek.count>1?'s':''} this week</div>
+            <div style={{..._MO,fontSize:8,color:'rgba(34,197,94,.8)',lineHeight:1.5}}>
+              {prsThisWeek.list.slice(0,3).map(p=>`${p.name} ${p.weight}${wUnit}×${p.reps}`).join(' · ')}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -9186,6 +9211,29 @@ Rules:
       total+(log.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).filter(s=>s.done).length,0),0)
     ,[workoutLogsRaw,_twStart]);
 
+    const timeThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).reduce((s,l)=>s+(l.session_duration_mins||0),0),[workoutLogsRaw,_twStart]);
+
+    const prsThisWeek=useMemo(()=>{
+      const list=(dbPRs||[]).filter(pr=>pr.date&&pr.date>=_twStart).map(pr=>({name:pr.exercise_name,weight:pr.weight,reps:pr.reps}));
+      return{count:list.length,list};
+    },[dbPRs,_twStart]);
+
+    const weekDays=useMemo(()=>{
+      const letters=['S','M','T','W','T','F','S'];
+      return Array.from({length:7},(_,i)=>{
+        const d=new Date(_twStart+'T12:00:00');d.setDate(d.getDate()+i);
+        const ds=d.toISOString().split('T')[0];
+        const log=(workoutLogsRaw||[]).find(l=>l.date===ds);
+        const t=log?.workout?.type||'';
+        const kind=log?(t==='run'||t==='cardio'?'run':'lift'):null;
+        return{letter:letters[i],date:ds,trained:!!log,kind};
+      });
+    },[workoutLogsRaw,_twStart]);
+
+    const _lastWeekStr=useMemo(()=>{const d=new Date(_twStart+'T12:00:00');d.setDate(d.getDate()-7);return d.toISOString().split('T')[0];},[_twStart]);
+    const trainingDaysThisWeek=useMemo(()=>new Set((workoutLogsRaw||[]).filter(l=>l.date>=_twStart).map(l=>l.date)).size,[workoutLogsRaw,_twStart]);
+    const lastWeekTrainingDays=useMemo(()=>new Set((workoutLogsRaw||[]).filter(l=>l.date>=_lastWeekStr&&l.date<_twStart).map(l=>l.date)).size,[workoutLogsRaw,_lastWeekStr,_twStart]);
+
     const runActsThisWeek=useMemo(()=>(allActs||[]).filter(a=>{
       const d=a.date||a.start_date_local;
       return d&&d>=_twStart&&(a.type||'').toLowerCase().includes('run');
@@ -9612,10 +9660,17 @@ Rules:
               twStart={_twStart}
               macros={macros}
               user={user}
+              setsThisWeek={setsThisWeek}
+              timeThisWeek={timeThisWeek}
+              prsThisWeek={prsThisWeek}
+              weekDays={weekDays}
+              trainingDaysThisWeek={trainingDaysThisWeek}
+              lastWeekTrainingDays={lastWeekTrainingDays}
+              wUnit={profile?.wUnit||'lbs'}
             />}
             {workoutLogsRaw.length>0&&(
               <div style={{margin:"-4px 16px 14px",display:"flex",justifyContent:"flex-end"}}>
-                <button onClick={()=>setShowWeeklyReviewModal(true)} style={{background:"none",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:8,padding:"5px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--accent-rgb),0.7)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
+                <button onClick={()=>setShowWeeklyReviewModal(true)} style={{background:"none",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.14)",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),.50)",textTransform:"uppercase",letterSpacing:"0.1em"}}>
                   Full Weekly Review →
                 </button>
               </div>
