@@ -1,6 +1,6 @@
 import { sb } from '../client';
 import { musclesToSvgIds, svgIdsToMuscleGroups } from '../data/muscleMapping';
-import { EXERCISE_MUSCLE_GROUP } from '../exercise_database';
+import { EXERCISE_MUSCLE_GROUP, getMuscleGroup } from '../exercise_database';
 import { computeLoadMetrics } from './trainingLoadService';
 import { getCycleAdjustment } from './cyclePatternService';
 
@@ -44,7 +44,7 @@ export async function recordWorkoutRecovery(userId, completedExercises) {
   completedExercises.forEach(ex => {
     const name = ex.name || ex.exercise_name;
     if (!name) return;
-    const raw = EXERCISE_MUSCLE_GROUP[name];
+    const raw = getMuscleGroup(name);
     const normalized = raw ? NORMALIZE_GROUP[raw] : null;
     if (normalized) {
       groupsHit.add(normalized);
@@ -148,7 +148,7 @@ export async function getOptimizationData(userId) {
     (log.workout?.exercises || []).forEach(ex => {
       const doneSets = (ex.sets || []).filter(s => s.done).length;
       if (!doneSets) return;
-      const raw = EXERCISE_MUSCLE_GROUP[ex.name];
+      const raw = getMuscleGroup(ex.name);
       const group = raw ? NORMALIZE_GROUP[raw] : null;
       if (group && group in setsByGroup) {
         setsByGroup[group] += doneSets;

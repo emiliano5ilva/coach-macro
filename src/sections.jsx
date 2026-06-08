@@ -24,7 +24,7 @@ import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
-import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP } from "./exercise_database.js";
+import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
@@ -638,7 +638,7 @@ function _UNUSED_ProgramLibraryScreen({wPrefs,setWPrefs,profile,setTrainScreen})
         {libFavorites.length>0&&(()=>{
           const byGroup={};
           libFavorites.forEach(name=>{
-            const g=EXERCISE_MUSCLE_GROUP[name]||"other";
+            const g=getMuscleGroup(name)||"other";
             if(!byGroup[g])byGroup[g]=[];
             byGroup[g].push(name);
           });
@@ -2589,7 +2589,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const _soreGrps=new Set((todaySoreness.sore_muscles||[]).map(m=>_CHIP_TO_GRP[m]).filter(Boolean));
       const _reduction=todaySoreness.soreness_score>=7?2:1;
       exs=exs.map(ex=>{
-        const _grp=_NORM[EXERCISE_MUSCLE_GROUP[ex.name]||''];
+        const _grp=_NORM[getMuscleGroup(ex.name)||''];
         if(!_grp||!_soreGrps.has(_grp))return ex;
         const _newSets=Math.max(1,Number(ex.sets||3)-_reduction);
         return{...ex,sets:_newSets,notes:(ex.notes?ex.notes+' — sets reduced for recovery':'Sets reduced for recovery')};

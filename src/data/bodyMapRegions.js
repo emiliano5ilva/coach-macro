@@ -13,7 +13,9 @@ export const MUSCLE_TO_BODYMAP={
   'Calves':'calves-f',
   'Lats':'lats','Teres Major':'lats','Rhomboids':'lats',
   'Upper Traps':'traps','Mid Traps':'traps','Lower Traps':'traps',
+  'Levator Scapulae':'traps',
   'Lower Back':'lower-back',
+  'Tensor Fasciae Latae':'glutes',
 };
 
 export const BODYMAP_COLOR={

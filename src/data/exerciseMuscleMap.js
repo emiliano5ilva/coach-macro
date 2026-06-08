@@ -1,3 +1,5 @@
+import { stripSupersetLabel, resolveAlias } from './exerciseNames.js';
+
 const MUSCLE_COLORS = {
   'Sternal Pec':         '#e8341c',
   'Clavicular Pec':      '#e8341c',
@@ -652,15 +654,27 @@ export function getMuscleColor(muscle) {
   return MUSCLE_COLORS[muscle] || 'rgba(245,245,240,0.4)';
 }
 
+function _cascade(n) {
+  if (!n) return null;
+  return (
+    EXERCISE_MUSCLE_MAP[n]
+    || EXERCISE_MUSCLE_MAP[n.replace(/-/g,' ')]
+    || EXERCISE_MUSCLE_MAP[n.replace(/ /g,'-')]
+    || EXERCISE_MUSCLE_MAP[n.toLowerCase()]
+    || EXERCISE_MUSCLE_MAP[n.toLowerCase().replace(/-/g,' ')]
+    || EXERCISE_MUSCLE_MAP[n.toLowerCase().replace(/ /g,'-')]
+    || null
+  );
+}
+
 export function getExerciseData(exerciseName) {
   if (!exerciseName) return null;
+  const stripped = stripSupersetLabel(exerciseName);
+  const alias = resolveAlias(exerciseName);
   return (
-    EXERCISE_MUSCLE_MAP[exerciseName]
-    || EXERCISE_MUSCLE_MAP[exerciseName.replace(/-/g,' ')]
-    || EXERCISE_MUSCLE_MAP[exerciseName.replace(/ /g,'-')]
-    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase()]
-    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase().replace(/-/g,' ')]
-    || EXERCISE_MUSCLE_MAP[exerciseName.toLowerCase().replace(/ /g,'-')]
+    _cascade(exerciseName)
+    || (stripped !== exerciseName ? _cascade(stripped) : null)
+    || (alias ? _cascade(alias) : null)
     || null
   );
 }

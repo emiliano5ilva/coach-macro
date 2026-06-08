@@ -2,6 +2,8 @@
 // Every movement has alternatives for every equipment setup
 // So no user ever hits a dead end
 
+import { stripSupersetLabel, resolveAlias } from './data/exerciseNames.js';
+
 export const EQUIPMENT_ALTERNATIVES = {
   // ── CHEST ──────────────────────────────────────────────────────────────────
   "Barbell Bench Press": {
@@ -872,6 +874,18 @@ export const EXERCISE_MUSCLE_GROUP = {
   "Reverse Curl":"biceps","Single Leg Calf Raise":"calves","Dumbbell Upright Row":"shoulders",
 };
 
+// Tolerant wrapper: try direct, then superset-stripped, then alias-resolved.
+// Import and use this instead of direct EXERCISE_MUSCLE_GROUP[name] lookups.
+export function getMuscleGroup(name) {
+  if (!name) return null;
+  return (
+    EXERCISE_MUSCLE_GROUP[name]
+    || EXERCISE_MUSCLE_GROUP[stripSupersetLabel(name)]
+    || (resolveAlias(name) ? EXERCISE_MUSCLE_GROUP[resolveAlias(name)] : null)
+    || null
+  );
+}
+
 export const MUSCLE_GROUP_POOL = {
   chest:["Barbell Bench Press","Incline Dumbbell Press","Dumbbell Bench Press","Incline Barbell Press","Cable Fly","Dumbbell Fly","Push Up","Chest Press Machine","Pec Deck Machine","Cable Crossover","Chest Dip","Decline Barbell Press","Floor Press"],
   back:["Deadlift","Barbell Row","Pull Up","Lat Pulldown","Cable Row","T-Bar Row","Single Arm Dumbbell Row","Chest-Supported Row","Neutral Grip Pulldown","Face Pull","Seated Cable Row","Rack Pull","Trap Bar Deadlift","Dumbbell Deadlift","Inverted Row","Superman Hold"],
@@ -887,7 +901,7 @@ export const MUSCLE_GROUP_POOL = {
 };
 
 export function getSwapOptions(exerciseName, equipment="Full Gym", count=6) {
-  const group=EXERCISE_MUSCLE_GROUP[exerciseName];
+  const group=getMuscleGroup(exerciseName);
   if(!group)return[];
   const pool=MUSCLE_GROUP_POOL[group]||[];
   return pool
@@ -1487,7 +1501,7 @@ export function getExercisesForEquipment(equipmentSetup) {
 }
 
 export function getSwapOptionsForEquipment(exerciseName, equipmentSetup, count=6) {
-  const group = EXERCISE_MUSCLE_GROUP[exerciseName];
+  const group = getMuscleGroup(exerciseName);
   if (!group) return [];
   const available = new Set(getExercisesForEquipment(equipmentSetup));
   const pool = (MUSCLE_GROUP_POOL[group] || []).filter(
