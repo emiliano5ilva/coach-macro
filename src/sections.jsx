@@ -1993,7 +1993,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
   const ALL_REGIONS=['chest','shoulders-f','biceps','forearms-f','abs','hip-flexors','quads','calves-f','traps','lats','rear-delts','triceps','forearms-b','lower-back','glutes','hamstrings','calves-b'];
   const parseReps=(r)=>{if(typeof r==='number')return r;if(typeof r==='string'){const p=r.split('-');return parseInt(p[0])||0;}return 0;};
   const srcExercises=completedWorkout?(completedWorkout.exercises||[]):(workoutSummary?.exercises||[]);
-  const exercisesWorked=completedWorkout?srcExercises.filter(ex=>ex.sets?.some(s=>s.done)):srcExercises;
+  const exercisesWorked=srcExercises.filter(ex=>(ex.sets||[]).some(s=>s.done));
   const totalSetsLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.length||0),0):(workoutSummary?.completedSets||0);
   const totalVolumeLogged=completedWorkout?exercisesWorked.reduce((acc,ex)=>acc+(ex.sets?.filter(s=>s.done)?.reduce((sum,s)=>sum+((parseFloat(s.weight)||0)*parseReps(s.reps)),0)||0),0):(workoutSummary?.totalVolume||0);
   const workedRegions=new Set();
