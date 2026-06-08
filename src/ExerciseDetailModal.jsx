@@ -248,7 +248,7 @@ function ExerciseImages({ url1, url2, exerciseName }) {
   );
 }
 
-export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
+export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap, sugg }) {
   const [exData,   setExData]   = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [wxHistory,setWxHistory]= useState([]);
@@ -321,6 +321,15 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap }) {
         {exData?.equipment&&(
           <div style={{padding:"2px 20px 12px"}}>
             <span style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",textTransform:"capitalize"}}>{exData.equipment}{exData.body_part?` · ${exData.body_part}`:""}</span>
+          </div>
+        )}
+
+        {/* TODO: gate suggested weight behind logged history (≈30 days / N prior sessions of this exercise) before showing */}
+        {sugg&&(
+          <div style={{margin:"0 20px 4px",padding:"8px 14px",background:"rgba(var(--cm-ink-rgb,10,10,10),.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:10,display:"flex",alignItems:"baseline",gap:8}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.14em",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",textTransform:"uppercase",flexShrink:0}}>SUGGESTED</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink,#0A0A0A)"}}>{sugg.weight} {sugg.unit||'lbs'} × {sugg.reps}</span>
+            {sugg.note&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)"}}>{sugg.note}</span>}
           </div>
         )}
 

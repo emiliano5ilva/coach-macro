@@ -2321,7 +2321,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   // ── Exercise detail modal ────────────────────────────────────────────────
   const [detailModal,setDetailModal]=useState(null); // {exerciseName, exerciseIdx}
   const longPressTimer=useRef(null);
-  function openDetail(exerciseName,exerciseIdx){setDetailModal({exerciseName,exerciseIdx});}
+  function openDetail(exerciseName,exerciseIdx,sugg){setDetailModal({exerciseName,exerciseIdx,sugg});}
   function startLongPress(exerciseName,exerciseIdx){longPressTimer.current=setTimeout(()=>openDetail(exerciseName,exerciseIdx),500);}
   function cancelLongPress(){if(longPressTimer.current){clearTimeout(longPressTimer.current);longPressTimer.current=null;}}
 
@@ -4549,7 +4549,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                                 {ex.mobilitySubstituted&&<span style={{fontSize:9,fontWeight:700,background:"rgba(139,92,246,.15)",color:"#8B5CF6",borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>MODIFIED</span>}
                               </div>
                             </div>
-                            <button onClick={()=>{_hL();openDetail(ex.name,ei);}} title="Exercise detail" style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',minHeight:"auto"}}>
+                            <button onClick={()=>{_hL();openDetail(ex.name,ei,sugg?{...sugg,unit:profile?.wUnit||'lbs'}:null);}} title="Exercise detail" style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',minHeight:"auto"}}>
                               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                             </button>
                             <button onClick={()=>{_hL();setSwapModal({exerciseIdx:ei,exerciseName:ex.name,originalName:ex.originalName||ex.name});}} style={{background:"none",border:"none",cursor:"pointer",padding:"4px",lineHeight:1,flexShrink:0,display:"flex",alignItems:"center",color:"rgba(var(--cm-ink-rgb,10,10,10),.30)"}}>
@@ -4573,18 +4573,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                             return(<div style={{marginLeft:32,marginTop:6,display:"flex",alignItems:"center",gap:8,background:"rgba(254,160,32,0.08)",borderRadius:6,padding:"5px 10px"}}><span style={{color:"#FEA020",fontFamily:"var(--mono)",fontSize:10,flexShrink:0}}>⚠</span><span style={{fontFamily:"var(--mono)",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.60)',lineHeight:1.4}}>RPE trending up — same weight, more effort. Watch for fatigue.</span></div>);
                           })()}
                         </div>
-                        {(()=>{
-                          const exPlateau=(activePlateaus||[]).find(p=>p.exercise_name===ex.name&&p.status==="active");
-                          const dropPct=0.70;
-                          const dropWeight=sugg?.weight?Math.round(parseFloat(sugg.weight)*dropPct/2.5)*2.5:null;
-                          return(
-                            <div style={{background:`rgba(var(--accent-rgb),0.06)`,border:`1px solid rgba(var(--accent-rgb),0.15)`,borderRadius:10,padding:"8px 12px",textAlign:"right",flexShrink:0,marginLeft:12}}>
-                              {sugg&&<><div style={{fontSize:8,color:T.prot,fontWeight:700,letterSpacing:1,marginBottom:2}}>SUGGESTED</div><div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:900,color:T.prot}}>{sugg.weight}{profile?.wUnit||'lbs'} × {sugg.reps}</div><div style={{fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),.55)'}}>{sugg.note}</div></>}
-                              {exPlateau&&dropWeight&&exPlateau.strategy_prescribed==="DROP SET TECHNIQUE"&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.4}}>Drop set: {dropWeight}{profile?.wUnit||'lbs'} after final set</div>}
-                              {exPlateau&&exPlateau.strategy_prescribed==="WAVE LOADING"&&sugg?.weight&&(()=>{const w=parseFloat(sugg.weight)||0;return(<div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(96,165,250,0.7)",marginTop:4,lineHeight:1.5}}>W1: {Math.round(w*0.85/2.5)*2.5}×3 · {Math.round(w*0.90/2.5)*2.5}×2<br/>W2: {Math.round(w*0.87/2.5)*2.5}×3 · {Math.round(w*0.92/2.5)*2.5}×2</div>);})()}
-                            </div>
-                          );
-                        })()}
                       </div>
 
                       {/* Progress bar */}
@@ -4723,6 +4711,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           <ExerciseDetailModal
             exerciseName={detailModal.exerciseName}
             user={user}
+            sugg={detailModal.sugg}
             onClose={()=>setDetailModal(null)}
             onSwap={()=>{
               setDetailModal(null);
