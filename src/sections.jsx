@@ -24,7 +24,7 @@ import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
-import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
+import { getEquipmentExercise, applyEquipmentToWorkout, getSwapOptions, getSwapOptionsForEquipment, EXERCISE_MUSCLE_GROUP, getMuscleGroup } from "./exercise_database.js";
 import { getPacesFromTime, resolvePaceTokens, computeGoalPace, formatRaceTime, getRacePredictions, enrichRunSession, parseTimeInput } from "./utils/runningPaces.js";
 import { renderWithPaces } from "./services/paceService.js";
 import { buildAdaptiveSession } from "./services/adaptiveSessionService.js";
@@ -3353,7 +3353,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
       {/* Swap Exercise Modal */}
       {swapModal&&(()=>{
-        const opts=getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
+        const _equipOpts=getSwapOptionsForEquipment(swapModal.originalName,wPrefs.equipment||"Full Gym");
+        const opts=_equipOpts.length>0?_equipOpts:getSwapOptions(swapModal.originalName,wPrefs.equipment||"Full Gym");
         return(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",backdropFilter:"blur(8px)",zIndex:10000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSwapModal(null)}>
             <div style={{background:"var(--cm-paper,#fff)",border:"none",borderRadius:"24px 24px 0 0",padding:"20px 20px",paddingBottom:"max(env(safe-area-inset-bottom),32px)",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>

@@ -18,6 +18,7 @@ import { TrainSection, ConnectSection, SettingsSection,
   PROMOS, AthletePassport, TrainingDNA, PerformanceCalendar, RacePredictor,
   WeekStrip } from "./sections.jsx";
 import { getWorkoutForDay } from "./programs.js";
+import { applyEquipmentToWorkout } from "./exercise_database.js";
 import { FuelSection } from "./fuel.jsx";
 import { scanTextAllergens, findAllergens } from "./utils/allergenFilter.js";
 import { sb, ai, streamAI } from "./client.js";
@@ -6098,8 +6099,9 @@ Rules:
         const startD=new Date(profile?.startDate||Date.now());
         const dayIdx=Math.floor((new Date()-startD)/(24*60*60*1000))%(daysPerWeek||1);
         const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym");
-        if(exs&&exs.length){
-          const fallbackExs=exs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}));
+        const appliedExs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
+        if(appliedExs&&appliedExs.length){
+          const fallbackExs=appliedExs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}));
           if(balanceCorrections?.length>0){
             balanceCorrections.forEach(correction=>{
               correction.exercises.forEach(exStr=>{
