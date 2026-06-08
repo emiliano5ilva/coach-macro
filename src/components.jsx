@@ -190,6 +190,7 @@ export const SPLIT_CYCLES = {
   "Full Body":       ["Full Body"],
   "Bro Split":       ["Chest","Back","Shoulders","Arms","Legs"],
   "Arnold Split":    ["Chest & Back","Shoulders & Arms","Legs"],
+  "Platz Volume":    ["Chest","Back","Legs","Shoulders + Arms"],
 };
 
 export const DAY_CFG = {

@@ -2522,12 +2522,24 @@ export const PROGRAM_LIBRARY = [
 export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel) {
   const days = daysPerWeek || 4;
   const program = PROGRAMS_BY_DAYS[days];
-  if(!program) return null;
 
-  const split = program.splits[splitType] || program.splits[program.recommended];
-  if(!split) return null;
+  // Find the split: first in the user's day-count slot, then across all day-count slots.
+  // This handles programs like Platz Volume (5-day) used on a 3- or 4-day schedule.
+  let split = program?.splits[splitType];
+  if (!split) {
+    for (const d of Object.keys(PROGRAMS_BY_DAYS)) {
+      const s = PROGRAMS_BY_DAYS[d].splits?.[splitType];
+      if (s) { split = s; break; }
+    }
+  }
+  // Last resort: recommended split for user's actual day count
+  if (!split) split = program?.splits[program?.recommended];
+  if (!split) return null;
 
-  const dayKeys = split.days;
+  // Filter out days that have no workout defined (e.g. "Rest" entries in day arrays).
+  // This prevents an empty prescription when the cycle includes a named rest day.
+  const dayKeys = split.days.filter(d => split.workouts[d]);
+  if (dayKeys.length === 0) return null;
   const dayKey = dayKeys[dayIndex % dayKeys.length];
   const intermediate = split.workouts[dayKey] || [];
 

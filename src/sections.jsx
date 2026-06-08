@@ -859,7 +859,7 @@ const ADAPT_CATEGORIES = [
 
 
 const ADAPT_CSS = `
-  .adapt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:300;display:flex;flex-direction:column;overflow:hidden;}
+  .adapt-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:10000;display:flex;flex-direction:column;overflow:hidden;}
   .adapt-header{padding:20px 20px 16px;border-bottom:1px solid rgba(var(--accent-rgb),0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
   .adapt-title{font-family:var(--condensed);font-style:italic;font-size:24px;font-weight:900;letter-spacing:.04em;}
   .adapt-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(var(--accent-rgb),0.12);background:rgba(var(--accent-rgb),0.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1190,10 +1190,16 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
 
   const _tier=profile?.subscription_tier||'trial';
   const isPaidPlan=_tier==='monthly'||_tier==='annual';
+  const isExpiredTrial=_tier==='expired';
   const trialDays=_tier==='trial'?trialDaysRemaining(profile):null;
   const resetDisplayDate=adaptResetDate?new Date(new Date(adaptResetDate+"T00:00:00").getTime()+30*86400000).toLocaleDateString("en-US",{month:"short",day:"numeric"}):null;
 
-  if(adaptationsLeft===0)return(
+  // Threshold gates — scale automatically with adaptLimit
+  const _warn75=adaptLimit>0&&adaptationsUsed>=Math.round(adaptLimit*0.75);
+  const _cutoff90=adaptLimit>0&&adaptationsUsed>=Math.round(adaptLimit*0.90);
+
+  // Hard cutoff at 90%
+  if(_cutoff90||adaptationsLeft===0)return(
     <div className="adapt-overlay"><style>{ADAPT_CSS}</style>
       <div className="adapt-header">
         <div>
@@ -1204,16 +1210,16 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
       </div>
       <div className="adapt-body" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",gap:16,paddingTop:40}}>
         <div style={{fontSize:40,marginBottom:4}}>⚡</div>
-        {isPaidPlan?(
+        {isExpiredTrial?(
           <>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED ALL<br/>{adaptLimit} ADAPTATIONS<br/>THIS MONTH.</div>
-            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>{resetDisplayDate?`Your quota resets on ${resetDisplayDate}.`:"Your quota resets in the next billing cycle."}</div>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOUR FREE TRIAL<br/>HAS ENDED.</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>Subscribe to keep using AI adapt, AI logging, and recipe generation.</div>
+            <button onClick={()=>{onClose();window.dispatchEvent(new CustomEvent("cm:subscription-required"));}} style={{padding:"14px 28px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:15,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",marginTop:4}}>See Plans — Monthly / Annual</button>
           </>
         ):(
           <>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE USED ALL<br/>{adaptLimit}<br/>ADAPTATIONS.</div>
-            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>Upgrade to Pro for 10 adaptations per month — plus AI meal logging, recipe generator, and more.</div>
-            <button onClick={()=>{onClose();window.dispatchEvent(new CustomEvent("cm:subscription-required"));}} style={{padding:"14px 28px",background:"var(--red)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:15,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer",marginTop:4}}>Upgrade → Pro</button>
+            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,lineHeight:1.15}}>YOU'VE REACHED<br/>THIS MONTH'S<br/>AI LIMIT.</div>
+            <div style={{fontSize:13,color:"rgba(245,245,240,.5)",lineHeight:1.65,maxWidth:280}}>{resetDisplayDate?`Your quota resets on ${resetDisplayDate}.`:"Your quota resets at the start of your next cycle."}</div>
           </>
         )}
       </div>
@@ -1234,6 +1240,7 @@ function AdaptNowModal({wPrefs, profile, todayFocus, todayExercises, adaptations
         <button className="adapt-close" onClick={onClose}>✕</button>
       </div>
       <div className="adapt-body">
+        {_warn75&&<div style={{background:"rgba(254,160,32,0.08)",border:"1px solid rgba(254,160,32,0.22)",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#FEA020",lineHeight:1.5}}>You're using a lot of AI this cycle — {adaptationsLeft} of {adaptLimit} left.{resetDisplayDate?` Resets ${resetDisplayDate}.`:""}</div>}
         {err&&<div style={{background:"rgba(255,77,109,.1)",border:"1px solid rgba(255,77,109,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:T.prot}}>{err}</div>}
         <div style={{fontSize:12,color:"rgba(245,245,240,.45)",marginBottom:18,lineHeight:1.7}}>What's happening today? We'll adapt your workout to match your situation.</div>
         <div className="adapt-cat-grid">
@@ -2252,7 +2259,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const _toast=_adaptRemaining>0
       ?`Session adapted. ${_adaptRemaining} of ${adaptLimit} adaptations remaining this month.`
       :_tier==='expired'
-        ?`Upgrade to Pro to unlock Adapt Now.`
+        ?`Subscribe to unlock Adapt Now — Monthly or Annual.`
         :`You have used all ${adaptLimit} adaptations this month.`;
     setAdaptToast(_toast);
     setTimeout(()=>setAdaptToast(""),4500);
@@ -2429,6 +2436,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function _doStartFromProgram(readiness){
+    // Belt-and-suspenders: never launch into an empty lifting session.
+    // getWorkoutForDay now filters rest days, but guard here catches any future edge case.
+    if(prescType==="lifting"&&Array.isArray(todayPrescription)&&todayPrescription.length===0){
+      showToast("No exercises for today — check your schedule or program.","info");
+      return;
+    }
     let exercises;
     if(prescType==="lifting"&&Array.isArray(todayPrescription)){
       const style=getCoachingStyle(wPrefs?.trainingAge);
