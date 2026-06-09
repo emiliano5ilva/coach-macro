@@ -2567,27 +2567,27 @@ Reply with ONLY a valid JSON object, no markdown:
                     exit={{opacity:0,scale:0.96,transition:_fuelEyeRedMo?{duration:0}:{duration:0.25,ease:'easeIn'}}}
                     style={{padding:"0 18px 8px"}}
                   >
-                    <div style={{position:'relative',height:220,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'16px',overflow:'hidden'}}>
+                    <div style={{position:'relative',height:220,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)',borderRadius:'18px',overflow:'hidden',boxShadow:'0 2px 16px rgba(0,0,0,.10)'}}>
                       {/* Ring SVG — centered absolutely, behind text overlay */}
                       <svg width="220" height="220" viewBox="0 0 220 220"
                         style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%) rotate(-90deg)',filter:'drop-shadow(0 0 16px rgba(232,52,28,0.10))'}}>
                         <defs>
                           <linearGradient id="calRingHeroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#FF3B30"/>
-                            <stop offset="100%" stopColor="#FAFAF0" stopOpacity="0.9"/>
+                            <stop offset="0%" stopColor="var(--cm-red,#FF3B30)"/>
+                            <stop offset="100%" stopColor="var(--cm-red,#FF3B30)" stopOpacity="0.55"/>
                           </linearGradient>
                           <linearGradient id="calRingHeroGradOver" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#FF3B30"/>
-                            <stop offset="100%" stopColor="#FF6B5C"/>
+                            <stop offset="0%" stopColor="var(--cm-red,#FF3B30)"/>
+                            <stop offset="100%" stopColor="var(--cm-red,#FF3B30)" stopOpacity="0.8"/>
                           </linearGradient>
                         </defs>
-                        <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth="14"/>
-                        {_calOver&&<circle cx="110" cy="110" r="100" fill="none" stroke="rgba(255,59,48,0.3)" strokeWidth="14" strokeLinecap="round" strokeDasharray={_circ} strokeDashoffset="0"/>}
+                        <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.10)" strokeWidth="14"/>
+                        {_calOver&&<circle cx="110" cy="110" r="100" fill="none" stroke="rgba(var(--cm-red-rgb,255,59,48),0.3)" strokeWidth="14" strokeLinecap="round" strokeDasharray={_circ} strokeDashoffset="0"/>}
                         <MotionArc cx={110} cy={110} r={100} pct={_calPct}
                           stroke={`url(#${_calOver?'calRingHeroGradOver':'calRingHeroGrad'})`}
                           strokeWidth={14}/>
                         {_calPct>0.02&&(
-                          <motion.circle cx={_tipX} cy={_tipY} r="7" fill="#FF3B30"
+                          <motion.circle cx={_tipX} cy={_tipY} r="7" fill="var(--cm-red,#FF3B30)"
                             initial={{opacity:0}} animate={{opacity:1}}
                             transition={{delay:0.72,duration:0.18}}
                             style={{filter:_calOver?'drop-shadow(0 0 10px rgba(255,59,48,1.0))':'drop-shadow(0 0 6px rgba(255,59,48,0.8)) drop-shadow(0 0 12px rgba(255,59,48,0.4))'}}/>
@@ -2599,21 +2599,21 @@ Reply with ONLY a valid JSON object, no markdown:
                           no shadow-DOM overflow. overflow:hidden on columns is the hard stop. */}
                       <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',padding:'0 12px',boxSizing:'border-box'}}>
                         <div style={{width:88,flexShrink:0,textAlign:'center',overflow:'hidden'}}>
-                          <div style={{..._cnd,fontSize:22,color:'#f5f5f0',lineHeight:1}}>{Math.round(consumed.calories).toLocaleString()}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
+                          <div style={{..._cnd,fontSize:22,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{Math.round(consumed.calories).toLocaleString()}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>CONSUMED</div>
                         </div>
                         <div style={{flex:1,alignSelf:'stretch',position:'relative'}}>
                           <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',textAlign:'center',pointerEvents:'none',width:'100%'}}>
-                            <div style={{..._cnd,fontSize:48,color:_calOver?'#e8341c':'#f5f5f0',lineHeight:1,letterSpacing:'-0.02em',textShadow:'0 0 30px rgba(245,245,240,0.15), 0 2px 24px rgba(0,0,0,0.8)'}}>
+                            <div style={{..._cnd,fontSize:48,color:_calOver?'var(--cm-red,#FF3B30)':'var(--cm-ink,#0A0A0A)',lineHeight:1,letterSpacing:'-0.02em',textShadow:'none'}}>
                               {_calOver?<MN value={Math.abs(remaining.calories)} format={{useGrouping:true}} prefix="+"/>:<MN value={_calRem} format={{useGrouping:true}}/>}
                             </div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>{_calOver?'OVER':'REMAINING'}</div>
-                            {calDelta!==null&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':calDelta<0?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:2}}><MN value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</div>}
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',letterSpacing:'0.14em',textTransform:'uppercase',marginTop:4}}>{_calOver?'OVER':'REMAINING'}</div>
+                            {calDelta!==null&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:calDelta>0?'#22C55E':'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',marginTop:2}}><MN value={calDelta} format={{signDisplay:'exceptZero'}}/> vs yest.</div>}
                           </div>
                         </div>
                         <div style={{width:88,flexShrink:0,textAlign:'center',overflow:'hidden'}}>
-                          <div style={{..._cnd,fontSize:22,color:'rgba(245,245,240,0.5)',lineHeight:1}}>{Math.round(macros.calories).toLocaleString()}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
+                          <div style={{..._cnd,fontSize:22,color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{Math.round(macros.calories).toLocaleString()}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',letterSpacing:'0.12em',textTransform:'uppercase',marginTop:4}}>TARGET</div>
                         </div>
                       </div>
                     </div>
@@ -2623,14 +2623,14 @@ Reply with ONLY a valid JSON object, no markdown:
             </AnimatePresence>
             {/* Segmented sub-nav — centered, 2 tabs (Home / Kitchen) */}
             <div style={{padding:"0 18px 4px",flexShrink:0,display:"flex",justifyContent:"center"}}>
-              <div style={{display:"inline-flex",background:"rgba(255,255,255,0.06)",borderRadius:10,padding:3,gap:2}}>
+              <div style={{display:"inline-flex",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:10,padding:3,gap:2}}>
                 {FUEL_TABS.map(tab=>(
                   <button key={tab.id} onClick={()=>setFuelScreen(tab.id)}
                     style={{padding:"7px 22px",borderRadius:8,border:"none",cursor:"pointer",
                       fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,
-                      color:fuelScreen===tab.id?"#fff":"rgba(255,255,255,0.4)",
-                      background:fuelScreen===tab.id?"#e8341c":"transparent",
-                      whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0,letterSpacing:"0.02em"}}>
+                      color:fuelScreen===tab.id?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",
+                      background:fuelScreen===tab.id?"var(--cm-red,#FF3B30)":"transparent",
+                      whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0,letterSpacing:"0.02em",WebkitTapHighlightColor:"transparent"}}>
                     {tab.label}
                   </button>
                 ))}
