@@ -2877,19 +2877,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       sb.from('workout_logs').insert({
         user_id:user.id,
         date:new Date().toISOString().split('T')[0],
-        type:'run',
-        duration_min:Math.round(elapsed/60),
-        distance_m:Math.round(dist*1000),
-        calories:cals,
-        workout:{focus:todayFocus,type:'run',mode:'gps',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,laps:runLaps,coords:runCoords.filter((_,i)=>i%5===0)}
-      }).catch(()=>{});
+        source:'coach_macro',
+        session_duration_mins:Math.round(elapsed/60),
+        workout:{focus:todayFocus,type:'run',mode:'gps',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,calories_burned:cals,laps:runLaps,coords:runCoords.filter((_,i)=>i%5===0)}
+      }).then(({error})=>{if(error){console.error('[finishGPSRun]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishGPSRun]',e));
     }
   }
 
   function finishManualRun(){
     clearInterval(runTimerRef.current);
     const elapsed=runElapsed;
-    const dist=parseFloat(runManualDist)||0;
+    const _imperial=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const _entered=parseFloat(runManualDist)||0;
+    const dist=_imperial?_entered*1.60934:_entered;
     const avgPace=fmtPace(dist,elapsed);
     const cals=Math.round(elapsed/60*8.5);
     setRunSummary({mode:'manual',elapsed,distance:dist,avgPace,calories:cals,effort:runEffort,laps:[]});
@@ -2898,12 +2898,10 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       sb.from('workout_logs').insert({
         user_id:user.id,
         date:new Date().toISOString().split('T')[0],
-        type:'run',
-        duration_min:Math.round(elapsed/60),
-        distance_m:dist>0?Math.round(dist*1000):null,
-        calories:cals,
-        workout:{focus:todayFocus,type:'run',mode:'manual',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,effort:runEffort}
-      }).catch(()=>{});
+        source:'coach_macro',
+        session_duration_mins:Math.round(elapsed/60),
+        workout:{focus:todayFocus,type:'run',mode:'manual',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,calories_burned:cals,effort:runEffort}
+      }).then(({error})=>{if(error){console.error('[finishManualRun]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishManualRun]',e));
     }
   }
 
@@ -3103,7 +3101,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
         <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"var(--accent)"}}>?</span></div>
         <div style={{marginBottom:16}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE (km)</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE ({(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'})</div>
           <input
             type="number"
             inputMode="decimal"
