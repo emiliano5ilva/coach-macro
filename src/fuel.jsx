@@ -3256,18 +3256,18 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* NUTRITION PERIODIZATION */}
             {periodizationInfo&&(
-              <div style={{background:GOCLUB_REDESIGN?"rgba(255,59,48,0.08)":"linear-gradient(135deg, rgba(232,52,28,0.08), var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:16,padding:"14px 18px"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// Nutrition Periodization</div>
+              <div style={{background:GOCLUB_REDESIGN?"rgba(var(--cm-red-rgb,255,59,48),0.08)":"linear-gradient(135deg, rgba(var(--cm-red-rgb,255,59,48),0.08), var(--cm-paper,#FFFFFF))",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:16,padding:"14px 18px"}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>// Nutrition Periodization</div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:"var(--red)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Week {periodizationInfo.cycleWeek} — {periodizationInfo.phase}</div>
+                  <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Week {periodizationInfo.cycleWeek} — {periodizationInfo.phase}</div>
                   <div style={{display:"flex",gap:3}}>
                     {Array.from({length:8}).map((_,i)=>(
-                      <div key={i} style={{width:6,height:6,borderRadius:"50%",background:i<(periodizationInfo.cycleWeek||1)?"var(--red)":"rgba(245,245,240,0.12)",flexShrink:0}}/>
+                      <div key={i} style={{width:6,height:6,borderRadius:"50%",background:i<(periodizationInfo.cycleWeek||1)?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.12)",flexShrink:0}}/>
                     ))}
                   </div>
                 </div>
-                <div style={{fontSize:13,color:"rgba(245,245,240,.8)",lineHeight:1.55}}>{periodizationInfo.note}</div>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,.35)",marginTop:6,letterSpacing:"0.1em"}}>WEEKS {periodizationInfo.wks}</div>
+                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)",lineHeight:1.55}}>{periodizationInfo.note}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginTop:6,letterSpacing:"0.1em"}}>WEEKS {periodizationInfo.wks}</div>
               </div>
             )}
 
@@ -3276,21 +3276,21 @@ Reply with ONLY a valid JSON object, no markdown:
               const typeMap={
                 refeed:{label:"REFEED DAY",icon:"🔄",color:"#f59e0b",comment:"// Leptin reset · metabolism boost"},
                 carb_load:{label:"CARB LOADING",icon:"⚡",color:"#3b82f6",comment:"// Race tomorrow · top up glycogen"},
-                race_day:{label:"RACE DAY",icon:"🏁",color:"#e8341c",comment:"// High carbs · low fat · race ready"},
+                race_day:{label:"RACE DAY",icon:"🏁",color:"#FF3B30",comment:"// High carbs · low fat · race ready"},
                 training_day:{label:"TRAINING DAY",icon:"💪",color:"#22c55e",comment:"// Extra fuel · performance calories"},
-                rest_day:{label:"REST DAY",icon:"🛋️",color:"rgba(245,245,240,0.4)",comment:"// Recovery focus · base calories"},
+                rest_day:{label:"REST DAY",icon:"🛋️",color:"rgba(10,10,10,0.4)",comment:"// Recovery focus · base calories"},
               };
               const meta=typeMap[todayProtocol.protocol_type]||typeMap.training_day;
               const calDiff=todayProtocol.adjusted_calories-todayProtocol.base_calories;
               const carbDiff=todayProtocol.adjusted_carbs_g-todayProtocol.base_carbs_g;
               return(
                 <div style={{background:`${meta.color}10`,border:`1.5px solid ${meta.color}30`,borderRadius:16,padding:"14px 18px"}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:meta.color,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>{meta.comment}</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:meta.color,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>{meta.comment}</div>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                     <div style={{fontSize:22}}>{meta.icon}</div>
                     <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:meta.color,letterSpacing:"0.04em",textTransform:"uppercase"}}>{meta.label}</div>
                   </div>
-                  <div style={{fontSize:13,color:"rgba(245,245,240,0.8)",lineHeight:1.55,marginBottom:10}}>{todayProtocol.reason}</div>
+                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)",lineHeight:1.55,marginBottom:10}}>{todayProtocol.reason}</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_calories} kcal{calDiff>0?` (+${calDiff})`:calDiff<0?` (${calDiff})`:""}</div>
                     <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_protein_g}g protein</div>
@@ -3312,7 +3312,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div style={{fontSize:20}}>{cp.label.split(" ")[0]}</div>
                     <div>
                       <div style={{fontSize:10,color:cn.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase"}}>{cp.label} · Day {cp.day}</div>
-                      <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>{cn.focus}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"var(--cm-ink,#0A0A0A)"}}>{cn.focus}</div>
                     </div>
                   </div>
                   <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:10}}>{cn.note}</div>
@@ -3327,7 +3327,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* PCOS NUTRITION NOTE (Part 7) */}
             {(profile?.cycleCondition||[]).includes("pcos")&&(
               <div style={{background:"rgba(245,158,11,.06)",border:"1.5px solid rgba(245,158,11,.25)",borderRadius:14,padding:"12px 16px"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>// PCOS NUTRITION</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:4}}>// PCOS NUTRITION</div>
                 <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:8}}>{PCOS_NOTE}</div>
                 <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                   {PCOS_FOODS.map(f=><span key={f} style={{fontSize:10,fontWeight:700,background:"rgba(245,158,11,.12)",color:"var(--amber)",borderRadius:5,padding:"2px 7px"}}>{f}</span>)}
@@ -3340,22 +3340,22 @@ Reply with ONLY a valid JSON object, no markdown:
               const mn=profile.lifeStage==="menopause"?MENO_NUTRITION:PERI_NUTRITION;
               return(
                 <div style={{background:"rgba(52,211,153,.06)",border:"1.5px solid rgba(52,211,153,.2)",borderRadius:14,padding:"14px 18px"}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>
                     {profile.lifeStage==="menopause"?"// MENOPAUSE NUTRITION":"// PERIMENOPAUSE NUTRITION"}
                   </div>
                   <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:10}}>{mn.note}</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     <div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Calcium sources</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Calcium sources</div>
                       {mn.calcium.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                     <div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Omega-3 sources</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.green,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",marginBottom:5}}>Omega-3 sources</div>
                       {mn.omega3.map(f=><div key={f} style={{fontSize:11,color:T.mu,marginBottom:2}}>• {f}</div>)}
                     </div>
                   </div>
-                  <div style={{background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
-                    <div><div style={{fontSize:11,color:"var(--white-dim)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"var(--red)",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                  <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
+                    <div><div style={{fontSize:11,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"var(--cm-red,#FF3B30)",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </div>
               );
@@ -3363,18 +3363,18 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* PERFORMANCE NUTRITION PATTERNS */}
             {perfCorrelations&&perfCorrelations.length>=2&&(
-              <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
-                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:2}}>NUTRITION × PERFORMANCE</div>
+              <div style={{background:GOCLUB_REDESIGN?'var(--cm-paper,#FFFFFF)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px",boxShadow:GOCLUB_REDESIGN?'0 2px 12px rgba(0,0,0,.08)':undefined}}>
+                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:2,color:'var(--cm-ink,#0A0A0A)'}}>NUTRITION × PERFORMANCE</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:14}}>Your average intake before each session type · last 28 days</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {perfCorrelations.sort((a,b)=>b.count-a.count).slice(0,3).map(c=>(
-                    <div key={c.session_type} style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div key={c.session_type} style={{background:GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.04)':T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div>
-                        <div style={{fontSize:12,fontWeight:700,textTransform:"capitalize",color:"#fff",marginBottom:2}}>{c.session_type}</div>
+                        <div style={{fontSize:12,fontWeight:700,textTransform:"capitalize",color:"var(--cm-ink,#0A0A0A)",marginBottom:2}}>{c.session_type}</div>
                         <div style={{fontSize:10,color:T.mu}}>{c.count} sessions tracked</div>
                       </div>
                       <div style={{display:"flex",gap:12,textAlign:"right"}}>
-                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:"#fff"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
+                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:"var(--cm-ink,#0A0A0A)"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
                         <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:T.prot}}>{c.avg_protein}g</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>PROT</div></div>
                       </div>
                     </div>
@@ -3385,30 +3385,30 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* COACH SUGGESTS */}
             {remaining.calories>200&&(
-              <div style={{background:"linear-gradient(135deg,rgba(232,52,28,0.12),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.3)",borderRadius:16,padding:"16px 18px"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Coach Suggests</div>
+              <div style={{background:"linear-gradient(135deg,rgba(var(--cm-red-rgb,255,59,48),0.12),var(--cm-paper,#FFFFFF))",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:16,padding:"16px 18px"}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Coach Suggests</div>
                 {bodySuggest
-                  ?(<div style={{fontStyle:"italic",fontSize:13,color:"rgba(245,245,240,.85)",lineHeight:1.65,marginBottom:12}}>"{bodySuggest}"</div>)
+                  ?(<div style={{fontStyle:"italic",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.85)",lineHeight:1.65,marginBottom:12}}>"{bodySuggest}"</div>)
                   :(<div style={{marginBottom:12}}>
-                      <div style={{fontSize:13,color:"rgba(245,245,240,.6)",lineHeight:1.55,marginBottom:8}}>You have {remaining.calories} kcal · {remaining.protein}g protein left. Get a smart suggestion for your next meal.</div>
-                      <button onClick={fetchBodySuggest} disabled={bodySuggestLoading} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.1em",padding:0}}>{bodySuggestLoading?"Getting suggestion...":"Get AI suggestion →"}</button>
+                      <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)",lineHeight:1.55,marginBottom:8}}>You have {remaining.calories} kcal · {remaining.protein}g protein left. Get a smart suggestion for your next meal.</div>
+                      <button onClick={fetchBodySuggest} disabled={bodySuggestLoading} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.1em",padding:0}}>{bodySuggestLoading?"Getting suggestion...":"Get AI suggestion →"}</button>
                     </div>)
                 }
                 <div style={{display:"flex",gap:8}}>
-                  {bodySuggest&&<button onClick={()=>setFuelScreen("home")} style={{flex:2,padding:"11px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:700,fontSize:13,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer"}}>Log It</button>}
+                  {bodySuggest&&<button onClick={()=>setFuelScreen("home")} style={{flex:2,padding:"11px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:10,fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:13,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer"}}>Log It</button>}
                 </div>
               </div>
             )}
 
             {/* WEEKEND FLEX MODE */}
-            <div style={{background:T.s1,border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.3)":T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+            <div style={{background:'var(--cm-paper,#FFFFFF)',border:`1px solid ${macros.isFlexDay?"rgba(245,158,11,.3)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)"}`,borderRadius:20,padding:isMobile?"16px":"20px 24px",boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:flexOn?14:0}}>
                 <div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontSize:14,fontWeight:900,letterSpacing:"0.08em",color:flexOn?"var(--amber)":"rgba(245,245,240,0.65)",textTransform:"uppercase",marginBottom:flexOn?3:0}}>Weekend Flex</div>
-                  {flexOn&&<div style={{fontSize:11,color:"rgba(245,245,240,.4)"}}>Adds {flexPct}% on Sat/Sun and trims weekdays to match — weekly total stays the same.</div>}
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontSize:14,fontWeight:900,letterSpacing:"0.08em",color:flexOn?"var(--amber)":"rgba(var(--cm-ink-rgb,10,10,10),0.65)",textTransform:"uppercase",marginBottom:flexOn?3:0}}>Weekend Flex</div>
+                  {flexOn&&<div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>Adds {flexPct}% on Sat/Sun and trims weekdays to match — weekly total stays the same.</div>}
                 </div>
                 <div onClick={()=>saveFlexPrefs({...(wPrefs||{}),weekendFlexMode:!flexOn,flexDays:!flexOn?["Sat","Sun"]:flexDays,flexCalorieIncrease:flexPct})}
-                  style={{width:44,height:24,borderRadius:12,background:flexOn?"#F59E0B":"rgba(245,245,240,0.15)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:flexOn?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
+                  style={{width:44,height:24,borderRadius:12,background:flexOn?"#F59E0B":"rgba(var(--cm-ink-rgb,10,10,10),0.12)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:flexOn?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
                   <div style={{width:18,height:18,borderRadius:9,background:"#fff"}}/>
                 </div>
               </div>
@@ -3418,13 +3418,13 @@ Reply with ONLY a valid JSON object, no markdown:
                     const isToday=day===todayKey;
                     const isFlex=flexDays.includes(day);
                     const schedType=schedule?.[day]||"rest";
-                    const dayColor=isToday?"var(--red)":isFlex?"var(--amber)":"rgba(245,245,240,.4)";
+                    const dayColor=isToday?"var(--cm-red,#FF3B30)":isFlex?"var(--amber)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)";
                     const dayLabel=isFlex?"F":schedType==="training"?"T":(schedType==="cardio"||schedType==="run"||schedType==="hyrox")?"R":"—";
                     return(
                       <button key={day} onClick={()=>setDayModal(day)}
-                        style={{background:isToday?"rgba(232,52,28,.12)":isFlex?"rgba(245,158,11,.08)":"rgba(255,255,255,.03)",border:`1.5px solid ${isToday?"rgba(232,52,28,.5)":isFlex?"rgba(245,158,11,.4)":"rgba(255,255,255,.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
+                        style={{background:isToday?"rgba(var(--cm-red-rgb,255,59,48),.12)":isFlex?"rgba(245,158,11,.08)":"rgba(var(--cm-ink-rgb,10,10,10),0.02)",border:`1.5px solid ${isToday?"rgba(var(--cm-red-rgb,255,59,48),.5)":isFlex?"rgba(245,158,11,.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,padding:"8px 4px",textAlign:"center",cursor:"pointer",fontFamily:"inherit"}}>
                         <div style={{fontSize:9,fontWeight:700,color:dayColor,marginBottom:3,letterSpacing:1}}>{day}</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:dayColor}}>{dayLabel}</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,color:dayColor}}>{dayLabel}</div>
                       </button>
                     );
                   })}
@@ -3438,7 +3438,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 <div style={{background:"#0d0d0d",border:"1px solid rgba(255,255,255,.12)",borderRadius:"18px 18px 0 0",padding:"24px 20px 40px",maxWidth:480,width:"100%"}} onClick={e=>e.stopPropagation()}>
                   <div style={{width:32,height:3,background:"rgba(255,255,255,.15)",borderRadius:2,margin:"0 auto 20px"}}/>
                   <div style={{fontSize:10,color:"rgba(245,245,240,.4)",fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",marginBottom:6}}>DAY SETTINGS</div>
-                  <div style={{fontFamily:"var(--condensed)",fontSize:22,fontWeight:900,marginBottom:20}}>{DAY_NAMES[dayModal]||dayModal}</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:22,fontWeight:900,marginBottom:20,color:'#fff'}}>{DAY_NAMES[dayModal]||dayModal}</div>
                   <div style={{display:"flex",gap:8,marginBottom:24}}>
                     {[["T","Training","training"],["—","Rest","rest"],["F","Flex","flex"]].map(([abbr,label,type])=>{
                       const isFlex=type==="flex";
@@ -3446,14 +3446,14 @@ Reply with ONLY a valid JSON object, no markdown:
                       return(
                         <button key={type} onClick={()=>{if(type==="flex")toggleFlexDay(dayModal);else setDayTypeInSchedule(dayModal,type);setDayModal(null);}}
                           style={{flex:1,padding:"14px 8px",background:isSelected?(isFlex?"rgba(245,158,11,.15)":"rgba(232,52,28,.12)"):"rgba(255,255,255,.04)",border:`1.5px solid ${isSelected?(isFlex?"rgba(245,158,11,.5)":"rgba(232,52,28,.5)"):"rgba(255,255,255,.08)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:16,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--red)"):"rgba(245,245,240,.25)",marginBottom:4}}>{abbr}</div>
-                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--red)"):"rgba(245,245,240,.5)"}}>{label}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--cm-red,#FF3B30)"):"rgba(245,245,240,.25)",marginBottom:4}}>{abbr}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:isSelected?(isFlex?"var(--amber)":"var(--cm-red,#FF3B30)"):"rgba(245,245,240,.5)"}}>{label}</div>
                         </button>
                       );
                     })}
                   </div>
                   <div style={{fontSize:12,color:"rgba(245,245,240,.35)",lineHeight:1.8,marginBottom:20}}>
-                    <span style={{color:"var(--red)"}}>Training</span> = higher carbs for workout fuel<br/>
+                    <span style={{color:"var(--cm-red,#FF3B30)"}}>Training</span> = higher carbs for workout fuel<br/>
                     <span style={{color:"rgba(245,245,240,.5)"}}>Rest</span> = standard lower calories<br/>
                     <span style={{color:"rgba(245,158,11,.8)"}}>Flex</span> = +{flexPct}% calories, protein stays fixed
                   </div>
