@@ -929,17 +929,17 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
   return (
     <div style={{
       position:"relative",
-      background:GOCLUB_REDESIGN?"rgba(255,255,255,0.05)":"rgba(59,130,246,0.03)",
+      background:GOCLUB_REDESIGN?"var(--cm-paper,#FFFFFF)":"rgba(59,130,246,0.03)",
       backgroundImage:GOCLUB_REDESIGN?"none":"radial-gradient(circle at top, rgba(59,130,246,0.06) 0%, transparent 60%)",
-      boxShadow:GOCLUB_REDESIGN?"none":"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(59,130,246,0.12), inset 0 1px 0 0 rgba(59,130,246,0.15)",
-      border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":undefined,
+      boxShadow:GOCLUB_REDESIGN?"0 2px 12px rgba(0,0,0,.08)":"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(59,130,246,0.12), inset 0 1px 0 0 rgba(59,130,246,0.15)",
+      border:GOCLUB_REDESIGN?"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)":undefined,
       borderRadius:16,padding:"16px 18px",marginBottom:12,
     }}>
       <style>{`@keyframes hydRingSweep{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${(circ-fillLen).toFixed(1)}}}`}</style>
 
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)"}}>Hydration</div>
+        <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:13,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.65)"}}>Hydration</div>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <div style={{...mno,fontSize:11,color:"#93C5FD",fontWeight:700}}>{Math.round(totalOz)} / {waterTarget} oz</div>
           <button
@@ -957,7 +957,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
           <div onClick={()=>setShowInfo(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
           <div style={{position:"absolute",top:44,right:0,zIndex:200,background:"#0d0d0d",border:"1px solid rgba(59,130,246,0.3)",borderRadius:12,padding:"12px 14px",maxWidth:280,boxShadow:"0 8px 24px rgba(0,0,0,0.6)"}}>
             {waterInfoText.split('\n\n').map((para,i)=>(
-              <div key={i} style={{fontFamily:"var(--mono)",fontSize:11,color:i===0?"rgba(245,245,240,0.75)":"rgba(147,197,253,0.6)",lineHeight:1.55,marginTop:i>0?8:0}}>{para}</div>
+              <div key={i} style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:i===0?"rgba(245,245,240,0.75)":"rgba(147,197,253,0.6)",lineHeight:1.55,marginTop:i>0?8:0}}>{para}</div>
             ))}
           </div>
         </>
@@ -968,8 +968,8 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
       <div style={{position:"relative",height:180,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
         {/* Left — consumed */}
         <div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",textAlign:"center",width:54}}>
-          <div style={{...mno,fontSize:22,fontWeight:700,color:"#f5f5f0",lineHeight:1}}>{Math.round(totalOz)}</div>
-          <div style={{...mno,fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>OZ</div>
+          <div style={{...mno,fontSize:22,fontWeight:700,color:"var(--cm-ink,#0A0A0A)",lineHeight:1}}>{Math.round(totalOz)}</div>
+          <div style={{...mno,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>OZ</div>
         </div>
 
         {/* SVG ring */}
@@ -1004,17 +1004,17 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
 
         {/* Center labels */}
         <div style={{position:"absolute",textAlign:"center",pointerEvents:"none"}}>
-          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>OZ LEFT</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:42,color:"#93C5FD",lineHeight:1,letterSpacing:"-0.02em",textShadow:"0 0 30px rgba(147,197,253,0.15), 0 2px 24px rgba(0,0,0,0.8)"}}>
+          <div style={{...mno,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:2}}>OZ LEFT</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:42,color:"#93C5FD",lineHeight:1,letterSpacing:"-0.02em",textShadow:"none"}}>
             {isOver?"0":Math.round(ozLeft)}
           </div>
-          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em",marginTop:4}}>of {waterTarget} oz</div>
+          <div style={{...mno,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.08em",marginTop:4}}>of {waterTarget} oz</div>
         </div>
 
         {/* Right — target */}
         <div style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",textAlign:"center",width:54}}>
-          <div style={{...mno,fontSize:22,fontWeight:700,color:"rgba(245,245,240,0.5)",lineHeight:1}}>{waterTarget}</div>
-          <div style={{...mno,fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>OZ</div>
+          <div style={{...mno,fontSize:22,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",lineHeight:1}}>{waterTarget}</div>
+          <div style={{...mno,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginTop:4}}>OZ</div>
         </div>
       </div>
 
@@ -1028,7 +1028,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
       {showCustom&&(
         <div style={{display:"flex",gap:8,marginBottom:10}}>
           <input type="number" value={customOz} onChange={e=>setCustomOz(e.target.value)} placeholder="oz" min={1} max={128}
-            style={{flex:1,background:"rgba(59,130,246,0.06)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:10,padding:"8px 12px",color:"#fff",fontSize:13,fontFamily:"var(--mono)",outline:"none"}}/>
+            style={{flex:1,background:"rgba(59,130,246,0.06)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:10,padding:"8px 12px",color:"var(--cm-ink,#0A0A0A)",fontSize:13,fontFamily:"'DM Mono',monospace",outline:"none"}}/>
           <button onClick={handleCustom} style={{padding:"8px 18px",background:"rgba(59,130,246,0.25)",border:"1px solid rgba(59,130,246,0.5)",borderRadius:10,color:"#93C5FD",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
         </div>
       )}
@@ -1039,7 +1039,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
           {lastFive.map(log=>(
             <div key={log.id} onPointerDown={()=>startPress(log.id)} onPointerUp={()=>endPress()} onPointerLeave={()=>endPress()}
               style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"rgba(59,130,246,0.05)",borderRadius:8,position:"relative"}}>
-              <div style={{...mno,fontSize:11,color:"rgba(245,245,240,0.5)"}}>
+              <div style={{...mno,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)"}}>
                 {new Date(log.logged_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
               </div>
               <div style={{...mno,fontSize:11,color:"#93C5FD",fontWeight:700}}>+{log.amount_oz} oz</div>
@@ -1048,7 +1048,7 @@ function WaterTracker({waterLogs, waterTarget, onAddWater, onDeleteWater, bottle
                   <button onClick={()=>{onDeleteWater(log.id);setLongPressId(null);}}
                     style={{padding:"5px 10px",background:T.prot,border:"none",borderRadius:8,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
                   <button onClick={()=>setLongPressId(null)}
-                    style={{padding:"5px 10px",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:8,color:"rgba(245,245,240,0.5)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    style={{padding:"5px 10px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"none",borderRadius:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
                 </div>
               )}
             </div>
@@ -3508,16 +3508,16 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* ── MY RECIPES (compact home section) ── */}
             {userRecipes.length>0&&(
-              <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+              <div style={{background:GOCLUB_REDESIGN?'var(--cm-paper,#FFFFFF)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px",boxShadow:GOCLUB_REDESIGN?'0 2px 12px rgba(0,0,0,.08)':undefined}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)"}}>My Recipes</div>
+                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.65)",fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)"}}>My Recipes</div>
                   <button onClick={()=>setFuelScreen("kitchen")} style={{background:"none",border:"none",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>See All →</button>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {userRecipes.slice(0,3).map(r=>(
-                    <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s2,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:12}}>
+                    <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.03)':T.s2,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:12}}>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                        <div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-ink,#0A0A0A)'}}>{r.name}</div>
                         <div style={{fontSize:10,color:T.mu}}>{r.calories_per_serving} kcal · <span style={{color:T.prot}}>P {r.protein_per_serving}g</span></div>
                       </div>
                       <button onClick={()=>setRecipeLogging(r)} style={{padding:"8px 16px",background:`${T.prot}15`,border:`1.5px solid ${T.prot}40`,borderRadius:20,color:T.prot,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>Log →</button>
