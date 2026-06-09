@@ -19,7 +19,7 @@ const _FUEL_GOCLUB_CSS=`
 .goclub.tab-fuel{background:var(--cm-red)!important;--condensed:'Archivo',sans-serif}
 .goclub.tab-fuel .screen-header{border:none!important;background:transparent!important}
 .goclub.tab-fuel .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important}
-.goclub.tab-fuel .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.4)!important;text-transform:uppercase!important}
+.goclub.tab-fuel .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.85)!important;text-transform:uppercase!important}
 .goclub.tab-fuel [style*="Barlow Condensed"]{font-family:'Archivo',sans-serif!important;font-style:normal!important}
 .goclub.tab-fuel [style*="Barlow Condensed"][style*="fontStyle"]{font-style:normal!important}
 `;
@@ -1319,6 +1319,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const [raLoading,setRaLoading]=useState(false);
   const [raResult,setRaResult]=useState(null);
   const [raError,setRaError]=useState('');
+  const [restaurantStandalone,setRestaurantStandalone]=useState(false);
   const menuScanRef=useRef(null);
 
   function openRestaurantAI(){
@@ -1348,7 +1349,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   }
 
   function raBack(){
-    if(raStep==='picker'){setRestaurantAI(null);}
+    if(raStep==='picker'){setRestaurantAI(null);setLogMode(null);setRestaurantStandalone(false);}
     else if(raStep==='nearme'){setRaStep('picker');}
     else if(raStep==='result'){setRaStep(raPrevStep);}
   }
@@ -1485,6 +1486,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   useEffect(()=>{
     if(!resetSignal)return;
     setRestaurantAI(null);
+    setRestaurantStandalone(false);
     setShowRecipeBuilder(false);
   },[resetSignal]);
 
@@ -1816,6 +1818,7 @@ Reply with ONLY a valid JSON object, no markdown:
     };
     const slotToLock=mealSlots.find(s=>s<slot&&log.some(e=>getEntrySlot(e)===s)&&!(lockedSlots||[]).includes(s));
     setRestaurantAI(null);
+    setRestaurantStandalone(false);
     if(slotToLock){
       setLockGate({slotToLock,pendingIdx:mealSlots.indexOf(slot)>=0?mealSlots.indexOf(slot):0,pendingEntry:entry});
     }else{
@@ -2473,6 +2476,62 @@ Reply with ONLY a valid JSON object, no markdown:
                     </div>
                   )}
 
+                  {/* WHY ARE MY MACROS LIKE THIS? */}
+                  {(()=>{
+                    const isTraining=todayType==='training';
+                    const carbDiff=Math.round((todayProtocol?.adjusted_carbs_g||0)-(todayProtocol?.base_carbs_g||0));
+                    const protAdj=isTraining?Math.max(10,Math.round(macros.protein*0.06)):8;
+                    const macroRows=[
+                      {
+                        key:'PROTEIN',color:'var(--cm-red,#FF3B30)',chipBg:'rgba(var(--cm-red-rgb,255,59,48),0.12)',chipBorder:'rgba(var(--cm-red-rgb,255,59,48),0.3)',
+                        arrows:[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}],
+                        amount:`+${protAdj}g`,amountColor:'#22c55e',
+                        text:isTraining?'Training day — extra protein supports muscle recovery and growth post-workout.':'Muscle protein synthesis continues 24–48h post-workout. Protein stays elevated on rest days.',
+                      },
+                      {
+                        key:'CARBS',color:'#60a5fa',chipBg:'rgba(96,165,250,0.12)',chipBorder:'rgba(96,165,250,0.3)',
+                        arrows:Math.abs(carbDiff)>5
+                          ?(carbDiff>0?(carbDiff>50?[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'},{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}]:[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}]):[{dir:'↓',bg:'rgba(var(--cm-red-rgb,255,59,48),0.15)',c:'var(--cm-red,#FF3B30)'}])
+                          :[{dir:'→',bg:'rgba(var(--cm-red-rgb,255,59,48),0.08)',c:'rgba(var(--cm-red-rgb,255,59,48),0.4)'}],
+                        amount:Math.abs(carbDiff)>5?`${carbDiff>0?'+':''}${carbDiff}g`:'—',
+                        amountColor:carbDiff>5?'#22c55e':carbDiff<-5?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.4)',
+                        text:carbDiff>5?`${todayFocus||'Training'} day — carbohydrates are your primary fuel for compound movements.`:carbDiff<-5?'No training today — reduced carbs match your lower energy demand.':'Carb targets are consistent today.',
+                      },
+                      {
+                        key:'FAT',color:'#FEA020',chipBg:'rgba(254,160,32,0.12)',chipBorder:'rgba(254,160,32,0.3)',
+                        arrows:[{dir:'→',bg:'rgba(var(--cm-red-rgb,255,59,48),0.08)',c:'rgba(var(--cm-red-rgb,255,59,48),0.4)'}],
+                        amount:'same',amountColor:'rgba(var(--cm-red-rgb,255,59,48),0.4)',
+                        text:'Fat targets stay consistent across training and rest days.',
+                      },
+                    ];
+                    return(
+                      <div style={{marginTop:12,borderTop:'1px solid rgba(255,255,255,0.25)'}}>
+                        <div onClick={()=>setWhyExpanded(w=>!w)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',cursor:'pointer'}}>
+                          <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.85)',letterSpacing:'0.12em'}}>WHY ARE MY MACROS LIKE THIS?</div>
+                          <div style={{color:'rgba(255,255,255,0.9)',fontSize:14}}>{whyExpanded?'↑':'↓'}</div>
+                        </div>
+                        {whyExpanded&&(
+                          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
+                            {macroRows.map(r=>(
+                              <div key={r.key} style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                  <span style={{background:r.chipBg,border:`1px solid ${r.chipBorder}`,borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:r.color,letterSpacing:'0.12em',textTransform:'uppercase'}}>{r.key}</span>
+                                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                    {r.arrows.map((a,i)=>(
+                                      <div key={i} style={{width:20,height:20,borderRadius:'50%',background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:a.c}}>{a.dir}</div>
+                                    ))}
+                                    <span style={{...mno,fontSize:10,color:r.amountColor,letterSpacing:'0.08em'}}>{r.amount}</span>
+                                  </div>
+                                </div>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,color:'var(--cm-red,#FF3B30)',lineHeight:1.4,fontWeight:500}}>{r.text}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* WEEKLY PROTEIN ADHERENCE + TRAINING-DAY MATCH */}
                   {GOCLUB_REDESIGN&&weekMacros&&(()=>{
                     const today7=new Date();
@@ -2496,11 +2555,11 @@ Reply with ONLY a valid JSON object, no markdown:
                     return(
                       <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
                         {/* Training-day match line */}
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(255,255,255,0.40)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:10,display:'flex',gap:6,alignItems:'center'}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(255,255,255,0.85)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:10,display:'flex',gap:6,alignItems:'center'}}>
                           <span>Protein:</span>
                           <span style={{color:'#22C55E'}}>{trainHits}/{trainingDays.length} training</span>
-                          <span style={{color:'rgba(255,255,255,0.25)'}}>·</span>
-                          <span style={{color:'rgba(255,255,255,0.55)'}}>{restHits}/{restDays.length} rest</span>
+                          <span style={{color:'rgba(255,255,255,0.5)'}}>·</span>
+                          <span style={{color:'rgba(255,255,255,0.85)'}}>{restHits}/{restDays.length} rest</span>
                         </div>
                         {/* 7-bar weekly view */}
                         <div style={{display:'flex',gap:4,alignItems:'flex-end'}}>
@@ -2509,70 +2568,14 @@ Reply with ONLY a valid JSON object, no markdown:
                             const isTrainDay=schedType!=='rest';
                             return(
                               <div key={iso} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                                <div style={{width:'100%',height:36,background:'rgba(255,255,255,0.06)',borderRadius:4,position:'relative',overflow:'hidden',outline:isToday?'1px solid rgba(var(--cm-red-rgb,255,59,48),0.5)':'none',outlineOffset:-1}}>
-                                  <div style={{position:'absolute',bottom:0,left:0,right:0,height:`${Math.round(pct*100)}%`,background:hit?'#22C55E':'rgba(255,255,255,0.40)',borderRadius:4,transition:'height 0.4s ease',boxShadow:isToday&&hit?'0 0 8px rgba(34,197,94,0.4)':undefined}}/>
+                                <div style={{width:'100%',height:36,background:'rgba(255,255,255,0.18)',borderRadius:4,position:'relative',overflow:'hidden',outline:isToday?'1px solid rgba(var(--cm-red-rgb,255,59,48),0.5)':'none',outlineOffset:-1}}>
+                                  <div style={{position:'absolute',bottom:0,left:0,right:0,height:`${Math.round(pct*100)}%`,background:hit?'#22C55E':'rgba(255,255,255,0.7)',borderRadius:4,transition:'height 0.4s ease',boxShadow:isToday&&hit?'0 0 8px rgba(34,197,94,0.4)':undefined}}/>
                                 </div>
-                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:isToday?'var(--cm-red,#FF3B30)':isTrainDay?'rgba(255,255,255,0.45)':'rgba(255,255,255,0.25)',letterSpacing:'0.08em',textTransform:'uppercase'}}>{abbr}</div>
+                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:isToday?'var(--cm-red,#FF3B30)':isTrainDay?'rgba(255,255,255,0.8)':'rgba(255,255,255,0.55)',letterSpacing:'0.08em',textTransform:'uppercase'}}>{abbr}</div>
                               </div>
                             );
                           })}
                         </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* WHY ARE MY MACROS LIKE THIS? */}
-                  {(()=>{
-                    const isTraining=todayType==='training';
-                    const carbDiff=Math.round((todayProtocol?.adjusted_carbs_g||0)-(todayProtocol?.base_carbs_g||0));
-                    const protAdj=isTraining?Math.max(10,Math.round(macros.protein*0.06)):8;
-                    const macroRows=[
-                      {
-                        key:'PROTEIN',color:'var(--cm-red,#FF3B30)',chipBg:'rgba(var(--cm-red-rgb,255,59,48),0.12)',chipBorder:'rgba(var(--cm-red-rgb,255,59,48),0.3)',
-                        arrows:[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}],
-                        amount:`+${protAdj}g`,amountColor:'#22c55e',
-                        text:isTraining?'Training day — extra protein supports muscle recovery and growth post-workout.':'Muscle protein synthesis continues 24–48h post-workout. Protein stays elevated on rest days.',
-                      },
-                      {
-                        key:'CARBS',color:'#60a5fa',chipBg:'rgba(96,165,250,0.12)',chipBorder:'rgba(96,165,250,0.3)',
-                        arrows:Math.abs(carbDiff)>5
-                          ?(carbDiff>0?(carbDiff>50?[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'},{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}]:[{dir:'↑',bg:'rgba(34,197,94,0.15)',c:'#22c55e'}]):[{dir:'↓',bg:'rgba(var(--cm-red-rgb,255,59,48),0.15)',c:'var(--cm-red,#FF3B30)'}])
-                          :[{dir:'→',bg:'rgba(245,245,240,0.06)',c:'rgba(245,245,240,0.35)'}],
-                        amount:Math.abs(carbDiff)>5?`${carbDiff>0?'+':''}${carbDiff}g`:'—',
-                        amountColor:carbDiff>5?'#22c55e':carbDiff<-5?'var(--cm-red,#FF3B30)':'rgba(245,245,240,0.35)',
-                        text:carbDiff>5?`${todayFocus||'Training'} day — carbohydrates are your primary fuel for compound movements.`:carbDiff<-5?'No training today — reduced carbs match your lower energy demand.':'Carb targets are consistent today.',
-                      },
-                      {
-                        key:'FAT',color:'#FEA020',chipBg:'rgba(254,160,32,0.12)',chipBorder:'rgba(254,160,32,0.3)',
-                        arrows:[{dir:'→',bg:'rgba(245,245,240,0.06)',c:'rgba(245,245,240,0.35)'}],
-                        amount:'same',amountColor:'rgba(245,245,240,0.35)',
-                        text:'Fat targets stay consistent across training and rest days.',
-                      },
-                    ];
-                    return(
-                      <div style={{marginTop:12,borderTop:'1px solid rgba(255,255,255,0.15)'}}>
-                        <div onClick={()=>setWhyExpanded(w=>!w)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',cursor:'pointer'}}>
-                          <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.6)',letterSpacing:'0.12em'}}>WHY ARE MY MACROS LIKE THIS?</div>
-                          <div style={{color:'rgba(255,255,255,0.8)',fontSize:14}}>{whyExpanded?'↑':'↓'}</div>
-                        </div>
-                        {whyExpanded&&(
-                          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
-                            {macroRows.map(r=>(
-                              <div key={r.key} style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
-                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                  <span style={{background:r.chipBg,border:`1px solid ${r.chipBorder}`,borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:r.color,letterSpacing:'0.12em',textTransform:'uppercase'}}>{r.key}</span>
-                                  <div style={{display:'flex',alignItems:'center',gap:6}}>
-                                    {r.arrows.map((a,i)=>(
-                                      <div key={i} style={{width:20,height:20,borderRadius:'50%',background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:a.c}}>{a.dir}</div>
-                                    ))}
-                                    <span style={{...mno,fontSize:10,color:r.amountColor,letterSpacing:'0.08em'}}>{r.amount}</span>
-                                  </div>
-                                </div>
-                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,color:'var(--cm-red,#FF3B30)',lineHeight:1.4,fontWeight:500}}>{r.text}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
@@ -2808,7 +2811,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 carb_load:{label:"CARB LOADING",icon:"⚡",color:"#3b82f6",comment:"// Race tomorrow · top up glycogen"},
                 race_day:{label:"RACE DAY",icon:"🏁",color:"#FF3B30",comment:"// High carbs · low fat · race ready"},
                 training_day:{label:"TRAINING DAY",icon:"💪",color:"#22c55e",comment:"// Extra fuel · performance calories"},
-                rest_day:{label:"REST DAY",icon:"🛋️",color:"#BBBBBB",comment:"// Recovery focus · base calories"},
+                rest_day:{label:"REST DAY",icon:"🛋️",color:"#FFFFFF",comment:"// Recovery focus · base calories"},
               };
               const meta=typeMap[todayProtocol.protocol_type]||typeMap.training_day;
               const calDiff=todayProtocol.adjusted_calories-todayProtocol.base_calories;
@@ -2992,29 +2995,6 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             )}
 
-            {/* QUICK ACTIONS */}
-            <div style={{marginBottom:2}}>
-              <div className="header-eyebrow">// Quick Log</div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-              {[
-                ["Food", ()=>setFuelScreen("home"),
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2s-2 2-2 5a2 2 0 004 0c0-3-2-5-2-5z"/><path d="M17 3v4a5 5 0 01-10 0V3"/><path d="M7 14v8m10-8v8"/></svg>],
-                ["Recipes", ()=>setFuelScreen("kitchen"),
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2h12a1 1 0 011 1v18a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>],
-              ].map(([label, action, icon])=>(
-                <motion.button key={label} onClick={action}
-                  onPointerDown={GOCLUB_REDESIGN?()=>_hL():undefined}
-                  whileTap={GOCLUB_REDESIGN?{scale:0.90}:undefined}
-                  transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
-                  style={{padding:"14px 6px 12px",background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':"var(--navy-card)",border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':"var(--white-border)"}`,borderRadius:14,cursor:"pointer",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:8,touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>
-                  <div style={{width:40,height:40,borderRadius:12,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.18)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)"}}>
-                    {icon}
-                  </div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(245,245,240,0.65)",lineHeight:1}}>{label}</div>
-                </motion.button>
-              ))}
-            </div>
 
             {/* Weekly Prep card removed from home — accessible via Kitchen tab */}
 
@@ -3161,19 +3141,6 @@ Reply with ONLY a valid JSON object, no markdown:
                         </button>
                       ))}
                     </div>
-                    {/* Row 3: Restaurant AI full width */}
-                    <button onClick={()=>{setLogMode("restaurant");openRestaurantAI();}} style={{width:"100%",background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:14,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,WebkitTapHighlightColor:"transparent"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:14}}>
-                        <div style={{width:36,height:36,borderRadius:8,background:"rgba(var(--cm-red-rgb,255,59,48),0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1C5 1 2 3.5 2 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="8" cy="7" r="2"/></svg>
-                        </div>
-                        <div>
-                          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",lineHeight:1}}>RESTAURANT AI<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
-                          <div style={{...mno,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.35)",marginTop:4}}>Scan any menu for instant macro recommendations</div>
-                        </div>
-                      </div>
-                      <div style={{color:"var(--cm-red,#FF3B30)",fontSize:18,flexShrink:0}}>→</div>
-                    </button>
                   </>
                 )}
                 {logMode&&logMode!=="restaurant"&&(
@@ -3516,7 +3483,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {(()=>{
               const kitchenCards=[
                 {eyebrow:'// WEEKLY PREP',title:'MEAL PREP.',sub:'Cook once, eat all week',onPress:()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}},
-                {eyebrow:'// AI NUTRITION',title:'RESTAURANT AI.',sub:'Scan any menu for instant macro recommendations',onPress:()=>{setFuelScreen('log');setLogMode('restaurant');openRestaurantAI();}},
+                {eyebrow:'// AI NUTRITION',title:'RESTAURANT AI.',sub:'Scan any menu for instant macro recommendations',onPress:()=>{setRestaurantStandalone(true);openRestaurantAI();}},
               ];
               return(
                 <div style={{marginBottom:20}}>
@@ -4390,6 +4357,200 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* hidden file input for menu scan — used by both inline tab and modal */}
         <input ref={menuScanRef} type="file" accept="image/*" capture="environment" onChange={handleMenuScan} style={{display:"none"}}/>
 
+        {/* ── RESTAURANT AI STANDALONE SCREEN ── */}
+        {restaurantAI&&restaurantStandalone&&(
+          <div style={{position:"fixed",inset:0,background:"var(--cm-red)",zIndex:400,overflowY:"auto",paddingBottom:60,WebkitOverflowScrolling:"touch"}}>
+            <div style={{position:"fixed",top:"-10%",left:"50%",transform:"translateX(-50%)",width:"70%",height:"50%",background:"radial-gradient(ellipse,rgba(255,255,255,0.15),transparent 70%)",pointerEvents:"none",zIndex:401}}/>
+            <div style={{position:"relative",zIndex:402,padding:"56px 18px 20px"}}>
+              <button onClick={raBack} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.7)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:20,display:"block"}}>← BACK</button>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// RESTAURANT AI</div>
+              <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                {[
+                  {label:"MEAL",value:String(restaurantAI.slot)},
+                  {label:"KCAL",value:String(restaurantAI.calTarget)},
+                  {label:"PROTEIN",value:`${restaurantAI.proteinTarget}G`,color:"#22c55e"},
+                  {label:"CARBS",value:`${restaurantAI.carbTarget}G`},
+                  {label:"FAT",value:`${restaurantAI.fatTarget}G`},
+                ].map(({label,value,color})=>(
+                  <div key={label} style={{textAlign:"center"}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:color||"var(--cm-red,#FF3B30)",lineHeight:1}}>{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* PICKER */}
+              {raStep==='picker'&&(
+                <div>
+                  <div onClick={()=>setRaStep('nearme')} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                    <div style={{width:48,height:48,borderRadius:10,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",letterSpacing:"0.02em"}}>NEAR ME<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                      <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:4,lineHeight:1.4}}>Find restaurants nearby and get AI recommendations based on their menu.</div>
+                    </div>
+                    <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0}}>→</div>
+                  </div>
+                  <div onClick={()=>menuScanRef.current?.click()} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                    <div style={{width:48,height:48,borderRadius:10,background:"rgba(96,165,250,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 014 0v2"/><circle cx="12" cy="13" r="3"/></svg>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",letterSpacing:"0.02em"}}>SCAN MENU<span style={{color:"#60a5fa"}}>.</span></div>
+                      <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:4,lineHeight:1.4}}>Photograph any menu and AI recommends what to order based on your targets.</div>
+                    </div>
+                    <div style={{color:"#60a5fa",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0}}>→</div>
+                  </div>
+                </div>
+              )}
+
+              {/* NEAR ME */}
+              {raStep==='nearme'&&(
+                <div>
+                  <div style={{display:"flex",gap:8,marginBottom:14}}>
+                    <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:10,padding:"12px 14px",color:"var(--cm-red,#FF3B30)",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
+                    <button onClick={fetchRaNearby} disabled={raNearbyLoading||!raNearbyCity.trim()} style={{padding:"12px 18px",background:raNearbyLoading?"rgba(255,255,255,0.3)":"#fff",color:raNearbyLoading?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"var(--cm-red,#FF3B30)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:10,fontWeight:700,fontSize:13,cursor:raNearbyLoading?"default":"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{raNearbyLoading?"Searching…":"Find →"}</button>
+                  </div>
+                  {raNearbyError&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)",marginBottom:12,padding:"8px 12px",background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",borderRadius:8}}>{raNearbyError}</div>}
+                  {raNearbyLoading&&[1,2,3].map(i=>(
+                    <div key={i} style={{height:70,borderRadius:12,background:"rgba(255,255,255,0.15)",marginBottom:8,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
+                  ))}
+                  {raNearby.length>0&&(
+                    <div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// {raNearby.length} RESTAURANTS NEARBY</div>
+                      {raNearby.slice(0,10).map((r,i)=>(
+                        <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-red,#FF3B30)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2,letterSpacing:"0.06em"}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
+                          </div>
+                          <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0,marginLeft:12}}>→</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* RESULT */}
+              {raStep==='result'&&(
+                <div>
+                  {raRestaurant&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:16}}>{raRestaurant.name}</div>}
+                  {raLoading&&(
+                    <div>
+                      {[1,2,3,4].map(i=>(
+                        <div key={i} style={{height:i===1?120:70,borderRadius:12,background:"rgba(255,255,255,0.15)",marginBottom:10,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
+                      ))}
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.6)",textAlign:"center",marginTop:8}}>Checking your macros…</div>
+                    </div>
+                  )}
+                  {raError&&!raLoading&&(
+                    <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:"14px 16px",fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)"}}>{raError}</div>
+                  )}
+                  {raResult&&!raLoading&&(()=>{
+                    const b=raResult.best_order;
+                    const m=b?.estimated_macros||{};
+                    const calStyle=raMacroChipStyle(m.calories,restaurantAI.calTarget);
+                    const protStyle=raMacroChipStyle(m.protein_g,restaurantAI.proteinTarget,true);
+                    const carbStyle=raMacroChipStyle(m.carbs_g,restaurantAI.carbTarget);
+                    const fatStyle=raMacroChipStyle(m.fat_g,restaurantAI.fatTarget);
+                    const coveragePct=Math.min(100,Math.round(b?.protein_coverage_pct||0));
+                    return(
+                      <div>
+                        {/* ORDER THIS */}
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ORDER THIS</div>
+                        <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:14,padding:16,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                          <div style={{position:"absolute",top:-30,right:-20,width:100,height:100,background:"radial-gradient(ellipse,rgba(var(--cm-red-rgb,255,59,48),0.07),transparent 70%)",pointerEvents:"none"}}/>
+                          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-red,#FF3B30)",lineHeight:0.95,marginBottom:4}}>{b?.item||"—"}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                          {b?.customisation&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",letterSpacing:"0.08em",marginBottom:8}}>{b.customisation}</div>}
+                          <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)",lineHeight:1.5,marginBottom:14}}>{b?.reason}</div>
+                          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+                            {[
+                              {label:"CAL",val:m.calories,style:calStyle},
+                              {label:"PROTEIN",val:`${m.protein_g}G`,style:protStyle},
+                              {label:"CARBS",val:`${m.carbs_g}G`,style:carbStyle},
+                              {label:"FAT",val:`${m.fat_g}G`,style:fatStyle},
+                            ].map(({label,val,style})=>(
+                              <div key={label} style={{background:style.bg,borderRadius:8,padding:"6px 10px",textAlign:"center"}}>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:style.color,lineHeight:1}}>{val}</div>
+                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.08em",marginTop:2}}>{label}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:coveragePct>0?10:0}}>
+                            <div style={{flex:1,height:3,background:"rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${coveragePct}%`,background:"#22c55e",borderRadius:2,transition:"width 0.6s ease"}}/>
+                            </div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#22c55e",flexShrink:0}}>Covers {coveragePct}% of Meal {restaurantAI.slot} protein target</div>
+                          </div>
+                          {(b?.warnings||[]).length>0&&(
+                            <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)"}}>
+                              {b.warnings.map((w,i)=>(
+                                <div key={i} style={{display:"flex",gap:8,marginBottom:6}}>
+                                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#FEA020",flexShrink:0}}>⚠</span>
+                                  <div>
+                                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",lineHeight:1.4}}>{w.message}</div>
+                                    {w.fix&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontStyle:"italic",marginTop:2}}>{w.fix}</div>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={()=>handleAddRestaurantDish(b)}
+                          style={{width:"100%",padding:"14px",background:"#fff",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:16,boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}
+                        >ADD TO MEAL {restaurantAI.slot}</button>
+
+                        {/* ALSO GOOD */}
+                        {(raResult.backup_options||[]).length>0&&(
+                          <div style={{marginBottom:16}}>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
+                            {raResult.backup_options.map((opt,i)=>(
+                              <div key={i} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6,boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-red,#FF3B30)",marginBottom:opt.customisation?3:4}}>{opt.item}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                                {opt.customisation&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#FEA020",letterSpacing:"0.06em",marginBottom:4}}>{opt.customisation}</div>}
+                                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",lineHeight:1.4}}>{opt.reason}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* SKIP THESE */}
+                        {(raResult.avoid||[]).length>0&&(
+                          <div style={{marginBottom:16}}>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// SKIP THESE</div>
+                            {raResult.avoid.map((item,i)=>(
+                              <div key={i} style={{background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:10,padding:"12px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
+                                <div style={{flex:1}}>
+                                  <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(255,255,255,0.5)",textDecoration:"line-through",marginBottom:3}}>{item.item}</div>
+                                  <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.4}}>{item.reason}</div>
+                                </div>
+                                <div style={{color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",fontSize:16,flexShrink:0}}>✕</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* COACH SAYS */}
+                        {raResult.coach_note&&(
+                          <div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// COACH SAYS</div>
+                            <div style={{background:"rgba(255,255,255,0.12)",borderLeft:"3px solid rgba(255,255,255,0.8)",borderRadius:"0 10px 10px 0",padding:"12px 14px"}}>
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#FFFFFF",lineHeight:1.45}}>"{raResult.coach_note}"</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── MEAL LOCK GATE MODAL ── */}
         {lockGate&&(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
@@ -4429,199 +4590,6 @@ Reply with ONLY a valid JSON object, no markdown:
           </div>
         )}
 
-        {/* ── RESTAURANT AI MODAL ── */}
-        {restaurantAI&&logMode!=="restaurant"&&(
-          <div style={{position:"fixed",inset:0,background:"#000",zIndex:400,overflowY:"auto",paddingBottom:60,WebkitOverflowScrolling:"touch"}}>
-            <div style={{position:"fixed",top:"-10%",left:"50%",transform:"translateX(-50%)",width:"70%",height:"50%",background:"radial-gradient(ellipse,rgba(var(--cm-red-rgb,255,59,48),0.12),transparent 70%)",pointerEvents:"none",zIndex:401}}/>
-            <div style={{position:"relative",zIndex:402,padding:"56px 18px 20px"}}>
-              <button onClick={raBack} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:20,display:"block"}}>← BACK</button>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// RESTAURANT AI</div>
-              <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                {[
-                  {label:"MEAL",value:String(restaurantAI.slot)},
-                  {label:"KCAL",value:String(restaurantAI.calTarget)},
-                  {label:"PROTEIN",value:`${restaurantAI.proteinTarget}G`,color:"#22c55e"},
-                  {label:"CARBS",value:`${restaurantAI.carbTarget}G`},
-                  {label:"FAT",value:`${restaurantAI.fatTarget}G`},
-                ].map(({label,value,color})=>(
-                  <div key={label} style={{textAlign:"center"}}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
-                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:color||"#f5f5f0",lineHeight:1}}>{value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* PICKER */}
-              {raStep==='picker'&&(
-                <div>
-                  <div onClick={()=>setRaStep('nearme')} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative"}}>
-                    <div style={{width:48,height:48,borderRadius:10,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em"}}>NEAR ME<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
-                      <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginTop:4,lineHeight:1.4}}>Find restaurants nearby and get AI recommendations based on their menu.</div>
-                    </div>
-                    <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0}}>→</div>
-                  </div>
-                  <div onClick={()=>menuScanRef.current?.click()} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",position:"relative"}}>
-                    <div style={{width:48,height:48,borderRadius:10,background:"rgba(96,165,250,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 014 0v2"/><circle cx="12" cy="13" r="3"/></svg>
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em"}}>SCAN MENU<span style={{color:"#60a5fa"}}>.</span></div>
-                      <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginTop:4,lineHeight:1.4}}>Photograph any menu and AI recommends what to order based on your targets.</div>
-                    </div>
-                    <div style={{color:"#60a5fa",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0}}>→</div>
-                  </div>
-                </div>
-              )}
-
-              {/* NEAR ME */}
-              {raStep==='nearme'&&(
-                <div>
-                  <div style={{display:"flex",gap:8,marginBottom:14}}>
-                    <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
-                    <button onClick={fetchRaNearby} disabled={raNearbyLoading||!raNearbyCity.trim()} style={{padding:"12px 18px",background:raNearbyLoading?"#111":"var(--cm-red,#FF3B30)",color:raNearbyLoading?"rgba(245,245,240,0.3)":"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:raNearbyLoading?"default":"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{raNearbyLoading?"Searching…":"Find →"}</button>
-                  </div>
-                  {raNearbyError&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)",marginBottom:12,padding:"8px 12px",background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",borderRadius:8}}>{raNearbyError}</div>}
-                  {raNearbyLoading&&[1,2,3].map(i=>(
-                    <div key={i} style={{height:70,borderRadius:12,background:"rgba(255,255,255,0.04)",marginBottom:8,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
-                  ))}
-                  {raNearby.length>0&&(
-                    <div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// {raNearby.length} RESTAURANTS NEARBY</div>
-                      {raNearby.slice(0,10).map((r,i)=>(
-                        <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,letterSpacing:"0.06em"}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
-                          </div>
-                          <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0,marginLeft:12}}>→</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* RESULT */}
-              {raStep==='result'&&(
-                <div>
-                  {raRestaurant&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:16}}>{raRestaurant.name}</div>}
-                  {raLoading&&(
-                    <div>
-                      {[1,2,3,4].map(i=>(
-                        <div key={i} style={{height:i===1?120:70,borderRadius:12,background:"rgba(255,255,255,0.04)",marginBottom:10,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
-                      ))}
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.4)",textAlign:"center",marginTop:8}}>Checking your macros…</div>
-                    </div>
-                  )}
-                  {raError&&!raLoading&&(
-                    <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:"14px 16px",fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)"}}>{raError}</div>
-                  )}
-                  {raResult&&!raLoading&&(()=>{
-                    const b=raResult.best_order;
-                    const m=b?.estimated_macros||{};
-                    const calStyle=raMacroChipStyle(m.calories,restaurantAI.calTarget);
-                    const protStyle=raMacroChipStyle(m.protein_g,restaurantAI.proteinTarget,true);
-                    const carbStyle=raMacroChipStyle(m.carbs_g,restaurantAI.carbTarget);
-                    const fatStyle=raMacroChipStyle(m.fat_g,restaurantAI.fatTarget);
-                    const coveragePct=Math.min(100,Math.round(b?.protein_coverage_pct||0));
-                    return(
-                      <div>
-                        {/* ORDER THIS */}
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ORDER THIS</div>
-                        <div style={{background:"linear-gradient(135deg,#0d0d0d 0%,#110808 100%)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:14,padding:16,marginBottom:16,position:"relative",overflow:"hidden"}}>
-                          <div style={{position:"absolute",top:-30,right:-20,width:100,height:100,background:"radial-gradient(ellipse,rgba(var(--cm-red-rgb,255,59,48),0.12),transparent 70%)",pointerEvents:"none"}}/>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:0.95,marginBottom:4}}>{b?.item||"—"}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
-                          {b?.customisation&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",letterSpacing:"0.08em",marginBottom:8}}>{b.customisation}</div>}
-                          <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:14}}>{b?.reason}</div>
-                          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
-                            {[
-                              {label:"CAL",val:m.calories,style:calStyle},
-                              {label:"PROTEIN",val:`${m.protein_g}G`,style:protStyle},
-                              {label:"CARBS",val:`${m.carbs_g}G`,style:carbStyle},
-                              {label:"FAT",val:`${m.fat_g}G`,style:fatStyle},
-                            ].map(({label,val,style})=>(
-                              <div key={label} style={{background:style.bg,borderRadius:8,padding:"6px 10px",textAlign:"center"}}>
-                                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:style.color,lineHeight:1}}>{val}</div>
-                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.08em",marginTop:2}}>{label}</div>
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:coveragePct>0?10:0}}>
-                            <div style={{flex:1,height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
-                              <div style={{height:"100%",width:`${coveragePct}%`,background:"#22c55e",borderRadius:2,transition:"width 0.6s ease"}}/>
-                            </div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#22c55e",flexShrink:0}}>Covers {coveragePct}% of Meal {restaurantAI.slot} protein target</div>
-                          </div>
-                          {(b?.warnings||[]).length>0&&(
-                            <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)"}}>
-                              {b.warnings.map((w,i)=>(
-                                <div key={i} style={{display:"flex",gap:8,marginBottom:6}}>
-                                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#FEA020",flexShrink:0}}>⚠</span>
-                                  <div>
-                                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",lineHeight:1.4}}>{w.message}</div>
-                                    {w.fix&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",fontStyle:"italic",marginTop:2}}>{w.fix}</div>}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={()=>handleAddRestaurantDish(b)}
-                          style={{width:"100%",padding:"14px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:16}}
-                        >ADD TO MEAL {restaurantAI.slot}</button>
-
-                        {/* ALSO GOOD */}
-                        {(raResult.backup_options||[]).length>0&&(
-                          <div style={{marginBottom:16}}>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
-                            {raResult.backup_options.map((opt,i)=>(
-                              <div key={i} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
-                                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",marginBottom:opt.customisation?3:4}}>{opt.item}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
-                                {opt.customisation&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#FEA020",letterSpacing:"0.06em",marginBottom:4}}>{opt.customisation}</div>}
-                                <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>{opt.reason}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* SKIP THESE */}
-                        {(raResult.avoid||[]).length>0&&(
-                          <div style={{marginBottom:16}}>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// SKIP THESE</div>
-                            {raResult.avoid.map((item,i)=>(
-                              <div key={i} style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.06)",borderRadius:10,padding:"12px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
-                                <div style={{flex:1}}>
-                                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)",textDecoration:"line-through",marginBottom:3}}>{item.item}</div>
-                                  <div style={{fontSize:13,color:"rgba(245,245,240,0.35)",lineHeight:1.4}}>{item.reason}</div>
-                                </div>
-                                <div style={{color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",fontSize:16,flexShrink:0}}>✕</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* COACH SAYS */}
-                        {raResult.coach_note&&(
-                          <div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// COACH SAYS</div>
-                            <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",borderLeft:"3px solid var(--cm-red,#FF3B30)",borderRadius:"0 10px 10px 0",padding:"12px 14px"}}>
-                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",lineHeight:1.45}}>"{raResult.coach_note}"</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
