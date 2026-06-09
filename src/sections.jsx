@@ -7,7 +7,7 @@ const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
-  RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS,
+  RUN_PLANS, FASTING_PROTOCOLS,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
   SectionCard, Spinner, Logo, CC, MuscleMap, FAQItem, BodyFigure,
   calcTDEE, lookupBarcode, useCountUp, autoFocus, getDayMacros,
@@ -20,7 +20,7 @@ import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
-import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant } from "./running_programs.js";
+import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant, HYROX_STATIONS } from "./running_programs.js";
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
@@ -2202,7 +2202,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,workoutLogsRaw=[],planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -2410,6 +2410,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [hyroxWodCurStation,setHyroxWodCurStation]=useState(0);
   const [hyroxWodCurRound,setHyroxWodCurRound]=useState(0);
   const [hyroxSummary,setHyroxSummary]=useState(null);
+  const [hyroxEdit,setHyroxEdit]=useState(null);
+  const [hyroxEditing,setHyroxEditing]=useState(false);
+  const [hyroxPickerIdx,setHyroxPickerIdx]=useState(null);
   const hyroxTotalTimerRef=useRef(null);
   const hyroxSegTimerRef=useRef(null);
 
@@ -2943,7 +2946,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const allTimes=[...hyroxSegTimes,{...seg,elapsed:segTime}];
       setHyroxSummary({type:'race_sim',totalElapsed:hyroxTotalElapsed,segments:allTimes});
       setSessionMode('hyrox-summary');
-      saveHyroxSession('race_sim',hyroxTotalElapsed,allTimes);
+      setHyroxEdit(allTimes);setHyroxEditing(false);
     } else {
       setHyroxCurrentSeg(p=>p+1);
       startHyroxSegTimer();
@@ -2986,7 +2989,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         const allTimes=[...hyroxSegTimes,{...st,round:hyroxWodCurRound+1,elapsed:segTime}];
         setHyroxSummary({type:'station_wod',totalElapsed:hyroxTotalElapsed,segments:allTimes,rounds:hyroxWodRounds});
         setSessionMode('hyrox-summary');
-        saveHyroxSession('station_wod',hyroxTotalElapsed,allTimes);
+        setHyroxEdit(allTimes);setHyroxEditing(false);
       } else {
         setHyroxWodCurRound(nextRound);
         setHyroxWodCurStation(0);
@@ -3002,20 +3005,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     if(!user)return;
     const station_times={};
     segments.forEach(seg=>{
-      const key=seg.type==='run'?`Run${seg.index+1}`:seg.name;
+      const key=seg.type==='run'?`Run${(seg.index||0)+1}`:(seg.name||HYROX_STATIONS[seg.index]?.name||`Station${(seg.index||0)+1}`);
       station_times[key]=seg.elapsed;
     });
     sb.from('workout_logs').insert({
       user_id:user.id,
       date:new Date().toISOString().split('T')[0],
-      type:'hyrox',
-      duration_min:Math.round(totalSec/60),
+      source:'coach_macro',
+      session_duration_mins:Math.round(totalSec/60),
       workout:{
         focus:todayFocus,type:'hyrox',session_mode:mode,
         station_times,total_time:totalSec,
         stations_completed:segments.filter(s=>s.type==='station').length
       }
-    }).catch(()=>{});
+    }).then(({error})=>{if(error){console.error('[saveHyroxSession]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[saveHyroxSession]',e));
   }
 
   function renderRunPicker(){
@@ -3126,63 +3129,120 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   function renderRunSummary(){
     if(!runSummary)return null;
-    const {elapsed,distance,avgPace,calories,laps}=runSummary;
+    const {elapsed,distance,calories,laps}=runSummary;
+    // ── unit helpers ──────────────────────────────────────────────────────────
+    const _imperial=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
+    const _distU=_imperial?'mi':'km';
+    const _convD=(km)=>_imperial?km*0.621371:km;
+    const _pace=(km,sec)=>{const d=_imperial?km*0.621371:km;if(d<0.01||sec<5)return'--:--';const s=sec/d;return`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;};
+    // ── race phase (same logic as Train hero) ─────────────────────────────────
+    const _raceDate=profile?.runProfile?.raceDate||profile?.run_race_date||null;
+    const _phase=getRunningPhase(_raceDate);
+    // ── fonts ─────────────────────────────────────────────────────────────────
+    const _AF="'Archivo',sans-serif";
+    const _MO="'DM Mono',monospace";
+    // ── lap times ─────────────────────────────────────────────────────────────
+    const lapTimes=(laps||[]).map((lap,i)=>i===0?lap.time:lap.time-laps[i-1].time);
+    const fastestLap=lapTimes.length?Math.min(...lapTimes):0;
+    const slowestLap=lapTimes.length?Math.max(...lapTimes):0;
+    const lapRange=Math.max(1,slowestLap-fastestLap);
     return(
-      <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// RUN COMPLETE</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:24}}>
-          NICE WORK<span style={{color:"var(--accent)"}}>.</span>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
-          {[
-            {l:"DISTANCE",v:distance>0?`${distance.toFixed(2)} km`:"—"},
-            {l:"TIME",v:fmtTime(elapsed)},
-            {l:"AVG PACE",v:avgPace},
-            {l:"CALORIES",v:`${calories} kcal`}
-          ].map(({l,v})=>(
-            <div key={l} style={{background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12,padding:"16px",textAlign:"center"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{l}</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0"}}>{v}</div>
+      <div style={{margin:"0 -18px"}}>
+        {/* ── RED HERO BAND ─────────────────────────────────────────────────── */}
+        <div style={{background:"var(--cm-red,#FF3B30)",padding:"22px 20px 30px"}}>
+          {/* Eyebrow */}
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:14}}>
+            <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)"}}>RUN COMPLETE</span>
+            {_phase&&<>
+              <span style={{color:"rgba(255,255,255,0.30)"}}>·</span>
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(255,255,255,0.16)",color:"#fff",padding:"3px 9px",borderRadius:6}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:_phase.color,display:"inline-block",flexShrink:0}}/>
+                {_phase.label}
+              </span>
+            </>}
+          </div>
+          {/* Hero distance */}
+          <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:6}}>
+            <div style={{fontFamily:_AF,fontWeight:800,fontSize:66,lineHeight:0.82,color:"#fff",letterSpacing:"-0.03em"}}>
+              {distance>0?_convD(distance).toFixed(2):"—"}
             </div>
-          ))}
-        </div>
-        {laps?.length>0&&<>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.16em",marginBottom:8}}>// Splits</div>
-          {laps.map((lap,i)=>{
-            const lapTime=i===0?lap.time:lap.time-laps[i-1].time;
-            const avgLapTime=elapsed/Math.max(laps.length,1);
-            const isFaster=lapTime<avgLapTime;
-            return(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-                <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>KM {i+1}</span>
-                <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:isFaster?"#22c55e":"var(--accent)"}}>{fmtTime(lapTime)}</span>
+            {distance>0&&<div style={{fontFamily:_AF,fontWeight:800,fontSize:24,lineHeight:1,color:"rgba(255,255,255,0.70)",textTransform:"uppercase",paddingBottom:6}}>{_distU}</div>}
+          </div>
+          {/* Sub-line */}
+          <div style={{fontFamily:_MO,fontSize:10,color:"rgba(255,255,255,0.60)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:20}}>
+            {(todayFocus||"Run").toUpperCase()} · {new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase()}
+          </div>
+          {/* Stat tiles */}
+          <div style={{display:"flex",gap:8}}>
+            {[
+              {l:"TIME",   v:fmtTime(elapsed),          suf:null},
+              {l:"AVG PACE",v:_pace(distance,elapsed),  suf:`/${_distU}`},
+              {l:"CALS",   v:String(calories),           suf:"kcal"},
+            ].map(({l,v,suf})=>(
+              <div key={l} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"11px 8px",textAlign:"center"}}>
+                <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:5}}>{l}</div>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,display:"flex",alignItems:"baseline",justifyContent:"center",gap:2}}>
+                  {v}
+                  {suf&&<span style={{fontFamily:_MO,fontSize:9,fontWeight:400,color:"rgba(255,255,255,0.55)"}}>{suf}</span>}
+                </div>
               </div>
-            );
-          })}
-        </>}
-        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── PAPER SPLITS CARD ─────────────────────────────────────────────── */}
+        {lapTimes.length>0&&(
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"18px 18px 0 0",marginTop:-10,padding:"18px 18px 20px",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--cm-ink,#0A0A0A)",marginBottom:16}}>SPLITS</div>
+            {lapTimes.map((lapTime,i)=>{
+              const isFastest=lapTime===fastestLap;
+              const isSlowest=lapTime===slowestLap&&lapTimes.length>1;
+              const barPct=70+30*((slowestLap-lapTime)/lapRange);
+              return(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:isFastest?13:8}}>
+                  <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:isFastest?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),.45)",width:30,flexShrink:0}}>
+                    {_distU.toUpperCase()} {i+1}
+                  </span>
+                  <div style={{flex:1,background:"rgba(var(--cm-ink-rgb,10,10,10),.08)",borderRadius:3,height:isFastest?11:7,overflow:"hidden"}}>
+                    <div style={{width:`${barPct}%`,height:"100%",borderRadius:3,background:isFastest?"var(--cm-red,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.35)":"var(--cm-ink,#0A0A0A)",transition:"width 0.6s cubic-bezier(0.2,0.7,0.3,1)"}}/>
+                  </div>
+                  <span style={{fontFamily:isFastest?_AF:_MO,fontWeight:isFastest?800:400,fontSize:isFastest?15:11,color:isFastest?"var(--cm-red,#FF3B30)":isSlowest?"rgba(var(--cm-ink-rgb,10,10,10),.40)":"var(--cm-ink,#0A0A0A)",letterSpacing:isFastest?"-0.01em":"0",minWidth:44,textAlign:"right"}}>
+                    {fmtTime(lapTime)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── SAVE & EXIT ───────────────────────────────────────────────────── */}
+        <div style={{padding:"0 0 4px",background:lapTimes.length>0?"var(--cm-paper,#FFFFFF)":"transparent"}}>
+          <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+        </div>
       </div>
     );
   }
 
   function renderHyroxPicker(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// HYROX SESSION</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:24}}>
-          WHAT TYPE OF<br/><span style={{color:"#FC4C02"}}>SESSION?</span>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Hyrox Session</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:34,lineHeight:0.9,color:"#fff",textTransform:"uppercase",marginBottom:24}}>
+          What type of<br/>session?
         </div>
         {[
-          {e:"🏁",l:"RACE SIMULATION.",sub:"Full race · All 8 stations · Race distances · 60-90 min",fn:startRaceSim},
-          {e:"⚡",l:"STATION WOD.",sub:`Coach picks your weakest stations · Multiple rounds · 20-40 min`,fn:()=>{setHyroxType('station_wod');startWOD();}},
-          {e:"🎯",l:"WEAKNESS FOCUS.",sub:"Single station deep work · Intervals · Build the station costing you time",fn:()=>{setHyroxWeaknessStation(null);setSessionMode('hyrox-weakness-picker');}},
-          {e:"🏃",l:"RUN INTERVALS.",sub:"Race-pace running · Builds the 8km running fitness most Hyrox athletes neglect",fn:()=>{setSessionMode('run-picker');}},
+          {e:"🏁",l:"Race Simulation",sub:"Full race · All 8 stations · Race distances · 60–90 min",fn:startRaceSim},
+          {e:"⚡",l:"Station WOD",sub:"Coach picks your weakest stations · Multiple rounds · 20–40 min",fn:()=>{setHyroxType('station_wod');startWOD();}},
+          {e:"🎯",l:"Weakness Focus",sub:"Single station deep work · Intervals · Build the station costing you time",fn:()=>{setHyroxWeaknessStation(null);setSessionMode('hyrox-weakness-picker');}},
+          {e:"🏃",l:"Run Intervals",sub:"Race-pace running · Builds the 8km running fitness most Hyrox athletes neglect",fn:()=>{setSessionMode('run-picker');}},
         ].map((o,i)=>(
-          <div key={i} onClick={o.fn} style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.12)",borderRadius:14,padding:"18px",marginBottom:10,cursor:"pointer",display:"flex",gap:16,alignItems:"flex-start"}}>
-            <div style={{fontSize:28,flexShrink:0}}>{o.e}</div>
-            <div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:4}}>{o.l}</div>
-              <div style={{fontFamily:"var(--body)",fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>{o.sub}</div>
+          <div key={i} onClick={o.fn} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:16,padding:"16px",marginBottom:10,cursor:"pointer",WebkitTapHighlightColor:"transparent",display:"flex",gap:14,alignItems:"center",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
+            <div style={{width:46,height:46,flexShrink:0,borderRadius:12,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{o.e}</div>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:4}}>{o.l}</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",lineHeight:1.4}}>{o.sub}</div>
             </div>
           </div>
         ))}
@@ -3191,19 +3251,21 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function renderHyroxRaceSim(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     const seg=HYROX_RACE_SEGS[hyroxCurrentSeg]||HYROX_RACE_SEGS[0];
     const isRun=seg.type==='run';
     return(
       <div style={{paddingTop:20}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
           <div>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>// RACE SIMULATION</div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1,color:"#f5f5f0",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase"}}>total time</div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Race Simulation</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:40,lineHeight:1,color:"#fff",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>total time</div>
           </div>
           <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:2}}>segment</div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:isRun?"#22c55e":"#FC4C02"}}>{hyroxCurrentSeg+1}/16</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:2}}>segment</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:22,color:"#fff"}}>{hyroxCurrentSeg+1}/16</div>
           </div>
         </div>
         <div style={{display:"flex",gap:4,marginBottom:20,alignItems:"center"}}>
@@ -3212,32 +3274,34 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             const done=stationSegIdx<hyroxCurrentSeg;
             const current=stationSegIdx===hyroxCurrentSeg;
             const isRunCurrent=stationSegIdx-1===hyroxCurrentSeg;
+            const active=current||isRunCurrent;
             return(
               <div key={i} style={{flex:1,textAlign:"center"}}>
-                <div style={{width:"100%",height:6,borderRadius:3,background:done?"#22c55e":current||isRunCurrent?"#FC4C02":"rgba(245,245,240,0.1)",transition:"background 0.3s"}}/>
-                <div style={{fontFamily:"var(--mono)",fontSize:6,color:done?"#22c55e":current?"#FC4C02":"rgba(245,245,240,0.2)",marginTop:2,textTransform:"uppercase"}}>{i+1}</div>
+                <div style={{width:"100%",height:active?8:6,borderRadius:4,background:done?"rgba(255,255,255,0.9)":active?"#fff":"rgba(255,255,255,0.25)",transition:"all 0.3s"}}/>
+                <div style={{fontFamily:_MO,fontSize:6,fontWeight:700,color:done?"rgba(255,255,255,0.7)":active?"#fff":"rgba(255,255,255,0.3)",marginTop:3,textTransform:"uppercase"}}>{i+1}</div>
               </div>
             );
           })}
         </div>
-        <div style={{background:isRun?"rgba(34,197,94,0.06)":"#0d0d0d",border:`1px solid ${isRun?"rgba(34,197,94,0.2)":"rgba(252,76,2,0.2)"}`,borderRadius:14,padding:18,marginBottom:20}}>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#f5f5f0",marginBottom:4}}>
-            {isRun?"1KM RUN.":(seg.name||"STATION")+"."}<span style={{color:isRun?"#22c55e":"#FC4C02"}}>.</span>
+        <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:20,marginBottom:18,boxShadow:"0 4px 20px rgba(0,0,0,.12)"}}>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{isRun?`Run ${seg.index+1} of 8`:`Station ${seg.index+1} of 8`}</div>
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:0.95,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",marginBottom:isRun?8:4}}>
+            {isRun?"1KM Run":(seg.name||"Station")}
           </div>
-          {!isRun&&<div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:18,color:"rgba(245,245,240,0.6)",marginBottom:8}}>{seg.distance||seg.reps||""}</div>}
-          {isRun&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",marginBottom:8}}>RECOVER AND PACE.</div>}
-          {!isRun&&seg.tip&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{seg.tip}</div>}
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:isRun?"#22c55e":"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
-          <button onClick={completeHyroxSegment} style={{width:"100%",padding:"16px",background:isRun?"#22c55e":"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>
-            {isRun?"COMPLETE RUN →":"COMPLETE STATION →"}
+          {!isRun&&(seg.distance||seg.reps)&&<div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:700,fontSize:18,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",textTransform:"uppercase",marginBottom:8}}>{seg.distance||seg.reps}</div>}
+          {isRun&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:8}}>Recover and pace</div>}
+          {!isRun&&seg.tip&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{seg.tip}</div>}
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:52,color:"var(--cm-red,#FF3B30)",fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
+          <button onClick={completeHyroxSegment} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+            {isRun?"Complete Run →":"Complete Station →"}
           </button>
         </div>
         {hyroxSegTimes.length>0&&<div style={{marginBottom:16}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>// Completed</div>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>Completed</div>
           {hyroxSegTimes.slice(-3).map((s,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
-              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",textTransform:"uppercase"}}>{s.type==='run'?`Run ${s.index+1}`:s.name}</span>
-              <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:s.type==='run'?"#22c55e":"#f5f5f0"}}>{fmtTime(s.elapsed)}</span>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.12)"}}>
+              <span style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:"0.04em"}}>{s.type==='run'?`Run ${s.index+1}`:s.name}</span>
+              <span style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:15,color:"#fff"}}>{fmtTime(s.elapsed)}</span>
             </div>
           ))}
         </div>}
@@ -3246,51 +3310,58 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function renderHyroxWOD(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     const st=hyroxWodStations[hyroxWodCurStation];
     if(!st)return null;
     const totalSteps=hyroxWodRounds*hyroxWodStations.length;
     const doneSteps=hyroxWodCurRound*hyroxWodStations.length+hyroxWodCurStation;
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// STATION WOD</div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0"}}>{fmtTime(hyroxTotalElapsed)}</div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)"}}>ROUND {hyroxWodCurRound+1} of {hyroxWodRounds}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
+          <div>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Station WOD</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1,color:"#fff",fontVariantNumeric:"tabular-nums"}}>{fmtTime(hyroxTotalElapsed)}</div>
+          </div>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.75)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Round {hyroxWodCurRound+1} of {hyroxWodRounds}</div>
         </div>
-        <div style={{height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
-          <div style={{height:"100%",background:"#FC4C02",width:`${(doneSteps/totalSteps)*100}%`,transition:"width 0.4s"}}/>
+        <div style={{height:4,background:"rgba(255,255,255,0.2)",borderRadius:2,marginBottom:20,overflow:"hidden"}}>
+          <div style={{height:"100%",background:"#fff",width:`${(doneSteps/totalSteps)*100}%`,transition:"width 0.4s"}}/>
         </div>
-        <div style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.2)",borderRadius:14,padding:18,marginBottom:20}}>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,color:"#f5f5f0",marginBottom:4}}>{(st.name||"").toUpperCase()}<span style={{color:"#FC4C02"}}>.</span></div>
-          {st.isSubstituted&&<div style={{marginBottom:6}}><span style={{display:"inline-block",background:"rgba(254,160,32,0.08)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--mono)",fontSize:8,color:"rgba(254,160,32,0.7)",letterSpacing:"0.08em",textTransform:"uppercase"}}>// EQUIPMENT SUBSTITUTION</span></div>}
-          {(st.distance||st.reps)&&<div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:18,color:"rgba(245,245,240,0.6)",marginBottom:8}}>{st.distance||st.reps}</div>}
-          {st.tip&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{st.tip}</div>}
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#FC4C02",fontVariantNumeric:"tabular-nums",marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
-          <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>COMPLETE STATION →</button>
+        <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:20,marginBottom:18,boxShadow:"0 4px 20px rgba(0,0,0,.12)"}}>
+          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>Current Station</div>
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:30,lineHeight:0.95,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",marginBottom:4}}>{st.name||"Station"}</div>
+          {st.isSubstituted&&<div style={{marginBottom:8}}><span style={{display:"inline-block",background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:6,padding:"3px 9px",fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.08em",textTransform:"uppercase"}}>Equipment Substitution</span></div>}
+          {(st.distance||st.reps)&&<div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:700,fontSize:18,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",textTransform:"uppercase",marginBottom:8}}>{st.distance||st.reps}</div>}
+          {st.tip&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",lineHeight:1.5,marginBottom:14}}>{st.tip}</div>}
+          <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:52,color:"var(--cm-red,#FF3B30)",fontVariantNumeric:"tabular-nums",lineHeight:1,marginBottom:16}}>{fmtTime(hyroxSegElapsed)}</div>
+          <button onClick={completeWODStation} style={{width:"100%",padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Complete Station →</button>
         </div>
       </div>
     );
   }
 
   function renderHyroxWeaknessPicker(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// WEAKNESS FOCUS</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:6}}>
-          PICK YOUR<br/><span style={{color:"#FC4C02"}}>STATION.</span>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Weakness Focus</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,color:"#fff",textTransform:"uppercase",marginBottom:6}}>
+          Pick your<br/>station
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:20,lineHeight:1.5}}>Single station · 5 rounds · Build the weakness costing you time</div>
+        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.6)",marginBottom:20,lineHeight:1.5,letterSpacing:"0.04em",textTransform:"uppercase"}}>Single station · 5 rounds · Build the weakness costing you time</div>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
           {HYROX_STATIONS.map((st,i)=>{
             const sel=hyroxWeaknessStation===st.name;
             return(
-              <div key={i} onClick={()=>setHyroxWeaknessStation(st.name)} style={{background:sel?"rgba(252,76,2,0.12)":"#0d0d0d",border:`1px solid ${sel?"rgba(252,76,2,0.4)":"rgba(252,76,2,0.1)"}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .2s"}}>
+              <div key={i} onClick={()=>setHyroxWeaknessStation(st.name)} style={{background:"var(--cm-paper,#FFFFFF)",border:sel?"2px solid var(--cm-red,#FF3B30)":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:12,padding:"14px 16px",cursor:"pointer",WebkitTapHighlightColor:"transparent",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 2px 12px rgba(0,0,0,.06)",transition:"border-color .15s"}}>
                 <div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0"}}>{st.name}</div>
-                  {st.distance&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,textTransform:"uppercase"}}>{st.distance}</div>}
+                  <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase"}}>{st.name}</div>
+                  {st.distance&&<div style={{fontFamily:_MO,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",marginTop:2,textTransform:"uppercase",letterSpacing:"0.08em"}}>{st.distance}</div>}
                 </div>
-                {sel&&<div style={{width:20,height:20,borderRadius:"50%",background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <svg width={10} height={10} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {sel&&<div style={{width:22,height:22,borderRadius:"50%",background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <svg width={11} height={11} viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>}
               </div>
             );
@@ -3314,33 +3385,150 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             startHyroxSegTimer();
           }}
           disabled={!hyroxWeaknessStation}
-          style={{width:"100%",padding:"16px",background:hyroxWeaknessStation?"#FC4C02":"rgba(245,245,240,0.08)",border:"none",borderRadius:12,color:hyroxWeaknessStation?"#fff":"rgba(245,245,240,0.3)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:hyroxWeaknessStation?"pointer":"not-allowed",transition:"all .2s"}}
-        >START FOCUS SESSION →</button>
+          style={{width:"100%",padding:"16px",background:hyroxWeaknessStation?"var(--cm-red,#FF3B30)":"rgba(255,255,255,0.18)",border:"none",borderRadius:14,color:hyroxWeaknessStation?"#fff":"rgba(255,255,255,0.5)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:hyroxWeaknessStation?"pointer":"not-allowed",transition:"all .2s"}}
+        >Start Focus Session →</button>
       </div>
     );
   }
 
   function renderHyroxSummary(){
     if(!hyroxSummary)return null;
-    const {type,totalElapsed,segments}=hyroxSummary;
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
+    const segs=hyroxEdit||hyroxSummary.segments||[];
+    const stnName=(s)=>s.name||HYROX_STATIONS[s.index]?.name||'Station';
+    const segLabel=(s)=>s.type==='run'?`Run ${(s.index||0)+1}`:(s.round!=null?`${stnName(s)} · R${s.round}`:stnName(s));
+    const totalElapsed=segs.length?segs.reduce((a,s)=>a+(s.elapsed||0),0):(hyroxSummary.totalElapsed||0);
+    const hasRuns=segs.some(s=>s.type==='run');
+    const isRounds=segs.some(s=>s.round!=null);
+    const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
+    const modeLabel=hasRuns?'RACE SIMULATION':isRounds?(new Set(segs.map(s=>stnName(s))).size>1?'STATION WOD':'WEAKNESS FOCUS'):'SESSION';
+    let tiles=[],rows=[];
+    if(hasRuns){
+      const runSegs=segs.filter(s=>s.type==='run');
+      const stationSegs=segs.filter(s=>s.type==='station');
+      const runTotal=runSegs.reduce((a,s)=>a+(s.elapsed||0),0);
+      const stationTotal=stationSegs.reduce((a,s)=>a+(s.elapsed||0),0);
+      const avgKm=runSegs.length?Math.round(runTotal/runSegs.length):0;
+      tiles=[{label:'RUN TOTAL',value:fmtTime(runTotal)},{label:'STATIONS',value:fmtTime(stationTotal)},{label:'AVG /KM',value:fmtTime(avgKm)}];
+      rows=stationSegs.map(s=>({name:stnName(s),t:s.elapsed||0}));
+    }else if(isRounds){
+      const byRound={};
+      segs.forEach(s=>{const r=s.round||1;byRound[r]=(byRound[r]||0)+(s.elapsed||0);});
+      const roundKeys=Object.keys(byRound).map(Number).sort((a,b)=>a-b);
+      const roundTimes=roundKeys.map(r=>byRound[r]);
+      const numRounds=roundKeys.length;
+      const avgRound=numRounds?Math.round(totalElapsed/numRounds):0;
+      const bestRound=roundTimes.length?Math.min(...roundTimes):0;
+      tiles=[{label:'ROUNDS',value:String(numRounds)},{label:'AVG ROUND',value:fmtTime(avgRound)},{label:'BEST ROUND',value:fmtTime(bestRound)}];
+      rows=roundKeys.map(r=>({name:`ROUND ${r}`,t:byRound[r]}));
+    }else{
+      rows=segs.map((s)=>({name:stnName(s),t:s.elapsed||0}));
+    }
+    let slowestIdx=-1,slowT=-1;
+    rows.forEach((r,i)=>{if(r.t>slowT){slowT=r.t;slowestIdx=i;}});
+    const leakName=slowestIdx>=0?rows[slowestIdx].name:null;
+    const maxT=rows.reduce((m,r)=>Math.max(m,r.t),0)||1;
+    const finishExit=()=>{saveHyroxSession(hyroxSummary.type||'race_sim',totalElapsed,segs);setHyroxEdit(null);setHyroxEditing(false);setHyroxPickerIdx(null);setHyroxSummary(null);setSessionMode(null);clearWorkoutSummary();};
+    const ITEM=40;
+    const mins=Array.from({length:31},(_,i)=>i);
+    const secs=Array.from({length:12},(_,i)=>i*5);
     return(
-      <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FC4C02",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// SESSION COMPLETE</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:0.9,marginBottom:20}}>
-          DONE<span style={{color:"#FC4C02"}}>.</span>
+      <div style={{paddingTop:20,paddingBottom:24}}>
+        <div style={{width:56,height:56,borderRadius:'50%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20}}>
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M5 13l6 6 10-10" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <div style={{background:"#0d0d0d",border:"1px solid rgba(252,76,2,0.08)",borderRadius:12,padding:16,marginBottom:16,textAlign:"center"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>TOTAL TIME</div>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,color:"#f5f5f0"}}>{fmtTime(totalElapsed)}</div>
+        <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:60,color:'#fff',lineHeight:0.9,textTransform:'uppercase',marginBottom:8,letterSpacing:'-0.01em'}}>SESSION<br/>COMPLETE</div>
+        <div style={{fontFamily:_MO,fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.6)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:24}}>{modeLabel} · {dateStr}</div>
+        <div style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'18px 16px',marginBottom:12,textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.10)'}}>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:4}}>Total Time</div>
+          <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:52,color:'var(--cm-ink,#0A0A0A)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{fmtTime(totalElapsed)}</div>
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>// Segment Splits</div>
-        {segments.map((s,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(245,245,240,0.05)"}}>
-            <span style={{fontFamily:"var(--mono)",fontSize:9,color:s.type==='run'?"rgba(34,197,94,0.7)":"rgba(245,245,240,0.55)",textTransform:"uppercase"}}>{s.type==='run'?`Run ${s.index+1}`:s.round!=null?`${s.name||""} R${s.round}`:(s.name||"")}</span>
-            <span style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:s.type==='run'?"#22c55e":"#f5f5f0"}}>{fmtTime(s.elapsed)}</span>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+          {tiles.map((tl,i)=>(
+            <div key={i} style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'14px 8px',textAlign:'center',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+              <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:22,color:'var(--cm-ink,#0A0A0A)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{tl.value}</div>
+              <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.1em',textTransform:'uppercase',marginTop:4}}>{tl.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:22,padding:'20px',marginBottom:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.16em',textTransform:'uppercase'}}>{hyroxEditing?'Edit Times':hasRuns?'Stations · Biggest Leak':'Rounds · Slowest'}</div>
+            <div onClick={()=>setHyroxEditing(e=>!e)} style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.08em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent',padding:'4px 6px'}}>{hyroxEditing?'Done':'Edit'}</div>
           </div>
-        ))}
-        <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"#FC4C02",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+          {hyroxEditing?(
+            <div>
+              {segs.map((s,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:i===segs.length-1?'none':'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)'}}>
+                  <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:700,fontSize:14,color:'rgba(var(--cm-ink-rgb,10,10,10),0.85)',textTransform:'uppercase'}}>{segLabel(s)}</span>
+                  <div onClick={()=>setHyroxPickerIdx(i)} style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',WebkitTapHighlightColor:'transparent',background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',padding:'6px 12px',borderRadius:10}}>
+                    <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:16,color:'var(--cm-red,#FF3B30)',fontVariantNumeric:'tabular-nums'}}>{fmtTime(s.elapsed||0)}</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="var(--cm-red,#FF3B30)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                </div>
+              ))}
+              <div style={{fontFamily:_MO,fontSize:9,fontStyle:'italic',color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',marginTop:12,lineHeight:1.5}}>Tap any time to adjust it. The total updates automatically.</div>
+            </div>
+          ):(
+            <div>
+              {rows.map((r,i)=>{
+                const isLeak=i===slowestIdx;
+                const w=Math.round((r.t/maxT)*100);
+                return(
+                  <div key={i} style={{marginBottom:i===rows.length-1?0:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                      <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:isLeak?900:700,fontSize:isLeak?16:14,color:isLeak?'var(--cm-red,#FF3B30)':'rgba(var(--cm-ink-rgb,10,10,10),0.85)',textTransform:'uppercase'}}>
+                        {r.name}{isLeak&&<span style={{fontFamily:_MO,fontSize:8,fontWeight:700,marginLeft:8,padding:'2px 7px',borderRadius:6,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',color:'var(--cm-red,#FF3B30)',letterSpacing:'0.06em',verticalAlign:'middle'}}>LEAK</span>}
+                      </span>
+                      <span style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:isLeak?16:15,color:isLeak?'var(--cm-red,#FF3B30)':'var(--cm-ink,#0A0A0A)',fontVariantNumeric:'tabular-nums'}}>{fmtTime(r.t)}</span>
+                    </div>
+                    <div style={{height:isLeak?8:6,borderRadius:4,background:'rgba(var(--cm-ink-rgb,10,10,10),0.07)',overflow:'hidden'}}>
+                      <div style={{height:'100%',width:`${w}%`,borderRadius:4,background:isLeak?'var(--cm-red,#FF3B30)':'rgba(var(--cm-ink-rgb,10,10,10),0.28)'}}/>
+                    </div>
+                  </div>
+                );
+              })}
+              {leakName&&<div style={{fontFamily:_MO,fontSize:9,fontStyle:'italic',color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',lineHeight:1.5,marginTop:14}}>Biggest leak: {leakName}. Target this to find your fastest gains.</div>}
+            </div>
+          )}
+        </div>
+        <button onClick={finishExit} style={{width:'100%',padding:'18px 0',background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:24,color:'var(--cm-red,#FF3B30)',fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Save &amp; Exit →</button>
+        {hyroxPickerIdx!=null&&segs[hyroxPickerIdx]&&(()=>{
+          const s=segs[hyroxPickerIdx];
+          const cur=s.elapsed||0;
+          const initMin=Math.min(30,Math.floor(cur/60));
+          const initSecIdx=Math.min(11,Math.round((cur%60)/5));
+          const sel={min:initMin,sec:initSecIdx};
+          const commit=()=>setHyroxEdit(prev=>(prev||hyroxSummary.segments||[]).map((x,idx)=>idx===hyroxPickerIdx?{...x,elapsed:sel.min*60+sel.sec*5}:x));
+          const wheel=(items,initIdx,onIdx,fmt)=>(
+            <div ref={el=>{if(el&&el.dataset.pk!==String(hyroxPickerIdx)){el.dataset.pk=String(hyroxPickerIdx);el.scrollTop=initIdx*ITEM;}}}
+              onScroll={e=>{const el=e.currentTarget;clearTimeout(el._t);el._t=setTimeout(()=>{const i=Math.max(0,Math.min(items.length-1,Math.round(el.scrollTop/ITEM)));el.scrollTop=i*ITEM;onIdx(i);commit();},110);}}
+              style={{height:ITEM*5,overflowY:'scroll',scrollSnapType:'y mandatory',WebkitOverflowScrolling:'touch',flex:1,textAlign:'center',WebkitMaskImage:'linear-gradient(to bottom,transparent,#000 34%,#000 66%,transparent)',maskImage:'linear-gradient(to bottom,transparent,#000 34%,#000 66%,transparent)'}}>
+              <div style={{height:ITEM*2}}/>
+              {items.map((it,i)=>(<div key={i} style={{height:ITEM,lineHeight:`${ITEM}px`,scrollSnapAlign:'center',fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:26,color:'var(--cm-ink,#0A0A0A)',fontVariantNumeric:'tabular-nums'}}>{fmt(it)}</div>))}
+              <div style={{height:ITEM*2}}/>
+            </div>
+          );
+          return(
+            <div onClick={()=>setHyroxPickerIdx(null)} style={{position:'fixed',inset:0,zIndex:10050,background:'rgba(0,0,0,0.45)',display:'flex',alignItems:'flex-end'}}>
+              <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:'var(--cm-paper,#FFFFFF)',borderTopLeftRadius:24,borderTopRightRadius:24,padding:'20px 20px max(env(safe-area-inset-bottom),20px)',boxSizing:'border-box'}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6,textAlign:'center'}}>{segLabel(s)}</div>
+                <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+                  <div style={{position:'absolute',left:'15%',right:'15%',top:ITEM*2,height:ITEM,background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',borderTop:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)',borderBottom:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)',pointerEvents:'none',borderRadius:8}}/>
+                  {wheel(mins,initMin,(i)=>{sel.min=i;},(m)=>String(m))}
+                  <div style={{fontFamily:_BC,fontStyle:'italic',fontWeight:900,fontSize:24,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>:</div>
+                  {wheel(secs,initSecIdx,(i)=>{sel.sec=i;},(x)=>String(x).padStart(2,'0'))}
+                </div>
+                <div style={{display:'flex',justifyContent:'center',gap:'28%',marginTop:4,marginBottom:14}}>
+                  <span style={{fontFamily:_MO,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>min</span>
+                  <span style={{fontFamily:_MO,fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>sec</span>
+                </div>
+                <button onClick={()=>setHyroxPickerIdx(null)} style={{width:'100%',padding:'15px 0',background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:14,color:'#fff',fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>Done</button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
@@ -3699,10 +3887,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           // ── shared computed vars (train-today GOCLUB sandwich) ────────────
           const _AF="'Archivo',sans-serif";
           const _MO="'DM Mono',monospace";
-          const _todayIdx=WDAYS.indexOf(todayKey);
-          const _weekDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_todayIdx+i);return d.toISOString().split('T')[0];});
+          const _localDateStr=(d)=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${da}`;};
+          const _mondayIdx=(new Date().getDay()+6)%7; // 0=Mon … 6=Sun, matches WDAYS order
+          const _weekDates=WDAYS.map((_,i)=>{const d=new Date();d.setDate(d.getDate()-_mondayIdx+i);return _localDateStr(d);});
           const _thisWeekSet=new Set(_weekDates);
-          const _doneThisWeek=new Set(Object.values(history).flatMap(s=>s.filter(x=>_thisWeekSet.has(x.date)).map(x=>x.date))).size;
+          const _doneThisWeek=(workoutLogsRaw||[]).filter(w=>_thisWeekSet.has(w.date)).length;
           const _schedThisWeek=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
           const _progInfo2=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
           const _totalWks=_progInfo2?.weeks||null;
