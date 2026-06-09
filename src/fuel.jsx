@@ -3063,16 +3063,16 @@ Reply with ONLY a valid JSON object, no markdown:
               if(todayPlanDay){orderPlanMeals(todayPlanDay.meals).forEach((m,i)=>{plannedBySlot[i+1]=m;});}
               return(
                 <StaggerItem i={2}>
-                <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+                <div style={{background:GOCLUB_REDESIGN?'var(--cm-paper,#FFFFFF)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px",boxShadow:GOCLUB_REDESIGN?'0 2px 12px rgba(0,0,0,.08)':undefined}}>
                   {(()=>{
                     const f=profile?.fasting||profile?.profile_data?.fasting;
                     if(!f||f==="no")return null;
                     const windowLabel=f==="16:8"?"8h eating window":f==="omad"?"OMAD — 1 meal":f==="custom"?`${Math.max(1,24-fastHours)}h eating window`:"Fasting active";
-                    return<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(96,165,250,0.6)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{windowLabel}</div>;
+                    return<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(37,99,235,0.85)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{windowLabel}</div>;
                   })()}
                   <div style={{marginBottom:14}}>
-                    <div className="header-eyebrow" style={{marginBottom:2,color:GOCLUB_REDESIGN?'rgba(255,255,255,0.40)':undefined}}>// Today's Meals</div>
-                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1}}>Food Log</div>
+                    <div className="header-eyebrow" style={{marginBottom:2,color:GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.42)':undefined}}>// Today's Meals</div>
+                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1,color:'var(--cm-ink,#0A0A0A)'}}>Food Log</div>
                   </div>
                   <div>
                     {mealSlots.map((slot,si)=>{
@@ -3094,20 +3094,20 @@ Reply with ONLY a valid JSON object, no markdown:
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:slotItems.length>0?6:4}}>
                             {/* Lock icon on locked slots */}
                             {isLocked&&<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
-                            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:isSkipped?"rgba(245,245,240,0.4)":isLocked?"#22c55e":"#f5f5f0",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
-                            <div style={{flex:1,height:1,background:"rgba(255,255,255,0.05)"}}/>
+                            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:isSkipped?"rgba(var(--cm-ink-rgb,10,10,10),0.4)":isLocked?"#22c55e":"var(--cm-ink,#0A0A0A)",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
+                            <div style={{flex:1,height:1,background:"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}}/>
                             {isSkipped?(
-                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
+                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
                             ):isLocked?(
-                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",letterSpacing:"0.08em"}}>LOCKED</span>
+                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#22c55e",letterSpacing:"0.08em"}}>LOCKED</span>
                             ):(
-                              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.06em"}}>
+                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",letterSpacing:"0.06em"}}>
                                 {slotCals} / {target} kcal
                                 {hasRedistributed&&(
                                   <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#FEA020",cursor:"pointer",marginLeft:4}}>↑</span>
                                 )}
                                 {hasOverageReduction&&!hasRedistributed&&(
-                                  <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#e8341c",cursor:"pointer",marginLeft:4}}>↓</span>
+                                  <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"var(--cm-red,#FF3B30)",cursor:"pointer",marginLeft:4}}>↓</span>
                                 )}
                               </span>
                             )}
@@ -3128,17 +3128,17 @@ Reply with ONLY a valid JSON object, no markdown:
                                     setFuelScreen('log');
                                   }
                                 }}
-                                style={{width:44,height:44,background:"rgba(232,52,28,0.15)",border:"1.5px solid #e8341c",color:"#e8341c",borderRadius:10,fontSize:20,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>+</motion.button>
+                                style={{width:44,height:44,background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",border:"1.5px solid var(--cm-red,#FF3B30)",color:"var(--cm-red,#FF3B30)",borderRadius:10,fontSize:20,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>+</motion.button>
                             )}
                             {mealSlots.length>1&&!isSkipped&&!isLocked&&(
-                              <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(245,245,240,0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
+                              <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(var(--cm-ink-rgb,10,10,10),0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
                             )}
                           </div>
                           {tooltipSlot===slot&&hasRedistributed&&(
-                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:6}}>Includes calories from skipped meals</div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:6}}>Includes calories from skipped meals</div>
                           )}
                           {tooltipSlot===slot&&hasOverageReduction&&!hasRedistributed&&(
-                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:6}}>Reduced due to overage in an earlier meal</div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:6}}>Reduced due to overage in an earlier meal</div>
                           )}
                           {slotItems.map((item,i)=>(
                             <SwipeRow key={item.id}
@@ -3147,7 +3147,7 @@ Reply with ONLY a valid JSON object, no markdown:
                                 removeLog(item.id);
                                 showToast(`${snap.food||"Item"} removed`,{action:()=>logEntry(snap),actionLabel:"Undo"});
                               }}
-                              style={{borderBottom:i<slotItems.length-1?`1px solid rgba(245,245,240,0.04)`:""}}
+                              style={{borderBottom:i<slotItems.length-1?`1px solid rgba(var(--cm-ink-rgb,10,10,10),0.04)`:""}}
                             >
                               <div
                                 className="card-press"
@@ -3162,30 +3162,30 @@ Reply with ONLY a valid JSON object, no markdown:
                                     : <FoodIcon name={item} method={item.method} size={32} userId={user?.id} />
                                   }
                                   <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food||item.name}</div>
-                                    <div style={{fontSize:10,color:T.mu,marginTop:1,fontFamily:"var(--mono)"}}>
+                                    <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-ink,#0A0A0A)'}}>{item.food||item.name}</div>
+                                    <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:1,fontFamily:"'DM Mono',monospace"}}>
                                       <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                                   <div style={{textAlign:"right"}}>
-                                    <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:500,color:"#fff"}}>{item.calories}</div>
-                                    <div style={{fontSize:9,color:T.mu}}>kcal</div>
+                                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"var(--cm-ink,#0A0A0A)"}}>{item.calories}</div>
+                                    <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.42)"}}>kcal</div>
                                   </div>
-                                  {!isLocked&&<button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>}
+                                  {!isLocked&&<button onClick={()=>removeLog(item.id)} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>}
                                 </div>
                               </div>
                             </SwipeRow>
                           ))}
                           {/* ── PLANNED card — part B: confirm / swap / skip ── */}
                           {plannedMeal&&(
-                            <div style={{marginTop:4,padding:"10px 12px",border:"1.5px dashed rgba(245,245,240,0.12)",borderRadius:10,background:"rgba(232,52,28,0.04)"}}>
-                              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(232,52,28,0.55)",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:4}}>// planned</div>
+                            <div style={{marginTop:4,padding:"10px 12px",border:"1.5px dashed rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,background:"rgba(var(--cm-red-rgb,255,59,48),0.04)"}}>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(var(--cm-red-rgb,255,59,48),0.55)",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:4}}>// planned</div>
                               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                                 <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,color:"rgba(245,245,240,0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{plannedMeal.name}</div>
-                                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.28)",marginTop:2}}>
+                                  <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{plannedMeal.name}</div>
+                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.28)",marginTop:2}}>
                                     <span style={{color:"rgba(34,197,94,0.45)"}}>P {Math.round(plannedMeal.protein)}g</span>{' · '}{Math.round(plannedMeal.calories)} kcal
                                   </div>
                                 </div>
@@ -3194,18 +3194,18 @@ Reply with ONLY a valid JSON object, no markdown:
                               <div style={{display:"flex",alignItems:"center",gap:6}}>
                                 <button
                                   onClick={()=>handleConfirmPlanned(plannedMeal,slot)}
-                                  style={{flex:2,padding:"7px 10px",background:"#e8341c",border:"none",borderRadius:8,fontFamily:"var(--mono)",fontWeight:700,fontSize:9,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
+                                  style={{flex:2,padding:"7px 10px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:8,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:9,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>
                                   ✓ Ate this
                                 </button>
                                 <button
                                   onClick={()=>swappingSlot!==slot&&handleSwapPlanned(slot,plannedMeal._recipeId)}
                                   disabled={swappingSlot===slot}
-                                  style={{flex:1,padding:"7px 10px",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.12)",borderRadius:8,fontFamily:"var(--mono)",fontWeight:700,fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:swappingSlot===slot?"default":"pointer",opacity:swappingSlot===slot?0.5:1}}>
+                                  style={{flex:1,padding:"7px 10px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:8,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:swappingSlot===slot?"default":"pointer",opacity:swappingSlot===slot?0.5:1}}>
                                   {swappingSlot===slot?"…":"Swap"}
                                 </button>
                                 <button
                                   onClick={()=>handleDismissPlanned(plannedMeal._recipeId||plannedMeal.name)}
-                                  style={{padding:"7px 8px",background:"none",border:"none",fontFamily:"var(--mono)",fontWeight:700,fontSize:8,color:"rgba(245,245,240,0.22)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>
+                                  style={{padding:"7px 8px",background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.22)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>
                                   Dismiss
                                 </button>
                               </div>
@@ -3215,11 +3215,11 @@ Reply with ONLY a valid JSON object, no markdown:
                       );
                     })}
                     {log.filter(e=>!mealSlots.includes(getEntrySlot(e))).map((item,i,arr)=>(
-                      <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(245,245,240,0.04)`:""}}>
-                        <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.food}</div>
+                      <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(var(--cm-ink-rgb,10,10,10),0.04)`:""}}>
+                        <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-ink,#0A0A0A)'}}>{item.food}</div>
                         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                          <div style={{fontFamily:"var(--mono)",fontSize:13}}>{item.calories} kcal</div>
-                          <button onClick={()=>removeLog(item.id)} style={{background:T.s2,border:`1px solid ${T.bd}`,color:T.mu,cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:'var(--cm-ink,#0A0A0A)'}}>{item.calories} kcal</div>
+                          <button onClick={()=>removeLog(item.id)} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                         </div>
                       </div>
                     ))}
@@ -3234,9 +3234,9 @@ Reply with ONLY a valid JSON object, no markdown:
                           :{head:"THE DAY ISN'T OVER.",sub:`You have ${calR} calories remaining. Make the rest of today count.`,btn:"LOG NOW →"};
                       return(
                         <div style={{textAlign:"center",padding:"24px 16px"}}>
-                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:20,color:"rgba(245,245,240,0.75)",textTransform:"uppercase",marginBottom:6,lineHeight:1}}>{msg.head}</div>
-                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:GOCLUB_REDESIGN?500:400,color:"rgba(245,245,240,0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
-                          <button onClick={()=>setLogMode("search")} style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:8,padding:"8px 16px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>{msg.btn}</button>
+                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:20,color:"rgba(var(--cm-ink-rgb,10,10,10),0.75)",textTransform:"uppercase",marginBottom:6,lineHeight:1}}>{msg.head}</div>
+                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:GOCLUB_REDESIGN?500:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
+                          <button onClick={()=>setLogMode("search")} style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:8,padding:"8px 16px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>{msg.btn}</button>
                         </div>
                       );
                     })()}
