@@ -16,7 +16,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
   GOCLUB_REDESIGN } from "./components.jsx";
 
 const _FUEL_GOCLUB_CSS=`
-.goclub.tab-fuel{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E") repeat left top/200px 200px,radial-gradient(ellipse at 50% 15%,#1A0A08 0%,#0A0302 40%,#000000 72%)!important;--condensed:'Archivo',sans-serif}
+.goclub.tab-fuel{background:var(--cm-red)!important;--condensed:'Archivo',sans-serif}
 .goclub.tab-fuel .screen-header{border:none!important;background:transparent!important}
 .goclub.tab-fuel .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important}
 .goclub.tab-fuel .header-eyebrow{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:700!important;font-size:11px!important;letter-spacing:0.16em!important;color:rgba(255,255,255,0.4)!important;text-transform:uppercase!important}
@@ -463,24 +463,24 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
   if (voiceState === "confirm") {
     return (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
+        <div style={{ background: "var(--cm-paper,#FFFFFF)", border: "1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%", boxShadow: "0 -4px 24px rgba(0,0,0,0.12)" }}>
+          <div style={{ width: 32, height: 3, background: "rgba(var(--cm-red-rgb,255,59,48),0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
           <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 6 }}>Voice Log Preview</div>
-          <div style={{ fontFamily: "var(--condensed)", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>"{voiceTranscript}"</div>
+          <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16, color:"var(--cm-red,#FF3B30)" }}>"{voiceTranscript}"</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
             {voiceEntries.map((e, i) => (
-              <div key={i} style={{ background: T.s2, borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div key={i} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{e.food}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color:"var(--cm-red,#FF3B30)" }}>{e.food}</div>
                   <div style={{ fontSize: 11, color: T.mu }}><span style={{ color: T.prot }}>P {e.protein}g</span> · <span style={{ color: T.carb }}>C {e.carbs}g</span> · <span style={{ color: T.fat }}>F {e.fat}g</span></div>
                 </div>
-                <div style={{ fontWeight: 900, fontSize: 16 }}>{e.calories} kcal</div>
+                <div style={{ fontWeight: 900, fontSize: 16, color:"var(--cm-red,#FF3B30)" }}>{e.calories} kcal</div>
               </div>
             ))}
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => { setVoiceState("idle"); setVoiceEntries([]); setVoiceTranscript(""); }} style={{ flex: 1, padding: "13px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 12, color: T.mu, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Redo</button>
-            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || 1, true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1 }}>Log All →</button>
+            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || 1, true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Archivo',sans-serif", letterSpacing: 1 }}>Log All →</button>
           </div>
         </div>
       </div>
@@ -495,27 +495,27 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
     const fitColor = pctFit <= 110 ? T.green : "#F59E0B";
     return (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 310, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
+        <div style={{ background: "var(--cm-paper,#FFFFFF)", border: "1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%", boxShadow: "0 -4px 24px rgba(0,0,0,0.12)" }}>
+          <div style={{ width: 32, height: 3, background: "rgba(var(--cm-red-rgb,255,59,48),0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
           <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 4 }}>Log Again</div>
-          <div style={{ fontFamily: "var(--condensed)", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>
+          <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 4, color:"var(--cm-red,#FF3B30)" }}>
             {new Date(logAgainMeal.logged_at + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            {[["CAL", logAgainMeal.total_calories, "#fff"], ["PRO", `${logAgainMeal.total_protein}g`, T.prot], ["CARB", `${logAgainMeal.total_carbs}g`, T.carb], ["FAT", `${logAgainMeal.total_fat}g`, T.fat]].map(([lbl, val, c]) => (
-              <div key={lbl} style={{ background: T.s2, borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
+            {[["CAL", logAgainMeal.total_calories, "var(--cm-red,#FF3B30)"], ["PRO", `${logAgainMeal.total_protein}g`, T.prot], ["CARB", `${logAgainMeal.total_carbs}g`, T.carb], ["FAT", `${logAgainMeal.total_fat}g`, T.fat]].map(([lbl, val, c]) => (
+              <div key={lbl} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
                 <div style={{ fontSize: 9, color: T.mu, fontWeight: 700, letterSpacing: ".1em" }}>{lbl}</div>
                 <div style={{ fontSize: 15, fontWeight: 900, color: c }}>{val}</div>
               </div>
             ))}
           </div>
-          <div style={{ background: T.s2, borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ flex: 1, fontSize: 12, color: T.mu }}>Fits Meal {slot} target ({target} kcal)</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: fitColor }}>{pctFit}%{diff >= 0 ? ` · ${diff} to spare` : ` · ${Math.abs(diff)} over`}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16, maxHeight: 160, overflowY: "auto" }}>
             {(logAgainMeal.entries || []).map((e, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: T.s2, borderRadius: 8 }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 600 }}>{e.food}</span>
                 <span style={{ fontSize: 11, color: T.mu }}>{e.calories} kcal · P {e.protein}g</span>
               </div>
@@ -529,7 +529,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               });
               setLogAgainMeal(null);
               onClose();
-            }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "var(--condensed)", letterSpacing: 1 }}>LOG TO MEAL {slot} →</button>
+            }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Archivo',sans-serif", letterSpacing: 1 }}>LOG TO MEAL {slot} →</button>
           </div>
         </div>
       </div>
@@ -546,11 +546,11 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "#0d0d0d", border: "1px solid rgba(232,52,28,0.12)", borderRadius: "20px 20px 0 0", padding: "0 0 48px", maxWidth: 480, width: "100%", maxHeight: "88vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: "var(--cm-paper,#FFFFFF)", border: "1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)", borderRadius: "20px 20px 0 0", padding: "0 0 48px", maxWidth: 480, width: "100%", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 -4px 24px rgba(0,0,0,0.12)" }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ padding: "20px 20px 0" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(232,52,28,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+          <div style={{ width: 32, height: 3, background: "rgba(var(--cm-red-rgb,255,59,48),0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
 
           {/* Macro progress bar */}
           <div style={{ marginBottom: 16 }}>
@@ -562,8 +562,8 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                 <span style={{ color: T.fat }}>F {remaining.fat > 0 ? remaining.fat : 0}g</span>
               </div>
             </div>
-            <div style={{ height: 6, background: "rgba(232,52,28,0.06)", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${calPct}%`, background: `linear-gradient(90deg,var(--red),rgba(232,52,28,0.5))`, borderRadius: 3, transition: "width .4s" }} />
+            <div style={{ height: 6, background: "rgba(var(--cm-red-rgb,255,59,48),0.06)", borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${calPct}%`, background: `linear-gradient(90deg,var(--cm-red,#FF3B30),rgba(var(--cm-red-rgb,255,59,48),0.5))`, borderRadius: 3, transition: "width .4s" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 9, color: T.mu }}>
               <span>{totalToday} kcal eaten</span>
@@ -573,10 +573,10 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
 
           {/* Voice + Scan buttons */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button onClick={voiceState === "listening" ? stopVoice : startVoice} style={{ flex: 1, padding: "11px 8px", background: voiceState === "listening" ? "rgba(232,52,28,.15)" : T.s2, border: `1.5px solid ${voiceState === "listening" ? T.prot : T.bd}`, borderRadius: 10, color: voiceState === "listening" ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            <button onClick={voiceState === "listening" ? stopVoice : startVoice} style={{ flex: 1, padding: "11px 8px", background: voiceState === "listening" ? "rgba(var(--cm-red-rgb,255,59,48),0.15)" : T.s2, border: `1.5px solid ${voiceState === "listening" ? T.prot : T.bd}`, borderRadius: 10, color: voiceState === "listening" ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               {voiceState === "listening" ? "🔴 Listening..." : voiceState === "processing" ? "⏳ Processing..." : "🎤 Voice Log"}
             </button>
-            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(232,52,28,.08)" : T.s2, border: `1.5px solid ${scanMode ? T.prot : T.bd}`, borderRadius: 10, color: scanMode ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Scan Barcode</button>
+            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(var(--cm-red-rgb,255,59,48),0.08)" : T.s2, border: `1.5px solid ${scanMode ? T.prot : T.bd}`, borderRadius: 10, color: scanMode ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Scan Barcode</button>
           </div>
 
           {/* Recent Meals from Memory */}
@@ -585,11 +585,11 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 8 }}>Previous {mealSlots[activeSlotIdx] ? `Meal ${mealSlots[activeSlotIdx]}` : "Meals"}</div>
               <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
                 {recentMeals.map((m, i) => (
-                  <button key={m.id || i} onClick={() => setLogAgainMeal(m)} style={{ flexShrink: 0, minWidth: 130, background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: "10px 12px", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
+                  <button key={m.id || i} onClick={() => setLogAgainMeal(m)} style={{ flexShrink: 0, minWidth: 130, background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "10px 12px", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
                     <div style={{ fontSize: 10, color: T.mu, marginBottom: 3 }}>{new Date(m.logged_at + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#fff", marginBottom: 4 }}>{m.total_calories} kcal</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color:"var(--cm-red,#FF3B30)", marginBottom: 4 }}>{m.total_calories} kcal</div>
                     <div style={{ fontSize: 10, color: T.prot, marginBottom: 5 }}>P {m.total_protein}g</div>
-                    <div style={{ fontSize: 10, color: "rgba(245,245,240,.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(m.entries || []).slice(0, 2).map(e => e.food).join(", ")}</div>
+                    <div style={{ fontSize: 10, color:"rgba(var(--cm-red-rgb,255,59,48),0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(m.entries || []).slice(0, 2).map(e => e.food).join(", ")}</div>
                   </button>
                 ))}
               </div>
@@ -598,10 +598,10 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
 
           {/* Barcode scanner */}
           {scanMode && (
-            <div style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px", marginBottom: 16 }}>
+            <div style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px", marginBottom: 16 }}>
               <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Barcode number</div>
               <div style={{ display: "flex", gap: 8 }}>
-                <input value={scanInput} onChange={e => setScanInput(e.target.value)} onKeyDown={e => e.key === "Enter" && lookupBarcode(scanInput)} placeholder="Enter or scan barcode number" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: "#fff", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+                <input value={scanInput} onChange={e => setScanInput(e.target.value)} onKeyDown={e => e.key === "Enter" && lookupBarcode(scanInput)} placeholder="Enter or scan barcode number" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color:"var(--cm-red,#FF3B30)", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
                 <button onClick={() => lookupBarcode(scanInput)} disabled={scanLoading || !scanInput.trim()} style={{ padding: "10px 16px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{scanLoading ? "..." : "Look Up"}</button>
               </div>
               {scanResult && (
@@ -617,7 +617,7 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
           )}
 
           {/* Tabs */}
-          <div style={{ display: "flex", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 10, padding: 3, gap: 3, marginBottom: 16, overflowX: "auto" }}>
+          <div style={{ display: "flex", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 10, padding: 3, gap: 3, marginBottom: 16, overflowX: "auto" }}>
             {[["recent", "Recent"], ["frequent", "Most Used"], ["quick", "Quick Add"], ["recipes", "My Recipes"], ["templates", "Templates"]].map(([k, l]) => (
               <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit", background: tab === k ? `${T.prot}18` : "none", outline: tab === k ? `1.5px solid ${T.prot}` : "none", color: tab === k ? T.prot : T.mu, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>{l}</button>
             ))}
@@ -635,10 +635,10 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {recentFoods.map((f, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12 }}>
                       <FoodIcon name={f.food_name} size={28} userId={user?.id} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.food_name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color:"var(--cm-red,#FF3B30)" }}>{f.food_name}</div>
                         <div style={{ fontSize: 10, color: T.mu }}>
                           {f.usual_portion ? `${f.usual_portion}g · ` : ""}{f.food_data?.calories} kcal · <span style={{ color: T.prot }}>P {f.food_data?.protein}g</span> · <span style={{ color: T.carb }}>C {f.food_data?.carbs}g</span> · <span style={{ color: T.fat }}>F {f.food_data?.fat}g</span>
                         </div>
@@ -659,13 +659,13 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {frequentFoods.map((f, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12 }}>
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12 }}>
                       <FoodIcon name={f.food_name} size={28} userId={user?.id} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.food_name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color:"var(--cm-red,#FF3B30)" }}>{f.food_name}</div>
                         <div style={{ fontSize: 10, color: T.mu }}>
                           {f.food_data?.calories} kcal · <span style={{ color: T.prot }}>P {f.food_data?.protein}g</span>
-                          {f.use_count > 1 && <span style={{ color: "rgba(245,245,240,.3)", marginLeft: 6 }}>× {f.use_count}</span>}
+                          {f.use_count > 1 && <span style={{ color:"rgba(var(--cm-red-rgb,255,59,48),0.3)", marginLeft: 6 }}>× {f.use_count}</span>}
                         </div>
                       </div>
                       <button onClick={() => setPortionFood({ ...f.food_data, usual_portion: f.usual_portion, usual_unit: f.usual_unit })} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
@@ -687,9 +687,9 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               {quickCategory && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {(QUICK_FOODS[quickCategory] || []).map((food, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 10 }}>
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 10 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700 }}>{food.name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color:"var(--cm-red,#FF3B30)" }}>{food.name}</div>
                         <div style={{ fontSize: 10, color: T.mu }}>{food.calories} kcal · P {food.protein}g · C {food.carbs}g · F {food.fat}g</div>
                       </div>
                       <button onClick={() => { onLog(food, null, mealSlots[activeSlotIdx] || 1, true); }} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
@@ -707,19 +707,19 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               {(userRecipes || []).length === 0 ? (
                 <div style={{ textAlign: "center", padding: "36px 20px", color: T.mu }}>
                   <div style={{ fontSize: 36, marginBottom: 12 }}>🍳</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, color: "#fff" }}>No recipes yet</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, color:"var(--cm-red,#FF3B30)" }}>No recipes yet</div>
                   <div style={{ fontSize: 12, lineHeight: 1.6 }}>Create your first recipe in the Recipes tab</div>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {(userRecipes || []).map(r => (
-                    <div key={r.id} style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px" }}>
+                    <div key={r.id} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color:"var(--cm-red,#FF3B30)" }}>{r.name}</div>
                           <div style={{ fontSize: 10, color: T.mu }}>{r.calories_per_serving} kcal · <span style={{ color: T.prot }}>P {r.protein_per_serving}g</span> · <span style={{ color: T.carb }}>C {r.carbs_per_serving}g</span> · <span style={{ color: T.fat }}>F {r.fat_per_serving}g</span> per serving</div>
                         </div>
-                        {r.category && <span style={{ fontSize: 9, fontFamily: "var(--mono)", background: "rgba(245,245,240,.06)", color: "rgba(245,245,240,.4)", borderRadius: 5, padding: "2px 7px", flexShrink: 0, marginLeft: 8, letterSpacing: ".06em", textTransform: "uppercase" }}>{r.category}</span>}
+                        {r.category && <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", background: "rgba(var(--cm-paper-rgb,255,255,255),0.06)", color:"rgba(var(--cm-red-rgb,255,59,48),0.4)", borderRadius: 5, padding: "2px 7px", flexShrink: 0, marginLeft: 8, letterSpacing: ".06em", textTransform: "uppercase" }}>{r.category}</span>}
                       </div>
                       <button onClick={() => setQlRecipeLogging(r)} style={{ width: "100%", padding: "10px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Log →</button>
                     </div>
@@ -736,10 +736,10 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
                 <button onClick={() => setSaveTemplateMode(true)} style={{ width: "100%", padding: "11px", background: "rgba(126,87,194,.1)", border: `1px dashed rgba(126,87,194,.4)`, borderRadius: 10, color: "#7E57C2", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>💾 Save Today's Meal as Template</button>
               )}
               {saveTemplateMode && (
-                <div style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+                <div style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
                   <div style={{ fontSize: 11, color: T.mu, marginBottom: 8 }}>Template name</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="e.g. High Protein Breakfast" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+                    <input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="e.g. High Protein Breakfast" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color:"var(--cm-red,#FF3B30)", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
                     <button onClick={saveAsTemplate} disabled={savingTemplate || !templateName.trim()} style={{ padding: "10px 14px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{savingTemplate ? "..." : "Save"}</button>
                     <button onClick={() => setSaveTemplateMode(false)} style={{ padding: "10px 12px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, color: T.mu, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
                   </div>
@@ -750,17 +750,17 @@ function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFo
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {mealTemplates.map((t) => (
-                    <div key={t.id} style={{ background: T.s2, border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px" }}>
+                    <div key={t.id} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
                           <div style={{ fontSize: 10, color: T.mu }}>{t.total_calories} kcal · P {t.total_protein}g · C {t.total_carbs}g · F {t.total_fat}g</div>
                         </div>
-                        <button onClick={() => onDeleteTemplate(t.id)} style={{ background: "none", border: "none", color: "rgba(245,245,240,.2)", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
+                        <button onClick={() => onDeleteTemplate(t.id)} style={{ background: "none", border: "none", color:"rgba(var(--cm-red-rgb,255,59,48),0.2)", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
                       </div>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
                         {(t.entries || []).slice(0, 4).map((e, i) => (
-                          <span key={i} style={{ fontSize: 10, background: "rgba(232,52,28,0.06)", borderRadius: 5, padding: "2px 7px", color: "rgba(245,245,240,.6)" }}>{e.food}</span>
+                          <span key={i} style={{ fontSize: 10, background: "rgba(var(--cm-red-rgb,255,59,48),0.06)", borderRadius: 5, padding: "2px 7px", color:"rgba(var(--cm-red-rgb,255,59,48),0.6)" }}>{e.food}</span>
                         ))}
                         {(t.entries || []).length > 4 && <span style={{ fontSize: 10, color: T.mu }}>+{t.entries.length - 4} more</span>}
                       </div>
@@ -1188,11 +1188,11 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
               ))}
               <button onClick={()=>setPortionMode("custom")} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${portionMode==="custom"?T.prot:T.bd}`,background:portionMode==="custom"?`${T.prot}15`:"none",color:portionMode==="custom"?T.prot:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Custom (g)</button>
             </div>
-            {portionMode==="custom"&&<input type="number" value={customPortionInput} onChange={e=>setCustomPortionInput(e.target.value)} placeholder="Enter grams" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginTop:6,marginBottom:0}}/>}
+            {portionMode==="custom"&&<input type="number" value={customPortionInput} onChange={e=>setCustomPortionInput(e.target.value)} placeholder="Enter grams" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"var(--cm-red,#FF3B30)",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginTop:6,marginBottom:0}}/>}
           </>}
           {smart.length===0&&<>
             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Grams</div>
-            <input type="number" value={customPortionInput||portionGrams} onChange={e=>setCustomPortionInput(e.target.value)} placeholder="100" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <input type="number" value={customPortionInput||portionGrams} onChange={e=>setCustomPortionInput(e.target.value)} placeholder="100" style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"var(--cm-red,#FF3B30)",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
           </>}
         </div>
         <div style={{marginBottom:14}}>
@@ -1214,12 +1214,12 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
         <button onClick={()=>setShowCustomForm(false)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:13,padding:"0 0 16px",fontFamily:"inherit"}}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>Back to search
         </button>
-        <div style={{fontFamily:"var(--condensed)",fontSize:28,fontWeight:900,marginBottom:16}}>CUSTOM FOOD</div>
+        <div style={{fontFamily:"'Archivo',sans-serif",fontSize:28,fontWeight:900,marginBottom:16,color:'var(--cm-red,#FF3B30)'}}>CUSTOM FOOD</div>
         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:16,padding:"20px",marginBottom:16}}>
           {[["Food name","text","name","e.g. Homemade oats",true],["Brand (optional)","text","brand","e.g. My Kitchen",false],["Calories (kcal)","number","calories","0",true],["Protein (g)","number","protein","0",false],["Carbs (g)","number","carbs","0",false],["Fat (g)","number","fat","0",false],["Serving size","number","serving_size","100",false],["Serving unit","text","serving_unit","g",false]].map(([label,type,key,ph,req])=>(
             <div key={key} style={{marginBottom:12}}>
               <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{label}{req&&<span style={{color:T.prot}}> *</span>}</div>
-              <input type={type} value={customFood[key]} onChange={e=>setCustomFood(f=>({...f,[key]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+              <input type={type} value={customFood[key]} onChange={e=>setCustomFood(f=>({...f,[key]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"var(--cm-red,#FF3B30)",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
             </div>
           ))}
         </div>
@@ -1232,7 +1232,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
   if(showBarcodeInSearch){
     return(
       <div style={{maxWidth:isMobile?"100%":560}}>
-        <button onClick={()=>setShowBarcodeInSearch(false)} style={{background:"none",border:"none",...{fontFamily:"'DM Mono',monospace"},fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← BACK TO SEARCH</button>
+        <button onClick={()=>setShowBarcodeInSearch(false)} style={{background:"none",border:"none",...{fontFamily:"'DM Mono',monospace"},fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← BACK TO SEARCH</button>
         <BarcodeScanner
           onDetected={async(code)=>{
             setShowBarcodeInSearch(false);
@@ -1248,20 +1248,20 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       {toast&&<div style={{position:"fixed",top:24,left:"50%",transform:"translateX(-50%)",background:T.prot,color:"#fff",padding:"10px 20px",borderRadius:20,fontSize:13,fontWeight:700,zIndex:999,boxShadow:"0 4px 16px rgba(0,0,0,0.4)"}}>{toast}</div>}
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
         <div style={{flex:1,position:"relative"}}>
-          <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search 1M+ foods..." style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.12)",borderRadius:12,padding:"12px 16px",color:"#f5f5f0",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"'Barlow Condensed',sans-serif"}}/>
-          {!searching&&query&&<button onClick={()=>{setQuery("");setResults([]);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(245,245,240,0.3)",fontSize:18,cursor:"pointer",lineHeight:1,padding:"0 2px"}}>×</button>}
+          <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search 1M+ foods..." style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:12,padding:"12px 16px",color:"var(--cm-red,#FF3B30)",fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"'Archivo',sans-serif"}}/>
+          {!searching&&query&&<button onClick={()=>{setQuery("");setResults([]);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(var(--cm-red-rgb,255,59,48),0.3)",fontSize:18,cursor:"pointer",lineHeight:1,padding:"0 2px"}}>×</button>}
         </div>
-        <button onClick={()=>setShowBarcodeInSearch(true)} style={{width:44,height:44,borderRadius:10,background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
+        <button onClick={()=>setShowBarcodeInSearch(true)} style={{width:44,height:44,borderRadius:10,background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
-            <rect x="1" y="1" width="6" height="6" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/>
-            <rect x="15" y="1" width="6" height="6" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/>
-            <rect x="1" y="15" width="6" height="6" rx="1" stroke="#e8341c" strokeWidth="1.5" fill="none"/>
-            <line x1="9" y1="2" x2="9" y2="7" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="12" y1="2" x2="12" y2="7" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="9" y1="15" x2="9" y2="20" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="12" y1="15" x2="12" y2="20" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="15" y1="9" x2="20" y2="9" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="15" y1="12" x2="20" y2="12" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"/>
+            <rect x="1" y="1" width="6" height="6" rx="1" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" fill="none"/>
+            <rect x="15" y="1" width="6" height="6" rx="1" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" fill="none"/>
+            <rect x="1" y="15" width="6" height="6" rx="1" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" fill="none"/>
+            <line x1="9" y1="2" x2="9" y2="7" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="12" y1="2" x2="12" y2="7" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="9" y1="15" x2="9" y2="20" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="12" y1="15" x2="12" y2="20" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="15" y1="9" x2="20" y2="9" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="15" y1="12" x2="20" y2="12" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </button>
       </div>
@@ -1269,7 +1269,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       {!searching&&results.length>0&&(
         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,marginBottom:16,overflow:"hidden"}}>
           {results.slice(0,12).map((food,i)=>(
-            <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10}}>
+            <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10}}>
               <FoodIcon name={food.name} size={28} userId={user?.id} />
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>{food.name}</div>
@@ -1279,7 +1279,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
                   <span style={{color:T.prot}}>P {food.protein}g</span>
                   <span style={{color:T.carb}}>C {food.carbs}g</span>
                   <span style={{color:T.fat}}>F {food.fat}g</span>
-                  <span style={{color:"rgba(245,245,240,0.2)",marginLeft:"auto",fontSize:9,textTransform:"uppercase",letterSpacing:1}}>{food.source==="off"?"Open FF":"USDA"}</span>
+                  <span style={{color:"rgba(var(--cm-red-rgb,255,59,48),0.2)",marginLeft:"auto",fontSize:9,textTransform:"uppercase",letterSpacing:1}}>{food.source==="off"?"Open FF":"USDA"}</span>
                 </div>
               </div>
             </button>
@@ -1294,10 +1294,10 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       )}
       {!query&&recentFoods.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Recent</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Recent</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {recentFoods.slice(0,5).map((f,i)=>(
-              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit"}}>
+              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit"}}>
                 <div style={{fontWeight:700,fontSize:13}}>{f.food_name}</div>
                 <div style={{fontSize:11,color:T.mu}}>{f.food_data?.calories} kcal · P {f.food_data?.protein}g · C {f.food_data?.carbs}g · F {f.food_data?.fat}g</div>
               </button>
@@ -1307,17 +1307,17 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       )}
       {!query&&frequentFoods.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Most Used</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Most Used</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {frequentFoods.slice(0,8).map((f,i)=>(
-              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"7px 13px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:20,cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>{f.food_name}</button>
+              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"7px 13px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:20,cursor:"pointer",color:"var(--cm-red,#FF3B30)",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>{f.food_name}</button>
             ))}
           </div>
         </div>
       )}
       {!query&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"var(--mono)"}}>Quick Add</div>
+          <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Quick Add</div>
           <div style={{display:"flex",gap:6,marginBottom:quickCategory?10:0}}>
             {[["protein","Protein",T.prot],["carbs","Carbs",T.carb],["fat","Fat",T.fat]].map(([k,l,c])=>(
               <button key={k} onClick={()=>setQuickCategory(quickCategory===k?null:k)} style={{flex:1,padding:"10px 4px",background:quickCategory===k?`${c}18`:"none",border:`1.5px solid ${quickCategory===k?c:T.bd}`,borderRadius:10,cursor:"pointer",color:quickCategory===k?c:T.mu,fontSize:12,fontWeight:700,fontFamily:"inherit"}}>{l}</button>
@@ -1326,7 +1326,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           {quickCategory&&(
             <div style={{display:"flex",flexDirection:"column",gap:2}}>
               {(QUICK_FOODS[quickCategory]||[]).map((food,i)=>(
-                <button key={i} onClick={()=>addQuickFood(food)} style={{padding:"11px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <button key={i} onClick={()=>addQuickFood(food)} style={{padding:"11px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:13}}>{food.name}</div>
                     <div style={{fontSize:11,color:T.mu}}>{food.calories} kcal · P {food.protein}g · C {food.carbs}g · F {food.fat}g</div>
@@ -1342,8 +1342,8 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       {!query&&(
         <div style={{marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"var(--mono)"}}>My Foods</div>
-            <button onClick={()=>setShowCustomForm(true)} style={{display:"flex",alignItems:"center",gap:4,background:"none",border:`1px solid rgba(232,52,28,0.4)`,borderRadius:6,padding:"3px 10px",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>My Foods</div>
+            <button onClick={()=>setShowCustomForm(true)} style={{display:"flex",alignItems:"center",gap:4,background:"none",border:`1px solid rgba(var(--cm-red-rgb,255,59,48),0.4)`,borderRadius:6,padding:"3px 10px",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
               <svg width={10} height={10} viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={T.prot} strokeWidth={2.2} strokeLinecap="round"/></svg>New
             </button>
           </div>
@@ -1354,13 +1354,13 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
               ))}
             </div>
           ):myFoods.length===0?(
-            <div style={{textAlign:"center",padding:"32px 20px",background:"rgba(232,52,28,0.04)",border:"1px dashed rgba(232,52,28,0.2)",borderRadius:14}}>
+            <div style={{textAlign:"center",padding:"32px 20px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:"1px dashed rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:14}}>
               <svg width={36} height={36} viewBox="0 0 24 24" fill="none" style={{margin:"0 auto 10px",display:"block",opacity:.45}}>
-                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="#fff" strokeWidth={1.5} strokeLinecap="round"/>
-                <rect x="9" y="3" width="6" height="4" rx="1" stroke="#fff" strokeWidth={1.5}/>
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.4)" strokeWidth={1.5} strokeLinecap="round"/>
+                <rect x="9" y="3" width="6" height="4" rx="1" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.4)" strokeWidth={1.5}/>
                 <path d="M9 12h6M9 16h4" stroke={T.prot} strokeWidth={1.5} strokeLinecap="round"/>
               </svg>
-              <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>No custom foods yet</div>
+              <div style={{fontSize:14,fontWeight:700,color:"var(--cm-red,#FF3B30)",marginBottom:4}}>No custom foods yet</div>
               <div style={{fontSize:11,color:T.mu,marginBottom:16,lineHeight:1.65,maxWidth:240,margin:"0 auto 16px"}}>Save foods you eat often with exact macros for instant re-use</div>
               <button onClick={()=>setShowCustomForm(true)} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 20px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.5} strokeLinecap="round"/></svg>
@@ -1371,7 +1371,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
             <>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {(myFoodsExpanded?myFoods:myFoods.slice(0,6)).map((food,i)=>(
-                  <button key={food.id||i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"#fff",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                  <button key={food.id||i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
                     <FoodIcon name={food.name} size={28} userId={user?.id} />
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:13,marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{food.name}</div>
@@ -1382,7 +1382,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
                 ))}
               </div>
               {myFoods.length>6&&(
-                <button onClick={()=>setMyFoodsExpanded(e=>!e)} style={{width:"100%",marginTop:6,padding:"8px",background:"none",border:"none",color:T.mu,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                <button onClick={()=>setMyFoodsExpanded(e=>!e)} style={{width:"100%",marginTop:6,padding:"8px",background:"none",border:"none",color:T.mu,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em",textTransform:"uppercase"}}>
                   {myFoodsExpanded?`Show fewer`:`View all ${myFoods.length} foods`}
                 </button>
               )}
@@ -2623,13 +2623,13 @@ Reply with ONLY a valid JSON object, no markdown:
             </AnimatePresence>
             {/* Segmented sub-nav — centered, 2 tabs (Home / Kitchen) */}
             <div style={{padding:"0 18px 4px",flexShrink:0,display:"flex",justifyContent:"center"}}>
-              <div style={{display:"inline-flex",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:10,padding:3,gap:2}}>
+              <div style={{display:"inline-flex",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:10,padding:3,gap:2}}>
                 {FUEL_TABS.map(tab=>(
                   <button key={tab.id} onClick={()=>setFuelScreen(tab.id)}
                     style={{padding:"7px 22px",borderRadius:8,border:"none",cursor:"pointer",
                       fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,
-                      color:fuelScreen===tab.id?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",
-                      background:fuelScreen===tab.id?"var(--cm-red,#FF3B30)":"transparent",
+                      color:fuelScreen===tab.id?"var(--cm-red,#FF3B30)":"rgba(255,255,255,0.6)",
+                      background:fuelScreen===tab.id?"rgba(255,255,255,0.95)":"transparent",
                       whiteSpace:"nowrap",transition:"all 0.15s",flexShrink:0,letterSpacing:"0.02em",WebkitTapHighlightColor:"transparent"}}>
                     {tab.label}
                   </button>
@@ -2795,19 +2795,19 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* MACRO MEMORY — shown first so the fastest re-log path is always above the fold */}
             {wPrefs?.macroMemory!==false&&memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).length>0&&(
               <StaggerItem i={0}>
-              <div style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px"}}>
+              <div style={{background:GOCLUB_REDESIGN?'var(--cm-paper,#FFFFFF)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px",boxShadow:GOCLUB_REDESIGN?'0 2px 12px rgba(0,0,0,.08)':undefined}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div>
-                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5}}>MACRO MEMORY</div>
+                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,color:'var(--cm-red,#FF3B30)'}}>MACRO MEMORY</div>
                     <div style={{fontSize:11,color:T.mu,marginTop:2}}>Based on your {new Date().toLocaleDateString("en-US",{weekday:"long"})} patterns</div>
                   </div>
                   {memoryLoggedMsg&&<div style={{fontSize:11,color:T.green,fontWeight:700}}>{memoryLoggedMsg}</div>}
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {memorySuggestions.filter(s=>!skippedMemory.has(s.data.food)).map(({count,data})=>(
-                    <div key={data.food} style={{background:GOCLUB_REDESIGN?'rgba(255,255,255,0.05)':T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                    <div key={data.food} style={{background:GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.04)':T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.food}</div>
+                        <div style={{fontSize:13,fontWeight:700,color:"var(--cm-red,#FF3B30)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.food}</div>
                         <div style={{fontSize:11,color:T.mu,marginTop:2}}>{data.calories} kcal · {data.protein}g protein</div>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
@@ -2817,7 +2817,7 @@ Reply with ONLY a valid JSON object, no markdown:
                           whileTap={GOCLUB_REDESIGN?{scale:0.91}:undefined}
                           transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
                           style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>Log</motion.button>
-                        <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:`1px solid ${T.bd}`,color:T.mu,borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
+                        <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)',color:'rgba(var(--cm-red-rgb,255,59,48),0.5)',borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
                       </div>
                     </div>
                   ))}
@@ -2917,11 +2917,11 @@ Reply with ONLY a valid JSON object, no markdown:
                       {label:'FAT',    c:Math.round(consumed.fat),    t:Math.round(macros.fat),    color:'#FEA020'},
                     ].map(({label,c,t,color})=>(
                       <div key={label} style={{display:'flex',alignItems:'center',gap:12}}>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,textTransform:'uppercase',letterSpacing:'0.12em',width:56,color:GOCLUB_REDESIGN?'rgba(255,255,255,0.40)':'rgba(245,245,240,0.5)',flexShrink:0}}>{label}</div>
-                        <div style={{flex:1,height:6,background:GOCLUB_REDESIGN?'rgba(255,255,255,0.08)':'rgba(245,245,240,0.06)',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,textTransform:'uppercase',letterSpacing:'0.12em',width:56,color:GOCLUB_REDESIGN?'rgba(255,255,255,0.7)':'rgba(245,245,240,0.5)',flexShrink:0}}>{label}</div>
+                        <div style={{flex:1,height:6,background:GOCLUB_REDESIGN?'rgba(255,255,255,0.15)':'rgba(245,245,240,0.06)',borderRadius:3,overflow:'hidden'}}>
                           <div style={{height:'100%',borderRadius:3,background:color,width:`${Math.min(100,t>0?Math.round(c/t*100):0)}%`,transition:'width 0.5s ease'}}/>
                         </div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'#f5f5f0',letterSpacing:'0.08em',whiteSpace:'nowrap'}}><MN value={c} /> / <MN value={t} />g</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:GOCLUB_REDESIGN?'rgba(255,255,255,0.9)':'#f5f5f0',letterSpacing:'0.08em',whiteSpace:'nowrap'}}><MN value={c} /> / <MN value={t} />g</div>
                       </div>
                     ))}
                   </div>
@@ -3020,15 +3020,15 @@ Reply with ONLY a valid JSON object, no markdown:
                       },
                     ];
                     return(
-                      <div style={{marginTop:12,borderTop:'1px solid rgba(232,52,28,0.08)'}}>
+                      <div style={{marginTop:12,borderTop:'1px solid rgba(255,255,255,0.15)'}}>
                         <div onClick={()=>setWhyExpanded(w=>!w)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',cursor:'pointer'}}>
-                          <div style={{...mno,fontSize:10,color:'rgba(245,245,240,0.4)',letterSpacing:'0.12em'}}>WHY ARE MY MACROS LIKE THIS?</div>
-                          <div style={{color:'#e8341c',fontSize:14}}>{whyExpanded?'↑':'↓'}</div>
+                          <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.6)',letterSpacing:'0.12em'}}>WHY ARE MY MACROS LIKE THIS?</div>
+                          <div style={{color:'rgba(255,255,255,0.8)',fontSize:14}}>{whyExpanded?'↑':'↓'}</div>
                         </div>
                         {whyExpanded&&(
                           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
                             {macroRows.map(r=>(
-                              <div key={r.key} style={{background:'#0d0d0d',border:'1px solid rgba(232,52,28,0.08)',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
+                              <div key={r.key} style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                                   <span style={{background:r.chipBg,border:`1px solid ${r.chipBorder}`,borderRadius:20,padding:'3px 10px',...mno,fontSize:9,color:r.color,letterSpacing:'0.12em',textTransform:'uppercase'}}>{r.key}</span>
                                   <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -3038,7 +3038,7 @@ Reply with ONLY a valid JSON object, no markdown:
                                     <span style={{...mno,fontSize:10,color:r.amountColor,letterSpacing:'0.08em'}}>{r.amount}</span>
                                   </div>
                                 </div>
-                                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontSize:GOCLUB_REDESIGN?13:15,color:'#f5f5f0',lineHeight:1.4,fontWeight:GOCLUB_REDESIGN?500:400}}>{r.text}</div>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,color:'var(--cm-red,#FF3B30)',lineHeight:1.4,fontWeight:500}}>{r.text}</div>
                               </div>
                             ))}
                           </div>
@@ -3072,7 +3072,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   })()}
                   <div style={{marginBottom:14}}>
                     <div className="header-eyebrow" style={{marginBottom:2,color:GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.42)':undefined}}>// Today's Meals</div>
-                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1,color:'var(--cm-ink,#0A0A0A)'}}>Food Log</div>
+                    <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:18,textTransform:"uppercase",lineHeight:1,color:'var(--cm-red,#FF3B30)'}}>Food Log</div>
                   </div>
                   <div>
                     {mealSlots.map((slot,si)=>{
@@ -3097,11 +3097,11 @@ Reply with ONLY a valid JSON object, no markdown:
                             <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:isSkipped?"rgba(var(--cm-ink-rgb,10,10,10),0.4)":isLocked?"#22c55e":"var(--cm-ink,#0A0A0A)",letterSpacing:"0.12em",textTransform:"uppercase"}}>{getSlotLabel(slot)}</span>
                             <div style={{flex:1,height:1,background:"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}}/>
                             {isSkipped?(
-                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
+                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.3)",letterSpacing:"0.08em"}}>SKIPPED</span>
                             ):isLocked?(
                               <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#22c55e",letterSpacing:"0.08em"}}>LOCKED</span>
                             ):(
-                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",letterSpacing:"0.06em"}}>
+                              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.06em"}}>
                                 {slotCals} / {target} kcal
                                 {hasRedistributed&&(
                                   <span onClick={()=>setTooltipSlot(tooltipSlot===slot?null:slot)} style={{color:"#FEA020",cursor:"pointer",marginLeft:4}}>↑</span>
@@ -3131,14 +3131,14 @@ Reply with ONLY a valid JSON object, no markdown:
                                 style={{width:44,height:44,background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",border:"1.5px solid var(--cm-red,#FF3B30)",color:"var(--cm-red,#FF3B30)",borderRadius:10,fontSize:20,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>+</motion.button>
                             )}
                             {mealSlots.length>1&&!isSkipped&&!isLocked&&(
-                              <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(var(--cm-ink-rgb,10,10,10),0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
+                              <button onClick={()=>removeSlot(si)} style={{background:"none",border:"none",color:"rgba(var(--cm-red-rgb,255,59,48),0.2)",cursor:"pointer",fontSize:12,padding:"0 2px",lineHeight:1}}>×</button>
                             )}
                           </div>
                           {tooltipSlot===slot&&hasRedistributed&&(
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:6}}>Includes calories from skipped meals</div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:6}}>Includes calories from skipped meals</div>
                           )}
                           {tooltipSlot===slot&&hasOverageReduction&&!hasRedistributed&&(
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:6}}>Reduced due to overage in an earlier meal</div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",marginBottom:6,padding:"4px 8px",background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:6}}>Reduced due to overage in an earlier meal</div>
                           )}
                           {slotItems.map((item,i)=>(
                             <SwipeRow key={item.id}
@@ -3162,18 +3162,18 @@ Reply with ONLY a valid JSON object, no markdown:
                                     : <FoodIcon name={item} method={item.method} size={32} userId={user?.id} />
                                   }
                                   <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-ink,#0A0A0A)'}}>{item.food||item.name}</div>
-                                    <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:1,fontFamily:"'DM Mono',monospace"}}>
+                                    <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,textTransform:"capitalize",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-red,#FF3B30)'}}>{item.food||item.name}</div>
+                                    <div style={{fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",marginTop:1,fontFamily:"'DM Mono',monospace"}}>
                                       <span style={{color:T.prot}}>P:{item.protein}g</span> · <span style={{color:T.carb}}>C:{item.carbs}g</span> · <span style={{color:T.fat}}>F:{item.fat}g</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                                   <div style={{textAlign:"right"}}>
-                                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"var(--cm-ink,#0A0A0A)"}}>{item.calories}</div>
-                                    <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.42)"}}>kcal</div>
+                                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,fontWeight:500,color:"var(--cm-red,#FF3B30)"}}>{item.calories}</div>
+                                    <div style={{fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.42)"}}>kcal</div>
                                   </div>
-                                  {!isLocked&&<button onClick={()=>removeLog(item.id)} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>}
+                                  {!isLocked&&<button onClick={()=>removeLog(item.id)} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",color:"rgba(var(--cm-red-rgb,255,59,48),0.45)",cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>}
                                 </div>
                               </div>
                             </SwipeRow>
@@ -3184,8 +3184,8 @@ Reply with ONLY a valid JSON object, no markdown:
                               <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(var(--cm-red-rgb,255,59,48),0.55)",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:4}}>// planned</div>
                               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                                 <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{plannedMeal.name}</div>
-                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.28)",marginTop:2}}>
+                                  <div style={{fontSize:13,fontFamily:"'Barlow',sans-serif",fontWeight:600,color:"rgba(var(--cm-red-rgb,255,59,48),0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{plannedMeal.name}</div>
+                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.28)",marginTop:2}}>
                                     <span style={{color:"rgba(34,197,94,0.45)"}}>P {Math.round(plannedMeal.protein)}g</span>{' · '}{Math.round(plannedMeal.calories)} kcal
                                   </div>
                                 </div>
@@ -3200,12 +3200,12 @@ Reply with ONLY a valid JSON object, no markdown:
                                 <button
                                   onClick={()=>swappingSlot!==slot&&handleSwapPlanned(slot,plannedMeal._recipeId)}
                                   disabled={swappingSlot===slot}
-                                  style={{flex:1,padding:"7px 10px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:8,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:swappingSlot===slot?"default":"pointer",opacity:swappingSlot===slot?0.5:1}}>
+                                  style={{flex:1,padding:"7px 10px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:8,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.12em",textTransform:"uppercase",cursor:swappingSlot===slot?"default":"pointer",opacity:swappingSlot===slot?0.5:1}}>
                                   {swappingSlot===slot?"…":"Swap"}
                                 </button>
                                 <button
                                   onClick={()=>handleDismissPlanned(plannedMeal._recipeId||plannedMeal.name)}
-                                  style={{padding:"7px 8px",background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.22)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>
+                                  style={{padding:"7px 8px",background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:8,color:"rgba(var(--cm-red-rgb,255,59,48),0.22)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>
                                   Dismiss
                                 </button>
                               </div>
@@ -3216,10 +3216,10 @@ Reply with ONLY a valid JSON object, no markdown:
                     })}
                     {log.filter(e=>!mealSlots.includes(getEntrySlot(e))).map((item,i,arr)=>(
                       <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(var(--cm-ink-rgb,10,10,10),0.04)`:""}}>
-                        <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-ink,#0A0A0A)'}}>{item.food}</div>
+                        <div style={{flex:1,minWidth:0,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-red,#FF3B30)'}}>{item.food}</div>
                         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:'var(--cm-ink,#0A0A0A)'}}>{item.calories} kcal</div>
-                          <button onClick={()=>removeLog(item.id)} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:'var(--cm-red,#FF3B30)'}}>{item.calories} kcal</div>
+                          <button onClick={()=>removeLog(item.id)} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",color:"rgba(var(--cm-red-rgb,255,59,48),0.45)",cursor:"pointer",fontSize:13,padding:"4px 8px",borderRadius:6}}>×</button>
                         </div>
                       </div>
                     ))}
@@ -3234,8 +3234,8 @@ Reply with ONLY a valid JSON object, no markdown:
                           :{head:"THE DAY ISN'T OVER.",sub:`You have ${calR} calories remaining. Make the rest of today count.`,btn:"LOG NOW →"};
                       return(
                         <div style={{textAlign:"center",padding:"24px 16px"}}>
-                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:20,color:"rgba(var(--cm-ink-rgb,10,10,10),0.75)",textTransform:"uppercase",marginBottom:6,lineHeight:1}}>{msg.head}</div>
-                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:GOCLUB_REDESIGN?500:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
+                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:900,fontSize:20,color:"rgba(var(--cm-red-rgb,255,59,48),0.75)",textTransform:"uppercase",marginBottom:6,lineHeight:1}}>{msg.head}</div>
+                          <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:GOCLUB_REDESIGN?500:400,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",lineHeight:1.55,marginBottom:14,maxWidth:260,margin:"0 auto 14px"}}>{msg.sub}</div>
                           <button onClick={()=>setLogMode("search")} style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:8,padding:"8px 16px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>{msg.btn}</button>
                         </div>
                       );
@@ -3266,8 +3266,8 @@ Reply with ONLY a valid JSON object, no markdown:
                     ))}
                   </div>
                 </div>
-                <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)",lineHeight:1.55}}>{periodizationInfo.note}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginTop:6,letterSpacing:"0.1em"}}>WEEKS {periodizationInfo.wks}</div>
+                <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)",lineHeight:1.55}}>{periodizationInfo.note}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.35)",marginTop:6,letterSpacing:"0.1em"}}>WEEKS {periodizationInfo.wks}</div>
               </div>
             )}
 
@@ -3278,7 +3278,7 @@ Reply with ONLY a valid JSON object, no markdown:
                 carb_load:{label:"CARB LOADING",icon:"⚡",color:"#3b82f6",comment:"// Race tomorrow · top up glycogen"},
                 race_day:{label:"RACE DAY",icon:"🏁",color:"#FF3B30",comment:"// High carbs · low fat · race ready"},
                 training_day:{label:"TRAINING DAY",icon:"💪",color:"#22c55e",comment:"// Extra fuel · performance calories"},
-                rest_day:{label:"REST DAY",icon:"🛋️",color:"rgba(10,10,10,0.4)",comment:"// Recovery focus · base calories"},
+                rest_day:{label:"REST DAY",icon:"🛋️",color:"#BBBBBB",comment:"// Recovery focus · base calories"},
               };
               const meta=typeMap[todayProtocol.protocol_type]||typeMap.training_day;
               const calDiff=todayProtocol.adjusted_calories-todayProtocol.base_calories;
@@ -3290,7 +3290,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div style={{fontSize:22}}>{meta.icon}</div>
                     <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontSize:18,fontWeight:900,color:meta.color,letterSpacing:"0.04em",textTransform:"uppercase"}}>{meta.label}</div>
                   </div>
-                  <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)",lineHeight:1.55,marginBottom:10}}>{todayProtocol.reason}</div>
+                  <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)",lineHeight:1.55,marginBottom:10}}>{todayProtocol.reason}</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_calories} kcal{calDiff>0?` (+${calDiff})`:calDiff<0?` (${calDiff})`:""}</div>
                     <div style={{fontSize:11,fontWeight:700,background:`${meta.color}18`,color:meta.color,borderRadius:8,padding:"4px 10px"}}>{todayProtocol.adjusted_protein_g}g protein</div>
@@ -3312,7 +3312,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     <div style={{fontSize:20}}>{cp.label.split(" ")[0]}</div>
                     <div>
                       <div style={{fontSize:10,color:cn.color,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase"}}>{cp.label} · Day {cp.day}</div>
-                      <div style={{fontSize:13,fontWeight:700,color:"var(--cm-ink,#0A0A0A)"}}>{cn.focus}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"var(--cm-red,#FF3B30)"}}>{cn.focus}</div>
                     </div>
                   </div>
                   <div style={{fontSize:12,color:T.mu,lineHeight:1.65,marginBottom:10}}>{cn.note}</div>
@@ -3355,7 +3355,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     </div>
                   </div>
                   <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:9,padding:"10px 12px",marginTop:12,display:"flex",gap:8,alignItems:"flex-start"}}>
-                    <div><div style={{fontSize:11,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"var(--cm-red,#FF3B30)",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
+                    <div><div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",lineHeight:1.6}}>A gynecologist or endocrinologist can help optimize your hormone and nutrition strategy during this transition.</div><a href="https://coach-macro.com/support" style={{fontSize:10,color:"var(--cm-red,#FF3B30)",textDecoration:"none",letterSpacing:".06em",display:"inline-block",marginTop:3}}>Talk to a professional →</a></div>
                   </div>
                 </div>
               );
@@ -3364,17 +3364,17 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* PERFORMANCE NUTRITION PATTERNS */}
             {perfCorrelations&&perfCorrelations.length>=2&&(
               <div style={{background:GOCLUB_REDESIGN?'var(--cm-paper,#FFFFFF)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px",boxShadow:GOCLUB_REDESIGN?'0 2px 12px rgba(0,0,0,.08)':undefined}}>
-                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:2,color:'var(--cm-ink,#0A0A0A)'}}>NUTRITION × PERFORMANCE</div>
+                <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontSize:18,fontWeight:900,letterSpacing:.5,marginBottom:2,color:'var(--cm-red,#FF3B30)'}}>NUTRITION × PERFORMANCE</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:14}}>Your average intake before each session type · last 28 days</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {perfCorrelations.sort((a,b)=>b.count-a.count).slice(0,3).map(c=>(
                     <div key={c.session_type} style={{background:GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.04)':T.s2,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div>
-                        <div style={{fontSize:12,fontWeight:700,textTransform:"capitalize",color:"var(--cm-ink,#0A0A0A)",marginBottom:2}}>{c.session_type}</div>
+                        <div style={{fontSize:12,fontWeight:700,textTransform:"capitalize",color:"var(--cm-red,#FF3B30)",marginBottom:2}}>{c.session_type}</div>
                         <div style={{fontSize:10,color:T.mu}}>{c.count} sessions tracked</div>
                       </div>
                       <div style={{display:"flex",gap:12,textAlign:"right"}}>
-                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:"var(--cm-ink,#0A0A0A)"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
+                        <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:"var(--cm-red,#FF3B30)"}}>{c.avg_calories}</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>KCAL</div></div>
                         <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:700,color:T.prot}}>{c.avg_protein}g</div><div style={{fontSize:9,color:T.mu,letterSpacing:".06em"}}>PROT</div></div>
                       </div>
                     </div>
@@ -3388,9 +3388,9 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{background:"linear-gradient(135deg,rgba(var(--cm-red-rgb,255,59,48),0.12),var(--cm-paper,#FFFFFF))",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:16,padding:"16px 18px"}}>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Coach Suggests</div>
                 {bodySuggest
-                  ?(<div style={{fontStyle:"italic",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.85)",lineHeight:1.65,marginBottom:12}}>"{bodySuggest}"</div>)
+                  ?(<div style={{fontStyle:"italic",fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.85)",lineHeight:1.65,marginBottom:12}}>"{bodySuggest}"</div>)
                   :(<div style={{marginBottom:12}}>
-                      <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)",lineHeight:1.55,marginBottom:8}}>You have {remaining.calories} kcal · {remaining.protein}g protein left. Get a smart suggestion for your next meal.</div>
+                      <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.6)",lineHeight:1.55,marginBottom:8}}>You have {remaining.calories} kcal · {remaining.protein}g protein left. Get a smart suggestion for your next meal.</div>
                       <button onClick={fetchBodySuggest} disabled={bodySuggestLoading} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:10,color:T.prot,fontWeight:700,letterSpacing:"0.1em",padding:0}}>{bodySuggestLoading?"Getting suggestion...":"Get AI suggestion →"}</button>
                     </div>)
                 }
@@ -3405,7 +3405,7 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:flexOn?14:0}}>
                 <div>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontSize:14,fontWeight:900,letterSpacing:"0.08em",color:flexOn?"var(--amber)":"rgba(var(--cm-ink-rgb,10,10,10),0.65)",textTransform:"uppercase",marginBottom:flexOn?3:0}}>Weekend Flex</div>
-                  {flexOn&&<div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>Adds {flexPct}% on Sat/Sun and trims weekdays to match — weekly total stays the same.</div>}
+                  {flexOn&&<div style={{fontSize:11,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)"}}>Adds {flexPct}% on Sat/Sun and trims weekdays to match — weekly total stays the same.</div>}
                 </div>
                 <div onClick={()=>saveFlexPrefs({...(wPrefs||{}),weekendFlexMode:!flexOn,flexDays:!flexOn?["Sat","Sun"]:flexDays,flexCalorieIncrease:flexPct})}
                   style={{width:44,height:24,borderRadius:12,background:flexOn?"#F59E0B":"rgba(var(--cm-ink-rgb,10,10,10),0.12)",cursor:"pointer",display:"flex",alignItems:"center",padding:"0 3px",justifyContent:flexOn?"flex-end":"flex-start",transition:"background 0.2s",boxSizing:"border-box",flexShrink:0,marginLeft:16}}>
@@ -3510,14 +3510,14 @@ Reply with ONLY a valid JSON object, no markdown:
             {userRecipes.length>0&&(
               <div style={{background:GOCLUB_REDESIGN?'var(--cm-paper,#FFFFFF)':T.s1,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:20,padding:isMobile?"16px":"20px 24px",boxShadow:GOCLUB_REDESIGN?'0 2px 12px rgba(0,0,0,.08)':undefined}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.65)",fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)"}}>My Recipes</div>
+                  <div style={{fontSize:14,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(var(--cm-red-rgb,255,59,48),0.65)",fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)"}}>My Recipes</div>
                   <button onClick={()=>setFuelScreen("kitchen")} style={{background:"none",border:"none",color:T.prot,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>See All →</button>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {userRecipes.slice(0,3).map(r=>(
                     <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.03)':T.s2,border:`1px solid ${GOCLUB_REDESIGN?'rgba(var(--cm-ink-rgb,10,10,10),0.06)':T.bd}`,borderRadius:12}}>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-ink,#0A0A0A)'}}>{r.name}</div>
+                        <div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-red,#FF3B30)'}}>{r.name}</div>
                         <div style={{fontSize:10,color:T.mu}}>{r.calories_per_serving} kcal · <span style={{color:T.prot}}>P {r.protein_per_serving}g</span></div>
                       </div>
                       <button onClick={()=>setRecipeLogging(r)} style={{padding:"8px 16px",background:`${T.prot}15`,border:`1.5px solid ${T.prot}40`,borderRadius:20,color:T.prot,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>Log →</button>
@@ -3532,12 +3532,12 @@ Reply with ONLY a valid JSON object, no markdown:
 
         {/* ── LOG FOOD — full-screen fixed sheet (F) ── */}
         {fuelScreen==="log"&&(
-          <div style={{position:"fixed",inset:0,zIndex:500,background:"radial-gradient(ellipse at 50% 0%,rgba(232,52,28,0.12) 0%,#060d1a 65%)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"fixed",inset:0,zIndex:500,background:"radial-gradient(ellipse at 50% 0%,rgba(var(--cm-red-rgb,255,59,48),0.08) 0%,var(--cm-paper,#FFFFFF) 60%)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
             {/* Sticky header: ← Close + MEAL X chip */}
-            <div style={{position:"sticky",top:0,background:"rgba(6,13,26,0.94)",backdropFilter:"blur(12px)",padding:"calc(env(safe-area-inset-top,0px) + 12px) 16px 12px",zIndex:10,display:"flex",alignItems:"center",gap:14,borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
-              <button onClick={()=>setFuelScreen("home")} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",cursor:"pointer",padding:0,textTransform:"uppercase",flexShrink:0}}>← CLOSE</button>
+            <div style={{position:"sticky",top:0,background:"rgba(var(--cm-paper-rgb,255,255,255),0.94)",backdropFilter:"blur(12px)",padding:"calc(env(safe-area-inset-top,0px) + 12px) 16px 12px",zIndex:10,display:"flex",alignItems:"center",gap:14,borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+              <button onClick={()=>setFuelScreen("home")} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.14em",cursor:"pointer",padding:0,textTransform:"uppercase",flexShrink:0}}>← CLOSE</button>
               <div style={{flex:1}}/>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#e8341c",letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(232,52,28,0.1)",border:"1px solid rgba(232,52,28,0.25)",borderRadius:20,padding:"4px 12px",flexShrink:0}}>MEAL {mealSlots[activeSlotIdx]||1}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:20,padding:"4px 12px",flexShrink:0}}>MEAL {mealSlots[activeSlotIdx]||1}</div>
             </div>
             <div style={{maxWidth:isMobile?"100%":600,padding:"16px 16px 0"}}>
 
@@ -3549,15 +3549,15 @@ Reply with ONLY a valid JSON object, no markdown:
               });
               return(
                 <>
-                  <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>// WHICH MEAL?</div>
+                  <div style={{...mno,fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>// WHICH MEAL?</div>
                   <div style={{display:"flex",gap:8,marginBottom:logSlotConfirmed?8:20}}>
                     {mealSlots.map((slot,i)=>{
                       const kcal=slotCals[slot]||0;
                       const sel=logSlotConfirmed&&activeSlotIdx===i;
                       return(
-                        <button key={slot} onClick={()=>{setActiveSlotIdx(i);setLogSlotConfirmed(true);}} style={{flex:1,background:sel?"rgba(232,52,28,0.1)":"#0d0d0d",border:sel?"1.5px solid #e8341c":"1px solid rgba(232,52,28,0.12)",borderRadius:12,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.15s",fontFamily:"inherit"}}>
-                          <div style={{...mno,fontSize:10,color:"#f5f5f0",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>{getSlotLabel(slot)}</div>
-                          <div style={{...mno,fontSize:9,color:kcal>0?"#e8341c":"rgba(245,245,240,0.3)"}}>{kcal>0?`${kcal} kcal`:"Empty"}</div>
+                        <button key={slot} onClick={()=>{setActiveSlotIdx(i);setLogSlotConfirmed(true);}} style={{flex:1,background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.1)":"var(--cm-paper,#FFFFFF)",border:sel?"1.5px solid var(--cm-red,#FF3B30)":"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:12,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.15s",fontFamily:"inherit"}}>
+                          <div style={{...mno,fontSize:10,color:"var(--cm-red,#FF3B30)",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>{getSlotLabel(slot)}</div>
+                          <div style={{...mno,fontSize:9,color:kcal>0?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}>{kcal>0?`${kcal} kcal`:"Empty"}</div>
                         </button>
                       );
                     })}
@@ -3565,11 +3565,11 @@ Reply with ONLY a valid JSON object, no markdown:
                   {logSlotConfirmed&&(
                     <>
                       <div style={{marginBottom:16}}>
-                        <span style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:20,padding:"5px 14px",...mno,fontSize:10,color:"#e8341c",letterSpacing:"0.12em",textTransform:"uppercase",display:"inline-block"}}>
+                        <span style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:20,padding:"5px 14px",...mno,fontSize:10,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.12em",textTransform:"uppercase",display:"inline-block"}}>
                           ADDING TO {(getSlotLabel(mealSlots[activeSlotIdx])||"MEAL 1").toUpperCase()}
                         </span>
                       </div>
-                      <div style={{height:1,background:"rgba(232,52,28,0.08)",marginBottom:20}}/>
+                      <div style={{height:1,background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",marginBottom:20}}/>
                     </>
                   )}
                 </>
@@ -3578,30 +3578,30 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* Step 2: Log methods */}
             {!logSlotConfirmed?(
-              <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.25)",textAlign:"center",padding:"24px 0",letterSpacing:"0.1em"}}>Select a meal above to continue</div>
+              <div style={{...mno,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.25)",textAlign:"center",padding:"24px 0",letterSpacing:"0.1em"}}>Select a meal above to continue</div>
             ):(
               <>
                 {!logMode&&(
                   <>
-                    <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>// HOW DO YOU WANT TO LOG?</div>
+                    <div style={{...mno,fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>// HOW DO YOU WANT TO LOG?</div>
                     {/* Row 1 */}
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                       {[
                         {
                           label:"SNAP & LOG",sub:"Photo → instant macros",
-                          icon:<svg width="18" height="15" viewBox="0 0 18 15" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4A1 1 0 012 3h1a1 1 0 00.9-.55l.2-.4A1 1 0 015 1.5h8a1 1 0 01.9.55l.2.4A1 1 0 0015 3h1a1 1 0 011 1v9a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><circle cx="9" cy="8" r="2.5"/></svg>,
+                          icon:<svg width="18" height="15" viewBox="0 0 18 15" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4A1 1 0 012 3h1a1 1 0 00.9-.55l.2-.4A1 1 0 015 1.5h8a1 1 0 01.9.55l.2.4A1 1 0 0015 3h1a1 1 0 011 1v9a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><circle cx="9" cy="8" r="2.5"/></svg>,
                           action:()=>onOpenPhotoLogger&&onOpenPhotoLogger(),
                         },
                         {
                           label:"SEARCH & AI",sub:"Search foods or describe your meal",
-                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="5"/><path d="M13 13l3 3"/></svg>,
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="5"/><path d="M13 13l3 3"/></svg>,
                           action:()=>setLogMode("search"),
                         },
                       ].map(({label,sub,icon,action})=>(
-                        <button key={label} onClick={action} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"18px 14px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-                          <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{label}</div>
-                          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
+                        <button key={label} onClick={action} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:14,padding:"18px 14px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                          <div style={{width:36,height:36,borderRadius:8,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
+                          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",lineHeight:1}}>{label}</div>
+                          <div style={{...mno,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.35)",letterSpacing:"0.08em",marginTop:2}}>{sub}</div>
                         </button>
                       ))}
                     </div>
@@ -3610,49 +3610,49 @@ Reply with ONLY a valid JSON object, no markdown:
                       {[
                         {
                           label:"MY FOODS",sub:"Saved foods & recent logs",
-                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1l2.5 5 5.5.8-4 3.9.9 5.5L9 13.5l-4.9 2.6.9-5.5-4-3.9 5.5-.8L9 1z"/></svg>,
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1l2.5 5 5.5.8-4 3.9.9 5.5L9 13.5l-4.9 2.6.9-5.5-4-3.9 5.5-.8L9 1z"/></svg>,
                           action:()=>setLogMode("myfoods"),
                         },
                         {
                           label:"QUICK ADD",sub:"Just calories or full macros",
-                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><circle cx="9" cy="9" r="7.5"/><path d="M9 5.5v7M5.5 9h7"/></svg>,
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"><circle cx="9" cy="9" r="7.5"/><path d="M9 5.5v7M5.5 9h7"/></svg>,
                           action:()=>setLogMode("quick"),
                         },
                         {
                           label:"BARCODE",sub:"Scan any packaged food",
-                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><line x1="1" y1="3" x2="1" y2="15"/><line x1="3.5" y1="3" x2="3.5" y2="15"/><line x1="6" y1="3" x2="6" y2="15"/><line x1="7.5" y1="3" x2="7.5" y2="15"/><line x1="10" y1="3" x2="10" y2="15"/><line x1="13" y1="3" x2="13" y2="15"/><line x1="15.5" y1="3" x2="15.5" y2="15"/><line x1="17" y1="3" x2="17" y2="15"/></svg>,
+                          icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"><line x1="1" y1="3" x2="1" y2="15"/><line x1="3.5" y1="3" x2="3.5" y2="15"/><line x1="6" y1="3" x2="6" y2="15"/><line x1="7.5" y1="3" x2="7.5" y2="15"/><line x1="10" y1="3" x2="10" y2="15"/><line x1="13" y1="3" x2="13" y2="15"/><line x1="15.5" y1="3" x2="15.5" y2="15"/><line x1="17" y1="3" x2="17" y2="15"/></svg>,
                           action:()=>setLogMode("barcode"),
                         },
                       ].map(({label,sub,icon,action})=>(
-                        <button key={label} onClick={action} style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.1)",borderRadius:14,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
-                          <div style={{width:32,height:32,borderRadius:8,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:14,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>{label}</div>
-                          <div style={{...mno,fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.06em",marginTop:1}}>{sub}</div>
+                        <button key={label} onClick={action} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:14,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"flex-start",gap:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                          <div style={{width:32,height:32,borderRadius:8,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
+                          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",lineHeight:1}}>{label}</div>
+                          <div style={{...mno,fontSize:8,color:"rgba(var(--cm-red-rgb,255,59,48),0.35)",letterSpacing:"0.06em",marginTop:1}}>{sub}</div>
                         </button>
                       ))}
                     </div>
                     {/* Row 3: Restaurant AI full width */}
-                    <button onClick={()=>{setLogMode("restaurant");openRestaurantAI();}} style={{width:"100%",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,WebkitTapHighlightColor:"transparent"}}>
+                    <button onClick={()=>{setLogMode("restaurant");openRestaurantAI();}} style={{width:"100%",background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:14,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,WebkitTapHighlightColor:"transparent"}}>
                       <div style={{display:"flex",alignItems:"center",gap:14}}>
-                        <div style={{width:36,height:36,borderRadius:8,background:"rgba(232,52,28,0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="#e8341c" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1C5 1 2 3.5 2 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="8" cy="7" r="2"/></svg>
+                        <div style={{width:36,height:36,borderRadius:8,background:"rgba(var(--cm-red-rgb,255,59,48),0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5" strokeLinecap="round"><path d="M8 1C5 1 2 3.5 2 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="8" cy="7" r="2"/></svg>
                         </div>
                         <div>
-                          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1}}>RESTAURANT AI<span style={{color:"#e8341c"}}>.</span></div>
-                          <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Scan any menu for instant macro recommendations</div>
+                          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",lineHeight:1}}>RESTAURANT AI<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                          <div style={{...mno,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.35)",marginTop:4}}>Scan any menu for instant macro recommendations</div>
                         </div>
                       </div>
-                      <div style={{color:"#e8341c",fontSize:18,flexShrink:0}}>→</div>
+                      <div style={{color:"var(--cm-red,#FF3B30)",fontSize:18,flexShrink:0}}>→</div>
                     </button>
                   </>
                 )}
                 {logMode&&logMode!=="restaurant"&&(
-                  <button onClick={()=>{setLogMode(null);setAiEstimate(null);setAiEstimating(false);}} style={{background:"none",border:"none",...mno,fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← METHODS</button>
+                  <button onClick={()=>{setLogMode(null);setAiEstimate(null);setAiEstimating(false);}} style={{background:"none",border:"none",...mno,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",cursor:"pointer",padding:"0 0 16px",letterSpacing:"0.12em",display:"block"}}>← METHODS</button>
                 )}
                 {(logMode==="search"||logMode==="ai")&&(
-                  <div style={{display:"flex",background:"rgba(245,245,240,0.04)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:20,padding:3,gap:2,marginBottom:16}}>
-                    <button onClick={()=>{setLogMode("search");setAiEstimate(null);setAiEstimating(false);}} style={{flex:1,padding:"7px 0",borderRadius:16,border:"none",background:logMode==="search"?"rgba(232,52,28,0.15)":"transparent",color:logMode==="search"?"#e8341c":"rgba(245,245,240,0.35)",...mno,fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em"}}>SEARCH</button>
-                    <button onClick={()=>setLogMode("ai")} style={{flex:1,padding:"7px 0",borderRadius:16,border:"none",background:logMode==="ai"?"rgba(232,52,28,0.15)":"transparent",color:logMode==="ai"?"#e8341c":"rgba(245,245,240,0.35)",...mno,fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em"}}>AI DESCRIBE</button>
+                  <div style={{display:"flex",background:"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:20,padding:3,gap:2,marginBottom:16}}>
+                    <button onClick={()=>{setLogMode("search");setAiEstimate(null);setAiEstimating(false);}} style={{flex:1,padding:"7px 0",borderRadius:16,border:"none",background:logMode==="search"?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"transparent",color:logMode==="search"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.35)",...mno,fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em"}}>SEARCH</button>
+                    <button onClick={()=>setLogMode("ai")} style={{flex:1,padding:"7px 0",borderRadius:16,border:"none",background:logMode==="ai"?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"transparent",color:logMode==="ai"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.35)",...mno,fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em"}}>AI DESCRIBE</button>
                   </div>
                 )}
                 {logMode==="search"&&<FoodSearchScreen user={user} logEntry={logEntry} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} addMealSlot={addMealSlot} setFuelScreen={setFuelScreen} isMobile={isMobile}/>}
@@ -3661,36 +3661,36 @@ Reply with ONLY a valid JSON object, no markdown:
                     {!aiEstimate&&!aiEstimating&&(
                       <>
                         <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"14px",marginBottom:10}}>
-                          <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"#fff",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
+                          <textarea value={foodInput} onChange={e=>setFoodInput(e.target.value)} placeholder="Describe your meal... e.g. grilled chicken 6oz, brown rice 1 cup, steamed broccoli" style={{width:"100%",background:"none",border:"none",color:"var(--cm-red,#FF3B30)",fontSize:14,resize:"none",outline:"none",minHeight:80,fontFamily:"inherit",boxSizing:"border-box",lineHeight:1.6}}/>
                         </div>
                         <PrimaryBtn onClick={handleAiDescribeSubmit} label="ESTIMATE MACROS →" disabled={!foodInput.trim()}/>
                       </>
                     )}
                     {aiEstimating&&(
-                      <div style={{background:"#0d0d0d",borderRadius:12,padding:20,textAlign:"center"}}>
-                        <div style={{...mno,fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.16em"}}>ESTIMATING...</div>
+                      <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:12,padding:20,textAlign:"center"}}>
+                        <div style={{...mno,fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",letterSpacing:"0.16em"}}>ESTIMATING...</div>
                       </div>
                     )}
                     {aiEstimate&&!aiEstimating&&(
-                      <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,0.15)",borderRadius:14,padding:"18px 16px",marginTop:16}}>
-                        <div style={{...mno,fontSize:10,color:"#e8341c",letterSpacing:"0.16em",marginBottom:12}}>DOES THIS SOUND RIGHT?</div>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",marginBottom:14,lineHeight:1.2}}>{aiEstimate.description}</div>
+                      <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:14,padding:"18px 16px",marginTop:16}}>
+                        <div style={{...mno,fontSize:10,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",marginBottom:12}}>DOES THIS SOUND RIGHT?</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-red,#FF3B30)",marginBottom:14,lineHeight:1.2}}>{aiEstimate.description}</div>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
                           {[
-                            {label:"KCAL",val:aiEstimate.calories,color:"#f5f5f0",bg:"rgba(232,52,28,0.06)"},
-                            {label:"PROTEIN",val:`${aiEstimate.protein}g`,color:"#e8341c",bg:"rgba(232,52,28,0.06)"},
+                            {label:"KCAL",val:aiEstimate.calories,color:"var(--cm-red,#FF3B30)",bg:"rgba(var(--cm-red-rgb,255,59,48),0.06)"},
+                            {label:"PROTEIN",val:`${aiEstimate.protein}g`,color:"var(--cm-red,#FF3B30)",bg:"rgba(var(--cm-red-rgb,255,59,48),0.06)"},
                             {label:"CARBS",val:`${aiEstimate.carbs}g`,color:"#60a5fa",bg:"rgba(96,165,250,0.06)"},
                             {label:"FAT",val:`${aiEstimate.fat}g`,color:"#FEA020",bg:"rgba(254,160,32,0.06)"},
                           ].map(({label,val,color,bg})=>(
                             <div key={label} style={{background:bg,borderRadius:10,padding:12,textAlign:"center"}}>
-                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color,lineHeight:1}}>{val}</div>
-                              <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.12em",marginTop:4}}>{label}</div>
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color,lineHeight:1}}>{val}</div>
+                              <div style={{...mno,fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.12em",marginTop:4}}>{label}</div>
                             </div>
                           ))}
                         </div>
-                        <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.3)",letterSpacing:"0.1em",marginBottom:16}}>AI estimate — values may vary</div>
-                        <button onClick={()=>{logEntryWithUndo({food:aiEstimate.food,calories:aiEstimate.calories,protein:aiEstimate.protein,carbs:aiEstimate.carbs,fat:aiEstimate.fat,id:Date.now(),method:"ai",slot:mealSlots[activeSlotIdx]||1});setFoodInput("");setAiEstimate(null);setFuelScreen("home");}} style={{width:"100%",padding:"14px",background:"#e8341c",border:"none",borderRadius:12,color:"#fff",...mno,fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em",marginBottom:8}}>LOOKS RIGHT — LOG IT →</button>
-                        <button onClick={()=>setAiEstimate(null)} style={{width:"100%",padding:"14px",background:"transparent",border:"1px solid rgba(245,245,240,0.12)",borderRadius:12,...mno,fontSize:11,fontWeight:700,cursor:"pointer",color:"rgba(245,245,240,0.5)",letterSpacing:"0.12em"}}>TRY AGAIN</button>
+                        <div style={{...mno,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.3)",letterSpacing:"0.1em",marginBottom:16}}>AI estimate — values may vary</div>
+                        <button onClick={()=>{logEntryWithUndo({food:aiEstimate.food,calories:aiEstimate.calories,protein:aiEstimate.protein,carbs:aiEstimate.carbs,fat:aiEstimate.fat,id:Date.now(),method:"ai",slot:mealSlots[activeSlotIdx]||1});setFoodInput("");setAiEstimate(null);setFuelScreen("home");}} style={{width:"100%",padding:"14px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:12,color:"#fff",...mno,fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.12em",marginBottom:8}}>LOOKS RIGHT — LOG IT →</button>
+                        <button onClick={()=>setAiEstimate(null)} style={{width:"100%",padding:"14px",background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:12,...mno,fontSize:11,fontWeight:700,cursor:"pointer",color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.12em"}}>TRY AGAIN</button>
                       </div>
                     )}
                   </>
@@ -3699,29 +3699,29 @@ Reply with ONLY a valid JSON object, no markdown:
                   <>
                     {myFoodsHistory.length>0&&(
                       <>
-                        <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// RECENT FOODS</div>
+                        <div style={{...mno,fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// RECENT FOODS</div>
                         {myFoodsHistory.slice(0,5).map((f,i)=>(
-                          <button key={i} onClick={()=>{logEntryWithUndo({food:f.food_name,calories:f.food_data?.calories||0,protein:f.food_data?.protein||0,carbs:f.food_data?.carbs||0,fat:f.food_data?.fat||0,id:Date.now(),slot:mealSlots[activeSlotIdx]||1,source:f.food_data?.source||"usda"});setLogMode(null);}} style={{width:"100%",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                          <button key={i} onClick={()=>{logEntryWithUndo({food:f.food_name,calories:f.food_data?.calories||0,protein:f.food_data?.protein||0,carbs:f.food_data?.carbs||0,fat:f.food_data?.fat||0,id:Date.now(),slot:mealSlots[activeSlotIdx]||1,source:f.food_data?.source||"usda"});setLogMode(null);}} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:10,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                             <div>
-                              <div style={{fontSize:14,fontWeight:700,color:"#f5f5f0"}}>{f.food_name}</div>
-                              <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:2}}>{f.food_data?.calories} kcal · P {f.food_data?.protein}g</div>
+                              <div style={{fontSize:14,fontWeight:700,color:"var(--cm-red,#FF3B30)"}}>{f.food_name}</div>
+                              <div style={{...mno,fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",marginTop:2}}>{f.food_data?.calories} kcal · P {f.food_data?.protein}g</div>
                             </div>
-                            <div style={{color:"#e8341c",...mno,fontSize:12,flexShrink:0}}>+</div>
+                            <div style={{color:"var(--cm-red,#FF3B30)",...mno,fontSize:12,flexShrink:0}}>+</div>
                           </button>
                         ))}
                       </>
                     )}
-                    <button onClick={()=>setFuelScreen("kitchen")} style={{width:"100%",background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,marginTop:8}}>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:700,fontSize:14,color:"#f5f5f0",textTransform:"uppercase"}}>See all saved foods</div>
-                      <div style={{color:"#e8341c",...mno,fontSize:10}}>→</div>
+                    <button onClick={()=>setFuelScreen("kitchen")} style={{width:"100%",background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",fontFamily:"inherit",marginBottom:20,marginTop:8}}>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:14,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase"}}>See all saved foods</div>
+                      <div style={{color:"var(--cm-red,#FF3B30)",...mno,fontSize:10}}>→</div>
                     </button>
-                    <div style={{height:1,background:"rgba(232,52,28,0.08)",marginBottom:16}}/>
-                    <div style={{...mno,fontSize:9,color:"#e8341c",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// QUICK ADD</div>
+                    <div style={{height:1,background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",marginBottom:16}}/>
+                    <div style={{...mno,fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// QUICK ADD</div>
                     <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"16px",marginBottom:14}}>
                       {[["Name (optional)","text","name","e.g. Protein shake"],["Calories","number","calories","0"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
                         <div key={k} style={{marginBottom:12}}>
                           <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
-                          <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                          <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"var(--cm-red,#FF3B30)",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
                         </div>
                       ))}
                     </div>
@@ -3740,11 +3740,11 @@ Reply with ONLY a valid JSON object, no markdown:
                         value={quickFields.calories}
                         onChange={e=>setQF(q=>({...q,calories:e.target.value}))}
                         placeholder="0"
-                        style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"14px 12px",color:"#fff",fontSize:32,fontWeight:900,outline:"none",boxSizing:"border-box",fontFamily:"var(--condensed)",textAlign:"center"}}
+                        style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"14px 12px",color:"var(--cm-red,#FF3B30)",fontSize:32,fontWeight:900,outline:"none",boxSizing:"border-box",fontFamily:"'Archivo',sans-serif",textAlign:"center"}}
                       />
                     </div>
                     {/* Expand toggle for name + macros */}
-                    <button onClick={()=>setShowQAExtras(v=>!v)} style={{background:"none",border:"none",...mno,fontSize:9,color:showQAExtras?"#e8341c":"rgba(245,245,240,0.4)",cursor:"pointer",padding:"4px 0 14px",letterSpacing:"0.12em",display:"block",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                    <button onClick={()=>setShowQAExtras(v=>!v)} style={{background:"none",border:"none",...mno,fontSize:9,color:showQAExtras?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",cursor:"pointer",padding:"4px 0 14px",letterSpacing:"0.12em",display:"block",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
                       {showQAExtras?"▼ HIDE DETAILS":"▶ ADD NAME & MACROS (optional)"}
                     </button>
                     {showQAExtras&&(
@@ -3752,7 +3752,7 @@ Reply with ONLY a valid JSON object, no markdown:
                         {[["Name (optional)","text","name","e.g. Protein shake"],["Protein (g)","number","protein","0"],["Carbs (g)","number","carbs","0"],["Fat (g)","number","fat","0"]].map(([l,t,k,ph])=>(
                           <div key={k} style={{marginBottom:12}}>
                             <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{l}</div>
-                            <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                            <input type={t} value={quickFields[k]} onChange={e=>setQF(q=>({...q,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",background:T.s3,border:`1px solid ${T.bd}`,borderRadius:8,padding:"10px 12px",color:"var(--cm-red,#FF3B30)",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
                           </div>
                         ))}
                       </div>
@@ -3785,7 +3785,7 @@ Reply with ONLY a valid JSON object, no markdown:
             )}
             {logMode==="restaurant"&&restaurantAI&&(
               <div>
-                <div style={{background:"rgba(232,52,28,0.06)",border:"1px solid rgba(232,52,28,0.15)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:10,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   {[
                     {label:"MEAL",value:String(restaurantAI.slot)},
                     {label:"KCAL",value:String(restaurantAI.calTarget)},
@@ -3794,56 +3794,56 @@ Reply with ONLY a valid JSON object, no markdown:
                     {label:"FAT",value:`${restaurantAI.fatTarget}G`},
                   ].map(({label,value,color})=>(
                     <div key={label} style={{textAlign:"center"}}>
-                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
-                      <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:color||"#f5f5f0",lineHeight:1}}>{value}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{label}</div>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:color||"var(--cm-ink,#0A0A0A)",lineHeight:1}}>{value}</div>
                     </div>
                   ))}
                 </div>
                 {raStep==='picker'&&(
                   <div>
-                    <div onClick={()=>setRaStep('nearme')} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
-                      <div style={{width:48,height:48,borderRadius:10,background:"rgba(232,52,28,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8341c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <div onClick={()=>setRaStep('nearme')} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+                      <div style={{width:48,height:48,borderRadius:10,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                       </div>
                       <div style={{flex:1}}>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em"}}>NEAR ME<span style={{color:"#e8341c"}}>.</span></div>
-                        <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginTop:4,lineHeight:1.4}}>Find restaurants nearby and get AI recommendations.</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",letterSpacing:"0.02em"}}>NEAR ME<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                        <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",marginTop:4,lineHeight:1.4}}>Find restaurants nearby and get AI recommendations.</div>
                       </div>
-                      <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
+                      <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0}}>→</div>
                     </div>
-                    <div onClick={()=>menuScanRef.current?.click()} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
+                    <div onClick={()=>menuScanRef.current?.click()} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}>
                       <div style={{width:48,height:48,borderRadius:10,background:"rgba(96,165,250,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 014 0v2"/><circle cx="12" cy="13" r="3"/></svg>
                       </div>
                       <div style={{flex:1}}>
-                        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",letterSpacing:"0.02em"}}>SCAN MENU<span style={{color:"#60a5fa"}}>.</span></div>
-                        <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",marginTop:4,lineHeight:1.4}}>Photograph any menu — AI picks what to order.</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-red,#FF3B30)",textTransform:"uppercase",letterSpacing:"0.02em"}}>SCAN MENU<span style={{color:"#60a5fa"}}>.</span></div>
+                        <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",marginTop:4,lineHeight:1.4}}>Photograph any menu — AI picks what to order.</div>
                       </div>
-                      <div style={{color:"#60a5fa",fontFamily:"var(--mono)",fontSize:12,flexShrink:0}}>→</div>
+                      <div style={{color:"#60a5fa",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0}}>→</div>
                     </div>
                   </div>
                 )}
                 {raStep==='nearme'&&(
                   <div>
-                    <button onClick={()=>setRaStep('picker')} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:16,display:"block"}}>← BACK</button>
+                    <button onClick={()=>setRaStep('picker')} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:16,display:"block"}}>← BACK</button>
                     <div style={{display:"flex",gap:8,marginBottom:14}}>
-                      <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
-                      <button onClick={fetchRaNearby} disabled={raNearbyLoading||!raNearbyCity.trim()} style={{padding:"12px 18px",background:raNearbyLoading?"#111":"#e8341c",color:raNearbyLoading?"rgba(245,245,240,0.3)":"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:raNearbyLoading?"default":"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{raNearbyLoading?"Searching…":"Find →"}</button>
+                      <input value={raNearbyCity} onChange={e=>setRaNearbyCity(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchRaNearby()} placeholder="City or area…" style={{flex:1,background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,padding:"12px 14px",color:"var(--cm-red,#FF3B30)",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
+                      <button onClick={fetchRaNearby} disabled={raNearbyLoading||!raNearbyCity.trim()} style={{padding:"12px 18px",background:raNearbyLoading?"rgba(var(--cm-ink-rgb,10,10,10),0.08)":"var(--cm-red,#FF3B30)",color:raNearbyLoading?"rgba(var(--cm-ink-rgb,10,10,10),0.3)":"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:raNearbyLoading?"default":"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{raNearbyLoading?"Searching…":"Find →"}</button>
                     </div>
-                    {raNearbyError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(232,52,28,0.8)",marginBottom:12,padding:"8px 12px",background:"rgba(232,52,28,0.08)",borderRadius:8}}>{raNearbyError}</div>}
+                    {raNearbyError&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)",marginBottom:12,padding:"8px 12px",background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",borderRadius:8}}>{raNearbyError}</div>}
                     {raNearbyLoading&&[1,2,3].map(i=>(
-                      <div key={i} style={{height:70,borderRadius:12,background:"rgba(255,255,255,0.04)",marginBottom:8,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
+                      <div key={i} style={{height:70,borderRadius:12,background:"rgba(var(--cm-ink-rgb,10,10,10),0.04)",marginBottom:8,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
                     ))}
                     {raNearby.length>0&&(
                       <div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// {raNearby.length} RESTAURANTS NEARBY</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:10}}>// {raNearby.length} RESTAURANTS NEARBY</div>
                         {raNearby.slice(0,10).map((r,i)=>(
-                          <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                          <div key={i} onClick={()=>handleRaRestaurantTap(r)} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:12,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                              <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2,letterSpacing:"0.06em"}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-red,#FF3B30)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",marginTop:2,letterSpacing:"0.06em"}}>{r.vicinity||""}{r.rating?` · ${r.rating}★`:""}</div>
                             </div>
-                            <div style={{color:"#e8341c",fontFamily:"var(--mono)",fontSize:12,flexShrink:0,marginLeft:12}}>→</div>
+                            <div style={{color:"var(--cm-red,#FF3B30)",fontFamily:"'DM Mono',monospace",fontSize:12,flexShrink:0,marginLeft:12}}>→</div>
                           </div>
                         ))}
                       </div>
@@ -3852,18 +3852,18 @@ Reply with ONLY a valid JSON object, no markdown:
                 )}
                 {raStep==='result'&&(
                   <div>
-                    <button onClick={()=>setRaStep(raPrevStep)} style={{background:"none",border:"none",fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:16,display:"block"}}>← BACK</button>
-                    {raRestaurant&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:16}}>{raRestaurant.name}</div>}
+                    <button onClick={()=>setRaStep(raPrevStep)} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",cursor:"pointer",padding:0,letterSpacing:"0.12em",marginBottom:16,display:"block"}}>← BACK</button>
+                    {raRestaurant&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:16}}>{raRestaurant.name}</div>}
                     {raLoading&&(
                       <div>
                         {[1,2,3,4].map(i=>(
-                          <div key={i} style={{height:i===1?120:70,borderRadius:12,background:"rgba(255,255,255,0.04)",marginBottom:10,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
+                          <div key={i} style={{height:i===1?120:70,borderRadius:12,background:"rgba(var(--cm-ink-rgb,10,10,10),0.04)",marginBottom:10,animation:"cm-pulse 1.4s ease-in-out infinite",animationDelay:`${i*0.15}s`}}/>
                         ))}
-                        <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",textAlign:"center",marginTop:8}}>Checking your macros…</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",textAlign:"center",marginTop:8}}>Checking your macros…</div>
                       </div>
                     )}
                     {raError&&!raLoading&&(
-                      <div style={{background:"rgba(232,52,28,0.08)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:12,padding:"14px 16px",fontFamily:"var(--mono)",fontSize:11,color:"rgba(232,52,28,0.8)"}}>{raError}</div>
+                      <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:"14px 16px",fontFamily:"'DM Mono',monospace",fontSize:11,color:"rgba(var(--cm-red-rgb,255,59,48),0.8)"}}>{raError}</div>
                     )}
                     {raResult&&!raLoading&&(()=>{
                       const b=raResult.best_order;
@@ -3875,12 +3875,12 @@ Reply with ONLY a valid JSON object, no markdown:
                       const coveragePct=Math.min(100,Math.round(b?.protein_coverage_pct||0));
                       return(
                         <div>
-                          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ORDER THIS</div>
-                          <div style={{background:"linear-gradient(135deg,#0d0d0d 0%,#110808 100%)",border:"1px solid rgba(232,52,28,0.2)",borderRadius:14,padding:16,marginBottom:16,position:"relative",overflow:"hidden"}}>
-                            <div style={{position:"absolute",top:-30,right:-20,width:100,height:100,background:"radial-gradient(ellipse,rgba(232,52,28,0.12),transparent 70%)",pointerEvents:"none"}}/>
-                            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:0.95,marginBottom:4}}>{b?.item||"—"}<span style={{color:"#e8341c"}}>.</span></div>
-                            {b?.customisation&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",letterSpacing:"0.08em",marginBottom:8}}>{b.customisation}</div>}
-                            <div style={{fontSize:13,color:"rgba(245,245,240,0.6)",lineHeight:1.5,marginBottom:14}}>{b?.reason}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ORDER THIS</div>
+                          <div style={{background:"linear-gradient(135deg,var(--cm-paper,#FFFFFF) 0%,var(--cm-paper,#FFFFFF) 100%)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:14,padding:16,marginBottom:16,position:"relative",overflow:"hidden"}}>
+                            <div style={{position:"absolute",top:-30,right:-20,width:100,height:100,background:"radial-gradient(ellipse,rgba(var(--cm-red-rgb,255,59,48),0.08),transparent 70%)",pointerEvents:"none"}}/>
+                            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-red,#FF3B30)",lineHeight:0.95,marginBottom:4}}>{b?.item||"—"}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                            {b?.customisation&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",letterSpacing:"0.08em",marginBottom:8}}>{b.customisation}</div>}
+                            <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.6)",lineHeight:1.5,marginBottom:14}}>{b?.reason}</div>
                             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
                               {[
                                 {label:"CAL",val:m.calories,style:calStyle},
@@ -3889,25 +3889,25 @@ Reply with ONLY a valid JSON object, no markdown:
                                 {label:"FAT",val:`${m.fat_g}G`,style:fatStyle},
                               ].map(({label,val,style})=>(
                                 <div key={label} style={{background:style.bg,borderRadius:8,padding:"6px 10px",textAlign:"center"}}>
-                                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:style.color,lineHeight:1}}>{val}</div>
-                                  <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em",marginTop:2}}>{label}</div>
+                                  <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:style.color,lineHeight:1}}>{val}</div>
+                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",letterSpacing:"0.08em",marginTop:2}}>{label}</div>
                                 </div>
                               ))}
                             </div>
                             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:coveragePct>0?10:0}}>
-                              <div style={{flex:1,height:3,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{flex:1,height:3,background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:2,overflow:"hidden"}}>
                                 <div style={{height:"100%",width:`${coveragePct}%`,background:"#22c55e",borderRadius:2,transition:"width 0.6s ease"}}/>
                               </div>
-                              <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#22c55e",flexShrink:0}}>Covers {coveragePct}% of Meal {restaurantAI.slot} protein target</div>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#22c55e",flexShrink:0}}>Covers {coveragePct}% of Meal {restaurantAI.slot} protein target</div>
                             </div>
                             {(b?.warnings||[]).length>0&&(
-                              <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(232,52,28,0.1)"}}>
+                              <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)"}}>
                                 {b.warnings.map((w,i)=>(
                                   <div key={i} style={{display:"flex",gap:8,marginBottom:6}}>
-                                    <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#FEA020",flexShrink:0}}>⚠</span>
+                                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#FEA020",flexShrink:0}}>⚠</span>
                                     <div>
-                                      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FEA020",lineHeight:1.4}}>{w.message}</div>
-                                      {w.fix&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",fontStyle:"italic",marginTop:2}}>{w.fix}</div>}
+                                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",lineHeight:1.4}}>{w.message}</div>
+                                      {w.fix&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(var(--cm-red-rgb,255,59,48),0.4)",fontStyle:"italic",marginTop:2}}>{w.fix}</div>}
                                     </div>
                                   </div>
                                 ))}
@@ -3916,39 +3916,39 @@ Reply with ONLY a valid JSON object, no markdown:
                           </div>
                           <button
                             onClick={()=>handleAddRestaurantDish(b)}
-                            style={{width:"100%",padding:"14px",background:"#e8341c",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:16}}
+                            style={{width:"100%",padding:"14px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",marginBottom:16}}
                           >ADD TO MEAL {restaurantAI.slot}</button>
                           {(raResult.backup_options||[]).length>0&&(
                             <div style={{marginBottom:16}}>
-                              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// ALSO GOOD</div>
                               {raResult.backup_options.map((opt,i)=>(
-                                <div key={i} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
-                                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",marginBottom:opt.customisation?3:4}}>{opt.item}<span style={{color:"#e8341c"}}>.</span></div>
-                                  {opt.customisation&&<div style={{fontFamily:"var(--mono)",fontSize:8,color:"#FEA020",letterSpacing:"0.06em",marginBottom:4}}>{opt.customisation}</div>}
-                                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.4}}>{opt.reason}</div>
+                                <div key={i} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:10,padding:"12px 14px",marginBottom:6}}>
+                                  <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-red,#FF3B30)",marginBottom:opt.customisation?3:4}}>{opt.item}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span></div>
+                                  {opt.customisation&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#FEA020",letterSpacing:"0.06em",marginBottom:4}}>{opt.customisation}</div>}
+                                  <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",lineHeight:1.4}}>{opt.reason}</div>
                                 </div>
                               ))}
                             </div>
                           )}
                           {(raResult.avoid||[]).length>0&&(
                             <div style={{marginBottom:16}}>
-                              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// SKIP THESE</div>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// SKIP THESE</div>
                               {raResult.avoid.map((item,i)=>(
-                                <div key={i} style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.06)",borderRadius:10,padding:"12px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
+                                <div key={i} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.02)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:10,padding:"12px 14px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
                                   <div style={{flex:1}}>
-                                    <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)",textDecoration:"line-through",marginBottom:3}}>{item.item}</div>
-                                    <div style={{fontSize:13,color:"rgba(245,245,240,0.35)",lineHeight:1.4}}>{item.reason}</div>
+                                    <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(var(--cm-red-rgb,255,59,48),0.35)",textDecoration:"line-through",marginBottom:3}}>{item.item}</div>
+                                    <div style={{fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.35)",lineHeight:1.4}}>{item.reason}</div>
                                   </div>
-                                  <div style={{color:"rgba(232,52,28,0.5)",fontSize:16,flexShrink:0}}>✕</div>
+                                  <div style={{color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",fontSize:16,flexShrink:0}}>✕</div>
                                 </div>
                               ))}
                             </div>
                           )}
                           {raResult.coach_note&&(
                             <div>
-                              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// COACH SAYS</div>
-                              <div style={{background:"rgba(232,52,28,0.05)",borderLeft:"3px solid #e8341c",borderRadius:"0 10px 10px 0",padding:"12px 14px"}}>
-                                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:"#f5f5f0",lineHeight:1.45}}>"{raResult.coach_note}"</div>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// COACH SAYS</div>
+                              <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",borderLeft:"3px solid var(--cm-red,#FF3B30)",borderRadius:"0 10px 10px 0",padding:"12px 14px"}}>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-red,#FF3B30)",lineHeight:1.45}}>"{raResult.coach_note}"</div>
                               </div>
                             </div>
                           )}
@@ -3969,11 +3969,11 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* Meal prep regenerate banner */}
             {showRegenerateBanner&&(
-              <div style={{background:"rgba(254,160,32,0.08)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:12}}>
+              <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
                 <span style={{color:"#FEA020",fontSize:16,flexShrink:0,lineHeight:1.3}}>!</span>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// MEAL PLAN OUTDATED</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,color:"rgba(245,245,240,0.8)",lineHeight:1.5,marginBottom:10}}>Your training changed. Regenerate your meal plan.</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,color:"var(--cm-red,#FF3B30)",lineHeight:1.5,marginBottom:10}}>Your training changed. Regenerate your meal plan.</div>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{background:"#FEA020",border:"none",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#000",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>REGENERATE →</button>
                     <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);}} style={{background:"transparent",border:"1px solid rgba(254,160,32,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(254,160,32,0.5)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>DISMISS</button>
@@ -3994,17 +3994,17 @@ Reply with ONLY a valid JSON object, no markdown:
                     onScroll={e=>{const el=e.currentTarget;const w=el.offsetWidth||320;setKitchenCard(Math.min(1,Math.max(0,Math.round(el.scrollLeft/w))));}}
                   >
                     {kitchenCards.map((card,i)=>(
-                      <div key={i} onClick={card.onPress} style={{minWidth:'100%',maxWidth:'100%',scrollSnapAlign:'start',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(232,52,28,0.22)',borderRadius:16,padding:'20px 18px',boxSizing:'border-box',cursor:'pointer',position:'relative',boxShadow:'0 4px 24px rgba(0,0,0,0.45)'}}>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'#e8341c',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>{card.eyebrow}</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:26,color:'#f5f5f0',textTransform:'uppercase',lineHeight:1,marginBottom:6}}>{card.title}</div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(245,245,240,0.45)',lineHeight:1.5}}>{card.sub}</div>
-                        <div style={{position:'absolute',bottom:18,right:18,color:'#e8341c',fontSize:18,lineHeight:1,fontWeight:700}}>→</div>
+                      <div key={i} onClick={card.onPress} style={{minWidth:'100%',maxWidth:'100%',scrollSnapAlign:'start',background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.22)',borderRadius:16,padding:'20px 18px',boxSizing:'border-box',cursor:'pointer',position:'relative',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:6}}>{card.eyebrow}</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:26,color:'var(--cm-red,#FF3B30)',textTransform:'uppercase',lineHeight:1,marginBottom:6}}>{card.title}</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(var(--cm-red-rgb,255,59,48),0.45)',lineHeight:1.5}}>{card.sub}</div>
+                        <div style={{position:'absolute',bottom:18,right:18,color:'var(--cm-red,#FF3B30)',fontSize:18,lineHeight:1,fontWeight:700}}>→</div>
                       </div>
                     ))}
                   </div>
                   <div style={{display:'flex',justifyContent:'center',gap:6}}>
                     {kitchenCards.map((_,i)=>(
-                      <div key={i} style={{width:i===kitchenCard?16:6,height:6,borderRadius:3,background:i===kitchenCard?'#e8341c':'rgba(245,245,240,0.15)',transition:'all 0.2s'}}/>
+                      <div key={i} style={{width:i===kitchenCard?16:6,height:6,borderRadius:3,background:i===kitchenCard?'rgba(255,255,255,0.95)':'rgba(255,255,255,0.30)',transition:'all 0.2s'}}/>
                     ))}
                   </div>
                 </div>
@@ -4012,16 +4012,16 @@ Reply with ONLY a valid JSON object, no markdown:
             })()}
 
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MY RECIPES</div>
-              <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:32,fontWeight:900,color:'var(--cm-red,#FF3B30)'}}>MY RECIPES</div>
+              <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
             </div>
             <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Save multi-ingredient recipes · log as a single tap</p>
 
             {/* AI recipe ideas button */}
-            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"linear-gradient(135deg,rgba(232,52,28,0.18),var(--navy-mid))",border:"1px solid rgba(232,52,28,0.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+            <button onClick={fetchRecipes} style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
               <svg width={22} height={22} viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke={T.prot} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/></svg>
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>AI Recipe Ideas</div>
+                <div style={{fontSize:13,fontWeight:700,color:"var(--cm-red,#FF3B30)"}}>AI Recipe Ideas</div>
                 <div style={{fontSize:11,color:T.mu}}>Generate recipes for your remaining macros today</div>
               </div>
               <div style={{color:T.prot,fontSize:11,fontWeight:700}}>{recipesLoading?"…":"Generate →"}</div>
@@ -4029,17 +4029,17 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* AI result */}
             {(recipes||recipesLoading)&&(
-              <div style={{background:T.s2,border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",marginBottom:16}}>
+              <div style={{background:'var(--cm-paper,#FFFFFF)',border:`1px solid ${T.bd}`,borderRadius:13,padding:"16px",marginBottom:16}}>
                 {recipesLoading
                   ?<div style={{padding:"8px 0"}}><AIContentSkeleton/></div>
-                  :<><div style={{lineHeight:1.85,fontSize:13,color:"#ccc",whiteSpace:"pre-wrap"}}>{recipes}</div><div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><FlagBtn responseText={recipes} feature="recipes" user={user}/></div></>
+                  :<><div style={{lineHeight:1.85,fontSize:13,color:"var(--cm-red,#FF3B30)",whiteSpace:"pre-wrap"}}>{recipes}</div><div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><FlagBtn responseText={recipes} feature="recipes" user={user}/></div></>
                 }
               </div>
             )}
 
             {/* Smart save suggestion */}
             {recipeSuggestSlot&&(
-              <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:14,padding:"14px 16px",marginBottom:16}}>
+              <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:14,padding:"14px 16px",marginBottom:16}}>
                 <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>You often eat these together for {getSlotLabel(recipeSuggestSlot)}:</div>
                 <div style={{fontSize:11,color:T.mu,marginBottom:12}}>
                   {log.filter(e=>getEntrySlot(e)===recipeSuggestSlot).slice(0,3).map(e=>e.food).join(" + ")}
@@ -4054,12 +4054,12 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* Delete confirm */}
             {recipeDeleteConfirm&&(
               <div style={{position:"fixed",inset:0,background:"rgba(6,13,26,.8)",backdropFilter:"blur(6px)",zIndex:360,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-                <div style={{background:"#0d0d0d",border:"1px solid rgba(232,52,28,.35)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
-                  <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>Delete "{recipeDeleteConfirm.name}"?</div>
+                <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),.35)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center"}}>
+                  <div style={{fontSize:15,fontWeight:700,marginBottom:8,color:'var(--cm-red,#FF3B30)'}}>Delete "{recipeDeleteConfirm.name}"?</div>
                   <div style={{fontSize:12,color:T.mu,marginBottom:24,lineHeight:1.6}}>This recipe will be permanently removed.</div>
                   <div style={{display:"flex",gap:10}}>
-                    <button onClick={()=>setRecipeDeleteConfirm(null)} style={{flex:1,padding:"13px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-                    <button onClick={()=>{handleDeleteRecipe(recipeDeleteConfirm.id);setRecipeDeleteConfirm(null);}} style={{flex:1,padding:"13px",background:"rgba(232,52,28,.15)",border:"1px solid rgba(232,52,28,.5)",borderRadius:10,color:T.prot,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+                    <button onClick={()=>setRecipeDeleteConfirm(null)} style={{flex:1,padding:"13px",background:'var(--cm-paper,#FFFFFF)',border:`1px solid ${T.bd}`,borderRadius:10,color:"var(--cm-red,#FF3B30)",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={()=>{handleDeleteRecipe(recipeDeleteConfirm.id);setRecipeDeleteConfirm(null);}} style={{flex:1,padding:"13px",background:"rgba(var(--cm-red-rgb,255,59,48),.15)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),.5)",borderRadius:10,color:T.prot,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
                   </div>
                 </div>
               </div>
@@ -4068,7 +4068,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* Recipe list */}
             {userRecipes.length===0?(
               <div style={{textAlign:"center",padding:"56px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
-                <svg width={48} height={48} viewBox="0 0 24 24" fill="none" style={{margin:"0 auto 14px",display:"block",opacity:.4}}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" stroke="#fff" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width={48} height={48} viewBox="0 0 24 24" fill="none" style={{margin:"0 auto 14px",display:"block",opacity:.4}}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4" stroke="var(--cm-red,#FF3B30)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
                 <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>No recipes yet</div>
                 <div style={{fontSize:12,color:T.mu,lineHeight:1.65,maxWidth:280,margin:"0 auto 24px"}}>Create your first recipe to log multiple foods in one tap</div>
                 <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"14px 28px",background:T.prot,color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>+ Create Recipe</button>
@@ -4076,9 +4076,9 @@ Reply with ONLY a valid JSON object, no markdown:
             ):(
               <>
                 {/* Search + category filter */}
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,background:T.s2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"10px 14px"}}>
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" style={{flexShrink:0,opacity:.4}}><circle cx={11} cy={11} r={8} stroke="#fff" strokeWidth={2}/><path d="m21 21-4.35-4.35" stroke="#fff" strokeWidth={2} strokeLinecap="round"/></svg>
-                  <input value={recipeSearch} onChange={e=>setRecipeSearch(e.target.value)} placeholder="Search recipes…" style={{flex:1,background:"none",border:"none",outline:"none",color:"#fff",fontSize:13,fontFamily:"inherit"}}/>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,background:'var(--cm-paper,#FFFFFF)',border:`1px solid ${T.bd}`,borderRadius:12,padding:"10px 14px"}}>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" style={{flexShrink:0,opacity:.4}}><circle cx={11} cy={11} r={8} stroke="var(--cm-red,#FF3B30)" strokeWidth={2}/><path d="m21 21-4.35-4.35" stroke="var(--cm-red,#FF3B30)" strokeWidth={2} strokeLinecap="round"/></svg>
+                  <input value={recipeSearch} onChange={e=>setRecipeSearch(e.target.value)} placeholder="Search recipes…" style={{flex:1,background:"none",border:"none",outline:"none",color:"var(--cm-red,#FF3B30)",fontSize:13,fontFamily:"inherit"}}/>
                   {recipeSearch&&<button onClick={()=>setRecipeSearch("")} style={{background:"none",border:"none",color:T.mu,cursor:"pointer",fontSize:16,padding:0,lineHeight:1}}>×</button>}
                 </div>
                 {(()=>{
@@ -4110,33 +4110,33 @@ Reply with ONLY a valid JSON object, no markdown:
                       const cPct=Math.round((r.carbs_per_serving||0)*4/macroTotal*100);
                       const fPct=Math.max(0,100-pPct-cPct);
                       return(
-                        <div key={r.id} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.10)',borderRadius:16,padding:"16px",boxShadow:'0 3px 16px rgba(0,0,0,0.35)'}}>
+                        <div key={r.id} style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:16,padding:"16px",boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontFamily:"var(--condensed)",fontSize:18,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:18,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:'var(--cm-red,#FF3B30)'}}>{r.name}</div>
                               <div style={{fontSize:11,color:T.mu}}>
                                 {ingCount} ingredient{ingCount!==1?"s":""}{totalGrams>0?` · ${totalGrams}g total`:""}
                               </div>
                             </div>
-                            {r.category&&<span style={{fontSize:9,background:"rgba(245,245,240,0.08)",color:"rgba(245,245,240,0.5)",borderRadius:5,padding:"3px 8px",flexShrink:0,marginLeft:8,fontWeight:700}}>{r.category}</span>}
+                            {r.category&&<span style={{fontSize:9,background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",borderRadius:5,padding:"3px 8px",flexShrink:0,marginLeft:8,fontWeight:700}}>{r.category}</span>}
                           </div>
                           {/* Macro bar */}
-                          <div style={{height:5,borderRadius:3,overflow:"hidden",display:"flex",marginBottom:8,background:T.s3}}>
+                          <div style={{height:5,borderRadius:3,overflow:"hidden",display:"flex",marginBottom:8,background:'rgba(var(--cm-red-rgb,255,59,48),0.08)'}}>
                             <div style={{width:`${pPct}%`,background:T.prot,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
                             <div style={{width:`${cPct}%`,background:T.carb,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
                             <div style={{width:`${fPct}%`,background:T.fat,transition:"width 0.32s cubic-bezier(.2,.7,.3,1)"}}/>
                           </div>
                           <div style={{display:"flex",gap:14,marginBottom:8}}>
-                            <div style={{fontSize:15,fontWeight:900}}>{r.calories_per_serving}<span style={{fontSize:10,color:T.mu,fontWeight:400}}> kcal</span></div>
+                            <div style={{fontSize:15,fontWeight:900,color:'var(--cm-red,#FF3B30)'}}>{r.calories_per_serving}<span style={{fontSize:10,color:T.mu,fontWeight:400}}> kcal</span></div>
                             <div style={{fontSize:12,color:T.prot,fontWeight:700}}>{r.protein_per_serving}g P</div>
                             <div style={{fontSize:12,color:T.carb,fontWeight:700}}>{r.carbs_per_serving}g C</div>
                             <div style={{fontSize:12,color:T.fat,fontWeight:700}}>{r.fat_per_serving}g F</div>
                           </div>
                           {daysSince!==null&&<div style={{fontSize:10,color:T.mu,marginBottom:12}}>Last made: {daysSince===0?"today":daysSince===1?"yesterday":`${daysSince}d ago`}</div>}
                           <div style={{display:"flex",gap:8}}>
-                            <button onClick={()=>setRecipeLogging(r)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.05em"}}>Log →</button>
-                            <button onClick={()=>{setRecipeEditing(r);setShowRecipeBuilder(true);}} style={{padding:"11px 16px",background:T.s2,border:`1px solid ${T.bd}`,borderRadius:10,color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
-                            <button onClick={()=>setRecipeDeleteConfirm(r)} style={{padding:"11px",background:"none",border:`1px solid rgba(232,52,28,.3)`,borderRadius:10,color:"rgba(232,52,28,.6)",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <button onClick={()=>setRecipeLogging(r)} style={{flex:1,padding:"11px",background:T.prot,color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.05em"}}>Log →</button>
+                            <button onClick={()=>{setRecipeEditing(r);setShowRecipeBuilder(true);}} style={{padding:"11px 16px",background:'var(--cm-paper,#FFFFFF)',border:`1px solid ${T.bd}`,borderRadius:10,color:T.mu,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
+                            <button onClick={()=>setRecipeDeleteConfirm(r)} style={{padding:"11px",background:"none",border:`1px solid rgba(var(--cm-red-rgb,255,59,48),.3)`,borderRadius:10,color:"rgba(var(--cm-red-rgb,255,59,48),.6)",cursor:"pointer",lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
                               <svg width={14} height={14} viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </button>
                           </div>
@@ -4151,29 +4151,29 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* ── MEAL PREP section inside Kitchen — routes to new flow ── */}
             <div ref={mealPrepRef} style={{borderTop:`1px solid ${T.bd}`,marginTop:32,paddingTop:28}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
-              <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900}}>MEAL PREP</div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:32,fontWeight:900,color:'var(--cm-red,#FF3B30)'}}>MEAL PREP</div>
               {mealPrepPlan&&(
-                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{fontSize:11,color:"#e8341c",background:"none",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
+                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{fontSize:11,color:"var(--cm-red,#FF3B30)",background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
               )}
             </div>
             <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Cook once, eat all week · based on your training schedule</p>
 
             {!mealPrepPlan&&(
               <div style={{textAlign:"center",padding:"48px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
-                <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Generate Your Week</div>
+                <div style={{fontSize:18,fontWeight:700,marginBottom:8,color:'var(--cm-red,#FF3B30)'}}>Generate Your Week</div>
                 <div style={{fontSize:12,color:T.mu,marginBottom:24,lineHeight:1.65,maxWidth:300,margin:"0 auto 24px"}}>Choose your diet style, meals per day, and restrictions — AI builds a fully personalised weekly plan with grocery list</div>
-                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{padding:"14px 32px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"1.8px",textTransform:"uppercase"}}>SET UP MY WEEK →</button>
+                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{padding:"14px 32px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"'DM Mono',monospace",letterSpacing:"1.8px",textTransform:"uppercase"}}>SET UP MY WEEK →</button>
               </div>
             )}
 
             {mealPrepPlan&&(
-              <div style={{background:T.s1,border:'1px solid rgba(232,52,28,0.15)',borderRadius:16,padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+              <div style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)',borderRadius:16,padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
                 <div>
-                  <div style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(245,245,240,0.4)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>ACTIVE PLAN</div>
-                  <div style={{fontSize:14,fontWeight:700,color:'#f5f5f0',marginBottom:2}}>{(mealPrepPlan.days||[]).length} days · {(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).length,0)} meals</div>
-                  <div style={{fontFamily:'var(--mono)',fontSize:10,color:'rgba(245,245,240,0.4)'}}>{mealPrepPrefs.dietPreset||'balanced'} · {mealPrepPrefs.mealsPerDay} meals/day</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(var(--cm-red-rgb,255,59,48),0.5)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>ACTIVE PLAN</div>
+                  <div style={{fontSize:14,fontWeight:700,color:'var(--cm-red,#FF3B30)',marginBottom:2}}>{(mealPrepPlan.days||[]).length} days · {(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).length,0)} meals</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(var(--cm-red-rgb,255,59,48),0.4)'}}>{mealPrepPrefs.dietPreset||'balanced'} · {mealPrepPrefs.mealsPerDay} meals/day</div>
                 </div>
-                <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');}} style={{background:'#e8341c',border:'none',borderRadius:10,padding:'10px 16px',fontFamily:'var(--mono)',fontSize:9,fontWeight:700,color:'#fff',letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',flexShrink:0}}>VIEW PLAN →</button>
+                <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');}} style={{background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:10,padding:'10px 16px',fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:'#fff',letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',flexShrink:0}}>VIEW PLAN →</button>
               </div>
             )}
             </div>{/* end meal prep section */}
@@ -4183,34 +4183,34 @@ Reply with ONLY a valid JSON object, no markdown:
         {/* ── OVERAGE NOTIFICATION ── */}
         {overageModal&&(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setOverageModal(null)}>
-            <div style={{background:"#0a0a0a",border:"1px solid rgba(232,52,28,0.25)",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,width:"100%",boxShadow:"0 -8px 40px rgba(232,52,28,0.12)"}} onClick={e=>e.stopPropagation()}>
-              <div style={{width:32,height:3,background:"rgba(255,255,255,0.12)",borderRadius:2,margin:"0 auto 20px"}}/>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#e8341c",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>// MEAL {overageModal.slot} LOGGED</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",lineHeight:0.95,marginBottom:14}}>
-                {getOverageHeadline(profile?.goal).replace('.','')}<span style={{color:"#e8341c"}}>.</span>
+            <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,width:"100%",boxShadow:"0 -8px 40px rgba(var(--cm-red-rgb,255,59,48),0.12)"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:32,height:3,background:"rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:2,margin:"0 auto 20px"}}/>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>// MEAL {overageModal.slot} LOGGED</div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-red,#FF3B30)",lineHeight:0.95,marginBottom:14}}>
+                {getOverageHeadline(profile?.goal).replace('.','')}<span style={{color:"var(--cm-red,#FF3B30)"}}>.</span>
               </div>
-              <div style={{fontSize:14,color:"rgba(245,245,240,0.6)",lineHeight:1.55,marginBottom:16}}>
+              <div style={{fontSize:14,color:"rgba(var(--cm-red-rgb,255,59,48),0.6)",lineHeight:1.55,marginBottom:16}}>
                 {getOverageCopy(profile?.goal,overageModal.slot,overageModal.overage,overageModal.remaining.length)}
               </div>
               {overageModal.remaining.length>0&&(
-                <div style={{background:"rgba(232,52,28,0.05)",border:"1px solid rgba(232,52,28,0.12)",borderRadius:10,padding:"10px 14px",marginBottom:18}}>
+                <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:10,padding:"10px 14px",marginBottom:18}}>
                   {overageModal.remaining.map(s=>{
                     const newT=overageModal.newTargets[s]||0;
                     const oldT=overageModal.oldTargets[s]||0;
                     const diff=newT-oldT;
                     return(
                       <div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(s)}</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:9}}>
-                          <span style={{color:"#f5f5f0"}}>{newT} kcal</span>
-                          {diff!==0&&<span style={{color:"#e8341c",marginLeft:4}}>({diff>0?"+":""}{diff})</span>}
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(s)}</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9}}>
+                          <span style={{color:"var(--cm-red,#FF3B30)"}}>{newT} kcal</span>
+                          {diff!==0&&<span style={{color:"var(--cm-red,#FF3B30)",marginLeft:4}}>({diff>0?"+":""}{diff})</span>}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               )}
-              <button onClick={()=>setOverageModal(null)} style={{width:"100%",padding:"14px",background:"#e8341c",color:"#fff",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT</button>
+              <button onClick={()=>setOverageModal(null)} style={{width:"100%",padding:"14px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:12,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>GOT IT</button>
             </div>
           </div>
         )}
@@ -5014,8 +5014,8 @@ Reply with ONLY a valid JSON object, no markdown:
                               {label:"FAT",val:`${m.fat_g}G`,style:fatStyle},
                             ].map(({label,val,style})=>(
                               <div key={label} style={{background:style.bg,borderRadius:8,padding:"6px 10px",textAlign:"center"}}>
-                                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:16,color:style.color,lineHeight:1}}>{val}</div>
-                                <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",letterSpacing:"0.08em",marginTop:2}}>{label}</div>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:style.color,lineHeight:1}}>{val}</div>
+                                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.08em",marginTop:2}}>{label}</div>
                               </div>
                             ))}
                           </div>
