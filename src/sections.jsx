@@ -3020,32 +3020,32 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function renderRunPicker(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     const todayRun=todayPrescription;
     const headline=(todayRun?.label||todayRun?.type||'RUN').toUpperCase();
     const target=todayRun?.duration?`TARGET: ${todayRun.duration} min`:todayRun?.distance?`TARGET: ${todayRun.distance} km`:'';
     return(
       <div style={{padding:"24px 0"}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// TODAY'S RUN</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:16,textTransform:"uppercase"}}>
-          {headline}<span style={{color:"var(--accent)"}}>.</span>
-        </div>
-        {target&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
-        <div onClick={startGPSRun} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
-          <div style={{background:"rgba(var(--accent-rgb),0.1)",borderRadius:10,padding:12,flexShrink:0}}>
-            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Today's Run</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:0.9,marginBottom:16,textTransform:"uppercase",color:"#fff"}}>{headline}</div>
+        {target&&<div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:"0.1em",marginBottom:24,textTransform:"uppercase"}}>{target}</div>}
+        <div onClick={startGPSRun} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:18,marginBottom:10,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start",boxShadow:"0 2px 12px rgba(0,0,0,.10)",WebkitTapHighlightColor:"transparent"}}>
+          <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:10,padding:12,flexShrink:0}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth={2} strokeLinecap="round"><circle cx={12} cy={12} r={3}/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:4}}>TRACK WITH GPS.</div>
-            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Live pace, distance, and route tracking using your phone GPS.</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",marginBottom:4,textTransform:"uppercase"}}>Track with GPS</div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.5}}>Live pace, distance, and route tracking using your phone GPS.</div>
           </div>
         </div>
-        <div onClick={startManualRun} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:18,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start"}}>
-          <div style={{background:"rgba(245,245,240,0.06)",borderRadius:10,padding:12,flexShrink:0}}>
-            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <div onClick={startManualRun} style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:16,padding:18,display:"flex",gap:14,cursor:"pointer",alignItems:"flex-start",boxShadow:"0 2px 12px rgba(0,0,0,.10)",WebkitTapHighlightColor:"transparent"}}>
+          <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:10,padding:12,flexShrink:0}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.5)" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",marginBottom:4}}>LOG MANUALLY.</div>
-            <div style={{fontFamily:"var(--body)",fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>For treadmill or when you track with another device. Enter distance and time at the end.</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",marginBottom:4,textTransform:"uppercase"}}>Log Manually</div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.5}}>For treadmill or when you track with another device. Enter distance and time at the end.</div>
           </div>
         </div>
       </div>
@@ -3053,74 +3053,79 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function renderGPSRunScreen(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{textAlign:"center",paddingTop:20,position:"relative"}}>
-        <div style={{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(var(--accent-rgb),0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
-        {runGpsError&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(var(--accent-rgb),0.7)",marginBottom:12,padding:"6px 12px",background:"rgba(var(--accent-rgb),0.08)",borderRadius:8}}>GPS unavailable — tracking time only</div>}
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:64,color:"#f5f5f0",lineHeight:1,marginBottom:16,fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
+        {runGpsError&&<div style={{fontFamily:_MO,fontSize:10,color:"#fff",marginBottom:12,padding:"6px 12px",background:"rgba(255,255,255,0.16)",borderRadius:8,display:"inline-block"}}>GPS unavailable — tracking time only</div>}
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:64,color:"#fff",lineHeight:1,marginBottom:16,fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
         <div style={{display:"flex",justifyContent:"center",gap:32,marginBottom:32}}>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0"}}>{runCurrentPace}</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /km</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{runCurrentPace}</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>pace /km</div>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--accent)"}}>{runDistance.toFixed(2)}</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>km</div>
+            <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:26,color:"#fff"}}>{runDistance.toFixed(2)}</div>
+            <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em"}}>km</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:28}}>
           {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:Math.round(runElapsed/60*8.5)},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
-            <div key={l} style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
-              <div style={{fontFamily:"var(--mono)",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0"}}>{v}</div>
+            <div key={l} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"11px 6px",textAlign:"center"}}>
+              <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:5}}>{l}</div>
+              <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff"}}>{v}</div>
             </div>
           ))}
         </div>
         <div style={{display:"flex",gap:10}}>
-          <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",color:"#f5f5f0",fontFamily:"var(--mono)",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>LAP</button>
-          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+          <button onClick={()=>{setRunLaps(p=>[...p,{km:runLaps.length+1,time:runElapsed,dist:runDistance}]);}} style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.25)",color:"#fff",fontFamily:_MO,fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>LAP</button>
+          <button onClick={finishGPSRun} style={{flex:1,padding:"16px 24px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
         </div>
       </div>
     );
   }
 
   function renderManualRunScreen(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,color:"#f5f5f0",lineHeight:1,marginBottom:8,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textAlign:"center",marginBottom:32}}>ELAPSED TIME</div>
-        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>FINISH RUN →</button>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// MANUAL RUN</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:48,color:"#fff",lineHeight:1,marginBottom:8,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>{fmtTime(runElapsed)}</div>
+        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.45)",textAlign:"center",marginBottom:32}}>ELAPSED TIME</div>
+        <button onClick={stopManualRunAndShowForm} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>FINISH RUN →</button>
       </div>
     );
   }
 
   function renderManualRunFinishScreen(){
+    const _MO="'DM Mono',monospace";
+    const _BC="'Barlow Condensed',sans-serif";
     return(
       <div style={{paddingTop:20}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"var(--accent)"}}>?</span></div>
+        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
+        <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:32,color:"#fff",marginBottom:24}}>HOW FAR DID YOU GO<span style={{color:"rgba(255,255,255,0.5)"}}>?</span></div>
         <div style={{marginBottom:16}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE ({(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'})</div>
+          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DISTANCE ({(profile?.wUnit||wPrefs?.wUnit)==='lbs'?'mi':'km'})</div>
           <input
             type="number"
             inputMode="decimal"
             placeholder="0.00"
             value={runManualDist}
             onChange={e=>setRunManualDist(e.target.value)}
-            style={{width:"100%",boxSizing:"border-box",background:"#0d0d0d",border:"1.5px solid rgba(var(--accent-rgb),0.3)",borderRadius:12,padding:"16px",color:"#f5f5f0",fontSize:24,fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,outline:"none",textAlign:"center"}}
+            style={{width:"100%",boxSizing:"border-box",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",borderRadius:12,padding:"16px",color:"var(--cm-ink,#0A0A0A)",fontSize:24,fontFamily:_BC,fontStyle:"italic",fontWeight:900,outline:"none",textAlign:"center"}}
           />
         </div>
         <div style={{marginBottom:24}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>EFFORT LEVEL</div>
+          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>EFFORT LEVEL</div>
           <div style={{display:"flex",gap:8}}>
             {[{v:1,l:"Easy"},{v:2,l:"Moderate"},{v:3,l:"Hard"},{v:4,l:"Max"}].map(({v,l})=>(
-              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(var(--accent-rgb),0.15)":"#0d0d0d",border:`1.5px solid ${runEffort===v?"var(--accent)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:runEffort===v?"var(--accent)":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase"}}>{l}</button>
+              <button key={v} onClick={()=>setRunEffort(v)} style={{flex:1,padding:"10px 4px",background:runEffort===v?"rgba(255,255,255,0.22)":"rgba(255,255,255,0.10)",border:`1.5px solid ${runEffort===v?"rgba(255,255,255,0.8)":"rgba(255,255,255,0.18)"}`,borderRadius:10,color:runEffort===v?"#fff":"rgba(255,255,255,0.55)",fontFamily:_MO,fontSize:9,fontWeight:700,cursor:"pointer",textTransform:"uppercase",WebkitTapHighlightColor:"transparent"}}>{l}</button>
             ))}
           </div>
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",marginBottom:16,textAlign:"center"}}>Time: {fmtTime(runElapsed)}</div>
-        <button onClick={finishManualRun} style={{width:"100%",padding:"16px",background:"var(--accent)",border:"none",borderRadius:12,color:"#fff",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>SAVE RUN →</button>
+        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.45)",marginBottom:16,textAlign:"center"}}>Time: {fmtTime(runElapsed)}</div>
+        <button onClick={finishManualRun} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>SAVE RUN →</button>
       </div>
     );
   }
@@ -3213,9 +3218,24 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
         )}
 
+        {/* ── PAPER CARDS: FUEL-UP + NEXT-UP ──────────────────────────────────── */}
+        <div style={{background:"var(--cm-paper,#FFFFFF)",padding:lapTimes.length>0?"0 18px":"18px 18px 0",borderRadius:lapTimes.length>0?"0":"18px 18px 0 0",marginTop:lapTimes.length>0?0:-10,boxShadow:lapTimes.length>0?"none":"0 2px 12px rgba(0,0,0,.08)"}}>
+          {/* Fuel up */}
+          <div style={{borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",paddingTop:18,marginBottom:18}}>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:10}}>FUEL UP</div>
+            <div style={{fontFamily:_AF,fontWeight:800,fontSize:19,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1.05,marginBottom:6}}>{macros?`${Math.round((macros.protein||140)*0.3)}G PROTEIN · ${Math.round((macros.carbs||200)*0.35)}G CARBS`:'30–40G PROTEIN · FAST CARBS'}</div>
+            <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",lineHeight:1.6}}>Refuel within 45 minutes — carbs to refill glycogen, protein to repair.</div>
+          </div>
+          {/* Next up */}
+          <div style={{borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",paddingTop:18,paddingBottom:2}}>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:10}}>NEXT UP</div>
+            <div style={{fontFamily:_AF,fontWeight:800,fontSize:22,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>{tomorrowFullDay} · {tomorrowFocus}</div>
+            <div style={{fontFamily:_MO,fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.5}}>{tomorrowType==='rest'?'Rest day tomorrow. Sleep and nutrition do the work now.':'Next session in ~24 hours. Recover well tonight.'}</div>
+          </div>
+        </div>
         {/* ── SAVE & EXIT ───────────────────────────────────────────────────── */}
-        <div style={{padding:"0 0 4px",background:lapTimes.length>0?"var(--cm-paper,#FFFFFF)":"transparent"}}>
-          <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:24,padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer"}}>SAVE & EXIT →</button>
+        <div style={{padding:"0 0 4px",background:"var(--cm-paper,#FFFFFF)"}}>
+          <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:20,padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>SAVE & EXIT →</button>
         </div>
       </div>
     );
