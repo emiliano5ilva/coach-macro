@@ -379,404 +379,6 @@ function RecipeBuilderScreen({ user, recipe: initRecipe, onSave, onBack }) {
   );
 }
 
-function QuickLogSheet({ open, onClose, user, remaining, recentFoods, frequentFoods, mealTemplates, onDeleteTemplate, mealSlots, activeSlotIdx, setActiveSlotIdx, onLog, onLogTemplate, log, userRecipes, onLogRecipe, recentMeals=[], slotTargets={} }) {
-  const [tab, setTab] = useState("recent");
-  const [portionFood, setPortionFood] = useState(null);
-  const [qlRecipeLogging, setQlRecipeLogging] = useState(null);
-  const [quickCategory, setQuickCategory] = useState(null);
-  const [voiceState, setVoiceState] = useState("idle"); // idle | listening | processing | confirm
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const [voiceEntries, setVoiceEntries] = useState([]);
-  const [saveTemplateMode, setSaveTemplateMode] = useState(false);
-  const [templateName, setTemplateName] = useState("");
-  const [savingTemplate, setSavingTemplate] = useState(false);
-  const [scanMode, setScanMode] = useState(false);
-  const [scanInput, setScanInput] = useState("");
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
-  const [logAgainMeal, setLogAgainMeal] = useState(null);
-  const recRef = React.useRef(null);
-  const videoRef = React.useRef(null);
-
-  if (!open) return null;
-
-  const totalToday = (log || []).reduce((s, e) => s + (e.calories || 0), 0);
-  const calPct = Math.min(100, Math.round(totalToday / Math.max(1, remaining.calories + totalToday) * 100));
-  const proteinPct = Math.min(100, Math.round((remaining.protein < 0 ? 1 : 1 - remaining.protein / Math.max(1, remaining.protein + (log || []).reduce((s, e) => s + (e.protein || 0), 0))) * 100));
-
-  function startVoice() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert("Voice not supported in this browser"); return; }
-    const rec = new SR();
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = e => {
-      const t = Array.from(e.results).map(r => r[0].transcript).join(" ");
-      setVoiceTranscript(t);
-    };
-    rec.onend = async () => {
-      setVoiceState("processing");
-      try {
-        const slot = mealSlots[activeSlotIdx] || 1;
-        const resp = await ai(
-          `Parse this meal description into JSON entries. Reply ONLY with a JSON array, no markdown. Each entry: {"food":"name","calories":N,"protein":N,"carbs":N,"fat":N}. Meal: "${voiceTranscript || rec._lastTranscript}"`,
-          300
-        );
-        const clean = resp.replace(/```json|```/g, "").trim();
-        const entries = JSON.parse(clean);
-        setVoiceEntries(entries.map(e => ({ ...e, id: Date.now() + Math.random(), slot })));
-        setVoiceState("confirm");
-      } catch {
-        setVoiceState("idle");
-        setVoiceTranscript("");
-      }
-    };
-    rec.onerror = () => setVoiceState("idle");
-    recRef.current = rec;
-    rec.start();
-    setVoiceState("listening");
-  }
-
-  function stopVoice() { recRef.current?.stop(); }
-
-  async function lookupBarcode(code) {
-    if (!code.trim()) return;
-    setScanLoading(true);
-    setScanResult(null);
-    try {
-      const r = await searchByBarcode(code.trim());
-      setScanResult(r || null);
-    } catch { setScanResult(null); }
-    setScanLoading(false);
-  }
-
-  async function saveAsTemplate() {
-    if (!templateName.trim() || !user) return;
-    setSavingTemplate(true);
-    await saveMealTemplate(user.id, templateName.trim(), log || []);
-    setSavingTemplate(false);
-    setSaveTemplateMode(false);
-    setTemplateName("");
-  }
-
-  if (voiceState === "confirm") {
-    return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        <div style={{ background: "var(--cm-paper,#FFFFFF)", border: "1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%", boxShadow: "0 -4px 24px rgba(0,0,0,0.12)" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(var(--cm-red-rgb,255,59,48),0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
-          <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 6 }}>Voice Log Preview</div>
-          <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16, color:"var(--cm-red,#FF3B30)" }}>"{voiceTranscript}"</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-            {voiceEntries.map((e, i) => (
-              <div key={i} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color:"var(--cm-red,#FF3B30)" }}>{e.food}</div>
-                  <div style={{ fontSize: 11, color: T.mu }}><span style={{ color: T.prot }}>P {e.protein}g</span> · <span style={{ color: T.carb }}>C {e.carbs}g</span> · <span style={{ color: T.fat }}>F {e.fat}g</span></div>
-                </div>
-                <div style={{ fontWeight: 900, fontSize: 16, color:"var(--cm-red,#FF3B30)" }}>{e.calories} kcal</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { setVoiceState("idle"); setVoiceEntries([]); setVoiceTranscript(""); }} style={{ flex: 1, padding: "13px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 12, color: T.mu, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Redo</button>
-            <button onClick={() => { voiceEntries.forEach(e => onLog(e, null, mealSlots[activeSlotIdx] || 1, true)); setVoiceState("idle"); setVoiceEntries([]); onClose(); }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Archivo',sans-serif", letterSpacing: 1 }}>Log All →</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (logAgainMeal) {
-    const slot = mealSlots[activeSlotIdx] || 1;
-    const target = slotTargets[slot] || remaining.calories;
-    const diff = target - logAgainMeal.total_calories;
-    const pctFit = Math.round(logAgainMeal.total_calories / Math.max(1, target) * 100);
-    const fitColor = pctFit <= 110 ? T.green : "#F59E0B";
-    return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 310, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        <div style={{ background: "var(--cm-paper,#FFFFFF)", border: "1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", maxWidth: 480, width: "100%", boxShadow: "0 -4px 24px rgba(0,0,0,0.12)" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(var(--cm-red-rgb,255,59,48),0.2)", borderRadius: 2, margin: "0 auto 20px" }} />
-          <div style={{ fontSize: 11, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 4 }}>Log Again</div>
-          <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 4, color:"var(--cm-red,#FF3B30)" }}>
-            {new Date(logAgainMeal.logged_at + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-          </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            {[["CAL", logAgainMeal.total_calories, "var(--cm-red,#FF3B30)"], ["PRO", `${logAgainMeal.total_protein}g`, T.prot], ["CARB", `${logAgainMeal.total_carbs}g`, T.carb], ["FAT", `${logAgainMeal.total_fat}g`, T.fat]].map(([lbl, val, c]) => (
-              <div key={lbl} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
-                <div style={{ fontSize: 9, color: T.mu, fontWeight: 700, letterSpacing: ".1em" }}>{lbl}</div>
-                <div style={{ fontSize: 15, fontWeight: 900, color: c }}>{val}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ flex: 1, fontSize: 12, color: T.mu }}>Fits Meal {slot} target ({target} kcal)</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: fitColor }}>{pctFit}%{diff >= 0 ? ` · ${diff} to spare` : ` · ${Math.abs(diff)} over`}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16, maxHeight: 160, overflowY: "auto" }}>
-            {(logAgainMeal.entries || []).map((e, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", borderRadius: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>{e.food}</span>
-                <span style={{ fontSize: 11, color: T.mu }}>{e.calories} kcal · P {e.protein}g</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setLogAgainMeal(null)} style={{ flex: 1, padding: "13px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 12, color: T.mu, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Back</button>
-            <button onClick={() => {
-              (logAgainMeal.entries || []).forEach((e, i) => {
-                setTimeout(() => onLog({ name: e.food, calories: e.calories, protein: e.protein, carbs: e.carbs, fat: e.fat }, null, slot, true), i * 10);
-              });
-              setLogAgainMeal(null);
-              onClose();
-            }} style={{ flex: 2, padding: "13px", background: T.prot, border: "none", borderRadius: 12, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "'Archivo',sans-serif", letterSpacing: 1 }}>LOG TO MEAL {slot} →</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (portionFood) {
-    return <PortionSheet food={portionFood} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} onAdd={(food, grams, slot) => { onLog(food, grams, slot); setPortionFood(null); }} onClose={() => setPortionFood(null)} />;
-  }
-
-  if (qlRecipeLogging) {
-    return <RecipeLogSheet recipe={qlRecipeLogging} mealSlots={mealSlots} activeSlotIdx={activeSlotIdx} setActiveSlotIdx={setActiveSlotIdx} onLog={(recipe, servings, slot) => { onLogRecipe(recipe, servings, slot); setQlRecipeLogging(null); onClose(); }} onClose={() => setQlRecipeLogging(null)} />;
-  }
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", backdropFilter: "blur(8px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "var(--cm-paper,#FFFFFF)", border: "1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)", borderRadius: "20px 20px 0 0", padding: "0 0 48px", maxWidth: 480, width: "100%", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 -4px 24px rgba(0,0,0,0.12)" }} onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
-        <div style={{ padding: "20px 20px 0" }}>
-          <div style={{ width: 32, height: 3, background: "rgba(var(--cm-red-rgb,255,59,48),0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
-
-          {/* Macro progress bar */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase" }}>Quick Log</div>
-              <div style={{ display: "flex", gap: 10, fontSize: 10, color: T.mu }}>
-                <span style={{ color: T.prot }}>P {remaining.protein > 0 ? remaining.protein : 0}g left</span>
-                <span style={{ color: T.carb }}>C {remaining.carbs > 0 ? remaining.carbs : 0}g</span>
-                <span style={{ color: T.fat }}>F {remaining.fat > 0 ? remaining.fat : 0}g</span>
-              </div>
-            </div>
-            <div style={{ height: 6, background: "rgba(var(--cm-red-rgb,255,59,48),0.06)", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${calPct}%`, background: `linear-gradient(90deg,var(--cm-red,#FF3B30),rgba(var(--cm-red-rgb,255,59,48),0.5))`, borderRadius: 3, transition: "width .4s" }} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 9, color: T.mu }}>
-              <span>{totalToday} kcal eaten</span>
-              <span>{remaining.calories > 0 ? remaining.calories : 0} kcal left</span>
-            </div>
-          </div>
-
-          {/* Voice + Scan buttons */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button onClick={voiceState === "listening" ? stopVoice : startVoice} style={{ flex: 1, padding: "11px 8px", background: voiceState === "listening" ? "rgba(var(--cm-red-rgb,255,59,48),0.15)" : T.s2, border: `1.5px solid ${voiceState === "listening" ? T.prot : T.bd}`, borderRadius: 10, color: voiceState === "listening" ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              {voiceState === "listening" ? "🔴 Listening..." : voiceState === "processing" ? "⏳ Processing..." : "🎤 Voice Log"}
-            </button>
-            <button onClick={() => setScanMode(s => !s)} style={{ flex: 1, padding: "11px 8px", background: scanMode ? "rgba(var(--cm-red-rgb,255,59,48),0.08)" : T.s2, border: `1.5px solid ${scanMode ? T.prot : T.bd}`, borderRadius: 10, color: scanMode ? T.prot : T.mu, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Scan Barcode</button>
-          </div>
-
-          {/* Recent Meals from Memory */}
-          {recentMeals.length > 0 && !scanMode && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 8 }}>Previous {mealSlots[activeSlotIdx] ? `Meal ${mealSlots[activeSlotIdx]}` : "Meals"}</div>
-              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-                {recentMeals.map((m, i) => (
-                  <button key={m.id || i} onClick={() => setLogAgainMeal(m)} style={{ flexShrink: 0, minWidth: 130, background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "10px 12px", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
-                    <div style={{ fontSize: 10, color: T.mu, marginBottom: 3 }}>{new Date(m.logged_at + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color:"var(--cm-red,#FF3B30)", marginBottom: 4 }}>{m.total_calories} kcal</div>
-                    <div style={{ fontSize: 10, color: T.prot, marginBottom: 5 }}>P {m.total_protein}g</div>
-                    <div style={{ fontSize: 10, color:"rgba(var(--cm-red-rgb,255,59,48),0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(m.entries || []).slice(0, 2).map(e => e.food).join(", ")}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Barcode scanner */}
-          {scanMode && (
-            <div style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px", marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: T.mu, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 8 }}>Barcode number</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input value={scanInput} onChange={e => setScanInput(e.target.value)} onKeyDown={e => e.key === "Enter" && lookupBarcode(scanInput)} placeholder="Enter or scan barcode number" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color:"var(--cm-red,#FF3B30)", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
-                <button onClick={() => lookupBarcode(scanInput)} disabled={scanLoading || !scanInput.trim()} style={{ padding: "10px 16px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{scanLoading ? "..." : "Look Up"}</button>
-              </div>
-              {scanResult && (
-                <div style={{ marginTop: 10, padding: "12px", background: T.s1, borderRadius: 8 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{scanResult.name}</div>
-                  <div style={{ fontSize: 11, color: T.mu, marginBottom: 10 }}>{scanResult.brand} · {scanResult.calories} kcal · P {scanResult.protein}g · C {scanResult.carbs}g · F {scanResult.fat}g</div>
-                  <button onClick={() => { setPortionFood(scanResult); setScanMode(false); setScanInput(""); setScanResult(null); }} style={{ width: "100%", padding: "10px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Set Portion →</button>
-                </div>
-              )}
-              {scanLoading && <div style={{ marginTop: 8, textAlign: "center", fontSize: 12, color: T.mu }}>Looking up product…</div>}
-              {!scanResult && !scanLoading && scanInput && <div style={{ marginTop: 6, fontSize: 10, color: T.mu }}>Tip: use camera app to read barcode, paste number above</div>}
-            </div>
-          )}
-
-          {/* Tabs */}
-          <div style={{ display: "flex", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 10, padding: 3, gap: 3, marginBottom: 16, overflowX: "auto" }}>
-            {[["recent", "Recent"], ["frequent", "Most Used"], ["quick", "Quick Add"], ["recipes", "My Recipes"], ["templates", "Templates"]].map(([k, l]) => (
-              <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit", background: tab === k ? `${T.prot}18` : "none", outline: tab === k ? `1.5px solid ${T.prot}` : "none", color: tab === k ? T.prot : T.mu, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>{l}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab content */}
-        <div style={{ padding: "0 20px" }}>
-
-          {/* Recent tab */}
-          {tab === "recent" && (
-            <div>
-              {recentFoods.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: T.mu, fontSize: 13 }}>Log some foods to see recents here</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {recentFoods.map((f, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12 }}>
-                      <FoodIcon name={f.food_name} size={28} userId={user?.id} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color:"var(--cm-red,#FF3B30)" }}>{f.food_name}</div>
-                        <div style={{ fontSize: 10, color: T.mu }}>
-                          {f.usual_portion ? `${f.usual_portion}g · ` : ""}{f.food_data?.calories} kcal · <span style={{ color: T.prot }}>P {f.food_data?.protein}g</span> · <span style={{ color: T.carb }}>C {f.food_data?.carbs}g</span> · <span style={{ color: T.fat }}>F {f.food_data?.fat}g</span>
-                        </div>
-                      </div>
-                      <button onClick={() => setPortionFood({ ...f.food_data, usual_portion: f.usual_portion, usual_unit: f.usual_unit })} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Frequent tab */}
-          {tab === "frequent" && (
-            <div>
-              {frequentFoods.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: T.mu, fontSize: 13 }}>Log foods regularly to see your favorites here</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {frequentFoods.map((f, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12 }}>
-                      <FoodIcon name={f.food_name} size={28} userId={user?.id} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color:"var(--cm-red,#FF3B30)" }}>{f.food_name}</div>
-                        <div style={{ fontSize: 10, color: T.mu }}>
-                          {f.food_data?.calories} kcal · <span style={{ color: T.prot }}>P {f.food_data?.protein}g</span>
-                          {f.use_count > 1 && <span style={{ color:"rgba(var(--cm-red-rgb,255,59,48),0.3)", marginLeft: 6 }}>× {f.use_count}</span>}
-                        </div>
-                      </div>
-                      <button onClick={() => setPortionFood({ ...f.food_data, usual_portion: f.usual_portion, usual_unit: f.usual_unit })} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Quick Add tab */}
-          {tab === "quick" && (
-            <div>
-              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-                {[["protein", "Protein", T.prot], ["carbs", "Carbs", T.carb], ["fat", "Fat", T.fat]].map(([k, l, c]) => (
-                  <button key={k} onClick={() => setQuickCategory(quickCategory === k ? null : k)} style={{ flex: 1, padding: "10px 4px", background: quickCategory === k ? `${c}18` : "none", border: `1.5px solid ${quickCategory === k ? c : T.bd}`, borderRadius: 10, cursor: "pointer", color: quickCategory === k ? c : T.mu, fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{l}</button>
-                ))}
-              </div>
-              {quickCategory && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {(QUICK_FOODS[quickCategory] || []).map((food, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 10 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color:"var(--cm-red,#FF3B30)" }}>{food.name}</div>
-                        <div style={{ fontSize: 10, color: T.mu }}>{food.calories} kcal · P {food.protein}g · C {food.carbs}g · F {food.fat}g</div>
-                      </div>
-                      <button onClick={() => { onLog(food, null, mealSlots[activeSlotIdx] || 1, true); }} style={{ width: 36, height: 36, borderRadius: 10, background: `${T.prot}15`, border: `1.5px solid ${T.prot}30`, color: T.prot, fontSize: 20, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0 }}>+</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!quickCategory && <div style={{ textAlign: "center", padding: "24px 0", color: T.mu, fontSize: 13 }}>Select a category above</div>}
-            </div>
-          )}
-
-          {/* My Recipes tab */}
-          {tab === "recipes" && (
-            <div>
-              {(userRecipes || []).length === 0 ? (
-                <div style={{ textAlign: "center", padding: "36px 20px", color: T.mu }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>🍳</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, color:"var(--cm-red,#FF3B30)" }}>No recipes yet</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.6 }}>Create your first recipe in the Recipes tab</div>
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {(userRecipes || []).map(r => (
-                    <div key={r.id} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color:"var(--cm-red,#FF3B30)" }}>{r.name}</div>
-                          <div style={{ fontSize: 10, color: T.mu }}>{r.calories_per_serving} kcal · <span style={{ color: T.prot }}>P {r.protein_per_serving}g</span> · <span style={{ color: T.carb }}>C {r.carbs_per_serving}g</span> · <span style={{ color: T.fat }}>F {r.fat_per_serving}g</span> per serving</div>
-                        </div>
-                        {r.category && <span style={{ fontSize: 9, fontFamily: "'DM Mono',monospace", background: "rgba(var(--cm-paper-rgb,255,255,255),0.06)", color:"rgba(var(--cm-red-rgb,255,59,48),0.4)", borderRadius: 5, padding: "2px 7px", flexShrink: 0, marginLeft: 8, letterSpacing: ".06em", textTransform: "uppercase" }}>{r.category}</span>}
-                      </div>
-                      <button onClick={() => setQlRecipeLogging(r)} style={{ width: "100%", padding: "10px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Log →</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Templates tab */}
-          {tab === "templates" && (
-            <div>
-              {(log || []).length >= 2 && !saveTemplateMode && (
-                <button onClick={() => setSaveTemplateMode(true)} style={{ width: "100%", padding: "11px", background: "rgba(126,87,194,.1)", border: `1px dashed rgba(126,87,194,.4)`, borderRadius: 10, color: "#7E57C2", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>💾 Save Today's Meal as Template</button>
-              )}
-              {saveTemplateMode && (
-                <div style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: T.mu, marginBottom: 8 }}>Template name</div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="e.g. High Protein Breakfast" style={{ flex: 1, background: T.s3, border: `1px solid ${T.bd}`, borderRadius: 8, padding: "10px 12px", color:"var(--cm-red,#FF3B30)", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
-                    <button onClick={saveAsTemplate} disabled={savingTemplate || !templateName.trim()} style={{ padding: "10px 14px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{savingTemplate ? "..." : "Save"}</button>
-                    <button onClick={() => setSaveTemplateMode(false)} style={{ padding: "10px 12px", background: "none", border: `1px solid ${T.bd}`, borderRadius: 8, color: T.mu, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
-                  </div>
-                </div>
-              )}
-              {mealTemplates.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: T.mu, fontSize: 13 }}>No templates yet — log 2+ foods and save as a template</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {mealTemplates.map((t) => (
-                    <div key={t.id} style={{ background:"rgba(var(--cm-red-rgb,255,59,48),0.08)", border: `1px solid ${T.bd}`, borderRadius: 12, padding: "14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
-                          <div style={{ fontSize: 10, color: T.mu }}>{t.total_calories} kcal · P {t.total_protein}g · C {t.total_carbs}g · F {t.total_fat}g</div>
-                        </div>
-                        <button onClick={() => onDeleteTemplate(t.id)} style={{ background: "none", border: "none", color:"rgba(var(--cm-red-rgb,255,59,48),0.2)", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
-                      </div>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
-                        {(t.entries || []).slice(0, 4).map((e, i) => (
-                          <span key={i} style={{ fontSize: 10, background: "rgba(var(--cm-red-rgb,255,59,48),0.06)", borderRadius: 5, padding: "2px 7px", color:"rgba(var(--cm-red-rgb,255,59,48),0.6)" }}>{e.food}</span>
-                        ))}
-                        {(t.entries || []).length > 4 && <span style={{ fontSize: 10, color: T.mu }}>+{t.entries.length - 4} more</span>}
-                      </div>
-                      <button onClick={() => { onLogTemplate(t); }} style={{ width: "100%", padding: "10px", background: T.prot, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Log All →</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function SwipeRow({onDelete, children, style={}}) {
   const [offset, setOffset] = React.useState(0);
@@ -1244,7 +846,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
     );
   }
   return(
-    <div style={{maxWidth:isMobile?"100%":560,background:'var(--cm-paper,#FFFFFF)'}}>
+    <div style={{maxWidth:isMobile?"100%":560}}>
       {toast&&<div style={{position:"fixed",top:24,left:"50%",transform:"translateX(-50%)",background:T.prot,color:"#fff",padding:"10px 20px",borderRadius:20,fontSize:13,fontWeight:700,zIndex:999,boxShadow:"0 4px 16px rgba(0,0,0,0.4)"}}>{toast}</div>}
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
         <div style={{flex:1,position:"relative"}}>
@@ -1269,7 +871,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
       {!searching&&results.length>0&&(
         <div style={{background:"var(--cm-paper,#FFFFFF)",border:`1px solid ${T.bd}`,borderRadius:12,marginBottom:16,overflow:"hidden"}}>
           {results.slice(0,12).map((food,i)=>(
-            <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10}}>
+            <button key={food.id||i} onClick={()=>selectFood(food)} style={{width:"100%",padding:"12px 16px",background:"var(--cm-paper,#FFFFFF)",borderRadius:12,boxShadow:'0 1px 6px rgba(0,0,0,.08)',border:"none",borderBottom:i<Math.min(results.length,12)-1?`1px solid ${T.bd}`:"none",cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10}}>
               <FoodIcon name={food.name} size={28} userId={user?.id} />
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>{food.name}</div>
@@ -1297,7 +899,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Recent</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {recentFoods.slice(0,5).map((f,i)=>(
-              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"10px 14px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit"}}>
+              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"10px 14px",background:"var(--cm-paper,#FFFFFF)",borderRadius:12,boxShadow:'0 1px 6px rgba(0,0,0,.08)',border:`1px solid ${T.bd}`,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit"}}>
                 <div style={{fontWeight:700,fontSize:13}}>{f.food_name}</div>
                 <div style={{fontSize:11,color:T.mu}}>{f.food_data?.calories} kcal · P {f.food_data?.protein}g · C {f.food_data?.carbs}g · F {f.food_data?.fat}g</div>
               </button>
@@ -1310,7 +912,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           <div style={{fontSize:10,color:T.mu,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>Most Used</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {frequentFoods.slice(0,8).map((f,i)=>(
-              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"7px 13px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:`1px solid ${T.bd}`,borderRadius:20,cursor:"pointer",color:"var(--cm-red,#FF3B30)",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>{f.food_name}</button>
+              <button key={i} onClick={()=>selectFood(f.food_data)} style={{padding:"7px 13px",background:"var(--cm-paper,#FFFFFF)",borderRadius:12,boxShadow:'0 1px 6px rgba(0,0,0,.08)',border:`1px solid ${T.bd}`,cursor:"pointer",color:"var(--cm-red,#FF3B30)",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>{f.food_name}</button>
             ))}
           </div>
         </div>
@@ -1326,7 +928,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
           {quickCategory&&(
             <div style={{display:"flex",flexDirection:"column",gap:2}}>
               {(QUICK_FOODS[quickCategory]||[]).map((food,i)=>(
-                <button key={i} onClick={()=>addQuickFood(food)} style={{padding:"11px 14px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <button key={i} onClick={()=>addQuickFood(food)} style={{padding:"11px 14px",background:"var(--cm-paper,#FFFFFF)",borderRadius:12,boxShadow:'0 1px 6px rgba(0,0,0,.08)',border:`1px solid ${T.bd}`,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:13}}>{food.name}</div>
                     <div style={{fontSize:11,color:T.mu}}>{food.calories} kcal · P {food.protein}g · C {food.carbs}g · F {food.fat}g</div>
@@ -1371,7 +973,7 @@ function FoodSearchScreen({user,logEntry,mealSlots,activeSlotIdx,setActiveSlotId
             <>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {(myFoodsExpanded?myFoods:myFoods.slice(0,6)).map((food,i)=>(
-                  <button key={food.id||i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:"rgba(var(--cm-red-rgb,255,59,48),0.04)",border:`1px solid ${T.bd}`,borderRadius:10,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                  <button key={food.id||i} onClick={()=>selectFood(food)} style={{padding:"10px 14px",background:"var(--cm-paper,#FFFFFF)",borderRadius:12,boxShadow:'0 1px 6px rgba(0,0,0,.08)',border:`1px solid ${T.bd}`,cursor:"pointer",textAlign:"left",color:"var(--cm-red,#FF3B30)",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
                     <FoodIcon name={food.name} size={28} userId={user?.id} />
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:13,marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{food.name}</div>
@@ -1653,7 +1255,7 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     }
     const idx=mealSlots.indexOf(targetSlot);
     setActiveSlotIdx(idx>=0?idx:0);
-    if(openQuickLog)setShowQuickLog(true);
+    if(openQuickLog)setFuelScreen("log");
   }
 
   // ── Overage modal ─────────────────────────────────────────────────────────
@@ -1884,7 +1486,6 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(!resetSignal)return;
     setRestaurantAI(null);
     setShowRecipeBuilder(false);
-    setShowQuickLog(false);
   },[resetSignal]);
 
   // ── Day Type Nutrition ────────────────────────────────────────────────────────
@@ -2039,8 +1640,6 @@ Reply with ONLY a valid JSON object, no markdown:
   // Auto-trigger removed: legacy generatePrepPlan no longer auto-runs.
   // Users reach meal prep via Kitchen → Meal Prep card → new flow.
 
-  // ── Quick Log Sheet ─────────────────────────────────────────────────────────
-  const [showQuickLog,setShowQuickLog]=useState(false);
   const [undoEntry,setUndoEntry]=useState(null);
   const undoTimer=useRef(null);
   const mealPrepRef=useRef(null);
@@ -2345,45 +1944,11 @@ Reply with ONLY a valid JSON object, no markdown:
     clearTimeout(undoTimer.current);
   }
 
-  function handleQuickLog(food, grams, slot, isQuick){
-    const fg = grams != null ? grams / 100 : 1;
-    const foodLabel = food.name + (food.brand ? ` (${food.brand})` : "");
-    const entry = grams != null ? {
-      id: Date.now(),
-      food: foodLabel,
-      calories: Math.round((food.calories||0)*fg),
-      protein: Math.round((food.protein||0)*fg*10)/10,
-      carbs: Math.round((food.carbs||0)*fg*10)/10,
-      fat: Math.round((food.fat||0)*fg*10)/10,
-      grams,
-      slot: slot || mealSlots[activeSlotIdx] || 1,
-      source: food.source || "usda",
-      icon: getFoodIcon(foodLabel),
-    } : {
-      id: Date.now(),
-      food: food.name,
-      calories: food.calories||0,
-      protein: food.protein||0,
-      carbs: food.carbs||0,
-      fat: food.fat||0,
-      slot: slot || mealSlots[activeSlotIdx] || 1,
-      source: "quick",
-      icon: getFoodIcon(food.name),
-    };
-    logEntryWithUndo(entry);
-    if(user && food.id && grams != null) {
-      saveFoodToHistory(user.id, food).catch(()=>{});
-      updateUsualPortion(user.id, food.id, grams, "g").catch(()=>{});
-    }
-    if(!isQuick) setShowQuickLog(false);
-  }
-
   function handleLogTemplate(template){
     (template.entries||[]).forEach((e,i)=>{
       setTimeout(()=>logEntryWithUndo({...e,id:Date.now()+i,slot:mealSlots[activeSlotIdx]||1}),i*10);
     });
     incrementTemplateUse(template.id).catch(()=>{});
-    setShowQuickLog(false);
   }
 
   function handleDeleteTemplate(id){
@@ -2458,11 +2023,6 @@ Reply with ONLY a valid JSON object, no markdown:
     }
   },[log]);
 
-  // quick log food state for FuelSection-level frequent/recent refresh
-  const [qlRecentFoods,setQlRecentFoods]=useState([]);
-  const [qlFrequentFoods,setQlFrequentFoods]=useState([]);
-  const [qlRecentMeals,setQlRecentMeals]=useState([]);
-
   // MY FOODS mode — persistent recent food history from the database
   const [myFoodsHistory,setMyFoodsHistory]=useState([]);
   useEffect(()=>{
@@ -2470,13 +2030,6 @@ Reply with ONLY a valid JSON object, no markdown:
       getRecentFoods(user.id).then(d=>setMyFoodsHistory(d||[]));
     }
   },[logMode,user]);
-  useEffect(()=>{
-    if(!user||!showQuickLog)return;
-    getRecentFoods(user.id).then(d=>setQlRecentFoods(d||[]));
-    getFrequentFoods(user.id).then(d=>setQlFrequentFoods(d||[]));
-    const slot=mealSlots[activeSlotIdx]||1;
-    getRecentMealsForSlot(user.id,slot,6).then(d=>setQlRecentMeals(d||[]));
-  },[user,showQuickLog,activeSlotIdx]);
 
   const today=new Date().toISOString().split("T")[0];
 
@@ -2705,7 +2258,7 @@ Reply with ONLY a valid JSON object, no markdown:
           setActiveSlotIdx(idx>=0?idx:0);
           setShowSkipPrompt(false);
           setSkipPromptTarget(null);
-          if(oql)setShowQuickLog(true);
+          if(oql)setFuelScreen("log");
           setShowUndoToast(true);
           setUndoProgress(100);
           setTimeout(()=>setUndoProgress(0),50);
@@ -2749,29 +2302,6 @@ Reply with ONLY a valid JSON object, no markdown:
             <div style={{background:"var(--cm-red,#FF3B30)",height:"100%",width:`${undoProgress}%`,transition:"width 5s linear"}}/>
           </div>
         </div>
-      )}
-      {/* Quick Log Sheet */}
-      {showQuickLog&&(
-        <QuickLogSheet
-          open={showQuickLog}
-          onClose={()=>setShowQuickLog(false)}
-          user={user}
-          remaining={remaining}
-          recentFoods={qlRecentFoods}
-          frequentFoods={qlFrequentFoods}
-          mealTemplates={mealTemplates}
-          onDeleteTemplate={handleDeleteTemplate}
-          mealSlots={mealSlots}
-          activeSlotIdx={activeSlotIdx}
-          setActiveSlotIdx={setActiveSlotIdx}
-          onLog={handleQuickLog}
-          onLogTemplate={handleLogTemplate}
-          log={log}
-          userRecipes={userRecipes}
-          onLogRecipe={handleLogRecipe}
-          recentMeals={qlRecentMeals}
-          slotTargets={getSlotTargets(macros.calories,mealSlots,skippedSlots||[],getLoggedSlots(log),log.reduce((s,e)=>s+(e.calories||0),0))}
-        />
       )}
       {/* Sub-nav (non-GOCLUB) */}
       {!GOCLUB_REDESIGN&&(
@@ -2817,7 +2347,7 @@ Reply with ONLY a valid JSON object, no markdown:
                           whileTap={GOCLUB_REDESIGN?{scale:0.91}:undefined}
                           transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
                           style={{padding:"7px 12px",background:T.prot,color:"#fff",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",touchAction:GOCLUB_REDESIGN?"manipulation":undefined}}>Log</motion.button>
-                        <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)',color:'rgba(var(--cm-red-rgb,255,59,48),0.5)',borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
+                        <button onClick={()=>setSkippedMemory(s=>new Set([...s,data.food]))} style={{padding:"7px 10px",background:"none",border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.4)',color:'var(--cm-red,#FF3B30)',borderRadius:8,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Skip</button>
                       </div>
                     </div>
                   ))}
@@ -3385,7 +2915,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* COACH SUGGESTS */}
             {remaining.calories>200&&(
-              <div style={{background:"linear-gradient(135deg,rgba(var(--cm-red-rgb,255,59,48),0.12),var(--cm-paper,#FFFFFF))",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:16,padding:"16px 18px"}}>
+              <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderRadius:16,padding:"16px 18px"}}>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.prot,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Coach Suggests</div>
                 {bodySuggest
                   ?(<div style={{fontStyle:"italic",fontSize:13,color:"rgba(var(--cm-red-rgb,255,59,48),0.85)",lineHeight:1.65,marginBottom:12}}>"{bodySuggest}"</div>)
@@ -3969,14 +3499,14 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* Meal prep regenerate banner */}
             {showRegenerateBanner&&(
-              <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(254,160,32,0.25)",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                <span style={{color:"#FEA020",fontSize:16,flexShrink:0,lineHeight:1.3}}>!</span>
+              <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                <span style={{color:"var(--cm-red,#FF3B30)",fontSize:16,flexShrink:0,lineHeight:1.3}}>!</span>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#FEA020",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// MEAL PLAN OUTDATED</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// MEAL PLAN OUTDATED</div>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,color:"var(--cm-red,#FF3B30)",lineHeight:1.5,marginBottom:10}}>Your training changed. Regenerate your meal plan.</div>
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{background:"#FEA020",border:"none",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#000",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>REGENERATE →</button>
-                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);}} style={{background:"transparent",border:"1px solid rgba(254,160,32,0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(254,160,32,0.5)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>DISMISS</button>
+                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#000",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>REGENERATE →</button>
+                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);}} style={{background:"transparent",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>DISMISS</button>
                   </div>
                 </div>
               </div>
@@ -4251,9 +3781,9 @@ Reply with ONLY a valid JSON object, no markdown:
                       return(
                         <motion.button key={day} whileTap={{scale:0.88}} onPointerDown={()=>_hL()}
                           onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,selectedDays:selected?p.selectedDays.filter(d=>d!==day):[...p.selectedDays,day]}));}}
-                          style={{width:64,minWidth:64,background:selected?'rgba(var(--cm-red-rgb,255,59,48),0.12)':'rgba(var(--cm-red-rgb,255,59,48),0.04)',borderRadius:12,padding:'10px 4px',textAlign:'center',border:selected?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',cursor:'pointer',flexShrink:0,outline:'none',boxShadow:selected?'0 0 12px rgba(var(--cm-red-rgb,255,59,48),0.18)':'none',transition:'box-shadow 0.15s'}}>
-                          <div style={{...mno,fontSize:9,color:selected?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.4)',letterSpacing:'0.1em',marginBottom:5,fontWeight:700}}>{day.toUpperCase()}</div>
-                          <div style={{display:'inline-block',background:isTraining?'rgba(var(--cm-red-rgb,255,59,48),0.18)':'rgba(var(--cm-red-rgb,255,59,48),0.06)',borderRadius:20,padding:'2px 6px',...mno,fontSize:7,color:isTraining?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.3)',letterSpacing:'0.08em'}}>{isTraining?focusLabel:'REST'}</div>
+                          style={{width:64,minWidth:64,background:selected?'rgba(var(--cm-red-rgb,255,59,48),0.12)':'var(--cm-paper,#FFFFFF)',borderRadius:12,padding:'10px 4px',textAlign:'center',border:selected?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',cursor:'pointer',flexShrink:0,outline:'none',boxShadow:selected?'0 0 12px rgba(var(--cm-red-rgb,255,59,48),0.18)':'none',transition:'box-shadow 0.15s'}}>
+                          <div style={{...mno,fontSize:9,color:selected?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.75)',letterSpacing:'0.1em',marginBottom:5,fontWeight:700}}>{day.toUpperCase()}</div>
+                          <div style={{display:'inline-block',background:isTraining?'rgba(var(--cm-red-rgb,255,59,48),0.18)':'rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:20,padding:'2px 6px',...mno,fontSize:7,color:isTraining?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.55)',letterSpacing:'0.08em'}}>{isTraining?focusLabel:'REST'}</div>
                         </motion.button>
                       );
                     })}
@@ -4283,7 +3813,7 @@ Reply with ONLY a valid JSON object, no markdown:
                             setDismissedPlanned([]);
                             try{localStorage.removeItem(`cm_dismissed_planned_${today}`);}catch{}
                           }}
-                          style={{flex:1,background:sel?'rgba(var(--cm-red-rgb,255,59,48),0.14)':'rgba(var(--cm-red-rgb,255,59,48),0.04)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:12,padding:'16px 0',...mno,fontSize:sel?13:10,fontWeight:700,color:sel?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.4)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 0 12px rgba(var(--cm-red-rgb,255,59,48),0.2)':'none',transition:'all 0.15s'}}>
+                          style={{flex:1,background:sel?'rgba(var(--cm-red-rgb,255,59,48),0.14)':'var(--cm-paper,#FFFFFF)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:12,padding:'16px 0',...mno,fontSize:sel?13:10,fontWeight:700,color:sel?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.75)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 0 12px rgba(var(--cm-red-rgb,255,59,48),0.2)':'none',transition:'all 0.15s'}}>
                           {n}
                         </motion.button>
                       );
@@ -4306,7 +3836,7 @@ Reply with ONLY a valid JSON object, no markdown:
                             setMealPrepPrefs(p=>({...p,dietPreset:d.id}));
                             try{if(typeof saveFlexPrefs==='function')saveFlexPrefs({...(wPrefs||{}),mealPrepDiet:d.id});}catch{}
                           }}
-                          style={{background:sel?'rgba(var(--cm-red-rgb,255,59,48),0.14)':'rgba(var(--cm-red-rgb,255,59,48),0.04)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:14,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:'0 2px 12px rgba(0,0,0,.08)',transition:'box-shadow 0.15s'}}>
+                          style={{background:sel?'rgba(var(--cm-red-rgb,255,59,48),0.14)':'var(--cm-paper,#FFFFFF)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:14,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:'0 2px 12px rgba(0,0,0,.08)',transition:'box-shadow 0.15s'}}>
                           {/* 16:9 image slot */}
                           <div style={{width:'100%',aspectRatio:'16/9',background:`linear-gradient(135deg,rgba(${sel?'255,59,48':'30,10,10'},${sel?'0.22':'0.12'}),rgba(0,0,0,0.8))`,position:'relative',overflow:'hidden'}}>
                             <img src={`/diet-images/${d.id}.jpg`} alt={d.label} style={{width:'100%',height:'100%',objectFit:'cover',position:'absolute',inset:0}} onError={e=>{e.target.style.display='none';}}/>
@@ -4334,7 +3864,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       return(
                         <motion.button key={val} whileTap={{scale:0.92}} onPointerDown={()=>_hL()}
                           onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,prepTime:val}));}}
-                          style={{flex:1,background:sel?'rgba(var(--cm-red-rgb,255,59,48),0.12)':'rgba(var(--cm-red-rgb,255,59,48),0.04)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:12,padding:'14px 0',...mno,fontSize:10,fontWeight:700,color:sel?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.4)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 2px 12px rgba(0,0,0,.08)':'none',transition:'all 0.15s'}}>
+                          style={{flex:1,background:sel?'rgba(var(--cm-red-rgb,255,59,48),0.12)':'var(--cm-paper,#FFFFFF)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:12,padding:'14px 0',...mno,fontSize:10,fontWeight:700,color:sel?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.75)',textAlign:'center',cursor:'pointer',outline:'none',boxShadow:sel?'0 2px 12px rgba(0,0,0,.08)':'none',transition:'all 0.15s'}}>
                           {label}
                         </motion.button>
                       );
@@ -4352,7 +3882,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       return(
                         <motion.button key={chip} whileTap={{scale:0.9}} onPointerDown={()=>_hL()}
                           onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,dietaryPrefs:active?p.dietaryPrefs.filter(c=>c!==chip):[...p.dietaryPrefs,chip]}));}}
-                          style={{background:active?'rgba(var(--cm-red-rgb,255,59,48),0.14)':'rgba(var(--cm-red-rgb,255,59,48),0.04)',border:active?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:20,padding:'8px 18px',...mno,fontSize:9,fontWeight:700,color:active?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.4)',cursor:'pointer',outline:'none',boxShadow:active?'0 2px 12px rgba(0,0,0,.08)':'none',transition:'all 0.15s'}}>
+                          style={{background:active?'rgba(var(--cm-red-rgb,255,59,48),0.14)':'var(--cm-paper,#FFFFFF)',border:active?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:20,padding:'8px 18px',...mno,fontSize:9,fontWeight:700,color:active?'var(--cm-red,#FF3B30)':'rgba(var(--cm-red-rgb,255,59,48),0.75)',cursor:'pointer',outline:'none',boxShadow:active?'0 2px 12px rgba(0,0,0,.08)':'none',transition:'all 0.15s'}}>
                           {chip}
                         </motion.button>
                       );

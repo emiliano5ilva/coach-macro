@@ -707,6 +707,9 @@ export const REDESIGN_CSS = `
   /* Train tab — full-bleed red field, matches Today's treatment */
   .goclub.tab-train .app-screen { background: var(--cm-red) !important; }
 
+  /* Fuel tab — red field, matches Train */
+  .goclub.tab-fuel .app-screen { background: var(--cm-red) !important; }
+
   /* ── Reusable primitives (Train + Fuel can share these) ── */
 
   /* Floating paper card — all-corner rounded, soft shadow, lifts off red */
