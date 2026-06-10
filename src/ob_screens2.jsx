@@ -3486,11 +3486,11 @@ function CommunicationStyleSection({ userId }) {
 
   return (
     <div>
-      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",margin:"20px 16px 12px"}}>// Communication Style</div>
-      <div style={{margin:"0 16px 16px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14}}>
+      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"0 0 12px 2px"}}>Communication Style</div>
+      <div style={{margin:"0 16px 16px",padding:"16px",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:14}}>
         {loading ? (
           <div style={{display:"flex",justifyContent:"center",height:48,alignItems:"center"}}>
-            <div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(var(--accent-rgb),0.3)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
+            <div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderTopColor:"var(--cm-red,#FF3B30)",animation:"spin 0.9s linear infinite"}}/>
           </div>
         ) : hasData ? (
           <>
@@ -3498,20 +3498,20 @@ function CommunicationStyleSection({ userId }) {
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
               <span style={{fontSize:20,lineHeight:1}}>{typeInfo?.icon || '🔮'}</span>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontStyle:"italic",fontSize:16,color:"#f5f5f0",lineHeight:1.2}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontStyle:"italic",fontSize:16,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.2}}>
                   {typeInfo?.label || 'Balanced'}
-                  {isOverridden && <span style={{fontFamily:"'DM Mono',monospace",fontSize:6,color:"var(--accent)",marginLeft:8,textTransform:"uppercase",letterSpacing:"0.1em",verticalAlign:"middle"}}>manual</span>}
+                  {isOverridden && <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:6,color:"var(--cm-red,#FF3B30)",marginLeft:8,textTransform:"uppercase",letterSpacing:"0.1em",verticalAlign:"middle"}}>manual</span>}
                 </div>
-                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.5)",lineHeight:1.4,marginTop:2}}>{typeInfo?.tagline || 'Balanced coaching style'}</div>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",lineHeight:1.4,marginTop:2}}>{typeInfo?.tagline || 'Balanced coaching style'}</div>
               </div>
-              <div style={{background:"rgba(245,245,240,0.05)",borderRadius:8,padding:"3px 8px",textAlign:"center",flexShrink:0}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)"}}>{profile.confidence}%</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:6,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.06em"}}>match</div>
+              <div style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",borderRadius:8,padding:"3px 8px",textAlign:"center",flexShrink:0}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>{profile.confidence}%</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:6,color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",textTransform:"uppercase",letterSpacing:"0.06em"}}>match</div>
               </div>
             </div>
 
             {/* Description */}
-            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:12}}>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",lineHeight:1.5,marginBottom:12}}>
               {typeInfo?.description || 'The app blends coaching styles based on your usage patterns.'}
             </div>
 
@@ -3522,8 +3522,8 @@ function CommunicationStyleSection({ userId }) {
                   const isTop = effectiveType === k;
                   return (
                     <div key={k} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                      <div style={{width:"100%",background: isTop ? "var(--accent)" : "rgba(245,245,240,0.1)",borderRadius:"2px 2px 0 0",height:Math.max(4, Math.round((v/100)*22)),transition:"height 0.4s"}}/>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:5,color:isTop?"var(--accent)":"rgba(245,245,240,0.2)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{k.slice(0,4)}</div>
+                      <div style={{width:"100%",background: isTop ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:"2px 2px 0 0",height:Math.max(4, Math.round((v/100)*22)),transition:"height 0.4s"}}/>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:5,color:isTop?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.2)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{k.slice(0,4)}</div>
                     </div>
                   );
                 })}
@@ -3532,7 +3532,7 @@ function CommunicationStyleSection({ userId }) {
 
             {/* Customize toggle */}
             <button onClick={() => setShowOptions(o => !o)}
-              style={{background:"none",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,padding:"7px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",width:"100%",marginBottom: showOptions ? 10 : 0}}>
+              style={{background:"none",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:8,padding:"7px 12px",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.1em",width:"100%",marginBottom: showOptions ? 10 : 0}}>
               {showOptions ? 'Cancel' : 'Customize coaching style'}
             </button>
 
@@ -3542,19 +3542,19 @@ function CommunicationStyleSection({ userId }) {
                   const sel = effectiveType === key;
                   return (
                     <button key={key} onClick={() => handleOverride(key)} disabled={saving}
-                      style={{background: sel ? "rgba(var(--accent-rgb),0.1)" : "rgba(245,245,240,0.03)", border:`1px solid ${sel ? "rgba(var(--accent-rgb),0.3)" : "rgba(245,245,240,0.08)"}`, borderRadius:10, padding:"10px 12px", cursor:"pointer", display:"flex", alignItems:"center", gap:10, textAlign:"left"}}>
+                      style={{background: sel ? "rgba(var(--cm-red-rgb,255,59,48),0.1)" : "rgba(var(--cm-ink-rgb,10,10,10),0.03)", border:`1px solid ${sel ? "rgba(var(--cm-red-rgb,255,59,48),0.3)" : "rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`, borderRadius:10, padding:"10px 12px", cursor:"pointer", display:"flex", alignItems:"center", gap:10, textAlign:"left"}}>
                       <span style={{fontSize:16,lineHeight:1}}>{info.icon}</span>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontStyle:"italic",fontSize:13,color:sel?"var(--accent)":"rgba(245,245,240,0.7)"}}>{info.label}</div>
-                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:10,color:"rgba(245,245,240,0.4)",lineHeight:1.3,marginTop:1}}>{info.tagline}</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontStyle:"italic",fontSize:13,color:sel?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.7)"}}>{info.label}</div>
+                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",lineHeight:1.3,marginTop:1}}>{info.tagline}</div>
                       </div>
-                      {sel && <div style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",flexShrink:0}}/>}
+                      {sel && <div style={{width:6,height:6,borderRadius:"50%",background:"var(--cm-red,#FF3B30)",flexShrink:0}}/>}
                     </button>
                   );
                 })}
                 {isOverridden && (
                   <button onClick={() => handleOverride('auto')} disabled={saving}
-                    style={{background:"none",border:"none",padding:"4px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.1em",textAlign:"center"}}>
+                    style={{background:"none",border:"none",padding:"4px",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",textTransform:"uppercase",letterSpacing:"0.1em",textAlign:"center"}}>
                     Reset to auto-detect
                   </button>
                 )}
@@ -3563,23 +3563,23 @@ function CommunicationStyleSection({ userId }) {
           </>
         ) : (
           <>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(245,245,240,0.35)",marginBottom:6}}>BUILDING YOUR PROFILE.</div>
-            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.4)",lineHeight:1.5,marginBottom:14}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginBottom:6}}>BUILDING YOUR PROFILE.</div>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",lineHeight:1.5,marginBottom:14}}>
               Your coaching style adapts automatically as you use the app. After 30 days, every recommendation is tuned to how you think. Or set a preference now.
             </div>
             <button onClick={() => setShowOptions(o => !o)}
-              style={{background:"none",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,padding:"7px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",width:"100%",marginBottom: showOptions ? 10 : 0}}>
+              style={{background:"none",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:8,padding:"7px 12px",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.1em",width:"100%",marginBottom: showOptions ? 10 : 0}}>
               {showOptions ? 'Cancel' : 'Set a preference now'}
             </button>
             {showOptions && (
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
                 {Object.entries(PERSONALITY_TYPES).map(([key, info]) => (
                   <button key={key} onClick={() => handleOverride(key)} disabled={saving}
-                    style={{background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:10,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
+                    style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.03)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)",borderRadius:10,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
                     <span style={{fontSize:16,lineHeight:1}}>{info.icon}</span>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontStyle:"italic",fontSize:13,color:"rgba(245,245,240,0.7)"}}>{info.label}</div>
-                      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:10,color:"rgba(245,245,240,0.4)",lineHeight:1.3,marginTop:1}}>{info.tagline}</div>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontStyle:"italic",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.7)"}}>{info.label}</div>
+                      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",lineHeight:1.3,marginTop:1}}>{info.tagline}</div>
                     </div>
                   </button>
                 ))}
@@ -3631,21 +3631,21 @@ function YourPatternsCard({userId}) {
     setMemories(prev => prev.filter(m => m.id !== memId));
   }
 
-  const typeColor = { plateau:'#f59e0b', breakthrough:'#22c55e', setback:'#ef4444', pattern:'#60a5fa', intervention:'var(--accent)', preference:'rgba(245,245,240,0.5)' };
+  const typeColor = { plateau:'#f59e0b', breakthrough:'#22c55e', setback:'#ef4444', pattern:'#60a5fa', intervention:'var(--cm-red,#FF3B30)', preference:'rgba(var(--cm-ink-rgb,10,10,10),0.5)' };
   const typeLabel = { plateau:'Plateau', breakthrough:'Breakthrough', setback:'Setback', pattern:'Pattern', intervention:'Intervention', preference:'Preference' };
 
   return (
     <div style={{margin:"0 0 0"}}>
-      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",margin:"20px 16px 12px"}}>// Your Patterns</div>
+      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"0 0 12px 2px"}}>Your Patterns</div>
 
       {loading ? (
-        <div style={{margin:"0 16px 16px",padding:16,background:"#0d0d0d",borderRadius:14,display:"flex",justifyContent:"center",alignItems:"center",height:60}}>
-          <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(var(--accent-rgb),0.3)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
+        <div style={{margin:"0 16px 16px",padding:16,background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:14,display:"flex",justifyContent:"center",alignItems:"center",height:60}}>
+          <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(var(--cm-red-rgb,255,59,48),0.3)",borderTopColor:"var(--cm-red,#FF3B30)",animation:"spin 0.9s linear infinite"}}/>
         </div>
       ) : memories.length === 0 ? (
-        <div style={{margin:"0 16px 16px",padding:"18px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.1)",borderRadius:14}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"rgba(245,245,240,0.35)",marginBottom:6}}>NO PATTERNS YET.</div>
-          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.4)",lineHeight:1.5}}>
+        <div style={{margin:"0 16px 16px",padding:"18px 16px",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)",borderRadius:14}}>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginBottom:6}}>NO PATTERNS YET.</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",lineHeight:1.5}}>
             Coach Memory builds as you use the app. Significant events — plateaus, breakthroughs, recovery dips — get logged automatically. After 30 days, patterns emerge.
           </div>
         </div>
@@ -3658,21 +3658,21 @@ function YourPatternsCard({userId}) {
               {label:'Breakthroughs', value:breakthroughs, color:'#22c55e'},
               {label:'Patterns', value:patterns.length, color:'#60a5fa'},
             ].map(({label,value,color}) => (
-              <div key={label} style={{flex:1,background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:color||'#f5f5f0',lineHeight:1,marginBottom:3}}>{value}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{label}</div>
+              <div key={label} style={{flex:1,background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:color||'var(--cm-ink,#0A0A0A)',lineHeight:1,marginBottom:3}}>{value}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{label}</div>
               </div>
             ))}
           </div>
 
           {/* Detected patterns */}
           {patterns.length > 0 && (
-            <div style={{margin:"0 16px 12px",padding:"12px 14px",background:"#0d0d0d",border:"1px solid rgba(96,165,250,0.15)",borderRadius:12}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#60a5fa",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>Detected patterns</div>
+            <div style={{margin:"0 16px 12px",padding:"12px 14px",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(96,165,250,0.15)",borderRadius:12}}>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:8,color:"#60a5fa",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>Detected patterns</div>
               {patterns.slice(0,3).map((p, i) => (
                 <div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
                   <div style={{width:4,height:4,borderRadius:"50%",background:"#60a5fa",marginTop:5,flexShrink:0}}/>
-                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.7)",lineHeight:1.4}}>{p.description}</div>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.7)",lineHeight:1.4}}>{p.description}</div>
                 </div>
               ))}
             </div>
@@ -3681,29 +3681,29 @@ function YourPatternsCard({userId}) {
           {/* Recent memory log */}
           <button onClick={()=>setExpanded(e=>!e)} style={{background:"none",border:"none",padding:"0 16px 10px",cursor:"pointer",width:"100%",textAlign:"left"}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded?"Hide memory log":"View memory log"} ({nonPatternMemories.length})</span>
-              <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
+              <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded?"Hide memory log":"View memory log"} ({nonPatternMemories.length})</span>
+              <div style={{flex:1,height:1,background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}/>
             </div>
           </button>
 
           {expanded && (
             <div style={{margin:"0 16px 12px"}}>
               {nonPatternMemories.slice(0,10).map((mem, i) => (
-                <div key={mem.id} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:10,padding:"10px 12px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
+                <div key={mem.id} style={{background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:10,padding:"10px 12px",marginBottom:6,display:"flex",gap:10,alignItems:"flex-start"}}>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}>
-                    <div style={{width:6,height:6,borderRadius:"50%",background:typeColor[mem.memory_type]||"rgba(245,245,240,0.3)"}}/>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:typeColor[mem.memory_type]||"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}/>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:typeColor[mem.memory_type]||"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[mem.memory_type]||mem.memory_type}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{new Date(mem.date_observed).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:7,color:typeColor[mem.memory_type]||"rgba(var(--cm-ink-rgb,10,10,10),0.35)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{typeLabel[mem.memory_type]||mem.memory_type}</div>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)"}}>{new Date(mem.date_observed).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
                     </div>
-                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(245,245,240,0.6)",lineHeight:1.4}}>{mem.description?.slice(0,120)}</div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)",lineHeight:1.4}}>{mem.description?.slice(0,120)}</div>
                     {mem.effectiveness_score != null && (
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",marginTop:3}}>{mem.effectiveness_score}% effective</div>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)",marginTop:3}}>{mem.effectiveness_score}% effective</div>
                     )}
                   </div>
-                  <button onClick={()=>handleDelete(mem.id)} style={{background:"none",border:"none",padding:"2px 4px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.15)",flexShrink:0}}>✕</button>
+                  <button onClick={()=>handleDelete(mem.id)} style={{background:"none",border:"none",padding:"2px 4px",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontSize:7,color:"rgba(var(--cm-ink-rgb,10,10,10),0.15)",flexShrink:0}}>✕</button>
                 </div>
               ))}
             </div>
@@ -3711,7 +3711,7 @@ function YourPatternsCard({userId}) {
 
           {/* Footer actions */}
           <div style={{margin:"0 16px 20px",display:"flex",gap:8}}>
-            <button onClick={handleExport} disabled={exporting} style={{flex:1,background:"none",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>
+            <button onClick={handleExport} disabled={exporting} style={{flex:1,background:"none",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>
               {exporting?"Exporting…":"Export Memory"}
             </button>
           </div>

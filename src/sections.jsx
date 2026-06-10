@@ -5951,46 +5951,47 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
 
   return (
     <>
-      <div style={eyebrowStyle}>// Refer a Friend</div>
+      <div style={eyebrowStyle}>Refer a friend</div>
       <div style={{
-        background: '#0d0d0d', borderRadius: 14, padding: 16,
-        border: '1px solid rgba(var(--accent-rgb),0.07)',
+        background: 'var(--cm-paper,#FFFFFF)', borderRadius: 14, padding: 16,
+        boxShadow: '0 2px 12px rgba(0,0,0,.07)',
+        border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Gradient */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, transparent 60%, rgba(var(--accent-rgb),0.04) 100%)', pointerEvents: 'none' }} />
 
         {/* Code label */}
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+        <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
           Your referral code
         </div>
 
         {/* Code row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,245,240,0.04)', border: '1px solid rgba(245,245,240,0.1)', borderRadius: 10, padding: '12px 16px', marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 24, color: '#f5f5f0', flex: 1, letterSpacing: '0.08em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(var(--cm-ink-rgb,10,10,10),0.04)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)', borderRadius: 10, padding: '12px 16px', marginBottom: 14 }}>
+          <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 24, color: 'var(--cm-red,#FF3B30)', flex: 1, letterSpacing: '0.08em' }}>
             {referralCode}
           </div>
-          <button onClick={copyCode} style={{ background: 'rgba(var(--accent-rgb),0.12)', border: '1px solid rgba(var(--accent-rgb),0.3)', borderRadius: 8, padding: '6px 12px', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
+          <button onClick={copyCode} style={{ background: 'rgba(var(--cm-red-rgb,255,59,48),0.08)', border: '1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)', borderRadius: 8, padding: '6px 12px', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 9, color: 'var(--cm-red,#FF3B30)', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
             {codeCopied ? 'COPIED ✓' : 'COPY'}
           </button>
         </div>
 
         {/* Share button */}
-        <button onClick={shareCode} disabled={sharing} style={{ width: '100%', background: 'var(--accent)', border: 'none', borderRadius: 10, padding: 13, color: '#fff', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: sharing ? 0.7 : 1 }}>
+        <button onClick={shareCode} disabled={sharing} style={{ width: '100%', background: 'var(--cm-red,#FF3B30)', border: 'none', borderRadius: 10, padding: 13, color: '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: sharing ? 0.7 : 1 }}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx={18} cy={5} r={3}/><circle cx={6} cy={12} r={3}/><circle cx={18} cy={19} r={3}/><line x1={8.59} y1={13.51} x2={15.42} y2={17.49}/><line x1={15.41} y1={6.51} x2={8.59} y2={10.49}/></svg>
           SHARE YOUR CODE
         </button>
 
         {/* Tier progress */}
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(245,245,240,0.06)' }}>
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>Current tier</div>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3 }}>Current tier</div>
               <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 18, color: tierColor }}>
                 {tier === 0 ? 'NO TIER YET.' : `${tierDef.name}.`}
               </div>
             </div>
-            <div style={{ background: 'rgba(var(--accent-rgb),0.1)', border: '1px solid rgba(var(--accent-rgb),0.25)', borderRadius: 20, padding: '3px 10px', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)' }}>
+            <div style={{ background: 'rgba(var(--cm-red-rgb,255,59,48),0.08)', border: '1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)', borderRadius: 20, padding: '3px 10px', fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 9, color: 'var(--cm-red,#FF3B30)' }}>
               {referralCount} referral{referralCount !== 1 ? 's' : ''}
             </div>
           </div>
@@ -5998,43 +5999,43 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
           {/* Progress — bar with next-unlock dropdown (tier < 4) or status count (tier 4) */}
           {tier < 4 && nextTierDef ? (
             <>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.35)', marginBottom: 5 }}>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', marginBottom: 5 }}>
                 {nextTierDef.min - referralCount} more referral{nextTierDef.min - referralCount !== 1 ? 's' : ''} to {nextTierDef.name}
               </div>
-              <div style={{ background: 'rgba(245,245,240,0.06)', borderRadius: 4, height: 4, overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ background: 'rgba(var(--cm-ink-rgb,10,10,10),0.06)', borderRadius: 4, height: 4, overflow: 'hidden', marginBottom: 12 }}>
                 <div style={{ height: '100%', width: `${progressPct}%`, background: tierColor, borderRadius: 4, transition: 'width 0.6s ease' }} />
               </div>
               {/* Next unlock row */}
               <div
                 onClick={() => setShowNextUnlock(v => !v)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                  background: 'rgba(245,245,240,0.03)', border: '1px solid rgba(245,245,240,0.07)',
+                  background: 'rgba(var(--cm-ink-rgb,10,10,10),0.02)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)',
                   borderRadius: 8, padding: '8px 12px', marginBottom: showNextUnlock ? 0 : 12 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={nextTierDef.color} strokeWidth={2} strokeLinecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Next unlock</span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: nextTierDef.color, letterSpacing: '0.06em' }}>
+                  <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Next unlock</span>
+                  <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 8, color: nextTierDef.color, letterSpacing: '0.04em' }}>
                     {nextTierDef.newFeatures[0] || nextTierDef.newPerks[0] || nextTierDef.name}
                   </span>
                 </div>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)' }}>{showNextUnlock ? '▲' : '▼'}</span>
+                <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 9, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.3)' }}>{showNextUnlock ? '▲' : '▼'}</span>
               </div>
               {showNextUnlock && (
-                <div style={{ background: 'rgba(245,245,240,0.02)', border: '1px solid rgba(245,245,240,0.07)', borderTop: 'none',
+                <div style={{ background: 'rgba(var(--cm-ink-rgb,10,10,10),0.02)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)', borderTop: 'none',
                   borderRadius: '0 0 8px 8px', padding: '10px 12px', marginBottom: 12 }}>
                   {nextTierDef.newFeatures.map(f => (
                     <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>
-                      <span style={{ fontFamily: 'var(--barlow)', fontSize: 12, color: 'rgba(245,245,240,0.8)' }}>{f}</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7, color: 'rgba(245,245,240,0.3)', marginLeft: 'auto' }}>FEATURE</span>
+                      <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.8)' }}>{f}</span>
+                      <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 7, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.3)', marginLeft: 'auto' }}>FEATURE</span>
                     </div>
                   ))}
                   {nextTierDef.newPerks.map(p => (
                     <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       <svg width={10} height={10} viewBox="0 0 24 24" fill={nextTierDef.color}><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
-                      <span style={{ fontFamily: 'var(--barlow)', fontSize: 12, color: 'rgba(245,245,240,0.8)' }}>{p}</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 7, color: 'rgba(245,245,240,0.3)', marginLeft: 'auto' }}>PERK</span>
+                      <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.8)' }}>{p}</span>
+                      <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 7, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.3)', marginLeft: 'auto' }}>PERK</span>
                     </div>
                   ))}
                 </div>
@@ -6045,14 +6046,14 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
               <div style={{ fontFamily: 'var(--condensed)', fontStyle: 'italic', fontWeight: 900, fontSize: 56, color: '#FFD740', lineHeight: 1, letterSpacing: '-1px' }}>
                 {referralCount}
               </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
                 Referrals. Legend status.
               </div>
             </div>
           ) : null}
 
           {/* Feature unlocks */}
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>// Feature unlocks</div>
+          <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Feature unlocks</div>
           {[
             { label: 'App icon customization',   unlockedAt: 1 },
             { label: 'Workout history export',    unlockedAt: 2 },
@@ -6063,11 +6064,11 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
             return (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 {unlocked
-                  ? <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
-                  : <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(245,245,240,0.2)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(245,245,240,0.2)" strokeWidth={1.7} strokeLinecap="round"/></svg>
+                  ? <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 10, color: '#22c55e' }}>✓</span>
+                  : <svg width={12} height={12} viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.2)" strokeWidth={1.7}/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.2)" strokeWidth={1.7} strokeLinecap="round"/></svg>
                 }
-                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: unlocked ? '#f5f5f0' : 'rgba(245,245,240,0.3)' }}>{label}</span>
-                {!unlocked && <span style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.2)', marginLeft: 'auto' }}>{REFERRAL_TIERS[unlockedAt].min} refs</span>}
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: unlocked ? 'var(--cm-ink,#0A0A0A)' : 'rgba(var(--cm-ink-rgb,10,10,10),0.3)' }}>{label}</span>
+                {!unlocked && <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.25)', marginLeft: 'auto' }}>{REFERRAL_TIERS[unlockedAt].min} refs</span>}
               </div>
             );
           })}
@@ -6075,32 +6076,32 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
           {/* Status perks */}
           {tierDef.perks.length > 0 && (
             <>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>// Status perks</div>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8, marginTop: 14 }}>Status perks</div>
               {tierDef.perks.map(p => (
                 <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#22c55e' }}>✓</span>
-                  <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>{p}</span>
+                  <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 10, color: '#22c55e' }}>✓</span>
+                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'var(--cm-ink,#0A0A0A)' }}>{p}</span>
                 </div>
               ))}
             </>
           )}
           {tier === 0 && (
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.3)', marginTop: 6 }}>Refer 1 friend who subscribes to unlock your first feature</div>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 9, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', marginTop: 6 }}>Refer 1 friend who subscribes to unlock your first feature</div>
           )}
         </div>
 
         {/* Referral list */}
         {referrals.length > 0 && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(245,245,240,0.06)' }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(245,245,240,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>// Referred members</div>
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)' }}>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>Referred members</div>
             {referrals.map((r, i) => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < referrals.length - 1 ? '1px solid rgba(245,245,240,0.05)' : 'none' }}>
-                <span style={{ fontFamily: 'var(--barlow)', fontSize: 13, color: '#f5f5f0' }}>
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < referrals.length - 1 ? '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)' : 'none' }}>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'var(--cm-ink,#0A0A0A)' }}>
                   Anonymous
                 </span>
                 {r.status === 'completed'
-                  ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#22c55e' }}>PAID ✓</span>
-                  : <span style={{ background: 'rgba(254,160,32,0.1)', border: '1px solid rgba(254,160,32,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--mono)', fontSize: 8, color: '#FEA020' }}>PENDING</span>
+                  ? <span style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8, color: '#22c55e' }}>PAID ✓</span>
+                  : <span style={{ background: 'rgba(254,160,32,0.1)', border: '1px solid rgba(254,160,32,0.2)', borderRadius: 6, padding: '2px 8px', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 8, color: '#FEA020' }}>PENDING</span>
                 }
               </div>
             ))}
@@ -6131,9 +6132,9 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
   const accentHex = ACCENT_COLORS.find(c => c.id === pendingAccent)?.hex || '#FF3B30';
   const bgHex     = BG_COLORS.find(c => c.id === pendingBg)?.hex         || '#000000';
   const lightBg   = isLightBg(bgHex);
-  const previewText   = lightBg ? '#1a1a1a' : '#f5f5f0';
-  const previewTextDim = lightBg ? 'rgba(0,0,0,0.50)' : 'rgba(245,245,240,0.50)';
-  const previewBorder = lightBg ? 'rgba(0,0,0,0.12)' : 'rgba(245,245,240,0.10)';
+  const previewText   = lightBg ? '#1a1a1a' : 'var(--cm-ink,#0A0A0A)';
+  const previewTextDim = lightBg ? 'rgba(0,0,0,0.50)' : 'rgba(var(--cm-ink-rgb,10,10,10),0.50)';
+  const previewBorder = lightBg ? 'rgba(0,0,0,0.12)' : 'rgba(var(--cm-ink-rgb,10,10,10),0.10)';
   const previewCard   = lightBg ? '#ececec' : (() => {
     const bg = BG_COLORS.find(c => c.id === pendingBg);
     if (!bg) return '#0d0d0d';
@@ -6184,7 +6185,7 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
                 width: 36, height: 36, borderRadius: '50%', border: 'none',
                 background: c.hex, cursor: incompatible ? 'not-allowed' : 'pointer',
                 opacity: incompatible ? 0.25 : 1,
-                boxShadow: isSel ? `0 0 0 2px var(--card-bg), 0 0 0 4px ${c.hex}` : 'none',
+                boxShadow: isSel ? `0 0 0 2px var(--cm-paper,#FFFFFF), 0 0 0 4px ${c.hex}` : 'none',
                 transition: 'box-shadow 0.15s, opacity 0.15s',
                 flexShrink: 0,
                 outline: 'none',
@@ -6251,41 +6252,41 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
         <>
           {!isUnlocked ? (
             /* ── LOCKED STATE ── */
-            <div style={{ background: '#0d0d0d', borderRadius: 12, border: '1px solid rgba(245,245,240,0.07)', overflow: 'hidden', padding: '16px 16px 20px' }}>
+            <div style={{ background: 'var(--cm-paper,#FFFFFF)', borderRadius: 12, border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)', overflow: 'hidden', padding: '16px 16px 20px', boxShadow: '0 2px 12px rgba(0,0,0,.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(245,245,240,0.25)"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(245,245,240,0.40)', letterSpacing: '0.10em' }}>Unlock at 5 referrals</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(var(--cm-ink-rgb,10,10,10),0.25)"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.10em' }}>Unlock at 5 referrals</span>
               </div>
               <MiniPreview accentH={lockedAccentHex} bgH={lockedBgHex} />
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(245,245,240,0.25)', textAlign: 'center', marginTop: 12, letterSpacing: '0.08em' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.25)', textAlign: 'center', marginTop: 12, letterSpacing: '0.08em' }}>
                 Invite 5 friends to unlock color themes.
               </div>
             </div>
           ) : (
             /* ── UNLOCKED STATE ── */
-            <div style={{ background: 'var(--card-bg)', borderRadius: 12, border: '1px solid var(--card-border)', overflow: 'hidden', padding: '16px' }}>
+            <div style={{ background: 'var(--cm-paper,#FFFFFF)', borderRadius: 12, border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)', overflow: 'hidden', padding: '16px' }}>
               {/* Live preview */}
               <MiniPreview accentH={accentHex} bgH={bgHex} />
 
               {/* Accent picker */}
               <div style={{ marginTop: 16 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--text-rgb),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Accent Color</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Accent Color</div>
                 <ColorSwatch colors={ACCENT_COLORS} selected={pendingAccent} onSelect={setPendingAccent} isAccentRow />
               </div>
 
               {/* Background picker */}
               <div style={{ marginTop: 16 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--text-rgb),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Background</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.40)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 2 }}>Background</div>
                 <ColorSwatch colors={BG_COLORS} selected={pendingBg} onSelect={setPendingBg} isAccentRow={false} />
               </div>
 
               {/* Confirm / Cancel — only when there are unsaved changes */}
               {isDirty && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <button onClick={cancel} style={{ flex: 1, padding: '11px', background: 'rgba(var(--text-rgb),0.06)', border: '1px solid rgba(var(--text-rgb),0.12)', borderRadius: 10, color: 'rgba(var(--text-rgb),0.60)', fontFamily: 'var(--condensed)', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                  <button onClick={cancel} style={{ flex: 1, padding: '11px', background: 'rgba(var(--cm-ink-rgb,10,10,10),0.06)', border: '1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)', borderRadius: 10, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.60)', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
                     Cancel
                   </button>
-                  <button onClick={confirm} disabled={saving} style={{ flex: 2, padding: '11px', background: accentHex, border: 'none', borderRadius: 10, color: lightBg && accentHex === '#FFFFFF' ? '#1a1a1a' : '#fff', fontFamily: 'var(--condensed)', fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                  <button onClick={confirm} disabled={saving} style={{ flex: 2, padding: '11px', background: accentHex, border: 'none', borderRadius: 10, color: lightBg && accentHex === '#FFFFFF' ? '#1a1a1a' : '#fff', fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
                     {saving ? 'Saving…' : 'Apply Theme'}
                   </button>
                 </div>
@@ -6319,22 +6320,22 @@ function PeerComparisonSection({ user, eyebrowStyle, cardStyle }) {
 
   return (
     <>
-      <div style={eyebrowStyle}>// Peer Comparison</div>
+      <div style={eyebrowStyle}>Peer comparison</div>
       <div style={cardStyle}>
         <div style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div style={{ flex: 1, paddingRight: 16 }}>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0", marginBottom: 3 }}>Anonymous Benchmarking</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.4)", lineHeight: 1.5, letterSpacing: "0.06em" }}>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)", marginBottom: 3 }}>Anonymous Benchmarking</div>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.45)", lineHeight: 1.5, letterSpacing: "0.02em" }}>
                 Compare your progress with similar users anonymously. Helps set realistic expectations and surface what's working for others like you.
               </div>
             </div>
-            <div onClick={() => toggle(!optIn)} style={{ width: 44, height: 24, borderRadius: 12, background: optIn ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+            <div onClick={() => toggle(!optIn)} style={{ width: 44, height: 24, borderRadius: 12, background: optIn ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
               <div style={{ position: "absolute", top: 3, left: optIn ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
             </div>
           </div>
-          <div style={{ background: "rgba(245,245,240,0.03)", border: "1px solid rgba(245,245,240,0.06)", borderRadius: 8, padding: "10px 12px" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(245,245,240,0.35)", lineHeight: 1.6, letterSpacing: "0.05em" }}>
+          <div style={{ background: "rgba(var(--cm-ink-rgb,10,10,10),0.03)", border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)", borderRadius: 8, padding: "10px 12px" }}>
+            <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 8, color: "rgba(var(--cm-ink-rgb,10,10,10),0.4)", lineHeight: 1.6, letterSpacing: "0.02em" }}>
               Your individual data is never shared with other users in any form. Only anonymized aggregate statistics are used. Groups require at least 10 users before any comparison is shown.
             </div>
           </div>
@@ -6375,12 +6376,12 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
 
   function ToggleRow({ label, value, onChange, isLast, sub }) {
     return (
-      <div style={{ padding: "12px 16px", borderBottom: isLast ? "none" : "1px solid rgba(245,245,240,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ padding: "12px 16px", borderBottom: isLast ? "none" : "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0" }}>{label}</div>
-          {sub && <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.35)", marginTop: 2, letterSpacing: "0.06em" }}>{sub}</div>}
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)" }}>{label}</div>
+          {sub && <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.45)", marginTop: 2, letterSpacing: "0.04em" }}>{sub}</div>}
         </div>
-        <div onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 12, background: value ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+        <div onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 12, background: value ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
           <div style={{ position: "absolute", top: 3, left: value ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
         </div>
       </div>
@@ -6392,7 +6393,7 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
 
   return (
     <>
-      <div style={eyebrowStyle}>// Coach Outreach</div>
+      <div style={eyebrowStyle}>Coach Outreach</div>
       {/* Master toggle */}
       <div style={cardStyle}>
         <ToggleRow
@@ -6404,29 +6405,29 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
         {prefs.enabled && (
           <>
             {/* Frequency */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(245,245,240,0.06)" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0" }}>Frequency</div>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "rgba(245,245,240,0.5)" }}>{FREQ_LABELS[prefs.max_per_day] || "Custom"}</span>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)" }}>Frequency</div>
+                <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 11, color: "rgba(var(--cm-ink-rgb,10,10,10),0.5)" }}>{FREQ_LABELS[prefs.max_per_day] || "Custom"}</span>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 {[0, 1, 2, 3].map(n => (
-                  <button key={n} onClick={() => save({ ...prefs, max_per_day: n })} style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: prefs.max_per_day === n ? "rgba(var(--accent-rgb),0.2)" : "rgba(245,245,240,0.06)", border: `1px solid ${prefs.max_per_day === n ? "rgba(var(--accent-rgb),0.5)" : "rgba(245,245,240,0.1)"}`, color: prefs.max_per_day === n ? "var(--accent)" : "rgba(245,245,240,0.5)", fontFamily: "var(--mono)", fontSize: 10, fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>
+                  <button key={n} onClick={() => save({ ...prefs, max_per_day: n })} style={{ flex: 1, padding: "8px 0", borderRadius: 8, background: prefs.max_per_day === n ? "rgba(var(--cm-red-rgb,255,59,48),0.12)" : "rgba(var(--cm-ink-rgb,10,10,10),0.05)", border: `1px solid ${prefs.max_per_day === n ? "rgba(var(--cm-red-rgb,255,59,48),0.4)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`, color: prefs.max_per_day === n ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.5)", fontFamily: "'Archivo',sans-serif", fontSize: 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em" }}>
                     {FREQ_LABELS[n]}
                   </button>
                 ))}
               </div>
             </div>
             {/* Quiet hours */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(245,245,240,0.06)" }}>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "#f5f5f0", marginBottom: 2 }}>Quiet Hours</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.35)", marginBottom: 10, letterSpacing: "0.06em" }}>No notifications during this window</div>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)" }}>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 14, color: "var(--cm-ink,#0A0A0A)", marginBottom: 2 }}>Quiet Hours</div>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.45)", marginBottom: 10, letterSpacing: "0.02em" }}>No notifications during this window</div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <select value={prefs.quiet_start} onChange={e => save({ ...prefs, quiet_start: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(245,245,240,0.06)", border: "1px solid rgba(245,245,240,0.12)", borderRadius: 8, color: "#f5f5f0", fontFamily: "var(--mono)", fontSize: 11, cursor: "pointer" }}>
+                <select value={prefs.quiet_start} onChange={e => save({ ...prefs, quiet_start: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(var(--cm-ink-rgb,10,10,10),0.05)", border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)", borderRadius: 8, color: "var(--cm-ink,#0A0A0A)", fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 11, cursor: "pointer" }}>
                   {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
                 </select>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "rgba(245,245,240,0.35)" }}>to</span>
-                <select value={prefs.quiet_end} onChange={e => save({ ...prefs, quiet_end: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(245,245,240,0.06)", border: "1px solid rgba(245,245,240,0.12)", borderRadius: 8, color: "#f5f5f0", fontFamily: "var(--mono)", fontSize: 11, cursor: "pointer" }}>
+                <span style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 10, color: "rgba(var(--cm-ink-rgb,10,10,10),0.4)" }}>to</span>
+                <select value={prefs.quiet_end} onChange={e => save({ ...prefs, quiet_end: parseInt(e.target.value) })} style={{ flex: 1, padding: "8px 10px", background: "rgba(var(--cm-ink-rgb,10,10,10),0.05)", border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)", borderRadius: 8, color: "var(--cm-ink,#0A0A0A)", fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 11, cursor: "pointer" }}>
                   {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
                 </select>
               </div>
@@ -6439,14 +6440,14 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
               onChange={v => toggleSwitch(v, 'critical_override')}
             />
             {/* Per-category toggles */}
-            <div style={{ padding: "10px 16px 6px", borderTop: "1px solid rgba(245,245,240,0.06)" }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 8, color: "rgba(245,245,240,0.35)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8 }}>// Notification Types</div>
+            <div style={{ padding: "10px 16px 6px", borderTop: "1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)" }}>
+              <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 10, color: "rgba(var(--cm-ink-rgb,10,10,10),0.4)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 8 }}>Notification types</div>
               {Object.entries(TRIGGER_CATEGORIES).map(([key, label], i, arr) => {
                 const val = prefs.categories?.[key] ?? true;
                 return (
                   <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: i < arr.length - 1 ? 10 : 4 }}>
-                    <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: "rgba(245,245,240,0.8)" }}>{label}</span>
-                    <div onClick={() => toggleSwitch(!val, key, 'categories')} style={{ width: 40, height: 22, borderRadius: 11, background: val ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                    <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: "var(--cm-ink,#0A0A0A)" }}>{label}</span>
+                    <div onClick={() => toggleSwitch(!val, key, 'categories')} style={{ width: 40, height: 22, borderRadius: 11, background: val ? "var(--cm-red,#FF3B30)" : "rgba(var(--cm-ink-rgb,10,10,10),0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
                       <div style={{ position: "absolute", top: 2, left: val ? 19 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
                     </div>
                   </div>
@@ -6456,7 +6457,7 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
           </>
         )}
       </div>
-      {saving && <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "rgba(245,245,240,0.3)", textAlign: "center", marginTop: 4, letterSpacing: "0.1em" }}>saving…</div>}
+      {saving && <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 500, fontSize: 9, color: "rgba(var(--cm-ink-rgb,10,10,10),0.35)", textAlign: "center", marginTop: 4, letterSpacing: "0.06em" }}>saving…</div>}
     </>
   );
 }
@@ -6551,16 +6552,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const currentSkill=wPrefs?.liftExp||profile?.liftExp||"beginner";
   const wUnit=wPrefs?.wUnit||profile?.wUnit||"lbs";
 
-  const eyebrowStyle={fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10,marginTop:24};
-  const cardStyle={background:"#0d0d0d",borderRadius:12,border:"1px solid rgba(245,245,240,0.07)",overflow:"hidden"};
+  const eyebrowStyle={fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"0 0 12px 2px"};
+  const cardStyle={background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:12,border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",overflow:"hidden"};
   function MeRow({label:lbl,value:val,onPress,isLast,isDestructive,noChevron,rightEl}){
     return(
-      <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
-        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"var(--accent)":"#f5f5f0"}}>{lbl}</span>
+      <div onClick={onPress} style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:onPress?"pointer":"default"}}>
+        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:isDestructive?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)"}}>{lbl}</span>
         {rightEl||(!isDestructive&&(
           <div style={{display:"flex",alignItems:"center",gap:6}}>
-            {val&&<span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:"rgba(245,245,240,0.40)"}}>{val}</span>}
-            {!noChevron&&onPress&&<span style={{color:"rgba(245,245,240,0.25)",fontSize:18,lineHeight:1}}>›</span>}
+            {val&&<span style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)"}}>{val}</span>}
+            {!noChevron&&onPress&&<span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontSize:18,lineHeight:1}}>›</span>}
           </div>
         ))}
       </div>
@@ -6569,26 +6570,66 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
   return (
     <div style={{padding:isMobile?"12px 18px":"0",paddingBottom:isMobile?100:0}}>
-      {/* ── ATHLETE PASSPORT ── */}
+      {/* ── IDENTITY HERO (red canvas, no card) ── */}
+      {(()=>{
+        const rawInitials=localName
+          ? localName.trim().split(/\s+/).map(n=>n[0]).join('').toUpperCase().slice(0,2)
+          : '';
+        const _initials=rawInitials||localName?.[0]?.toUpperCase()||'—';
+        const _goalLabel=GOAL_LABELS[currentGoal]||currentGoal||'—';
+        const _skillCap=(currentSkill||'beginner').charAt(0).toUpperCase()+(currentSkill||'beginner').slice(1);
+        const _identityLine=`${_goalLabel} · ${wPrefs?.splitType||_skillCap}`;
+        const _daysActive=Object.values(schedule||{}).filter(v=>v&&v!=='rest').length;
+        const _calTarget=profile?.profile_data?.goalCals??profile?.calorie_target??'—';
+        return (
+          <div style={{paddingTop:12,paddingBottom:20}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:10,letterSpacing:"0.28em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:14}}>Athlete</div>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:8}}>
+              <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,0.18)",border:"2px solid rgba(255,255,255,0.5)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{fontFamily:"'Archivo','Barlow',sans-serif",fontWeight:800,fontSize:22,color:"#fff",lineHeight:1}}>{_initials}</span>
+              </div>
+              <div>
+                <div style={{fontFamily:"'Archivo','Barlow',sans-serif",fontWeight:800,fontSize:30,color:"#fff",textTransform:"uppercase",lineHeight:1.1}}>{localName||'—'}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:11,letterSpacing:"0.04em",color:"rgba(255,255,255,0.72)",textTransform:"uppercase",marginTop:4}}>{_identityLine}</div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:12}}>
+              {[{val:_daysActive,label:"Days/Week"},{val:_calTarget,label:"Cal Target"},{val:_skillCap,label:"Level"}].map(({val,label})=>(
+                <div key={label} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"12px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <span style={{fontFamily:"'Archivo','Barlow',sans-serif",fontWeight:800,fontSize:22,color:"#fff",lineHeight:1}}>{val}</span>
+                  <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:9,letterSpacing:"0.1em",color:"rgba(255,255,255,0.6)",textTransform:"uppercase"}}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+      {/* ── WHITE SHEET (wraps all existing sections) ── */}
+      <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:4,paddingTop:22,paddingBottom:28,marginLeft:isMobile?-18:0,marginRight:isMobile?-18:0,paddingLeft:isMobile?18:0,paddingRight:isMobile?18:0}}>
+      {/* ── GROUP 1: COACH ──────────────────────────────────────────── */}
+      {/* FLAG: CommunicationStyleSection + YourPatternsCard still render in
+          ob_screens2.jsx:10685 before SettingsSection — relocate here in Pass 3. */}
+      <div style={eyebrowStyle}>Coach</div>
+      <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
+
+      {/* ── GROUP 2: YOU ─────────────────────────────────────────────── */}
+      <div style={eyebrowStyle}>You</div>
       <AthletePassport user={user}/>
-      {/* ── REFER A FRIEND ── */}
-      <ReferAFriendCard user={user} eyebrowStyle={eyebrowStyle} />
-
-
-      {/* ── PROFILE ── */}
-      <div style={eyebrowStyle}>// Profile</div>
       <div style={cardStyle}>
+        {/* ─ Profile ─ */}
+        <div style={{padding:"10px 16px 4px"}}>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:2}}>Profile</div>
+        </div>
         <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
         <MeRow label="Goal" value={GOAL_LABELS[currentGoal]||"—"} onPress={()=>setShowGoalSelector(true)}/>
         <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
         <MeRow label="Equipment" value={wPrefs?.equipment||"Full Gym"} onPress={()=>setShowEquipmentPicker(true)}/>
         <MeRow label="Weight" value={localWeight?(localWeight+" "+wUnit):"—"} onPress={()=>{setEditModal("weight");setEditValue(localWeight);}}/>
-        <MeRow label="Height" value={localHeight?(localHeight+" cm"):"—"} onPress={()=>{setEditModal("height");setEditValue(localHeight);}} isLast/>
-      </div>
-
-      {/* ── PLAN & NUTRITION ── */}
-      <div style={eyebrowStyle}>// Plan & Nutrition</div>
-      <div style={cardStyle}>
+        <MeRow label="Height" value={localHeight?(localHeight+" cm"):"—"} onPress={()=>{setEditModal("height");setEditValue(localHeight);}}/>
+        {/* ─ Plan & Nutrition ─ */}
+        <div style={{padding:"10px 16px 4px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:2}}>Plan &amp; nutrition</div>
+        </div>
         {/* A. Diet Preset */}
         {(()=>{
           const DIET_OPTS=[
@@ -6613,8 +6654,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           ];
           const current=(profile?.dietary||[]).filter(d=>d!=='none');
           return(
-            <div style={{padding:"14px 16px",borderTop:"1px solid rgba(245,245,240,0.06)"}}>
-              <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:6}}>Dietary Restrictions</div>
+            <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+              <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:6}}>Dietary Restrictions</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
                 {ALLERGEN_OPTS.map(({v,l})=>{
                   const active=current.includes(v);
@@ -6623,7 +6664,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                       const next=active?current.filter(x=>x!==v):[...current,v];
                       await sb.from("profiles").upsert({id:user.id,profile_data:{...profile,dietary:next}},{onConflict:"id"});
                       onProfileUpdate?.({dietary:next});
-                    }} style={{padding:"6px 14px",borderRadius:20,border:active?"none":"1px solid rgba(245,245,240,0.15)",background:active?"var(--accent)":"transparent",color:active?"#fff":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
+                    }} style={{padding:"6px 14px",borderRadius:20,border:active?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:active?"var(--cm-red,#FF3B30)":"transparent",color:active?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
                       {l}
                     </button>
                   );
@@ -6658,17 +6699,16 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         {/* F. Daily calorie target */}
         {(()=>{
           const currentCals=profile?.goalCals??profile?.calorie_target;
-          return <MeRow label="Daily calorie target" value={currentCals?`${currentCals} kcal`:'—'} onPress={()=>setShowCaloriePicker(true)} isLast/>;
+          return <MeRow label="Daily calorie target" value={currentCals?`${currentCals} kcal`:'—'} onPress={()=>setShowCaloriePicker(true)}/>;
         })()}
-      </div>
-
-      {/* ── DISPLAY ── */}
-      <div style={eyebrowStyle}>// Display</div>
-      <div style={cardStyle}>
+        {/* ─ Display ─ */}
+        <div style={{padding:"10px 16px 4px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:2}}>Display &amp; tracking</div>
+        </div>
         {/* Skill Level Chips */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-          <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",marginBottom:12}}>Adjusts coaching language and visible metrics</div>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+          <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:12}}>Adjusts coaching language and visible metrics</div>
           <div style={{display:"flex",gap:6}}>
             {["beginner","intermediate","advanced"].map(level=>{
               const isActive=currentSkill===level;
@@ -6678,7 +6718,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
                   showToast(`Display preferences updated for ${level} level.`,"success");
-                }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(245,245,240,0.15)",background:isActive?"var(--accent)":"transparent",color:isActive?"#fff":"rgba(245,245,240,0.5)",fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
+                }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:isActive?"var(--cm-red,#FF3B30)":"transparent",color:isActive?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
                   {level}
                 </button>
               );
@@ -6686,8 +6726,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </div>
         </div>
         {/* Today Tab Toggles */}
-        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// TODAY TAB</div>
+        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Today tab</div>
           {[
             {key:"morning_brief",label:"Morning Brief",def:true},
             {key:"streak_counter",label:"Streak Counter",def:true},
@@ -6700,14 +6740,14 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             const val=displayPrefs[key]??def;
             return(
               <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
                 <div onClick={async()=>{
                   const newDp={...displayPrefs,[key]:!val};
                   setDisplayPrefs(newDp);
                   const newWp={...wPrefs,displayPrefs:newDp};
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
                   <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                 </div>
               </div>
@@ -6715,8 +6755,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           })}
         </div>
         {/* During Workouts */}
-        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// DURING WORKOUTS</div>
+        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>During workouts</div>
           {[
             {key:"rpe_input",label:"RPE Input",def:currentSkill!=="beginner"},
             {key:"momentum_bar",label:"Momentum Bar",def:currentSkill!=="beginner"},
@@ -6724,14 +6764,14 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             const val=displayPrefs[key]??def;
             return(
               <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
                 <div onClick={async()=>{
                   const newDp={...displayPrefs,[key]:!val};
                   setDisplayPrefs(newDp);
                   const newWp={...wPrefs,displayPrefs:newDp};
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
                   <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                 </div>
               </div>
@@ -6740,7 +6780,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         </div>
         {/* Nutrition */}
         <div style={{padding:"10px 16px 6px"}}>
-          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.35)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>// NUTRITION</div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Nutrition</div>
           {[
             {key:"full_macro_breakdown",label:"Full Macro Breakdown",def:currentSkill!=="beginner"},
             {key:"macro_memory",label:"Macro Memory",def:currentSkill!=="beginner"},
@@ -6749,14 +6789,14 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             const val=displayPrefs[key]??def;
             return(
               <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.8)"}}>{label}</span>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
                 <div onClick={async()=>{
                   const newDp={...displayPrefs,[key]:!val};
                   setDisplayPrefs(newDp);
                   const newWp={...wPrefs,displayPrefs:newDp};
                   setWPrefs(newWp);
                   await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
                   <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                 </div>
               </div>
@@ -6765,31 +6805,34 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         </div>
       </div>
 
-      {/* ── APPEARANCE ── */}
-      <div style={eyebrowStyle}>// Appearance</div>
+      {/* ── GROUP 3: APPEARANCE ──────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Appearance</div>
       <AppearanceSection user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} />
 
-      {/* ── SUBSCRIPTION ── */}
-      <div style={eyebrowStyle}>// Subscription</div>
+      {/* ── GROUP 4: ACCOUNT ─────────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Account</div>
+      <ReferAFriendCard user={user} eyebrowStyle={eyebrowStyle} />
+      <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
+      {/* Subscription */}
       <div style={cardStyle}>
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Plan</span>
-          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"var(--accent)":"rgba(245,245,240,0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(245,245,240,0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(245,245,240,0.08)"}`}}>{subLabel}</span>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Plan</span>
+          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`}}>{subLabel}</span>
         </div>
         {subIsPaid?(
           <>
-            {profile?.subscription_started_at&&<div style={{padding:"10px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",fontSize:12,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)"}}>Active since {new Date(profile.subscription_started_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+            {profile?.subscription_started_at&&<div style={{padding:"10px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif"}}>Active since {new Date(profile.subscription_started_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
             <MeRow label="Manage Subscription" onPress={()=>showToast("Manage via App Store → Subscriptions.","info",{duration:4000})} value=""/>
-            <div style={{padding:"8px 16px",fontSize:10,color:"rgba(245,245,240,0.25)",fontFamily:"var(--mono)",letterSpacing:"0.06em",borderBottom:"1px solid rgba(245,245,240,0.04)"}}>Manage or cancel via the App Store settings.</div>
+            <div style={{padding:"8px 16px",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontFamily:"'Archivo',sans-serif",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.04)"}}>Manage or cancel via the App Store settings.</div>
           </>
         ):(
-          <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--accent-rgb),0.05)",border:"1px solid rgba(var(--accent-rgb),0.15)",borderRadius:12}}>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
+          <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:12}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$12.99 / month</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual · Founding</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--mono)",fontSize:11,color:"rgba(245,245,240,0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"var(--mono)",fontWeight:700}}>SAVE 68%</span></div></div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$12.99 / month</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual · Founding</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"'Archivo',sans-serif",fontWeight:700}}>SAVE 68%</span></div></div>
             </div>
-            <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--red)",border:"none",borderRadius:10,color:"#fff",fontFamily:"var(--condensed)",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
+            <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
           </div>
         )}
         <MeRow label="Restore Purchases" isLast onPress={async()=>{
@@ -6806,9 +6849,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {showPlansModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
-            <div style={{width:32,height:3,background:"rgba(var(--accent-rgb),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
+            <div style={{width:32,height:3,background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.1em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
             {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"FOUNDING ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:"FOUNDING MEMBER",saving:"Save 68% vs monthly · locked for life",gradient:true}].map(plan=>(
               <div key={plan.id} onClick={async()=>{
                 if(purchaseLoading)return;
@@ -6819,12 +6862,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 setPurchaseLoading(null);
                 if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
                 else showToast("Purchase failed. Try again.","error");
-              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--accent-rgb),0.04))":"#0d0d0d",border:`1px solid ${plan.gradient?"var(--accent)":"rgba(var(--accent-rgb),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
-                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--accent)",borderRadius:20,padding:"3px 10px",fontFamily:"var(--mono)",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:plan.gradient?"var(--accent)":"rgba(245,245,240,0.4)",textTransform:"uppercase",marginBottom:4}}>{plan.label}</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"var(--mono)",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(245,245,240,0.4)"}}> {plan.per}</span></div>
-                {plan.saving&&<div style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
-                {purchaseLoading===plan.id&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:6}}>Processing...</div>}
+              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--cm-red-rgb,255,59,48),0.04))":"var(--cm-paper,#FFFFFF)",border:`1px solid ${plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"3px 10px",fontFamily:"'Archivo',sans-serif",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{plan.label}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}> {plan.per}</span></div>
+                {plan.saving&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
+                {purchaseLoading===plan.id&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:6}}>Processing...</div>}
               </div>
             ))}
           </div>
@@ -6832,64 +6875,62 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         document.body
       )}
 
-      {/* ── YOUR VOICE ── */}
-      <div style={eyebrowStyle}>// Your Voice</div>
+      {/* Your Voice */}
       {[
-        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>,title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(var(--accent-rgb),0.1)",bd:"rgba(var(--accent-rgb),0.2)",section:"feedback"},
+        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>,title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(var(--cm-red-rgb,255,59,48),0.1)",bd:"rgba(var(--cm-red-rgb,255,59,48),0.2)",section:"feedback"},
         {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>,title:"REPORT A PROBLEM.",sub:"Help us fix what's broken",bg:"rgba(254,160,32,0.1)",bd:"rgba(254,160,32,0.2)",section:"feedback"},
       ].map(({icon,title,sub,bg,bd,section})=>(
-        <div key={title} onClick={()=>{if(window.uj)window.uj.showWidget({section});}} style={{background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.07)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
-          onPointerDown={e=>e.currentTarget.style.borderColor="rgba(var(--accent-rgb),0.3)"}
-          onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
-          onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.07)"}
+        <div key={title} onClick={()=>{if(window.uj)window.uj.showWidget({section});}} style={{background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
+          onPointerDown={e=>e.currentTarget.style.borderColor="rgba(var(--cm-red-rgb,255,59,48),0.3)"}
+          onPointerUp={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.07)"}
+          onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.07)"}
         >
           <div style={{width:40,height:40,borderRadius:10,background:bg,border:`1px solid ${bd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
           <div style={{flex:1}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"#f5f5f0"}}>{title}</div>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"var(--cm-ink,#0A0A0A)"}}>{title}</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>{sub}</div>
           </div>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.3)"}}>→</div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}>→</div>
         </div>
       ))}
-      <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"roadmap"});}} style={{background:"rgba(245,245,240,0.02)",border:"1px solid rgba(245,245,240,0.05)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
+      <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"roadmap"});}} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.02)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.05)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
         onPointerDown={e=>e.currentTarget.style.borderColor="rgba(96,165,250,0.25)"}
-        onPointerUp={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
-        onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(245,245,240,0.05)"}
+        onPointerUp={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.05)"}
+        onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.05)"}
       >
         <div style={{width:40,height:40,borderRadius:10,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
         </div>
         <div style={{flex:1}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(245,245,240,0.7)"}}>SEE OUR ROADMAP.</div>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.3)",marginTop:2}}>What we're building and what's coming next</div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(var(--cm-ink-rgb,10,10,10),0.7)"}}>SEE OUR ROADMAP.</div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)",marginTop:2}}>What we're building and what's coming next</div>
         </div>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.3)"}}>→</div>
+        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}>→</div>
       </div>
 
-      {/* ── CONNECTED APPS ── */}
-      <div style={eyebrowStyle}>// Connected Apps</div>
+      {/* Connected Apps */}
       <div style={cardStyle}>
         {/* Strava */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:44,height:44,borderRadius:10,background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
             </div>
             <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Strava</div>
-              {stravaConnected&&stravaAthlete?.metadata?.firstname&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>{stravaAthlete.metadata.firstname}</div>}
-              {!stravaConnected&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Strava</div>
+              {stravaConnected&&stravaAthlete?.metadata?.firstname&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>{stravaAthlete.metadata.firstname}</div>}
+              {!stravaConnected&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
             </div>
           </div>
           {stravaConnected?(
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontFamily:"var(--mono)",fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:6,padding:"3px 8px"}}>CONNECTED</span>
+              <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:6,padding:"3px 8px"}}>CONNECTED</span>
               <button onClick={async()=>{
                 if(!confirm("Disconnect Strava?"))return;
                 await sb.from('connected_apps').delete().eq('user_id',user.id).eq('provider','strava');
                 setStravaConnected(false);setStravaAthlete(null);
                 showToast("Strava disconnected","info");
-              }} style={{background:"transparent",border:"1px solid rgba(245,245,240,0.12)",borderRadius:6,color:"rgba(245,245,240,0.4)",fontSize:11,padding:"4px 10px",cursor:"pointer",fontFamily:"var(--mono)"}}>Disconnect</button>
+              }} style={{background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:6,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontSize:11,padding:"4px 10px",cursor:"pointer",fontFamily:"'Archivo',sans-serif"}}>Disconnect</button>
             </div>
           ):(
             <button onClick={async()=>{
@@ -6897,40 +6938,40 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               setStravaLoading(true);
               const base=import.meta.env.VITE_API_BASE_URL||"";
               window.location.href=`${base}/api/strava/auth?userId=${user.id}`;
-            }} disabled={stravaLoading} style={{background:"#FC4C02",border:"none",borderRadius:8,color:"#fff",fontFamily:"var(--mono)",fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer",letterSpacing:"0.06em"}}>
+            }} disabled={stravaLoading} style={{background:"#FC4C02",border:"none",borderRadius:8,color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer",letterSpacing:"0.06em"}}>
               {stravaLoading?"CONNECTING…":"CONNECT"}
             </button>
           )}
         </div>
         {/* Calendar — Life-Aware Training */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)"}}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
           <CalendarSettingsPanel connected={calendarConnected||false} onConnect={onCalendarConnect||(() =>{})} onDisconnect={onCalendarDisconnect||(() =>{})} prefs={wPrefs?.calendarPrefs||{}} onPrefsChange={async(key,val)=>{const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};setWPrefs(next);if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}}}/>
         </div>
         {/* Apple Health */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <img src="/images/apple-health-icon.png" alt="Apple Health" style={{width:44,height:44,borderRadius:10,flexShrink:0,display:"block"}}/>
             <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Apple Health</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Sleep · HRV · Steps</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Apple Health</div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sleep · HRV · Steps</div>
             </div>
           </div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,padding:"4px 10px",borderRadius:6,background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(245,245,240,0.06)",color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#34d399":"rgba(245,245,240,0.4)",border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":"rgba(245,245,240,0.08)"}`,letterSpacing:"0.1em",textTransform:"uppercase"}}>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,padding:"4px 10px",borderRadius:6,background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#34d399":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,letterSpacing:"0.08em",textTransform:"uppercase"}}>
             {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
           </div>
         </div>
         {/* WHOOP */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(245,245,240,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#000",border:"1px solid rgba(245,245,240,0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <div style={{width:44,height:44,borderRadius:10,background:"#000",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               <svg width="22" height="14" viewBox="0 0 40 24" fill="#fff"><text x="0" y="18" fontSize="18" fontWeight="900" fontFamily="sans-serif">W</text></svg>
             </div>
             <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>WHOOP</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Recovery & strain data</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>WHOOP</div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Recovery & strain data</div>
             </div>
           </div>
-          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
+          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
         </div>
         {/* Garmin */}
         <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -6939,19 +6980,18 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
             </div>
             <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"#f5f5f0"}}>Garmin</div>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.4)",marginTop:1}}>Workouts & health metrics</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Garmin</div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Workouts & health metrics</div>
             </div>
           </div>
-          <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",background:"rgba(245,245,240,0.06)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
+          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
         </div>
       </div>
 
-      {/* ── SETTINGS ── */}
-      <div style={eyebrowStyle}>// Settings</div>
+      {/* Settings */}
       <div style={cardStyle}>
         <MeRow label="Units" noChevron rightEl={
-          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(245,245,240,0.12)"}}>
+          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)"}}>
             {["lbs","kg"].map(u=>(
               <button key={u} onClick={async()=>{
                 const hU=u==="kg"?"cm":"ft";
@@ -6959,7 +6999,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 setWPrefs(wp);
                 await saveSettings(wp,null);
                 if(user)sb.from("profiles").upsert({id:user.id,units:u==="kg"?"metric":"imperial"},{onConflict:"id"}).then(()=>{});
-              }} style={{padding:"6px 14px",background:wUnit===u?"var(--accent)":"transparent",color:wUnit===u?"#fff":"rgba(245,245,240,0.4)",border:"none",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.08em"}}>{u}</button>
+              }} style={{padding:"6px 14px",background:wUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:wUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:"none",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer",letterSpacing:"0.06em"}}>{u}</button>
             ))}
           </div>
         }/>
@@ -6968,12 +7008,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             per-day target system (ring + meal plan). Training-day/rest-day variation
             is handled automatically by day type — no manual toggle needed. */}
         {(profile?.goal==="lose_fat"||profile?.goal==="recomp"||wPrefs?.primaryGoal==="lose_fat"||wPrefs?.primaryGoal==="recomp")&&(
-          <div style={{padding:"14px 16px",borderTop:"1px solid rgba(245,245,240,0.06)"}}>
-            <div style={{fontSize:14,color:"#f5f5f0",fontFamily:"'Barlow',sans-serif",marginBottom:4}}>Refeed Interval</div>
-            <div style={{fontSize:11,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginBottom:10}}>Metabolism reset every N days in deficit</div>
+          <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+            <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:4}}>Refeed Interval</div>
+            <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif",marginBottom:10}}>Metabolism reset every N days in deficit</div>
             <div style={{display:"flex",gap:8}}>
               {[5,7,10].map(n=>(
-                <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--accent-rgb),0.2)":"rgba(245,245,240,0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--accent-rgb),0.5)":"rgba(245,245,240,0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"var(--accent)":"rgba(245,245,240,0.6)",fontFamily:"var(--mono)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.2)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.5)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.6)",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                   {n}d
                 </button>
               ))}
@@ -6982,12 +7022,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         )}
       </div>
 
-      {/* ── COACH OUTREACH ── */}
-      <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
-      <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
-
-      {/* ── ACCOUNT ── */}
-      <div style={eyebrowStyle}>// Account</div>
+      {/* Help / Sign Out */}
       <div style={cardStyle}>
         <MeRow label="Help & Support" onPress={()=>window.open("https://coach-macro.com/support","_blank")} value=""/>
         <MeRow label="Privacy Policy" onPress={()=>window.open("https://coach-macro.com/privacy","_blank")} value=""/>
@@ -6998,45 +7033,46 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
       {/* Delete confirmation */}
       {delStep>0&&(
-        <div style={{background:"rgba(var(--accent-rgb),0.06)",border:"1px solid rgba(var(--accent-rgb),0.2)",borderRadius:12,padding:16,marginTop:8}}>
+        <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:16,marginTop:8}}>
           {delStep===1&&<>
-            <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
-            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
-            <div style={{fontSize:11,color:"var(--accent)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
+            <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
+            <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
+            <div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
+              <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
             </div>
           </>}
           {delStep===2&&<>
-            <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
-            <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:12}}>Type <strong style={{color:"#f5f5f0"}}>DELETE</strong> to permanently delete your account.</div>
-            <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(245,245,240,0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--accent)":"rgba(245,245,240,0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
+            <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
+            <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:12}}>Type <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>DELETE</strong> to permanently delete your account.</div>
+            <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--accent)":"rgba(var(--accent-rgb),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
+              <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
             </div>
           </>}
-          {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(245,245,240,0.5)"}}>Deleting your account...</div>}
+          {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)"}}>Deleting your account...</div>}
         </div>
       )}
+      </div>{/* end white sheet */}
 
       {/* ── EDIT FIELD MODAL ── */}
       {editModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setEditModal(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
             <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type={editModal==="name"?"text":"number"} placeholder={editModal==="name"?"Your name":editModal==="weight"?`Weight in ${wUnit}`:"Height in cm"}
-              style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
+              style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setEditModal(null)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setEditModal(null)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
               <button onClick={async()=>{
                 const v=editValue.trim();if(!v){setEditModal(null);return;}
                 if(editModal==="name"){setLocalName(v);await saveProfileField("name",v);}
                 else if(editModal==="weight"){setLocalWeight(v);await saveProfileField("weight",v);}
                 else if(editModal==="height"){setLocalHeight(v);await saveProfileField("height",v);}
                 setEditModal(null);
-              }} style={{flex:1,padding:14,background:"var(--accent)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+              }} style={{flex:1,padding:14,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
             </div>
           </div>
         </div>,
@@ -7046,11 +7082,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── GOAL SELECTOR MODAL ── */}
       {showGoalSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowGoalSelector(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Goal</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {Object.entries(GOAL_LABELS).map(([key,label])=>(
-                <button key={key} onClick={async()=>{const wp={...wPrefs,primaryGoal:key};setWPrefs(wp);await saveSettings(wp,null);setShowGoalSelector(false);}} style={{padding:"14px 16px",background:currentGoal===key?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentGoal===key?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentGoal===key?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentGoal===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <button key={key} onClick={async()=>{const wp={...wPrefs,primaryGoal:key};setWPrefs(wp);await saveSettings(wp,null);setShowGoalSelector(false);}} style={{padding:"14px 16px",background:currentGoal===key?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${currentGoal===key?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:currentGoal===key?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentGoal===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   {label}{currentGoal===key&&<span>✓</span>}
                 </button>
               ))}
@@ -7063,12 +7099,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── SKILL SELECTOR MODAL ── */}
       {showSkillSelector&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowSkillSelector(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Skill Level</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[{key:"beginner",label:"Beginner",sub:"Under 1 year"},{key:"intermediate",label:"Intermediate",sub:"1–4 years"},{key:"advanced",label:"Advanced",sub:"4+ years"}].map(({key,label,sub})=>(
-                <button key={key} onClick={async()=>{const wp={...wPrefs,liftExp:key};setWPrefs(wp);await saveSettings(wp,null);setShowSkillSelector(false);}} style={{padding:"14px 16px",background:currentSkill===key?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${currentSkill===key?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:currentSkill===key?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentSkill===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div><div>{label}</div><div style={{fontSize:12,color:"rgba(245,245,240,0.4)",marginTop:2}}>{sub}</div></div>
+                <button key={key} onClick={async()=>{const wp={...wPrefs,liftExp:key};setWPrefs(wp);await saveSettings(wp,null);setShowSkillSelector(false);}} style={{padding:"14px 16px",background:currentSkill===key?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${currentSkill===key?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:currentSkill===key?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:currentSkill===key?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div><div>{label}</div><div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>{sub}</div></div>
                   {currentSkill===key&&<span>✓</span>}
                 </button>
               ))}
@@ -7081,9 +7117,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── DIET PRESET MODAL ── */}
       {showEquipmentPicker&&ReactDOM.createPortal(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowEquipmentPicker(false)}>
-            <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>Training Equipment</div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.45)",marginBottom:16}}>Changing this updates how your workouts are built and which exercises get substituted.</div>
+            <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6}}>Training Equipment</div>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",marginBottom:16}}>Changing this updates how your workouts are built and which exercises get substituted.</div>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 {[
                   {v:"Full Gym",sub:"Barbells, cables, machines, dumbbells — everything"},
@@ -7093,9 +7129,9 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 ].map(({v,sub})=>{
                   const sel=(wPrefs?.equipment||"Full Gym")===v;
                   return(
-                    <button key={v} onClick={async()=>{const wp={...wPrefs,equipment:v};setWPrefs(wp);await saveSettings(wp,null);setShowEquipmentPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",gap:3}}>
-                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:600,color:sel?"var(--accent)":"#f5f5f0",display:"flex",alignItems:"center",justifyContent:"space-between"}}>{v}{sel&&<span>✓</span>}</span>
-                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:12,fontWeight:400,color:sel?"rgba(var(--accent-rgb),0.7)":"rgba(245,245,240,0.4)"}}>{sub}</span>
+                    <button key={v} onClick={async()=>{const wp={...wPrefs,equipment:v};setWPrefs(wp);await saveSettings(wp,null);setShowEquipmentPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",gap:3}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:600,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>{v}{sel&&<span>✓</span>}</span>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:12,fontWeight:400,color:sel?"rgba(var(--cm-red-rgb,255,59,48),0.7)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>{sub}</span>
                     </button>
                   );
                 })}
@@ -7107,13 +7143,13 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
       {showDietPicker&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowDietPicker(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Diet Preset</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40,maxHeight:"75vh",overflowY:"auto"}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Select Diet Preset</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[{id:'balanced',label:'Balanced'},{id:'high-protein',label:'High Protein'},{id:'keto',label:'Keto'},{id:'vegan',label:'Vegan'},{id:'vegetarian',label:'Vegetarian'},{id:'carnivore',label:'Carnivore'},{id:'low-carb',label:'Low Carb'},{id:'pescatarian',label:'Pescatarian'},{id:'mediterranean',label:'Mediterranean'}].map(({id,label})=>{
                 const sel=(wPrefs?.mealPrepDiet||'balanced')===id;
                 return(
-                  <button key={id} onClick={async()=>{const wp={...wPrefs,mealPrepDiet:id};setWPrefs(wp);await saveSettings(wp,null);setShowDietPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <button key={id} onClick={async()=>{const wp={...wPrefs,mealPrepDiet:id};setWPrefs(wp);await saveSettings(wp,null);setShowDietPicker(false);}} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     {label}{sel&&<span>✓</span>}
                   </button>
                 );
@@ -7127,8 +7163,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── RECOVERY CAPACITY MODAL ── */}
       {showRecoveryPicker&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRecoveryPicker(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Recovery Capacity</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Recovery Capacity</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[{v:'fast',l:'Very fast',d:'Ready to go the next day'},{v:'normal',l:'Normal',d:'A bit sore for about a day'},{v:'slow',l:'Slower',d:'Need 2–3 days to feel fresh'},{v:'very_slow',l:'Very slow',d:'4+ days to fully bounce back'}].map(({v,l,d})=>{
                 const sel=(wPrefs?.recoveryCapacity||profile?.recovery_capacity||'normal')===v;
@@ -7138,8 +7174,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                     const wp={...wPrefs,recoveryCapacity:v};setWPrefs(wp);await saveSettings(wp,null);
                     onProfileUpdate?.({recovery_capacity:v});
                     setShowRecoveryPicker(false);
-                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <div><div>{l}</div><div style={{fontSize:12,color:"rgba(245,245,240,0.4)",marginTop:2}}>{d}</div></div>
+                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div><div>{l}</div><div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>{d}</div></div>
                     {sel&&<span>✓</span>}
                   </button>
                 );
@@ -7153,8 +7189,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── LONG RUN DAY MODAL ── */}
       {showLongRunPicker&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>{setShowLongRunPicker(false);setLrdOverrideDay(null);}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Long Run Day</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Long Run Day</div>
             {(()=>{
               const LIFT=['training','hyrox','hybrid'];
               async function applyLongRun(d){
@@ -7186,10 +7222,10 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                         <button key={day} onClick={()=>{
                           if(LIFT.includes(cur)){setLrdOverrideDay(day);}
                           else{applyLongRun(day);}
-                        }} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        }} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                           <div>
                             {day}
-                            {cur&&cur!=='rest'&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.35)",marginLeft:8}}>{DAY_CFG[cur]?.label||cur}</span>}
+                            {cur&&cur!=='rest'&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginLeft:8}}>{DAY_CFG[cur]?.label||cur}</span>}
                           </div>
                           {sel&&<span>✓</span>}
                         </button>
@@ -7198,12 +7234,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   </div>
                   {/* Inline guardrail: confirm before replacing a lift/structured day */}
                   {lrdOverrideDay&&(
-                    <div style={{background:"rgba(var(--accent-rgb),0.08)",border:"1px solid rgba(var(--accent-rgb),0.25)",borderRadius:10,padding:14,marginTop:12}}>
-                      <div style={{fontSize:13,color:"var(--accent)",fontWeight:700,marginBottom:6}}>{lrdOverrideDay} is your {DAY_CFG[schedule[lrdOverrideDay]]?.label||'training'} day — replace it with your long run?</div>
-                      <div style={{fontSize:12,color:"rgba(245,245,240,0.5)",marginBottom:10}}>This changes the schedule type to Run for {lrdOverrideDay}.</div>
+                    <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:10,padding:14,marginTop:12}}>
+                      <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:6}}>{lrdOverrideDay} is your {DAY_CFG[schedule[lrdOverrideDay]]?.label||'training'} day — replace it with your long run?</div>
+                      <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:10}}>This changes the schedule type to Run for {lrdOverrideDay}.</div>
                       <div style={{display:"flex",gap:8}}>
-                        <button onClick={()=>setLrdOverrideDay(null)} style={{flex:1,padding:"10px",background:"rgba(245,245,240,0.05)",color:"rgba(245,245,240,0.5)",border:"1px solid rgba(245,245,240,0.1)",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-                        <button onClick={()=>applyLongRun(lrdOverrideDay)} style={{flex:1,padding:"10px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Replace</button>
+                        <button onClick={()=>setLrdOverrideDay(null)} style={{flex:1,padding:"10px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                        <button onClick={()=>applyLongRun(lrdOverrideDay)} style={{flex:1,padding:"10px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Replace</button>
                       </div>
                     </div>
                   )}
@@ -7218,8 +7254,8 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── RACE TYPE MODAL ── */}
       {showRaceTypePicker&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRaceTypePicker(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Type</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Type</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {[{v:'5k',l:'5K'},{v:'10k',l:'10K'},{v:'half_marathon',l:'Half Marathon'},{v:'marathon',l:'Marathon'},{v:'ultra',l:'Ultra'},{v:'obstacle',l:'Obstacle / OCR'},{v:'general',l:'General Fitness'}].map(({v,l})=>{
                 const sel=profile?.run_race_type===v;
@@ -7228,7 +7264,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                     await saveProfileField('run_race_type',v);
                     onProfileUpdate?.({run_race_type:v});
                     setShowRaceTypePicker(false);
-                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--accent-rgb),0.15)":"rgba(245,245,240,0.04)",border:`1px solid ${sel?"rgba(var(--accent-rgb),0.4)":"rgba(245,245,240,0.08)"}`,borderRadius:10,color:sel?"var(--accent)":"#f5f5f0",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  }} style={{padding:"14px 16px",background:sel?"rgba(var(--cm-red-rgb,255,59,48),0.15)":"rgba(var(--cm-ink-rgb,10,10,10),0.04)",border:`1px solid ${sel?"rgba(var(--cm-red-rgb,255,59,48),0.4)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,borderRadius:10,color:sel?"var(--cm-red,#FF3B30)":"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",fontSize:15,fontWeight:sel?700:400,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     {l}{sel&&<span>✓</span>}
                   </button>
                 );
@@ -7242,10 +7278,10 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── RACE DATE PICKER ── */}
       {showRaceDatePicker&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowRaceDatePicker(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Date</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Race Date</div>
             <input type="date" defaultValue={profile?.run_race_date||''} min={new Date().toISOString().split('T')[0]}
-              style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none",colorScheme:"dark"}}
+              style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none",colorScheme:"dark"}}
               onChange={async(e)=>{
                 const val=e.target.value;
                 if(!val)return;
@@ -7253,7 +7289,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 onProfileUpdate?.({run_race_date:val});
                 setShowRaceDatePicker(false);
               }}/>
-            <button onClick={()=>setShowRaceDatePicker(false)} style={{width:"100%",padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+            <button onClick={()=>setShowRaceDatePicker(false)} style={{width:"100%",padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
           </div>
         </div>,
         document.body
@@ -7262,19 +7298,19 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── CALORIE TARGET PICKER ── */}
       {showCaloriePicker&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowCaloriePicker(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0d0d0d",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>Daily Calorie Target</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(245,245,240,0.35)",marginBottom:16}}>Moves the ring immediately. Enter a value between 800 and 7000 kcal.</div>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
+            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>Daily Calorie Target</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",marginBottom:16}}>Moves the ring immediately. Enter a value between 800 and 7000 kcal.</div>
             <input
               type="number"
               inputMode="numeric"
               defaultValue={profile?.goalCals??profile?.calorie_target??''}
               placeholder="e.g. 2200"
-              style={{width:"100%",padding:"12px 16px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",border:"1px solid rgba(245,245,240,0.12)",borderRadius:10,fontSize:20,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}
+              style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:20,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}
               id="cal-target-input"
             />
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setShowCaloriePicker(false)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(245,245,240,0.1)",borderRadius:10,color:"rgba(245,245,240,0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>setShowCaloriePicker(false)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
               <button onClick={async()=>{
                 const raw=document.getElementById('cal-target-input')?.value;
                 const v=parseInt(raw,10);
@@ -7289,7 +7325,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 onProfileUpdate?.({goalCals:v,calorie_target:v,manual_calorie_target:true});
                 showToast("Saved","success");
                 setShowCaloriePicker(false);
-              }} style={{flex:2,padding:14,background:"var(--accent)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+              }} style={{flex:2,padding:14,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
             </div>
           </div>
         </div>,
