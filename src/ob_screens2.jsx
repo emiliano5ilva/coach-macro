@@ -77,6 +77,7 @@ import WinScreen from "./components/WinScreen.jsx";
 import BodyMap from "./components/BodyMap.jsx";
 import { getExerciseData } from "./data/exerciseMuscleMap.js";
 import { MUSCLE_TO_BODYMAP, BODYMAP_COLOR, ALL_REGIONS } from "./data/bodyMapRegions.js";
+import { loadAndApplyTheme } from "./utils/themeService.js";
 import { thermalAt, THERMAL_NODATA, THERMAL_CSS } from "./data/thermalPalette.js";
 import { OPTIMAL_SETS, GROUP_TO_SVG } from "./services/recoveryService.js";
 import StreakCard from "./components/StreakCard.jsx";
@@ -4033,7 +4034,7 @@ const _PLAN_DAY_MAP = {
 };
 const _PLAN_DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt,setSection,setPlanBuilt:_spb,onProfileUpdate}){
+function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt,setSection,setPlanBuilt:_spb,onProfileUpdate,onProtocolRefetch}){
   const AF="'Archivo',sans-serif";
   const reducedMotion=typeof window!=="undefined"&&window.matchMedia?.("(prefers-reduced-motion:reduce)").matches;
 
@@ -4177,6 +4178,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         ...(focus==="hybrid"&&hybridTemplate?{hybridTemplate}:{}),
         ...(focus==="hybrid"&&dayPlan?{dayPlan}:{}),
         ...(focus==="hyrox"&&hyroxProgram?{hyroxProgram}:{}),
+        schedule:newSchedule,
       };
       // Remove stale dayPlan for run-only — a hybrid dayPlan causes deriveDayModality priority-1
       // to pick wrong run days, showing only 1 session when the account switches from hybrid to run.
@@ -4220,6 +4222,8 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
       setSchedule(newSchedule);
       // Propagate dedicated-column values into React profile state so routing picks them up immediately.
       if(_isRunFocus && onProfileUpdate) onProfileUpdate({run_race_type:_runRaceType,run_race_date:_runRaceDate,recovery_capacity:_recoveryCapacity});
+      // Invalidate stale protocol cache so Fuel card reflects the new schedule immediately.
+      if(onProtocolRefetch) onProtocolRefetch();
       await markPlanBuilt();
       const elapsed=Date.now()-startedAt;
       if(elapsed<1500) await new Promise(r=>setTimeout(r,1500-elapsed));
@@ -4954,6 +4958,11 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     window.addEventListener("resize",handler);
     return()=>window.removeEventListener("resize",handler);
   },[]);
+
+  // Re-apply theme to .goclub now that it's in the DOM — early boot calls wrote to :root fallback.
+  useEffect(()=>{
+    if(GOCLUB_REDESIGN) loadAndApplyTheme(wPrefs);
+  },[wPrefs?.theme?.accent,wPrefs?.theme?.bg]);
 
   const [log,setLog]=useState([]);
   const [skippedSlots,setSkippedSlots]=useState([]);
@@ -8186,7 +8195,7 @@ Rules:
     return (
       <div>
         {/* ── RED FIELD — flat #FF3B30 ── */}
-        <div style={{background:'#FF3B30',paddingLeft:22,paddingRight:22,paddingBottom:148}}>
+        <div style={{background:'var(--cm-red,#FF3B30)',paddingLeft:22,paddingRight:22,paddingBottom:148}}>
 
           {/* ── 3-page swipeable top eyebrow: date | vs-yesterday | streak ── */}
           <div style={{marginBottom:6,overflow:'hidden',userSelect:'none',touchAction:'manipulation'}}
@@ -8323,14 +8332,14 @@ Rules:
 
         {/* ── WHITE CARD ── */}
         <div className="goclub-card-enter" style={{
-          background:"#ffffff",borderRadius:"30px 30px 0 0",
+          background:"var(--cm-paper,#FFFFFF)",borderRadius:"30px 30px 0 0",
           marginTop:-130,position:"relative",
           paddingTop:28,paddingLeft:20,paddingRight:20,paddingBottom:120,
         }}>
 
           {/* Past-day date label */}
           {!isToday&&selDayLabel&&(
-            <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:20}}>
+            <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:20}}>
               {selDayLabel}
             </div>
           )}
@@ -8339,7 +8348,7 @@ Rules:
             {/* ── TODAY: morning brief ── */}
             {!briefDismissed&&(morningBriefLoading||morningBriefError||b?.coach_says||b?.today)&&(
               <StaggerItem i={0} style={{marginBottom:22}}>
-                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
                   MORNING BRIEF
                 </div>
                 {morningBriefLoading ? (
@@ -8347,21 +8356,21 @@ Rules:
                   <div>
                     {[1,0.80,0.60].map((w,i)=>(
                       <div key={i} style={{height:13,width:`${w*100}%`,borderRadius:6,marginBottom:8,
-                        background:"linear-gradient(90deg,rgba(17,17,17,0.06) 25%,rgba(17,17,17,0.10) 50%,rgba(17,17,17,0.06) 75%)",
+                        background:"linear-gradient(90deg,rgba(var(--cm-ink-rgb,10,10,10),0.06) 25%,rgba(var(--cm-ink-rgb,10,10,10),0.10) 50%,rgba(var(--cm-ink-rgb,10,10,10),0.06) 75%)",
                         backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite linear",
                         animationDelay:`${i*80}ms`}}/>
                     ))}
                   </div>
                 ) : morningBriefError ? (
                   <div>
-                    <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)",fontStyle:"italic",marginBottom:6}}>
+                    <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontStyle:"italic",marginBottom:6}}>
                       Couldn't load brief.
                     </div>
                     {/* Temp debug — shows exact error on device; remove after fix confirmed */}
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#FF3B30",lineHeight:1.5,marginBottom:8,wordBreak:"break-all"}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"var(--cm-red,#FF3B30)",lineHeight:1.5,marginBottom:8,wordBreak:"break-all"}}>
                       {morningBriefError}
                     </div>
-                    <button onClick={()=>{setMorningBriefError(null);setMorningBriefLoading(false);setBriefTrigger(t=>t+1);}} style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"#FF3B30",background:"none",border:"none",padding:0,cursor:"pointer",letterSpacing:"0.06em",textTransform:"uppercase"}}>
+                    <button onClick={()=>{setMorningBriefError(null);setMorningBriefLoading(false);setBriefTrigger(t=>t+1);}} style={{fontFamily:AF,fontSize:11,fontWeight:700,color:"var(--cm-red,#FF3B30)",background:"none",border:"none",padding:0,cursor:"pointer",letterSpacing:"0.06em",textTransform:"uppercase"}}>
                       RETRY →
                     </button>
                   </div>
@@ -8369,29 +8378,29 @@ Rules:
                   // ── EXPANDED: coach monologue ──
                   <div style={{background:"#f7f7f7",borderRadius:16,padding:"16px 16px 14px"}}>
                     {b?.greeting&&(
-                      <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"#111111",lineHeight:1.2,marginBottom:12}}>
+                      <div style={{fontFamily:AF,fontWeight:800,fontSize:17,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.2,marginBottom:12}}>
                         {b.greeting}
                       </div>
                     )}
                     {b?.yesterday&&(
-                      <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.70)",lineHeight:1.6,marginBottom:10}}>
+                      <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.70)",lineHeight:1.6,marginBottom:10}}>
                         {b.yesterday}
                       </div>
                     )}
                     {b?.today&&(
-                      <div style={{fontFamily:AF,fontSize:13,color:"#111111",lineHeight:1.6,marginBottom:12}}>
+                      <div style={{fontFamily:AF,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.6,marginBottom:12}}>
                         {b.today}
                       </div>
                     )}
                     {b?.coach_says&&(
-                      <div style={{fontFamily:AF,fontWeight:600,fontStyle:"italic",fontSize:13,color:"#111",lineHeight:1.5,
-                        background:"rgba(255,59,48,0.06)",borderLeft:"3px solid #FF3B30",
+                      <div style={{fontFamily:AF,fontWeight:600,fontStyle:"italic",fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.5,
+                        background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",borderLeft:"3px solid var(--cm-red,#FF3B30)",
                         borderRadius:"0 10px 10px 0",padding:"10px 12px",marginBottom:12}}>
                         {b.coach_says}
                       </div>
                     )}
                     {b?.sign_off&&(
-                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.40)",marginBottom:14}}>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)",marginBottom:14}}>
                         {b.sign_off}
                       </div>
                     )}
@@ -8400,20 +8409,20 @@ Rules:
                       const sessionDone=workoutLogsRaw.some(w=>w.date===todayStr)||!!completedWorkout;
                       const foodLogged=log.length>0;
                       if(todayType==="training"&&hour<12&&!sessionDone)
-                        return <button onClick={()=>{_hL();handleTabPress("train");}} style={{width:"100%",padding:"11px 0",background:"#111111",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Start Session →</button>;
+                        return <button onClick={()=>{_hL();handleTabPress("train");}} style={{width:"100%",padding:"11px 0",background:"var(--cm-ink,#0A0A0A)",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Start Session →</button>;
                       if(!foodLogged)
-                        return <button onClick={()=>{_hL();setSection("fuel");setFuelScreen("home");}} style={{width:"100%",padding:"11px 0",background:"#111111",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Log Breakfast →</button>;
+                        return <button onClick={()=>{_hL();setSection("fuel");setFuelScreen("home");}} style={{width:"100%",padding:"11px 0",background:"var(--cm-ink,#0A0A0A)",color:"#fff",border:"none",borderRadius:10,fontFamily:AF,fontWeight:700,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent",marginBottom:14}}>Log Breakfast →</button>;
                       return null;
                     })()}
                     <div style={{display:"flex",justifyContent:"space-between"}}>
-                      <button onClick={()=>setBriefExpandedLocal(false)} style={{fontFamily:AF,fontSize:9,color:"rgba(17,17,17,0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
-                      <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{fontFamily:AF,fontSize:9,color:"#FF3B30",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
+                      <button onClick={()=>setBriefExpandedLocal(false)} style={{fontFamily:AF,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>COLLAPSE ↑</button>
+                      <button onClick={()=>{setBriefDismissed(true);localStorage.setItem("brief_dismissed",new Date().toISOString().split("T")[0]);}} style={{fontFamily:AF,fontSize:9,color:"var(--cm-red,#FF3B30)",background:"none",border:"none",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",padding:0}}>GOT IT →</button>
                     </div>
                   </div>
                 ) : (
                   // ── COLLAPSED: lead line + contextual CTA ──
                   <div onClick={()=>{setBriefExpandedLocal(true);localStorage.setItem("brief_expanded",new Date().toISOString().split("T")[0]);}} style={{cursor:"pointer"}}>
-                    <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"#111111",lineHeight:1.4,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
+                    <div style={{fontFamily:AF,fontWeight:700,fontSize:15,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.4,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>
                       {b?.today||b?.coach_says||b?.greeting||""}
                     </div>
                     {(()=>{
@@ -8425,11 +8434,11 @@ Rules:
                       return(
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                           <div style={{fontFamily:AF,fontWeight:700,fontSize:10,
-                            color:ctaIsAction?"#FF3B30":"rgba(17,17,17,0.45)",
+                            color:ctaIsAction?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.45)",
                             letterSpacing:"0.08em",textTransform:"uppercase"}}>
                             {ctaLabel}
                           </div>
-                          <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(17,17,17,0.45)",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
+                          <div style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",letterSpacing:"0.14em",textTransform:"uppercase"}}>READ MORE ↓</div>
                         </div>
                       );
                     })()}
@@ -8441,11 +8450,11 @@ Rules:
             <StaggerItem i={1} style={{marginBottom:22}}>
               {/* Eyebrow + optional nav link — always present */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"#111111",letterSpacing:"0.16em",textTransform:"uppercase"}}>
+                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.16em",textTransform:"uppercase"}}>
                   {todayType==="rest"||deloadActive?"TODAY":todayIsRunDay?"TODAY'S RUN":todayIsHyrox?"TODAY'S HYROX":"TODAY'S LIFT"}
                 </div>
                 {!deloadActive&&todayType!=="rest"&&(
-                  <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"#111111",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
+                  <button onClick={()=>handleTabPress("train")} style={{fontFamily:AF,fontSize:10,fontWeight:700,color:"var(--cm-ink,#0A0A0A)",background:"none",border:"none",letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
                     See session →
                   </button>
                 )}
@@ -8465,7 +8474,7 @@ Rules:
                     </div>
                     <div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#7E57C2",lineHeight:1,marginBottom:5}}>Recovery Week</div>
-                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.5}}>Reduced intensity. This is where adaptation happens.</div>
+                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.5}}>Reduced intensity. This is where adaptation happens.</div>
                     </div>
                   </div>
                 </div>
@@ -8481,8 +8490,8 @@ Rules:
                       </svg>
                     </div>
                     <div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#111",lineHeight:1,marginBottom:5}}>Rest Day</div>
-                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.5}}>Recovery is where the work pays off.</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,marginBottom:5}}>Rest Day</div>
+                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.5}}>Recovery is where the work pays off.</div>
                     </div>
                   </div>
                 </div>
@@ -8500,14 +8509,14 @@ Rules:
                   return(
                     <div>
                       <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
-                        style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 14px",marginBottom:14}}>
+                        style={{display:"inline-flex",background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"5px 14px",marginBottom:14}}>
                         <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>{typeLabel}</span>
                       </motion.div>
-                      {distStr&&<div style={{fontFamily:AF,fontWeight:800,fontSize:36,color:"#111",lineHeight:1,marginBottom:8,letterSpacing:"-0.02em"}}>{distStr}</div>}
-                      {note&&<div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.55,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{note}</div>}
+                      {distStr&&<div style={{fontFamily:AF,fontWeight:800,fontSize:36,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,marginBottom:8,letterSpacing:"-0.02em"}}>{distStr}</div>}
+                      {note&&<div style={{fontFamily:AF,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.55,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{note}</div>}
                       {phase&&phase!=='general'&&(
-                        <div style={{display:"inline-flex",background:"rgba(17,17,17,0.06)",borderRadius:20,padding:"4px 11px"}}>
-                          <span style={{fontFamily:AF,fontSize:10,fontWeight:600,color:"rgba(17,17,17,0.50)",textTransform:"capitalize"}}>{phase} phase{phaseSuffix}</span>
+                        <div style={{display:"inline-flex",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:20,padding:"4px 11px"}}>
+                          <span style={{fontFamily:AF,fontSize:10,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),0.50)",textTransform:"capitalize"}}>{phase} phase{phaseSuffix}</span>
                         </div>
                       )}
                     </div>
@@ -8530,13 +8539,13 @@ Rules:
                     <div>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
                         <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
-                          style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 14px"}}>
+                          style={{display:"inline-flex",background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"5px 14px"}}>
                           <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>{hType}</span>
                         </motion.div>
-                        {hDur&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(17,17,17,0.45)"}}>{hDur}</span>}
+                        {hDur&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)"}}>{hDur}</span>}
                         {sessionDone&&<span style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"#22c55e",background:"rgba(34,197,94,0.10)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:20,padding:"3px 10px",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>DONE ✓</span>}
                       </div>
-                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.55)",lineHeight:1.55,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{hNote}</div>
+                      <div style={{fontFamily:AF,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",lineHeight:1.55,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{hNote}</div>
                     </div>
                   );
                 })()
@@ -8547,12 +8556,12 @@ Rules:
                   {/* Red split pill + done badge row */}
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}>
                     <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
-                      style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 14px"}}>
+                      style={{display:"inline-flex",background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"5px 14px"}}>
                       <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>{todayFocus||"Training"}</span>
                     </motion.div>
                     {/* Exercise count — only when workout is AI-generated and loaded */}
                     {workout?.exercises?.length>0&&(
-                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(17,17,17,0.45)"}}>{workout.exercises.length} exercises</span>
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)"}}>{workout.exercises.length} exercises</span>
                     )}
                     {workoutLogsRaw.some(w=>w.date===todayStr)&&(
                       <span style={{fontFamily:AF,fontSize:9,fontWeight:700,color:"#22c55e",background:"rgba(34,197,94,0.10)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:20,padding:"3px 10px",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>DONE ✓</span>
@@ -8562,7 +8571,7 @@ Rules:
                   {focusTags.length>0&&(
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {focusTags.map((tag,i)=>(
-                        <div key={i} style={{fontFamily:AF,fontSize:11,fontWeight:600,color:"#111111",background:"rgba(17,17,17,0.06)",borderRadius:20,padding:"4px 11px"}}>{tag}</div>
+                        <div key={i} style={{fontFamily:AF,fontSize:11,fontWeight:600,color:"var(--cm-ink,#0A0A0A)",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",borderRadius:20,padding:"4px 11px"}}>{tag}</div>
                       ))}
                     </div>
                   )}
@@ -8578,14 +8587,14 @@ Rules:
               </motion.div>
               {consumed.calories>0&&(<>
                 <div style={{marginBottom:16}}>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:52,color:"#111",lineHeight:0.95,letterSpacing:"-0.02em"}}><MN value={Math.round(consumed.calories)} format={{useGrouping:true}}/></div>
-                  <div style={{fontFamily:AF,fontWeight:600,fontSize:11,color:"rgba(17,17,17,0.45)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:8}}>Total Calories</div>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:52,color:"var(--cm-ink,#0A0A0A)",lineHeight:0.95,letterSpacing:"-0.02em"}}><MN value={Math.round(consumed.calories)} format={{useGrouping:true}}/></div>
+                  <div style={{fontFamily:AF,fontWeight:600,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:8}}>Total Calories</div>
                 </div>
                 <div style={{display:"flex",paddingBottom:16,marginBottom:16,borderBottom:"1px solid rgba(0,0,0,0.07)"}}>
                   {[{k:"Protein",v:<MN value={Math.round(consumed.protein)}/>,c:T.prot},{k:"Carbs",v:<MN value={Math.round(consumed.carbs)}/>,c:T.carb},{k:"Fat",v:<MN value={Math.round(consumed.fat)}/>,c:T.fat}].map(({k,v,c},i,arr)=>(
                     <div key={k} style={{flex:1,textAlign:"center",borderRight:i<arr.length-1?"1px solid rgba(0,0,0,0.07)":"none"}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(17,17,17,0.35)"}}>g</span></div>
-                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>g</span></div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
                     </div>
                   ))}
                 </div>
@@ -8601,14 +8610,14 @@ Rules:
                   const sProtTotal=items.reduce((s,e)=>s+(e.protein||0),0);
                   if(items.length===0){
                     return(
-                      <div key={sn} style={{background:"rgba(17,17,17,0.03)",border:"1px solid rgba(17,17,17,0.07)",borderRadius:14,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div key={sn} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.03)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                         <div>
-                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(17,17,17,0.38)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
-                          <div style={{fontFamily:AF,fontSize:12,color:"rgba(17,17,17,0.28)",marginTop:3}}>Not logged yet</div>
+                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                          <div style={{fontFamily:AF,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.28)",marginTop:3}}>Not logged yet</div>
                         </div>
                         {!isLocked&&(
                           <button onPointerDown={()=>_hL()} onClick={()=>{_hL();setFuelScreen("home");setPendingTodaySlot(sn);setSection("fuel");}}
-                            style={{width:36,height:36,borderRadius:10,background:"rgba(255,59,48,0.08)",border:"1.5px solid rgba(255,59,48,0.25)",color:"#FF3B30",fontSize:20,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,touchAction:"manipulation",WebkitTapHighlightColor:"transparent",lineHeight:1}}>
+                            style={{width:36,height:36,borderRadius:10,background:"rgba(var(--cm-red-rgb,255,59,48),0.08)",border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",color:"var(--cm-red,#FF3B30)",fontSize:20,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,touchAction:"manipulation",WebkitTapHighlightColor:"transparent",lineHeight:1}}>
                             +
                           </button>
                         )}
@@ -8616,21 +8625,21 @@ Rules:
                     );
                   }
                   return(
-                    <div key={sn} style={{background:"rgba(17,17,17,0.03)",border:"1px solid rgba(17,17,17,0.07)",borderRadius:14,padding:"16px 16px",marginBottom:10}}>
+                    <div key={sn} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.03)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:"16px 16px",marginBottom:10}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
                           {isLocked&&<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.7)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
-                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:isLocked?"#22c55e":"rgba(17,17,17,0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:isLocked?"#22c55e":"rgba(var(--cm-ink-rgb,10,10,10),0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
                         </div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.40)"}}>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)"}}>
                           <MN value={Math.round(sCalTotal)} format={{useGrouping:true}}/> kcal
                           {sProtTotal>0&&<span style={{color:T.prot}}> · <MN value={Math.round(sProtTotal)}/>g P</span>}
                         </div>
                       </div>
                       {items.map((e,i)=>(
                         <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)"}}>
-                          <div style={{fontFamily:AF,fontSize:15,color:"#111",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.38)",flexShrink:0,textAlign:"right"}}>
+                          <div style={{fontFamily:AF,fontSize:15,color:"var(--cm-ink,#0A0A0A)",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",flexShrink:0,textAlign:"right"}}>
                             <MN value={Math.round(e.calories||0)} format={{useGrouping:true}}/> kcal
                             {(e.protein||0)>0&&<span style={{color:T.prot}}> · <MN value={Math.round(e.protein||0)}/>g P</span>}
                           </div>
@@ -8699,17 +8708,17 @@ Rules:
               {/* Info popover */}
               {showWaterInfo&&(<>
                 <div onClick={()=>setShowWaterInfo(false)} style={{position:"fixed",inset:0,zIndex:199}}/>
-                <div style={{position:"absolute",top:8,right:8,zIndex:200,background:"#ffffff",border:"1px solid rgba(43,166,255,0.20)",borderRadius:12,padding:"12px 14px",maxWidth:260,boxShadow:"0 6px 20px rgba(0,0,0,0.10)"}}>
-                  <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.65)",lineHeight:1.6}}>{waterInfoText}</div>
+                <div style={{position:"absolute",top:8,right:8,zIndex:200,background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(43,166,255,0.20)",borderRadius:12,padding:"12px 14px",maxWidth:260,boxShadow:"0 6px 20px rgba(0,0,0,0.10)"}}>
+                  <div style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.65)",lineHeight:1.6}}>{waterInfoText}</div>
                 </div>
               </>)}
               {/* Custom amount sheet */}
               {showCustomSheet&&(<>
                 <div onClick={()=>setShowCustomSheet(false)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.45)"}}/>
-                <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:301,background:"#ffffff",borderRadius:"20px 20px 0 0",padding:`24px 24px max(24px,env(safe-area-inset-bottom))`,boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
-                  <div style={{width:36,height:4,borderRadius:2,background:"rgba(17,17,17,0.12)",margin:"0 auto 20px"}}/>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"#111111",marginBottom:4}}>Add Water</div>
-                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.45)",marginBottom:24}}>Drag to set amount, then confirm.</div>
+                <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:301,background:"var(--cm-paper,#FFFFFF)",borderRadius:"20px 20px 0 0",padding:`24px 24px max(24px,env(safe-area-inset-bottom))`,boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+                  <div style={{width:36,height:4,borderRadius:2,background:"rgba(var(--cm-ink-rgb,10,10,10),0.12)",margin:"0 auto 20px"}}/>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:18,color:"var(--cm-ink,#0A0A0A)",marginBottom:4}}>Add Water</div>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",marginBottom:24}}>Drag to set amount, then confirm.</div>
                   <div style={{textAlign:"center",marginBottom:8}}>
                     <span style={{fontFamily:AF,fontWeight:800,fontSize:64,color:"#0A6CFF",lineHeight:1}}>{customOz}</span>
                     <span style={{fontFamily:AF,fontSize:18,fontWeight:600,color:"rgba(10,108,255,0.50)",marginLeft:6}}>oz</span>
@@ -8717,15 +8726,15 @@ Rules:
                   <input type="range" min={1} max={64} value={customOz} onChange={e=>setCustomOz(Number(e.target.value))}
                     style={{width:"100%",accentColor:"#0A6CFF",cursor:"pointer",marginBottom:10}}/>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:24}}>
-                    <span style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.35)"}}>1 oz</span>
-                    <span style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.35)"}}>64 oz</span>
+                    <span style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>1 oz</span>
+                    <span style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>64 oz</span>
                   </div>
                   <button onClick={()=>{handleWaterTap(customOz);setShowCustomSheet(false);}}
                     style={{width:"100%",padding:"15px",background:"#0A6CFF",color:"#fff",border:"none",borderRadius:14,fontFamily:AF,fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:"0.02em",marginBottom:10,WebkitTapHighlightColor:"transparent"}}>
                     Add {customOz} oz →
                   </button>
                   <button onClick={()=>setShowCustomSheet(false)}
-                    style={{width:"100%",padding:"12px",background:"none",color:"rgba(17,17,17,0.40)",border:"none",borderRadius:14,fontFamily:AF,fontSize:14,fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                    style={{width:"100%",padding:"12px",background:"none",color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)",border:"none",borderRadius:14,fontFamily:AF,fontSize:14,fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                     Cancel
                   </button>
                 </div>
@@ -8744,21 +8753,21 @@ Rules:
             {/* ── PAST DAY: workout ── */}
             <div style={{marginBottom:32}}>
               <motion.div initial={reducedMotion?{}:{opacity:0,y:-4,scale:0.94}} animate={{opacity:1,y:0,scale:1}} transition={{duration:0.22,ease:'easeOut'}}
-                style={{display:"inline-flex",background:"#FF3B30",borderRadius:20,padding:"5px 15px",marginBottom:24}}>
+                style={{display:"inline-flex",background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"5px 15px",marginBottom:24}}>
                 <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Workout</span>
               </motion.div>
               {selWorkout ? (<>
                 {/* Focus headline + context */}
                 <div style={{marginBottom:22}}>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:40,color:"#111",lineHeight:1.05,marginBottom:10}}>{selWorkout.workout?.focus||"Session"}</div>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:40,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.05,marginBottom:10}}>{selWorkout.workout?.focus||"Session"}</div>
                   <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
                     {selWorkout.session_duration_mins>0&&(
-                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.4)"}}>
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}>
                         <MN value={selWorkout.session_duration_mins}/> min
                       </span>
                     )}
                     {selWorkout.pr_count>0&&(
-                      <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#FF3B30",background:"rgba(255,59,48,0.1)",border:"1px solid rgba(255,59,48,0.25)",borderRadius:20,padding:"3px 10px"}}>
+                      <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--cm-red,#FF3B30)",background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:20,padding:"3px 10px"}}>
                         {selWorkout.pr_count} PR{selWorkout.pr_count>1?"s":""}
                       </span>
                     )}
@@ -8778,10 +8787,10 @@ Rules:
                       const bestR=best?.reps||0;
                       return(
                         <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:14,paddingBottom:14,borderBottom:"1px solid rgba(0,0,0,0.08)"}}>
-                          <div style={{fontFamily:AF,fontSize:15,color:"#111",fontWeight:500,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{ex.name}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.38)",flexShrink:0,textAlign:"right"}}>
+                          <div style={{fontFamily:AF,fontSize:15,color:"var(--cm-ink,#0A0A0A)",fontWeight:500,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{ex.name}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",flexShrink:0,textAlign:"right"}}>
                             {bestW>0
-                              ?<><span style={{color:"rgba(17,17,17,0.65)",fontWeight:600}}><MN value={bestW} format={{useGrouping:true}}/></span><span style={{color:"rgba(17,17,17,0.35)"}}> lbs × {bestR}</span></>
+                              ?<><span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.65)",fontWeight:600}}><MN value={bestW} format={{useGrouping:true}}/></span><span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}> lbs × {bestR}</span></>
                               :bestR>0?<>{bestR} reps</>
                               :`${arr.length} sets`}
                           </div>
@@ -8790,10 +8799,10 @@ Rules:
                     })}
                   </div>
                 ) : (
-                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)",paddingTop:4}}>No exercise detail saved</div>
+                  <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",paddingTop:4}}>No exercise detail saved</div>
                 )}
               </>) : (
-                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No session logged</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>No session logged</div>
               )}
             </div>
 
@@ -8807,14 +8816,14 @@ Rules:
                 <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Nutrition</span>
               </motion.div>
               {dayFoodLoading ? (
-                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>Loading…</div>
               ) : selMacros ? (<>
                 {/* Calorie headline */}
                 <div style={{marginBottom:28}}>
-                  <div style={{fontFamily:AF,fontWeight:800,fontSize:52,color:"#111",lineHeight:0.95,letterSpacing:"-0.02em"}}>
+                  <div style={{fontFamily:AF,fontWeight:800,fontSize:52,color:"var(--cm-ink,#0A0A0A)",lineHeight:0.95,letterSpacing:"-0.02em"}}>
                     <MN value={Math.round(selMacros.calories)} format={{useGrouping:true}}/>
                   </div>
-                  <div style={{fontFamily:AF,fontWeight:600,fontSize:11,color:"rgba(17,17,17,0.45)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:8}}>Total Calories</div>
+                  <div style={{fontFamily:AF,fontWeight:600,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.45)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:8}}>Total Calories</div>
                 </div>
                 {/* P / C / F macro row */}
                 <div style={{display:"flex",paddingBottom:22,marginBottom:22,borderBottom:"1px solid rgba(0,0,0,0.07)"}}>
@@ -8824,8 +8833,8 @@ Rules:
                     {k:"Fat",    v:<MN value={Math.round(selMacros.fat)}/>,    c:T.fat},
                   ].map(({k,v,c},i,arr)=>(
                     <div key={k} style={{flex:1,textAlign:"center",borderRight:i<arr.length-1?"1px solid rgba(0,0,0,0.07)":"none"}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(17,17,17,0.35)"}}>g</span></div>
-                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(17,17,17,0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:22,color:c,lineHeight:1}}>{v}<span style={{fontSize:11,fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>g</span></div>
+                      <div style={{fontFamily:AF,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:5,letterSpacing:"0.03em"}}>{k}</div>
                     </div>
                   ))}
                 </div>
@@ -8838,18 +8847,18 @@ Rules:
                     const sCalTotal=items.reduce((s,e)=>s+(e.calories||0),0);
                     const sProtTotal=items.reduce((s,e)=>s+(e.protein||0),0);
                     return(
-                      <div key={sn} style={{background:"rgba(17,17,17,0.03)",border:"1px solid rgba(17,17,17,0.07)",borderRadius:14,padding:"16px 16px",marginBottom:14}}>
+                      <div key={sn} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.03)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:"16px 16px",marginBottom:14}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(17,17,17,0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.40)"}}>
+                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)"}}>
                             <MN value={Math.round(sCalTotal)} format={{useGrouping:true}}/> kcal
                             {sProtTotal>0&&<span style={{color:T.prot}}> · <MN value={Math.round(sProtTotal)}/>g P</span>}
                           </div>
                         </div>
                         {items.map((e,i)=>(
                           <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)"}}>
-                            <div style={{fontFamily:AF,fontSize:15,color:"#111",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(17,17,17,0.38)",flexShrink:0,textAlign:"right"}}>
+                            <div style={{fontFamily:AF,fontSize:15,color:"var(--cm-ink,#0A0A0A)",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
+                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",flexShrink:0,textAlign:"right"}}>
                               <MN value={Math.round(e.calories||0)} format={{useGrouping:true}}/> kcal
                               {(e.protein||0)>0&&<span style={{color:T.prot}}> · <MN value={Math.round(e.protein||0)}/>g P</span>}
                             </div>
@@ -8860,9 +8869,9 @@ Rules:
                   });
                 })()}
               </>) : selFoodEntries===null ? (
-                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>No meals logged</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>No meals logged</div>
               ) : (
-                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>Loading…</div>
               )}
             </div>
 
@@ -8876,7 +8885,7 @@ Rules:
                 <span style={{fontFamily:AF,fontWeight:700,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#fff"}}>Hydration</span>
               </motion.div>
               {dayWaterLoading ? (
-                <div style={{fontFamily:AF,fontSize:13,color:"rgba(17,17,17,0.35)"}}>Loading…</div>
+                <div style={{fontFamily:AF,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)"}}>Loading…</div>
               ) : (
                 <div style={{borderRadius:20,overflow:"hidden",background:"#032248",height:160,position:"relative",touchAction:"pan-y"}}>
                   <svg ref={pdWaveRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
@@ -8921,7 +8930,7 @@ Rules:
               style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)"}}/>
             {/* Sheet */}
             <div style={{
-              position:"relative",background:"#ffffff",
+              position:"relative",background:"var(--cm-paper,#FFFFFF)",
               borderRadius:"28px 28px 0 0",
               padding:"28px 20px",
               paddingBottom:"max(32px,env(safe-area-inset-bottom))",
@@ -8937,15 +8946,15 @@ Rules:
                   <button key={r.key} onClick={()=>setSheetReadiness(r.key)}
                     style={{
                       display:"flex",flexDirection:"column",alignItems:"center",gap:5,flex:1,padding:"10px 4px",
-                      background:sheetReadiness===r.key?"rgba(255,59,48,0.08)":"rgba(0,0,0,0.03)",
-                      border:`2px solid ${sheetReadiness===r.key?"#FF3B30":"rgba(0,0,0,0.08)"}`,
+                      background:sheetReadiness===r.key?"rgba(var(--cm-red-rgb,255,59,48),0.08)":"rgba(0,0,0,0.03)",
+                      border:`2px solid ${sheetReadiness===r.key?"var(--cm-red,#FF3B30)":"rgba(0,0,0,0.08)"}`,
                       borderRadius:14,cursor:"pointer",WebkitTapHighlightColor:"transparent",transition:"all 0.12s",
                     }}>
                     <div style={{width:22,height:22,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
                       <Icon icon={r.icon} width={22} height={22}/>
                     </div>
                     <span style={{fontFamily:AF,fontWeight:700,fontSize:8,
-                      color:sheetReadiness===r.key?"#FF3B30":"rgba(0,0,0,0.35)",letterSpacing:"0.10em"}}>
+                      color:sheetReadiness===r.key?"var(--cm-red,#FF3B30)":"rgba(0,0,0,0.35)",letterSpacing:"0.10em"}}>
                       {r.label}
                     </span>
                   </button>
@@ -8959,7 +8968,7 @@ Rules:
                     OVERALL SORENESS
                   </div>
                   <div style={{fontFamily:AF,fontWeight:800,fontSize:20,
-                    color:sheetSoreness===0?"rgba(0,0,0,0.25)":sheetSoreness>=7?"#FF3B30":sheetSoreness>=4?"#FF8C00":"#22c55e"}}>
+                    color:sheetSoreness===0?"rgba(0,0,0,0.25)":sheetSoreness>=7?"var(--cm-red,#FF3B30)":sheetSoreness>=4?"#FF8C00":"#22c55e"}}>
                     {sheetSoreness}<span style={{fontFamily:AF,fontSize:12,fontWeight:400,color:"rgba(0,0,0,0.25)"}}>/10</span>
                   </div>
                 </div>
@@ -8977,7 +8986,7 @@ Rules:
               <button onClick={handleGatewaySubmit} disabled={!sheetReadiness||sheetSaving}
                 style={{
                   width:"100%",padding:"16px 0",border:"none",borderRadius:14,cursor:"pointer",
-                  background:sheetReadiness&&!sheetSaving?"#FF3B30":"rgba(0,0,0,0.08)",
+                  background:sheetReadiness&&!sheetSaving?"var(--cm-red,#FF3B30)":"rgba(0,0,0,0.08)",
                   color:sheetReadiness&&!sheetSaving?"#ffffff":"rgba(0,0,0,0.25)",
                   fontFamily:AF,fontWeight:800,fontSize:16,letterSpacing:"0.04em",
                   transition:"background 0.15s",
@@ -10668,7 +10677,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
-        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate}/></ErrorBoundary>}
+        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).catch(()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
