@@ -6462,17 +6462,57 @@ function CoachOutreachSection({ user, eyebrowStyle, cardStyle }) {
   );
 }
 
+// ─── WHEEL COL (scroll-snap picker column, used in weight/height modals) ─────
+function WheelCol({options,value,onChange,width=80}){
+  const ref=useRef(null);
+  const idx=options.findIndex(o=>String(o)===String(value));
+  useEffect(()=>{
+    if(ref.current&&idx>=0) ref.current.scrollTop=idx*40;
+  },[value]);
+  return(
+    <div ref={ref}
+      onScroll={e=>{
+        const i=Math.round(e.target.scrollTop/40);
+        const c=Math.max(0,Math.min(options.length-1,i));
+        if(String(options[c])!==String(value)) onChange(options[c]);
+      }}
+      style={{width,height:200,overflowY:'scroll',scrollSnapType:'y mandatory',
+        WebkitOverflowScrolling:'touch',paddingTop:80,paddingBottom:80,
+        boxSizing:'border-box',msOverflowStyle:'none'}}
+    >
+      {options.map(opt=>(
+        <div key={opt} style={{height:40,scrollSnapAlign:'center',display:'flex',
+          alignItems:'center',justifyContent:'center',
+          fontFamily:"'Archivo',sans-serif",
+          fontWeight:String(opt)===String(value)?800:400,
+          fontSize:String(opt)===String(value)?24:16,
+          color:String(opt)===String(value)?'var(--cm-ink,#0A0A0A)':'rgba(var(--cm-ink-rgb,10,10,10),0.22)',
+          transition:'color 0.15s,font-size 0.15s',userSelect:'none'}}>
+          {opt}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── SETTINGS SECTION ────────────────────────────────────────────────────────
 export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,dayFocus,todayKey,isMobile,onSignOut,user,onPreviewBrief,calendarConnected,onCalendarConnect,onCalendarDisconnect,onLogInjury,onProfileUpdate}) {
   const [delStep,setDelStep]=useState(0);
   const [delInput,setDelInput]=useState("");
   const [deleting,setDeleting]=useState(false);
   const [displayPrefs,setDisplayPrefs]=useState(wPrefs?.displayPrefs||{});
+  const [meScreen,setMeScreen]=useState(null); // null | 'profile' | 'plan' | 'display'
   const [editModal,setEditModal]=useState(null);
   const [editValue,setEditValue]=useState("");
   const [localName,setLocalName]=useState(profile?.name||"");
-  const [localWeight,setLocalWeight]=useState(String(profile?.weight||""));
-  const [localHeight,setLocalHeight]=useState(String(profile?.height||""));
+  const [localWeight,setLocalWeight]=useState(profile?.weight_kg!=null?String(profile.weight_kg):"");
+  const [localHeight,setLocalHeight]=useState(profile?.height_cm!=null?String(profile.height_cm):"");
+  const [pickerWUnit,setPickerWUnit]=useState('lbs');
+  const [pickerWVal,setPickerWVal]=useState(180);
+  const [pickerHUnit,setPickerHUnit]=useState('ft');
+  const [pickerFt,setPickerFt]=useState(5);
+  const [pickerHIn,setPickerHIn]=useState(10);
+  const [pickerHCm,setPickerHCm]=useState(175);
   const [showGoalSelector,setShowGoalSelector]=useState(false);
   const [showSkillSelector,setShowSkillSelector]=useState(false);
   // Plan & Nutrition modal states
@@ -6551,6 +6591,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const currentGoal=wPrefs?.primaryGoal||profile?.primaryGoal;
   const currentSkill=wPrefs?.liftExp||profile?.liftExp||"beginner";
   const wUnit=wPrefs?.wUnit||profile?.wUnit||"lbs";
+  const hUnit=wPrefs?.hUnit||(wUnit==='kg'?'cm':'ft');
+  const kgToLbs=kg=>Math.round(kg*2.20462);
+  const lbsToKg=lbs=>+(lbs/2.20462).toFixed(1);
+  const cmToFtIn=cm=>{const t=cm/2.54;return{ft:Math.floor(t/12),inch:Math.round(t%12)};};
+  const ftInToCm=(ft,inch)=>+(((ft*12)+inch)*2.54).toFixed(1);
 
   const eyebrowStyle={fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"0 0 12px 2px"};
   const cardStyle={background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:12,border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",overflow:"hidden"};
@@ -6617,192 +6662,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <AthletePassport user={user}/>
       <div style={cardStyle}>
         {/* ─ Profile ─ */}
-        <div style={{padding:"10px 16px 4px"}}>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:2}}>Profile</div>
-        </div>
-        <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
-        <MeRow label="Goal" value={GOAL_LABELS[currentGoal]||"—"} onPress={()=>setShowGoalSelector(true)}/>
-        <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
-        <MeRow label="Equipment" value={wPrefs?.equipment||"Full Gym"} onPress={()=>setShowEquipmentPicker(true)}/>
-        <MeRow label="Weight" value={localWeight?(localWeight+" "+wUnit):"—"} onPress={()=>{setEditModal("weight");setEditValue(localWeight);}}/>
-        <MeRow label="Height" value={localHeight?(localHeight+" cm"):"—"} onPress={()=>{setEditModal("height");setEditValue(localHeight);}}/>
+        <MeRow label="Profile" value="Name, goal, body" onPress={()=>setMeScreen('profile')}/>
         {/* ─ Plan & Nutrition ─ */}
-        <div style={{padding:"10px 16px 4px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:2}}>Plan &amp; nutrition</div>
-        </div>
-        {/* A. Diet Preset */}
-        {(()=>{
-          const DIET_OPTS=[
-            {id:'balanced',label:'Balanced'},{id:'high-protein',label:'High Protein'},
-            {id:'keto',label:'Keto'},{id:'vegan',label:'Vegan'},
-            {id:'vegetarian',label:'Vegetarian'},{id:'carnivore',label:'Carnivore'},
-            {id:'low-carb',label:'Low Carb'},{id:'pescatarian',label:'Pescatarian'},
-            {id:'mediterranean',label:'Mediterranean'},
-          ];
-          const currentDiet=wPrefs?.mealPrepDiet||'balanced';
-          const currentDietLabel=DIET_OPTS.find(d=>d.id===currentDiet)?.label||'Balanced';
-          return <MeRow label="Diet Preset" value={currentDietLabel} onPress={()=>setShowDietPicker(true)}/>;
-        })()}
-        {/* B. Allergens / Restrictions — chip multi-select */}
-        {(()=>{
-          const ALLERGEN_OPTS=[
-            {v:'vegetarian',l:'Vegetarian'},{v:'vegan',l:'Vegan'},
-            {v:'gluten',l:'Gluten Free'},{v:'dairy',l:'Dairy Free'},
-            {v:'nuts',l:'No Nuts'},{v:'eggs',l:'No Eggs'},
-            {v:'shellfish',l:'No Shellfish'},{v:'halal',l:'Halal'},
-            {v:'kosher',l:'Kosher'},
-          ];
-          const current=(profile?.dietary||[]).filter(d=>d!=='none');
-          return(
-            <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-              <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:6}}>Dietary Restrictions</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
-                {ALLERGEN_OPTS.map(({v,l})=>{
-                  const active=current.includes(v);
-                  return(
-                    <button key={v} onClick={async()=>{
-                      const next=active?current.filter(x=>x!==v):[...current,v];
-                      await sb.from("profiles").upsert({id:user.id,profile_data:{...profile,dietary:next}},{onConflict:"id"});
-                      onProfileUpdate?.({dietary:next});
-                    }} style={{padding:"6px 14px",borderRadius:20,border:active?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:active?"var(--cm-red,#FF3B30)":"transparent",color:active?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
-                      {l}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-        {/* C. Recovery Capacity */}
-        {(()=>{
-          const RC_LABELS={fast:"Very fast",normal:"Normal",slow:"Slower",very_slow:"Very slow"};
-          const currentRC=wPrefs?.recoveryCapacity||profile?.recovery_capacity||'normal';
-          return <MeRow label="Recovery Capacity" value={RC_LABELS[currentRC]||currentRC} onPress={()=>setShowRecoveryPicker(true)}/>;
-        })()}
-        {/* D. Long Run Day */}
-        {(()=>{
-          const currentLRD=wPrefs?.longRunDay;
-          return <MeRow label="Long Run Day" value={currentLRD||'—'} onPress={()=>setShowLongRunPicker(true)}/>;
-        })()}
-        {/* E. Race Type + Race Date */}
-        {(()=>{
-          const RACE_LABELS={'5k':'5K','10k':'10K','half_marathon':'Half Marathon','marathon':'Marathon','ultra':'Ultra','obstacle':'Obstacle / OCR','general':'General Fitness'};
-          const currentRT=profile?.run_race_type;
-          const currentRD=profile?.run_race_date;
-          return(
-            <>
-              <MeRow label="Race Type" value={currentRT?RACE_LABELS[currentRT]||currentRT:'—'} onPress={()=>setShowRaceTypePicker(true)}/>
-              <MeRow label="Race Date" value={currentRD?new Date(currentRD+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'} onPress={()=>setShowRaceDatePicker(true)}/>
-            </>
-          );
-        })()}
-        {/* F. Daily calorie target */}
-        {(()=>{
-          const currentCals=profile?.goalCals??profile?.calorie_target;
-          return <MeRow label="Daily calorie target" value={currentCals?`${currentCals} kcal`:'—'} onPress={()=>setShowCaloriePicker(true)}/>;
-        })()}
+        <MeRow label="Plan & nutrition" value="Diet, calories, race" onPress={()=>setMeScreen('plan')}/>
         {/* ─ Display ─ */}
-        <div style={{padding:"10px 16px 4px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:2}}>Display &amp; tracking</div>
-        </div>
-        {/* Skill Level Chips */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-          <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:12}}>Adjusts coaching language and visible metrics</div>
-          <div style={{display:"flex",gap:6}}>
-            {["beginner","intermediate","advanced"].map(level=>{
-              const isActive=currentSkill===level;
-              return(
-                <button key={level} onClick={async()=>{
-                  const newWp={...wPrefs,liftExp:level};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                  showToast(`Display preferences updated for ${level} level.`,"success");
-                }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:isActive?"var(--cm-red,#FF3B30)":"transparent",color:isActive?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
-                  {level}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        {/* Today Tab Toggles */}
-        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Today tab</div>
-          {[
-            {key:"morning_brief",label:"Morning Brief",def:true},
-            {key:"streak_counter",label:"Streak Counter",def:true},
-            {key:"deload_alerts",label:"Deload Alerts",def:true},
-            {key:"plateau_alerts",label:"Plateau Alerts",def:true},
-            {key:"fatigue_detection",label:"Fatigue Detection",def:currentSkill!=="beginner"},
-            {key:"muscle_balance",label:"Muscle Balance",def:currentSkill==="advanced"},
-            {key:"program_adjustments",label:"Program Adjustments",def:currentSkill!=="beginner"},
-          ].map(({key,label,def})=>{
-            const val=displayPrefs[key]??def;
-            return(
-              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
-                <div onClick={async()=>{
-                  const newDp={...displayPrefs,[key]:!val};
-                  setDisplayPrefs(newDp);
-                  const newWp={...wPrefs,displayPrefs:newDp};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* During Workouts */}
-        <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>During workouts</div>
-          {[
-            {key:"rpe_input",label:"RPE Input",def:currentSkill!=="beginner"},
-            {key:"momentum_bar",label:"Momentum Bar",def:currentSkill!=="beginner"},
-          ].map(({key,label,def})=>{
-            const val=displayPrefs[key]??def;
-            return(
-              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
-                <div onClick={async()=>{
-                  const newDp={...displayPrefs,[key]:!val};
-                  setDisplayPrefs(newDp);
-                  const newWp={...wPrefs,displayPrefs:newDp};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* Nutrition */}
-        <div style={{padding:"10px 16px 6px"}}>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Nutrition</div>
-          {[
-            {key:"full_macro_breakdown",label:"Full Macro Breakdown",def:currentSkill!=="beginner"},
-            {key:"macro_memory",label:"Macro Memory",def:currentSkill!=="beginner"},
-            {key:"nutrition_timing",label:"Nutrition Timing",def:currentSkill!=="beginner"},
-          ].map(({key,label,def})=>{
-            const val=displayPrefs[key]??def;
-            return(
-              <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
-                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
-                <div onClick={async()=>{
-                  const newDp={...displayPrefs,[key]:!val};
-                  setDisplayPrefs(newDp);
-                  const newWp={...wPrefs,displayPrefs:newDp};
-                  setWPrefs(newWp);
-                  await saveSettings(newWp,null);
-                }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <MeRow label="Display & tracking" value="Toggles, units" onPress={()=>setMeScreen('display')} isLast/>
       </div>
 
       {/* ── GROUP 3: APPEARANCE ──────────────────────────────────────── */}
@@ -7057,20 +6921,322 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       )}
       </div>{/* end white sheet */}
 
+      {/* ── PLAN & NUTRITION SUB-SCREEN ── */}
+      {meScreen==='plan'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Plan & nutrition</div>
+            <div style={cardStyle}>
+              {/* A. Diet Preset */}
+              {(()=>{
+                const DIET_OPTS=[
+                  {id:'balanced',label:'Balanced'},{id:'high-protein',label:'High Protein'},
+                  {id:'keto',label:'Keto'},{id:'vegan',label:'Vegan'},
+                  {id:'vegetarian',label:'Vegetarian'},{id:'carnivore',label:'Carnivore'},
+                  {id:'low-carb',label:'Low Carb'},{id:'pescatarian',label:'Pescatarian'},
+                  {id:'mediterranean',label:'Mediterranean'},
+                ];
+                const currentDiet=wPrefs?.mealPrepDiet||'balanced';
+                const currentDietLabel=DIET_OPTS.find(d=>d.id===currentDiet)?.label||'Balanced';
+                return <MeRow label="Diet Preset" value={currentDietLabel} onPress={()=>setShowDietPicker(true)}/>;
+              })()}
+              {/* B. Allergens / Restrictions */}
+              {(()=>{
+                const ALLERGEN_OPTS=[
+                  {v:'vegetarian',l:'Vegetarian'},{v:'vegan',l:'Vegan'},
+                  {v:'gluten',l:'Gluten Free'},{v:'dairy',l:'Dairy Free'},
+                  {v:'nuts',l:'No Nuts'},{v:'eggs',l:'No Eggs'},
+                  {v:'shellfish',l:'No Shellfish'},{v:'halal',l:'Halal'},
+                  {v:'kosher',l:'Kosher'},
+                ];
+                const current=(profile?.dietary||[]).filter(d=>d!=='none');
+                return(
+                  <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                    <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:6}}>Dietary Restrictions</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
+                      {ALLERGEN_OPTS.map(({v,l})=>{
+                        const active=current.includes(v);
+                        return(
+                          <button key={v} onClick={async()=>{
+                            const next=active?current.filter(x=>x!==v):[...current,v];
+                            await sb.from("profiles").upsert({id:user.id,profile_data:{...profile,dietary:next}},{onConflict:"id"});
+                            onProfileUpdate?.({dietary:next});
+                          }} style={{padding:"6px 14px",borderRadius:20,border:active?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:active?"var(--cm-red,#FF3B30)":"transparent",color:active?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.15s"}}>
+                            {l}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+              {/* C. Recovery Capacity */}
+              {(()=>{
+                const RC_LABELS={fast:"Very fast",normal:"Normal",slow:"Slower",very_slow:"Very slow"};
+                const currentRC=wPrefs?.recoveryCapacity||profile?.recovery_capacity||'normal';
+                return <MeRow label="Recovery Capacity" value={RC_LABELS[currentRC]||currentRC} onPress={()=>setShowRecoveryPicker(true)}/>;
+              })()}
+              {/* D. Long Run Day */}
+              {(()=>{
+                const currentLRD=wPrefs?.longRunDay;
+                return <MeRow label="Long Run Day" value={currentLRD||'—'} onPress={()=>setShowLongRunPicker(true)}/>;
+              })()}
+              {/* E. Race Type + Race Date */}
+              {(()=>{
+                const RACE_LABELS={'5k':'5K','10k':'10K','half_marathon':'Half Marathon','marathon':'Marathon','ultra':'Ultra','obstacle':'Obstacle / OCR','general':'General Fitness'};
+                const currentRT=profile?.run_race_type;
+                const currentRD=profile?.run_race_date;
+                return(
+                  <>
+                    <MeRow label="Race Type" value={currentRT?RACE_LABELS[currentRT]||currentRT:'—'} onPress={()=>setShowRaceTypePicker(true)}/>
+                    <MeRow label="Race Date" value={currentRD?new Date(currentRD+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'} onPress={()=>setShowRaceDatePicker(true)}/>
+                  </>
+                );
+              })()}
+              {/* F. Daily calorie target */}
+              {(()=>{
+                const currentCals=profile?.goalCals??profile?.calorie_target;
+                return <MeRow label="Daily calorie target" value={currentCals?`${currentCals} kcal`:'—'} onPress={()=>setShowCaloriePicker(true)} isLast/>;
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DISPLAY & TRACKING SUB-SCREEN ── */}
+      {meScreen==='display'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Display & tracking</div>
+            <div style={cardStyle}>
+              {/* Skill Level Chips */}
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:2}}>Experience Level</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:12}}>Adjusts coaching language and visible metrics</div>
+                <div style={{display:"flex",gap:6}}>
+                  {["beginner","intermediate","advanced"].map(level=>{
+                    const isActive=currentSkill===level;
+                    return(
+                      <button key={level} onClick={async()=>{
+                        const newWp={...wPrefs,liftExp:level};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                        showToast(`Display preferences updated for ${level} level.`,"success");
+                      }} style={{padding:"8px 16px",borderRadius:20,border:isActive?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:isActive?"var(--cm-red,#FF3B30)":"transparent",color:isActive?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
+                        {level}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Today Tab Toggles */}
+              <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Today tab</div>
+                {[
+                  {key:"morning_brief",label:"Morning Brief",def:true},
+                  {key:"streak_counter",label:"Streak Counter",def:true},
+                  {key:"deload_alerts",label:"Deload Alerts",def:true},
+                  {key:"plateau_alerts",label:"Plateau Alerts",def:true},
+                  {key:"fatigue_detection",label:"Fatigue Detection",def:currentSkill!=="beginner"},
+                  {key:"muscle_balance",label:"Muscle Balance",def:currentSkill==="advanced"},
+                  {key:"program_adjustments",label:"Program Adjustments",def:currentSkill!=="beginner"},
+                ].map(({key,label,def})=>{
+                  const val=displayPrefs[key]??def;
+                  return(
+                    <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
+                      <div onClick={async()=>{
+                        const newDp={...displayPrefs,[key]:!val};
+                        setDisplayPrefs(newDp);
+                        const newWp={...wPrefs,displayPrefs:newDp};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                      }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* During Workouts */}
+              <div style={{padding:"10px 16px 6px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>During workouts</div>
+                {[
+                  {key:"rpe_input",label:"RPE Input",def:currentSkill!=="beginner"},
+                  {key:"momentum_bar",label:"Momentum Bar",def:currentSkill!=="beginner"},
+                ].map(({key,label,def})=>{
+                  const val=displayPrefs[key]??def;
+                  return(
+                    <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
+                      <div onClick={async()=>{
+                        const newDp={...displayPrefs,[key]:!val};
+                        setDisplayPrefs(newDp);
+                        const newWp={...wPrefs,displayPrefs:newDp};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                      }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Nutrition */}
+              <div style={{padding:"10px 16px 6px"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>Nutrition</div>
+                {[
+                  {key:"full_macro_breakdown",label:"Full Macro Breakdown",def:currentSkill!=="beginner"},
+                  {key:"macro_memory",label:"Macro Memory",def:currentSkill!=="beginner"},
+                  {key:"nutrition_timing",label:"Nutrition Timing",def:currentSkill!=="beginner"},
+                ].map(({key,label,def})=>{
+                  const val=displayPrefs[key]??def;
+                  return(
+                    <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>{label}</span>
+                      <div onClick={async()=>{
+                        const newDp={...displayPrefs,[key]:!val};
+                        setDisplayPrefs(newDp);
+                        const newWp={...wPrefs,displayPrefs:newDp};
+                        setWPrefs(newWp);
+                        await saveSettings(newWp,null);
+                      }} style={{width:44,height:24,borderRadius:12,background:val?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                        <div style={{position:"absolute",top:3,left:val?21:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PROFILE SUB-SCREEN ── */}
+      {meScreen==='profile'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Profile</div>
+            <div style={cardStyle}>
+              <MeRow label="Name" value={localName||"—"} onPress={()=>{setEditModal("name");setEditValue(localName);}}/>
+              <MeRow label="Goal" value={GOAL_LABELS[currentGoal]||"—"} onPress={()=>setShowGoalSelector(true)}/>
+              <MeRow label="Skill Level" value={SKILL_LABELS[currentSkill]||"Beginner"} onPress={()=>setShowSkillSelector(true)}/>
+              <MeRow label="Equipment" value={wPrefs?.equipment||"Full Gym"} onPress={()=>setShowEquipmentPicker(true)}/>
+              <MeRow label="Weight" value={localWeight?(wUnit==='kg'?localWeight+' kg':kgToLbs(+localWeight)+' lbs'):"—"} onPress={()=>{
+                const kg=+localWeight||70;
+                const pu=wUnit;
+                setPickerWUnit(pu);
+                setPickerWVal(pu==='lbs'?kgToLbs(kg):Math.round(kg));
+                setEditModal("weight");
+              }}/>
+              <MeRow label="Height" value={localHeight?(hUnit==='cm'?localHeight+' cm':(()=>{const{ft,inch}=cmToFtIn(+localHeight);return ft+"'"+inch+'"';})()):"—"} onPress={()=>{
+                const cm=+localHeight||175;
+                const pu=hUnit;
+                setPickerHUnit(pu==='cm'?'cm':'ft+in');
+                if(pu==='cm'){setPickerHCm(Math.round(cm));}
+                else{const{ft,inch}=cmToFtIn(cm);setPickerFt(ft);setPickerHIn(inch);}
+                setEditModal("height");
+              }} isLast/>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── EDIT FIELD MODAL ── */}
       {editModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setEditModal(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:40}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Edit Weight":"Edit Height"}</div>
-            <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type={editModal==="name"?"text":"number"} placeholder={editModal==="name"?"Your name":editModal==="weight"?`Weight in ${wUnit}`:"Height in cm"}
-              style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
-            <div style={{display:"flex",gap:8}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:"16px 16px 0 0",padding:24,paddingBottom:44}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.24em",textTransform:"uppercase",marginBottom:16}}>{editModal==="name"?"Edit Name":editModal==="weight"?"Weight":editModal==="height"?"Height":""}</div>
+
+            {editModal==="name"&&(
+              <input autoFocus value={editValue} onChange={e=>setEditValue(e.target.value)} type="text" placeholder="Your name"
+                style={{width:"100%",padding:"12px 16px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:"var(--cm-ink,#0A0A0A)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,fontSize:16,fontFamily:"inherit",marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
+            )}
+
+            {editModal==="weight"&&(
+              <>
+                <div style={{display:"flex",gap:8,marginBottom:16,justifyContent:"center"}}>
+                  {['lbs','kg'].map(u=>(
+                    <button key={u} onClick={()=>{
+                      if(u===pickerWUnit) return;
+                      const newVal=u==='lbs'?kgToLbs(pickerWVal):Math.round(lbsToKg(pickerWVal));
+                      setPickerWUnit(u);
+                      setPickerWVal(newVal);
+                    }} style={{padding:"7px 22px",borderRadius:20,border:pickerWUnit===u?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:pickerWUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:pickerWUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,cursor:"pointer"}}>{u}</button>
+                  ))}
+                </div>
+                <div style={{position:"relative",display:"flex",justifyContent:"center"}}>
+                  <WheelCol
+                    options={pickerWUnit==='lbs'?Array.from({length:451},(_,i)=>i+50):Array.from({length:206},(_,i)=>i+25)}
+                    value={pickerWVal}
+                    onChange={setPickerWVal}
+                    width={120}
+                  />
+                  <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:120,height:40,border:"2px solid var(--cm-red,#FF3B30)",borderRadius:10,pointerEvents:"none"}}/>
+                </div>
+              </>
+            )}
+
+            {editModal==="height"&&(
+              <>
+                <div style={{display:"flex",gap:8,marginBottom:16,justifyContent:"center"}}>
+                  {['ft+in','cm'].map(u=>(
+                    <button key={u} onClick={()=>{
+                      if(u===pickerHUnit) return;
+                      if(u==='cm'){const cm=ftInToCm(pickerFt,pickerHIn);setPickerHCm(Math.round(cm));}
+                      else{const{ft,inch}=cmToFtIn(pickerHCm);setPickerFt(ft);setPickerHIn(inch);}
+                      setPickerHUnit(u);
+                    }} style={{padding:"7px 22px",borderRadius:20,border:pickerHUnit===u?"none":"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",background:pickerHUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:pickerHUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.45)",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,cursor:"pointer"}}>{u==='ft+in'?"ft & in":"cm"}</button>
+                  ))}
+                </div>
+                {pickerHUnit==='ft+in'?(
+                  <div style={{display:"flex",justifyContent:"center",gap:24,position:"relative"}}>
+                    <div style={{textAlign:"center"}}>
+                      <WheelCol options={[3,4,5,6,7,8]} value={pickerFt} onChange={setPickerFt} width={72}/>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:4}}>ft</div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <WheelCol options={[0,1,2,3,4,5,6,7,8,9,10,11]} value={pickerHIn} onChange={setPickerHIn} width={72}/>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginTop:4}}>in</div>
+                    </div>
+                    <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:168,height:40,border:"2px solid var(--cm-red,#FF3B30)",borderRadius:10,pointerEvents:"none"}}/>
+                  </div>
+                ):(
+                  <div style={{display:"flex",justifyContent:"center",position:"relative"}}>
+                    <WheelCol options={Array.from({length:111},(_,i)=>i+120)} value={pickerHCm} onChange={setPickerHCm} width={110}/>
+                    <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:110,height:40,border:"2px solid var(--cm-red,#FF3B30)",borderRadius:10,pointerEvents:"none"}}/>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{display:"flex",gap:8,marginTop:20}}>
               <button onClick={()=>setEditModal(null)} style={{flex:1,padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
               <button onClick={async()=>{
-                const v=editValue.trim();if(!v){setEditModal(null);return;}
-                if(editModal==="name"){setLocalName(v);await saveProfileField("name",v);}
-                else if(editModal==="weight"){setLocalWeight(v);await saveProfileField("weight",v);}
-                else if(editModal==="height"){setLocalHeight(v);await saveProfileField("height",v);}
+                if(editModal==="name"){
+                  const v=editValue.trim();if(!v){setEditModal(null);return;}
+                  setLocalName(v);await saveProfileField("name",v);
+                } else if(editModal==="weight"){
+                  const kg=pickerWUnit==='lbs'?lbsToKg(pickerWVal):pickerWVal;
+                  setLocalWeight(String(kg));
+                  await saveProfileField("weight_kg",kg);
+                  if(pickerWUnit!==wUnit){const wp={...wPrefs,wUnit:pickerWUnit,hUnit:pickerWUnit==='kg'?'cm':'ft'};setWPrefs(wp);await saveSettings(wp,null);}
+                } else if(editModal==="height"){
+                  const cm=pickerHUnit==='cm'?pickerHCm:ftInToCm(pickerFt,pickerHIn);
+                  setLocalHeight(String(+(cm).toFixed(1)));
+                  await saveProfileField("height_cm",+(cm).toFixed(1));
+                  const hu=pickerHUnit==='cm'?'cm':'ft';
+                  if(hu!==(wPrefs?.hUnit||'ft')){const wp={...wPrefs,hUnit:hu};setWPrefs(wp);await saveSettings(wp,null);}
+                }
                 setEditModal(null);
               }} style={{flex:1,padding:14,background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
             </div>
