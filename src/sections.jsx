@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { CommunicationStyleSection, YourPatternsCard } from "./ob_screens2.jsx";
 import { motion, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
@@ -5961,6 +5962,10 @@ function ReferAFriendCard({ user, eyebrowStyle }) {
         {/* Gradient */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, transparent 60%, rgba(var(--accent-rgb),0.04) 100%)', pointerEvents: 'none' }} />
 
+        {/* Headline + sub */}
+        <div style={{ fontFamily: "'Archivo',sans-serif", fontStyle: 'italic', fontWeight: 900, fontSize: 20, color: 'var(--cm-ink,#0A0A0A)', marginBottom: 4 }}>Give a friend 2 weeks free.</div>
+        <div style={{ fontFamily: "'Archivo',sans-serif", fontSize: 12, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.45)', marginBottom: 16 }}>Share your link — they start on us.</div>
+
         {/* Code label */}
         <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 600, fontSize: 8, color: 'rgba(var(--cm-ink-rgb,10,10,10),0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
           Your referral code
@@ -6597,7 +6602,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
   const cmToFtIn=cm=>{const t=cm/2.54;return{ft:Math.floor(t/12),inch:Math.round(t%12)};};
   const ftInToCm=(ft,inch)=>+(((ft*12)+inch)*2.54).toFixed(1);
 
-  const eyebrowStyle={fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"0 0 12px 2px"};
+  const eyebrowStyle={fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",margin:"28px 0 12px 2px"};
   const cardStyle={background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",borderRadius:12,border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",overflow:"hidden"};
   function MeRow({label:lbl,value:val,onPress,isLast,isDestructive,noChevron,rightEl}){
     return(
@@ -6638,26 +6643,12 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:11,letterSpacing:"0.04em",color:"rgba(255,255,255,0.72)",textTransform:"uppercase",marginTop:4}}>{_identityLine}</div>
               </div>
             </div>
-            <div style={{display:"flex",gap:8,marginTop:12}}>
-              {[{val:_daysActive,label:"Days/Week"},{val:_calTarget,label:"Cal Target"},{val:_skillCap,label:"Level"}].map(({val,label})=>(
-                <div key={label} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"12px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                  <span style={{fontFamily:"'Archivo','Barlow',sans-serif",fontWeight:800,fontSize:22,color:"#fff",lineHeight:1}}>{val}</span>
-                  <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:9,letterSpacing:"0.1em",color:"rgba(255,255,255,0.6)",textTransform:"uppercase"}}>{label}</span>
-                </div>
-              ))}
-            </div>
           </div>
         );
       })()}
       {/* ── WHITE SHEET (wraps all existing sections) ── */}
       <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:4,paddingTop:22,paddingBottom:28,marginLeft:isMobile?-18:0,marginRight:isMobile?-18:0,paddingLeft:isMobile?18:0,paddingRight:isMobile?18:0}}>
-      {/* ── GROUP 1: COACH ──────────────────────────────────────────── */}
-      {/* FLAG: CommunicationStyleSection + YourPatternsCard still render in
-          ob_screens2.jsx:10685 before SettingsSection — relocate here in Pass 3. */}
-      <div style={eyebrowStyle}>Coach</div>
-      <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
-
-      {/* ── GROUP 2: YOU ─────────────────────────────────────────────── */}
+      {/* ── GROUP 1: YOU ─────────────────────────────────────────────── */}
       <div style={eyebrowStyle}>You</div>
       <AthletePassport user={user}/>
       <div style={cardStyle}>
@@ -6669,13 +6660,48 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         <MeRow label="Display & tracking" value="Toggles, units" onPress={()=>setMeScreen('display')} isLast/>
       </div>
 
+      {/* ── GROUP 2: COACH ──────────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Coach</div>
+      <div style={cardStyle}>
+        <MeRow label="Coaching style" value="Tone & personality" onPress={()=>setMeScreen('coachstyle')}/>
+        <MeRow label="Notifications" value="Outreach, quiet hours" onPress={()=>setMeScreen('notifications')}/>
+        <MeRow label="Patterns & memory" value="What coach remembers" onPress={()=>setMeScreen('patterns')} isLast/>
+      </div>
+
       {/* ── GROUP 3: APPEARANCE ──────────────────────────────────────── */}
       <div style={eyebrowStyle}>Appearance</div>
       <AppearanceSection user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} />
 
-      {/* ── GROUP 4: ACCOUNT ─────────────────────────────────────────── */}
-      <div style={eyebrowStyle}>Account</div>
+      {/* ── GROUP 4: REFER A FRIEND ──────────────────────────────────── */}
       <ReferAFriendCard user={user} eyebrowStyle={eyebrowStyle} />
+
+      {/* ── GROUP 5: YOUR VOICE ──────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Your voice</div>
+      <div style={cardStyle}>
+        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"feedback"});}} style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+          <div style={{width:36,height:36,borderRadius:9,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--cm-red,#FF3B30)"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Suggest a feature</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>Shape what we build next</div>
+          </div>
+          <span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontSize:18,lineHeight:1}}>›</span>
+        </div>
+        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"feedback"});}} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+          <div style={{width:36,height:36,borderRadius:9,background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fea020"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Report a problem</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>Something broken or off</div>
+          </div>
+          <span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontSize:18,lineHeight:1}}>›</span>
+        </div>
+      </div>
+
+      {/* ── GROUP 6: ACCOUNT ─────────────────────────────────────────── */}
+      <div style={eyebrowStyle}>Account</div>
       <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
       {/* Subscription */}
       <div style={cardStyle}>
@@ -6738,39 +6764,6 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
         </div>,
         document.body
       )}
-
-      {/* Your Voice */}
-      {[
-        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>,title:"SUGGEST A FEATURE.",sub:"Shape what we build next",bg:"rgba(var(--cm-red-rgb,255,59,48),0.1)",bd:"rgba(var(--cm-red-rgb,255,59,48),0.2)",section:"feedback"},
-        {icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>,title:"REPORT A PROBLEM.",sub:"Help us fix what's broken",bg:"rgba(254,160,32,0.1)",bd:"rgba(254,160,32,0.2)",section:"feedback"},
-      ].map(({icon,title,sub,bg,bd,section})=>(
-        <div key={title} onClick={()=>{if(window.uj)window.uj.showWidget({section});}} style={{background:"var(--cm-paper,#FFFFFF)",boxShadow:"0 2px 12px rgba(0,0,0,.08)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
-          onPointerDown={e=>e.currentTarget.style.borderColor="rgba(var(--cm-red-rgb,255,59,48),0.3)"}
-          onPointerUp={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.07)"}
-          onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.07)"}
-        >
-          <div style={{width:40,height:40,borderRadius:10,background:bg,border:`1px solid ${bd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
-          <div style={{flex:1}}>
-            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"var(--cm-ink,#0A0A0A)"}}>{title}</div>
-            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:2}}>{sub}</div>
-          </div>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}>→</div>
-        </div>
-      ))}
-      <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"roadmap"});}} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.02)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.05)",borderRadius:14,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:14,cursor:"pointer"}}
-        onPointerDown={e=>e.currentTarget.style.borderColor="rgba(96,165,250,0.25)"}
-        onPointerUp={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.05)"}
-        onPointerLeave={e=>e.currentTarget.style.borderColor="rgba(var(--cm-ink-rgb,10,10,10),0.05)"}
-      >
-        <div style={{width:40,height:40,borderRadius:10,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
-        </div>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:17,color:"rgba(var(--cm-ink-rgb,10,10,10),0.7)"}}>SEE OUR ROADMAP.</div>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)",marginTop:2}}>What we're building and what's coming next</div>
-        </div>
-        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.3)"}}>→</div>
-      </div>
 
       {/* Connected Apps */}
       <div style={cardStyle}>
@@ -7147,6 +7140,41 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 setEditModal("height");
               }} isLast/>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── COACH SUB-SCREENS ── */}
+      {meScreen==='coachstyle'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Coaching style</div>
+            <CommunicationStyleSection userId={user?.id}/>
+          </div>
+        </div>
+      )}
+      {meScreen==='notifications'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Notifications</div>
+            <CoachOutreachSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
+          </div>
+        </div>
+      )}
+      {meScreen==='patterns'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Patterns & memory</div>
+            <YourPatternsCard userId={user?.id}/>
           </div>
         </div>
       )}
