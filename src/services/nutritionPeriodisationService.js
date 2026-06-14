@@ -16,7 +16,7 @@ export async function getTodayNutritionProtocol(userId) {
 
   const { data: profileRow } = await sb
     .from('profiles')
-    .select('profile_data, wprefs, goal, hyrox_race_date, last_refeed_date')
+    .select('profile_data, wprefs, goal, hyrox_race_date, last_refeed_date, schedule')
     .eq('id', userId)
     .maybeSingle();
   if (!profileRow) return null;
@@ -34,7 +34,7 @@ export async function getTodayNutritionProtocol(userId) {
   const baseFat = Math.max(25, Math.round((baseCalories - baseProtein * 4 - baseCarbs * 4) / 9));
 
   const todayKey = DAYS[new Date().getDay()];
-  const schedule = wp.schedule || {};
+  const schedule = profileRow.schedule || wp.schedule || {};
   const dayFocus = wp.dayFocus || {};
   const todayType = schedule[todayKey] || 'rest';
   const todayFocusVal = (dayFocus[todayKey] || '').toLowerCase();

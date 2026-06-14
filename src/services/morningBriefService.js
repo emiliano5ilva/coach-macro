@@ -19,7 +19,7 @@ import { getWeatherPaceAdjustment } from './weatherService.js';
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
     .from('profiles')
-    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations')
+    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule')
     .eq('id', userId)
     .maybeSingle();
 
@@ -32,7 +32,7 @@ export async function gatherBriefContext(userId) {
 
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const todayKey = days[new Date().getDay()];
-  const schedule = wp.schedule || {};
+  const schedule = row?.schedule || wp.schedule || {};
   const dayFocus = wp.dayFocus || {};
   const todayType = schedule[todayKey] || 'rest';
   const todayFocus = dayFocus[todayKey] || (todayType === 'rest' ? 'Rest' : 'Training');
@@ -207,7 +207,7 @@ export async function gatherBriefContext(userId) {
   try {
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowKey = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][tomorrow.getDay()];
-    const tomorrowType = (wp.schedule || {})[tomorrowKey] || 'rest';
+    const tomorrowType = (row?.schedule || wp.schedule || {})[tomorrowKey] || 'rest';
     const tomorrowFocus = (wp.dayFocus || {})[tomorrowKey] || null;
     const tomorrowSession = tomorrowType === 'training' ? { type: tomorrowFocus || 'Strength', exercises: null } : null;
     ctx.preLoadingNote = getPreLoadingNote(tomorrowSession, p);
@@ -250,7 +250,7 @@ export async function gatherBriefContext(userId) {
   ctx.weatherNote = null;
   try {
     const tomorrowKeyW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(Date.now()+864e5).getDay()];
-    const tomorrowTypeW = (wp.schedule || {})[tomorrowKeyW] || 'rest';
+    const tomorrowTypeW = (row?.schedule || wp.schedule || {})[tomorrowKeyW] || 'rest';
     const isRunDay = tomorrowTypeW === 'training' || todayType === 'training';
     if (isRunDay && (wp.isHybrid || wp.isHyrox || (wp.splitType||'').toLowerCase().includes('run'))) {
       const coords = await new Promise(resolve => {
