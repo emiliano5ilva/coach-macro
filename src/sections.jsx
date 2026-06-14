@@ -6664,7 +6664,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={eyebrowStyle}>Coach</div>
       <div style={cardStyle}>
         <MeRow label="Coaching style" value="Tone & personality" onPress={()=>setMeScreen('coachstyle')}/>
-        <MeRow label="Notifications" value="Outreach, quiet hours" onPress={()=>setMeScreen('notifications')}/>
+        <MeRow label="Coach outreach" value="Outreach, quiet hours" onPress={()=>setMeScreen('notifications')}/>
         <MeRow label="Patterns & memory" value="What coach remembers" onPress={()=>setMeScreen('patterns')} isLast/>
       </div>
 
@@ -6702,216 +6702,11 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
       {/* ── GROUP 6: ACCOUNT ─────────────────────────────────────────── */}
       <div style={eyebrowStyle}>Account</div>
-      <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle} hideEyebrow/>
-      {/* Subscription */}
       <div style={cardStyle}>
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Plan</span>
-          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`}}>{subLabel}</span>
-        </div>
-        {subIsPaid?(
-          <>
-            {profile?.subscription_started_at&&<div style={{padding:"10px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif"}}>Active since {new Date(profile.subscription_started_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
-            <MeRow label="Manage Subscription" onPress={()=>showToast("Manage via App Store → Subscriptions.","info",{duration:4000})} value=""/>
-            <div style={{padding:"8px 16px",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontFamily:"'Archivo',sans-serif",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.04)"}}>Manage or cancel via the App Store settings.</div>
-          </>
-        ):(
-          <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:12}}>
-            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$12.99 / month</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual · Founding</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"'Archivo',sans-serif",fontWeight:700}}>SAVE 68%</span></div></div>
-            </div>
-            <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
-          </div>
-        )}
-        <MeRow label="Restore Purchases" isLast onPress={async()=>{
-          showToast("Checking purchases...","info");
-          const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
-          if(!u)return;
-          const tier=await restorePurchases(u.id);
-          if(tier)showToast(`Restored: ${tier==="monthly"?"Pro Monthly":"Pro Annual"} active.`,"success");
-          else showToast("No active purchases found.","info");
-        }} value=""/>
-      </div>
-
-      {/* Plans modal — sheet */}
-      {showPlansModal&&ReactDOM.createPortal(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
-            <div style={{width:32,height:3,background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
-            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.1em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
-            {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"FOUNDING ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:"FOUNDING MEMBER",saving:"Save 68% vs monthly · locked for life",gradient:true}].map(plan=>(
-              <div key={plan.id} onClick={async()=>{
-                if(purchaseLoading)return;
-                setPurchaseLoading(plan.id);
-                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
-                if(!u){setPurchaseLoading(null);return;}
-                const ok=plan.id==="monthly"?await purchaseMonthly(u.id):await purchaseAnnual(u.id);
-                setPurchaseLoading(null);
-                if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
-                else showToast("Purchase failed. Try again.","error");
-              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--cm-red-rgb,255,59,48),0.04))":"var(--cm-paper,#FFFFFF)",border:`1px solid ${plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
-                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"3px 10px",fontFamily:"'Archivo',sans-serif",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
-                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{plan.label}</div>
-                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}> {plan.per}</span></div>
-                {plan.saving&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
-                {purchaseLoading===plan.id&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:6}}>Processing...</div>}
-              </div>
-            ))}
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Connected Apps */}
-      <div style={cardStyle}>
-        {/* Strava */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-            </div>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Strava</div>
-              {stravaConnected&&stravaAthlete?.metadata?.firstname&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>{stravaAthlete.metadata.firstname}</div>}
-              {!stravaConnected&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
-            </div>
-          </div>
-          {stravaConnected?(
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:6,padding:"3px 8px"}}>CONNECTED</span>
-              <button onClick={async()=>{
-                if(!confirm("Disconnect Strava?"))return;
-                await sb.from('connected_apps').delete().eq('user_id',user.id).eq('provider','strava');
-                setStravaConnected(false);setStravaAthlete(null);
-                showToast("Strava disconnected","info");
-              }} style={{background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:6,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontSize:11,padding:"4px 10px",cursor:"pointer",fontFamily:"'Archivo',sans-serif"}}>Disconnect</button>
-            </div>
-          ):(
-            <button onClick={async()=>{
-              if(!user?.id)return;
-              setStravaLoading(true);
-              const base=import.meta.env.VITE_API_BASE_URL||"";
-              window.location.href=`${base}/api/strava/auth?userId=${user.id}`;
-            }} disabled={stravaLoading} style={{background:"#FC4C02",border:"none",borderRadius:8,color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer",letterSpacing:"0.06em"}}>
-              {stravaLoading?"CONNECTING…":"CONNECT"}
-            </button>
-          )}
-        </div>
-        {/* Calendar — Life-Aware Training */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-          <CalendarSettingsPanel connected={calendarConnected||false} onConnect={onCalendarConnect||(() =>{})} onDisconnect={onCalendarDisconnect||(() =>{})} prefs={wPrefs?.calendarPrefs||{}} onPrefsChange={async(key,val)=>{const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};setWPrefs(next);if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}}}/>
-        </div>
-        {/* Apple Health */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <img src="/images/apple-health-icon.png" alt="Apple Health" style={{width:44,height:44,borderRadius:10,flexShrink:0,display:"block"}}/>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Apple Health</div>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sleep · HRV · Steps</div>
-            </div>
-          </div>
-          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,padding:"4px 10px",borderRadius:6,background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#34d399":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,letterSpacing:"0.08em",textTransform:"uppercase"}}>
-            {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
-          </div>
-        </div>
-        {/* WHOOP */}
-        <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#000",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="22" height="14" viewBox="0 0 40 24" fill="#fff"><text x="0" y="18" fontSize="18" fontWeight="900" fontFamily="sans-serif">W</text></svg>
-            </div>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>WHOOP</div>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Recovery & strain data</div>
-            </div>
-          </div>
-          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
-        </div>
-        {/* Garmin */}
-        <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:44,height:44,borderRadius:10,background:"#005f9e",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
-            </div>
-            <div>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Garmin</div>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Workouts & health metrics</div>
-            </div>
-          </div>
-          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",background:"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:6,padding:"3px 8px"}}>COMING SOON</span>
-        </div>
-      </div>
-
-      {/* Settings */}
-      <div style={cardStyle}>
-        <MeRow label="Units" noChevron rightEl={
-          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)"}}>
-            {["lbs","kg"].map(u=>(
-              <button key={u} onClick={async()=>{
-                const hU=u==="kg"?"cm":"ft";
-                const wp={...wPrefs,wUnit:u,hUnit:hU};
-                setWPrefs(wp);
-                await saveSettings(wp,null);
-                if(user)sb.from("profiles").upsert({id:user.id,units:u==="kg"?"metric":"imperial"},{onConflict:"id"}).then(()=>{});
-              }} style={{padding:"6px 14px",background:wUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:wUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:"none",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer",letterSpacing:"0.06em"}}>{u}</button>
-            ))}
-          </div>
-        }/>
-        <MeRow label="Notifications" noChevron rightEl={<Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>}/>
-        {/* Calorie Cycling toggle removed: getDayTypeNutrition is now the single
-            per-day target system (ring + meal plan). Training-day/rest-day variation
-            is handled automatically by day type — no manual toggle needed. */}
-        {(profile?.goal==="lose_fat"||profile?.goal==="recomp"||wPrefs?.primaryGoal==="lose_fat"||wPrefs?.primaryGoal==="recomp")&&(
-          <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
-            <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:4}}>Refeed Interval</div>
-            <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif",marginBottom:10}}>Metabolism reset every N days in deficit</div>
-            <div style={{display:"flex",gap:8}}>
-              {[5,7,10].map(n=>(
-                <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.2)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.5)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.6)",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                  {n}d
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Help / Sign Out */}
-      <div style={cardStyle}>
-        <MeRow label="Help & Support" onPress={()=>window.open("https://coach-macro.com/support","_blank")} value=""/>
-        <MeRow label="Privacy Policy" onPress={()=>window.open("https://coach-macro.com/privacy","_blank")} value=""/>
-        <MeRow label="Terms of Service" onPress={()=>window.open("https://coach-macro.com/terms","_blank")} value=""/>
-        <MeRow label="Delete Account" isDestructive onPress={()=>setDelStep(delStep===0?1:0)}/>
+        <MeRow label="Account" value="Plan, purchases, privacy" onPress={()=>setMeScreen('account')}/>
+        <MeRow label="Connected apps" value="Strava, Calendar, Health" onPress={()=>setMeScreen('connected')}/>
         <MeRow label="Sign Out" isDestructive isLast onPress={onSignOut}/>
       </div>
-
-      {/* Delete confirmation */}
-      {delStep>0&&(
-        <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:16,marginTop:8}}>
-          {delStep===1&&<>
-            <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
-            <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
-            <div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
-            </div>
-          </>}
-          {delStep===2&&<>
-            <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
-            <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:12}}>Type <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>DELETE</strong> to permanently delete your account.</div>
-            <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
-            </div>
-          </>}
-          {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)"}}>Deleting your account...</div>}
-        </div>
-      )}
       </div>{/* end white sheet */}
 
       {/* ── PLAN & NUTRITION SUB-SCREEN ── */}
@@ -6994,6 +6789,20 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                 const currentCals=profile?.goalCals??profile?.calorie_target;
                 return <MeRow label="Daily calorie target" value={currentCals?`${currentCals} kcal`:'—'} onPress={()=>setShowCaloriePicker(true)} isLast/>;
               })()}
+              {/* G. Refeed Interval — deficit goals only */}
+              {(profile?.goal==="lose_fat"||profile?.goal==="recomp"||wPrefs?.primaryGoal==="lose_fat"||wPrefs?.primaryGoal==="recomp")&&(
+                <div style={{padding:"14px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                  <div style={{fontSize:14,color:"var(--cm-ink,#0A0A0A)",fontFamily:"'Barlow',sans-serif",marginBottom:4}}>Refeed Interval</div>
+                  <div style={{fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif",marginBottom:10}}>Metabolism reset every N days in deficit</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[5,7,10].map(n=>(
+                      <button key={n} onClick={async()=>{const wp={...wPrefs,refeed_day_interval:n};setWPrefs(wp);await saveSettings(wp,null);await saveProfileField("refeed_day_interval",n);}} style={{flex:1,padding:"8px 0",borderRadius:8,background:(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.2)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${(wPrefs?.refeed_day_interval||7)===n?"rgba(var(--cm-red-rgb,255,59,48),0.5)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,color:(wPrefs?.refeed_day_interval||7)===n?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.6)",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                        {n}d
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -7106,6 +6915,28 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
                   );
                 })}
               </div>
+              {/* General */}
+              <div style={{padding:"10px 16px 6px",borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:8,color:"rgba(var(--cm-ink-rgb,10,10,10),0.35)",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:8}}>General</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                  <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>Units</span>
+                  <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)"}}>
+                    {["lbs","kg"].map(u=>(
+                      <button key={u} onClick={async()=>{
+                        const hU=u==="kg"?"cm":"ft";
+                        const wp={...wPrefs,wUnit:u,hUnit:hU};
+                        setWPrefs(wp);
+                        await saveSettings(wp,null);
+                        if(user)sb.from("profiles").upsert({id:user.id,units:u==="kg"?"metric":"imperial"},{onConflict:"id"}).then(()=>{});
+                      }} style={{padding:"6px 14px",background:wUnit===u?"var(--cm-red,#FF3B30)":"transparent",color:wUnit===u?"#fff":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:"none",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer",letterSpacing:"0.06em"}}>{u}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+                  <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.8)"}}>Notifications</span>
+                  <Toggle value={wPrefs?.notifications!==false} onChange={v=>{const wp={...wPrefs,notifications:v};setWPrefs(wp);saveSettings(wp,null);}}/>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -7177,6 +7008,175 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             <YourPatternsCard userId={user?.id}/>
           </div>
         </div>
+      )}
+
+      {/* ── CONNECTED APPS SUB-SCREEN ── */}
+      {meScreen==='connected'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Connected apps</div>
+            <div style={cardStyle}>
+              {/* Strava */}
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:44,height:44,borderRadius:10,background:"#FC4C02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                  </div>
+                  <div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Strava</div>
+                    {stravaConnected&&stravaAthlete?.metadata?.firstname&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>{stravaAthlete.metadata.firstname}</div>}
+                    {!stravaConnected&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sync runs & rides automatically</div>}
+                  </div>
+                </div>
+                {stravaConnected?(
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:6,padding:"3px 8px"}}>CONNECTED</span>
+                    <button onClick={async()=>{
+                      if(!confirm("Disconnect Strava?"))return;
+                      await sb.from('connected_apps').delete().eq('user_id',user.id).eq('provider','strava');
+                      setStravaConnected(false);setStravaAthlete(null);
+                      showToast("Strava disconnected","info");
+                    }} style={{background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:6,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontSize:11,padding:"4px 10px",cursor:"pointer",fontFamily:"'Archivo',sans-serif"}}>Disconnect</button>
+                  </div>
+                ):(
+                  <button onClick={async()=>{
+                    if(!user?.id)return;
+                    setStravaLoading(true);
+                    const base=import.meta.env.VITE_API_BASE_URL||"";
+                    window.location.href=`${base}/api/strava/auth?userId=${user.id}`;
+                  }} disabled={stravaLoading} style={{background:"#FC4C02",border:"none",borderRadius:8,color:"#fff",fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,padding:"7px 14px",cursor:"pointer",letterSpacing:"0.06em"}}>
+                    {stravaLoading?"CONNECTING…":"CONNECT"}
+                  </button>
+                )}
+              </div>
+              {/* Calendar — Life-Aware Training */}
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)"}}>
+                <CalendarSettingsPanel connected={calendarConnected||false} onConnect={onCalendarConnect||(() =>{})} onDisconnect={onCalendarDisconnect||(() =>{})} prefs={wPrefs?.calendarPrefs||{}} onPrefsChange={async(key,val)=>{const next={...wPrefs,calendarPrefs:{...(wPrefs?.calendarPrefs||{}),[key]:val}};setWPrefs(next);if(user){try{await sb.from("profiles").upsert({id:user.id,wprefs:next},{onConflict:"id"});}catch{}}}}/>
+              </div>
+              {/* Apple Health */}
+              <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <img src="/images/apple-health-icon.png" alt="Apple Health" style={{width:44,height:44,borderRadius:10,flexShrink:0,display:"block"}}/>
+                  <div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Apple Health</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:1}}>Sleep · HRV · Steps</div>
+                  </div>
+                </div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,padding:"4px 10px",borderRadius:6,background:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.12)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"#34d399":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",border:`1px solid ${typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"rgba(34,197,94,0.3)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`,letterSpacing:"0.08em",textTransform:"uppercase"}}>
+                  {typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()?"iOS Ready":"iPhone Only"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ACCOUNT SUB-SCREEN ── */}
+      {meScreen==='account'&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"var(--cm-red,#FF3B30)",overflowY:"auto",paddingBottom:80,WebkitOverflowScrolling:"touch"}}>
+          <div style={{position:"sticky",top:0,background:"var(--cm-red,#FF3B30)",padding:"calc(env(safe-area-inset-top,0px) + 14px) 18px 14px",zIndex:10,display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setMeScreen(null)} style={{background:"none",border:"none",color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,letterSpacing:"0.04em",cursor:"pointer",padding:0}}>← Back</button>
+          </div>
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:8,padding:"24px 18px 48px"}}>
+            <div style={eyebrowStyle}>Account</div>
+            {/* Subscription */}
+            <div style={cardStyle}>
+              <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:"var(--cm-ink,#0A0A0A)"}}>Plan</span>
+                <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:subIsPaid?"#34d399":subTier==="expired"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.5)",padding:"3px 10px",borderRadius:6,background:subIsPaid?"rgba(52,211,153,0.1)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",border:`1px solid ${subIsPaid?"rgba(52,211,153,0.25)":"rgba(var(--cm-ink-rgb,10,10,10),0.08)"}`}}>{subLabel}</span>
+              </div>
+              {subIsPaid?(
+                <>
+                  {profile?.subscription_started_at&&<div style={{padding:"10px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",fontFamily:"'Archivo',sans-serif"}}>Active since {new Date(profile.subscription_started_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+                  <MeRow label="Manage Subscription" onPress={()=>showToast("Manage via App Store → Subscriptions.","info",{duration:4000})} value=""/>
+                  <div style={{padding:"8px 16px",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontFamily:"'Archivo',sans-serif",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.04)"}}>Manage or cancel via the App Store settings.</div>
+                </>
+              ):(
+                <div style={{margin:"12px 16px",padding:"16px",background:"rgba(var(--cm-red-rgb,255,59,48),0.05)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:12}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,marginBottom:12}}>UPGRADE TO PRO.</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Monthly</span><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$12.99 / month</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}><span>Annual · Founding</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),0.6)"}}>$49.99 / year</span><span style={{background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:4,padding:"1px 6px",fontSize:9,color:"#22c55e",fontFamily:"'Archivo',sans-serif",fontWeight:700}}>SAVE 68%</span></div></div>
+                  </div>
+                  <button onClick={()=>setShowPlansModal(true)} style={{width:"100%",padding:"12px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:10,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,letterSpacing:".06em",textTransform:"uppercase",cursor:"pointer"}}>VIEW PLANS →</button>
+                </div>
+              )}
+              <MeRow label="Restore Purchases" isLast onPress={async()=>{
+                showToast("Checking purchases...","info");
+                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+                if(!u)return;
+                const tier=await restorePurchases(u.id);
+                if(tier)showToast(`Restored: ${tier==="monthly"?"Pro Monthly":"Pro Annual"} active.`,"success");
+                else showToast("No active purchases found.","info");
+              }} value=""/>
+            </div>
+            {/* Peer Comparison */}
+            <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle} hideEyebrow/>
+            {/* Legal & support */}
+            <div style={cardStyle}>
+              <MeRow label="Privacy Policy" onPress={()=>window.open("https://coach-macro.com/privacy","_blank")} value=""/>
+              <MeRow label="Terms of Service" onPress={()=>window.open("https://coach-macro.com/terms","_blank")} value=""/>
+              <MeRow label="Help & Support" onPress={()=>window.open("https://coach-macro.com/support","_blank")} value=""/>
+              <MeRow label="Delete Account" isDestructive isLast onPress={()=>setDelStep(delStep===0?1:0)}/>
+            </div>
+            {/* Delete confirmation — inline, follows Delete Account row */}
+            {delStep>0&&(
+              <div style={{background:"rgba(var(--cm-red-rgb,255,59,48),0.06)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:12,padding:16,marginTop:8}}>
+                {delStep===1&&<>
+                  <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Delete your account?</div>
+                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:6}}>Permanently deletes your profile, logs, workouts, and subscription records.</div>
+                  <div style={{fontSize:11,color:"var(--cm-red,#FF3B30)",marginBottom:14,fontWeight:600}}>Cannot be undone.</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setDelStep(0)} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={()=>setDelStep(2)} style={{flex:1,padding:"11px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Continue</button>
+                  </div>
+                </>}
+                {delStep===2&&<>
+                  <div style={{fontSize:13,color:"var(--cm-red,#FF3B30)",fontWeight:700,marginBottom:8}}>Final confirmation</div>
+                  <div style={{fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",marginBottom:12}}>Type <strong style={{color:"var(--cm-ink,#0A0A0A)"}}>DELETE</strong> to permanently delete your account.</div>
+                  <input value={delInput} onChange={e=>setDelInput(e.target.value)} placeholder="Type DELETE here" style={{width:"100%",padding:"10px 12px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"#fff",border:`1px solid ${delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.1)"}`,borderRadius:8,fontSize:13,fontFamily:"inherit",marginBottom:12,boxSizing:"border-box"}}/>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>{setDelStep(0);setDelInput("");}} style={{flex:1,padding:"11px",background:"rgba(var(--cm-ink-rgb,10,10,10),0.05)",color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                    <button onClick={deleteAccount} disabled={deleting||delInput.trim()!=="DELETE"} style={{flex:1,padding:"11px",background:delInput==="DELETE"?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.3)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:delInput==="DELETE"?"pointer":"not-allowed",fontFamily:"inherit"}}>{deleting?"Deleting...":"Delete Forever"}</button>
+                  </div>
+                </>}
+                {delStep===3&&<div style={{textAlign:"center",fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)"}}>Deleting your account...</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Plans modal portal — renders at document.body, accessible from 'account' sub-screen */}
+      {showPlansModal&&ReactDOM.createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
+            <div style={{width:32,height:3,background:"rgba(var(--cm-red-rgb,255,59,48),0.15)",borderRadius:2,margin:"0 auto 20px"}}/>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,marginBottom:6}}>GO PRO.</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.1em",marginBottom:20}}>10 ADAPT NOW · AI LOGGING · RECIPES · RESTAURANT AI</div>
+            {[{id:"monthly",label:"MONTHLY",price:"$12.99",per:"/month",badge:null,gradient:false},{id:"annual",label:"FOUNDING ANNUAL",price:"$49.99",per:"/year · $4.17/mo",badge:"FOUNDING MEMBER",saving:"Save 68% vs monthly · locked for life",gradient:true}].map(plan=>(
+              <div key={plan.id} onClick={async()=>{
+                if(purchaseLoading)return;
+                setPurchaseLoading(plan.id);
+                const{data:{user:u}}=await sb.auth.getUser().catch(()=>({data:{user:null}}));
+                if(!u){setPurchaseLoading(null);return;}
+                const ok=plan.id==="monthly"?await purchaseMonthly(u.id):await purchaseAnnual(u.id);
+                setPurchaseLoading(null);
+                if(ok){setShowPlansModal(false);showToast(`${plan.id==="monthly"?"Monthly":"Annual"} subscription activated!`,"success");}
+                else showToast("Purchase failed. Try again.","error");
+              }} style={{background:plan.gradient?"linear-gradient(135deg,#0d0d0d,rgba(var(--cm-red-rgb,255,59,48),0.04))":"var(--cm-paper,#FFFFFF)",border:`1px solid ${plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-red-rgb,255,59,48),0.1)"}`,borderRadius:14,padding:16,marginBottom:10,cursor:"pointer",position:"relative"}}>
+                {plan.badge&&<div style={{position:"absolute",top:-10,right:16,background:"var(--cm-red,#FF3B30)",borderRadius:20,padding:"3px 10px",fontFamily:"'Archivo',sans-serif",fontSize:8,color:"#fff",fontWeight:700}}>{plan.badge}</div>}
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:9,color:plan.gradient?"var(--cm-red,#FF3B30)":"rgba(var(--cm-ink-rgb,10,10,10),0.4)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{plan.label}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,lineHeight:1}}>{plan.price}<span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontStyle:"normal",fontWeight:400,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)"}}> {plan.per}</span></div>
+                {plan.saving&&<div style={{fontFamily:"'Archivo',sans-serif",fontWeight:500,fontSize:9,color:"#22c55e",marginTop:4}}>{plan.saving}</div>}
+                {purchaseLoading===plan.id&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginTop:6}}>Processing...</div>}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ── EDIT FIELD MODAL ── */}
