@@ -528,7 +528,7 @@ export const GLOBAL_CSS = `
     --condensed: 'Barlow Condensed', sans-serif;
     --body: 'Barlow', sans-serif;
   }
-  *{margin:0;padding:0;box-sizing:border-box}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body,#root{height:100%}
   button,a,[role=button]{min-height:44px;min-width:44px}
   @media(prefers-reduced-motion:reduce){*{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
@@ -628,18 +628,10 @@ export const REDESIGN_CSS = `
     --cm-text:       #111111;
     --cm-text-dim:   rgba(17,17,17,0.65);
     --cm-muted:      rgba(17,17,17,0.42);
-    --cm-accent:     #FF3B30;
-    --cm-accent-rgb: 255,59,48;
     --cm-border:     rgba(17,17,17,0.10);
     --cm-nav-track:  rgba(255,255,255,0.05);
 
-    /* ── Canonical swappable palette ── edit these 6 vars to retheme: */
-    --cm-red:        #FF3B30;
-    --cm-red-rgb:    255,59,48;
-    --cm-paper:      #FFFFFF;
-    --cm-paper-rgb:  255,255,255;
-    --cm-ink:        #0A0A0A;
-    --cm-ink-rgb:    10,10,10;
+    /* --cm-red/paper/ink/accent are set dynamically by applyTheme() on :root — not here */
 
     /* ── Muscle-group pill tokens — light (paper surface, active theme) ── */
     --mg-chest-fill:     #FEF3C7; --mg-chest-text:     #92400E;
@@ -709,6 +701,9 @@ export const REDESIGN_CSS = `
 
   /* Fuel tab — red field, matches Train */
   .goclub.tab-fuel .app-screen { background: var(--cm-red) !important; }
+
+  /* Me tab — red canvas, same treatment */
+  .goclub.tab-me .app-screen { background: var(--cm-red) !important; }
 
   /* ── Reusable primitives (Train + Fuel can share these) ── */
 

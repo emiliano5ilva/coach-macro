@@ -22,6 +22,10 @@ import { checkEntitlements } from "./services/purchaseService.js";
 import { PrivacyPolicy, TermsOfService } from "./legal.jsx";
 import { loadAndApplyTheme, applyDefaultTheme } from "./utils/themeService.js";
 
+// Synchronous default at module load — sets --cm-* on :root before React renders anything,
+// so there is no flash even after removing the static values from REDESIGN_CSS.
+applyDefaultTheme();
+
 // Dev-only: auto-sign-in with seeded demo account so simulator reaches phase="app".
 // Guard: import.meta.env.MODE — Vite replaces this with the literal string at build
 // time. `vite build` (prod) → MODE="production" → first check returns false → dead
@@ -47,7 +51,7 @@ function SplashScreen({onDone}) {
         {/* Pulsing red ring */}
         <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",border:"2px solid var(--red)",animation:"splash-pulse 1.2s ease-in-out infinite",pointerEvents:"none"}}/>
         <Logo size={52} text={false}/>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,letterSpacing:"-0.01em",textTransform:"uppercase",color:"var(--white)"}}>Coach Macro</div>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:26,letterSpacing:"-0.01em",textTransform:"uppercase",color:"#f5f5f0"}}>Coach Macro</div>
         <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--red)"}}>AI ATHLETIC COACHING</div>
       </div>
     </div>
@@ -207,7 +211,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
     }catch(e){setError(getErrorMessage(e));setOauthLoading("");}
   }
 
-  const inputStyle={width:"100%",background:"rgba(245,245,240,0.04)",border:"1.5px solid var(--white-border)",borderRadius:12,padding:"14px 16px",color:"var(--white)",fontSize:15,outline:"none",fontFamily:"var(--body)",boxSizing:"border-box"};
+  const inputStyle={width:"100%",background:"rgba(245,245,240,0.04)",border:"1.5px solid var(--white-border)",borderRadius:12,padding:"14px 16px",color:"#f5f5f0",fontSize:15,outline:"none",fontFamily:"var(--body)",boxSizing:"border-box"};
   const labelStyle={display:"block",fontSize:10,color:"var(--white-dim)",fontWeight:500,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:7,fontFamily:"var(--mono)"};
   const outer={minHeight:"100vh",background:"#000000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",position:"relative",overflow:"hidden"};
   const invitePending=(()=>{try{return JSON.parse(localStorage.getItem("coachMacroInvite")||"null");}catch{return null;}})();
@@ -236,7 +240,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
   );
 
   const googleBtn=(
-    <button onClick={()=>handleOAuth("google")} disabled={!!oauthLoading} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"14px",background:"rgba(245,245,240,0.06)",color:"var(--white)",fontWeight:700,fontSize:14,letterSpacing:"0.04em",border:"1px solid var(--white-border)",borderRadius:13,cursor:"pointer",fontFamily:"var(--body)",transition:"opacity .15s"}}>
+    <button onClick={()=>handleOAuth("google")} disabled={!!oauthLoading} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"14px",background:"rgba(245,245,240,0.06)",color:"#f5f5f0",fontWeight:700,fontSize:14,letterSpacing:"0.04em",border:"1px solid var(--white-border)",borderRadius:13,cursor:"pointer",fontFamily:"var(--body)",transition:"opacity .15s"}}>
       <GoogleSVG/>{oauthLoading==="google"?"Redirecting…":"Continue with Google"}
     </button>
   );
@@ -335,7 +339,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
         <button onClick={()=>setView("signin")} style={{width:"100%",padding:"15px",background:"var(--red)",color:"#fff",fontWeight:700,fontSize:15,border:"none",borderRadius:13,cursor:"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
           Go to Sign In →
         </button>
-        <button onClick={handleResendVerification} disabled={loading||resendCooldown>0} style={{width:"100%",padding:"12px",background:"rgba(245,245,240,0.06)",color:resendCooldown>0?"var(--white-dim)":"var(--white)",fontWeight:600,fontSize:14,border:"1px solid var(--white-border)",borderRadius:13,cursor:resendCooldown>0?"default":"pointer",fontFamily:"var(--body)",marginBottom:12}}>
+        <button onClick={handleResendVerification} disabled={loading||resendCooldown>0} style={{width:"100%",padding:"12px",background:"rgba(245,245,240,0.06)",color:resendCooldown>0?"rgba(245,245,240,0.65)":"#f5f5f0",fontWeight:600,fontSize:14,border:"1px solid var(--white-border)",borderRadius:13,cursor:resendCooldown>0?"default":"pointer",fontFamily:"var(--body)",marginBottom:12}}>
           {resendCooldown>0?`Resend in ${resendCooldown}s`:"Resend verification email"}
         </button>
         <button onClick={()=>{setView("signup");setEmail("");setPassword("");}} style={{background:"none",border:"none",color:"var(--white-dim)",fontSize:12,cursor:"pointer",fontFamily:"var(--mono)",letterSpacing:"0.08em"}}>
@@ -398,7 +402,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"18vh",width:"100%",maxWidth:420}}>
         <div onClick={handleLogoTap} style={{cursor:"default"}}>
           <div style={{marginBottom:28,display:"flex",justifyContent:"center"}}><Logo size={36} text={false}/></div>
-          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:84,lineHeight:.84,color:"var(--white)",textAlign:"center",textTransform:"uppercase",letterSpacing:"-0.01em"}}>
+          <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:84,lineHeight:.84,color:"#f5f5f0",textAlign:"center",textTransform:"uppercase",letterSpacing:"-0.01em"}}>
             YOUR COACH.
           </div>
         </div>
@@ -437,7 +441,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
           <svg width={14} height={14} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
           Back
         </button>
-        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.88,marginBottom:24,color:"var(--white)",textTransform:"uppercase"}}>
+        <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:48,lineHeight:.88,marginBottom:24,color:"#f5f5f0",textTransform:"uppercase"}}>
           {view==="signup"?<span>Your Plan<br/><span style={{color:"var(--red)"}}>Awaits.</span></span>:<span>Good to<br/><span style={{color:"var(--red)"}}>See You.</span></span>}
         </div>
         {appleBtn}{googleBtn}{socialDivider}
