@@ -6306,7 +6306,7 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
 
 // ─── PEER COMPARISON SECTION ─────────────────────────────────────────────────
 
-function PeerComparisonSection({ user, eyebrowStyle, cardStyle }) {
+function PeerComparisonSection({ user, eyebrowStyle, cardStyle, hideEyebrow }) {
   const [optIn, setOptIn] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -6325,7 +6325,7 @@ function PeerComparisonSection({ user, eyebrowStyle, cardStyle }) {
 
   return (
     <>
-      <div style={eyebrowStyle}>Peer comparison</div>
+      {!hideEyebrow&&<div style={eyebrowStyle}>Peer comparison</div>}
       <div style={cardStyle}>
         <div style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
@@ -6702,7 +6702,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
 
       {/* ── GROUP 6: ACCOUNT ─────────────────────────────────────────── */}
       <div style={eyebrowStyle}>Account</div>
-      <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle}/>
+      <PeerComparisonSection user={user} eyebrowStyle={eyebrowStyle} cardStyle={cardStyle} hideEyebrow/>
       {/* Subscription */}
       <div style={cardStyle}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
