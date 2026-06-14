@@ -6678,7 +6678,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       {/* ── GROUP 5: YOUR VOICE ──────────────────────────────────────── */}
       <div style={eyebrowStyle}>Your voice</div>
       <div style={cardStyle}>
-        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"feedback"});}} style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"features"});}} style={{padding:"14px 16px",borderBottom:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
           <div style={{width:36,height:36,borderRadius:9,background:"rgba(var(--cm-red-rgb,255,59,48),0.1)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--cm-red,#FF3B30)"><path d="M9 22h6v-1H9v1zm3-20C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26C17.81 13.47 19 11.38 19 9c0-3.87-3.13-7-7-7z"/></svg>
           </div>
@@ -6688,7 +6688,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </div>
           <span style={{color:"rgba(var(--cm-ink-rgb,10,10,10),0.25)",fontSize:18,lineHeight:1}}>›</span>
         </div>
-        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"feedback"});}} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+        <div onClick={()=>{if(window.uj)window.uj.showWidget({section:"bugs"});}} style={{padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
           <div style={{width:36,height:36,borderRadius:9,background:"rgba(254,160,32,0.1)",border:"1px solid rgba(254,160,32,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#fea020"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
           </div>
