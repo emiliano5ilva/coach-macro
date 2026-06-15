@@ -1,10 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const sb = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'Twitter/X', 'Facebook'];
 
@@ -262,26 +256,38 @@ export default function CompetitionIntel() {
   }, []);
 
   const loadCompetitors = async () => {
-    const { data } = await sb.from('competitors').select('*').order('created_at', { ascending: false });
+    const res = await fetch('/api/admin-competition?action=competitors', { credentials: 'include' });
+    const { data } = await res.json();
     setCompetitors(data || []);
   };
 
   const loadCalendar = async () => {
-    const { data } = await sb.from('content_calendar').select('*').order('created_at', { ascending: false }).limit(50);
+    const res = await fetch('/api/admin-competition?action=calendar', { credentials: 'include' });
+    const { data } = await res.json();
     setCalendarEntries(data || []);
   };
 
   const addCompetitor = async () => {
     if (!newUsername.trim()) return;
     setAddingComp(true);
-    await sb.from('competitors').insert({ username: newUsername.trim(), platform: newPlatform, notes: newNotes.trim() || null });
+    await fetch('/api/admin-competition', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add_competitor', username: newUsername.trim(), platform: newPlatform, notes: newNotes.trim() || null }),
+    });
     setNewUsername(''); setNewNotes('');
     await loadCompetitors();
     setAddingComp(false);
   };
 
   const removeCompetitor = async (id) => {
-    await sb.from('competitors').delete().eq('id', id);
+    await fetch('/api/admin-competition', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'remove_competitor', id }),
+    });
     setCompetitors((prev) => prev.filter((c) => c.id !== id));
   };
 
@@ -358,20 +364,31 @@ Generate 3 content ideas.`,
   };
 
   const saveToCalendar = async (idea) => {
-    await sb.from('content_calendar').insert({
-      title:            idea.title || idea.concept,
-      content_type:     idea.content_type,
-      caption:          idea.caption,
-      higgsfield_prompt:idea.higgsfield_prompt,
-      platform:         'instagram',
-      status:           'idea',
+    await fetch('/api/admin-competition', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:            'add_calendar',
+        title:             idea.title || idea.concept,
+        content_type:      idea.content_type,
+        caption:           idea.caption,
+        higgsfield_prompt: idea.higgsfield_prompt,
+        platform:          'instagram',
+        status:            'idea',
+      }),
     });
     await loadCalendar();
     setTab('calendar');
   };
 
   const updateCalendarStatus = async (id, status) => {
-    await sb.from('content_calendar').update({ status }).eq('id', id);
+    await fetch('/api/admin-competition', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_calendar_status', id, status }),
+    });
     await loadCalendar();
   };
 
