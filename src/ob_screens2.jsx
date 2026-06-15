@@ -9223,7 +9223,7 @@ Rules:
           setExpenditureHistory(hist);
           setDataDrift(checkDataDrift(hist));
           // Weekly adaptive recalibration (debounced to once/week inside the service)
-          recalibrateFactors(user.id).catch(() => {});
+          recalibrateFactors(user.id, profile).catch(() => {});
         })
         .catch(() => {
           // Fallback: use raw without factors
