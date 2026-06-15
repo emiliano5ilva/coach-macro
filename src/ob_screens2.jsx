@@ -9092,7 +9092,7 @@ Rules:
     const latest=logs[logs.length-1];
 
     return(
-      <div style={{margin:"0 20px 14px"}}>
+      <div style={{margin:"0 16px 14px"}}>
         <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>WEIGHT</div>
         <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
@@ -9133,19 +9133,20 @@ Rules:
         </div>
         {bwModal&&(
           <div onClick={()=>setBwModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-            <div onClick={e=>e.stopPropagation()} style={{background:"#0D1827",borderRadius:"20px 20px 0 0",padding:24,width:"100%",maxWidth:480,paddingBottom:"max(24px,env(safe-area-inset-bottom))"}}>
-              <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:24,marginBottom:16}}>Log Weight</div>
+            <div onClick={e=>e.stopPropagation()} style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"20px 20px 0 0",padding:24,width:"100%",maxWidth:480,paddingBottom:"max(24px,env(safe-area-inset-bottom))"}}>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:8}}>Weigh-in</div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:24,color:"var(--cm-ink,#0A0A0A)",marginBottom:20,lineHeight:1}}>Log Weight</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                 <div>
-                  <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"var(--mono)"}}>Weight ({wUnit})</div>
-                  <input autoFocus value={bwInput} onChange={e=>setBwInput(e.target.value)} type="number" step="0.1" placeholder="e.g. 175" style={{width:"100%",background:"rgba(245,245,240,0.06)",border:"1.5px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                  <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"'Archivo',sans-serif",fontWeight:700}}>Weight ({wUnit})</div>
+                  <input autoFocus value={bwInput} onChange={e=>setBwInput(e.target.value)} type="number" step="0.1" placeholder={wUnit==='kg'?"e.g. 80":"e.g. 175"} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,padding:"12px 14px",color:"var(--cm-ink,#0A0A0A)",fontSize:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
                 </div>
                 <div>
-                  <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"var(--mono)"}}>Date</div>
-                  <input value={bwDate} onChange={e=>setBwDate(e.target.value)} type="date" style={{width:"100%",background:"rgba(245,245,240,0.06)",border:"1.5px solid rgba(245,245,240,0.12)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",colorScheme:"dark"}}/>
+                  <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"'Archivo',sans-serif",fontWeight:700}}>Date</div>
+                  <input value={bwDate} onChange={e=>setBwDate(e.target.value)} type="date" style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,padding:"12px 14px",color:"var(--cm-ink,#0A0A0A)",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",colorScheme:"light"}}/>
                 </div>
               </div>
-              <button onClick={saveWeight} disabled={!bwInput||bwSaving} style={{width:"100%",padding:"14px",background:!bwInput||bwSaving?"rgba(245,245,240,0.1)":"var(--red)",color:!bwInput||bwSaving?"rgba(245,245,240,0.3)":"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:!bwInput||bwSaving?"default":"pointer",fontFamily:"var(--condensed)",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+              <button onClick={saveWeight} disabled={!bwInput||bwSaving} style={{width:"100%",padding:"14px",background:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.08)":"var(--cm-red,#FF3B30)",color:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.3)":"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:!bwInput||bwSaving?"default":"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>
                 {bwSaving?"Saving...":"Save Weight"}
               </button>
             </div>
@@ -10389,6 +10390,7 @@ Rules:
               );
             })()}
 
+            <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||'lbs'}/>
             {weightProjection?(
               <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Weight Projection</div>
