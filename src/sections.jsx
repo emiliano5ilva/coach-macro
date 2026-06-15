@@ -6650,7 +6650,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
       <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"24px 24px 0 0",marginTop:4,paddingTop:22,paddingBottom:28,marginLeft:isMobile?-18:0,marginRight:isMobile?-18:0,paddingLeft:isMobile?18:0,paddingRight:isMobile?18:0}}>
       {/* ── GROUP 1: YOU ─────────────────────────────────────────────── */}
       <div style={eyebrowStyle}>You</div>
-      <AthletePassport user={user}/>
+      {/* <AthletePassport user={user}/> — temporarily hidden, keep for later */}
       <div style={cardStyle}>
         {/* ─ Profile ─ */}
         <MeRow label="Profile" value="Name, goal, body" onPress={()=>setMeScreen('profile')}/>
