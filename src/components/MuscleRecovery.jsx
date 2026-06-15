@@ -65,7 +65,7 @@ function buildOptCoachText(data) {
   return '"Volume is well distributed across all groups. Stay the course."';
 }
 
-export default function MuscleRecovery({ userId, recoveryData: propRecovery, optimizationData: propOptim }) {
+export default function MuscleRecovery({ userId, recoveryData: propRecovery, optimizationData: propOptim, recoveryPromise }) {
   const [mode, setMode] = useState('recovery');
   const [localRecovery, setLocalRecovery] = useState(null);
   const [localOptim, setLocalOptim]       = useState(null);
@@ -87,6 +87,21 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
 
   useEffect(() => {
     if (!userId) return;
+    // Case A: prefetch already resolved — both props present, skip fetch entirely
+    if (propRecovery && propOptim) return;
+    // Case B: prefetch in flight — hook into shared promise to avoid double-fetch
+    if (recoveryPromise) {
+      setLoading(true);
+      recoveryPromise
+        .then(result => {
+          if (result?.rec) setLocalRecovery(result.rec);
+          if (result?.opt) setLocalOptim(result.opt);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+      return;
+    }
+    // Case C: no prefetch (first-render race) — own fetch as fallback
     fetchData(userId);
   }, [userId]);
 
@@ -124,8 +139,8 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
     return () => window.removeEventListener('focus', handler);
   }, [userId]);
 
-  const recoveryData     = userId ? localRecovery : propRecovery;
-  const optimizationData = userId ? localOptim    : propOptim;
+  const recoveryData     = localRecovery ?? propRecovery;
+  const optimizationData = localOptim    ?? propOptim;
 
   function getColors() {
     if (loading && !recoveryData) {

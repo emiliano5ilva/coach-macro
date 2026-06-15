@@ -79,7 +79,7 @@ import { getExerciseData } from "./data/exerciseMuscleMap.js";
 import { MUSCLE_TO_BODYMAP, BODYMAP_COLOR, ALL_REGIONS } from "./data/bodyMapRegions.js";
 import { loadAndApplyTheme } from "./utils/themeService.js";
 import { thermalAt, THERMAL_NODATA, THERMAL_CSS } from "./data/thermalPalette.js";
-import { OPTIMAL_SETS, GROUP_TO_SVG } from "./services/recoveryService.js";
+import { OPTIMAL_SETS, GROUP_TO_SVG, getRecoveryData, getOptimizationData } from "./services/recoveryService.js";
 import StreakCard from "./components/StreakCard.jsx";
 import { getWin, checkStreakWins, markStreakWinShown } from "./services/winService.js";
 import CollapsibleAlert from "./components/CollapsibleAlert.jsx";
@@ -96,6 +96,7 @@ import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, ge
 import { getUserMode, getUserTier, getVisibleSections, getProgressTabs } from "./utils/dashboardResolver.js";
 import { COACH_SCORE_LABELS, RING_CONFIG } from "./config/dashboardConfig.js";
 import { getPostWorkoutWindow } from "./services/nutritionTimingService.js";
+import { calculateTrainingDNA } from "./services/trainingDnaService.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -5241,6 +5242,13 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   // ── Bodyweight logs ────────────────────────────────────────────────────────
   const [bodyweightLogs,setBodyweightLogs]=useState([]);
 
+  // ── Progress tab prefetch cache (parent-level so it persists across tab visits) ──
+  const [prefetchedDNA,      setPrefetchedDNA]      = useState(null);
+  const [prefetchedRecovery, setPrefetchedRecovery] = useState(null);
+  const [prefetchedOptim,    setPrefetchedOptim]    = useState(null);
+  const dnaPromiseRef      = useRef(null);
+  const recoveryPromiseRef = useRef(null);
+
   // ── Workout coaching state ─────────────────────────────────────────────────
   const [lastLoggedSet,setLastLoggedSet]=useState(null);
   const [setFlash,setSetFlash]=useState(null);
@@ -5363,6 +5371,29 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     sb.from("bodyweight_logs").select("date,weight").eq("user_id",user.id).order("date",{ascending:true}).limit(90).then(({data})=>{
       if(data&&data.length>0)setBodyweightLogs(data);
     });
+    // ── Progress tab prefetch — DNA + recovery load once, cache for instant tab re-entry ──
+    setPrefetchedDNA(null); setPrefetchedRecovery(null); setPrefetchedOptim(null);
+    dnaPromiseRef.current = null; recoveryPromiseRef.current = null;
+    dnaPromiseRef.current = calculateTrainingDNA(user.id).then(result=>{
+      const scores={strength:result.strength,endurance:result.endurance,power:result.power,
+                    consistency:result.consistency,nutrition:result.nutrition,recovery:result.recovery};
+      const metrics=[{label:"Strength",score:result.strength},{label:"Endurance",score:result.endurance},
+                     {label:"Power",score:result.power},{label:"Consistency",score:result.consistency},
+                     {label:"Nutrition",score:result.nutrition},{label:"Recovery",score:result.recovery}];
+      const shaped={scores,metrics,total:result._meta?.sessions||0,
+                    highest:metrics.reduce((a,b)=>a.score>b.score?a:b),
+                    lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)};
+      setPrefetchedDNA(shaped);
+      return shaped;
+    }).catch(()=>null);
+    recoveryPromiseRef.current = Promise.all([
+      getRecoveryData(user.id).catch(()=>null),
+      getOptimizationData(user.id).catch(()=>null),
+    ]).then(([rec,opt])=>{
+      if(rec)setPrefetchedRecovery(rec);
+      if(opt)setPrefetchedOptim(opt);
+      return{rec,opt};
+    }).catch(()=>null);
     // Water logs
     getWaterLogs(user.id,today).then(logs=>setWaterLogs(logs||[]));
     getWaterHistory(user.id,7).then(hist=>setWaterHistory(hist||[]));
@@ -10159,7 +10190,7 @@ Rules:
                   </div>
                 </div>
               ):(
-                <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule}/>
+                <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule} prefetchedDnaData={prefetchedDNA} dnaPromise={dnaPromiseRef.current}/>
               )}
             </div>
 
@@ -10419,7 +10450,7 @@ Rules:
           {/* ── RECOVERY ── */}
           {activeTab==="recovery"&&<>
             <div style={{margin:"0 16px 14px"}}>
-              <MuscleRecovery userId={user?.id}/>
+              <MuscleRecovery userId={user?.id} recoveryData={prefetchedRecovery} optimizationData={prefetchedOptim} recoveryPromise={recoveryPromiseRef.current}/>
             </div>
 
             {/* Muscle Balance */}

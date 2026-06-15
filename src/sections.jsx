@@ -5510,28 +5510,31 @@ function drawDNARadar(canvas,scores){
 }
 
 // ─── TRAINING DNA ────────────────────────────────────────────────────────────
-export function TrainingDNA({profile,wPrefs,user,isMobile,schedule}){
-  const [dnaData,setDnaData]=useState(null);
+export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDnaData,dnaPromise}){
+  const [dnaData,setDnaData]=useState(prefetchedDnaData||null);
   const radarRef=useRef(null);
 
   const startD=profile?.startDate?new Date(profile.startDate):new Date();
   const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
 
   useEffect(()=>{
+    // Case A: prop already resolved — sync and done (covers instant re-entry)
+    if(prefetchedDnaData){ setDnaData(prefetchedDnaData); return; }
     if(!user)return;
-    calculateTrainingDNA(user.id).then(result=>{
-      const scores={
-        strength:result.strength,endurance:result.endurance,power:result.power,
-        consistency:result.consistency,nutrition:result.nutrition,recovery:result.recovery,
-      };
-      const metrics=[
-        {label:"Strength",score:result.strength},{label:"Endurance",score:result.endurance},
-        {label:"Power",score:result.power},{label:"Consistency",score:result.consistency},
-        {label:"Nutrition",score:result.nutrition},{label:"Recovery",score:result.recovery},
-      ];
-      setDnaData({scores,metrics,total:result._meta?.sessions||0,highest:metrics.reduce((a,b)=>a.score>b.score?a:b),lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)});
-    }).catch(()=>{});
-  },[user?.id]);
+    // Case B: prefetch in flight — hook into shared promise to avoid double-fetch
+    // Case C: no prefetch (e.g. first-render race) — own fetch as fallback
+    const p=dnaPromise||calculateTrainingDNA(user.id).then(result=>{
+      const scores={strength:result.strength,endurance:result.endurance,power:result.power,
+                    consistency:result.consistency,nutrition:result.nutrition,recovery:result.recovery};
+      const metrics=[{label:"Strength",score:result.strength},{label:"Endurance",score:result.endurance},
+                     {label:"Power",score:result.power},{label:"Consistency",score:result.consistency},
+                     {label:"Nutrition",score:result.nutrition},{label:"Recovery",score:result.recovery}];
+      return{scores,metrics,total:result._meta?.sessions||0,
+             highest:metrics.reduce((a,b)=>a.score>b.score?a:b),
+             lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)};
+    });
+    p.then(shaped=>{ if(shaped)setDnaData(shaped); }).catch(()=>{});
+  },[user?.id,prefetchedDnaData]);
 
   useEffect(()=>{
     if(!radarRef.current)return;
