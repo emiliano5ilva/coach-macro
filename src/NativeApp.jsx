@@ -728,6 +728,15 @@ export default function NativeApp() {
       }catch(e){
         console.error("[handleProfileDone] saveProfile threw:",e);
       }
+      // Seed starting weight into bodyweight_logs so Day-1 weight chart/TDEE have a baseline.
+      // onConflict is idempotent — safe if onboarding runs twice.
+      const _startW=parseFloat(baseProf.weight)||0;
+      if(_startW>0){
+        sb.from("bodyweight_logs").upsert(
+          {user_id:user.id,date:baseProf.startDate,weight:_startW},
+          {onConflict:"user_id,date"}
+        ).catch(()=>{});
+      }
     }
   }
 
