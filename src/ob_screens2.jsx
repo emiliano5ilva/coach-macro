@@ -2401,14 +2401,11 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
   const trainedGroups=Object.keys(GROUP_TO_SVG).filter(g=>setsPerGroup[g]>0).map(g=>_groupNames[g]||g);
   const skippedGroups=Object.keys(GROUP_TO_SVG).filter(g=>setsPerGroup[g]===0).map(g=>_groupNames[g]||g);
 
-  // Style helpers
-  const ink='var(--cm-ink,#0A0A0A)';
-  const inkFaint='rgba(var(--cm-ink-rgb,10,10,10),.45)';
-  const inkFainter='rgba(var(--cm-ink-rgb,10,10,10),.12)';
-  const red='var(--cm-red,#FF3B30)';
+  // Style helpers — new system
+  const ink='var(--cm-ink)';
   const _MO={fontFamily:"'DM Mono',monospace"};
-  const _BC={fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900};
-  const _paper={background:'var(--cm-paper,#fff)',borderRadius:16};
+  const _AF={fontFamily:"'Archivo',sans-serif",fontWeight:800};
+  const _card={background:'var(--card-bg)',borderRadius:16};
 
   const weekStart=new Date(twStart+'T12:00:00');
   const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
@@ -2420,41 +2417,41 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
   const timeStr=timeThisWeek>0?(timeH>0?`${timeH}h ${timeM}m`:`${timeM}m`):'—';
 
   return (
-    <div style={{position:'fixed',inset:0,background:red,zIndex:10010,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+    <div style={{position:'fixed',inset:0,background:'var(--bg)',zIndex:10010,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
 
       {/* Calorie-override guard — fixed so it overlays even when scrolled */}
       {confirmOverrideCals&&(
-        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:10011,background:'var(--cm-paper,#fff)',borderTop:`2px solid ${red}`,borderRadius:'20px 20px 0 0',padding:'20px 20px max(env(safe-area-inset-bottom),24px)'}}>
-          <div style={{..._MO,fontSize:9,color:red,letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:8}}>CUSTOM TARGET SET</div>
+        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:10011,background:'var(--card-bg)',borderTop:'2px solid var(--accent)',borderRadius:'20px 20px 0 0',padding:'20px 20px max(env(safe-area-inset-bottom),24px)'}}>
+          <div style={{..._MO,fontSize:9,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>CUSTOM TARGET SET</div>
           <div style={{fontFamily:"'Barlow',sans-serif",fontSize:14,color:ink,marginBottom:16}}>You set a custom calorie target. Replace it with the suggested {confirmOverrideCals} kcal?</div>
           <div style={{display:'flex',gap:10}}>
-            <button onClick={()=>setConfirmOverrideCals(null)} style={{flex:1,padding:'12px',background:'none',color:inkFaint,border:`1px solid ${inkFainter}`,borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Keep mine</button>
-            <button onClick={()=>doApply(confirmOverrideCals)} disabled={applying} style={{flex:1,padding:'12px',background:red,color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{applying?'Applying…':'Replace'}</button>
+            <button onClick={()=>setConfirmOverrideCals(null)} style={{flex:1,padding:'12px',background:'none',color:'var(--text-dim)',border:'1px solid var(--card-border)',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>Keep mine</button>
+            <button onClick={()=>doApply(confirmOverrideCals)} disabled={applying} style={{flex:1,padding:'12px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{applying?'Applying…':'Replace'}</button>
           </div>
         </div>
       )}
 
-      {/* Red header */}
-      <div style={{padding:'max(env(safe-area-inset-top),20px) 20px 24px',maxWidth:480,margin:'0 auto'}}>
+      {/* Header */}
+      <div style={{padding:'max(env(safe-area-inset-top),20px) 20px 24px',maxWidth:480,margin:'0 auto',backgroundImage:'linear-gradient(180deg,rgba(var(--accent-rgb),0.05) 0%,transparent 120px)'}}>
         <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
-          <button onClick={onClose} style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#fff',fontSize:16,fontFamily:'inherit'}}>✕</button>
+          <button onClick={onClose} style={{background:'var(--card-bg)',border:'1px solid var(--card-border)',borderRadius:'50%',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:ink,fontSize:16,fontFamily:'inherit'}}>✕</button>
         </div>
-        <div style={{..._MO,fontSize:9,color:'rgba(255,255,255,0.60)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>WEEK IN REVIEW</div>
-        <div style={{..._BC,fontSize:38,color:'#fff',lineHeight:0.95,textTransform:'uppercase',marginBottom:12}}>{dateRange}</div>
-        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:15,color:'rgba(255,255,255,0.80)',lineHeight:1.4}}>
+        <div style={{..._MO,fontSize:9,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:8}}>WEEK IN REVIEW</div>
+        <div style={{..._AF,fontSize:38,color:ink,lineHeight:0.95,marginBottom:12}}>{dateRange}</div>
+        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:15,color:'var(--text-dim)',lineHeight:1.4}}>
           You showed up {trainingDaysThisWeek} day{trainingDaysThisWeek!==1?'s':''}.{prsThisWeek.count>0?` ${prsThisWeek.count} new PR${prsThisWeek.count>1?'s':''}.`:''}
         </div>
       </div>
 
-      {/* Paper sections */}
+      {/* Card sections */}
       <div style={{padding:'0 16px max(env(safe-area-inset-bottom),32px)',maxWidth:480,margin:'0 auto',display:'flex',flexDirection:'column',gap:10}}>
 
         {/* Consistency strip */}
-        <div style={{..._paper,padding:'16px'}}>
-          <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:8}}>Consistency · {trainingDaysThisWeek} of 7 days</div>
+        <div style={{..._card,padding:'16px'}}>
+          <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>CONSISTENCY · {trainingDaysThisWeek} OF 7 DAYS</div>
           <div style={{display:'flex',gap:4}}>
             {weekDaysArr.map((day,i)=>(
-              <div key={i} style={{flex:1,height:40,borderRadius:8,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:day.trained?red:inkFainter}}>
+              <div key={i} style={{flex:1,height:40,borderRadius:8,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:day.trained?'var(--accent)':'var(--card-border)'}}>
                 {day.trained&&(
                   <div style={{color:'#fff',lineHeight:1}}>
                     {day.kind==='run'
@@ -2463,14 +2460,14 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
                     }
                   </div>
                 )}
-                <div style={{..._MO,fontSize:7,color:day.trained?'#fff':inkFaint,letterSpacing:'0.04em'}}>{day.letter}</div>
+                <div style={{..._MO,fontSize:7,color:day.trained?'#fff':'var(--text-faint)',letterSpacing:'0.04em'}}>{day.letter}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Stats row */}
-        <div style={{..._paper,overflow:'hidden'}}>
+        <div style={{..._card,overflow:'hidden'}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr'}}>
             {[
               {label:'SESSIONS',value:workoutsThisWeek},
@@ -2478,28 +2475,28 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
               {label:'TIME',value:timeStr},
               {label:'PRs',value:prsThisWeek.count,green:true},
             ].map(({label,value,green},i)=>(
-              <div key={label} style={{padding:'14px 4px',textAlign:'center',borderRight:i<3?`1px solid ${inkFainter}`:'none'}}>
-                <div style={{..._BC,fontSize:26,color:green&&prsThisWeek.count>0?'#22c55e':ink,lineHeight:1,marginBottom:3}}>{value}</div>
-                <div style={{..._MO,fontSize:7,color:inkFaint,letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</div>
+              <div key={label} style={{padding:'14px 4px',textAlign:'center',borderRight:i<3?'1px solid var(--card-border)':'none'}}>
+                <div style={{..._AF,fontSize:26,color:green&&prsThisWeek.count>0?'#22c55e':ink,lineHeight:1,marginBottom:3}}>{value}</div>
+                <div style={{..._MO,fontSize:7,color:'var(--text-faint)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{label}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Vs last week */}
-        <div style={{..._paper,padding:'12px 16px',display:'flex',alignItems:'center',gap:8}}>
-          <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.06em',textTransform:'uppercase',flex:1}}>Training days vs last week</div>
-          <div style={{..._MO,fontSize:9,fontWeight:700,color:dayDelta>0?'#22c55e':dayDelta<0?red:inkFaint}}>
+        <div style={{..._card,padding:'12px 16px',display:'flex',alignItems:'center',gap:8}}>
+          <div style={{..._MO,fontSize:8,color:'var(--text-faint)',letterSpacing:'0.06em',textTransform:'uppercase',flex:1}}>Training days vs last week</div>
+          <div style={{..._MO,fontSize:9,fontWeight:700,color:dayDelta>0?'#22c55e':dayDelta<0?'var(--accent)':'var(--text-faint)'}}>
             {dayDelta>0?`▲ +${dayDelta}`:dayDelta<0?`▼ ${dayDelta}`:'→ same'}
           </div>
         </div>
 
-        {/* PR highlight — conditional; list available once Supabase fetch completes */}
+        {/* PR highlight — conditional */}
         {prsThisWeek.count>0&&(
-          <div style={{..._paper,padding:'14px 16px',display:'flex',gap:12,alignItems:'flex-start'}}>
+          <div style={{..._card,padding:'14px 16px',display:'flex',gap:12,alignItems:'flex-start'}}>
             <div style={{fontSize:20,flexShrink:0}}>🏆</div>
             <div>
-              <div style={{..._BC,fontSize:16,color:'#22c55e',marginBottom:3}}>{prsThisWeek.count} PR{prsThisWeek.count>1?'s':''} this week</div>
+              <div style={{..._AF,fontSize:16,color:'#22c55e',marginBottom:3}}>{prsThisWeek.count} PR{prsThisWeek.count>1?'s':''} this week</div>
               <div style={{..._MO,fontSize:8,color:'rgba(34,197,94,.80)',lineHeight:1.6}}>
                 {prsThisWeek.list.map(p=>`${p.name} ${p.weight}${wUnit}×${p.reps}`).join(' · ')}
               </div>
@@ -2508,8 +2505,8 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         )}
 
         {/* Muscle coverage card */}
-        <div style={{..._paper,padding:'16px'}}>
-          <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>MUSCLES TRAINED THIS WEEK</div>
+        <div style={{..._card,padding:'16px'}}>
+          <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>MUSCLES TRAINED THIS WEEK</div>
           <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
             <div style={{width:100,flexShrink:0}}>
               <BodyMap colors={bodyColors}/>
@@ -2519,11 +2516,11 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
               {trainedGroups.length>0&&(
                 <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}}>
                   {trainedGroups.map(g=>(
-                    <span key={g} style={{..._MO,fontSize:7,letterSpacing:'0.08em',textTransform:'uppercase',padding:'3px 8px',borderRadius:20,background:'rgba(var(--cm-ink-rgb,10,10,10),.06)',color:ink}}>{g}</span>
+                    <span key={g} style={{..._MO,fontSize:7,letterSpacing:'0.08em',textTransform:'uppercase',padding:'3px 8px',borderRadius:20,background:'var(--card-border)',color:ink}}>{g}</span>
                   ))}
                 </div>
               )}
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:inkFaint,lineHeight:1.55}}>
+              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:'var(--text-dim)',lineHeight:1.55}}>
                 {skippedGroups.length===0
                   ?'Full-body coverage this week — every major group hit.'
                   :`Solid coverage — but no direct ${skippedGroups.join(', ')} work this week.`
@@ -2535,24 +2532,24 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
 
         {/* Nutrition / insight sections from Supabase fetch */}
         {loading ? (
-          <div style={{..._paper,padding:'20px 16px',display:'flex',alignItems:'center',gap:10}}>
-            <div style={{width:16,height:16,borderRadius:'50%',border:`2px solid ${inkFainter}`,borderTopColor:red,animation:'spin 0.9s linear infinite',flexShrink:0}}/>
-            <div style={{..._MO,fontSize:8,color:inkFaint,textTransform:'uppercase',letterSpacing:'0.1em'}}>Loading nutrition data…</div>
+          <div style={{..._card,padding:'20px 16px',display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:16,height:16,borderRadius:'50%',border:'2px solid var(--card-border)',borderTopColor:'var(--accent)',animation:'spin 0.9s linear infinite',flexShrink:0}}/>
+            <div style={{..._MO,fontSize:8,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Loading nutrition data…</div>
           </div>
         ) : data ? (
           <>
             {/* Nutrition adherence */}
-            <div style={{..._paper,padding:'16px'}}>
-              <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>NUTRITION</div>
+            <div style={{..._card,padding:'16px'}}>
+              <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>NUTRITION</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                 {[
                   {label:'Cal days',value:`${data.calHit}/7`,green:data.calHit>=5},
                   {label:'Prot days',value:`${data.protHit}/7`,green:data.protHit>=5},
                   {label:'Avg kcal',value:data.avgCals?Math.round(data.avgCals):'—'},
                 ].map(({label,value,green})=>(
-                  <div key={label} style={{textAlign:'center',padding:'10px 4px',background:'rgba(var(--cm-ink-rgb,10,10,10),.03)',borderRadius:10}}>
-                    <div style={{..._BC,fontSize:20,color:green?'#22c55e':ink,lineHeight:1,marginBottom:2}}>{value}</div>
-                    <div style={{..._MO,fontSize:7,color:inkFaint,textTransform:'uppercase',letterSpacing:'0.1em'}}>{label}</div>
+                  <div key={label} style={{textAlign:'center',padding:'10px 4px',background:'var(--bg)',borderRadius:10}}>
+                    <div style={{..._AF,fontSize:20,color:green?'#22c55e':ink,lineHeight:1,marginBottom:2}}>{value}</div>
+                    <div style={{..._MO,fontSize:7,color:'var(--text-faint)',textTransform:'uppercase',letterSpacing:'0.1em'}}>{label}</div>
                   </div>
                 ))}
               </div>
@@ -2560,9 +2557,9 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
 
             {/* Weight trend */}
             {data.wtChange!==null&&(
-              <div style={{..._paper,padding:'12px 16px',display:'flex',alignItems:'center',gap:8}}>
-                <div style={{..._MO,fontSize:8,color:inkFaint,letterSpacing:'0.06em',textTransform:'uppercase',flex:1}}>Weight this week</div>
-                <div style={{..._BC,fontSize:20,color:data.wtChange>0.1?'#f59e0b':data.wtChange<-0.1?'#22c55e':inkFaint}}>
+              <div style={{..._card,padding:'12px 16px',display:'flex',alignItems:'center',gap:8}}>
+                <div style={{..._MO,fontSize:8,color:'var(--text-faint)',letterSpacing:'0.06em',textTransform:'uppercase',flex:1}}>Weight this week</div>
+                <div style={{..._AF,fontSize:20,color:data.wtChange>0.1?'#f59e0b':data.wtChange<-0.1?'#22c55e':'var(--text-faint)'}}>
                   {data.wtChange>0?'+':''}{data.wtChange.toFixed(1)} lbs
                 </div>
               </div>
@@ -2570,18 +2567,18 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
 
             {/* Coach signal + calorie adjustment */}
             {(data.topInsight||data.calorieDelta)&&(
-              <div style={{..._paper,padding:'16px'}}>
-                <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>COACH SIGNAL</div>
+              <div style={{..._card,padding:'16px'}}>
+                <div style={{..._MO,fontSize:8,fontWeight:700,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>COACH SIGNAL</div>
                 {data.topInsight&&<div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:ink,lineHeight:1.6,marginBottom:data.calorieDelta?12:0}}>{data.topInsight.message}</div>}
                 {data.calorieDelta&&(
-                  <div style={{background:`${red}0F`,border:`1px solid ${red}30`,borderRadius:10,padding:'12px'}}>
-                    <div style={{..._MO,fontSize:8,color:red,letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:4}}>
+                  <div style={{background:'rgba(var(--accent-rgb),0.06)',border:'1px solid rgba(var(--accent-rgb),0.25)',borderRadius:10,padding:'12px'}}>
+                    <div style={{..._MO,fontSize:8,color:'var(--accent)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:4}}>
                       {data.calorieDelta>0?'Increase':'Decrease'} daily target by {Math.abs(data.calorieDelta)} kcal
                     </div>
-                    <div style={{..._MO,fontSize:9,color:inkFaint,marginBottom:10}}>
+                    <div style={{..._MO,fontSize:9,color:'var(--text-dim)',marginBottom:10}}>
                       {macros?.calories||2000} → {(macros?.calories||2000)+data.calorieDelta} kcal/day
                     </div>
-                    <button onClick={handleApply} disabled={applying} style={{width:'100%',padding:'11px',background:red,color:'#fff',border:'none',borderRadius:9,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
+                    <button onClick={handleApply} disabled={applying} style={{width:'100%',padding:'11px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:9,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
                       {applying?'Applying…':'Apply Change'}
                     </button>
                   </div>
@@ -2592,7 +2589,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         ) : null}
 
         {/* Done */}
-        <button onClick={onClose} style={{width:'100%',padding:'15px',background:'rgba(255,255,255,0.18)',border:'1px solid rgba(255,255,255,0.20)',borderRadius:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:'#fff',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer',marginTop:4}}>
+        <button onClick={onClose} style={{width:'100%',padding:'15px',background:'var(--card-bg)',border:'1px solid var(--card-border)',borderRadius:14,fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:10,color:ink,letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer',marginTop:4}}>
           Done
         </button>
 
