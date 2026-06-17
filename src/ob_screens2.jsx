@@ -9716,14 +9716,17 @@ Rules:
 
     function ValidationInsightCard() {
       const [expanded, setExpanded] = useState(false);
+      const [memExpanded, setMemExpanded] = useState(false);
       const top = validationInsights[0];
+
+      const _MO="'DM Mono',monospace";
 
       if (insightLoading && !top) {
         return (
-          <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Today's Insight</div>
+          <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TODAY'S INSIGHT</div>
             <div style={{height:48,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{width:18,height:18,borderRadius:"50%",border:"2px solid rgba(var(--accent-rgb),0.3)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
+              <div style={{width:18,height:18,borderRadius:"50%",border:"2px solid var(--card-border)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
             </div>
           </div>
         );
@@ -9731,83 +9734,147 @@ Rules:
 
       if (!top) return null;
 
-      // Personality adaptation
+      // Personality adaptation — declared before use
       const _persProfile = getProfileSync(user?.id);
       const adaptedMessage = adaptMessageSync(top.message, _persProfile, { scenario: top.insight_type, addPrefix: false });
 
-      const priorityColor = { severe: '#ef4444', high: '#f59e0b', medium: '#60a5fa', low: 'rgba(245,245,240,0.35)' };
-      const priorityBg    = { severe: 'rgba(239,68,68,0.08)', high: 'rgba(245,158,11,0.08)', medium: 'rgba(96,165,250,0.08)', low: 'rgba(245,245,240,0.04)' };
+      const priorityColor = { severe: '#ef4444', high: '#f59e0b', medium: '#60a5fa', low: 'var(--text-dim)' };
+      const priorityBg    = { severe: 'rgba(239,68,68,0.08)', high: 'rgba(245,158,11,0.08)', medium: 'rgba(96,165,250,0.08)', low: 'rgba(var(--accent-rgb),0.04)' };
       const typeLabel     = { calorie_intake: 'NUTRITION', weight_trend: 'BODY WEIGHT', training_progress: 'TRAINING', recovery: 'RECOVERY' };
       const pc = priorityColor[top.priority] || priorityColor.low;
       const pb = priorityBg[top.priority] || priorityBg.low;
 
+      // Coach Memory data — absorbed from CoachInsightsCard
+      const _hasMemory = coachRecall && coachRecall.similar_past?.length;
+      const _memProfile = _hasMemory ? getProfileSync(user?.id) : null;
+      const _memSuggestion = _hasMemory ? adaptMessageSync(coachRecall.intelligent_suggestion, _memProfile, { addPrefix: false }) : null;
+      const _memTop = _hasMemory ? coachRecall.similar_past[0] : null;
+      const _memColor = _memTop?.still_applicable ? '#f59e0b' : '#60a5fa';
+
       return (
-        <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:`0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px ${pc}22, inset 0 1px 0 0 rgba(245,245,240,0.12)`,borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-          {/* Header */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// Today's Insight</div>
-              <div style={{background:pb,border:`1px solid ${pc}44`,borderRadius:4,padding:"1px 6px",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:pc,textTransform:"uppercase",letterSpacing:"0.12em"}}>{top.priority}</div>
-            </div>
-            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[top.insight_type] || top.insight_type}</div>
-          </div>
+        <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
 
-          {/* Message — personality-adapted */}
-          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.85)",lineHeight:1.55,marginBottom:10}}>{adaptedMessage || top.message}</div>
-
-          {/* Confidence bar */}
-          <div style={{marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-              <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Confidence</span>
-              <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.45)"}}>{top.confidence}%</span>
-            </div>
-            <div style={{height:3,background:"rgba(245,245,240,0.08)",borderRadius:2}}>
-              <div style={{height:3,width:`${top.confidence}%`,background:pc,borderRadius:2,transition:"width 0.6s ease"}}/>
-            </div>
-          </div>
-
-          {/* Signals */}
-          {(top.signals_aligned || []).length > 0 && (
-            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
-              {(top.signals_aligned || []).map((s, i) => {
-                const sc = s.direction === 'good' ? '#22c55e' : s.direction === 'severe' ? '#ef4444' : s.direction === 'low' ? '#f59e0b' : 'rgba(245,245,240,0.35)';
-                return (
-                  <div key={i} style={{background:"rgba(245,245,240,0.04)",border:`1px solid rgba(245,245,240,0.08)`,borderRadius:6,padding:"4px 8px",display:"flex",alignItems:"center",gap:5}}>
-                    <div style={{width:4,height:4,borderRadius:"50%",background:sc,flexShrink:0}}/>
-                    <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)"}}>{s.signal}</span>
-                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:11,color:sc}}>{String(s.value)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Expandable recommendation */}
-          {top.recommendation && (
-            <button onClick={() => { setExpanded(e => !e); if (!expanded) trackUserEvent(user?.id, 'expand_validation_insight', { insight_type: top.insight_type }).catch(()=>{}); }}
-              style={{background:"none",border:"none",padding:0,cursor:"pointer",width:"100%",textAlign:"left",marginBottom: expanded ? 8 : 0}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
-                <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded ? "hide" : "recommendation"}</span>
-                <div style={{flex:1,height:1,background:"rgba(245,245,240,0.06)"}}/>
+          {/* ── TODAY'S INSIGHT section ── */}
+          <div style={{padding:"16px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>TODAY'S INSIGHT</div>
+                <div style={{background:pb,border:`1px solid ${pc}44`,borderRadius:4,padding:"1px 6px",fontFamily:_MO,fontSize:7,color:pc,textTransform:"uppercase",letterSpacing:"0.12em"}}>{top.priority}</div>
               </div>
-            </button>
-          )}
-          {expanded && top.recommendation && (
-            <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.4)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:8}}>
-              <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"rgba(245,245,240,0.7)",lineHeight:1.5}}>{top.recommendation}</div>
+              <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[top.insight_type] || top.insight_type}</div>
             </div>
-          )}
 
-          {/* Footer: data days + dismiss */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
-            <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{top.data_days_used}d of data</span>
-            <button onClick={() => {
-              dismissInsight(user?.id, top.insight_type).catch(()=>{});
-              trackUserEvent(user?.id, 'dismiss_validation_insight', { insight_type: top.insight_type }).catch(()=>{});
-              setValidationInsights(prev => prev.filter(i => i.insight_type !== top.insight_type));
-            }} style={{background:"none",border:"none",padding:"2px 8px",cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)",textTransform:"uppercase",letterSpacing:"0.1em"}}>dismiss</button>
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.55,marginBottom:10}}>{adaptedMessage || top.message}</div>
+
+            {/* Confidence bar */}
+            <div style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Confidence</span>
+                <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-dim)"}}>{top.confidence}%</span>
+              </div>
+              <div style={{height:3,background:"var(--card-border)",borderRadius:2}}>
+                <div style={{height:3,width:`${top.confidence}%`,background:pc,borderRadius:2,transition:"width 0.6s ease"}}/>
+              </div>
+            </div>
+
+            {/* Signals */}
+            {(top.signals_aligned||[]).length>0&&(
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+                {(top.signals_aligned||[]).map((s,i)=>{
+                  const sc=s.direction==='good'?'#22c55e':s.direction==='severe'?'#ef4444':s.direction==='low'?'#f59e0b':'var(--text-dim)';
+                  return(
+                    <div key={i} style={{background:"var(--card-border)",borderRadius:6,padding:"4px 8px",display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{width:4,height:4,borderRadius:"50%",background:sc,flexShrink:0}}/>
+                      <span style={{fontFamily:_MO,fontSize:8,color:"var(--text-dim)"}}>{s.signal}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:11,color:sc}}>{String(s.value)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Expandable recommendation */}
+            {top.recommendation&&(
+              <button onClick={()=>{setExpanded(e=>!e);if(!expanded)trackUserEvent(user?.id,'expand_validation_insight',{insight_type:top.insight_type}).catch(()=>{});}}
+                style={{background:"none",border:"none",padding:0,cursor:"pointer",width:"100%",textAlign:"left",marginBottom:expanded?8:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                  <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded?"hide":"recommendation"}</span>
+                  <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                </div>
+              </button>
+            )}
+            {expanded&&top.recommendation&&(
+              <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.4)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:8}}>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{top.recommendation}</div>
+              </div>
+            )}
+
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
+              <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>{top.data_days_used}d of data</span>
+              <button onClick={()=>{
+                dismissInsight(user?.id,top.insight_type).catch(()=>{});
+                trackUserEvent(user?.id,'dismiss_validation_insight',{insight_type:top.insight_type}).catch(()=>{});
+                setValidationInsights(prev=>prev.filter(i=>i.insight_type!==top.insight_type));
+              }} style={{background:"none",border:"none",padding:"2px 8px",cursor:"pointer",fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>dismiss</button>
+            </div>
           </div>
+
+          {/* ── COACH MEMORY section — merged ── */}
+          {_hasMemory&&(
+            <>
+              <div style={{height:1,background:"var(--card-border)"}}/>
+              <div style={{padding:"14px 16px"}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>COACH MEMORY</div>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.6,marginBottom:10}}>
+                  {_memSuggestion||coachRecall.intelligent_suggestion}
+                </div>
+                <div style={{background:"var(--card-border)",borderRadius:10,padding:"10px 12px",marginBottom:_memTop?0:0}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                    <div style={{fontFamily:_MO,fontSize:7,color:_memColor,textTransform:"uppercase",letterSpacing:"0.12em"}}>{_memTop?.date}</div>
+                    <div style={{background:`${_memColor}18`,border:`1px solid ${_memColor}44`,borderRadius:4,padding:"1px 7px",fontFamily:_MO,fontSize:7,color:_memColor}}>
+                      {_memTop?.still_applicable?'STILL RELEVANT':'DIFFERENT NOW'}
+                    </div>
+                  </div>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.4,marginBottom:_memTop?.intervention?6:0}}>{_memTop?.description?.slice(0,140)}{_memTop?.description?.length>140?'…':''}</div>
+                  {_memTop?.intervention&&<div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginTop:2}}>Fix applied: {_memTop.intervention?.slice(0,80)}</div>}
+                </div>
+                {coachRecall.similar_past.length>0&&(
+                  <button onClick={()=>setMemExpanded(e=>!e)} style={{background:"none",border:"none",padding:"8px 0 0",cursor:"pointer",width:"100%",textAlign:"left"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                      <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{memExpanded?"hide details":"tell me more"}</span>
+                      <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                    </div>
+                  </button>
+                )}
+                {memExpanded&&(
+                  <>
+                    {coachRecall.what_is_different?.length>0&&(
+                      <div style={{marginTop:10}}>
+                        <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>What's different this time</div>
+                        {coachRecall.what_is_different.map((diff,i)=>(
+                          <div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
+                            <div style={{width:4,height:4,borderRadius:"50%",background:"#60a5fa",marginTop:5,flexShrink:0}}/>
+                            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.4}}>{diff}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {coachRecall.similar_past.slice(1).map((mem,i)=>(
+                      <div key={i} style={{background:"var(--card-border)",borderRadius:8,padding:"8px 10px",marginTop:8}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                          <div style={{fontFamily:_MO,fontSize:7,color:mem.still_applicable?'#f59e0b':"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{mem.date}</div>
+                          {mem.effectiveness!=null&&<div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>{mem.effectiveness}% effective</div>}
+                        </div>
+                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"var(--text-dim)",lineHeight:1.4}}>{mem.description?.slice(0,100)}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       );
     }
@@ -10291,11 +10358,8 @@ Rules:
               );
             })()}
 
-            {/* Today's Insight */}
+            {/* Today's Insight + Coach Memory merged — Pass 2D */}
             <ValidationInsightCard/>
-
-            {/* Coach Memory — historical recall */}
-            <CoachInsightsCard recall={coachRecall} userId={user?.id}/>
 
             {/* Connections Dashboard */}
             <ConnectionsInsightCard
@@ -10349,33 +10413,33 @@ Rules:
               )}
             </div>
 
-            {/* Coach Tips */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 60ms both"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Coach</div>
+            {/* ── COACH TIPS — Pass 2D ── */}
+            <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>COACHING</div>
               {doingWell.length>0&&(
                 <div style={{marginBottom:focusTips.length?14:0}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(34,197,94,0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// Doing Well</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:700,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>DOING WELL</div>
                   {doingWell.map((t,i)=>(
                     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
                       <span style={{color:"#22c55e",fontSize:11,marginTop:1,flexShrink:0}}>✓</span>
-                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.75)",lineHeight:1.5}}>{t}</span>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{t}</span>
                     </div>
                   ))}
                 </div>
               )}
               {focusTips.length>0&&(
                 <div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(var(--accent-rgb),0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>// Focus This Week</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:700,color:"var(--accent)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>FOCUS THIS WEEK</div>
                   {focusTips.map((t,i)=>(
                     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<focusTips.length-1?6:0}}>
                       <span style={{color:"var(--accent)",fontSize:11,marginTop:1,flexShrink:0}}>→</span>
-                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.75)",lineHeight:1.5}}>{t}</span>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{t}</span>
                     </div>
                   ))}
                 </div>
               )}
               {!doingWell.length&&!focusTips.length&&(
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:15,color:"rgba(245,245,240,0.45)"}}>Log workouts and meals to see personalized coaching.</div>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-faint)",lineHeight:1.5}}>Log workouts and meals to see personalized coaching.</div>
               )}
             </div>
 
