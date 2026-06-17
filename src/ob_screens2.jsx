@@ -10361,19 +10361,32 @@ Rules:
             {/* Today's Insight + Coach Memory merged — Pass 2D */}
             <ValidationInsightCard/>
 
-            {/* Connections Dashboard */}
-            <ConnectionsInsightCard
-              correlations={connectionData}
-              memberDays={profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0}
-              onOpen={()=>setShowConnectionsView(true)}
-            />
-
-            {/* Peer Comparison */}
-            <CohortContextCard
-              peerData={peerData}
-              memberDays={profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0}
-              onOpen={()=>setShowPeerView(true)}
-            />
+            {/* ── INSIGHTS ENTRY CARD — Pass 2E (collapses Connections + Peer) ── */}
+            {(()=>{
+              const _MO="'DM Mono',monospace";
+              const _connCount=(connectionData||[]).length;
+              const _hasPeer=!!(peerData);
+              const _rows=[
+                {label:'Correlations',sub:_connCount>0?`${_connCount} signal${_connCount!==1?'s':''}`:null,onTap:()=>setShowConnectionsView(true)},
+                {label:'Peer Comparison',sub:_hasPeer?'view your cohort':null,onTap:()=>setShowPeerView(true)},
+              ];
+              return(
+                <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
+                  <div style={{padding:"14px 16px 6px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>INSIGHTS</div>
+                  </div>
+                  {_rows.map(({label,sub,onTap},i)=>(
+                    <div key={label} onClick={onTap} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderTop:"1px solid var(--card-border)",cursor:"pointer"}}>
+                      <div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,color:"var(--cm-ink)",lineHeight:1}}>{label}</div>
+                        {sub&&<div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{sub}</div>}
+                      </div>
+                      <span style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)"}}>→</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* This Week Rings — removed in Pass 2A, re-housed as THIS WEEK band above */}
 
@@ -10389,28 +10402,29 @@ Rules:
               <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
             </div>
 
-            {/* Training DNA */}
-            <div data-tour="training-dna">
+            {/* ── TRAINING DNA BAND — Pass 2E ── */}
+            <div data-tour="training-dna" style={{background:"var(--bg)"}}>
               {workoutLogsRaw.length<10?(
-                <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.08)",borderRadius:16}}>
-                  <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// ATHLETE DNA</div>
-                  <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
-                    ATHLETE DNA FORMING<span style={{color:"var(--accent)"}}>.</span>
+                <div style={{padding:"18px 20px 16px"}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:12}}>ATHLETE DNA</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:20,color:"var(--cm-ink)",lineHeight:1,marginBottom:8}}>
+                    Athlete DNA forming.
                   </div>
-                  <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5,marginBottom:14}}>
+                  <div style={{fontSize:13,color:"var(--text-dim)",lineHeight:1.5,marginBottom:14}}>
                     Your training profile unlocks after 10 sessions. {10-workoutLogsRaw.length} to go.
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Sessions</span>
-                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)"}}>{workoutLogsRaw.length}/10</span>
+                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Sessions</span>
+                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"var(--text-dim)"}}>{workoutLogsRaw.length}/10</span>
                   </div>
-                  <div style={{height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/10*100)}%`,background:"rgba(245,245,240,0.25)",borderRadius:2,transition:"width 0.6s ease"}}/>
+                  <div style={{height:4,background:"var(--card-border)",borderRadius:2,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/10*100)}%`,background:"var(--accent)",borderRadius:2,transition:"width 0.6s ease"}}/>
                   </div>
                 </div>
               ):(
                 <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule} prefetchedDnaData={prefetchedDNA} dnaPromise={dnaPromiseRef.current}/>
               )}
+              <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
             </div>
 
             {/* ── COACH TIPS — Pass 2D ── */}
@@ -10443,18 +10457,18 @@ Rules:
               )}
             </div>
 
-            {/* Milestones Grid */}
+            {/* ── MILESTONES — Pass 2E ── */}
             {(()=>{
               const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
               const earnedSet=new Set(earned);
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// MILESTONES</div>
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>MILESTONES</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                     {MILESTONES.map((m,mi)=>{
                       const isEarned=earnedSet.has(m.id);
                       return(
-                        <div key={m.id} style={{background:"rgba(245,245,240,0.02)",border:`1px solid ${isEarned?"rgba(var(--accent-rgb),0.2)":"rgba(245,245,240,0.06)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.25,animation:`cardIn 0.3s ease-out ${mi*20}ms both`}}>
+                        <div key={m.id} style={{background:isEarned?"rgba(var(--accent-rgb),0.05)":"transparent",border:`1px solid ${isEarned?"rgba(var(--accent-rgb),0.2)":"var(--card-border)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.3,animation:`cardIn 0.3s ease-out ${mi*20}ms both`}}>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:900,color:"var(--accent)",marginBottom:4,letterSpacing:'-0.02em'}}>{isEarned?m.icon:"X"}</div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"var(--accent)",letterSpacing:"0.1em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingTop:2}}>{m.title.replace(/\.$/, '')}</div>
                         </div>
