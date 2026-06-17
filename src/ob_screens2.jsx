@@ -10121,6 +10121,70 @@ Rules:
               );
             })()}
 
+            {/* ── THIS WEEK BAND — Pass 2A ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _dLabel=trainingDaysThisWeek===1?'day':'days';
+              return(
+                <div style={{background:"var(--bg)"}}>
+                  <div style={{padding:"18px 20px 14px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>THIS WEEK</div>
+                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",marginBottom:16}}>
+                      {trainingDaysThisWeek}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_dLabel}</span>
+                    </div>
+                    <div style={{display:"flex",gap:8,marginBottom:16}}>
+                      {twRings.map(({pct,value,label,color},i)=>(
+                        <MiniRing key={label} pct={pct} value={value} label={label} color={color} index={i}/>
+                      ))}
+                    </div>
+                    <div style={{height:1,background:"var(--card-border)",marginBottom:12}}/>
+                    <div style={{display:"flex"}}>
+                      {[
+                        {l:"CAL HIT",v:`${calHitDays}d`},
+                        {l:"PROT HIT",v:`${protHitDays}d`},
+                        {l:"STREAK",v:`${currentStreak}d`},
+                      ].map(({l,v},i)=>(
+                        <div key={l} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid var(--card-border)":"none"}}>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.02em"}}>{v}</div>
+                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--text-faint)",marginTop:4,letterSpacing:"0.14em",textTransform:"uppercase"}}>{l}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+                </div>
+              );
+            })()}
+
+            {/* ── COACH SCORE BENTO ROW — Pass 2A ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _hasNutr=calHitDays>0||protHitDays>0;
+              const _nutrC=calHitDays>=5?'#22c55e':calHitDays>=3?'var(--cm-ink)':'var(--text-dim)';
+              const _tiles=[
+                {l:'COACH SCORE',v:`${sc.total}`,u:null,s:scoreStatus,c:ringColor},
+                {l:'STREAK',v:`${currentStreak}`,u:'d',s:'active streak',c:'var(--cm-ink)'},
+                ...(_hasNutr?[{l:'CAL IN RANGE',v:`${calHitDays}`,u:null,s:'/7d this week',c:_nutrC}]:[]),
+              ];
+              return(
+                <div style={{display:"flex",gap:8,padding:"12px 20px 4px",background:"var(--bg)"}}>
+                  {_tiles.map(({l,v,u,s,c})=>(
+                    <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
+                        {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
+                      </div>
+                      {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em",textTransform:"uppercase"}}>{s}</div>}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             {workoutLogsRaw.length>0&&<WeeklyReview
               workoutLogsRaw={workoutLogsRaw}
               workoutsThisWeek={workoutsThisWeek}
@@ -10169,17 +10233,7 @@ Rules:
                 </button>
               </div>
             )}
-            {/* Coach Score Card */}
-            <div style={{
-              margin:"0 16px 14px",padding:"20px 16px",
-              background:"rgba(245,245,240,0.03)",
-              backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",
-              boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",
-              borderRadius:16,
-            }}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// Coach Score</div>
-              <CoachScoreRing score={sc.total} ringColor={ringColor} scoreStatus={scoreStatus} scoreLabels={scoreLabels} sc={sc}/>
-            </div>
+            {/* Coach Score Card — removed in Pass 2A, re-housed as bento tile above */}
 
             {/* Feature Strip */}
             <div style={{padding:"0 16px",marginBottom:14}}>
@@ -10366,26 +10420,7 @@ Rules:
               onOpen={()=>setShowPeerView(true)}
             />
 
-            {/* This Week Rings */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week</div>
-              <div style={{display:"flex",gap:8,marginBottom:14}}>
-                {twRings.map(({pct,value,label,color},i)=>(
-                  <MiniRing key={label} pct={pct} value={value} label={label} color={color} index={i}/>
-                ))}
-              </div>
-              <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.5)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:12}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontSize:13,color:"rgba(245,245,240,0.7)",lineHeight:1.4}}>{twInsight}</div>
-              </div>
-              <div style={{display:"flex",borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12}}>
-                {[{l:"Cal Hit",v:`${calHitDays}d`},{l:"Protein Hit",v:`${protHitDays}d`},{l:"Streak",v:`${currentStreak}d`}].map(({l,v},i)=>(
-                  <div key={l} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid rgba(245,245,240,0.06)":"none"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",lineHeight:1}}>{v}</div>
-                    <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>{l}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* This Week Rings — removed in Pass 2A, re-housed as THIS WEEK band above */}
 
             {/* Expenditure / TDEE Card */}
             <ExpenditureCard/>
