@@ -7,7 +7,7 @@ const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
 const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
-  Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex,
+  Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex, PaperCard,
   SectionCard, Spinner, Logo, CC, BodyFigure, InfoTip, ErrorBoundary,
   DashboardSkeleton, ScoreSkeleton, CardSkeleton, ProgressSkeleton, CalendarSkeleton,
   calcTDEE, autoFocus, useCountUp, lookupBarcode,
@@ -97,6 +97,7 @@ import { getUserMode, getUserTier, getVisibleSections, getProgressTabs } from ".
 import { COACH_SCORE_LABELS, RING_CONFIG } from "./config/dashboardConfig.js";
 import { getPostWorkoutWindow } from "./services/nutritionTimingService.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
+import { dbg, getDbgMsgs } from "./utils/debugLog.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -2032,6 +2033,27 @@ function PRFeed({dbPRs,wUnit}){
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── TEMPORARY DEBUG OVERLAY — remove after diagnosis ────────────────────────
+// pointerEvents:'none' on everything — passes all touches through, never blocks controls
+function DebugOverlay() {
+  const [msgs,setMsgs]=useState([]);
+  useEffect(()=>{
+    const h=()=>setMsgs(getDbgMsgs().slice(-5));
+    window.addEventListener('cm-dbg-update',h);
+    return()=>window.removeEventListener('cm-dbg-update',h);
+  },[]);
+  if(!msgs.length)return null;
+  return(
+    <div style={{position:'fixed',top:'max(44px,env(safe-area-inset-top,44px))',left:0,right:0,zIndex:99999,pointerEvents:'none',padding:'2px 6px'}}>
+      <div style={{background:'rgba(0,0,0,0.82)',borderRadius:6,padding:'4px 6px'}}>
+        {msgs.map((m,i)=>(
+          <div key={i} style={{fontFamily:'monospace',fontSize:8,color:i===msgs.length-1?'#86efac':'rgba(255,255,255,0.55)',lineHeight:1.45,wordBreak:'break-all'}}>{m}</div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -5478,6 +5500,53 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     return()=>window.removeEventListener('workoutCompleted',refetchLogs);
   },[user]);
 
+  // ── Progress prefetch invalidation — re-warm cache when workout/soreness logged ──
+  // Fixes Step 1a regression: MuscleRecovery's Case A guard suppresses its mount fetch
+  // when cached props exist, so logging on another tab left stale data on Recovery.
+  useEffect(()=>{
+    if(!user?.id)return;
+    function refreshRecovery(){
+      const p=Promise.all([
+        getRecoveryData(user.id).catch(()=>null),
+        getOptimizationData(user.id).catch(()=>null),
+      ]).then(([rec,opt])=>{
+        dbg(`[DBG-REFRESH] rec keys=[${rec?Object.keys(rec).slice(0,3).join(','):'null'}] ts=[${rec?Object.values(rec).slice(0,2).map(v=>v?.lastTrainedAt?.slice(11,19)||'?').join(','):''}]`);
+        if(rec)setPrefetchedRecovery(rec);
+        if(opt)setPrefetchedOptim(opt);
+        return{rec,opt};
+      }).catch((e)=>{dbg(`[DBG-REFRESH] error ${e?.message||e}`);return null;});
+      recoveryPromiseRef.current=p;
+    }
+    function refreshDNA(){
+      const p=calculateTrainingDNA(user.id).then(result=>{
+        const scores={strength:result.strength,endurance:result.endurance,power:result.power,
+                      consistency:result.consistency,nutrition:result.nutrition,recovery:result.recovery};
+        const metrics=[{label:"Strength",score:result.strength},{label:"Endurance",score:result.endurance},
+                       {label:"Power",score:result.power},{label:"Consistency",score:result.consistency},
+                       {label:"Nutrition",score:result.nutrition},{label:"Recovery",score:result.recovery}];
+        const shaped={scores,metrics,total:result._meta?.sessions||0,
+                      highest:metrics.reduce((a,b)=>a.score>b.score?a:b),
+                      lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)};
+        setPrefetchedDNA(shaped);
+        return shaped;
+      }).catch(()=>null);
+      dnaPromiseRef.current=p;
+    }
+    const onWorkout=(e)=>{
+      dbg(`[DBG-PARENT] heard detail.userId=${e.detail?.userId} user.id=${user.id} match=${e.detail?.userId===user.id}`);
+      if(e.detail?.userId!==user.id)return;
+      dbg('[DBG-PARENT] calling refreshRecovery+DNA');
+      refreshRecovery(); refreshDNA();
+    };
+    const onSoreness=(e)=>{if(e.detail?.userId!==user.id)return; refreshRecovery();};
+    window.addEventListener('workoutCompleted',onWorkout);
+    window.addEventListener('sorenessLogged',onSoreness);
+    return()=>{
+      window.removeEventListener('workoutCompleted',onWorkout);
+      window.removeEventListener('sorenessLogged',onSoreness);
+    };
+  },[user?.id]);
+
   // ── Calendar — load and analyze events each day ───────────────────────────
   useEffect(()=>{
     if(!calendarConnected||!user)return;
@@ -6304,7 +6373,9 @@ Rules:
               else if(data)setDbPRs(p=>{const m={};p.forEach(r=>m[r.exercise_name]=r);(data||[]).forEach(r=>m[r.exercise_name]=r);return Object.values(m);});
             });
           }
-          recordWorkoutRecovery(user.id, setsLogged).catch(() => {});
+          dbg(`[DBG-FINISH] setsLogged=[${setsLogged.map(e=>e.name).join(',')}]`);
+          try{await recordWorkoutRecovery(user.id, setsLogged);}catch(recErr){dbg(`[DBG-FINISH] RWR threw ${recErr?.message||recErr}`);}
+          dbg(`[DBG-FINISH] dispatching userId=${user.id}`);
           const pwWindow=getPostWorkoutWindow(activeWorkout);
           if(pwWindow)setPostWorkoutPrompt(pwWindow);
           window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
@@ -9895,6 +9966,161 @@ Rules:
 
           {/* ── OVERVIEW ── */}
           {activeTab==="overview"&&<>
+
+            {/* ── OVERVIEW DASHBOARD — Pass 1: weight band + bento ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _unit=profile?.wUnit||'lbs';
+
+              // ── Weight trend — sorted last 14 weigh-ins ──
+              const _wl=[...(bodyweightLogs||[])].sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);
+              const _curW=_wl.length>0?_wl[_wl.length-1].weight:null;
+              const _prvW=_wl.length>1?_wl[0].weight:null;
+              const _deltaN=(_curW!=null&&_prvW!=null)?parseFloat((_curW-_prvW).toFixed(1)):null;
+              const _goalK=(profile?.goal||'').toLowerCase();
+              const _goodDir=_deltaN==null?null:(['lose','cut'].includes(_goalK)?_deltaN<0:['gain','bulk'].includes(_goalK)?_deltaN>0:null);
+              const _deltaColor=_goodDir===true?'#22c55e':_goodDir===false?'var(--accent)':'var(--text-dim)';
+
+              // SVG chart geometry
+              const _svgH=130, _hasCh=_wl.length>=2;
+              let _pts=[],_ln='',_ar='';
+              if(_hasCh){
+                const _mn=Math.min(..._wl.map(l=>l.weight));
+                const _mx=Math.max(..._wl.map(l=>l.weight));
+                const _rng=Math.max(_mx-_mn,1.5);
+                const _pd=6;
+                _pts=_wl.map((l,i)=>({
+                  x:parseFloat(((i/(_wl.length-1))*320).toFixed(1)),
+                  y:parseFloat((_pd+(_svgH-2*_pd)*(1-(l.weight-_mn)/_rng)).toFixed(1))
+                }));
+                _ln=_pts.map((p,i)=>`${i===0?'M':'L'}${p.x} ${p.y}`).join(' ');
+                _ar=`${_ln} L${_pts[_pts.length-1].x} ${_svgH} L0 ${_svgH}Z`;
+              }
+              const _lastPt=_pts[_pts.length-1];
+
+              // ── Bento data ──
+              const _schedWk=WDAYS.filter(d=>schedule?.[d]&&schedule[d]!=='rest').length||4;
+
+              // % to goal — declared FIRST because _g2* (goal-date) reads _goalW
+              // Calc: if losing (startW>goalW): pct=(startW-curW)/(startW-goalW)*100
+              //       if gaining (goalW>startW): pct=(curW-startW)/(goalW-startW)*100
+              const _startW=parseFloat(profile?.startWeight)||parseFloat(profile?.weight)||null;
+              const _goalW=parseFloat(profile?.goalWeight)||null;
+              const _hasGoalW=_startW!=null&&_goalW!=null&&_curW!=null&&Math.abs(_goalW-_startW)>0.5;
+              let _goalPct=null;
+              if(_hasGoalW){
+                const _lossJ=_startW>_goalW;
+                _goalPct=Math.round(Math.max(0,Math.min(100,
+                  _lossJ?(_startW-_curW)/(_startW-_goalW)*100:(_curW-_startW)/(_goalW-_startW)*100
+                )));
+              }
+              const _g3v=_hasGoalW?`${_goalPct??0}`:`${workoutLogsRaw.length}`;
+              const _g3u=_hasGoalW?'%':null;
+              const _g3s=_hasGoalW?'to goal':'sessions';
+
+              // Projected goal date — reuses weightProjection regression (slope = lbs/day)
+              // _goalW declared above — no TDZ risk here
+              let _g2v='—',_g2u=null,_g2s='LOG WEIGHT',_g2c='var(--text-dim)';
+              if(weightProjection&&_goalW&&_curW){
+                const _sl=weightProjection.slope;
+                if(Math.abs(_sl)>=0.01){
+                  const _dl=(_goalW-_curW)/_sl;
+                  if(_dl<=0){_g2v='NOW';_g2s='GOAL REACHED';_g2c='#22c55e';}
+                  else if(_dl>730){_g2v='2+ YR';_g2s='EST. GOAL DATE';_g2c='var(--text-dim)';}
+                  else{
+                    const _pd=new Date(Date.now()+_dl*86400000);
+                    const _mo=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                    _g2v=String(_pd.getDate()); _g2u=_mo[_pd.getMonth()];
+                    _g2s='EST. GOAL DATE'; _g2c='var(--cm-ink)';
+                  }
+                }else{_g2s='STABLE TREND';}
+              }else if(!_goalW){_g2s='SET A GOAL';}
+
+              return(
+                <>
+                  {/* WEIGHT TREND — full-bleed band */}
+                  <div style={{background:"var(--bg)"}}>
+
+                    <div style={{padding:"18px 20px 10px"}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>WEIGHT TREND</div>
+                      {/* Number + delta — baseline-aligned inline (mock: "180 lb ▼ 5 lb · on track") */}
+                      <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap"}}>
+                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
+                          {_curW??'--'}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_unit==='lbs'?'lb':_unit}</span>
+                        </div>
+                        {_deltaN!=null&&(
+                          <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:_deltaColor,letterSpacing:"-0.01em",display:"flex",alignItems:"center",gap:4,paddingBottom:3}}>
+                            <span>{_deltaN<0?'▼':'▲'}</span>
+                            <span>{Math.abs(_deltaN)}<span style={{fontFamily:_MO,fontSize:10,fontWeight:700,marginLeft:1}}>{_unit==='lbs'?'lb':_unit}</span></span>
+                            {_goodDir===true&&_goalW&&<span>{'· on track for '}{_goalW}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {_hasCh?(
+                      <svg viewBox={`0 0 320 ${_svgH}`} width="100%"
+                        style={{display:"block",overflow:"visible",marginTop:4}}>
+                        <defs>
+                          <linearGradient id="wt-fill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18"/>
+                            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
+                          </linearGradient>
+                          {!_isLight&&(
+                            <filter id="wt-glow" x="-10%" y="-120%" width="120%" height="340%">
+                              <feGaussianBlur stdDeviation="4" result="b1"/>
+                              <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b2"/>
+                              <feMerge>
+                                <feMergeNode in="b1"/>
+                                <feMergeNode in="b2"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                          )}
+                        </defs>
+                        <path d={_ar} fill="url(#wt-fill)"/>
+                        <path d={_ln} fill="none" stroke="var(--accent)" strokeWidth="2.5"
+                          strokeLinecap="round" strokeLinejoin="round"
+                          filter={!_isLight?"url(#wt-glow)":undefined}/>
+                        {_lastPt&&<circle cx={_lastPt.x} cy={_lastPt.y} r="4"
+                          fill="var(--accent)" filter={!_isLight?"url(#wt-glow)":undefined}/>}
+                      </svg>
+                    ):(
+                      <div style={{padding:"0 20px 16px"}}>
+                        <div style={{fontFamily:_MO,fontSize:10,color:"var(--text-faint)",lineHeight:1.65}}>
+                          {_curW?`${_curW} ${_unit} logged — add more to see your trend`:'Log your weight to start your trend'}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{height:1,background:"var(--card-border)",margin:"12px 20px 0"}}/>
+                  </div>
+
+                  {/* BENTO CLUSTER */}
+                  <div style={{display:"flex",gap:8,padding:"12px 20px 4px",background:"var(--bg)"}}>
+                    {[
+                      // u = unit suffix (small bold, same color); s = word label (small dim, below)
+                      {l:'SESSIONS',v:`${workoutsThisWeek}`,u:null,  s:`/${_schedWk} wk`, c:'var(--cm-ink)'},
+                      {l:'GOAL DATE',v:_g2v,                 u:_g2u,  s:_g2s,               c:_g2c},
+                      {l:'TO GOAL', v:_g3v,                 u:_g3u,  s:_g3s,               c:'#22c55e'},
+                    ].map(({l,v,u,s,c})=>(
+                      <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
+                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                        {/* Number + compact bold unit suffix (lb / d / %) */}
+                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
+                          {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
+                        </div>
+                        {/* Dim word label below — secondary context */}
+                        {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{s}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+
             {workoutLogsRaw.length>0&&<WeeklyReview
               workoutLogsRaw={workoutLogsRaw}
               workoutsThisWeek={workoutsThisWeek}
@@ -10630,6 +10856,7 @@ Rules:
 
   return (
     <div className={GOCLUB_REDESIGN ? `goclub tab-${section}` : undefined} style={{position:"relative",minHeight:"100vh",maxWidth:480,margin:"0 auto",background:"var(--navy)"}}>
+      <DebugOverlay/>
       {GOCLUB_REDESIGN && (<>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { dbg } from '../utils/debugLog';
 import BodyMap from './BodyMap';
 import { getRecoveryData, getOptimizationData } from '../services/recoveryService';
 import { thermalAt, THERMAL_NODATA, THERMAL_CSS } from '../data/thermalPalette';
@@ -86,14 +87,17 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
   }
 
   useEffect(() => {
+    dbg(`[DBG-MR] mount propR=${!!propRecovery} propO=${!!propOptim} prom=${!!recoveryPromise}`);
     if (!userId) return;
     // Case A: prefetch already resolved — both props present, skip fetch entirely
-    if (propRecovery && propOptim) return;
+    if (propRecovery && propOptim) { dbg(`[DBG-MR] CaseA keys=[${Object.keys(propRecovery).slice(0,3).join(',')}]`); return; }
     // Case B: prefetch in flight — hook into shared promise to avoid double-fetch
     if (recoveryPromise) {
+      dbg('[DBG-MR] CaseB hooking promise');
       setLoading(true);
       recoveryPromise
         .then(result => {
+          dbg(`[DBG-MR] CaseB resolved rec=${!!result?.rec} opt=${!!result?.opt}`);
           if (result?.rec) setLocalRecovery(result.rec);
           if (result?.opt) setLocalOptim(result.opt);
         })
@@ -102,6 +106,7 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
       return;
     }
     // Case C: no prefetch (first-render race) — own fetch as fallback
+    dbg('[DBG-MR] CaseC own fetch');
     fetchData(userId);
   }, [userId]);
 
@@ -141,6 +146,7 @@ export default function MuscleRecovery({ userId, recoveryData: propRecovery, opt
 
   const recoveryData     = localRecovery ?? propRecovery;
   const optimizationData = localOptim    ?? propOptim;
+  dbg(`[DBG-MR] render local=${!!localRecovery} prop=${!!propRecovery} ${recoveryData?Object.entries(recoveryData).slice(0,2).map(([k,v])=>`${k}:${v?.percent}%`).join(' '):'NO DATA'}`);
 
   function getColors() {
     if (loading && !recoveryData) {
