@@ -6568,11 +6568,12 @@ const ProgressSection = React.memo(function ProgressSection({
 
             {(()=>{
               const split=wPrefs?.splitType||"My Program";
-              const pct=Math.min(100,Math.round((programWeek/12)*100));
+              const progWeek=programCurrentWeek||1;
+              const pct=Math.min(100,Math.round((progWeek/12)*100));
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Mesocycle Progress</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:10}}>Week {programWeek} of 12 · {split}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:10}}>Week {progWeek} of 12 · {split}</div>
                   <div style={{height:6,background:"var(--card-border)",borderRadius:3,overflow:"hidden"}}>
                     <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
                   </div>
