@@ -1055,7 +1055,7 @@ function RecoveryGauge({score}) {
 
 // ─── BAR + GRID COMPONENTS ──────────────────────────────────────────────────
 
-function WorkoutFreqBars({weeklyFreq}) {
+function WorkoutFreqBars({weeklyFreq,isLight}) {
   const maxC=Math.max(...weeklyFreq.map(w=>w.count),1);
   const hasDeload=weeklyFreq.some(w=>w.isDeload);
   return(
@@ -1063,16 +1063,16 @@ function WorkoutFreqBars({weeklyFreq}) {
       <style>{`@keyframes wfBarUp{from{transform:scaleY(0)}to{transform:scaleY(1)}}`}</style>
       <div style={{position:"relative",height:72,display:"flex",alignItems:"flex-end",gap:4,marginBottom:2}}>
         {/* Baseline axis at bar floor */}
-        <div style={{position:"absolute",bottom:13,left:0,right:0,height:1,background:"rgba(245,245,240,0.06)",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:13,left:0,right:0,height:1,background:"var(--card-border)",pointerEvents:"none"}}/>
         {weeklyFreq.map(({week,count,isCurrent,isDeload},i)=>{
           const h=count>0?Math.max(8,Math.round((count/maxC)*58)):isDeload?14:3;
           const barBg=isDeload
-            ?'rgba(245,245,240,0.25)'
+            ?'var(--text-faint)'
             :count===0
-              ?'rgba(245,245,240,0.06)'
+              ?'var(--card-border)'
               :isCurrent
-                ?'linear-gradient(to bottom,#e8341c,rgba(232,52,28,0.5))'
-                :'linear-gradient(to bottom,rgba(232,52,28,0.65),rgba(232,52,28,0.25))';
+                ?'linear-gradient(to bottom,var(--accent),rgba(var(--accent-rgb),0.5))'
+                :'linear-gradient(to bottom,rgba(var(--accent-rgb),0.65),rgba(var(--accent-rgb),0.25))';
           return(
             <div key={week} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
               <div style={{
@@ -1081,9 +1081,9 @@ function WorkoutFreqBars({weeklyFreq}) {
                 borderRadius:'3px 3px 0 0',
                 transformOrigin:'bottom center',
                 animation:`wfBarUp 0.5s cubic-bezier(.2,.7,.3,1) ${i*60}ms both`,
-                filter:isCurrent&&!isDeload?'drop-shadow(0 0 6px rgba(232,52,28,0.6))':'none',
+                filter:!isLight&&isCurrent&&!isDeload?'drop-shadow(0 0 6px rgba(var(--accent-rgb),0.6))':'none',
               }}/>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:isCurrent?"rgba(245,245,240,0.6)":"rgba(245,245,240,0.25)",textAlign:"center",lineHeight:1.2}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:isCurrent?"var(--text-dim)":"var(--text-faint)",textAlign:"center",lineHeight:1.2}}>
                 {isDeload?"DELOAD":isCurrent?"NOW":`W${week}`}
               </div>
             </div>
@@ -1092,8 +1092,8 @@ function WorkoutFreqBars({weeklyFreq}) {
       </div>
       {hasDeload&&(
         <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-          <div style={{width:8,height:8,borderRadius:2,background:"rgba(245,245,240,0.25)"}}/>
-          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Deload week</span>
+          <div style={{width:8,height:8,borderRadius:2,background:"var(--text-faint)"}}/>
+          <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Deload week</span>
         </div>
       )}
     </>
@@ -1266,7 +1266,7 @@ function ProteinGrid({days14,hitCount,protTarget,isLight}) {
 
 // ─── CHART COMPONENTS ───────────────────────────────────────────────────────
 
-function RPELineChart({points, exName, trendColor, trendLabel}) {
+function RPELineChart({points, exName, trendColor, trendLabel, isLight}) {
   const W=240,H=70,minRPE=6,maxRPE=10,PAD_L=22;
   const xStep=(W-PAD_L-8)/Math.max(1,points.length-1);
   const toX=i=>PAD_L+i*xStep;
@@ -1280,8 +1280,8 @@ function RPELineChart({points, exName, trendColor, trendLabel}) {
     <div style={{marginBottom:14}}>
       <style>{`@keyframes rpeLineDraw{from{stroke-dashoffset:2000}to{stroke-dashoffset:0}}@keyframes rpeAreaFill{from{opacity:0}to{opacity:1}}`}</style>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,color:"rgba(245,245,240,0.7)"}}>{exName}</div>
-        <div style={{...mno,fontSize:7,color:trendColor,letterSpacing:"0.08em"}}>{trendLabel}</div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,color:"var(--text-dim)"}}>{exName}</div>
+        <div style={{...mno,fontSize:9,color:trendColor,letterSpacing:"0.08em"}}>{trendLabel}</div>
       </div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible",display:"block"}}>
         <defs>
@@ -1292,8 +1292,8 @@ function RPELineChart({points, exName, trendColor, trendLabel}) {
         </defs>
         {[[6,'6'],[8,'8'],[10,'10']].map(([rpe,lbl])=>(
           <g key={rpe}>
-            <line x1={PAD_L} y1={toY(rpe)} x2={W} y2={toY(rpe)} stroke="rgba(245,245,240,0.06)" strokeWidth="1"/>
-            <text x={PAD_L-4} y={toY(rpe)+3} textAnchor="end" fill="rgba(245,245,240,0.35)" fontSize="8" fontFamily="'DM Mono',monospace">{lbl}</text>
+            <line x1={PAD_L} y1={toY(rpe)} x2={W} y2={toY(rpe)} stroke="var(--card-border)" strokeWidth="1"/>
+            <text x={PAD_L-4} y={toY(rpe)+3} textAnchor="end" fill="var(--text-faint)" fontSize="9" fontFamily="'DM Mono',monospace">{lbl}</text>
           </g>
         ))}
         <path d={areaD} fill={`url(#${gradId})`} style={{animation:"rpeAreaFill 0.4s ease-out 0.3s both"}}/>
@@ -1305,15 +1305,15 @@ function RPELineChart({points, exName, trendColor, trendLabel}) {
           return(
             <g key={i}>
               <circle cx={toX(i)} cy={toY(p.avgRPE)} r={last?5:3} fill={c}
-                style={{filter:`drop-shadow(0 0 4px ${c}) drop-shadow(0 0 8px ${c}66)`}}/>
+                style={{filter:!isLight?`drop-shadow(0 0 4px ${c}) drop-shadow(0 0 8px ${c}66)`:undefined}}/>
               {last&&<text x={toX(i)+7} y={toY(p.avgRPE)+3} fill={c} fontSize="7" fontFamily="monospace">{p.avgRPE}</text>}
             </g>
           );
         })}
       </svg>
       <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
-        <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[0].date.slice(5)}</div>
-        <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.25)"}}>{points[points.length-1].date.slice(5)}</div>
+        <div style={{...mno,fontSize:9,color:"var(--text-faint)"}}>{points[0].date.slice(5)}</div>
+        <div style={{...mno,fontSize:9,color:"var(--text-faint)"}}>{points[points.length-1].date.slice(5)}</div>
       </div>
     </div>
   );
@@ -2059,27 +2059,27 @@ function PRFeed({dbPRs,wUnit}){
   const allTimePRs=Object.values(bestByExercise).sort((a,b)=>b.weight-a.weight);
   const displayPRs=prTab==='recent'?recentPRs:allTimePRs;
   return(
-    <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+    <div data-tour="pr-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase"}}>// PERSONAL RECORDS</div>
+        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>PERSONAL RECORDS</div>
         <div style={{display:"flex",gap:4}}>
           {['recent','all time'].map(t=>(
-            <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"var(--accent)":"rgba(245,245,240,0.1)"}`,background:prTab===t?"rgba(var(--accent-rgb),0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:8,color:prTab===t?"var(--accent)":"rgba(245,245,240,0.4)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
+            <button key={t} onClick={()=>setPrTab(t)} style={{padding:"4px 10px",borderRadius:6,border:`1px solid ${prTab===t?"var(--accent)":"var(--card-border)"}`,background:prTab===t?"rgba(var(--accent-rgb),0.1)":"transparent",fontFamily:"'DM Mono',monospace",fontSize:9,color:prTab===t?"var(--accent)":"var(--text-faint)",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>{t}</button>
           ))}
         </div>
       </div>
       {displayPRs.length===0?(
         <div style={{textAlign:"center",padding:"24px 0"}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"rgba(245,245,240,0.3)",lineHeight:1,marginBottom:8}}>YOUR FIRST PR IS ONE SESSION AWAY.</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"rgba(245,245,240,0.3)",lineHeight:1.5}}>Log your first session and Coach Macro will track every personal record from here.</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:24,color:"var(--text-dim)",lineHeight:1,marginBottom:8}}>YOUR FIRST PR IS ONE SESSION AWAY.</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"var(--text-dim)",lineHeight:1.5}}>Log your first session and Coach Macro will track every personal record from here.</div>
         </div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {displayPRs.slice(0,10).map((pr,i)=>(
             <div key={pr.name+i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"rgba(34,197,94,0.03)",border:"1px solid rgba(34,197,94,0.1)",borderLeft:"3px solid #22c55e",borderRadius:12}}>
               <div style={{flex:1,minWidth:0,marginRight:12}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#f5f5f0",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.3)",marginTop:2}}>{new Date(pr.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--text-faint)",marginTop:2}}>{new Date(pr.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{pr.weight}</div>
@@ -6516,20 +6516,20 @@ const ProgressSection = React.memo(function ProgressSection({
 
           {/* ── STRENGTH ── */}
           {activeTab==="strength"&&<>
-            <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>// ACTIVE PLATEAUS</div>
+            <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>ACTIVE PLATEAUS</div>
               {activePlateaus.length>0?(
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {activePlateaus.map((p,i)=>(
-                    <div key={p.id||i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<activePlateaus.length-1?"1px solid rgba(245,245,240,0.05)":"none"}}>
+                    <div key={p.id||i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<activePlateaus.length-1?"1px solid var(--card-border)":"none"}}>
                       <div style={{flex:1,minWidth:0,marginRight:12}}>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.exercise_name}</div>
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,color:"var(--cm-ink)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.exercise_name}</div>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",marginTop:2}}>
                           {p.plateau_type==="weight"?`Weight stuck at ${p.stalled_value} lbs × ${p.sessions_stalled} sessions`:`Volume flat × ${p.sessions_stalled} sessions`}
                         </div>
                       </div>
                       {p.strategy_prescribed&&(
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.55)",textAlign:"right",flexShrink:0,maxWidth:110,lineHeight:1.3}}>{p.strategy_prescribed}</div>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-dim)",textAlign:"right",flexShrink:0,maxWidth:110,lineHeight:1.3}}>{p.strategy_prescribed}</div>
                       )}
                     </div>
                   ))}
@@ -6541,11 +6541,11 @@ const ProgressSection = React.memo(function ProgressSection({
 
             <PRFeed dbPRs={dbPRs} wUnit={profile?.wUnit||"lbs"}/>
 
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 60ms both"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Volume This Week</div>
+            <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Volume This Week</div>
               {volumeThisWeek>0?(
                 <>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#fff",lineHeight:1}}>{volumeThisWeek.toLocaleString()} <span style={{fontSize:16,color:"rgba(245,245,240,0.45)"}}>{profile?.wUnit||"lbs"}</span></div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,color:"var(--cm-ink)",lineHeight:1}}>{volumeThisWeek.toLocaleString()} <span style={{fontSize:16,color:"var(--text-faint)"}}>{profile?.wUnit||"lbs"}</span></div>
                   {volumeLastWeek>0&&(
                     <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10}}>
                       {volumeThisWeek>=volumeLastWeek?(
@@ -6557,26 +6557,26 @@ const ProgressSection = React.memo(function ProgressSection({
                   )}
                 </>
               ):(
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"rgba(245,245,240,0.35)"}}>NO DATA YET.</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--text-dim)"}}>NO DATA YET.</div>
               )}
             </div>
 
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Workout Frequency</div>
-              <WorkoutFreqBars weeklyFreq={weeklyFreq}/>
+            <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Workout Frequency</div>
+              <WorkoutFreqBars weeklyFreq={weeklyFreq} isLight={(wPrefs?.theme?.bg||'black')==='white'}/>
             </div>
 
             {(()=>{
               const split=wPrefs?.splitType||"My Program";
               const pct=Math.min(100,Math.round((programWeek/12)*100));
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Mesocycle Progress</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:10}}>Week {programWeek} of 12 · {split}</div>
-                  <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#e8341c,rgba(232,52,28,0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Mesocycle Progress</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:10}}>Week {programWeek} of 12 · {split}</div>
+                  <div style={{height:6,background:"var(--card-border)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
                   </div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:6}}>{pct}% complete</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",marginTop:6}}>{pct}% complete</div>
                 </div>
               );
             })()}
@@ -6608,22 +6608,23 @@ const ProgressSection = React.memo(function ProgressSection({
                 .slice(0,2);
               if(topExercises.length===0)return null;
 
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// RPE TREND</div>
+                <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>RPE Trend</div>
                   {topExercises.map(([exName,exHistory])=>{
                     const points=exHistory.slice(-8);
                     if(points.length<2)return null;
                     const trend=points[points.length-1].avgRPE-points[0].avgRPE;
                     const trendColor=trend>0.5?'#e8341c':trend>0?'#FEA020':'#22c55e';
                     const trendLabel=trend>0.5?"↑ RPE rising":trend>0?"→ RPE stable (slight rise)":"→ RPE stable";
-                    return <RPELineChart key={exName} points={points} exName={exName} trendColor={trendColor} trendLabel={trendLabel}/>;
+                    return <RPELineChart key={exName} points={points} exName={exName} trendColor={trendColor} trendLabel={trendLabel} isLight={_isLight}/>;
                   })}
                   <div style={{display:"flex",gap:12,marginTop:4}}>
                     {[["≤7","#22c55e","Easy"],["8","#FEA020","Hard"],["≥9","var(--accent)","Very Hard"]].map(([label,color,desc])=>(
                       <div key={label} style={{display:"flex",alignItems:"center",gap:4}}>
                         <div style={{width:6,height:6,borderRadius:"50%",background:color,flexShrink:0}}/>
-                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{label} {desc}</span>
+                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)"}}>{label} {desc}</span>
                       </div>
                     ))}
                   </div>
