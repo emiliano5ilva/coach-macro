@@ -5481,7 +5481,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDna
   if(daysSince<30){
     return(
       <div style={{background:"var(--bg)",padding:"18px 20px 20px"}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TRAINING DNA</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TRAINING DNA</div>
         <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,color:"var(--cm-ink)",marginBottom:8}}>Unlocks after 30 days.</div>
         <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>Keep training — {30-daysSince} days to go.</div>
       </div>
@@ -5527,7 +5527,7 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDna
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
         <div>
-          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>TRAINING DNA</div>
+          <div style={{fontFamily:_MO,fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>TRAINING DNA</div>
           <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
         </div>
         <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
