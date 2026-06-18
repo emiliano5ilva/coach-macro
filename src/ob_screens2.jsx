@@ -1213,7 +1213,7 @@ function PerformanceCalendarGrid({calDays,isLight=false}) {
   );
 }
 
-function ProteinGrid({days14,hitCount,protTarget}) {
+function ProteinGrid({days14,hitCount,protTarget,isLight}) {
   const [displayCount,setDisplayCount]=useState(0);
   useEffect(()=>{
     let raf;
@@ -1232,9 +1232,9 @@ function ProteinGrid({days14,hitCount,protTarget}) {
     const miss=fd?.hasData&&!hit;
     return{
       width:22,height:22,borderRadius:"50%",
-      background:hit?'#e8341c':!fd?.hasData?'rgba(245,245,240,0.08)':'transparent',
-      border:miss?'1.5px solid rgba(245,245,240,0.20)':'none',
-      filter:hit?'drop-shadow(0 0 4px rgba(232,52,28,0.5)) drop-shadow(0 0 8px rgba(232,52,28,0.25))':'none',
+      background:hit?'var(--accent)':!fd?.hasData?'var(--card-border)':'transparent',
+      border:miss?'1.5px solid var(--card-border)':'none',
+      filter:hit&&!isLight?'drop-shadow(0 0 4px rgba(var(--accent-rgb),0.5)) drop-shadow(0 0 8px rgba(var(--accent-rgb),0.25))':'none',
       animation:`dotFade 0.3s ease-out ${i*30}ms both`,
     };
   };
@@ -1245,7 +1245,7 @@ function ProteinGrid({days14,hitCount,protTarget}) {
         {days14.slice(0,7).map(({ds,fd,dow},i)=>(
           <div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
             <div style={circleStyle(fd,i)}/>
-            <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div>
+            <div style={{...mno,fontSize:9,color:"var(--text-faint)"}}>{dow}</div>
           </div>
         ))}
       </div>
@@ -1253,11 +1253,11 @@ function ProteinGrid({days14,hitCount,protTarget}) {
         {days14.slice(7).map(({ds,fd,dow},i)=>(
           <div key={ds} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
             <div style={circleStyle(fd,i+7)}/>
-            <div style={{...mno,fontSize:7,color:"rgba(245,245,240,0.3)"}}>{dow}</div>
+            <div style={{...mno,fontSize:9,color:"var(--text-faint)"}}>{dow}</div>
           </div>
         ))}
       </div>
-      <div style={{...mno,fontSize:10,color:"rgba(245,245,240,0.5)"}}>
+      <div style={{...mno,fontSize:10,color:"var(--text-dim)"}}>
         {displayCount} of 14 days protein target hit
       </div>
     </>
@@ -1319,7 +1319,7 @@ function RPELineChart({points, exName, trendColor, trendLabel}) {
   );
 }
 
-function CalorieTrendChart({days14,calTarget}) {
+function CalorieTrendChart({days14,calTarget,isLight}) {
   const W=320,H=90;
   const validDays=days14.filter(d=>d.hasData);
   const maxC=Math.max(calTarget*1.25,...validDays.map(d=>d.cal));
@@ -1329,15 +1329,16 @@ function CalorieTrendChart({days14,calTarget}) {
   const targetY=Math.round((1-calTarget/maxC)*H);
   const pathD=dataPts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
   const areaD=`${pathD} L ${dataPts[dataPts.length-1].x} ${H} L ${dataPts[0].x} ${H} Z`;
-  const ptColor=cal=>cal>calTarget*1.1?'#e8341c':cal>=calTarget*0.9?'#22c55e':'#FEA020';
+  // 'ACCENT' sentinel = var(--accent); semantic colors kept for on/under-target dots
+  const ptColor=cal=>cal>calTarget*1.1?'ACCENT':cal>=calTarget*0.9?'#22c55e':'#FEA020';
   return(
     <>
       <style>{`@keyframes calLineDraw{from{stroke-dashoffset:2000}to{stroke-dashoffset:0}}@keyframes calAreaFill{from{opacity:0}to{opacity:1}}`}</style>
       <svg viewBox={`0 0 ${W} ${H+16}`} width="100%" style={{display:"block",overflow:"visible"}}>
         <defs>
           <linearGradient id="calTrendAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e8341c" stopOpacity="0.25"/>
-            <stop offset="100%" stopColor="#e8341c" stopOpacity="0"/>
+            <stop offset="0%" style={{stopColor:"var(--accent)",stopOpacity:0.25}}/>
+            <stop offset="100%" style={{stopColor:"var(--accent)",stopOpacity:0}}/>
           </linearGradient>
         </defs>
         {[H*0.25,H*0.5,H*0.75].map((y,i)=>(
@@ -1346,14 +1347,19 @@ function CalorieTrendChart({days14,calTarget}) {
         <line x1="0" y1={targetY} x2={W} y2={targetY} stroke="rgba(245,245,240,0.4)" strokeWidth="1" strokeDasharray="4 4"/>
         <text x={W-4} y={targetY-4} fontSize="8" fontFamily="'DM Mono',monospace" fill="rgba(245,245,240,0.4)" textAnchor="end" letterSpacing="1">TARGET</text>
         <path d={areaD} fill="url(#calTrendAreaGrad)" style={{animation:"calAreaFill 0.4s ease-out 0.3s both"}}/>
-        <path d={pathD} fill="none" stroke="#e8341c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          style={{strokeDasharray:2000,strokeDashoffset:0,animation:"calLineDraw 1s ease-out both"}}/>
+        <path d={pathD} fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{stroke:"var(--accent)",strokeDasharray:2000,strokeDashoffset:0,animation:"calLineDraw 1s ease-out both"}}/>
         {dataPts.map((p,i)=>{
           const last=i===dataPts.length-1;
           const c=ptColor(p.cal);
+          const isAccent=c==='ACCENT';
+          const glow=!isLight?(isAccent
+            ?`drop-shadow(0 0 ${last?'6':'4'}px rgba(var(--accent-rgb),0.5)) drop-shadow(0 0 ${last?'12':'8'}px rgba(var(--accent-rgb),0.25))`
+            :`drop-shadow(0 0 ${last?'6':'4'}px ${c}) drop-shadow(0 0 ${last?'12':'8'}px ${c}66)`)
+            :undefined;
           return(
-            <circle key={p.ds} cx={p.x} cy={p.y} r={last?5:3} fill={c}
-              style={{filter:`drop-shadow(0 0 ${last?'6':'4'}px ${c}) drop-shadow(0 0 ${last?'12':'8'}px ${c}66)`}}/>
+            <circle key={p.ds} cx={p.x} cy={p.y} r={last?5:3}
+              style={{fill:isAccent?'var(--accent)':c,filter:glow}}/>
           );
         })}
       </svg>
@@ -6631,13 +6637,13 @@ const ProgressSection = React.memo(function ProgressSection({
               const avgCal=avg('cal'),avgProt=avg('prot'),avgCarbs=avg('carbs'),avgFat=avg('fat');
               function chipColor(actual,target){if(actual>=target*0.9&&actual<=target*1.1)return"#22c55e";if(actual>=target*0.75&&actual<=target*1.25)return"#FEA020";return"var(--accent)";}
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week's Averages</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>This Week's Averages</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     {[{l:"Calories",v:avgCal,t:calTarget,u:"kcal"},{l:"Protein",v:avgProt,t:protTarget,u:"g"},{l:"Carbs",v:avgCarbs,t:carbTarget,u:"g"},{l:"Fat",v:avgFat,t:fatTarget,u:"g"}].map(({l,v,t,u})=>(
-                      <div key={l} style={{padding:"10px 12px",background:"rgba(245,245,240,0.03)",borderRadius:10,border:`1px solid ${chipColor(v,t)}30`}}>
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:chipColor(v,t),lineHeight:1}}>{v} <span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.35)"}}>/ {t}{u}</span></div>
+                      <div key={l} style={{padding:"10px 12px",background:"var(--bg)",borderRadius:10,border:`1px solid ${chipColor(v,t)}30`}}>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,color:"var(--cm-ink)",lineHeight:1}}>{v}<span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:13,fontWeight:700,color:"var(--text-faint)",marginLeft:3}}>/ {t}{u}</span></div>
                       </div>
                     ))}
                   </div>
@@ -6646,6 +6652,7 @@ const ProgressSection = React.memo(function ProgressSection({
             })()}
 
             {(()=>{
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
               const days14=Array.from({length:14},(_,i)=>{
                 const d=new Date(Date.now()-(13-i)*864e5);
                 const ds=d.toISOString().split('T')[0];
@@ -6654,14 +6661,15 @@ const ProgressSection = React.memo(function ProgressSection({
               });
               const hitCount=days14.filter(({fd})=>fd?.hasData&&fd.prot>=protTarget*0.9).length;
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Protein Consistency</div>
-                  <ProteinGrid days14={days14} hitCount={hitCount} protTarget={protTarget}/>
+                <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Protein Consistency</div>
+                  <ProteinGrid days14={days14} hitCount={hitCount} protTarget={protTarget} isLight={_isLight}/>
                 </div>
               );
             })()}
 
             {(()=>{
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
               const days14=Array.from({length:14},(_,i)=>{
                 const ds=new Date(Date.now()-(13-i)*864e5).toISOString().split('T')[0];
                 const fd=dailyFoodMap[ds];
@@ -6670,9 +6678,9 @@ const ProgressSection = React.memo(function ProgressSection({
               const daysWithData=days14.filter(d=>d.hasData).length;
               if(daysWithData<3)return<PH eyebrow="// Calorie Trend" headline="KEEP LOGGING." body="Log 3 days of meals to see your calorie trend."/>;
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Calorie Trend</div>
-                  <CalorieTrendChart days14={days14} calTarget={calTarget}/>
+                <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Calorie Trend</div>
+                  <CalorieTrendChart days14={days14} calTarget={calTarget} isLight={_isLight}/>
                 </div>
               );
             })()}
