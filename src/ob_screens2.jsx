@@ -6837,28 +6837,28 @@ const ProgressSection = React.memo(function ProgressSection({
             return(
               <>
                 {/* Weekly mileage card */}
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
-                  <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week's Running</div>
+                <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
+                  <div style={{fontFamily:mono,fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>This Week's Running</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
                     <div style={{textAlign:"center"}}>
                       <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{runActsThisWeek.length}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Runs</div>
+                      <div style={{fontFamily:mono,fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Runs</div>
                     </div>
                     <div style={{textAlign:"center"}}>
                       <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--accent)",lineHeight:1}}>{displayDistance(runDistKm,profile?.wUnit||'lbs')}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>{distanceLabel(profile?.wUnit||'lbs')}</div>
+                      <div style={{fontFamily:mono,fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>{distanceLabel(profile?.wUnit||'lbs')}</div>
                     </div>
                     <div style={{textAlign:"center"}}>
                       <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#60a5fa",lineHeight:1}}>{runTimeMins>=60?`${Math.floor(runTimeMins/60)}h${Math.round(runTimeMins%60)}m`:`${runTimeMins}m`}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Time</div>
+                      <div style={{fontFamily:mono,fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Time</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Recent runs list */}
                 {recentRuns.length>0?(
-                  <div style={{margin:"0 16px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16,overflow:"hidden"}}>
-                    <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",padding:"14px 16px 10px"}}>// Recent Runs</div>
+                  <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
+                    <div style={{fontFamily:mono,fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",padding:"14px 16px 10px"}}>Recent Runs</div>
                     {recentRuns.map((run,i)=>{
                       const d=new Date((run.date||run.start_date_local||'').split('T')[0]+'T12:00:00');
                       const dateLabel=isNaN(d.getTime())?'—':d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
@@ -6868,24 +6868,24 @@ const ProgressSection = React.memo(function ProgressSection({
                       const paceSecKm=distKm>0&&dur>0?Math.round(dur*60/distKm):null;
                       const paceStr=paceSecKm?`${Math.floor(paceSecKm/60)}:${String(paceSecKm%60).padStart(2,'0')}/km`:'—';
                       return(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:i>0?"1px solid rgba(245,245,240,0.05)":"none"}}>
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:i>0?"1px solid var(--card-border)":"none"}}>
                           <div style={{width:34,height:34,borderRadius:10,background:"rgba(34,197,94,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>🏃</div>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontFamily:cond,fontWeight:700,fontSize:14,color:"#f5f5f0",lineHeight:1}}>{run.name||'Run'}</div>
-                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{dateLabel}</div>
+                            <div style={{fontFamily:cond,fontWeight:700,fontSize:14,color:"var(--cm-ink)",lineHeight:1}}>{run.name||'Run'}</div>
+                            <div style={{fontFamily:mono,fontSize:9,color:"var(--text-faint)",marginTop:2}}>{dateLabel}</div>
                           </div>
                           <div style={{textAlign:"right",flexShrink:0}}>
                             <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:700,fontSize:14,color:"#22c55e"}}>{distLabel}</div>
-                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{paceStr}</div>
+                            <div style={{fontFamily:mono,fontSize:9,color:"var(--text-faint)",marginTop:2}}>{paceStr}</div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 ):(
-                  <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
-                    <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",marginBottom:8}}>NO RUNS YET.</div>
-                    <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Log a run from the Train tab or sync Strava to see your running stats here.</div>
+                  <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
+                    <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",marginBottom:8}}>NO RUNS YET.</div>
+                    <div style={{fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>Log a run from the Train tab or sync Strava to see your running stats here.</div>
                   </div>
                 )}
               </>
