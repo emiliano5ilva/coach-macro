@@ -966,7 +966,7 @@ export function UnitToggle({opts,val,onChange}) {
   );
 }
 
-export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjacentColor,farColor,onTick}) {
+export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjacentColor,farColor,onTick,onScrub}) {
   const _bg=bgColor||T.bg;
   const _sel=selectedColor||T.white;
   const _adj=adjacentColor||"rgba(245,245,240,0.25)";
@@ -974,12 +974,15 @@ export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjac
   const _tick=onTick||hap;
   const ref=useRef(null),timer=useRef(null),inited=useRef(false);
   const [li,setLi]=useState(Math.max(0,items.indexOf(String(sel))));
+  const lastLiRef=useRef(li);
   useEffect(()=>{ if(!ref.current||inited.current)return; ref.current.scrollTop=li*itemH; inited.current=true; },[]);
   const onScr=()=>{
     if(!ref.current)return;
-    const ni=Math.round(ref.current.scrollTop/itemH); setLi(Math.max(0,Math.min(items.length-1,ni)));
+    const ni=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH)));
+    setLi(ni);
+    if(ni!==lastLiRef.current){lastLiRef.current=ni;_tick();if(onScrub)onScrub(items[ni]);}
     clearTimeout(timer.current);
-    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.round(ref.current.scrollTop/itemH); const cl=Math.max(0,Math.min(items.length-1,fi)); if(items[cl]!==String(sel)){_tick();onChange(items[cl]);} },70);
+    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH))); if(items[fi]!==String(sel)){onChange(items[fi]);} },70);
   };
   return (
     <div style={{position:"relative",height:itemH*3,overflow:"hidden",flex:1,minWidth:52}}>

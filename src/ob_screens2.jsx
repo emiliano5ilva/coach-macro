@@ -5849,7 +5849,7 @@ const ProgressSection = React.memo(function ProgressSection({
           {/* Rolodex tab overlay */}
           {rolodexOpen&&ReactDOM.createPortal(
             <div style={{position:"fixed",inset:0,zIndex:8000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end"}}>
-              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)"}}/>
+              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.25)"}}/>
               <div style={{position:"relative",width:"100%",maxWidth:480,background:"var(--card-bg)",borderRadius:"20px 20px 0 0",padding:"20px 24px 48px",border:"1px solid var(--card-border)"}}>
                 <div style={{width:36,height:4,borderRadius:2,background:"var(--card-border)",margin:"0 auto 18px"}}/>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Progress View</div>
@@ -5857,6 +5857,7 @@ const ProgressSection = React.memo(function ProgressSection({
                   items={progressTabs}
                   sel={activeTab}
                   onChange={(v)=>{setActiveTab(v);setRolodexOpen(false);}}
+                  onScrub={(v)=>setActiveTab(v)}
                   onTick={_hL}
                   bgColor="var(--bg)"
                   selectedColor="var(--cm-ink)"
