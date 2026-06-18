@@ -1945,11 +1945,14 @@ function InjuryRiskReport({risks, muscleSetCounts}) {
 function AppleHealthModal({onConnect, onDismiss}) {
   const [connecting, setConnecting] = useState(false);
   const [permDenied, setPermDenied] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   async function handleConnect() {
-    setConnecting(true);setPermDenied(false);
-    const ok = await initAppleHealth();
+    setConnecting(true);setPermDenied(false);setTimedOut(false);
+    const timeout=new Promise(res=>setTimeout(()=>res('timeout'),10000));
+    const result=await Promise.race([initAppleHealth().then(ok=>ok),timeout]);
     setConnecting(false);
-    if(ok){onConnect(true);}
+    if(result==='timeout'){setTimedOut(true);}
+    else if(result){onConnect(true);}
     else{setPermDenied(true);}
   }
   const isNative = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.() === true;
@@ -1979,6 +1982,11 @@ function AppleHealthModal({onConnect, onDismiss}) {
             </div>
           ))}
         </div>
+        {timedOut&&(
+          <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.3)",borderRadius:12,padding:"12px 14px",marginBottom:12,fontSize:12,color:"#f87171",lineHeight:1.55}}>
+            Couldn't connect to Apple Health. Make sure Health access is enabled in iOS Settings → Privacy → Health.
+          </div>
+        )}
         {permDenied&&(
           <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.3)",borderRadius:12,padding:"12px 14px",marginBottom:12,fontSize:12,color:"#f87171",lineHeight:1.55}}>
             Apple Health access denied. To enable:<br/>
@@ -1987,7 +1995,7 @@ function AppleHealthModal({onConnect, onDismiss}) {
         )}
         {isNative
           ? <button onClick={handleConnect} disabled={connecting} style={{width:"100%",padding:"15px",background:connecting?"var(--card-border)":"#FF453A",color:connecting?"var(--text-faint)":"#fff",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,letterSpacing:"0.1em",textTransform:"uppercase",cursor:connecting?"default":"pointer",marginBottom:12}}>
-              {connecting?"Requesting Access...":permDenied?"Try Again →":"Connect Apple Health →"}
+              {connecting?"Requesting Access...":(permDenied||timedOut)?"Try Again →":"Connect Apple Health →"}
             </button>
           : <div style={{textAlign:"center",padding:"12px",background:"var(--bg)",borderRadius:12,marginBottom:12,fontFamily:"var(--body)",fontSize:12,color:"var(--text-faint)",lineHeight:1.5}}>Apple Health is available when you install the app on your iPhone.</div>
         }
@@ -5211,6 +5219,7 @@ const ProgressSection = React.memo(function ProgressSection({
     const progressTabs = getProgressTabs(userTier, userMode);
     const scoreLabels = COACH_SCORE_LABELS[userMode] || COACH_SCORE_LABELS.strength;
     const [progFoodLogs, setProgFoodLogs] = useState([]);
+    const [rolodexOpen, setRolodexOpen] = useState(false);
 
     useEffect(()=>{
       if(!user?.id)return;
@@ -5828,9 +5837,37 @@ const ProgressSection = React.memo(function ProgressSection({
           <div className="screen-header" style={{paddingTop:12}}>
             <div style={{flex:1,minWidth:0}}>
               <div className="header-eyebrow">// Performance</div>
-              <div className="header-title">Progress</div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div className="header-title">Progress</div>
+                <button onClick={()=>setRolodexOpen(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:5,background:"none",border:"1px solid var(--card-border)",borderRadius:20,padding:"3px 10px",cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.14em",textTransform:"uppercase",WebkitTapHighlightColor:"transparent"}}>
+                  {activeTab}<span style={{fontSize:7,opacity:0.5,marginLeft:1}}>▾</span>
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Rolodex tab overlay */}
+          {rolodexOpen&&ReactDOM.createPortal(
+            <div style={{position:"fixed",inset:0,zIndex:8000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end"}}>
+              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)"}}/>
+              <div style={{position:"relative",width:"100%",maxWidth:480,background:"var(--card-bg)",borderRadius:"20px 20px 0 0",padding:"20px 24px 48px",border:"1px solid var(--card-border)"}}>
+                <div style={{width:36,height:4,borderRadius:2,background:"var(--card-border)",margin:"0 auto 18px"}}/>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Progress View</div>
+                <Rolodex
+                  items={progressTabs}
+                  sel={activeTab}
+                  onChange={(v)=>{setActiveTab(v);setRolodexOpen(false);}}
+                  onTick={_hL}
+                  bgColor="var(--bg)"
+                  selectedColor="var(--cm-ink)"
+                  adjacentColor="var(--text-dim)"
+                  farColor="rgba(0,0,0,0.08)"
+                  itemH={52}
+                />
+              </div>
+            </div>,
+            document.body
+          )}
 
           {/* Tab nav — dynamic per tier + mode */}
           <div style={{display:"flex",borderBottom:"1px solid rgba(245,245,240,0.07)",marginBottom:16,overflowX:"auto"}}>

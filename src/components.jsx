@@ -966,7 +966,12 @@ export function UnitToggle({opts,val,onChange}) {
   );
 }
 
-export function Rolodex({items,sel,onChange,itemH=56}) {
+export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjacentColor,farColor,onTick}) {
+  const _bg=bgColor||T.bg;
+  const _sel=selectedColor||T.white;
+  const _adj=adjacentColor||"rgba(245,245,240,0.25)";
+  const _far=farColor||"rgba(245,245,240,0.08)";
+  const _tick=onTick||hap;
   const ref=useRef(null),timer=useRef(null),inited=useRef(false);
   const [li,setLi]=useState(Math.max(0,items.indexOf(String(sel))));
   useEffect(()=>{ if(!ref.current||inited.current)return; ref.current.scrollTop=li*itemH; inited.current=true; },[]);
@@ -974,22 +979,22 @@ export function Rolodex({items,sel,onChange,itemH=56}) {
     if(!ref.current)return;
     const ni=Math.round(ref.current.scrollTop/itemH); setLi(Math.max(0,Math.min(items.length-1,ni)));
     clearTimeout(timer.current);
-    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.round(ref.current.scrollTop/itemH); const cl=Math.max(0,Math.min(items.length-1,fi)); if(items[cl]!==String(sel)){hap();onChange(items[cl]);} },70);
+    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.round(ref.current.scrollTop/itemH); const cl=Math.max(0,Math.min(items.length-1,fi)); if(items[cl]!==String(sel)){_tick();onChange(items[cl]);} },70);
   };
   return (
     <div style={{position:"relative",height:itemH*3,overflow:"hidden",flex:1,minWidth:52}}>
       <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none"}}>
         <div style={{height:itemH}}/>
         {items.map((item,i)=>{ const d=Math.abs(i-li); return(
-          <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});hap();}}
+          <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});_tick();}}
             style={{height:itemH,display:"flex",alignItems:"center",justifyContent:"center",scrollSnapAlign:"center",
               fontSize:i===li?22:d===1?17:13,fontWeight:i===li?800:400,
-              color:i===li?T.white:d===1?"rgba(245,245,240,0.25)":"rgba(245,245,240,0.08)",transition:"all 0.08s",fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
+              color:i===li?_sel:d===1?_adj:_far,transition:"all 0.08s",fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
             {item}
           </div>
         );})}<div style={{height:itemH}}/>
       </div>
-      <div style={{position:"absolute",inset:0,background:`linear-gradient(${T.bg} 12%,transparent 36%,transparent 64%,${T.bg} 88%)`,pointerEvents:"none",zIndex:2}}/>
+      <div style={{position:"absolute",inset:0,background:`linear-gradient(${_bg} 12%,transparent 36%,transparent 64%,${_bg} 88%)`,pointerEvents:"none",zIndex:2}}/>
       <div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(var(--accent-rgb),0.35)`,borderBottom:`1px solid rgba(var(--accent-rgb),0.35)`,pointerEvents:"none",zIndex:1}}/>
     </div>
   );
