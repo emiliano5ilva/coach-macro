@@ -92,7 +92,7 @@ import { detectActivePatterns, generateIntervention, recordPatternDetection, dis
 import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOverride, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
 import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META, isTrustedCorr } from "./services/connectionsService.js";
 import { runOutreachCheck, calibrateFrequency } from "./services/outreachService.js";
-import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, getPercentileLabel, interpolatePercentile } from "./services/peerComparisonService.js";
+import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, getPercentileLabel, interpolatePercentile, isPeerTrusted, computeCohortId } from "./services/peerComparisonService.js";
 import { getUserMode, getUserTier, getVisibleSections, getProgressTabs } from "./utils/dashboardResolver.js";
 import { COACH_SCORE_LABELS, RING_CONFIG } from "./config/dashboardConfig.js";
 import { getPostWorkoutWindow } from "./services/nutritionTimingService.js";
@@ -3212,7 +3212,85 @@ function PercentileCard({ label, icon, pct, sublabel, expanded, onClick }) {
   );
 }
 
-// ── PeerInsightsView (full-screen modal) ─────────────────────────────────────
+// ── PeerFormingState — shown when cohort_aggregates has no real data yet ────────
+
+function PeerFormingState({ profile }) {
+  const _MO = "'DM Mono','SF Mono',monospace";
+  const _AF = "'Archivo',sans-serif";
+  const _BC = "'Barlow Condensed',sans-serif";
+
+  // Build a human-readable cohort description from the user's profile
+  const goalMap = {
+    cut:'cutting', bulk:'lean bulking', maintain:'maintaining weight',
+    recomp:'body recomposition', muscle_gain:'building muscle',
+    build_muscle:'building muscle', get_stronger:'building strength',
+    lose_fat:'losing fat', get_faster:'speed & performance',
+    train_for_race:'race training',
+  };
+  const expMap = { beginner:'beginner', intermediate:'intermediate', advanced:'advanced', elite:'elite' };
+
+  const goal    = (profile?.goal || profile?.primaryGoal || '').toLowerCase();
+  const exp     = (profile?.liftExp || '').toLowerCase();
+  const wt      = parseFloat(profile?.weight || 0);
+  const sex     = profile?.sex || profile?.gender || '';
+
+  const goalLabel = goalMap[goal] || goal.replace(/_/g,' ');
+  const expLabel  = expMap[exp]  || exp;
+  const wtBucket  = wt > 50 ? Math.floor(wt / 15) * 15 : null;
+
+  const dims = [
+    expLabel                    && { label:'Experience', value:expLabel },
+    goalLabel                   && { label:'Goal',       value:goalLabel },
+    wtBucket                    && { label:'Weight',     value:`~${wtBucket}–${wtBucket+14} lbs` },
+    sex && sex!=='u' && sex!==''&& { label:'Cohort',     value:sex==='male'?'Male athletes':'Female athletes' },
+  ].filter(Boolean);
+
+  return (
+    <div style={{flex:1,overflowY:'auto',padding:'32px 20px 40px'}}>
+      <div style={{marginBottom:28}}>
+        <div style={{fontFamily:_MO,fontSize:9,color:'var(--accent)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:10}}>// COHORT BUILDING</div>
+        <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:'var(--cm-ink)',lineHeight:1.1,marginBottom:12}}>
+          Your cohort comparison<br/>is building.
+        </div>
+        <div style={{fontFamily:_BC,fontStyle:'italic',fontSize:15,color:'var(--text-dim)',lineHeight:1.55}}>
+          As more athletes like you log alongside each other, Coach Macro will surface exactly where you stand — not against a population average, but against people with your same goal, experience level, and body type.
+        </div>
+      </div>
+
+      <div style={{fontFamily:_MO,fontSize:9,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:14}}>YOUR COHORT MATCH</div>
+      <div style={{background:'var(--card-bg)',border:'1px solid var(--card-border)',borderRadius:14,overflow:'hidden',marginBottom:20}}>
+        {dims.map(({label,value},i)=>(
+          <div key={label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderTop:i>0?'1px solid var(--card-border)':'none'}}>
+            <div style={{fontFamily:_MO,fontSize:9,color:'var(--text-faint)',letterSpacing:'0.08em',textTransform:'uppercase'}}>{label}</div>
+            <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:'var(--cm-ink)'}}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{padding:'14px 16px',background:'rgba(var(--accent-rgb),0.06)',border:'1px solid rgba(var(--accent-rgb),0.15)',borderRadius:12,marginBottom:20}}>
+        <div style={{fontFamily:_MO,fontSize:9,color:'var(--accent)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:8}}>// When your cohort unlocks</div>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {[
+            'Where you rank in Logging, Training, Sleep, and Progress vs. similar athletes',
+            'What training and nutrition habits work best for your specific cohort',
+            'Realistic pace ranges for your goal and body type — from real data, not estimates',
+          ].map((t,i)=>(
+            <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+              <span style={{fontFamily:_MO,fontSize:9,color:'var(--accent)',flexShrink:0,marginTop:1}}>↗</span>
+              <div style={{fontFamily:_BC,fontStyle:'italic',fontSize:13,color:'var(--text-dim)',lineHeight:1.5}}>{t}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{fontFamily:_MO,fontSize:8,color:'var(--text-faint)',lineHeight:1.6,letterSpacing:'0.04em'}}>
+        Peer comparison activates once your cohort reaches 20+ athletes with real logged data. No population estimates or research approximations are used.
+      </div>
+    </div>
+  );
+}
+
+// ── PeerInsightsView (full-screen modal) ──────────────────────────────────────
 
 function PeerInsightsView({ userId, profile, onClose }) {
   const [tab, setTab] = useState(0);
@@ -3238,230 +3316,176 @@ function PeerInsightsView({ userId, profile, onClose }) {
     await setPeerOptIn(userId, val);
   }
 
-  const pct = comparison?.percentiles || {};
-  const userM = comparison?.user_metrics || {};
+  // Trust gate: only render peer data from real cohort aggregates (sample_size>=20).
+  // RESEARCH_NORMS fallback is flagged is_research_based=true and never clears this.
+  const trusted = isPeerTrusted(comparison);
+
+  const pct  = comparison?.percentiles    || {};
+  const userM = comparison?.user_metrics  || {};
 
   const METRIC_CARDS = [
-    { key: 'adherence',          label: 'Logging',    icon: '📋', format: v => v != null ? `${Math.round(v * 100)}%` : '—',  sublabel: 'days tracked' },
-    { key: 'training_frequency', label: 'Training',   icon: '🏋️', format: v => v != null ? `${v.toFixed(1)}/wk` : '—',     sublabel: 'sessions/wk' },
-    { key: 'sleep',              label: 'Sleep',      icon: '💤', format: v => v != null ? `${v.toFixed(1)}h` : '—',         sublabel: 'avg hours' },
-    { key: 'weight_velocity',    label: 'Progress',   icon: '⚖️', format: v => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(2)}` : '—', sublabel: 'lbs/wk' },
+    { key:'adherence',          label:'Logging',  icon:'📋', format:v=>v!=null?`${Math.round(v*100)}%`:'—',            sublabel:'days tracked' },
+    { key:'training_frequency', label:'Training', icon:'🏋️', format:v=>v!=null?`${v.toFixed(1)}/wk`:'—',             sublabel:'sessions/wk'  },
+    { key:'sleep',              label:'Sleep',    icon:'💤', format:v=>v!=null?`${v.toFixed(1)}h`:'—',               sublabel:'avg hours'    },
+    { key:'weight_velocity',    label:'Progress', icon:'⚖️', format:v=>v!=null?`${v>0?'+':''}${v.toFixed(2)}`:'—',  sublabel:'lbs/wk'       },
   ];
 
-  const userValForKey = { adherence: userM.adherence, training_frequency: userM.trainingFrequency, sleep: userM.sleepAverage, weight_velocity: userM.weightVelocity };
+  const userValForKey = {
+    adherence:         userM.adherence,
+    training_frequency:userM.trainingFrequency,
+    sleep:             userM.sleepAverage,
+    weight_velocity:   userM.weightVelocity,
+  };
 
   const TABS = ['Where You Stand', 'What Works', 'Expectations'];
+  const _MO = "'DM Mono','SF Mono',monospace";
+  const _AF = "'Archivo',sans-serif";
+  const _BC = "'Barlow Condensed',sans-serif";
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1001, background: "#070710", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+    <div style={{position:"fixed",inset:0,zIndex:1001,background:"var(--bg)",display:"flex",flexDirection:"column",overflowY:"auto"}}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", padding: "max(env(safe-area-inset-top),16px) 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: "6px 10px 6px 0", color: "rgba(245,245,240,0.6)", fontFamily: "'DM Mono',monospace", fontSize: 12 }}>← back</button>
-        <div style={{ flex: 1, fontFamily: "'DM Mono',monospace", fontSize: 11, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase" }}>// Similar Users</div>
-        {comparison && (
-          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.3)", letterSpacing: "0.08em" }}>
-            {comparison.is_research_based ? 'RESEARCH NORMS' : `${comparison.sample_size} USERS`}
-          </div>
+      <div style={{display:"flex",alignItems:"center",padding:"max(env(safe-area-inset-top),16px) 16px 12px",borderBottom:"1px solid var(--card-border)",flexShrink:0}}>
+        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:"6px 10px 6px 0",color:"var(--text-dim)",fontFamily:_MO,fontSize:12}}>← back</button>
+        <div style={{flex:1,fontFamily:_MO,fontSize:11,color:"var(--accent)",letterSpacing:"0.14em",textTransform:"uppercase"}}>// Peer Comparison</div>
+        {trusted&&comparison&&(
+          <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.08em"}}>{comparison.sample_size} ATHLETES</div>
         )}
       </div>
 
       {loading ? (
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.3)" }}>calculating your cohort…</div>
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:_MO,fontSize:11,color:"var(--text-faint)"}}>loading cohort data…</div>
+      ) : !trusted ? (
+        <PeerFormingState profile={profile}/>
       ) : (
         <>
-          {/* Tabs */}
-          <div style={{ display: "flex", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-            {TABS.map((t, i) => (
-              <button key={i} onClick={() => setTab(i)} style={{ flex: 1, padding: "10px 4px", background: "none", border: "none", borderBottom: `2px solid ${tab === i ? "var(--accent)" : "transparent"}`, cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 8.5, color: tab === i ? "var(--accent)" : "rgba(245,245,240,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", transition: "all 0.2s" }}>{t}</button>
+          {/* Tabs — only shown when real cohort data clears the trust gate */}
+          <div style={{display:"flex",borderBottom:"1px solid var(--card-border)",flexShrink:0}}>
+            {TABS.map((t,i)=>(
+              <button key={i} onClick={()=>setTab(i)} style={{flex:1,padding:"10px 4px",background:"none",border:"none",borderBottom:`2px solid ${tab===i?"var(--accent)":"transparent"}`,cursor:"pointer",fontFamily:_MO,fontSize:8.5,color:tab===i?"var(--accent)":"var(--text-faint)",letterSpacing:"0.08em",textTransform:"uppercase",transition:"all 0.2s"}}>{t}</button>
             ))}
           </div>
 
-          <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+          <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
             {/* Tab 0: Where You Stand */}
-            {tab === 0 && (
+            {tab===0&&(
               <>
-                {!optedIn && (
-                  <div style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 12, padding: 14, marginBottom: 14, fontFamily: "'DM Mono',monospace", fontSize: 10, color: "rgba(251,191,36,0.8)", lineHeight: 1.5 }}>
-                    Peer comparison is off. Showing research norms only. Toggle in Settings → Peer Comparison.
+                {!optedIn&&(
+                  <div style={{background:"rgba(251,191,36,0.08)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:12,padding:14,marginBottom:14,fontFamily:_MO,fontSize:10,color:"rgba(251,191,36,0.8)",lineHeight:1.5}}>
+                    Peer comparison is off. Toggle in Settings → Peer Comparison.
                   </div>
                 )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-                  {METRIC_CARDS.map(m => (
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+                  {METRIC_CARDS.map(m=>(
                     <PercentileCard
                       key={m.key}
                       label={m.label}
                       icon={m.icon}
                       pct={pct[m.key]}
                       sublabel={m.format(userValForKey[m.key])}
-                      expanded={expandedCard === m.key}
-                      onClick={() => setExpandedCard(expandedCard === m.key ? null : m.key)}
+                      expanded={expandedCard===m.key}
+                      onClick={()=>setExpandedCard(expandedCard===m.key?null:m.key)}
                     />
                   ))}
                 </div>
-                {expandedCard && (() => {
-                  const mc = METRIC_CARDS.find(m => m.key === expandedCard);
-                  const cohortStat = comparison?.cohort_stats?.[expandedCard] || {};
-                  const userVal = userValForKey[expandedCard];
-                  const label = getPercentileLabel(pct[expandedCard]);
-                  return (
-                    <div style={{ background: "#0d0d0d", border: "1px solid rgba(var(--accent-rgb),0.12)", borderRadius: 14, padding: 16, marginBottom: 14, animation: "fadeIn 0.2s" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        <span style={{ fontSize: 16 }}>{mc.icon}</span>
-                        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{mc.label}</div>
-                        {pct[expandedCard] != null && <div style={{ marginLeft: "auto", fontFamily: "'DM Mono',monospace", fontSize: 9, color: label.color, background: `${label.color}18`, borderRadius: 6, padding: "2px 8px" }}>{label.long}</div>}
+                {expandedCard&&(()=>{
+                  const mc=METRIC_CARDS.find(m=>m.key===expandedCard);
+                  const cohortStat=comparison?.cohort_stats?.[expandedCard]||{};
+                  const userVal=userValForKey[expandedCard];
+                  const lbl=getPercentileLabel(pct[expandedCard]);
+                  return(
+                    <div style={{background:"var(--card-bg)",border:"1px solid rgba(var(--accent-rgb),0.12)",borderRadius:14,padding:16,marginBottom:14,animation:"fadeIn 0.2s"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                        <span style={{fontSize:16}}>{mc.icon}</span>
+                        <div style={{fontFamily:_MO,fontSize:10,color:"var(--accent)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{mc.label}</div>
+                        {pct[expandedCard]!=null&&<div style={{marginLeft:"auto",fontFamily:_MO,fontSize:9,color:lbl.color,background:`${lbl.color}18`,borderRadius:6,padding:"2px 8px"}}>{lbl.long}</div>}
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                        {['25th', '50th', '75th'].map((label, i) => {
-                          const vals = [cohortStat.p25, cohortStat.p50, cohortStat.p75];
-                          const val = vals[i];
-                          return (
-                            <div key={label} style={{ textAlign: "center", flex: 1 }}>
-                              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.35)", marginBottom: 3 }}>{label}</div>
-                              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.7)" }}>{mc.format(val)}</div>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                        {['25th','50th','75th'].map((label,i)=>{
+                          const vals=[cohortStat.p25,cohortStat.p50,cohortStat.p75];
+                          return(
+                            <div key={label} style={{textAlign:"center",flex:1}}>
+                              <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:3}}>{label}</div>
+                              <div style={{fontFamily:_MO,fontSize:11,color:"var(--text-dim)"}}>{mc.format(vals[i])}</div>
                             </div>
                           );
                         })}
-                        <div style={{ textAlign: "center", flex: 1 }}>
-                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.35)", marginBottom: 3 }}>YOU</div>
-                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: getPercentileLabel(pct[expandedCard]).color, fontWeight: 700 }}>{mc.format(userVal)}</div>
+                        <div style={{textAlign:"center",flex:1}}>
+                          <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:3}}>YOU</div>
+                          <div style={{fontFamily:_MO,fontSize:11,color:getPercentileLabel(pct[expandedCard]).color,fontWeight:700}}>{mc.format(userVal)}</div>
                         </div>
                       </div>
-                      <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, position: "relative" }}>
-                        <div style={{ height: "100%", width: "25%", background: "rgba(255,255,255,0.12)", borderRadius: "2px 0 0 2px" }} />
-                        <div style={{ height: "100%", width: "25%", left: "25%", position: "absolute", top: 0, background: "rgba(255,255,255,0.18)" }} />
-                        <div style={{ height: "100%", width: "25%", left: "50%", position: "absolute", top: 0, background: "rgba(255,255,255,0.12)" }} />
-                        {pct[expandedCard] != null && (
-                          <div style={{ position: "absolute", top: -4, left: `${pct[expandedCard]}%`, transform: "translateX(-50%)", width: 12, height: 12, borderRadius: "50%", background: getPercentileLabel(pct[expandedCard]).color, border: "2px solid #070710" }} />
+                      <div style={{height:4,background:"var(--card-border)",borderRadius:2,position:"relative"}}>
+                        <div style={{height:"100%",width:"25%",background:"rgba(255,255,255,0.12)",borderRadius:"2px 0 0 2px"}}/>
+                        <div style={{height:"100%",width:"25%",left:"25%",position:"absolute",top:0,background:"rgba(255,255,255,0.18)"}}/>
+                        <div style={{height:"100%",width:"25%",left:"50%",position:"absolute",top:0,background:"rgba(255,255,255,0.12)"}}/>
+                        {pct[expandedCard]!=null&&(
+                          <div style={{position:"absolute",top:-4,left:`${pct[expandedCard]}%`,transform:"translateX(-50%)",width:12,height:12,borderRadius:"50%",background:getPercentileLabel(pct[expandedCard]).color,border:"2px solid var(--bg)"}}/>
                         )}
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.2)" }}>0%</span>
-                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.2)" }}>100%</span>
+                      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                        <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>0%</span>
+                        <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>100%</span>
                       </div>
                     </div>
                   );
                 })()}
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.25)", lineHeight: 1.6, textAlign: "center", marginTop: 8 }}>
-                  {comparison?.is_research_based
-                    ? 'Based on research data — cohort data will replace this as more similar users join.'
-                    : `Based on ${comparison?.sample_size} similar users. All data anonymous.`}
+                <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",lineHeight:1.6,textAlign:"center",marginTop:8}}>
+                  Based on {comparison?.sample_size} similar athletes. All data anonymous.
                 </div>
               </>
             )}
 
-            {/* Tab 1: What Works for Others */}
-            {tab === 1 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {(comparison?.pattern_insights || []).map((text, i) => (
-                  <div key={i} style={{ background: "#0d0d0d", border: "1px solid rgba(245,245,240,0.07)", borderRadius: 12, padding: 14 }}>
-                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", marginTop: 5, flexShrink: 0 }} />
-                      <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 14, color: "rgba(245,245,240,0.75)", lineHeight: 1.45 }}>{text}</div>
+            {/* Tab 1: What Works */}
+            {tab===1&&(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {(comparison?.pattern_insights||[]).map((text,i)=>(
+                  <div key={i} style={{background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:14}}>
+                    <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                      <div style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",marginTop:5,flexShrink:0}}/>
+                      <div style={{fontFamily:_BC,fontStyle:"italic",fontSize:14,color:"var(--text-dim)",lineHeight:1.45}}>{text}</div>
                     </div>
                   </div>
                 ))}
-                {!comparison?.pattern_insights?.length && (
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.3)", textAlign: "center", marginTop: 40 }}>Log more data to unlock pattern insights.</div>
+                {!comparison?.pattern_insights?.length&&(
+                  <div style={{fontFamily:_MO,fontSize:11,color:"var(--text-faint)",textAlign:"center",marginTop:40}}>Log more data to unlock pattern insights.</div>
                 )}
               </div>
             )}
 
-            {/* Tab 2: Honest Expectations */}
-            {tab === 2 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.4)", letterSpacing: "0.1em", marginBottom: 4 }}>REALISTIC RANGES FOR USERS LIKE YOU</div>
-                {(comparison?.expectation_ranges || []).map((range, i) => (
-                  <div key={i} style={{ background: "#0d0d0d", border: "1px solid rgba(245,245,240,0.07)", borderRadius: 12, padding: 14 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>{range.metric}</div>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                      {[['Conservative', range.conservative, '#60a5fa'], ['Realistic', range.realistic, '#4ade80'], ['Aggressive', range.aggressive, '#a78bfa']].map(([tier, val, color]) => (
-                        <div key={tier} style={{ flex: 1, background: `${color}10`, border: `1px solid ${color}30`, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.4)", marginBottom: 4, letterSpacing: "0.06em" }}>{tier.toUpperCase()}</div>
-                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color, fontWeight: 700 }}>{val}</div>
+            {/* Tab 2: Expectations */}
+            {tab===2&&(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",letterSpacing:"0.1em",marginBottom:4}}>REALISTIC RANGES FOR ATHLETES LIKE YOU</div>
+                {(comparison?.expectation_ranges||[]).map((range,i)=>(
+                  <div key={i} style={{background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:14}}>
+                    <div style={{fontFamily:_MO,fontSize:9,color:"var(--accent)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>{range.metric}</div>
+                    <div style={{display:"flex",gap:6,marginBottom:8}}>
+                      {[['Conservative',range.conservative,'#60a5fa'],['Realistic',range.realistic,'#4ade80'],['Aggressive',range.aggressive,'#a78bfa']].map(([tier,val,color])=>(
+                        <div key={tier} style={{flex:1,background:`${color}10`,border:`1px solid ${color}30`,borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                          <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",marginBottom:4,letterSpacing:"0.06em"}}>{tier.toUpperCase()}</div>
+                          <div style={{fontFamily:_MO,fontSize:11,color,fontWeight:700}}>{val}</div>
                         </div>
                       ))}
                     </div>
-                    {range.note && <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 12, color: "rgba(245,245,240,0.45)", lineHeight: 1.4 }}>{range.note}</div>}
+                    {range.note&&<div style={{fontFamily:_BC,fontStyle:"italic",fontSize:12,color:"var(--text-dim)",lineHeight:1.4}}>{range.note}</div>}
                   </div>
                 ))}
-
-                {/* Opt-in toggle */}
-                <div style={{ background: "#0d0d0d", border: "1px solid rgba(245,245,240,0.07)", borderRadius: 12, padding: 14, marginTop: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "rgba(245,245,240,0.7)" }}>Contribute my data</div>
-                    <div onClick={() => handleOptToggle(!optedIn)} style={{ width: 40, height: 22, borderRadius: 11, background: optedIn ? "var(--accent)" : "rgba(245,245,240,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
-                      <div style={{ position: "absolute", top: 2, left: optedIn ? 19 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                <div style={{background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:14,marginTop:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontFamily:_MO,fontSize:10,color:"var(--text-dim)"}}>Contribute my data</div>
+                    <div onClick={()=>handleOptToggle(!optedIn)} style={{width:40,height:22,borderRadius:11,background:optedIn?"var(--accent)":"rgba(245,245,240,0.1)",cursor:"pointer",position:"relative",transition:"background 0.2s"}}>
+                      <div style={{position:"absolute",top:2,left:optedIn?19:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
                     </div>
                   </div>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.3)", lineHeight: 1.5 }}>
-                    When on, your anonymized data helps refine insights for users like you. Individual data is never shared or exposed.
+                  <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",lineHeight:1.5}}>
+                    When on, your anonymised data helps refine insights for athletes like you. Individual data is never shared.
                   </div>
                 </div>
               </div>
             )}
           </div>
         </>
-      )}
-    </div>
-  );
-}
-
-// ── CohortContextCard (Progress > Overview) ───────────────────────────────────
-
-function CohortContextCard({ peerData, memberDays, onOpen }) {
-  if (!peerData) return null;
-  const pct = peerData.percentiles;
-  const bestMetric = Object.entries(pct)
-    .filter(([, v]) => v != null)
-    .sort(([, a], [, b]) => b - a)[0];
-
-  const METRIC_LABELS = { adherence: 'Logging', training_frequency: 'Training freq.', sleep: 'Sleep', weight_velocity: 'Progress pace' };
-  const METRIC_ICONS  = { adherence: '📋', training_frequency: '🏋️', sleep: '💤', weight_velocity: '⚖️' };
-
-  return (
-    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "rgba(245,245,240,0.03)", backgroundImage: "radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)", boxShadow: "0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)", borderRadius: 16, animation: "cardIn 0.4s ease-out both" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase" }}>// Cohort Context</div>
-        <button onClick={onOpen} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(var(--accent-rgb),0.6)", letterSpacing: "0.08em" }}>View all →</button>
-      </div>
-
-      {memberDays < 14 ? (
-        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 12, color: "rgba(245,245,240,0.4)", lineHeight: 1.4 }}>
-          Your data is helping build context for users like you. Check back at 14 days.
-        </div>
-      ) : (
-        <div>
-          {/* Best percentile highlight */}
-          {bestMetric && (() => {
-            const [key, val] = bestMetric;
-            const label = getPercentileLabel(val);
-            return (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 16 }}>{METRIC_ICONS[key]}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.6)", marginBottom: 2 }}>{METRIC_LABELS[key]}</div>
-                  <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, fontSize: 14, color: label.color }}>{label.short} of similar users</div>
-                </div>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 20, fontWeight: 700, color: label.color }}>{Math.round(val)}<span style={{ fontSize: 10, opacity: 0.6 }}>%</span></div>
-              </div>
-            );
-          })()}
-          {/* Mini percentile row */}
-          <div style={{ display: "flex", gap: 6 }}>
-            {Object.entries(pct).filter(([, v]) => v != null).slice(0, 4).map(([key, val]) => {
-              const label = getPercentileLabel(val);
-              return (
-                <div key={key} style={{ flex: 1, textAlign: "center" }}>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: label.color, fontWeight: 700 }}>{Math.round(val)}</div>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.3)", letterSpacing: "0.04em" }}>{METRIC_ICONS[key]}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(245,245,240,0.2)", textAlign: "right", marginTop: 6 }}>
-            {peerData.is_research_based ? 'vs. research norms' : `vs. ${peerData.sample_size} similar users`}
-          </div>
-        </div>
       )}
     </div>
   );
@@ -6259,10 +6283,12 @@ const ProgressSection = React.memo(function ProgressSection({
             {(()=>{
               const _MO="'DM Mono',monospace";
               const _connCount=(connectionData||[]).filter(isTrustedCorr).length;
-              const _hasPeer=!!(peerData);
+              // _hasPeer is true only when real cohort aggregates exist (sample_size≥20).
+              // A populated peerData object that fell back to RESEARCH_NORMS does not count.
+              const _hasPeer=isPeerTrusted(peerData);
               const _rows=[
                 {label:'Correlations',sub:_connCount>0?`${_connCount} signal${_connCount!==1?'s':''}`:null,onTap:()=>setShowConnectionsView(true)},
-                {label:'Peer Comparison',sub:_hasPeer?'view your cohort':null,onTap:()=>setShowPeerView(true)},
+                {label:'Peer Comparison',sub:_hasPeer?`${peerData.sample_size} athletes`:'building',onTap:()=>setShowPeerView(true)},
               ];
               return(
                 <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>

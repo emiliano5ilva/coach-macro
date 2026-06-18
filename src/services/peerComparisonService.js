@@ -27,6 +27,13 @@ function widenCohortId(cohortId, level) {
 }
 
 // ─── Research-based fallback norms (when cohort data insufficient) ────────────
+//
+// ⚠  DEV NOTE — DO NOT USE THESE AS PEER-COMPARISON DATA:
+// These p25/p50/p75 values are developer best-guesses, NOT real cited research.
+// They must never render as "peer comparison" numbers for users.
+// They may only be reintroduced as honest "general guidance" if every value is
+// replaced with a real, cited published source (e.g. NSCA, ACSM, peer-reviewed
+// RCTs). The isPeerTrusted() gate prevents these from escaping into the UI.
 
 const RESEARCH_NORMS = {
   lose_fat:     { adherence: { p25:0.50, p50:0.70, p75:0.85 }, training_frequency: { p25:2.5, p50:3.5, p75:4.5 }, sleep: { p25:6.5, p50:7.2, p75:7.8 }, weight_velocity: { p25:-1.2, p50:-0.7, p75:-0.3 } },
@@ -302,6 +309,15 @@ export function validateEstimate(metric, userValue, stats) {
   }
   return { in_normal_range: true, pct_diff: Math.round(pctDiff), confidence: 85 };
 }
+
+// ─── Trust gate ───────────────────────────────────────────────────────────────
+// A peer comparison result is trustworthy only when it comes from real cohort
+// aggregates (not RESEARCH_NORMS) with a sufficient sample size.
+// is_research_based is set true whenever getCohortStats fell back to norms.
+export const isPeerTrusted = comparison =>
+  comparison != null &&
+  !comparison.is_research_based &&
+  (comparison.sample_size || 0) >= 20;
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
