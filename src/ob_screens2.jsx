@@ -1367,7 +1367,7 @@ function CalorieTrendChart({days14,calTarget,isLight}) {
   );
 }
 
-function WeightChart({weightProjection,goalW,profile}) {
+function WeightChart({weightProjection,goalW,profile,isLight}) {
   const{slope,intercept,data,projectedDelta}=weightProjection;
   const W=320,H=80;
   const allW=data.map(l=>parseFloat(l.weight));
@@ -1391,39 +1391,44 @@ function WeightChart({weightProjection,goalW,profile}) {
     <>
       <style>{`@keyframes wtLineDraw{from{stroke-dashoffset:2000}to{stroke-dashoffset:0}}@keyframes wtAreaFill{from{opacity:0}to{opacity:1}}`}</style>
       <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:10}}>
-        <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"#f5f5f0",lineHeight:1}}>{curW}</span>
-        <span style={{...mno,fontSize:11,color:"rgba(245,245,240,0.45)"}}>{profile?.wUnit||"lbs"}</span>
+        <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--cm-ink)",lineHeight:1}}>{curW}</span>
+        <span style={{...mno,fontSize:11,color:"var(--text-faint)"}}>{profile?.wUnit||"lbs"}</span>
         <span style={{...mno,fontSize:9,color:dir==="gaining"?"#FEA020":dir==="losing"?"#22c55e":"#60a5fa"}}>{dir} · ~{rate} {profile?.wUnit||"lbs"}/mo</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H+10}`} width="100%" style={{display:"block",overflow:"visible"}}>
         <defs>
           <linearGradient id="wtAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e8341c" stopOpacity="0.25"/>
-            <stop offset="100%" stopColor="#e8341c" stopOpacity="0"/>
+            <stop offset="0%" style={{stopColor:"var(--accent)",stopOpacity:0.25}}/>
+            <stop offset="100%" style={{stopColor:"var(--accent)",stopOpacity:0}}/>
           </linearGradient>
         </defs>
         {[minW,(minW+maxW)/2,maxW].map((w,i)=>(
-          <line key={i} x1={0} y1={toY(w)} x2={W} y2={toY(w)} stroke="rgba(245,245,240,0.06)" strokeWidth="1"/>
+          <line key={i} x1={0} y1={toY(w)} x2={W} y2={toY(w)} stroke="var(--card-border)" strokeWidth="1"/>
         ))}
         {goalW&&<>
-          <line x1={0} y1={toY(goalW)} x2={W} y2={toY(goalW)} stroke="rgba(245,245,240,0.4)" strokeWidth="1" strokeDasharray="4 3"/>
-          <text x={W-4} y={toY(goalW)-4} textAnchor="end" fontFamily="'DM Mono',monospace" fontSize="8" fill="rgba(245,245,240,0.4)" letterSpacing="1">GOAL</text>
+          <line x1={0} y1={toY(goalW)} x2={W} y2={toY(goalW)} stroke="var(--text-faint)" strokeWidth="1" strokeDasharray="4 3"/>
+          <text x={W-4} y={toY(goalW)-4} textAnchor="end" fontFamily="'DM Mono',monospace" fontSize="8" style={{fill:"var(--text-faint)"}} letterSpacing="1">GOAL</text>
         </>}
         <path d={histAreaD} fill="url(#wtAreaGrad)" style={{animation:"wtAreaFill 0.4s ease-out 0.3s both"}}/>
-        <path d={histPathD} fill="none" stroke="#e8341c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          style={{strokeDasharray:2000,strokeDashoffset:0,animation:"wtLineDraw 1s ease-out both"}}/>
-        <path d={`M ${lastH.x} ${lastH.y} L ${projX} ${projY}`} fill="none" stroke="rgba(232,52,28,0.6)" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round"/>
+        <path d={histPathD} fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{stroke:"var(--accent)",strokeDasharray:2000,strokeDashoffset:0,animation:"wtLineDraw 1s ease-out both"}}/>
+        <path d={`M ${lastH.x} ${lastH.y} L ${projX} ${projY}`} fill="none" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round"
+          style={{stroke:"rgba(var(--accent-rgb),0.6)"}}/>
         {histPts.map((p,i)=>{
           const last=i===histPts.length-1;
+          const glow=!isLight?(last
+            ?'drop-shadow(0 0 6px rgba(var(--accent-rgb),0.5)) drop-shadow(0 0 12px rgba(var(--accent-rgb),0.3))'
+            :'drop-shadow(0 0 4px rgba(var(--accent-rgb),0.4)) drop-shadow(0 0 8px rgba(var(--accent-rgb),0.25))')
+            :undefined;
           return(
-            <circle key={i} cx={p.x} cy={p.y} r={last?5:3} fill="#e8341c"
-              style={{filter:last?'drop-shadow(0 0 6px #e8341c) drop-shadow(0 0 12px rgba(232,52,28,0.4))':'drop-shadow(0 0 4px #e8341c) drop-shadow(0 0 8px rgba(232,52,28,0.3))'}}/>
+            <circle key={i} cx={p.x} cy={p.y} r={last?5:3}
+              style={{fill:"var(--accent)",filter:glow}}/>
           );
         })}
-        <circle cx={projX} cy={projY} r={5} fill="rgba(232,52,28,0.6)"
-          style={{filter:'drop-shadow(0 0 5px rgba(232,52,28,0.6)) drop-shadow(0 0 10px rgba(232,52,28,0.3))'}}/>
+        <circle cx={projX} cy={projY} r={5}
+          style={{fill:"rgba(var(--accent-rgb),0.6)",filter:!isLight?'drop-shadow(0 0 5px rgba(var(--accent-rgb),0.5)) drop-shadow(0 0 10px rgba(var(--accent-rgb),0.25))':undefined}}/>
       </svg>
-      <div style={{...mno,fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:4}}>Based on {data.length} weigh-ins · 7-day projection{goalW?` · Goal: ${goalW}${profile?.wUnit||'lbs'}`:''}</div>
+      <div style={{...mno,fontSize:9,color:"var(--text-faint)",marginTop:4}}>Based on {data.length} weigh-ins · 7-day projection{goalW?` · Goal: ${goalW}${profile?.wUnit||'lbs'}`:''}</div>
     </>
   );
 }
@@ -5126,8 +5131,8 @@ function BodyweightSection({logs,user:u,setLogs,wUnit}) {
 
   return(
     <div style={{margin:"0 16px 14px"}}>
-      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>WEIGHT</div>
-      <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>WEIGHT</div>
+      <div style={{background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,padding:"16px 18px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
           <div>
             {latest
@@ -5144,23 +5149,23 @@ function BodyweightSection({logs,user:u,setLogs,wUnit}) {
         {chartData&&(
           <svg viewBox={`0 0 ${chartData.W} ${chartData.H}`} style={{width:"100%",height:80,overflow:"visible",display:"block"}}>
             {chartData.milestones.map(m=>(
-              <line key={m} x1={0} y1={chartData.py(m)} x2={chartData.W} y2={chartData.py(m)} stroke="rgba(245,245,240,0.06)" strokeWidth={1}/>
+              <line key={m} x1={0} y1={chartData.py(m)} x2={chartData.W} y2={chartData.py(m)} stroke="var(--card-border)" strokeWidth={1}/>
             ))}
             <path d={chartData.line} fill="none" stroke="rgba(var(--accent-rgb),0.4)" strokeWidth={1.5}/>
             <path d={chartData.maLine} fill="none" stroke="var(--red)" strokeWidth={2} strokeLinecap="round"/>
             {logs.map((x,idx)=>{
               const isMilestone=chartData.milestones.some(m=>Math.abs(x.weight-m)<0.5);
               if(!isMilestone&&idx!==logs.length-1)return null;
-              return<circle key={idx} cx={chartData.px(idx)} cy={chartData.py(x.weight)} r={isMilestone?4:3} fill={isMilestone?T.fat:"var(--red)"} stroke="var(--navy-card)" strokeWidth={2}/>;
+              return<circle key={idx} cx={chartData.px(idx)} cy={chartData.py(x.weight)} r={isMilestone?4:3} fill={isMilestone?"var(--accent)":"var(--red)"} stroke="var(--card-bg)" strokeWidth={2}/>;
             })}
           </svg>
         )}
         {chartData&&<div style={{display:"flex",gap:16,marginTop:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"var(--text-faint)"}}>
             <div style={{width:16,height:2,background:"var(--red)",borderRadius:1}}/>7-day avg
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:T.fat}}/>5 {wUnit} milestone
+          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"var(--text-faint)"}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)"}}/>5 {wUnit} milestone
           </div>
         </div>}
       </div>
@@ -5803,10 +5808,10 @@ const ProgressSection = React.memo(function ProgressSection({
 
     function PH({eyebrow,headline,body}){
       return(
-        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{eyebrow}</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#fff",marginBottom:6}}>{headline}</div>
-          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{body}</div>
+        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>{eyebrow.replace(/^\/\/ /,'')}</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink)",marginBottom:6}}>{headline}</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{body}</div>
         </div>
       );
     }
@@ -6687,12 +6692,13 @@ const ProgressSection = React.memo(function ProgressSection({
 
             <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||'lbs'}/>
             {weightProjection?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Weight Projection</div>
+              <div style={{background:"var(--bg)",padding:"16px 20px",borderBottom:"1px solid var(--card-border)",marginBottom:14}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Weight Projection</div>
                 <WeightChart
                   weightProjection={weightProjection}
                   goalW={profile?.goalWeight?parseFloat(profile.goalWeight):null}
                   profile={profile}
+                  isLight={(wPrefs?.theme?.bg||'black')==='white'}
                 />
               </div>
             ):(
@@ -6703,9 +6709,9 @@ const ProgressSection = React.memo(function ProgressSection({
               const trendLabel={losing:"Losing",gaining:"Gaining",stable:"Stable",notsure:"Trend unclear"}[profile.wTrend]||null;
               if(!histLabel&&!trendLabel)return null;
               return(
-                <div style={{margin:"0 16px 14px",padding:"10px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap",animation:"cardIn 0.4s ease-out both"}}>
-                  {histLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{histLabel}</span>}
-                  {trendLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Trend: {trendLabel}</span>}
+                <div style={{margin:"0 16px 14px",padding:"10px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap",animation:"cardIn 0.4s ease-out both"}}>
+                  {histLabel&&<span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--text-dim)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{histLabel}</span>}
+                  {trendLabel&&<span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--text-dim)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Trend: {trendLabel}</span>}
                 </div>
               );
             })()}
