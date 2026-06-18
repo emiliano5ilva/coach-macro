@@ -993,7 +993,7 @@ function MiniRing({pct, value, label, color, index=0}) {
   );
 }
 
-function RecoveryGauge({score}) {
+function RecoveryGauge({score,isLight}) {
   const [display,setDisplay]=useState(0);
   useEffect(()=>{
     let raf;
@@ -1032,7 +1032,7 @@ function RecoveryGauge({score}) {
                 <stop offset="100%" stopColor={tint} stopOpacity="0.85"/>
               </linearGradient>
             </defs>
-            <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="rgba(245,245,240,0.12)" strokeWidth={sw}/>
+            <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="var(--card-border)" strokeWidth={sw}/>
             <circle cx={sz/2} cy={sz/2} r={r} fill="none"
               stroke="url(#recGaugeGrad)" strokeWidth={sw} strokeLinecap="round"
               strokeDasharray={circ} strokeDashoffset={(circ-fillLen).toFixed(1)}
@@ -1040,12 +1040,12 @@ function RecoveryGauge({score}) {
               style={{animation:'recGaugeSweep 0.8s cubic-bezier(.2,.7,.3,1) both'}}/>
             {pct>0.02&&(
               <circle cx={tipX} cy={tipY} r={6} fill={rc}
-                style={{filter:`drop-shadow(0 0 6px ${rc}) drop-shadow(0 0 12px ${rc}66)`}}/>
+                style={{filter:!isLight?`drop-shadow(0 0 6px ${rc}) drop-shadow(0 0 12px ${rc}66)`:undefined}}/>
             )}
           </svg>
           <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-            <div style={{...cnd,fontSize:22,color:"#f5f5f0",lineHeight:1,textShadow:"0 0 30px rgba(245,245,240,0.12), 0 2px 24px rgba(0,0,0,0.8)"}}>{display}</div>
-            <div style={{...mno,fontSize:8,color:rc,letterSpacing:"0.1em",marginTop:2}}>{label}</div>
+            <div style={{...cnd,fontSize:22,color:"var(--cm-ink)",lineHeight:1,textShadow:!isLight?"0 0 30px rgba(245,245,240,0.12), 0 2px 24px rgba(0,0,0,0.8)":undefined}}>{display}</div>
+            <div style={{...mno,fontSize:9,color:rc,letterSpacing:"0.1em",marginTop:2}}>{label}</div>
           </div>
         </div>
       </div>
@@ -1955,26 +1955,26 @@ function AppleHealthModal({onConnect, onDismiss}) {
   const isNative = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.() === true;
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
-      <div style={{width:"100%",maxWidth:480,background:"var(--navy-card)",borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",border:"1px solid var(--white-border)"}}>
-        <div style={{width:40,height:4,borderRadius:2,background:"rgba(245,245,240,0.15)",margin:"0 auto 24px"}}/>
+      <div style={{width:"100%",maxWidth:480,background:"var(--card-bg)",borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",border:"1px solid var(--card-border)"}}>
+        <div style={{width:40,height:4,borderRadius:2,background:"var(--card-border)",margin:"0 auto 24px"}}/>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
           <div style={{width:48,height:48,borderRadius:14,background:"rgba(255,69,58,0.12)",border:"1px solid rgba(255,69,58,0.25)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <svg width={24} height={24} viewBox="0 0 24 24" fill="none"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="#FF453A"/></svg>
           </div>
           <div>
-            <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:22,textTransform:"uppercase",lineHeight:1}}>Connect Apple Health</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--white-dim)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:3}}>Personalize with real data</div>
+            <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontStyle:"italic",fontSize:22,textTransform:"uppercase",lineHeight:1,color:"var(--cm-ink)"}}>Connect Apple Health</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--text-faint)",letterSpacing:"0.14em",textTransform:"uppercase",marginTop:3}}>Personalize with real data</div>
           </div>
         </div>
         <div style={{marginBottom:20,display:"flex",flexDirection:"column",gap:8}}>
           {[["Sleep","Adjust training intensity based on last night's sleep"],["HRV & Heart Rate","Real-time recovery scoring using biometric data"],["Steps","Earn calorie adjustments for daily activity"],["Workouts","Auto-save sessions and sync active calories"]].map(([title,desc])=>(
-            <div key={title} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 12px",background:"rgba(245,245,240,0.03)",borderRadius:10,border:"1px solid rgba(245,245,240,0.06)"}}>
+            <div key={title} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 12px",background:"var(--bg)",borderRadius:10,border:"1px solid var(--card-border)"}}>
               <div style={{color:"var(--green)",marginTop:2,flexShrink:0}}>
                 <svg width={14} height={14} viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
               <div>
-                <div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em"}}>{title}</div>
-                <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--white-dim)",marginTop:1,lineHeight:1.45}}>{desc}</div>
+                <div style={{fontFamily:"var(--condensed)",fontWeight:700,fontSize:13,textTransform:"uppercase",letterSpacing:"0.04em",color:"var(--cm-ink)"}}>{title}</div>
+                <div style={{fontFamily:"var(--body)",fontSize:11,color:"var(--text-faint)",marginTop:1,lineHeight:1.45}}>{desc}</div>
               </div>
             </div>
           ))}
@@ -1982,16 +1982,16 @@ function AppleHealthModal({onConnect, onDismiss}) {
         {permDenied&&(
           <div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.3)",borderRadius:12,padding:"12px 14px",marginBottom:12,fontSize:12,color:"#f87171",lineHeight:1.55}}>
             Apple Health access denied. To enable:<br/>
-            <strong style={{color:"#fff"}}>Settings → Privacy & Security → Health → Coach Macro</strong>
+            <strong style={{color:"var(--cm-ink)"}}>Settings → Privacy & Security → Health → Coach Macro</strong>
           </div>
         )}
         {isNative
-          ? <button onClick={handleConnect} disabled={connecting} style={{width:"100%",padding:"15px",background:connecting?"rgba(245,245,240,0.08)":"#FF453A",color:connecting?"var(--white-dim)":"white",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,letterSpacing:"0.1em",textTransform:"uppercase",cursor:connecting?"default":"pointer",marginBottom:12}}>
+          ? <button onClick={handleConnect} disabled={connecting} style={{width:"100%",padding:"15px",background:connecting?"var(--card-border)":"#FF453A",color:connecting?"var(--text-faint)":"#fff",border:"none",borderRadius:14,fontFamily:"var(--condensed)",fontWeight:800,fontSize:15,letterSpacing:"0.1em",textTransform:"uppercase",cursor:connecting?"default":"pointer",marginBottom:12}}>
               {connecting?"Requesting Access...":permDenied?"Try Again →":"Connect Apple Health →"}
             </button>
-          : <div style={{textAlign:"center",padding:"12px",background:"rgba(245,245,240,0.04)",borderRadius:12,marginBottom:12,fontFamily:"var(--body)",fontSize:12,color:"var(--white-dim)",lineHeight:1.5}}>Apple Health is available when you install the app on your iPhone.</div>
+          : <div style={{textAlign:"center",padding:"12px",background:"var(--bg)",borderRadius:12,marginBottom:12,fontFamily:"var(--body)",fontSize:12,color:"var(--text-faint)",lineHeight:1.5}}>Apple Health is available when you install the app on your iPhone.</div>
         }
-        <button onClick={onDismiss} style={{width:"100%",padding:"12px",background:"transparent",color:"var(--white-dim)",border:"none",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Not Now</button>
+        <button onClick={onDismiss} style={{width:"100%",padding:"12px",background:"transparent",color:"var(--text-faint)",border:"none",fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>Not Now</button>
       </div>
     </div>
   );
@@ -6734,51 +6734,51 @@ const ProgressSection = React.memo(function ProgressSection({
               const ppTotal=(b?.push_volume_lbs||0)+(b?.pull_volume_lbs||0);
               const qpTotal=(b?.quad_volume_lbs||0)+(b?.posterior_volume_lbs||0);
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Muscle Balance</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Muscle Balance</div>
                   {noData?(
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)"}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--text-dim)"}}>
                       COMPLETE MORE SESSIONS TO SEE BALANCE.
                     </div>
                   ):(
                     <>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>LAST 30 DAYS</div>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>LAST 30 DAYS</div>
                       {/* Push/Pull */}
                       <div style={{marginBottom:14}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>PUSH vs PULL</div>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(ppStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{ppStatus}</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)"}}>PUSH vs PULL</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#000",background:statusColor(ppStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{ppStatus}</div>
                         </div>
                         {[["PUSH",b?.push_volume_lbs||0,"var(--accent)"],["PULL",b?.pull_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
                           <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
-                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"var(--card-border)",borderRadius:2,overflow:"hidden"}}>
                               <div style={{height:"100%",width:`${ppTotal>0?Math.round(vol/ppTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
                             </div>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
                           </div>
                         ))}
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",marginTop:4}}>
                           {b?.push_pull_ratio||1}:1 push to pull — {ppStatus}
                         </div>
                       </div>
-                      <div style={{height:1,background:"rgba(245,245,240,0.05)",marginBottom:14}}/>
+                      <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
                       {/* Quad/Posterior */}
                       <div style={{marginBottom:14}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>QUAD vs POSTERIOR</div>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(qpStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{qpStatus}</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)"}}>QUAD vs POSTERIOR</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#000",background:statusColor(qpStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{qpStatus}</div>
                         </div>
                         {[["QUAD",b?.quad_volume_lbs||0,"var(--accent)"],["POST",b?.posterior_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
                           <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
-                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"var(--card-border)",borderRadius:2,overflow:"hidden"}}>
                               <div style={{height:"100%",width:`${qpTotal>0?Math.round(vol/qpTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
                             </div>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
                           </div>
                         ))}
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--text-faint)",marginTop:4}}>
                           {b?.quad_posterior_ratio||1}:1 quad to posterior — {qpStatus}
                         </div>
                       </div>
@@ -6797,31 +6797,31 @@ const ProgressSection = React.memo(function ProgressSection({
               const diff=restDaysThisWeek-optimal;
               const c=Math.abs(diff)<=1?"#22c55e":Math.abs(diff)===2?"#FEA020":"var(--accent)";
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Rest Days This Week</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:c,lineHeight:1,marginBottom:6}}>{restDaysThisWeek} <span style={{fontSize:14,color:"rgba(245,245,240,0.45)"}}>rest days</span></div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for {split||"your program"}: {optimal} rest day{optimal!==1?"s":""}</div>
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Rest Days This Week</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:c,lineHeight:1,marginBottom:6}}>{restDaysThisWeek} <span style={{fontSize:14,color:"var(--text-faint)"}}>rest days</span></div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"var(--text-faint)"}}>Optimal for {split||"your program"}: {optimal} rest day{optimal!==1?"s":""}</div>
                 </div>
               );
             })()}
 
-            <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,textAlign:"center"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Recovery Score</div>
-              <RecoveryGauge score={recoveryScore}/>
+            <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,textAlign:"center",animation:"cardIn 0.4s ease-out both"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>Recovery Score</div>
+              <RecoveryGauge score={recoveryScore} isLight={(wPrefs?.theme?.bg||'black')==='white'}/>
             </div>
 
             {healthSnap?.sleep!=null?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Avg Sleep This Week</div>
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Avg Sleep This Week</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"var(--accent)",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for recovery: 7–9 hours</div>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"var(--text-faint)"}}>Optimal for recovery: 7–9 hours</div>
               </div>
             ):(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Sleep Data</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:6}}>CONNECT APPLE HEALTH.</div>
-                <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",marginBottom:12}}>Connect Apple Health to track sleep and recovery data automatically.</div>
-                <button onClick={()=>setShowHealthModal(true)} style={{background:"none",border:"1px solid rgba(245,245,240,0.2)",borderRadius:8,padding:"8px 14px",color:"rgba(245,245,240,0.65)",fontSize:12,cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",letterSpacing:"0.08em"}}>Connect Apple Health →</button>
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Sleep Data</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:6}}>CONNECT APPLE HEALTH.</div>
+                <div style={{fontSize:13,color:"var(--text-dim)",marginBottom:12}}>Connect Apple Health to track sleep and recovery data automatically.</div>
+                <button onClick={()=>setShowHealthModal(true)} style={{background:"none",border:"1px solid var(--card-border)",borderRadius:8,padding:"8px 14px",color:"var(--text-dim)",fontSize:12,cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",letterSpacing:"0.08em"}}>Connect Apple Health →</button>
               </div>
             )}
           </>}
