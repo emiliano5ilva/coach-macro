@@ -90,7 +90,7 @@ import { generateProactiveAdjustments } from "./services/predictiveService.js";
 import { buildContextSnapshot, recordMemory, recallApplicableLearnings, updateMemoryOutcomes, detectRecurringPatterns, getAllMemories, getUserPatterns, deleteMemory, exportMemories } from "./services/coachMemoryService.js";
 import { detectActivePatterns, generateIntervention, recordPatternDetection, dismissPattern, trackInterventionOutcome, FAILURE_PATTERNS } from "./services/failurePatternService.js";
 import { detectPrimaryPersonality, adaptMessageSync, trackUserEvent, setManualOverride, getPersonalityProfile, getProfileSync, PERSONALITY_TYPES } from "./services/personalityService.js";
-import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META } from "./services/connectionsService.js";
+import { getConnectionsData, identifyActiveInfluencers, predictDownstreamEffects, getConnectionInsights, getNodeStatus, formatMetricValue, METRIC_META, isTrustedCorr } from "./services/connectionsService.js";
 import { runOutreachCheck, calibrateFrequency } from "./services/outreachService.js";
 import { getPeerComparison, assignCohort, getOptIn, setOptIn as setPeerOptIn, getPercentileLabel, interpolatePercentile } from "./services/peerComparisonService.js";
 import { getUserMode, getUserTier, getVisibleSections, getProgressTabs } from "./utils/dashboardResolver.js";
@@ -2957,6 +2957,63 @@ function InsightsTicker({ insights }) {
   );
 }
 
+// ── FormingState — shown when no correlation clears the trust bar ─────────────
+
+function FormingState({ correlations, healthSnap, workoutLogsRaw, bodyweightLogs, consumed }) {
+  const _MO="'DM Mono','SF Mono',monospace";
+  const _AF="'Archivo',sans-serif";
+  const _BC="'Barlow Condensed',sans-serif";
+  const metricHasData = id => (correlations||[]).some(c=>(c.a===id||c.b===id)&&c.data_points>0);
+  const hasVolume = metricHasData('volume')   || (workoutLogsRaw||[]).length>0;
+  const hasNutr   = metricHasData('calories') || consumed?.calories>0;
+  const hasWeight = metricHasData('weight')   || (bodyweightLogs||[]).length>0;
+  const hasSleep  = metricHasData('sleep')    || healthSnap?.sleepHours!=null;
+  const hasSteps  = metricHasData('steps')    || healthSnap?.steps!=null;
+  const signals=[
+    {icon:'🏋️',label:'Training volume',status:hasVolume?'gathering':'pending',note:hasVolume?'logging'      :'log sessions'       },
+    {icon:'🍽️',label:'Nutrition',       status:hasNutr  ?'gathering':'pending',note:hasNutr  ?'logging'      :'log meals'          },
+    {icon:'⚖️',label:'Body weight',     status:hasWeight?'gathering':'pending',note:hasWeight?'logging'      :'log weight'         },
+    {icon:'💤',label:'Sleep & HRV',     status:hasSleep ?'gathering':'locked',  note:hasSleep ?'connected'    :'connect Apple Health'},
+    {icon:'👟',label:'Steps',           status:hasSteps ?'gathering':'locked',  note:hasSteps ?'connected'    :'connect Apple Health'},
+  ];
+  const sCol=s=>s==='gathering'?'#22c55e':s==='locked'?'var(--text-faint)':'#fbbf24';
+  return(
+    <div style={{flex:1,overflowY:'auto',padding:'32px 20px 40px'}}>
+      <div style={{marginBottom:28}}>
+        <div style={{fontFamily:_MO,fontSize:9,color:'var(--accent)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:10}}>// INSIGHTS FORMING</div>
+        <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:'var(--cm-ink)',lineHeight:1.1,marginBottom:12}}>Your personal patterns<br/>are forming.</div>
+        <div style={{fontFamily:_BC,fontStyle:'italic',fontSize:15,color:'var(--text-dim)',lineHeight:1.55}}>
+          As you log training, nutrition, and recovery, Coach Macro surfaces the relationships driving your results — how sleep affects performance, how training volume shapes weight, how nutrition timing influences energy.
+        </div>
+      </div>
+      <div style={{fontFamily:_MO,fontSize:9,color:'var(--text-faint)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:14}}>DATA SIGNALS</div>
+      <div style={{background:'var(--card-bg)',border:'1px solid var(--card-border)',borderRadius:14,overflow:'hidden',marginBottom:20}}>
+        {signals.map(({icon,label,status,note},i)=>(
+          <div key={label} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderTop:i>0?'1px solid var(--card-border)':'none'}}>
+            <span style={{fontSize:16,width:22,textAlign:'center',opacity:status==='locked'?0.4:1}}>{icon}</span>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:status==='locked'?'var(--text-dim)':'var(--cm-ink)',lineHeight:1}}>{label}</div>
+            </div>
+            <div style={{fontFamily:_MO,fontSize:8,color:sCol(status),letterSpacing:'0.06em'}}>{note}</div>
+            <div style={{width:6,height:6,borderRadius:3,background:sCol(status),flexShrink:0}}/>
+          </div>
+        ))}
+      </div>
+      {(!hasSleep||!hasSteps)&&(
+        <div style={{padding:'14px 16px',background:'rgba(var(--accent-rgb),0.06)',border:'1px solid rgba(var(--accent-rgb),0.15)',borderRadius:12,marginBottom:20}}>
+          <div style={{fontFamily:_MO,fontSize:9,color:'var(--accent)',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:5}}>// Unlock more signals</div>
+          <div style={{fontFamily:_BC,fontStyle:'italic',fontSize:13,color:'var(--text-dim)',lineHeight:1.5}}>
+            Connecting Apple Health adds sleep, HRV, resting heart rate, and daily steps — unlocking the most powerful correlations: how recovery quality predicts training performance.
+          </div>
+        </div>
+      )}
+      <div style={{fontFamily:_MO,fontSize:8,color:'var(--text-faint)',lineHeight:1.6,letterSpacing:'0.04em'}}>
+        Correlations surface only when Coach Macro has ≥14 paired data-points with ≥50 confidence. Population estimates are never shown as personal insights.
+      </div>
+    </div>
+  );
+}
+
 // ── ConnectionsView (full-screen modal) ───────────────────────────────────────
 
 function ConnectionsView({ userId, onClose, healthSnap, workoutLogsRaw, bodyweightLogs, consumed, memberDays }) {
@@ -2971,110 +3028,146 @@ function ConnectionsView({ userId, onClose, healthSnap, workoutLogsRaw, bodyweig
       .catch(() => setLoading(false));
   }, [userId]);
 
+  // Apply trust gate: only is_user_data=true, confidence≥50, data_points≥14
+  const trusted = React.useMemo(() => (correlations||[]).filter(isTrustedCorr), [correlations]);
+  const hasTrusted = trusted.length > 0;
+
   const metricIds = Object.keys(METRIC_META);
 
-  // Current values for node labels
   const currentValues = {
     sleep:    healthSnap?.sleepHours ?? null,
     hrv:      healthSnap?.hrv ?? null,
     rhr:      healthSnap?.rhr ?? null,
     steps:    healthSnap?.steps != null ? healthSnap.steps / 1000 : null,
     calories: consumed?.calories ?? null,
-    volume:   workoutLogsRaw ? (() => { const t = new Date(); t.setHours(0,0,0,0); const ds = t.toISOString().split('T')[0]; const total = (workoutLogsRaw).filter(l => l.date === ds).reduce((s, l) => s + (l.volume_lbs || 0), 0); return total > 0 ? total / 1000 : null; })() : null,
+    volume:   workoutLogsRaw ? (() => { const t=new Date(); t.setHours(0,0,0,0); const ds=t.toISOString().split('T')[0]; const tot=workoutLogsRaw.filter(l=>l.date===ds).reduce((s,l)=>s+(l.volume_lbs||0),0); return tot>0?tot/1000:null; })() : null,
     weight:   bodyweightLogs?.[0]?.weight ?? null,
     tdee:     null,
   };
 
   const nodes = React.useMemo(() => {
+    if (!hasTrusted) return [];
     const raw = connInitNodes(metricIds, CONN_W, CONN_H);
-    const edges = connBuildEdges(correlations, metricIds);
+    const edges = connBuildEdges(trusted, metricIds);
     return connRunForce(raw, edges, CONN_W, CONN_H);
-  }, [correlations]);
+  }, [trusted, hasTrusted]);
 
-  const edges = React.useMemo(() => connBuildEdges(correlations, metricIds), [correlations]);
+  const edges = React.useMemo(() => hasTrusted ? connBuildEdges(trusted, metricIds) : [], [trusted, hasTrusted]);
 
   const connectedIds = selectedNode
-    ? new Set([selectedNode, ...edges.filter(e => e.a === selectedNode || e.b === selectedNode).flatMap(e => [e.a, e.b])])
+    ? new Set([selectedNode, ...edges.filter(e=>e.a===selectedNode||e.b===selectedNode).flatMap(e=>[e.a,e.b])])
     : null;
 
-  const insights = React.useMemo(() => getConnectionInsights(correlations, memberDays), [correlations, memberDays]);
+  // getConnectionInsights is already gated — trusted is passed so only real data produces text
+  const insights = React.useMemo(() => getConnectionInsights(trusted, memberDays), [trusted, memberDays]);
 
   const flowAnim = `@keyframes edgeFlow{to{stroke-dashoffset:-18}}`;
+  const _MO = "'DM Mono','SF Mono',monospace";
+  const _BC = "'Barlow Condensed',sans-serif";
+  const _AF = "'Archivo',sans-serif";
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#070710", display: "flex", flexDirection: "column" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:1000, background:"var(--bg)", display:"flex", flexDirection:"column" }}>
       <style>{flowAnim}</style>
+
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", padding: "max(env(safe-area-inset-top),16px) 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: "6px 10px 6px 0", color: "rgba(245,245,240,0.6)", fontFamily: "'DM Mono',monospace", fontSize: 12 }}>← back</button>
-        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase" }}>// Your Connections</div>
+      <div style={{ display:"flex", alignItems:"center", padding:"max(env(safe-area-inset-top),16px) 16px 12px", borderBottom:"1px solid var(--card-border)" }}>
+        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", padding:"6px 10px 6px 0", color:"var(--text-dim)", fontFamily:_MO, fontSize:12 }}>← back</button>
+        <div style={{ fontFamily:_MO, fontSize:11, color:"var(--accent)", letterSpacing:"0.14em", textTransform:"uppercase" }}>// Correlations</div>
       </div>
 
       {loading ? (
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 11, color: "rgba(245,245,240,0.3)" }}>calculating correlations…</div>
+        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:_MO, fontSize:11, color:"var(--text-faint)" }}>analysing your data…</div>
+      ) : !hasTrusted ? (
+        <FormingState
+          correlations={correlations}
+          healthSnap={healthSnap}
+          workoutLogsRaw={workoutLogsRaw}
+          bodyweightLogs={bodyweightLogs}
+          consumed={consumed}
+        />
       ) : (
         <>
-          {/* SVG Graph */}
-          <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
-            <svg viewBox={`0 0 ${CONN_W} ${CONN_H}`} style={{ width: "100%", height: "100%" }}>
-              {/* Edges */}
+          {/* SVG Graph — trusted edges only */}
+          <div style={{ flex:1, overflow:"hidden", position:"relative" }}>
+            <svg viewBox={`0 0 ${CONN_W} ${CONN_H}`} style={{ width:"100%", height:"100%" }}>
               {edges.map(e => {
-                const na = nodes.find(n => n.id === e.a);
-                const nb = nodes.find(n => n.id === e.b);
-                if (!na || !nb) return null;
-                const isSelected = selectedNode && (e.a === selectedNode || e.b === selectedNode);
-                const dimmed = connectedIds && !isSelected;
-                const color = e.direction === 'positive' ? '#4ade80' : '#f97316';
-                const opacity = dimmed ? 0.04 : (isSelected ? 0.9 : 0.22 + e.strength * 0.4);
-                const strokeW = isSelected ? 1.8 + e.strength * 1.2 : 0.8 + e.strength * 0.8;
-                return (
-                  <path
-                    key={`${e.a}-${e.b}`}
-                    d={connBezierEdge(na.x, na.y, nb.x, nb.y, CONN_NODE_R)}
-                    stroke={color}
-                    strokeWidth={strokeW}
-                    fill="none"
-                    opacity={opacity}
-                    strokeDasharray={isSelected ? "6 12" : undefined}
-                    style={isSelected ? { animation: "edgeFlow 0.8s linear infinite" } : undefined}
-                  />
+                const na=nodes.find(n=>n.id===e.a), nb=nodes.find(n=>n.id===e.b);
+                if(!na||!nb) return null;
+                const isSel=selectedNode&&(e.a===selectedNode||e.b===selectedNode);
+                const dimmed=connectedIds&&!isSel;
+                const color=e.direction==='positive'?'#4ade80':'#f97316';
+                const opacity=dimmed?0.04:(isSel?0.9:0.22+e.strength*0.4);
+                const strokeW=isSel?1.8+e.strength*1.2:0.8+e.strength*0.8;
+                return(
+                  <path key={`${e.a}-${e.b}`}
+                    d={connBezierEdge(na.x,na.y,nb.x,nb.y,CONN_NODE_R)}
+                    stroke={color} strokeWidth={strokeW} fill="none" opacity={opacity}
+                    strokeDasharray={isSel?"6 12":undefined}
+                    style={isSel?{animation:"edgeFlow 0.8s linear infinite"}:undefined}/>
                 );
               })}
-              {/* Nodes */}
               {nodes.map(nd => {
-                const meta = METRIC_META[nd.id];
-                const val = currentValues[nd.id];
-                const status = getNodeStatus(nd.id, val);
-                const statusColor = status === 'green' ? '#4ade80' : status === 'yellow' ? '#fbbf24' : status === 'red' ? '#f87171' : '#555';
-                const isSelected = selectedNode === nd.id;
-                const dimmed = connectedIds && !connectedIds.has(nd.id);
-                const opacity = dimmed ? 0.15 : 1;
-                return (
-                  <g key={nd.id} transform={`translate(${nd.x},${nd.y})`} opacity={opacity} onClick={() => setSelectedNode(isSelected ? null : nd.id)} style={{ cursor: "pointer" }}>
-                    {/* Status ring */}
-                    <circle r={CONN_NODE_R + 3} fill="none" stroke={statusColor} strokeWidth={isSelected ? 2 : 1} opacity={isSelected ? 1 : 0.5} />
-                    {/* Node bg */}
-                    <circle r={CONN_NODE_R} fill={isSelected ? "rgba(255,255,255,0.1)" : "#111118"} stroke={meta?.color || "#555"} strokeWidth={isSelected ? 1.5 : 0.8} />
-                    {/* Emoji */}
-                    <text textAnchor="middle" dominantBaseline="middle" fontSize={14} y={val != null ? -5 : 0}>{meta?.icon}</text>
-                    {/* Label */}
-                    <text textAnchor="middle" y={val != null ? 8 : 12} fontFamily="'DM Mono',monospace" fontSize={6.5} fill="rgba(245,245,240,0.6)" letterSpacing="0.05em">{meta?.label}</text>
-                    {/* Value */}
-                    {val != null && (
-                      <text textAnchor="middle" y={18} fontFamily="'DM Mono',monospace" fontSize={7} fill={statusColor} fontWeight="600">{formatMetricValue(nd.id, val)}</text>
-                    )}
+                const meta=METRIC_META[nd.id], val=currentValues[nd.id];
+                const status=getNodeStatus(nd.id,val);
+                const sColor=status==='green'?'#4ade80':status==='yellow'?'#fbbf24':status==='red'?'#f87171':'var(--card-border)';
+                const isSel=selectedNode===nd.id;
+                const dimmed=connectedIds&&!connectedIds.has(nd.id);
+                return(
+                  <g key={nd.id} transform={`translate(${nd.x},${nd.y})`} opacity={dimmed?0.15:1}
+                    onClick={()=>setSelectedNode(isSel?null:nd.id)} style={{cursor:"pointer"}}>
+                    <circle r={CONN_NODE_R+3} fill="none" stroke={sColor} strokeWidth={isSel?2:1} opacity={isSel?1:0.5}/>
+                    <circle r={CONN_NODE_R} fill={isSel?"rgba(var(--accent-rgb),0.08)":"var(--card-bg)"} stroke={meta?.color||"var(--card-border)"} strokeWidth={isSel?1.5:0.8}/>
+                    <text textAnchor="middle" dominantBaseline="middle" fontSize={14} y={val!=null?-5:0}>{meta?.icon}</text>
+                    <text textAnchor="middle" y={val!=null?8:12} fontFamily={_MO} fontSize={6.5} fill="var(--text-faint)" letterSpacing="0.05em">{meta?.label}</text>
+                    {val!=null&&<text textAnchor="middle" y={18} fontFamily={_MO} fontSize={7} fill={sColor} fontWeight="600">{formatMetricValue(nd.id,val)}</text>}
                   </g>
                 );
               })}
             </svg>
           </div>
 
-          {/* Bottom panel */}
-          <div style={{ background: "#0d0d14", borderTop: "1px solid rgba(255,255,255,0.08)", minHeight: 120, maxHeight: 200, overflowY: "auto" }}>
-            {selectedNode
-              ? <NodeInfoPanel nodeId={selectedNode} correlations={correlations} />
-              : <InsightsTicker insights={insights} />
-            }
+          {/* Bottom panel: rich correlation cards or node detail */}
+          <div style={{ background:"var(--card-bg)", borderTop:"1px solid var(--card-border)", maxHeight:260, overflowY:"auto" }}>
+            {selectedNode ? (
+              <NodeInfoPanel nodeId={selectedNode} correlations={trusted}/>
+            ) : (
+              <div style={{padding:"12px 14px"}}>
+                <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:10}}>
+                  {trusted.length} confirmed pattern{trusted.length!==1?'s':''}
+                </div>
+                {trusted.sort((a,b)=>b.correlation_strength-a.correlation_strength).map(c=>{
+                  const aMeta=METRIC_META[c.a], bMeta=METRIC_META[c.b];
+                  const color=c.direction==='positive'?'#4ade80':'#f97316';
+                  const arrow=c.direction==='positive'?'↑':'↓';
+                  const lagText=c.lag>0?`~${c.lag} day${c.lag!==1?'s':''} later`:'same day';
+                  const sWord=c.correlation_strength>0.65?'strongly':c.correlation_strength>0.45?'clearly':'noticeably';
+                  const dWord=c.direction==='positive'?'improves':'reduces';
+                  return(
+                    <div key={`${c.a}-${c.b}`} style={{marginBottom:10,padding:"10px 12px",background:"rgba(var(--accent-rgb),0.03)",border:"1px solid var(--card-border)",borderRadius:10}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                        <span style={{fontSize:13}}>{aMeta?.icon}</span>
+                        <span style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",fontWeight:700}}>{aMeta?.label}</span>
+                        <span style={{color,fontSize:11}}>{arrow}</span>
+                        <span style={{fontFamily:_MO,fontSize:9,color:"var(--cm-ink)",fontWeight:700}}>{bMeta?.label}</span>
+                        <span style={{fontSize:13}}>{bMeta?.icon}</span>
+                        <span style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginLeft:"auto"}}>{lagText}</span>
+                      </div>
+                      <div style={{fontFamily:_BC,fontStyle:"italic",fontSize:12,color:"var(--text-dim)",lineHeight:1.4,marginBottom:7}}>
+                        Better {aMeta?.label?.toLowerCase()} {sWord} {dWord} {bMeta?.label?.toLowerCase()}{c.lag>0?`, ${lagText}`:''}. Based on {c.data_points} days of your data.
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{flex:1,height:2,background:"var(--card-border)",borderRadius:1}}>
+                          <div style={{height:2,width:`${c.confidence}%`,background:color,borderRadius:1}}/>
+                        </div>
+                        <span style={{fontFamily:_MO,fontSize:8,color}}>{c.confidence}% conf</span>
+                        <span style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)"}}>{c.data_points} pts</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -3082,53 +3175,6 @@ function ConnectionsView({ userId, onClose, healthSnap, workoutLogsRaw, bodyweig
   );
 }
 
-// ── ConnectionsInsightCard (Progress > Overview) ──────────────────────────────
-
-function ConnectionsInsightCard({ correlations, memberDays, onOpen }) {
-  if (!correlations?.length) return null;
-  const daysLeft = Math.max(0, 30 - memberDays);
-  const top3 = [...correlations].sort((a, b) => b.correlation_strength - a.correlation_strength).slice(0, 3);
-  return (
-    <div style={{ margin: "0 16px 14px", padding: "14px 16px", background: "rgba(245,245,240,0.03)", backgroundImage: "radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)", boxShadow: "0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)", borderRadius: 16, animation: "cardIn 0.4s ease-out both" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--accent)", letterSpacing: "0.16em", textTransform: "uppercase" }}>// How You Work</div>
-        <button onClick={onOpen} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(var(--accent-rgb),0.6)", letterSpacing: "0.08em" }}>View all →</button>
-      </div>
-      {daysLeft > 0 ? (
-        <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontStyle: "italic", fontSize: 12, color: "rgba(245,245,240,0.4)", lineHeight: 1.4 }}>
-          {daysLeft} more days of data needed to reveal your personal patterns.
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {top3.map(c => {
-            const aMeta = METRIC_META[c.a], bMeta = METRIC_META[c.b];
-            const color = c.direction === 'positive' ? '#4ade80' : '#f97316';
-            const arrow = c.direction === 'positive' ? '↑' : '↓';
-            const pct = Math.round(c.correlation_strength * 100);
-            return (
-              <div key={`${c.a}-${c.b}`} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13 }}>{aMeta?.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.7)" }}>{aMeta?.label}</span>
-                    <span style={{ color, fontSize: 10 }}>{arrow}</span>
-                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.7)" }}>{bMeta?.label}</span>
-                    {c.lag > 0 && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "rgba(245,245,240,0.35)" }}>+{c.lag}d</span>}
-                    {c.is_user_data && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "rgba(var(--accent-rgb),0.5)", marginLeft: 2 }}>YOUR DATA</span>}
-                  </div>
-                  <div style={{ height: 2, background: "rgba(255,255,255,0.07)", borderRadius: 1 }}>
-                    <div style={{ height: 2, width: `${pct}%`, background: color, borderRadius: 1 }} />
-                  </div>
-                </div>
-                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "rgba(245,245,240,0.4)", minWidth: 28, textAlign: "right" }}>{pct}%</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Peer Comparison: PercentileCard ───────────────────────────────────────────
 
@@ -6212,7 +6258,7 @@ const ProgressSection = React.memo(function ProgressSection({
             {/* ── INSIGHTS ENTRY CARD — Pass 2E (collapses Connections + Peer) ── */}
             {(()=>{
               const _MO="'DM Mono',monospace";
-              const _connCount=(connectionData||[]).length;
+              const _connCount=(connectionData||[]).filter(isTrustedCorr).length;
               const _hasPeer=!!(peerData);
               const _rows=[
                 {label:'Correlations',sub:_connCount>0?`${_connCount} signal${_connCount!==1?'s':''}`:null,onTap:()=>setShowConnectionsView(true)},

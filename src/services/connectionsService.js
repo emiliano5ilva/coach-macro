@@ -167,6 +167,13 @@ export async function getConnectionsData(userId) {
   return calculateUserCorrelations(userId);
 }
 
+// ─── Trust filter ─────────────────────────────────────────────────────────────
+// A correlation is trustworthy only when it was computed from real user data
+// (is_user_data=true), has ≥14 paired data-points, and ≥50 confidence score.
+// Anything below this bar is a KNOWN_PAIRS.typical estimate and must never
+// render as a personal insight.
+export const isTrustedCorr = c => c.is_user_data === true && c.confidence >= 50 && c.data_points >= 14;
+
 // ─── Analysis helpers (sync) ──────────────────────────────────────────────────
 
 export function identifyActiveInfluencers(metric, correlations) {
@@ -215,8 +222,10 @@ export function predictDownstreamEffects(metric, changeDir, correlations) {
 
 export function getConnectionInsights(correlations, memberDays) {
   if (memberDays < 21) return [];
+  // Only generate insight text from correlations that clear the trust bar.
+  // Fabricated KNOWN_PAIRS estimates (confidence=0, data_points=0) never produce text.
   const strong = correlations
-    .filter(c => c.correlation_strength > 0.3)
+    .filter(c => isTrustedCorr(c) && c.correlation_strength > 0.3)
     .sort((a, b) => b.correlation_strength - a.correlation_strength);
 
   return strong.slice(0, 6).map(c => {
