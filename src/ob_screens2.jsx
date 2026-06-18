@@ -97,7 +97,6 @@ import { getUserMode, getUserTier, getVisibleSections, getProgressTabs } from ".
 import { COACH_SCORE_LABELS, RING_CONFIG } from "./config/dashboardConfig.js";
 import { getPostWorkoutWindow } from "./services/nutritionTimingService.js";
 import { calculateTrainingDNA } from "./services/trainingDnaService.js";
-import { dbg, getDbgMsgs } from "./utils/debugLog.js";
 
 export function ChoiceScreens({sc,d,upd,auto,next,tdee,FactCard,MiniBar}) {
   // Facts per screen
@@ -1101,64 +1100,110 @@ function WorkoutFreqBars({weeklyFreq}) {
   );
 }
 
-function PerformanceCalendarGrid({calDays}) {
+function PerformanceCalendarGrid({calDays,isLight=false}) {
+  // Ring geometry — MiniRing's math at calendar scale (sz=34, r=13, sw=2.5)
+  const sz=34, r=13, sw=2.5;
+  const circ=parseFloat((2*Math.PI*r).toFixed(1));
+
+  // Pre-compute ring data per day (TDZ-safe: circ declared above)
+  const _rings=calDays.map(({ds,hasWorkout,hasMacros,isFuture,isToday2},i)=>{
+    const pct=isFuture?0:hasWorkout&&hasMacros?1.0:hasWorkout?0.65:hasMacros?0.30:0;
+    const fillLen=parseFloat((pct*circ).toFixed(1));
+    const offset=parseFloat((circ-fillLen).toFixed(1));
+    const row=Math.floor(i/7),col=i%7;
+    const dayNum=parseInt(ds.slice(8),10);
+    return{ds,isToday2,isFuture,pct,fillLen,offset,stagger:(row+col)*9,i,dayNum};
+  });
+
+  // Batched keyframes — one <style> for all arcs + week bars
+  const _kf=_rings.filter(d=>d.pct>0)
+    .map(d=>`@keyframes calR${d.i}{from{stroke-dashoffset:${circ}}to{stroke-dashoffset:${d.offset}}}`)
+    .join('')+'@keyframes smBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}';
+
+  // Tiny legend ring renderer — same math, same visual family
+  const LegRing=({pct})=>{
+    const ls=14,lr=5,lsw=1.8;
+    const lc=parseFloat((2*Math.PI*lr).toFixed(1));
+    const lf=parseFloat((Math.min(1,pct)*lc).toFixed(1));
+    return(
+      <svg width={ls} height={ls} viewBox={`0 0 ${ls} ${ls}`} style={{display:"block",flexShrink:0}}>
+        <circle cx={ls/2} cy={ls/2} r={lr} fill="none" stroke="var(--card-border)" strokeWidth={lsw}/>
+        {pct>0&&<circle cx={ls/2} cy={ls/2} r={lr} fill="none" stroke="var(--accent)" strokeWidth={lsw} strokeLinecap="round"
+          strokeDasharray={lc} strokeDashoffset={(lc-lf).toFixed(1)}
+          transform={`rotate(-90 ${ls/2} ${ls/2})`}/>}
+      </svg>
+    );
+  };
+
   return(
     <>
-      <style>{`@keyframes calCellIn{from{opacity:0;transform:scale(0.7)}to{opacity:1;transform:scale(1)}}@keyframes smBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}`}</style>
-      {/* Legend */}
-      <div style={{display:"flex",gap:12,marginBottom:10}}>
-        {[
-          {c:"rgba(232,52,28,0.45)",l:"Trained"},
-          {c:"rgba(245,245,240,0.20)",l:"Macros"},
-          {c:"rgba(232,52,28,0.85)",l:"Both"},
-        ].map(({c,l})=>(
-          <div key={l} style={{display:"flex",alignItems:"center",gap:4}}>
-            <div style={{width:8,height:8,borderRadius:2,background:c}}/>
-            <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{l}</span>
+      <style>{_kf}</style>
+
+      {/* Legend — ring-fill states, using same ring renderer */}
+      <div style={{display:"flex",gap:12,marginBottom:12,padding:"0 2px",flexWrap:"wrap"}}>
+        {[{pct:1.0,l:"Trained + logged"},{pct:0.65,l:"Trained"},{pct:0.30,l:"Logged"},{pct:0,l:"Empty"}].map(({pct,l})=>(
+          <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
+            <LegRing pct={pct}/>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{l}</span>
           </div>
         ))}
       </div>
-      {/* DOW header */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:4}}>
+
+      {/* Day-of-week header */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:3,padding:"0 2px"}}>
         {["S","M","T","W","T","F","S"].map((d,i)=>(
-          <div key={i} style={{textAlign:"center",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.25)"}}>{d}</div>
+          <div key={i} style={{textAlign:"center",fontFamily:"'DM Mono',monospace",fontSize:7,color:"var(--text-faint)"}}>{d}</div>
         ))}
       </div>
-      {/* 35-day grid with diagonal stagger */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:10}}>
-        {calDays.map(({ds,hasWorkout,hasMacros,isFuture,isToday2},i)=>{
-          const row=Math.floor(i/7),col=i%7;
-          const both=hasWorkout&&hasMacros;
-          const bg=isFuture?"transparent"
-            :both?"rgba(232,52,28,0.85)"
-            :hasWorkout?"rgba(232,52,28,0.45)"
-            :hasMacros?"rgba(245,245,240,0.20)"
-            :"rgba(245,245,240,0.04)";
+
+      {/* 35-day numbered ring grid */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:12,padding:"0 2px"}}>
+        {_rings.map(d=>{
+          // Number color: today = accent, else always faint (reads as date, not score)
+          const numColor=d.isToday2?"var(--accent)":"var(--text-faint)";
+          // Today glow on arc — dark only
+          const arcFilter=d.isToday2&&!isLight?"drop-shadow(0 0 4px rgba(var(--accent-rgb),0.7))":undefined;
           return(
-            <div key={ds} style={{
-              aspectRatio:"1",
-              borderRadius:6,
-              background:bg,
-              border:isToday2?"1px solid rgba(232,52,28,1)":"1px solid transparent",
-              boxShadow:isToday2?"0 0 6px rgba(232,52,28,0.4)":"none",
-              animation:`calCellIn 0.3s ease-out ${(row+col)*12}ms both`,
-            }}/>
+            <div key={d.ds} style={{aspectRatio:"1",position:"relative"}}>
+              {/* Date number — top-right corner, small, reads as label not score */}
+              <div style={{
+                position:"absolute",top:1,right:2,
+                fontFamily:"'DM Mono',monospace",
+                fontSize:7,lineHeight:1,
+                color:numColor,
+                fontWeight:d.isToday2?700:400,
+                zIndex:1,
+              }}>{d.dayNum}</div>
+              <svg width="100%" height="100%" viewBox={`0 0 ${sz} ${sz}`} style={{display:"block",overflow:"visible"}}>
+                {/* Track — open ring for all days */}
+                <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke="var(--card-border)" strokeWidth={sw}/>
+                {/* Fill arc — accent, MiniRing dasharray/dashoffset/rotation */}
+                {d.pct>0&&(
+                  <circle cx={sz/2} cy={sz/2} r={r} fill="none"
+                    stroke="var(--accent)" strokeWidth={sw} strokeLinecap="round"
+                    strokeDasharray={circ} strokeDashoffset={d.offset}
+                    transform={`rotate(-90 ${sz/2} ${sz/2})`}
+                    style={{animation:`calR${d.i} 0.6s cubic-bezier(.2,.7,.3,1) ${d.stagger}ms both`,filter:arcFilter}}/>
+                )}
+              </svg>
+            </div>
           );
         })}
       </div>
-      {/* 5-week summary bars */}
-      <div style={{display:"flex",gap:3}}>
+
+      {/* 5-week training summary bars */}
+      <div style={{display:"flex",gap:4,padding:"0 2px"}}>
         {Array.from({length:5},(_,w)=>{
           const wDays=calDays.slice(w*7,w*7+7);
           const trainPct=(wDays.filter(d=>d.hasWorkout).length/7)*100;
           const macroPct=(wDays.filter(d=>d.hasMacros).length/7)*100;
           return(
-            <div key={w} style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
-              <div style={{height:3,borderRadius:1,background:"rgba(232,52,28,0.12)",overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${trainPct}%`,borderRadius:1,background:"linear-gradient(90deg,#e8341c,rgba(232,52,28,0.5))",transformOrigin:"left center",animation:`smBar 0.5s cubic-bezier(.2,.7,.3,1) ${w*60+200}ms both`}}/>
+            <div key={w} style={{flex:1,display:"flex",flexDirection:"column",gap:3}}>
+              <div style={{height:3,borderRadius:2,background:"rgba(var(--accent-rgb),0.1)",overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${trainPct}%`,borderRadius:2,background:"rgba(var(--accent-rgb),0.7)",transformOrigin:"left center",animation:`smBar 0.5s cubic-bezier(.2,.7,.3,1) ${w*60+200}ms both`}}/>
               </div>
-              <div style={{height:3,borderRadius:1,background:"rgba(245,245,240,0.06)",overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${macroPct}%`,borderRadius:1,background:"rgba(245,245,240,0.40)",transformOrigin:"left center",animation:`smBar 0.5s cubic-bezier(.2,.7,.3,1) ${w*60+260}ms both`}}/>
+              <div style={{height:2,borderRadius:2,background:"var(--card-border)",overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${macroPct}%`,borderRadius:2,background:"rgba(var(--accent-rgb),0.35)",transformOrigin:"left center",animation:`smBar 0.5s cubic-bezier(.2,.7,.3,1) ${w*60+260}ms both`}}/>
               </div>
             </div>
           );
@@ -2033,27 +2078,6 @@ function PRFeed({dbPRs,wUnit}){
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── TEMPORARY DEBUG OVERLAY — remove after diagnosis ────────────────────────
-// pointerEvents:'none' on everything — passes all touches through, never blocks controls
-function DebugOverlay() {
-  const [msgs,setMsgs]=useState([]);
-  useEffect(()=>{
-    const h=()=>setMsgs(getDbgMsgs().slice(-5));
-    window.addEventListener('cm-dbg-update',h);
-    return()=>window.removeEventListener('cm-dbg-update',h);
-  },[]);
-  if(!msgs.length)return null;
-  return(
-    <div style={{position:'fixed',top:'max(44px,env(safe-area-inset-top,44px))',left:0,right:0,zIndex:99999,pointerEvents:'none',padding:'2px 6px'}}>
-      <div style={{background:'rgba(0,0,0,0.82)',borderRadius:6,padding:'4px 6px'}}>
-        {msgs.map((m,i)=>(
-          <div key={i} style={{fontFamily:'monospace',fontSize:8,color:i===msgs.length-1?'#86efac':'rgba(255,255,255,0.55)',lineHeight:1.45,wordBreak:'break-all'}}>{m}</div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -5154,6 +5178,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [isRefreshing,setIsRefreshing]=useState(false);
   const pullStartY=useRef(null);
   const appScreenRef=useRef(null);
+  const lastScrollAt=useRef(0);
 
   async function refreshData(){
     if(!user||isRefreshing)return;
@@ -5190,13 +5215,27 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     setIsRefreshing(false);
   }
 
+  function onPullScroll(){ lastScrollAt.current=Date.now(); }
   function onPullStart(e){
-    if(appScreenRef.current?.scrollTop===0) pullStartY.current=e.touches[0].clientY;
+    const el=appScreenRef.current;
+    if(!el||el.scrollTop>5)return;
+    // Reject if a scroll event fired in the last 300 ms — container is still decelerating
+    if(Date.now()-lastScrollAt.current<300)return;
+    pullStartY.current=e.touches[0].clientY;
+  }
+  function onPullMove(e){
+    // Disarm if the container has scrolled up during this gesture
+    if(pullStartY.current!==null&&(appScreenRef.current?.scrollTop??0)>5)
+      pullStartY.current=null;
   }
   function onPullEnd(e){
     if(pullStartY.current===null)return;
-    const delta=e.changedTouches[0].clientY-pullStartY.current;
+    const startY=pullStartY.current;
     pullStartY.current=null;
+    // Re-verify container is still at the top at touchend
+    const el=appScreenRef.current;
+    if(!el||el.scrollTop>5)return;
+    const delta=e.changedTouches[0].clientY-startY;
     if(delta>80)refreshData();
   }
 
@@ -5505,11 +5544,10 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         getRecoveryData(user.id).catch(()=>null),
         getOptimizationData(user.id).catch(()=>null),
       ]).then(([rec,opt])=>{
-        dbg(`[DBG-REFRESH] rec keys=[${rec?Object.keys(rec).slice(0,3).join(','):'null'}] ts=[${rec?Object.values(rec).slice(0,2).map(v=>v?.lastTrainedAt?.slice(11,19)||'?').join(','):''}]`);
         if(rec)setPrefetchedRecovery(rec);
         if(opt)setPrefetchedOptim(opt);
         return{rec,opt};
-      }).catch((e)=>{dbg(`[DBG-REFRESH] error ${e?.message||e}`);return null;});
+      }).catch(()=>null);
       recoveryPromiseRef.current=p;
     }
     function refreshDNA(){
@@ -5528,9 +5566,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       dnaPromiseRef.current=p;
     }
     const onWorkout=(e)=>{
-      dbg(`[DBG-PARENT] heard detail.userId=${e.detail?.userId} user.id=${user.id} match=${e.detail?.userId===user.id}`);
       if(e.detail?.userId!==user.id)return;
-      dbg('[DBG-PARENT] calling refreshRecovery+DNA');
       refreshRecovery(); refreshDNA();
     };
     const onSoreness=(e)=>{if(e.detail?.userId!==user.id)return; refreshRecovery();};
@@ -6368,9 +6404,7 @@ Rules:
               else if(data)setDbPRs(p=>{const m={};p.forEach(r=>m[r.exercise_name]=r);(data||[]).forEach(r=>m[r.exercise_name]=r);return Object.values(m);});
             });
           }
-          dbg(`[DBG-FINISH] setsLogged=[${setsLogged.map(e=>e.name).join(',')}]`);
-          try{await recordWorkoutRecovery(user.id, setsLogged);}catch(recErr){dbg(`[DBG-FINISH] RWR threw ${recErr?.message||recErr}`);}
-          dbg(`[DBG-FINISH] dispatching userId=${user.id}`);
+          try{await recordWorkoutRecovery(user.id, setsLogged);}catch(recErr){console.warn('[finishWorkout] recordWorkoutRecovery failed',recErr);}
           const pwWindow=getPostWorkoutWindow(activeWorkout);
           if(pwWindow)setPostWorkoutPrompt(pwWindow);
           window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
@@ -10393,35 +10427,110 @@ Rules:
             {/* Expenditure / TDEE Card */}
             <ExpenditureCard/>
 
-            {/* ── PERFORMANCE CALENDAR BAND — Pass 2C ── */}
-            <div style={{background:"var(--bg)"}}>
-              <div style={{padding:"18px 20px 16px"}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:12}}>PERFORMANCE CALENDAR</div>
-                <PerformanceCalendarGrid calDays={calDays}/>
-              </div>
-              <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-            </div>
-
-            {/* ── TRAINING DNA BAND — Pass 2E ── */}
-            <div data-tour="training-dna" style={{background:"var(--bg)"}}>
-              {workoutLogsRaw.length<10?(
-                <div style={{padding:"18px 20px 16px"}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:12}}>ATHLETE DNA</div>
-                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:20,color:"var(--cm-ink)",lineHeight:1,marginBottom:8}}>
-                    Athlete DNA forming.
+            {/* ── PERFORMANCE CALENDAR BAND — Pass 2 refined ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _trainedDays=calDays.filter(d=>!d.isFuture&&d.hasWorkout).length;
+              const _loggedDays=calDays.filter(d=>!d.isFuture&&d.hasMacros).length;
+              return(
+                <div style={{background:"var(--bg)"}}>
+                  <div style={{padding:"18px 20px 14px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>PERFORMANCE</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:!_isLight?"drop-shadow(0 0 20px rgba(var(--accent-rgb),0.18))":undefined}}>
+                        {_trainedDays}
+                      </div>
+                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>days trained</span>
+                    </div>
+                    <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.06em"}}>5-week window · {_loggedDays} meals logged</div>
                   </div>
-                  <div style={{fontSize:13,color:"var(--text-dim)",lineHeight:1.5,marginBottom:14}}>
-                    Your training profile unlocks after 10 sessions. {10-workoutLogsRaw.length} to go.
+                  {/* Full-bleed calendar — minimal side padding so cells are tappable-sized */}
+                  <div style={{padding:"0 6px 14px"}}>
+                    <PerformanceCalendarGrid calDays={calDays} isLight={_isLight}/>
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Sessions</span>
-                    <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"var(--text-dim)"}}>{workoutLogsRaw.length}/10</span>
-                  </div>
-                  <div style={{height:4,background:"var(--card-border)",borderRadius:2,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/10*100)}%`,background:"var(--accent)",borderRadius:2,transition:"width 0.6s ease"}}/>
-                  </div>
+                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
                 </div>
-              ):(
+              );
+            })()}
+
+            {/* ── TRAINING DNA BAND — ghost radar locked state ── */}
+            <div data-tour="training-dna" style={{background:"var(--bg)"}}>
+              {workoutLogsRaw.length<10?(()=>{
+                const _AF="'Archivo',sans-serif";
+                const _MO="'DM Mono',monospace";
+                const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+                const _sess=workoutLogsRaw.length;
+                // Radar geometry — SAME 6-axis hexagon as unlocked drawDNARadar
+                // R=90 makes the radar a visual centrepiece in the 280×300 viewBox
+                const _R=90,_cx=140,_cy=148;
+                const _ang=i=>(i/6)*2*Math.PI-Math.PI/2;
+                const _ptX=(i,rr)=>(_cx+rr*Math.cos(_ang(i))).toFixed(1);
+                const _ptY=(i,rr)=>(_cy+rr*Math.sin(_ang(i))).toFixed(1);
+                const _hexPts=rr=>Array.from({length:6},(_,i)=>`${_ptX(i,rr)},${_ptY(i,rr)}`).join(' ');
+                // Data polygon grows from 0 → R across 10 sessions
+                const _fillR=_sess===0?0:Math.max(9,(_sess/10)*_R);
+                // Glow — dark-only, applied to data polygon + vertex dots
+                const _glow=!_isLight?"drop-shadow(0 0 8px rgba(var(--accent-rgb),0.55))":undefined;
+                const _AXLABELS=['STR','END','POW','CON','NUT','REC'];
+                return(
+                  <div style={{padding:"18px 20px 20px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>ATHLETE DNA</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:6}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
+                        {_sess}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>/10</span>
+                      </div>
+                      <span style={{fontFamily:_MO,fontSize:13,fontWeight:700,color:"var(--text-dim)"}}>sessions</span>
+                    </div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5,marginBottom:12}}>
+                      {_sess===0
+                        ?"Log your first session — your fingerprint starts forming."
+                        :`${10-_sess} more session${10-_sess===1?'':'s'} until your Training DNA unlocks.`}
+                    </div>
+                    {/* Forming radar — REAL visible strength, same geometry as unlocked */}
+                    <svg viewBox="0 0 280 300" width="100%" style={{display:"block"}}>
+                      {/* Inner grid rings — 0.22 opacity, clearly visible skeleton */}
+                      {[0.25,0.5,0.75].map(f=>(
+                        <polygon key={f} points={_hexPts(_R*f)} fill="none"
+                          stroke="rgba(var(--accent-rgb),0.22)" strokeWidth={0.8}/>
+                      ))}
+                      {/* Outer boundary — 0.4 opacity, strong skeleton frame */}
+                      <polygon points={_hexPts(_R)} fill="none"
+                        stroke="rgba(var(--cm-ink-rgb,10,10,10),0.4)" strokeWidth={1.5}/>
+                      {/* Axis spokes */}
+                      {Array.from({length:6},(_,i)=>(
+                        <line key={i} x1={_cx} y1={_cy} x2={_ptX(i,_R)} y2={_ptY(i,_R)}
+                          stroke="rgba(var(--cm-ink-rgb,10,10,10),0.15)" strokeWidth={0.8}/>
+                      ))}
+                      {/* Growing data polygon — strong stroke, dashed = in-progress */}
+                      {_fillR>0&&(
+                        <polygon points={_hexPts(_fillR)}
+                          fill="rgba(var(--accent-rgb),0.15)"
+                          stroke="rgba(var(--accent-rgb),0.75)"
+                          strokeWidth={2}
+                          strokeDasharray="5 3"
+                          style={{filter:_glow}}/>
+                      )}
+                      {/* Vertex dots — r=5, clearly visible, glow dark-only */}
+                      {_sess>0&&Array.from({length:6},(_,i)=>(
+                        <circle key={i} cx={_ptX(i,_fillR)} cy={_ptY(i,_fillR)} r={5}
+                          fill="rgba(var(--accent-rgb),0.85)"
+                          style={{filter:_glow}}/>
+                      ))}
+                      {/* Axis labels — same as unlocked radar, at R+22 */}
+                      {_AXLABELS.map((label,i)=>(
+                        <text key={i} x={_ptX(i,_R+22)} y={_ptY(i,_R+22)}
+                          textAnchor={Math.abs(Math.cos(_ang(i)))<0.2?'middle':Math.cos(_ang(i))>0?'start':'end'}
+                          dominantBaseline="middle"
+                          fontFamily="'DM Mono',monospace" fontSize={8}
+                          fill="rgba(var(--cm-ink-rgb,10,10,10),0.35)"
+                          letterSpacing="0.06em">{label}</text>
+                      ))}
+                    </svg>
+                  </div>
+                );
+              })():(
                 <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule} prefetchedDnaData={prefetchedDNA} dnaPromise={dnaPromiseRef.current}/>
               )}
               <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
@@ -10457,24 +10566,52 @@ Rules:
               )}
             </div>
 
-            {/* ── MILESTONES — Pass 2E ── */}
+            {/* ── MILESTONES — badge scroll ── */}
             {(()=>{
               const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
               const earnedSet=new Set(earned);
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _earnedCount=MILESTONES.filter(m=>earnedSet.has(m.id)).length;
               return(
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>MILESTONES</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                    {MILESTONES.map((m,mi)=>{
-                      const isEarned=earnedSet.has(m.id);
-                      return(
-                        <div key={m.id} style={{background:isEarned?"rgba(var(--accent-rgb),0.05)":"transparent",border:`1px solid ${isEarned?"rgba(var(--accent-rgb),0.2)":"var(--card-border)"}`,borderRadius:10,padding:"12px 8px",textAlign:"center",opacity:isEarned?1:0.3,animation:`cardIn 0.3s ease-out ${mi*20}ms both`}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,fontWeight:900,color:"var(--accent)",marginBottom:4,letterSpacing:'-0.02em'}}>{isEarned?m.icon:"X"}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"var(--accent)",letterSpacing:"0.1em",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingTop:2}}>{m.title.replace(/\.$/, '')}</div>
-                        </div>
-                      );
-                    })}
+                <div style={{background:"var(--bg)"}}>
+                  <div style={{padding:"18px 20px 14px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>MILESTONES</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>{_earnedCount}</div>
+                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>/{MILESTONES.length} earned</span>
+                    </div>
                   </div>
+                  <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:18}}>
+                    <div style={{display:"flex",gap:10,padding:"4px 20px",width:"max-content"}}>
+                      {MILESTONES.map((m,mi)=>{
+                        const isEarned=earnedSet.has(m.id);
+                        return(
+                          <div key={m.id} style={{
+                            flexShrink:0,width:78,padding:"16px 6px 12px",
+                            background:isEarned?"rgba(var(--accent-rgb),0.1)":"transparent",
+                            border:`${isEarned?2:1}px solid ${isEarned?"rgba(var(--accent-rgb),0.5)":"var(--card-border)"}`,
+                            borderRadius:18,textAlign:"center",
+                            position:"relative",
+                            opacity:isEarned?1:0.32,
+                            filter:isEarned&&!_isLight?"drop-shadow(0 0 12px rgba(var(--accent-rgb),0.35))":undefined,
+                            animation:`cardIn 0.35s ease-out ${mi*18}ms both`,
+                          }}>
+                            {/* Earned checkmark badge */}
+                            {isEarned&&(
+                              <div style={{position:"absolute",top:-5,right:-5,width:16,height:16,borderRadius:"50%",background:"var(--accent)",border:"2px solid var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <svg width={8} height={8} viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke="#fff" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </div>
+                            )}
+                            <div style={{fontSize:30,lineHeight:1,marginBottom:8,filter:isEarned&&!_isLight?"drop-shadow(0 0 6px rgba(var(--accent-rgb),0.4))":undefined}}>{m.icon}</div>
+                            <div style={{fontFamily:_MO,fontSize:6.5,color:isEarned?"var(--accent)":"var(--text-faint)",letterSpacing:"0.08em",textTransform:"uppercase",lineHeight:1.35,wordBreak:"break-word"}}>{m.title.replace(/\.$/, '')}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
                 </div>
               );
             })()}
@@ -10863,7 +11000,6 @@ Rules:
 
   return (
     <div className={GOCLUB_REDESIGN ? `goclub tab-${section}` : undefined} style={{position:"relative",minHeight:"100vh",maxWidth:480,margin:"0 auto",background:"var(--navy)"}}>
-      <DebugOverlay/>
       {GOCLUB_REDESIGN && (<>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -10941,7 +11077,7 @@ Rules:
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#FEA020" strokeWidth="1.5"/><path d="M7 4v3M7 9.5v.5" stroke="#FEA020" strokeWidth="1.5" strokeLinecap="round"/></svg>
         <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#FEA020",letterSpacing:"0.1em"}}>NO INTERNET CONNECTION — DATA MAY BE OUTDATED</span>
       </div>}
-      <div ref={appScreenRef} className="app-screen grid-bg" onTouchStart={onPullStart} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
+      <div ref={appScreenRef} className="app-screen grid-bg" onScroll={onPullScroll} onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
         {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).catch(()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}

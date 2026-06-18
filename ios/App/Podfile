@@ -40,6 +40,7 @@ post_install do |installer|
   # Patch SubscriptionPeriod ambiguity in PurchasesHybridCommon (RevenueCat conflict)
   file = 'Pods/PurchasesHybridCommon/ios/PurchasesHybridCommon/PurchasesHybridCommon/StoreProduct+HybridAdditions.swift'
   if File.exist?(file)
+    File.chmod(0644, file)
     content = File.read(file)
     content = content.gsub('subscriptionPeriod: SubscriptionPeriod)', 'subscriptionPeriod: RevenueCat.SubscriptionPeriod)')
     content = content.gsub('subscriptionPeriodUnit: SubscriptionPeriod.Unit)', 'subscriptionPeriodUnit: RevenueCat.SubscriptionPeriod.Unit)')

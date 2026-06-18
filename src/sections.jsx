@@ -5446,89 +5446,31 @@ export function PerformanceCalendar({profile,wPrefs,user,isMobile,schedule}){
 }
 
 // ─── DNA RADAR CANVAS ────────────────────────────────────────────────────────
-function drawDNARadar(canvas,scores){
-  if(!canvas)return;
-  const dpr=window.devicePixelRatio||1;
-  const W=canvas.offsetWidth||280;
-  const H=290;
-  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
-  canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#000000';ctx.fillRect(0,0,W,H);
-  const cx=W/2,cy=H/2;
-  const R=Math.min(W*0.30,H*0.30,100);
-  const AXES=['strength','endurance','power','consistency','nutrition','recovery'];
-  const LABELS=['STRENGTH','ENDURANCE','POWER','CONSISTENCY','NUTRITION','RECOVERY'];
-  const N=6;
-  const angle=i=>(i/N)*2*Math.PI-Math.PI/2;
-  const pt=(i,r)=>({x:cx+r*Math.cos(angle(i)),y:cy+r*Math.sin(angle(i))});
-  function hc(v){if(v>=80)return[232,52,28];if(v>=65)return[255,100,20];if(v>=50)return[254,160,32];if(v>=35)return[20,196,179];return[29,155,240];}
-  // Inner rings
-  [0.25,0.5,0.75].forEach(f=>{
-    ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R*f);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
-    ctx.closePath();ctx.strokeStyle='rgba(var(--accent-rgb),0.09)';ctx.lineWidth=0.5;ctx.stroke();
-  });
-  // Outer boundary
-  ctx.beginPath();for(let i=0;i<N;i++){const p=pt(i,R);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
-  ctx.closePath();ctx.strokeStyle='rgba(245,245,240,0.55)';ctx.lineWidth=1.2;ctx.stroke();
-  // Axis spokes
-  for(let i=0;i<N;i++){const p=pt(i,R);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(245,245,240,0.07)';ctx.lineWidth=0.5;ctx.stroke();}
-  // Heatmap sectors
-  for(let i=0;i<N;i++){
-    const a0=angle(i),a1=angle((i+1)%N);
-    const[r,g,b]=hc(scores[AXES[i]]||0);
-    const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
-    grad.addColorStop(0,`rgba(${r},${g},${b},0)`);grad.addColorStop(0.45,`rgba(${r},${g},${b},0.07)`);grad.addColorStop(1,`rgba(${r},${g},${b},0.20)`);
-    ctx.beginPath();ctx.moveTo(cx,cy);
-    for(let s=0;s<=8;s++){const a=a0+(a1-a0)*s/8;ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));}
-    ctx.closePath();ctx.fillStyle=grad;ctx.fill();
-  }
-  // Data polygon
-  const vals=AXES.map(k=>scores[k]||0);
-  ctx.beginPath();vals.forEach((v,i)=>{const p=pt(i,R*v/100);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});
-  ctx.closePath();ctx.strokeStyle='rgba(var(--accent-rgb),0.45)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='rgba(var(--accent-rgb),0.06)';ctx.fill();
-  // Data points
-  const maxV=Math.max(...vals);
-  vals.forEach((v,i)=>{
-    const p=pt(i,R*v/100);const[r,g,b]=hc(v);const isDom=v===maxV;
-    if(isDom){ctx.beginPath();ctx.arc(p.x,p.y,13,0,Math.PI*2);ctx.fillStyle='rgba(254,160,32,0.22)';ctx.fill();}
-    ctx.beginPath();ctx.arc(p.x,p.y,isDom?6:4,0,Math.PI*2);ctx.fillStyle=isDom?'#FEA020':`rgb(${r},${g},${b})`;ctx.fill();
-  });
-  // Labels
-  ctx.textBaseline='middle';
-  vals.forEach((v,i)=>{
-    const a=angle(i);
-    const lx=cx+(R+26)*Math.cos(a);const ly=cy+(R+26)*Math.sin(a);
-    const dx=Math.cos(a);
-    ctx.textAlign=Math.abs(dx)<0.25?'center':dx>0?'left':'right';
-    const[r,g,b]=hc(v);
-    ctx.font=`500 9px 'DM Mono',monospace`;ctx.fillStyle='rgba(245,245,240,0.38)';ctx.fillText(LABELS[i],lx,ly);
-    ctx.font=`bold 11px 'DM Mono',monospace`;ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillText(v,lx,ly+14);
-  });
-}
+// drawDNARadar removed — TrainingDNA now uses 4 honest horizontal bars
 
 // ─── TRAINING DNA ────────────────────────────────────────────────────────────
 export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDnaData,dnaPromise}){
   const [dnaData,setDnaData]=useState(prefetchedDnaData||null);
-  const radarRef=useRef(null);
+  // Gate entrance animation to the initial mount only; re-renders must not restart bars
+  const hasAnimated=useRef(false);
+  useEffect(()=>{ hasAnimated.current=true; },[]);
 
   const startD=profile?.startDate?new Date(profile.startDate):new Date();
   const daysSince=Math.max(0,Math.floor((new Date()-startD)/86400000));
 
   useEffect(()=>{
-    // Case A: prop already resolved — sync and done (covers instant re-entry)
     if(prefetchedDnaData){ setDnaData(prefetchedDnaData); return; }
     if(!user)return;
-    // Case B: prefetch in flight — hook into shared promise to avoid double-fetch
-    // Case C: no prefetch (e.g. first-render race) — own fetch as fallback
     const p=dnaPromise||calculateTrainingDNA(user.id).then(result=>{
-      const scores={strength:result.strength,endurance:result.endurance,power:result.power,
-                    consistency:result.consistency,nutrition:result.nutrition,recovery:result.recovery};
-      const metrics=[{label:"Strength",score:result.strength},{label:"Endurance",score:result.endurance},
-                     {label:"Power",score:result.power},{label:"Consistency",score:result.consistency},
-                     {label:"Nutrition",score:result.nutrition},{label:"Recovery",score:result.recovery}];
+      // Only 4 real dimensions — Endurance and Power have no source data
+      const scores={strength:result.strength,consistency:result.consistency,
+                    nutrition:result.nutrition,recovery:result.recovery};
+      const metrics=[
+        {label:"Strength",score:result.strength},
+        {label:"Consistency",score:result.consistency},
+        {label:"Nutrition",score:result.nutrition},
+        {label:"Recovery",score:result.recovery},
+      ];
       return{scores,metrics,total:result._meta?.sessions||0,
              highest:metrics.reduce((a,b)=>a.score>b.score?a:b),
              lowest:metrics.reduce((a,b)=>a.score<b.score?a:b)};
@@ -5536,73 +5478,94 @@ export function TrainingDNA({profile,wPrefs,user,isMobile,schedule,prefetchedDna
     p.then(shaped=>{ if(shaped)setDnaData(shaped); }).catch(()=>{});
   },[user?.id,prefetchedDnaData]);
 
-  useEffect(()=>{
-    if(!radarRef.current)return;
-    drawDNARadar(radarRef.current,dnaData?.scores||{strength:0,endurance:0,power:0,consistency:0,nutrition:0,recovery:0});
-  },[dnaData]);
-
   if(daysSince<30){
     return(
-      <div style={{background:T.s1,border:`1px solid ${T.bd}`,borderRadius:20,padding:isMobile?"18px 16px":"24px 28px"}}>
-        <div style={{fontFamily:"var(--condensed)",fontSize:20,fontWeight:900,marginBottom:8}}>YOUR TRAINING DNA</div>
-        <div style={{textAlign:"center",padding:"24px",color:T.mu}}>
-          <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}>
-              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,240,0.5)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/>
-                <path d="M8.5 2h7"/>
-                <path d="M7 16h10"/>
-              </svg>
-            </div>
-          <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>Unlocks after 30 days</div>
-          <div style={{fontSize:12,color:T.dim}}>Keep training — {30-daysSince} days to go</div>
-        </div>
+      <div style={{background:"var(--bg)",padding:"18px 20px 20px"}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TRAINING DNA</div>
+        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,color:"var(--cm-ink)",marginBottom:8}}>Unlocks after 30 days.</div>
+        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>Keep training — {30-daysSince} days to go.</div>
       </div>
     );
   }
 
-  function heatColor(v){return v>=80?"var(--accent)":v>=65?"#ff6414":v>=50?"#FEA020":v>=35?"#14c4b3":"#1D9BF0";}
+  // Style helpers — declared before use (TDZ-safe)
+  const _AF="'Archivo',sans-serif";
+  const _MO="var(--mono)";
+  const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+
+  // 4 real dimensions in fixed semantic order
+  const DIMS=[
+    {key:'strength',label:'STRENGTH'},
+    {key:'consistency',label:'CONSISTENCY'},
+    {key:'nutrition',label:'NUTRITION'},
+    {key:'recovery',label:'RECOVERY'},
+  ];
+
   const RECS={
     "Strength":"Add one more strength day per week to compound your gains.",
-    "Endurance":"Schedule a weekly long run to build your aerobic engine.",
-    "Power":"Prioritize heavy compound lifts — squat, deadlift, press.",
     "Consistency":"Focus on showing up — frequency matters more than intensity.",
     "Nutrition":"Log food every day this week — even estimates count.",
     "Recovery":"Build a deload week every 4th week to reset adaptation.",
   };
 
   const DEFAULT_METRICS=[
-    {label:"Strength",score:0},{label:"Endurance",score:0},{label:"Power",score:0},
-    {label:"Consistency",score:0},{label:"Nutrition",score:0},{label:"Recovery",score:0},
+    {label:"Strength",score:0},{label:"Consistency",score:0},
+    {label:"Nutrition",score:0},{label:"Recovery",score:0},
   ];
-  const scores=dnaData?.scores||{strength:0,endurance:0,power:0,consistency:0,nutrition:0,recovery:0};
-  const metrics=dnaData?.metrics||DEFAULT_METRICS;
+
+  const scores=dnaData?.scores||{strength:0,consistency:0,nutrition:0,recovery:0};
   const highest=dnaData?.highest||DEFAULT_METRICS[0];
   const lowest=dnaData?.lowest||DEFAULT_METRICS[0];
 
+  // Bar entrance animation keyframes — one per dimension
+  const _kf=DIMS.map((_,i)=>`@keyframes dnaBar${i}{from{transform:scaleX(0)}to{transform:scaleX(1)}}`).join('');
+
   return(
-    <div style={{background:"#000",border:"1px solid rgba(245,245,240,0.08)",borderRadius:20,padding:isMobile?"18px 16px":"24px 24px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+    <div style={{background:"var(--bg)",padding:isMobile?"18px 20px 20px":"18px 20px 20px"}}>
+      <style>{_kf}</style>
+
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
         <div>
-          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:500}}>// TRAINING DNA</div>
-          <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:20,textTransform:"uppercase",color:"#f5f5f0",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
+          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>TRAINING DNA</div>
+          <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",lineHeight:1}}>{dnaData?getAthleteTitle(scores):"CALCULATING..."}</div>
         </div>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
+        <div style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)",textAlign:"right",letterSpacing:"0.08em"}}>LAST 90 DAYS<br/>{dnaData?`${dnaData.total} SESSIONS`:"—"}</div>
       </div>
-      <canvas ref={radarRef} style={{width:"100%",display:"block",borderRadius:8}}/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px 12px",marginTop:16}}>
-        {metrics.map(({label,score})=>(
-          <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
-            <div style={{width:7,height:7,borderRadius:2,background:heatColor(score),flexShrink:0}}/>
-            <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.45)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}</span>
-            <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,color:heatColor(score),marginLeft:"auto"}}>{dnaData?score:"—"}</span>
-          </div>
-        ))}
+
+      {/* 4 honest horizontal bars */}
+      <div style={{display:"flex",flexDirection:"column",gap:18}}>
+        {DIMS.map(({key,label},i)=>{
+          const v=dnaData?(scores[key]||0):null;
+          const pct=v??0;
+          return(
+            <div key={key}>
+              <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:8}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)"}}>{label}</div>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.02em"}}>
+                  {v!=null?v:'—'}<span style={{fontFamily:_MO,fontSize:11,fontWeight:700,color:"var(--text-faint)",marginLeft:2}}>/100</span>
+                </div>
+              </div>
+              <div style={{height:6,background:"var(--card-border)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{
+                  height:"100%",width:`${pct}%`,
+                  background:"var(--accent)",borderRadius:3,
+                  transformOrigin:"left center",
+                  animation:hasAnimated.current?undefined:`dnaBar${i} 0.7s cubic-bezier(.2,.7,.3,1) ${i*90}ms both`,
+                  filter:!_isLight?"drop-shadow(0 0 4px rgba(var(--accent-rgb),0.5))":undefined,
+                }}/>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Strongest + Focus callout — 4 real dimensions only */}
       {dnaData&&(
-        <div style={{marginTop:16,borderTop:"1px solid rgba(245,245,240,0.06)",paddingTop:12,display:"flex",flexDirection:"column",gap:5}}>
-          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strength:</span> {highest.label} ({highest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"#FEA020",fontWeight:700}}>Gap:</span> {lowest.label} ({lowest.score})</div>
-          <div style={{fontSize:12,color:"rgba(245,245,240,0.6)"}}><span style={{color:"var(--accent)",fontWeight:700}}>Tip:</span> {RECS[lowest.label]}</div>
+        <div style={{marginTop:20,borderTop:"1px solid var(--card-border)",paddingTop:14,display:"flex",flexDirection:"column",gap:5}}>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)"}}><span style={{color:"#22c55e",fontWeight:700}}>Strongest:</span> {highest.label} ({highest.score})</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)"}}><span style={{color:"#FEA020",fontWeight:700}}>Focus:</span> {lowest.label} ({lowest.score})</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)"}}><span style={{color:"var(--accent)",fontWeight:700}}>Tip:</span> {RECS[lowest.label]||''}</div>
         </div>
       )}
     </div>
@@ -5831,14 +5794,12 @@ function getRank(w){
 }
 
 function getAthleteTitle(dna){
-  const{strength=0,endurance=0,power=0,consistency=0,nutrition=0,recovery=0}=dna;
-  if(consistency>85)         return'IRON DISCIPLINE ATHLETE';
-  if(strength>70&&endurance>60) return'HYBRID ATHLETE';
-  if(strength>70)            return'STRENGTH ATHLETE';
-  if(endurance>70)           return'ENDURANCE ATHLETE';
-  if(power>70)               return'POWER ATHLETE';
-  if(nutrition>80)           return'MACRO MASTER';
-  if(recovery>80)            return'RECOVERY KING';
+  const{strength=0,consistency=0,nutrition=0,recovery=0}=dna;
+  if(consistency>85)  return'IRON DISCIPLINE ATHLETE';
+  if(strength>80)     return'STRENGTH ATHLETE';
+  if(nutrition>80)    return'MACRO MASTER';
+  if(recovery>80)     return'RECOVERY KING';
+  if(strength>60&&consistency>60) return'CONSISTENT ATHLETE';
   return'BALANCED ATHLETE';
 }
 

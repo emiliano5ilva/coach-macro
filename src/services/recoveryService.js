@@ -1,5 +1,4 @@
 import { sb } from '../client';
-import { dbg } from '../utils/debugLog';
 import { musclesToSvgIds, svgIdsToMuscleGroups } from '../data/muscleMapping';
 import { EXERCISE_MUSCLE_GROUP, getMuscleGroup } from '../exercise_database';
 import { computeLoadMetrics } from './trainingLoadService';
@@ -36,8 +35,7 @@ export const OPTIMAL_SETS = {
 // Called immediately after a workout session completes.
 // completedExercises = [{name, sets: [{weight, reps, done}]}]
 export async function recordWorkoutRecovery(userId, completedExercises) {
-  dbg(`[DBG-RWR] called exercises=[${completedExercises?.map(e=>e.name).join(',')}] count=${completedExercises?.length}`);
-  if (!userId || !completedExercises?.length) { dbg('[DBG-RWR] early return — no userId or empty exercises'); return; }
+  if (!userId || !completedExercises?.length) { return; }
 
   const groupsHit = new Set();
 
@@ -76,8 +74,7 @@ export async function recordWorkoutRecovery(userId, completedExercises) {
     }
   }
 
-  dbg(`[DBG-RWR] groupsHit=[${[...groupsHit].join(',')}] notFound=[${notFound.join(',')}]`);
-  if (!groupsHit.size) { dbg('[DBG-RWR] early return — no muscle groups resolved'); return; }
+  if (!groupsHit.size) { return; }
 
   const now = new Date().toISOString();
   const upserts = [...groupsHit].map(group => ({
@@ -87,11 +84,10 @@ export async function recordWorkoutRecovery(userId, completedExercises) {
     last_trained_at: now,
   }));
 
-  dbg(`[DBG-RWR] upserting groups=[${upserts.map(u=>u.muscle_group).join(',')}]`);
   const { error: upsertErr } = await sb
     .from('muscle_recovery')
     .upsert(upserts, { onConflict: 'user_id,muscle_group' });
-  dbg(`[DBG-RWR] upsert done error=${upsertErr?JSON.stringify(upsertErr):'null'}`);
+  if (upsertErr) console.warn('[recoveryService] upsert failed', upsertErr);
 }
 
 // Returns recovery state keyed by muscle group.
