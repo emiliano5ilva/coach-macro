@@ -4988,6 +4988,1827 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
 const _GoClubHome = { current: null };
 function HomeSectionGoClub() { return _GoClubHome.current?.() ?? null; }
 
+const MILESTONES=[
+  {id:'first_session',type:'session',threshold:1,title:'FIRST SESSION.',sub:"The hardest part is starting. You started.",icon:'S1'},
+  {id:'sessions_5',type:'session',threshold:5,title:'5 SESSIONS.',sub:"Five times you chose to show up.",icon:'S5'},
+  {id:'sessions_10',type:'session',threshold:10,title:'10 SESSIONS.',sub:"Double digits. This is becoming who you are.",icon:'S10'},
+  {id:'sessions_25',type:'session',threshold:25,title:'25 SESSIONS.',sub:"Most people quit by now. You're not most people.",icon:'S25'},
+  {id:'sessions_50',type:'session',threshold:50,title:'50 SESSIONS.',sub:"Fifty. The iron knows your name.",icon:'S50'},
+  {id:'sessions_100',type:'session',threshold:100,title:'100 SESSIONS.',sub:"This is just who you are now.",icon:'S100'},
+  {id:'streak_3',type:'streak',threshold:3,title:'3 DAY STREAK.',sub:"Momentum is a powerful thing.",icon:'3D'},
+  {id:'streak_7',type:'streak',threshold:7,title:'7 DAYS STRAIGHT.',sub:"One full week. Your body is adapting.",icon:'7D'},
+  {id:'streak_14',type:'streak',threshold:14,title:'14 DAYS.',sub:"Two weeks of choosing yourself every day.",icon:'14D'},
+  {id:'streak_30',type:'streak',threshold:30,title:'30 DAY STREAK.',sub:"A month straight. Legendary.",icon:'30D'},
+  {id:'meals_10',type:'meals',threshold:10,title:'10 MEALS LOGGED.',sub:"You know what's in your body. That's power.",icon:'M10'},
+  {id:'meals_50',type:'meals',threshold:50,title:'50 MEALS TRACKED.',sub:"Fifty meals of knowing exactly what you eat.",icon:'M50'},
+  {id:'meals_100',type:'meals',threshold:100,title:'100 MEALS.',sub:"Data is your edge now.",icon:'M100'},
+  {id:'volume_10k',type:'volume',threshold:10000,title:'10,000 LBS MOVED.',sub:"Ten thousand pounds of work done.",icon:'V10'},
+  {id:'volume_50k',type:'volume',threshold:50000,title:'50,000 LBS.',sub:"The iron remembers every rep.",icon:'V50'},
+  {id:'volume_100k',type:'volume',threshold:100000,title:'100K LBS LIFTED.',sub:"One hundred thousand pounds. Unstoppable.",icon:'V100'},
+  {id:'day_7',type:'membership',threshold:7,title:'ONE WEEK IN.',sub:"Seven days with Coach Macro. The journey has begun.",icon:'W1'},
+  {id:'day_30',type:'membership',threshold:30,title:'30 DAYS STRONG.',sub:"A month of showing up. Look how far you've come.",icon:'W4'},
+  {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
+];
+
+function BodyweightSection({logs,user:u,setLogs,wUnit}) {
+  const [bwModal,setBwModal]=useState(false);
+  const [bwInput,setBwInput]=useState("");
+  const [bwDate,setBwDate]=useState(()=>new Date().toISOString().split("T")[0]);
+  const [bwSaving,setBwSaving]=useState(false);
+
+  async function saveWeight(){
+    const w=parseFloat(bwInput);
+    if(!w||!u)return;
+    setBwSaving(true);
+    const entry={date:bwDate,weight:w};
+    await sb.from("bodyweight_logs").upsert({user_id:u.id,...entry},{onConflict:"user_id,date"});
+    setLogs(prev=>[...prev.filter(x=>x.date!==bwDate),entry].sort((a,b)=>a.date.localeCompare(b.date)));
+    setBwModal(false);setBwInput("");setBwSaving(false);
+  }
+
+  const chartData=(()=>{
+    if(logs.length<2)return null;
+    const vals=logs.map(x=>x.weight);
+    const minW=Math.min(...vals)-2,maxW=Math.max(...vals)+2;
+    const n=logs.length;
+    const W=300,H=80;
+    const px=(idx)=>Math.round((idx/(n-1))*W);
+    const py=(v)=>Math.round(H-((v-minW)/(maxW-minW))*H);
+    const line=logs.map((x,idx)=>`${idx===0?"M":"L"}${px(idx)},${py(x.weight)}`).join(" ");
+    const ma=logs.map((_,idx)=>{
+      const slice=logs.slice(Math.max(0,idx-3),idx+4);
+      return slice.reduce((s,x)=>s+x.weight,0)/slice.length;
+    });
+    const maLine=ma.map((v,idx)=>`${idx===0?"M":"L"}${px(idx)},${py(v)}`).join(" ");
+    const startW=Math.ceil(vals[0]/5)*5;
+    const milestones=[];
+    for(let m=startW;m<=maxW+5;m+=5)if(m>=minW)milestones.push(m);
+    return{line,maLine,W,H,vals,py,px,milestones,n};
+  })();
+
+  const latest=logs[logs.length-1];
+
+  return(
+    <div style={{margin:"0 16px 14px"}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>WEIGHT</div>
+      <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+          <div>
+            {latest
+              ?<><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1}}>{latest.weight}<span style={{fontSize:14,fontWeight:400,color:"rgba(245,245,240,0.45)",marginLeft:4}}>{wUnit}</span></div>
+                <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginTop:2}}>Last: {new Date(latest.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div></>
+              :<div style={{textAlign:"center",padding:"8px 0 4px"}}>
+                <div style={{fontSize:28,marginBottom:6}}>⚖️</div>
+                <div style={{fontSize:13,fontWeight:600,color:"rgba(245,245,240,0.65)"}}>No weight logged yet</div>
+                <div style={{fontSize:11,color:"rgba(245,245,240,0.35)",marginTop:3}}>Log daily to see your trend</div>
+              </div>}
+          </div>
+          <button onClick={()=>setBwModal(true)} style={{padding:"8px 16px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.05em"}}>+ Log</button>
+        </div>
+        {chartData&&(
+          <svg viewBox={`0 0 ${chartData.W} ${chartData.H}`} style={{width:"100%",height:80,overflow:"visible",display:"block"}}>
+            {chartData.milestones.map(m=>(
+              <line key={m} x1={0} y1={chartData.py(m)} x2={chartData.W} y2={chartData.py(m)} stroke="rgba(245,245,240,0.06)" strokeWidth={1}/>
+            ))}
+            <path d={chartData.line} fill="none" stroke="rgba(var(--accent-rgb),0.4)" strokeWidth={1.5}/>
+            <path d={chartData.maLine} fill="none" stroke="var(--red)" strokeWidth={2} strokeLinecap="round"/>
+            {logs.map((x,idx)=>{
+              const isMilestone=chartData.milestones.some(m=>Math.abs(x.weight-m)<0.5);
+              if(!isMilestone&&idx!==logs.length-1)return null;
+              return<circle key={idx} cx={chartData.px(idx)} cy={chartData.py(x.weight)} r={isMilestone?4:3} fill={isMilestone?T.fat:"var(--red)"} stroke="var(--navy-card)" strokeWidth={2}/>;
+            })}
+          </svg>
+        )}
+        {chartData&&<div style={{display:"flex",gap:16,marginTop:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
+            <div style={{width:16,height:2,background:"var(--red)",borderRadius:1}}/>7-day avg
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:T.fat}}/>5 {wUnit} milestone
+          </div>
+        </div>}
+      </div>
+      {bwModal&&(
+        <div onClick={()=>setBwModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"20px 20px 0 0",padding:24,width:"100%",maxWidth:480,paddingBottom:"max(24px,env(safe-area-inset-bottom))"}}>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:8}}>Weigh-in</div>
+            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:24,color:"var(--cm-ink,#0A0A0A)",marginBottom:20,lineHeight:1}}>Log Weight</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+              <div>
+                <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"'Archivo',sans-serif",fontWeight:700}}>Weight ({wUnit})</div>
+                <input autoFocus value={bwInput} onChange={e=>setBwInput(e.target.value)} type="number" step="0.1" placeholder={wUnit==='kg'?"e.g. 80":"e.g. 175"} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,padding:"12px 14px",color:"var(--cm-ink,#0A0A0A)",fontSize:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"'Archivo',sans-serif",fontWeight:700}}>Date</div>
+                <input value={bwDate} onChange={e=>setBwDate(e.target.value)} type="date" style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,padding:"12px 14px",color:"var(--cm-ink,#0A0A0A)",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",colorScheme:"light"}}/>
+              </div>
+            </div>
+            <button onClick={saveWeight} disabled={!bwInput||bwSaving} style={{width:"100%",padding:"14px",background:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.08)":"var(--cm-red,#FF3B30)",color:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.3)":"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:!bwInput||bwSaving?"default":"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+              {bwSaving?"Saving...":"Save Weight"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ProgressSection = React.memo(function ProgressSection({
+  coachScore,progressTab,setProgressTab,profile,wPrefs,user,macros,isMobile,
+  workoutLogsRaw,allActs,healthSnap,bodyweightLogs,dbPRs,schedule,
+  deloadWeeksHistory,prefetchedDNA,prefetchedRecovery,prefetchedOptim,
+  latestBalance,pendingMilestone,activePlateaus,programCurrentWeek,
+  dnaPromiseRef,recoveryPromiseRef,setSection,setPendingMilestone,
+  setBodyweightLogs,setShowWeeklyReviewModal,setShowConnectionsView,
+  setShowPeerView,setShowHealthModal
+}) {
+    const sc = coachScore;
+    const activeTab = progressTab;
+    const setActiveTab = setProgressTab;
+    const userMode = getUserMode(profile, wPrefs);
+    const userTier = getUserTier(profile, wPrefs, userMode);
+    const progressTabs = getProgressTabs(userTier, userMode);
+    const scoreLabels = COACH_SCORE_LABELS[userMode] || COACH_SCORE_LABELS.strength;
+    const [progFoodLogs, setProgFoodLogs] = useState([]);
+
+    useEffect(()=>{
+      if(!user?.id)return;
+      const cutoff=new Date(Date.now()-30*864e5).toISOString().split('T')[0];
+      sb.from('food_logs').select('date,entries').eq('user_id',user.id)
+        .gte('date',cutoff).order('date',{ascending:false})
+        .then(({data})=>setProgFoodLogs(data||[]));
+    },[user?.id]);
+
+    const [expenditure, setExpenditure] = useState(null);
+    const [expenditureHistory, setExpenditureHistory] = useState([]);
+    const [dataDrift, setDataDrift] = useState(null);
+
+    useEffect(() => {
+      if (!user?.id || !profile) return;
+      const todayStr = new Date().toISOString().split('T')[0];
+      const rawResult = computeExpenditure(bodyweightLogs, progFoodLogs, profile);
+      const todayWorkouts = (workoutLogsRaw || []).filter(l => l.date === todayStr);
+      const todayActivities = (allActs || []).filter(a => {
+        const d = (a.date || '').split('T')[0];
+        return d === todayStr;
+      });
+      const burn = computeTodaysBurn(todayWorkouts, todayActivities, healthSnap, profile, rawResult.tef);
+      const rawWithBurn = { ...rawResult, todaysBurn: burn };
+
+      // Load adaptive factors, apply, then store
+      getAdaptiveFactors(user.id).then(factors => {
+        setAdaptiveFactors(factors);
+        const adjusted = applyAdaptiveFactors(rawWithBurn, factors);
+        setExpenditure(adjusted);
+        return storeExpenditure(user.id, adjusted, adjusted.todaysBurn);
+      }).then(() => getExpenditureHistory(user.id, 30))
+        .then(hist => {
+          setExpenditureHistory(hist);
+          setDataDrift(checkDataDrift(hist));
+          // Weekly adaptive recalibration (debounced to once/week inside the service)
+          recalibrateFactors(user.id, profile).catch(() => {});
+        })
+        .catch(() => {
+          // Fallback: use raw without factors
+          setExpenditure(rawWithBurn);
+        });
+    }, [user?.id, progFoodLogs, bodyweightLogs, healthSnap?.steps, workoutLogsRaw?.length]);
+
+    const [validationInsights, setValidationInsights] = useState([]);
+    const [insightLoading, setInsightLoading] = useState(false);
+    const [adaptiveFactors, setAdaptiveFactors] = useState(null);
+    const [coachRecall, setCoachRecall] = useState(null);
+
+    useEffect(() => {
+      if (!user?.id || !profile) return;
+      setInsightLoading(true);
+      runDailyValidationSuite(user.id, profile)
+        .then(insights => {
+          setValidationInsights(insights);
+          const top = insights[0];
+          if (top?.priority === 'severe') {
+            import('./services/notifications.js')
+              .then(({ scheduleValidationAlert }) => scheduleValidationAlert(top.message))
+              .catch(() => {});
+          }
+        })
+        .catch(() => {})
+        .finally(() => setInsightLoading(false));
+    }, [user?.id, profile?.goalCals]);
+
+    // Coach Memory — auto-record memories for high/severe insights + recall
+    useEffect(() => {
+      if (!user?.id || !validationInsights.length || insightLoading) return;
+      const severe = validationInsights.filter(i => i.priority === 'severe' || i.priority === 'high');
+      if (!severe.length) return;
+
+      const currentCtx = buildContextSnapshot({
+        weightLogs: bodyweightLogs,
+        foodLogs: progFoodLogs,
+        workoutLogs: workoutLogsRaw,
+        macros,
+        profile,
+        healthSnap,
+      });
+
+      // Auto-record top severe/high insight as a memory
+      const top = severe[0];
+      const memType = top.insight_type === 'weight_trend' ? 'plateau' : 'setback';
+      recordMemory(user.id, memType, currentCtx, top.message, top.recommendation, top.insight_type)
+        .catch(() => {});
+
+      // Only recall if user has been around 30+ days
+      const memberDays = profile?.created_at
+        ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 864e5)
+        : 0;
+      if (memberDays < 30) return;
+
+      recallApplicableLearnings(user.id, top.insight_type, currentCtx)
+        .then(recall => { if (recall?.similar_past?.length) setCoachRecall(recall); })
+        .catch(() => {});
+    }, [validationInsights, insightLoading, user?.id]);
+
+    const [connectionData,setConnectionData]=useState([]);
+    useEffect(()=>{
+      if(!user?.id)return;
+      getConnectionsData(user.id).then(data=>setConnectionData(data)).catch(()=>{});
+    },[user?.id]);
+
+    const [peerData,setPeerData]=useState(null);
+    useEffect(()=>{
+      if(!user?.id||!profile)return;
+      assignCohort(user.id,profile).catch(()=>{});
+      getPeerComparison(user.id,profile).then(d=>{if(d)setPeerData(d);}).catch(()=>{});
+    },[user?.id,profile?.goal,profile?.weight]);
+
+    const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
+    useEffect(()=>{
+      if(!user?.id)return;
+      sb.from('food_logs').select('entries').eq('user_id',user.id)
+        .then(({data})=>{
+          const total=(data||[]).reduce((s,l)=>s+(l.entries||[]).length,0);
+          setTotalMealsAllTime(total);
+        });
+    },[user?.id]);
+
+    useEffect(()=>{
+      if(!user?.id||!workoutLogsRaw)return;
+      const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
+      const totalSessions=workoutLogsRaw.length;
+      let streak=0;
+      for(let i=0;i<60;i++){
+        const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
+        if(workoutLogsRaw.some(l=>l.date===ds))streak++;else if(i>0)break;
+      }
+      const totalVolume=(workoutLogsRaw||[]).reduce((s,l)=>s+(l.volume_lbs||0),0);
+      const memberDays=profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0;
+      for(const m of MILESTONES){
+        if(earned.includes(m.id))continue;
+        let achieved=false;
+        if(m.type==='session')achieved=totalSessions>=m.threshold;
+        else if(m.type==='streak')achieved=streak>=m.threshold;
+        else if(m.type==='meals')achieved=totalMealsAllTime>=m.threshold;
+        else if(m.type==='volume')achieved=totalVolume>=m.threshold;
+        else if(m.type==='membership')achieved=memberDays>=m.threshold;
+        if(achieved){
+          earned.push(m.id);
+          localStorage.setItem('cm_earned_milestones',JSON.stringify(earned));
+          setPendingMilestone(m);
+          break;
+        }
+      }
+    },[workoutLogsRaw,totalMealsAllTime,user?.id]);
+
+    const _twStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.toISOString().split('T')[0];})();
+    const todayStr=new Date().toISOString().split('T')[0];
+
+    const dailyFoodMap=useMemo(()=>{
+      const m={};
+      progFoodLogs.forEach(l=>{
+        const cal=(l.entries||[]).reduce((s,e)=>s+(e.calories||0),0);
+        const prot=(l.entries||[]).reduce((s,e)=>s+(e.protein||0),0);
+        const carbs=(l.entries||[]).reduce((s,e)=>s+(e.carbs||0),0);
+        const fat=(l.entries||[]).reduce((s,e)=>s+(e.fat||0),0);
+        m[l.date]={cal,prot,carbs,fat,hasData:(l.entries||[]).length>0};
+      });
+      return m;
+    },[progFoodLogs]);
+
+    const workoutsThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).length,[workoutLogsRaw,_twStart]);
+    const calTarget=macros?.calories||2000;
+    const protTarget=macros?.protein||150;
+    const carbTarget=macros?.carbs||200;
+    const fatTarget=macros?.fat||60;
+    const calHitDays=useMemo(()=>Object.entries(dailyFoodMap).filter(([d,v])=>d>=_twStart&&v.cal>=calTarget*0.9).length,[dailyFoodMap,_twStart,calTarget]);
+    const protHitDays=useMemo(()=>Object.entries(dailyFoodMap).filter(([d,v])=>d>=_twStart&&v.prot>=protTarget*0.9).length,[dailyFoodMap,_twStart,protTarget]);
+    const currentStreak=useMemo(()=>{
+      let s=0;
+      for(let i=0;i<60;i++){
+        const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
+        if((workoutLogsRaw||[]).some(l=>l.date===ds)||dailyFoodMap[ds]?.hasData)s++;
+        else if(i>0)break;
+      }
+      return s;
+    },[workoutLogsRaw,dailyFoodMap]);
+
+    const personalRecords=useMemo(()=>{
+      if(dbPRs.length>0){
+        return dbPRs.slice(0,6).map(pr=>[pr.exercise_name,{weight:pr.weight,date:pr.date}]);
+      }
+      // Fallback: compute from JSONB for users with no personal_records rows yet
+      const prs={};
+      (workoutLogsRaw||[]).forEach(log=>{
+        (log.workout?.exercises||[]).forEach(ex=>{
+          if(!ex.name)return;
+          (ex.sets||[]).forEach(s=>{
+            const w=parseFloat(s.weight)||0;
+            if(w>0&&(!prs[ex.name]||w>prs[ex.name].weight))prs[ex.name]={weight:w,date:log.date};
+          });
+        });
+      });
+      return Object.entries(prs).sort((a,b)=>b[1].date.localeCompare(a[1].date)).slice(0,6);
+    },[dbPRs,workoutLogsRaw]);
+
+    const {volumeThisWeek,volumeLastWeek}=useMemo(()=>{
+      const lws=new Date(_twStart);lws.setDate(lws.getDate()-7);const lwStr=lws.toISOString().split('T')[0];
+      let tw=0,lw=0;
+      (workoutLogsRaw||[]).forEach(log=>{
+        // Use volume_lbs column if populated; fall back to JSONB computation
+        const vol=log.volume_lbs>0
+          ?log.volume_lbs
+          :(log.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0),0);
+        if(log.date>=_twStart)tw+=vol;else if(log.date>=lwStr)lw+=vol;
+      });
+      return{volumeThisWeek:Math.round(tw),volumeLastWeek:Math.round(lw)};
+    },[workoutLogsRaw,_twStart]);
+
+    const weeklyFreq=useMemo(()=>Array.from({length:8},(_,i)=>{
+      const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-(7-i)*7);ws.setHours(0,0,0,0);
+      const we=new Date(ws);we.setDate(we.getDate()+7);
+      const wsStr=ws.toISOString().split('T')[0];
+      const weStr=we.toISOString().split('T')[0];
+      const count=(workoutLogsRaw||[]).filter(l=>l.date>=wsStr&&l.date<weStr).length;
+      const isDeloadWk=(deloadWeeksHistory||[]).some(d=>d.week_start<=weStr&&d.week_end>=wsStr&&(d.status==="active"||d.status==="completed"));
+      return{week:i+1,count,isCurrent:i===7,isDeload:isDeloadWk};
+    }),[workoutLogsRaw,deloadWeeksHistory]);
+
+    const restDaysThisWeek=Math.max(0,(new Date().getDay()||7)-workoutsThisWeek);
+    const recoveryScore=useMemo(()=>{
+      const split=wPrefs?.splitType||'';
+      const optimal=split.includes('6')?1:split.includes('4')?3:4;
+      let score=100;
+      score-=Math.abs(restDaysThisWeek-optimal)*10;
+      if(healthSnap?.sleep!=null&&healthSnap.sleep<6)score-=15;
+      if(volumeLastWeek>0&&volumeThisWeek>volumeLastWeek*1.2)score-=10;
+      if(currentStreak>=14)score+=10;
+      return Math.max(0,Math.min(100,Math.round(score)));
+    },[restDaysThisWeek,healthSnap,volumeThisWeek,volumeLastWeek,currentStreak,wPrefs]);
+
+    const setsThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).reduce((total,log)=>
+      total+(log.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).filter(s=>s.done).length,0),0)
+    ,[workoutLogsRaw,_twStart]);
+
+    const timeThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).reduce((s,l)=>s+(l.session_duration_mins||0),0),[workoutLogsRaw,_twStart]);
+
+    const prsThisWeek=useMemo(()=>{
+      const list=(dbPRs||[]).filter(pr=>pr.date&&pr.date>=_twStart).map(pr=>({name:pr.exercise_name,weight:pr.weight,reps:pr.reps}));
+      return{count:list.length,list};
+    },[dbPRs,_twStart]);
+
+    const weekDays=useMemo(()=>{
+      const letters=['S','M','T','W','T','F','S'];
+      return Array.from({length:7},(_,i)=>{
+        const d=new Date(_twStart+'T12:00:00');d.setDate(d.getDate()+i);
+        const ds=d.toISOString().split('T')[0];
+        const log=(workoutLogsRaw||[]).find(l=>l.date===ds);
+        const t=log?.workout?.type||'';
+        const kind=log?(t==='run'||t==='cardio'?'run':'lift'):null;
+        return{letter:letters[i],date:ds,trained:!!log,kind};
+      });
+    },[workoutLogsRaw,_twStart]);
+
+    const _lastWeekStr=useMemo(()=>{const d=new Date(_twStart+'T12:00:00');d.setDate(d.getDate()-7);return d.toISOString().split('T')[0];},[_twStart]);
+    const trainingDaysThisWeek=useMemo(()=>new Set((workoutLogsRaw||[]).filter(l=>l.date>=_twStart).map(l=>l.date)).size,[workoutLogsRaw,_twStart]);
+    const lastWeekTrainingDays=useMemo(()=>new Set((workoutLogsRaw||[]).filter(l=>l.date>=_lastWeekStr&&l.date<_twStart).map(l=>l.date)).size,[workoutLogsRaw,_lastWeekStr,_twStart]);
+
+    const runActsThisWeek=useMemo(()=>(allActs||[]).filter(a=>{
+      const d=a.date||a.start_date_local;
+      return d&&d>=_twStart&&(a.type||'').toLowerCase().includes('run');
+    }),[allActs,_twStart]);
+    const runDistKm=runActsThisWeek.reduce((s,a)=>s+(parseFloat(a.distanceKm)||0),0);
+    const runTimeMins=runActsThisWeek.reduce((s,a)=>s+(parseInt(a.durationMins)||0),0);
+
+    const targetSessions=(()=>{
+      const split=wPrefs?.splitType||'';
+      if(split.includes('6'))return 6;
+      if(split.includes('5'))return 5;
+      if(split.includes('4'))return 4;
+      if(split.includes('3'))return 3;
+      return 4;
+    })();
+
+    const scoreStatus=sc.total>=90?'PEAKING':sc.total>=80?'PRIMED':sc.total>=70?'BUILDING':sc.total>=50?'RECOVERING':'RECHARGING';
+    const ringColor=sc.total>=90?'#FFD700':sc.total>=80?'#22c55e':sc.total>=70?'#60a5fa':sc.total>=50?'#FEA020':'var(--accent)';
+
+    const isHyroxMode=wPrefs?.isHyrox;
+    const isRunnerMode=!isHyroxMode&&(wPrefs?.isHybrid||(wPrefs?.splitType||'').toLowerCase().includes('run'));
+
+    const calDays=useMemo(()=>{
+      const days=[];
+      const today2=new Date();today2.setHours(0,0,0,0);
+      const startDay=new Date(today2);
+      startDay.setDate(startDay.getDate()-34-startDay.getDay());
+      for(let i=0;i<35;i++){
+        const d=new Date(startDay);d.setDate(startDay.getDate()+i);
+        const ds=d.toISOString().split('T')[0];
+        const hasWorkout=(workoutLogsRaw||[]).some(l=>l.date===ds);
+        const hasMacros=dailyFoodMap[ds]?.hasData||false;
+        const isFuture=d>today2;
+        const isToday2=ds===todayStr;
+        days.push({ds,hasWorkout,hasMacros,isFuture,isToday2});
+      }
+      return days;
+    },[workoutLogsRaw,dailyFoodMap,todayStr]);
+
+    const weightProjection=useMemo(()=>{
+      if(bodyweightLogs.length<5)return null;
+      const sorted=[...bodyweightLogs].sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);
+      const n=sorted.length;
+      if(n<3)return null;
+      const xs=sorted.map((_,i)=>i);
+      const ys=sorted.map(l=>parseFloat(l.weight));
+      const xMean=xs.reduce((s,x)=>s+x,0)/n;
+      const yMean=ys.reduce((s,y)=>s+y,0)/n;
+      const denom=xs.reduce((s,x)=>s+(x-xMean)**2,0);
+      if(!denom)return null;
+      const slope=xs.reduce((s,x,i)=>s+(x-xMean)*(ys[i]-yMean),0)/denom;
+      const intercept=yMean-slope*xMean;
+      return{slope,intercept,data:sorted,projectedDelta:slope*7};
+    },[bodyweightLogs]);
+
+    const doingWell=[];
+    if(sc.r>=75)doingWell.push("Recovery is strong — you're resting right.");
+    if(sc.n>=75)doingWell.push("Nutrition is dialed in. Macros on target.");
+    if(sc.t>=75)doingWell.push("Training consistency is high this week.");
+    if(sc.c>=75)doingWell.push(`${currentStreak}-day streak — momentum is building.`);
+    if(!doingWell.length&&sc.total>=60)doingWell.push("Overall performance is solid. Keep stacking.");
+
+    const focusTips=(sc.tips||[]).slice(0,3);
+
+    let twRings,twInsight;
+    if(isHyroxMode){
+      twRings=[
+        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Training\nDays",color:"var(--accent)"},
+        {pct:Math.min(100,setsThisWeek/50*100),value:setsThisWeek,label:"Sets\nDone",color:"#FEA020"},
+        {pct:Math.min(100,volumeThisWeek/20000*100),value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek),label:`Volume\n${profile?.wUnit||'lbs'}`,color:"#60a5fa"},
+      ];
+      twInsight=`${workoutsThisWeek} of ${targetSessions} sessions done. ${setsThisWeek} total sets this week.`;
+    } else if(isRunnerMode){
+      twRings=[
+        {pct:Math.min(100,runActsThisWeek.length/targetSessions*100),value:runActsThisWeek.length,label:"Runs",color:"var(--accent)"},
+        {pct:Math.min(100,runDistKm/50*100),value:displayDistance(runDistKm, profile?.wUnit||'lbs'),label:`${distanceLabel(profile?.wUnit||'lbs')} run`,color:"#22c55e"},
+        {pct:Math.min(100,runTimeMins/300*100),value:runTimeMins>=60?`${Math.floor(runTimeMins/60)}h`:`${runTimeMins}m`,label:"Time",color:"#60a5fa"},
+      ];
+      twInsight=runActsThisWeek.length>0?`${runActsThisWeek.length} run${runActsThisWeek.length>1?'s':''} · ${displayDistance(runDistKm, profile?.wUnit||'lbs')} · ${runTimeMins} min this week`:"No runs logged yet this week.";
+    } else {
+      twRings=[
+        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Sessions",color:"var(--accent)"},
+        {pct:Math.min(100,setsThisWeek/40*100),value:setsThisWeek,label:"Sets",color:"#FEA020"},
+        {pct:Math.min(100,Math.min(volumeThisWeek,20000)/20000*100),value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek||0),label:`Volume\n${profile?.wUnit||'lbs'}`,color:"#60a5fa"},
+      ];
+      const pctDone=Math.round(workoutsThisWeek/Math.max(1,targetSessions)*100);
+      twInsight=workoutsThisWeek===0?"No sessions logged yet this week.":`${workoutsThisWeek} of ${targetSessions} sessions · ${pctDone}% weekly target`;
+    }
+    // Tier-adaptive: beginners see 2 rings (less overwhelming)
+    if (userTier === 'beginner') twRings = twRings.slice(0, 2);
+
+    function ExpenditureCard() {
+      const [showInfo, setShowInfo] = useState(false);
+      const exp = expenditure;
+
+      if (!exp) return null;
+
+      const _AF="'Archivo',sans-serif";
+      const _MO="'DM Mono',monospace";
+      const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+
+      // Core values — declared in dependency order (TDZ-safe)
+      const isBuilding=exp.confidence.level==='building';
+      const tdeeDisplay=isBuilding
+        ?exp.formulaTDEE.toLocaleString()
+        :exp.confidence.showRange
+          ?`${(exp.tdee-200).toLocaleString()}–${(exp.tdee+200).toLocaleString()}`
+          :exp.tdee.toLocaleString();
+
+      // Surplus/deficit: avg daily intake vs TDEE
+      const hasDelta=!isBuilding&&exp.avgCalories!=null;
+      const delta=hasDelta?Math.round(exp.avgCalories-exp.tdee):null;
+      const deltaAbs=delta!=null?Math.abs(delta):null;
+      const deltaSign=delta!=null&&delta>0?'+':'';
+      const deltaLabel=delta==null?'LOG FOOD':Math.abs(delta)<=50?'IN BALANCE':delta>0?'SURPLUS':'DEFICIT';
+      const deltaColor=delta==null?'var(--text-dim)':Math.abs(delta)<=50?'var(--cm-ink)':delta>0?'#f59e0b':'#22c55e';
+
+      const tiles=[
+        {l:'DAILY BURN', v:tdeeDisplay, u:'kcal', s:isBuilding?'formula est.':'14-day adaptive', c:'var(--cm-ink)'},
+        {l:deltaLabel, v:delta!=null?`${deltaSign}${delta}`:'—', u:delta!=null?'kcal':null, s:'vs TDEE avg', c:deltaColor},
+      ];
+
+      return (
+        <div style={{background:"var(--bg)"}}>
+
+          {/* Bento tiles */}
+          <div style={{display:"flex",gap:8,padding:"12px 20px 4px"}}>
+            {tiles.map(({l,v,u,s,c})=>(
+              <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
+                  {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:2}}>{u}</span>}
+                </div>
+                {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{s}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* Info toggle */}
+          <div style={{padding:"6px 20px 0",display:"flex",justifyContent:"flex-end"}}>
+            <button onClick={()=>{setShowInfo(v=>!v);if(!showInfo)trackUserEvent(user?.id,'view_expenditure_detail').catch(()=>{});}}
+              style={{background:"none",border:"none",cursor:"pointer",fontFamily:_MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>
+              {showInfo?'Hide ↑':'What is TDEE? ↓'}
+            </button>
+          </div>
+
+          {/* Info panel — restyled */}
+          {showInfo&&(
+            <div style={{padding:"8px 20px 12px",display:"flex",flexDirection:"column",gap:6}}>
+              {[
+                ["TDEE","Total Daily Energy Expenditure — calories your body actually burned, derived from 14-day weight trend and food logs."],
+                ["BMR","Basal Metabolic Rate — calories burned at rest, just keeping organs running. Your metabolic floor."],
+                ["NEAT","Non-Exercise Activity Thermogenesis — calories from walking and daily movement, scaled by your step count."],
+                ["EAT","Exercise Activity Thermogenesis — calories from deliberate training. Strength uses mechanical work; cardio uses MET formulas."],
+                ["TEF","Thermic Effect of Food — energy cost of digestion. High-protein meals burn ~25% of their protein calories just to process."],
+              ].map(([term,def])=>(
+                <div key={term} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                  <div style={{fontFamily:_MO,fontSize:7,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.1em",paddingTop:1,minWidth:32}}>{term}</div>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"var(--text-dim)",lineHeight:1.5}}>{def}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+        </div>
+      );
+    }
+
+    function ValidationInsightCard() {
+      const [expanded, setExpanded] = useState(false);
+      const [memExpanded, setMemExpanded] = useState(false);
+      const top = validationInsights[0];
+
+      const _MO="'DM Mono',monospace";
+
+      if (insightLoading && !top) {
+        return (
+          <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
+            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TODAY'S INSIGHT</div>
+            <div style={{height:48,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{width:18,height:18,borderRadius:"50%",border:"2px solid var(--card-border)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
+            </div>
+          </div>
+        );
+      }
+
+      if (!top) return null;
+
+      // Personality adaptation — declared before use
+      const _persProfile = getProfileSync(user?.id);
+      const adaptedMessage = adaptMessageSync(top.message, _persProfile, { scenario: top.insight_type, addPrefix: false });
+
+      const priorityColor = { severe: '#ef4444', high: '#f59e0b', medium: '#60a5fa', low: 'var(--text-dim)' };
+      const priorityBg    = { severe: 'rgba(239,68,68,0.08)', high: 'rgba(245,158,11,0.08)', medium: 'rgba(96,165,250,0.08)', low: 'rgba(var(--accent-rgb),0.04)' };
+      const typeLabel     = { calorie_intake: 'NUTRITION', weight_trend: 'BODY WEIGHT', training_progress: 'TRAINING', recovery: 'RECOVERY' };
+      const pc = priorityColor[top.priority] || priorityColor.low;
+      const pb = priorityBg[top.priority] || priorityBg.low;
+
+      // Coach Memory data — absorbed from CoachInsightsCard
+      const _hasMemory = coachRecall && coachRecall.similar_past?.length;
+      const _memProfile = _hasMemory ? getProfileSync(user?.id) : null;
+      const _memSuggestion = _hasMemory ? adaptMessageSync(coachRecall.intelligent_suggestion, _memProfile, { addPrefix: false }) : null;
+      const _memTop = _hasMemory ? coachRecall.similar_past[0] : null;
+      const _memColor = _memTop?.still_applicable ? '#f59e0b' : '#60a5fa';
+
+      return (
+        <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
+
+          {/* ── TODAY'S INSIGHT section ── */}
+          <div style={{padding:"16px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>TODAY'S INSIGHT</div>
+                <div style={{background:pb,border:`1px solid ${pc}44`,borderRadius:4,padding:"1px 6px",fontFamily:_MO,fontSize:7,color:pc,textTransform:"uppercase",letterSpacing:"0.12em"}}>{top.priority}</div>
+              </div>
+              <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[top.insight_type] || top.insight_type}</div>
+            </div>
+
+            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.55,marginBottom:10}}>{adaptedMessage || top.message}</div>
+
+            {/* Confidence bar */}
+            <div style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Confidence</span>
+                <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-dim)"}}>{top.confidence}%</span>
+              </div>
+              <div style={{height:3,background:"var(--card-border)",borderRadius:2}}>
+                <div style={{height:3,width:`${top.confidence}%`,background:pc,borderRadius:2,transition:"width 0.6s ease"}}/>
+              </div>
+            </div>
+
+            {/* Signals */}
+            {(top.signals_aligned||[]).length>0&&(
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+                {(top.signals_aligned||[]).map((s,i)=>{
+                  const sc=s.direction==='good'?'#22c55e':s.direction==='severe'?'#ef4444':s.direction==='low'?'#f59e0b':'var(--text-dim)';
+                  return(
+                    <div key={i} style={{background:"var(--card-border)",borderRadius:6,padding:"4px 8px",display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{width:4,height:4,borderRadius:"50%",background:sc,flexShrink:0}}/>
+                      <span style={{fontFamily:_MO,fontSize:8,color:"var(--text-dim)"}}>{s.signal}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:11,color:sc}}>{String(s.value)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Expandable recommendation */}
+            {top.recommendation&&(
+              <button onClick={()=>{setExpanded(e=>!e);if(!expanded)trackUserEvent(user?.id,'expand_validation_insight',{insight_type:top.insight_type}).catch(()=>{});}}
+                style={{background:"none",border:"none",padding:0,cursor:"pointer",width:"100%",textAlign:"left",marginBottom:expanded?8:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                  <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded?"hide":"recommendation"}</span>
+                  <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                </div>
+              </button>
+            )}
+            {expanded&&top.recommendation&&(
+              <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.4)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:8}}>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{top.recommendation}</div>
+              </div>
+            )}
+
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
+              <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>{top.data_days_used}d of data</span>
+              <button onClick={()=>{
+                dismissInsight(user?.id,top.insight_type).catch(()=>{});
+                trackUserEvent(user?.id,'dismiss_validation_insight',{insight_type:top.insight_type}).catch(()=>{});
+                setValidationInsights(prev=>prev.filter(i=>i.insight_type!==top.insight_type));
+              }} style={{background:"none",border:"none",padding:"2px 8px",cursor:"pointer",fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>dismiss</button>
+            </div>
+          </div>
+
+          {/* ── COACH MEMORY section — merged ── */}
+          {_hasMemory&&(
+            <>
+              <div style={{height:1,background:"var(--card-border)"}}/>
+              <div style={{padding:"14px 16px"}}>
+                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>COACH MEMORY</div>
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.6,marginBottom:10}}>
+                  {_memSuggestion||coachRecall.intelligent_suggestion}
+                </div>
+                <div style={{background:"var(--card-border)",borderRadius:10,padding:"10px 12px",marginBottom:_memTop?0:0}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                    <div style={{fontFamily:_MO,fontSize:7,color:_memColor,textTransform:"uppercase",letterSpacing:"0.12em"}}>{_memTop?.date}</div>
+                    <div style={{background:`${_memColor}18`,border:`1px solid ${_memColor}44`,borderRadius:4,padding:"1px 7px",fontFamily:_MO,fontSize:7,color:_memColor}}>
+                      {_memTop?.still_applicable?'STILL RELEVANT':'DIFFERENT NOW'}
+                    </div>
+                  </div>
+                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.4,marginBottom:_memTop?.intervention?6:0}}>{_memTop?.description?.slice(0,140)}{_memTop?.description?.length>140?'…':''}</div>
+                  {_memTop?.intervention&&<div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginTop:2}}>Fix applied: {_memTop.intervention?.slice(0,80)}</div>}
+                </div>
+                {coachRecall.similar_past.length>0&&(
+                  <button onClick={()=>setMemExpanded(e=>!e)} style={{background:"none",border:"none",padding:"8px 0 0",cursor:"pointer",width:"100%",textAlign:"left"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                      <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{memExpanded?"hide details":"tell me more"}</span>
+                      <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
+                    </div>
+                  </button>
+                )}
+                {memExpanded&&(
+                  <>
+                    {coachRecall.what_is_different?.length>0&&(
+                      <div style={{marginTop:10}}>
+                        <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>What's different this time</div>
+                        {coachRecall.what_is_different.map((diff,i)=>(
+                          <div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
+                            <div style={{width:4,height:4,borderRadius:"50%",background:"#60a5fa",marginTop:5,flexShrink:0}}/>
+                            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.4}}>{diff}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {coachRecall.similar_past.slice(1).map((mem,i)=>(
+                      <div key={i} style={{background:"var(--card-border)",borderRadius:8,padding:"8px 10px",marginTop:8}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                          <div style={{fontFamily:_MO,fontSize:7,color:mem.still_applicable?'#f59e0b':"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{mem.date}</div>
+                          {mem.effectiveness!=null&&<div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>{mem.effectiveness}% effective</div>}
+                        </div>
+                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"var(--text-dim)",lineHeight:1.4}}>{mem.description?.slice(0,100)}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    function PH({eyebrow,headline,body}){
+      return(
+        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{eyebrow}</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#fff",marginBottom:6}}>{headline}</div>
+          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{body}</div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{background:"#000",minHeight:"100vh",position:"relative",overflow:"hidden"}} className="page-enter">
+        <style>{`@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        {/* Atmospheric red glows */}
+        <div style={{position:"absolute",top:-80,left:-100,width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.13) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+        <div style={{position:"absolute",bottom:150,right:-120,width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+
+        <div style={{position:"relative",zIndex:1}}>
+          {/* Header */}
+          <div className="screen-header" style={{paddingTop:12}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="header-eyebrow">// Performance</div>
+              <div className="header-title">Progress</div>
+            </div>
+          </div>
+
+          {/* Tab nav — dynamic per tier + mode */}
+          <div style={{display:"flex",borderBottom:"1px solid rgba(245,245,240,0.07)",marginBottom:16,overflowX:"auto"}}>
+            {progressTabs.map(id=>(
+              <button key={id} onClick={()=>setActiveTab(id)} style={{
+                flex:1,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,letterSpacing:"0.12em",
+                padding:"10px 4px",color:activeTab===id?"var(--accent)":"rgba(245,245,240,0.35)",
+                border:"none",borderBottom:activeTab===id?"2px solid var(--accent)":"2px solid transparent",
+                background:"none",cursor:"pointer",whiteSpace:"nowrap"
+              }}>{id.toUpperCase()}</button>
+            ))}
+          </div>
+
+          {/* ── OVERVIEW ── */}
+          {activeTab==="overview"&&<>
+
+            {/* ── OVERVIEW DASHBOARD — Pass 1: weight band + bento ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _unit=profile?.wUnit||'lbs';
+
+              // ── Weight trend — sorted last 14 weigh-ins ──
+              const _wl=[...(bodyweightLogs||[])].sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);
+              const _curW=_wl.length>0?_wl[_wl.length-1].weight:null;
+              const _prvW=_wl.length>1?_wl[0].weight:null;
+              const _deltaN=(_curW!=null&&_prvW!=null)?parseFloat((_curW-_prvW).toFixed(1)):null;
+              const _goalK=(profile?.goal||'').toLowerCase();
+              const _goodDir=_deltaN==null?null:(['lose','cut'].includes(_goalK)?_deltaN<0:['gain','bulk'].includes(_goalK)?_deltaN>0:null);
+              const _deltaColor=_goodDir===true?'#22c55e':_goodDir===false?'var(--accent)':'var(--text-dim)';
+
+              // SVG chart geometry
+              const _svgH=130, _hasCh=_wl.length>=2;
+              let _pts=[],_ln='',_ar='';
+              if(_hasCh){
+                const _mn=Math.min(..._wl.map(l=>l.weight));
+                const _mx=Math.max(..._wl.map(l=>l.weight));
+                const _rng=Math.max(_mx-_mn,1.5);
+                const _pd=6;
+                _pts=_wl.map((l,i)=>({
+                  x:parseFloat(((i/(_wl.length-1))*320).toFixed(1)),
+                  y:parseFloat((_pd+(_svgH-2*_pd)*(1-(l.weight-_mn)/_rng)).toFixed(1))
+                }));
+                _ln=_pts.map((p,i)=>`${i===0?'M':'L'}${p.x} ${p.y}`).join(' ');
+                _ar=`${_ln} L${_pts[_pts.length-1].x} ${_svgH} L0 ${_svgH}Z`;
+              }
+              const _lastPt=_pts[_pts.length-1];
+
+              // ── Bento data ──
+              const _schedWk=WDAYS.filter(d=>schedule?.[d]&&schedule[d]!=='rest').length||4;
+
+              // % to goal — declared FIRST because _g2* (goal-date) reads _goalW
+              // Calc: if losing (startW>goalW): pct=(startW-curW)/(startW-goalW)*100
+              //       if gaining (goalW>startW): pct=(curW-startW)/(goalW-startW)*100
+              const _startW=parseFloat(profile?.startWeight)||parseFloat(profile?.weight)||null;
+              const _goalW=parseFloat(profile?.goalWeight)||null;
+              const _hasGoalW=_startW!=null&&_goalW!=null&&_curW!=null&&Math.abs(_goalW-_startW)>0.5;
+              let _goalPct=null;
+              if(_hasGoalW){
+                const _lossJ=_startW>_goalW;
+                _goalPct=Math.round(Math.max(0,Math.min(100,
+                  _lossJ?(_startW-_curW)/(_startW-_goalW)*100:(_curW-_startW)/(_goalW-_startW)*100
+                )));
+              }
+              const _g3v=_hasGoalW?`${_goalPct??0}`:`${workoutLogsRaw.length}`;
+              const _g3u=_hasGoalW?'%':null;
+              const _g3s=_hasGoalW?'to goal':'sessions';
+
+              // Projected goal date — reuses weightProjection regression (slope = lbs/day)
+              // _goalW declared above — no TDZ risk here
+              let _g2v='—',_g2u=null,_g2s='LOG WEIGHT',_g2c='var(--text-dim)';
+              if(weightProjection&&_goalW&&_curW){
+                const _sl=weightProjection.slope;
+                if(Math.abs(_sl)>=0.01){
+                  const _dl=(_goalW-_curW)/_sl;
+                  if(_dl<=0){_g2v='NOW';_g2s='GOAL REACHED';_g2c='#22c55e';}
+                  else if(_dl>730){_g2v='2+ YR';_g2s='EST. GOAL DATE';_g2c='var(--text-dim)';}
+                  else{
+                    const _pd=new Date(Date.now()+_dl*86400000);
+                    const _mo=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                    _g2v=String(_pd.getDate()); _g2u=_mo[_pd.getMonth()];
+                    _g2s='EST. GOAL DATE'; _g2c='var(--cm-ink)';
+                  }
+                }else{_g2s='STABLE TREND';}
+              }else if(!_goalW){_g2s='SET A GOAL';}
+
+              return(
+                <>
+                  {/* WEIGHT TREND — full-bleed band */}
+                  <div style={{background:"var(--bg)"}}>
+
+                    <div style={{padding:"18px 20px 10px"}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>WEIGHT TREND</div>
+                      {/* Number + delta — baseline-aligned inline (mock: "180 lb ▼ 5 lb · on track") */}
+                      <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap"}}>
+                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
+                          {_curW??'--'}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_unit==='lbs'?'lb':_unit}</span>
+                        </div>
+                        {_deltaN!=null&&(
+                          <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:_deltaColor,letterSpacing:"-0.01em",display:"flex",alignItems:"center",gap:4,paddingBottom:3}}>
+                            <span>{_deltaN<0?'▼':'▲'}</span>
+                            <span>{Math.abs(_deltaN)}<span style={{fontFamily:_MO,fontSize:10,fontWeight:700,marginLeft:1}}>{_unit==='lbs'?'lb':_unit}</span></span>
+                            {_goodDir===true&&_goalW&&<span>{'· on track for '}{_goalW}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {_hasCh?(
+                      <svg viewBox={`0 0 320 ${_svgH}`} width="100%"
+                        style={{display:"block",overflow:"visible",marginTop:4}}>
+                        <defs>
+                          <linearGradient id="wt-fill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18"/>
+                            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
+                          </linearGradient>
+                          {!_isLight&&(
+                            <filter id="wt-glow" x="-10%" y="-120%" width="120%" height="340%">
+                              <feGaussianBlur stdDeviation="4" result="b1"/>
+                              <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b2"/>
+                              <feMerge>
+                                <feMergeNode in="b1"/>
+                                <feMergeNode in="b2"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                          )}
+                        </defs>
+                        <path d={_ar} fill="url(#wt-fill)"/>
+                        <path d={_ln} fill="none" stroke="var(--accent)" strokeWidth="2.5"
+                          strokeLinecap="round" strokeLinejoin="round"
+                          filter={!_isLight?"url(#wt-glow)":undefined}/>
+                        {_lastPt&&<circle cx={_lastPt.x} cy={_lastPt.y} r="4"
+                          fill="var(--accent)" filter={!_isLight?"url(#wt-glow)":undefined}/>}
+                      </svg>
+                    ):(
+                      <div style={{padding:"0 20px 16px"}}>
+                        <div style={{fontFamily:_MO,fontSize:10,color:"var(--text-faint)",lineHeight:1.65}}>
+                          {_curW?`${_curW} ${_unit} logged — add more to see your trend`:'Log your weight to start your trend'}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{height:1,background:"var(--card-border)",margin:"12px 20px 0"}}/>
+                  </div>
+
+                  {/* BENTO CLUSTER */}
+                  <div style={{display:"flex",gap:8,padding:"12px 20px 4px",background:"var(--bg)"}}>
+                    {[
+                      // u = unit suffix (small bold, same color); s = word label (small dim, below)
+                      {l:'SESSIONS',v:`${workoutsThisWeek}`,u:null,  s:`/${_schedWk} wk`, c:'var(--cm-ink)'},
+                      {l:'GOAL DATE',v:_g2v,                 u:_g2u,  s:_g2s,               c:_g2c},
+                      {l:'TO GOAL', v:_g3v,                 u:_g3u,  s:_g3s,               c:'#22c55e'},
+                    ].map(({l,v,u,s,c})=>(
+                      <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
+                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                        {/* Number + compact bold unit suffix (lb / d / %) */}
+                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
+                          {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
+                        </div>
+                        {/* Dim word label below — secondary context */}
+                        {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{s}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+
+            {/* ── THIS WEEK BAND — Pass 2A ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _dLabel=trainingDaysThisWeek===1?'day':'days';
+              return(
+                <div style={{background:"var(--bg)"}}>
+                  <div style={{padding:"18px 20px 14px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>THIS WEEK</div>
+                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",marginBottom:16}}>
+                      {trainingDaysThisWeek}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_dLabel}</span>
+                    </div>
+                    <div style={{display:"flex",gap:8,marginBottom:16}}>
+                      {twRings.map(({pct,value,label,color},i)=>(
+                        <MiniRing key={label} pct={pct} value={value} label={label} color={color} index={i}/>
+                      ))}
+                    </div>
+                    <div style={{height:1,background:"var(--card-border)",marginBottom:12}}/>
+                    <div style={{display:"flex"}}>
+                      {[
+                        {l:"CAL HIT",v:`${calHitDays}d`},
+                        {l:"PROT HIT",v:`${protHitDays}d`},
+                        {l:"STREAK",v:`${currentStreak}d`},
+                      ].map(({l,v},i)=>(
+                        <div key={l} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid var(--card-border)":"none"}}>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.02em"}}>{v}</div>
+                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--text-faint)",marginTop:4,letterSpacing:"0.14em",textTransform:"uppercase"}}>{l}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+                </div>
+              );
+            })()}
+
+            {/* ── COACH SCORE BENTO ROW — Pass 2A ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _hasNutr=calHitDays>0||protHitDays>0;
+              const _nutrC=calHitDays>=5?'#22c55e':calHitDays>=3?'var(--cm-ink)':'var(--text-dim)';
+              const _tiles=[
+                {l:'COACH SCORE',v:`${sc.total}`,u:null,s:scoreStatus,c:ringColor},
+                {l:'STREAK',v:`${currentStreak}`,u:'d',s:'active streak',c:'var(--cm-ink)'},
+                ...(_hasNutr?[{l:'CAL IN RANGE',v:`${calHitDays}`,u:null,s:'/7d this week',c:_nutrC}]:[]),
+              ];
+              return(
+                <div style={{display:"flex",gap:8,padding:"12px 20px 4px",background:"var(--bg)"}}>
+                  {_tiles.map(({l,v,u,s,c})=>(
+                    <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
+                        {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
+                      </div>
+                      {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em",textTransform:"uppercase"}}>{s}</div>}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {workoutLogsRaw.length>0&&<WeeklyReview
+              workoutLogsRaw={workoutLogsRaw}
+              workoutsThisWeek={workoutsThisWeek}
+              volumeThisWeek={volumeThisWeek}
+              volumeLastWeek={volumeLastWeek}
+              protHitDays={protHitDays}
+              calHitDays={calHitDays}
+              twStart={_twStart}
+              macros={macros}
+              user={user}
+              setsThisWeek={setsThisWeek}
+              timeThisWeek={timeThisWeek}
+              prsThisWeek={prsThisWeek}
+              weekDays={weekDays}
+              trainingDaysThisWeek={trainingDaysThisWeek}
+              lastWeekTrainingDays={lastWeekTrainingDays}
+              wUnit={profile?.wUnit||'lbs'}
+              onTap={()=>setShowWeeklyReviewModal(true)}
+            />}
+            {/* Empty state — fewer than 3 sessions */}
+            {workoutLogsRaw.length<3&&(
+              <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// PROGRESS UNLOCKS IN 3 SESSIONS</div>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                  YOUR DATA IS BUILDING<span style={{color:"var(--accent)"}}>.</span>
+                </div>
+                <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5,marginBottom:16}}>
+                  Complete {3-workoutLogsRaw.length} more session{3-workoutLogsRaw.length===1?"":"s"} to unlock your full progress dashboard. Coach Macro needs a baseline to start measuring your growth.
+                </div>
+                <div style={{marginBottom:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.12em"}}>Sessions completed</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)"}}>{workoutLogsRaw.length}/3</span>
+                  </div>
+                  <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/3*100)}%`,background:"var(--accent)",borderRadius:3,transition:"width 0.6s ease"}}/>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    {[0,1,2].map(i=>(
+                      <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<workoutLogsRaw.length?"var(--accent)":"rgba(245,245,240,0.07)"}}/>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={()=>setSection("train")} style={{width:"100%",padding:"13px 0",background:"var(--accent)",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>
+                  START A SESSION →
+                </button>
+              </div>
+            )}
+            {/* Coach Score Card — removed in Pass 2A, re-housed as bento tile above */}
+
+            {/* ── EVENT COUNTDOWN BAND — Pass 2B (hyrox / running / strength unified) ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+
+              const _isHyroxEvent=!!(wPrefs?.isHyrox&&(profile?.hyrox_race_date||wPrefs?.hyroxRaceDate));
+              const _isRunEvent=!!(profile?.run_race_date&&!wPrefs?.isHyrox);
+              const _isStrengthEvent=!!profile?.strength_comp_date;
+              if(!_isHyroxEvent&&!_isRunEvent&&!_isStrengthEvent)return null;
+
+              // ── Hyrox ──
+              if(_isHyroxEvent){
+                const raceDate=profile?.hyrox_race_date||wPrefs?.hyroxRaceDate;
+                const phase=getHyroxPhase(raceDate);
+                if(!phase)return null;
+                const hProf={
+                  hyrox_category:wPrefs?.hyroxCategory||profile?.hyrox_category||"open",
+                  hyrox_experience:wPrefs?.hyroxExp||profile?.hyrox_experience||"",
+                  hyrox_weak_stations:wPrefs?.hyroxWeakStations||profile?.hyrox_weak_stations||[],
+                  hyrox_target_time:wPrefs?.hyroxTargetTimeMin?`${wPrefs.hyroxTargetTimeMin}:${wPrefs.hyroxTargetTimeSec||"00"}`:profile?.hyrox_target_time,
+                  hyrox_previous_time:wPrefs?.hyroxPrevTimeMin?`${wPrefs.hyroxPrevTimeMin}:${wPrefs.hyroxPrevTimeSec||"00"}`:profile?.hyrox_previous_time,
+                };
+                const pred=getRaceTimePredictor(hProf,(workoutLogsRaw||[]).slice(0,30));
+                const _glow=!_isLight?`drop-shadow(0 0 18px ${phase.color}40)`:undefined;
+                return(
+                  <div style={{background:"var(--bg)"}}>
+                    <div style={{padding:"18px 20px 16px"}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE COUNTDOWN · HYROX</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
+                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
+                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
+                        </div>
+                        <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
+                        </div>
+                      </div>
+                      <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:8}}>{new Date(raceDate).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+                      <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 6px 6px 0",padding:"8px 12px",marginBottom:16}}>
+                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{phase.description}</div>
+                      </div>
+                      <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
+                      <div style={{display:"flex",gap:8,marginBottom:pred.targetTime?10:0}}>
+                        <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentPrediction}</div>
+                        </div>
+                        {pred.targetTime&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTime}</div>
+                        </div>}
+                      </div>
+                      {pred.targetTime&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,marginBottom:pred.topPriorities?.length?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
+                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
+                        <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
+                      </div>}
+                      {pred.topPriorities?.length>0&&<>
+                        <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>PRIORITY STATIONS</div>
+                        {pred.topPriorities.map(s=>(
+                          <div key={s} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                            <div style={{width:4,height:4,borderRadius:1,background:phase.color,flexShrink:0}}/>
+                            <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)"}}>{s}</span>
+                          </div>
+                        ))}
+                      </>}
+                    </div>
+                    <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+                  </div>
+                );
+              }
+
+              // ── Running ──
+              if(_isRunEvent){
+                const phase=getRunningPhase(profile.run_race_date);
+                if(!phase)return null;
+                const pred=getRunTimePredictor(profile,(workoutLogsRaw||[]).filter(l=>l.workout?.avg_pace_secs_per_km).slice(0,20));
+                const raceTypeLabels={_5k:"5K","5k":"5K",_10k:"10K","10k":"10K",half_marathon:"HALF MARATHON",marathon:"MARATHON",ultra:"ULTRA",obstacle:"OBSTACLE / OCR"};
+                const raceLabel=raceTypeLabels[profile.run_race_type]||(profile.run_race_type||"").toUpperCase().replace(/_/g," ");
+                const _hasPred=!!(pred.currentPrediction||pred.previousTime);
+                const _glow=!_isLight?`drop-shadow(0 0 18px ${phase.color}40)`:undefined;
+                return(
+                  <div style={{background:"var(--bg)"}}>
+                    <div style={{padding:"18px 20px 16px"}}>
+                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE DAY{raceLabel?` · ${raceLabel}`:''}</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
+                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
+                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
+                        </div>
+                        <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
+                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
+                        </div>
+                      </div>
+                      <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:8}}>{new Date(profile.run_race_date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+                      <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 6px 6px 0",padding:"8px 12px",marginBottom:_hasPred?16:0}}>
+                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{phase.description}</div>
+                      </div>
+                      {_hasPred&&<>
+                        <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
+                        <div style={{display:"flex",gap:8,marginBottom:pred.targetTime&&pred.gap?10:0}}>
+                          <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentPrediction||pred.previousTime}</div>
+                          </div>
+                          {pred.targetTime&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTime}</div>
+                          </div>}
+                        </div>
+                        {pred.targetTime&&pred.gap&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
+                          <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
+                          <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
+                        </div>}
+                      </>}
+                    </div>
+                    <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+                  </div>
+                );
+              }
+
+              // ── Strength ──
+              const phase=getStrengthPhase(profile.strength_comp_date);
+              if(!phase)return null;
+              const pred=getStrengthPredictor(profile);
+              const compTypeLabel=(profile.strength_comp_type||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+              const federation=profile.strength_comp_federation;
+              const _wUnit=profile?.units==="metric"?"kg":"lbs";
+              const _glow=!_isLight?`drop-shadow(0 0 18px ${phase.color}40)`:undefined;
+              return(
+                <div style={{background:"var(--bg)"}}>
+                  <div style={{padding:"18px 20px 16px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>COMPETITION{compTypeLabel?` · ${compTypeLabel.toUpperCase()}`:''}</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
+                        {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
+                      </div>
+                      <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
+                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
+                      </div>
+                    </div>
+                    <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:8}}>{compTypeLabel}{federation?` · ${federation}`:""}{` · `}{new Date(profile.strength_comp_date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+                    <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 6px 6px 0",padding:"8px 12px",marginBottom:pred.currentTotal>0?16:0}}>
+                      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{phase.description}</div>
+                    </div>
+                    {pred.currentTotal>0&&<>
+                      <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
+                      <div style={{display:"flex",gap:8,marginBottom:pred.targetTotal?10:0}}>
+                        <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>CURRENT</div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:"var(--text-dim)",marginLeft:3}}>{_wUnit}</span></div>
+                        </div>
+                        {pred.targetTotal&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
+                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
+                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:pred.onTrack?"#22c55e":"var(--accent)",marginLeft:3}}>{_wUnit}</span></div>
+                        </div>}
+                      </div>
+                      {pred.targetTotal&&pred.gapToTarget!==null&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,marginBottom:pred.topLiftToImprove?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
+                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"Target reached":"Gap to target"}</span>
+                        <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ On track":`${Math.abs(pred.gapToTarget)} to go`}</span>
+                      </div>}
+                      {pred.topLiftToImprove&&<div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:4,height:4,borderRadius:1,background:phase.color,flexShrink:0}}/>
+                        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)"}}>Focus: {pred.topLiftToImprove} — most room to close the gap</span>
+                      </div>}
+                    </>}
+                  </div>
+                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+                </div>
+              );
+            })()}
+
+            {/* Today's Insight + Coach Memory merged — Pass 2D */}
+            <ValidationInsightCard/>
+
+            {/* ── INSIGHTS ENTRY CARD — Pass 2E (collapses Connections + Peer) ── */}
+            {(()=>{
+              const _MO="'DM Mono',monospace";
+              const _connCount=(connectionData||[]).length;
+              const _hasPeer=!!(peerData);
+              const _rows=[
+                {label:'Correlations',sub:_connCount>0?`${_connCount} signal${_connCount!==1?'s':''}`:null,onTap:()=>setShowConnectionsView(true)},
+                {label:'Peer Comparison',sub:_hasPeer?'view your cohort':null,onTap:()=>setShowPeerView(true)},
+              ];
+              return(
+                <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
+                  <div style={{padding:"14px 16px 6px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>INSIGHTS</div>
+                  </div>
+                  {_rows.map(({label,sub,onTap},i)=>(
+                    <div key={label} onClick={onTap} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderTop:"1px solid var(--card-border)",cursor:"pointer"}}>
+                      <div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,color:"var(--cm-ink)",lineHeight:1}}>{label}</div>
+                        {sub&&<div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{sub}</div>}
+                      </div>
+                      <span style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)"}}>→</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* This Week Rings — removed in Pass 2A, re-housed as THIS WEEK band above */}
+
+            {/* Expenditure / TDEE Card */}
+            <ExpenditureCard/>
+
+            {/* ── PERFORMANCE CALENDAR BAND — Pass 2 refined ── */}
+            {(()=>{
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _trainedDays=calDays.filter(d=>!d.isFuture&&d.hasWorkout).length;
+              const _loggedDays=calDays.filter(d=>!d.isFuture&&d.hasMacros).length;
+              return(
+                <div style={{background:"var(--bg)"}}>
+                  <div style={{padding:"18px 20px 14px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>PERFORMANCE</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:!_isLight?"drop-shadow(0 0 20px rgba(var(--accent-rgb),0.18))":undefined}}>
+                        {_trainedDays}
+                      </div>
+                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>days trained</span>
+                    </div>
+                    <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.06em"}}>5-week window · {_loggedDays} meals logged</div>
+                  </div>
+                  {/* Full-bleed calendar — minimal side padding so cells are tappable-sized */}
+                  <div style={{padding:"0 6px 14px"}}>
+                    <PerformanceCalendarGrid calDays={calDays} isLight={_isLight}/>
+                  </div>
+                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+                </div>
+              );
+            })()}
+
+            {/* ── TRAINING DNA BAND — ghost radar locked state ── */}
+            <div data-tour="training-dna" style={{background:"var(--bg)"}}>
+              {workoutLogsRaw.length<10?(()=>{
+                const _AF="'Archivo',sans-serif";
+                const _MO="'DM Mono',monospace";
+                const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+                const _sess=workoutLogsRaw.length;
+                // Radar geometry — SAME 6-axis hexagon as unlocked drawDNARadar
+                // R=90 makes the radar a visual centrepiece in the 280×300 viewBox
+                const _R=90,_cx=140,_cy=148;
+                const _ang=i=>(i/6)*2*Math.PI-Math.PI/2;
+                const _ptX=(i,rr)=>(_cx+rr*Math.cos(_ang(i))).toFixed(1);
+                const _ptY=(i,rr)=>(_cy+rr*Math.sin(_ang(i))).toFixed(1);
+                const _hexPts=rr=>Array.from({length:6},(_,i)=>`${_ptX(i,rr)},${_ptY(i,rr)}`).join(' ');
+                // Data polygon grows from 0 → R across 10 sessions
+                const _fillR=_sess===0?0:Math.max(9,(_sess/10)*_R);
+                // Glow — dark-only, applied to data polygon + vertex dots
+                const _glow=!_isLight?"drop-shadow(0 0 8px rgba(var(--accent-rgb),0.55))":undefined;
+                const _AXLABELS=['STR','END','POW','CON','NUT','REC'];
+                return(
+                  <div style={{padding:"18px 20px 20px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>ATHLETE DNA</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:6}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
+                        {_sess}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>/10</span>
+                      </div>
+                      <span style={{fontFamily:_MO,fontSize:13,fontWeight:700,color:"var(--text-dim)"}}>sessions</span>
+                    </div>
+                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5,marginBottom:12}}>
+                      {_sess===0
+                        ?"Log your first session — your fingerprint starts forming."
+                        :`${10-_sess} more session${10-_sess===1?'':'s'} until your Training DNA unlocks.`}
+                    </div>
+                    {/* Forming radar — REAL visible strength, same geometry as unlocked */}
+                    <svg viewBox="0 0 280 300" width="100%" style={{display:"block"}}>
+                      {/* Inner grid rings — 0.22 opacity, clearly visible skeleton */}
+                      {[0.25,0.5,0.75].map(f=>(
+                        <polygon key={f} points={_hexPts(_R*f)} fill="none"
+                          stroke="rgba(var(--accent-rgb),0.22)" strokeWidth={0.8}/>
+                      ))}
+                      {/* Outer boundary — 0.4 opacity, strong skeleton frame */}
+                      <polygon points={_hexPts(_R)} fill="none"
+                        stroke="rgba(var(--cm-ink-rgb,10,10,10),0.4)" strokeWidth={1.5}/>
+                      {/* Axis spokes */}
+                      {Array.from({length:6},(_,i)=>(
+                        <line key={i} x1={_cx} y1={_cy} x2={_ptX(i,_R)} y2={_ptY(i,_R)}
+                          stroke="rgba(var(--cm-ink-rgb,10,10,10),0.15)" strokeWidth={0.8}/>
+                      ))}
+                      {/* Growing data polygon — strong stroke, dashed = in-progress */}
+                      {_fillR>0&&(
+                        <polygon points={_hexPts(_fillR)}
+                          fill="rgba(var(--accent-rgb),0.15)"
+                          stroke="rgba(var(--accent-rgb),0.75)"
+                          strokeWidth={2}
+                          strokeDasharray="5 3"
+                          style={{filter:_glow}}/>
+                      )}
+                      {/* Vertex dots — r=5, clearly visible, glow dark-only */}
+                      {_sess>0&&Array.from({length:6},(_,i)=>(
+                        <circle key={i} cx={_ptX(i,_fillR)} cy={_ptY(i,_fillR)} r={5}
+                          fill="rgba(var(--accent-rgb),0.85)"
+                          style={{filter:_glow}}/>
+                      ))}
+                      {/* Axis labels — same as unlocked radar, at R+22 */}
+                      {_AXLABELS.map((label,i)=>(
+                        <text key={i} x={_ptX(i,_R+22)} y={_ptY(i,_R+22)}
+                          textAnchor={Math.abs(Math.cos(_ang(i)))<0.2?'middle':Math.cos(_ang(i))>0?'start':'end'}
+                          dominantBaseline="middle"
+                          fontFamily="'DM Mono',monospace" fontSize={8}
+                          fill="rgba(var(--cm-ink-rgb,10,10,10),0.35)"
+                          letterSpacing="0.06em">{label}</text>
+                      ))}
+                    </svg>
+                  </div>
+                );
+              })():(
+                <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule} prefetchedDnaData={prefetchedDNA} dnaPromise={dnaPromiseRef.current}/>
+              )}
+              <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+            </div>
+
+            {/* ── COACH TIPS — Pass 2D ── */}
+            <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>COACHING</div>
+              {doingWell.length>0&&(
+                <div style={{marginBottom:focusTips.length?14:0}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:700,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>DOING WELL</div>
+                  {doingWell.map((t,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
+                      <span style={{color:"#22c55e",fontSize:11,marginTop:1,flexShrink:0}}>✓</span>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{t}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {focusTips.length>0&&(
+                <div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:700,color:"var(--accent)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>FOCUS THIS WEEK</div>
+                  {focusTips.map((t,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<focusTips.length-1?6:0}}>
+                      <span style={{color:"var(--accent)",fontSize:11,marginTop:1,flexShrink:0}}>→</span>
+                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{t}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!doingWell.length&&!focusTips.length&&(
+                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-faint)",lineHeight:1.5}}>Log workouts and meals to see personalized coaching.</div>
+              )}
+            </div>
+
+            {/* ── MILESTONES — badge scroll ── */}
+            {(()=>{
+              const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
+              const earnedSet=new Set(earned);
+              const _AF="'Archivo',sans-serif";
+              const _MO="'DM Mono',monospace";
+              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+              const _earnedCount=MILESTONES.filter(m=>earnedSet.has(m.id)).length;
+              return(
+                <div style={{background:"var(--bg)"}}>
+                  <div style={{padding:"18px 20px 14px"}}>
+                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>MILESTONES</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>{_earnedCount}</div>
+                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>/{MILESTONES.length} earned</span>
+                    </div>
+                  </div>
+                  <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:18}}>
+                    <div style={{display:"flex",gap:10,padding:"4px 20px",width:"max-content"}}>
+                      {MILESTONES.map((m,mi)=>{
+                        const isEarned=earnedSet.has(m.id);
+                        return(
+                          <div key={m.id} style={{
+                            flexShrink:0,width:78,padding:"16px 6px 12px",
+                            background:isEarned?"rgba(var(--accent-rgb),0.1)":"transparent",
+                            border:`${isEarned?2:1}px solid ${isEarned?"rgba(var(--accent-rgb),0.5)":"var(--card-border)"}`,
+                            borderRadius:18,textAlign:"center",
+                            position:"relative",
+                            opacity:isEarned?1:0.32,
+                            filter:isEarned&&!_isLight?"drop-shadow(0 0 12px rgba(var(--accent-rgb),0.35))":undefined,
+                            animation:`cardIn 0.35s ease-out ${mi*18}ms both`,
+                          }}>
+                            {/* Earned checkmark badge */}
+                            {isEarned&&(
+                              <div style={{position:"absolute",top:-5,right:-5,width:16,height:16,borderRadius:"50%",background:"var(--accent)",border:"2px solid var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <svg width={8} height={8} viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke="#fff" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </div>
+                            )}
+                            <div style={{fontSize:30,lineHeight:1,marginBottom:8,filter:isEarned&&!_isLight?"drop-shadow(0 0 6px rgba(var(--accent-rgb),0.4))":undefined}}>{m.icon}</div>
+                            <div style={{fontFamily:_MO,fontSize:6.5,color:isEarned?"var(--accent)":"var(--text-faint)",letterSpacing:"0.08em",textTransform:"uppercase",lineHeight:1.35,wordBreak:"break-word"}}>{m.title.replace(/\.$/, '')}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
+                </div>
+              );
+            })()}
+          </>}
+
+          {/* ── STRENGTH ── */}
+          {activeTab==="strength"&&<>
+            <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>// ACTIVE PLATEAUS</div>
+              {activePlateaus.length>0?(
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {activePlateaus.map((p,i)=>(
+                    <div key={p.id||i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<activePlateaus.length-1?"1px solid rgba(245,245,240,0.05)":"none"}}>
+                      <div style={{flex:1,minWidth:0,marginRight:12}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.exercise_name}</div>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>
+                          {p.plateau_type==="weight"?`Weight stuck at ${p.stalled_value} lbs × ${p.sessions_stalled} sessions`:`Volume flat × ${p.sessions_stalled} sessions`}
+                        </div>
+                      </div>
+                      {p.strategy_prescribed&&(
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.55)",textAlign:"right",flexShrink:0,maxWidth:110,lineHeight:1.3}}>{p.strategy_prescribed}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ):(
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#22c55e",marginTop:6}}>✓ All lifts progressing</div>
+              )}
+            </div>
+
+            <PRFeed dbPRs={dbPRs} wUnit={profile?.wUnit||"lbs"}/>
+
+            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 60ms both"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Volume This Week</div>
+              {volumeThisWeek>0?(
+                <>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#fff",lineHeight:1}}>{volumeThisWeek.toLocaleString()} <span style={{fontSize:16,color:"rgba(245,245,240,0.45)"}}>{profile?.wUnit||"lbs"}</span></div>
+                  {volumeLastWeek>0&&(
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10}}>
+                      {volumeThisWeek>=volumeLastWeek?(
+                        <><span style={{color:"#22c55e"}}>↑</span><span style={{color:"#22c55e"}}>{Math.round((volumeThisWeek/volumeLastWeek-1)*100)}% vs last week</span></>
+                      ):(
+                        <><span style={{color:"var(--accent)"}}>↓</span><span style={{color:"var(--accent)"}}>{Math.round((1-volumeThisWeek/volumeLastWeek)*100)}% vs last week</span></>
+                      )}
+                    </div>
+                  )}
+                </>
+              ):(
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"rgba(245,245,240,0.35)"}}>NO DATA YET.</div>
+              )}
+            </div>
+
+            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Workout Frequency</div>
+              <WorkoutFreqBars weeklyFreq={weeklyFreq}/>
+            </div>
+
+            {(()=>{
+              const split=wPrefs?.splitType||"My Program";
+              const pct=Math.min(100,Math.round((programWeek/12)*100));
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Mesocycle Progress</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:10}}>Week {programWeek} of 12 · {split}</div>
+                  <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#e8341c,rgba(232,52,28,0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
+                  </div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:6}}>{pct}% complete</div>
+                </div>
+              );
+            })()}
+            {(()=>{
+              // RPE trend chart — only if user has RPE data on at least 5 sessions
+              const sixWeeksAgo=new Date(Date.now()-42*864e5).toISOString().split("T")[0];
+              const recentLogs=(workoutLogsRaw||[]).filter(l=>l.date>=sixWeeksAgo).sort((a,b)=>a.date>b.date?1:-1);
+
+              // Build per-exercise RPE history from raw logs
+              const exRPEMap={};
+              recentLogs.forEach(log=>{
+                (log.workout?.exercises||[]).forEach(ex=>{
+                  if(!exRPEMap[ex.name])exRPEMap[ex.name]=[];
+                  const doneSets=(ex.sets||[]).filter(s=>s.done&&s.rpe!=null);
+                  if(!doneSets.length)return;
+                  const avgRPE=doneSets.reduce((sum,s)=>sum+s.rpe,0)/doneSets.length;
+                  exRPEMap[ex.name].push({date:log.date,avgRPE:Math.round(avgRPE*10)/10});
+                });
+              });
+
+              // Sessions that have ANY RPE data
+              const sessionsWithRPE=new Set(recentLogs.filter(l=>(l.workout?.exercises||[]).some(ex=>(ex.sets||[]).some(s=>s.done&&s.rpe!=null))).map(l=>l.date));
+              if(sessionsWithRPE.size<5)return null;
+
+              // Pick top 2 exercises with most RPE data
+              const topExercises=Object.entries(exRPEMap)
+                .filter(([,h])=>h.length>=3)
+                .sort((a,b)=>b[1].length-a[1].length)
+                .slice(0,2);
+              if(topExercises.length===0)return null;
+
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// RPE TREND</div>
+                  {topExercises.map(([exName,exHistory])=>{
+                    const points=exHistory.slice(-8);
+                    if(points.length<2)return null;
+                    const trend=points[points.length-1].avgRPE-points[0].avgRPE;
+                    const trendColor=trend>0.5?'#e8341c':trend>0?'#FEA020':'#22c55e';
+                    const trendLabel=trend>0.5?"↑ RPE rising":trend>0?"→ RPE stable (slight rise)":"→ RPE stable";
+                    return <RPELineChart key={exName} points={points} exName={exName} trendColor={trendColor} trendLabel={trendLabel}/>;
+                  })}
+                  <div style={{display:"flex",gap:12,marginTop:4}}>
+                    {[["≤7","#22c55e","Easy"],["8","#FEA020","Hard"],["≥9","var(--accent)","Very Hard"]].map(([label,color,desc])=>(
+                      <div key={label} style={{display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{width:6,height:6,borderRadius:"50%",background:color,flexShrink:0}}/>
+                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{label} {desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </>}
+
+          {/* ── NUTRITION ── */}
+          {activeTab==="nutrition"&&<>
+            {(()=>{
+              const twDays=Object.entries(dailyFoodMap).filter(([d])=>d>=_twStart&&dailyFoodMap[d].hasData);
+              if(twDays.length===0)return<PH eyebrow="// This Week's Averages" headline="NO LOGS YET." body="Log meals this week to see your daily average calories and macros."/>;
+              const n=twDays.length;
+              const avg=(key)=>Math.round(twDays.reduce((s,[,v])=>s+v[key],0)/n);
+              const avgCal=avg('cal'),avgProt=avg('prot'),avgCarbs=avg('carbs'),avgFat=avg('fat');
+              function chipColor(actual,target){if(actual>=target*0.9&&actual<=target*1.1)return"#22c55e";if(actual>=target*0.75&&actual<=target*1.25)return"#FEA020";return"var(--accent)";}
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week's Averages</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    {[{l:"Calories",v:avgCal,t:calTarget,u:"kcal"},{l:"Protein",v:avgProt,t:protTarget,u:"g"},{l:"Carbs",v:avgCarbs,t:carbTarget,u:"g"},{l:"Fat",v:avgFat,t:fatTarget,u:"g"}].map(({l,v,t,u})=>(
+                      <div key={l} style={{padding:"10px 12px",background:"rgba(245,245,240,0.03)",borderRadius:10,border:`1px solid ${chipColor(v,t)}30`}}>
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:chipColor(v,t),lineHeight:1}}>{v} <span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.35)"}}>/ {t}{u}</span></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {(()=>{
+              const days14=Array.from({length:14},(_,i)=>{
+                const d=new Date(Date.now()-(13-i)*864e5);
+                const ds=d.toISOString().split('T')[0];
+                const fd=dailyFoodMap[ds];
+                return{ds,fd,dow:d.toLocaleDateString('en-US',{weekday:'short'}).slice(0,1)};
+              });
+              const hitCount=days14.filter(({fd})=>fd?.hasData&&fd.prot>=protTarget*0.9).length;
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Protein Consistency</div>
+                  <ProteinGrid days14={days14} hitCount={hitCount} protTarget={protTarget}/>
+                </div>
+              );
+            })()}
+
+            {(()=>{
+              const days14=Array.from({length:14},(_,i)=>{
+                const ds=new Date(Date.now()-(13-i)*864e5).toISOString().split('T')[0];
+                const fd=dailyFoodMap[ds];
+                return{ds,cal:fd?.cal||0,hasData:fd?.hasData||false};
+              });
+              const daysWithData=days14.filter(d=>d.hasData).length;
+              if(daysWithData<3)return<PH eyebrow="// Calorie Trend" headline="KEEP LOGGING." body="Log 3 days of meals to see your calorie trend."/>;
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Calorie Trend</div>
+                  <CalorieTrendChart days14={days14} calTarget={calTarget}/>
+                </div>
+              );
+            })()}
+
+            <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||'lbs'}/>
+            {weightProjection?(
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Weight Projection</div>
+                <WeightChart
+                  weightProjection={weightProjection}
+                  goalW={profile?.goalWeight?parseFloat(profile.goalWeight):null}
+                  profile={profile}
+                />
+              </div>
+            ):(
+              <PH eyebrow="// Weight Projection" headline="LOG YOUR WEIGHT." body="Log your weight for 5+ days to see trend projection and forecast."/>
+            )}
+            {(profile?.wHistory||profile?.wTrend)&&(()=>{
+              const histLabel={yes:"Previously significantly heavier",no:"Weight stable long-term",notsure:"Weight history unclear"}[profile.wHistory]||null;
+              const trendLabel={losing:"Losing",gaining:"Gaining",stable:"Stable",notsure:"Trend unclear"}[profile.wTrend]||null;
+              if(!histLabel&&!trendLabel)return null;
+              return(
+                <div style={{margin:"0 16px 14px",padding:"10px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap",animation:"cardIn 0.4s ease-out both"}}>
+                  {histLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{histLabel}</span>}
+                  {trendLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Trend: {trendLabel}</span>}
+                </div>
+              );
+            })()}
+          </>}
+
+          {/* ── RECOVERY ── */}
+          {activeTab==="recovery"&&<>
+            <div style={{margin:"0 16px 14px"}}>
+              <MuscleRecovery userId={user?.id} recoveryData={prefetchedRecovery} optimizationData={prefetchedOptim} recoveryPromise={recoveryPromiseRef.current}/>
+            </div>
+
+            {/* Muscle Balance */}
+            {(()=>{
+              const b=latestBalance;
+              const noData=!b||(b.push_volume_lbs===0&&b.pull_volume_lbs===0&&b.quad_volume_lbs===0&&b.posterior_volume_lbs===0);
+              const ppStatus=b?.push_pull_status||"balanced";
+              const qpStatus=b?.quad_posterior_status||"balanced";
+              const statusColor=s=>s==="risk"?"var(--accent)":s==="warning"?"#FEA020":"#22c55e";
+              const ppTotal=(b?.push_volume_lbs||0)+(b?.pull_volume_lbs||0);
+              const qpTotal=(b?.quad_volume_lbs||0)+(b?.posterior_volume_lbs||0);
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Muscle Balance</div>
+                  {noData?(
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)"}}>
+                      COMPLETE MORE SESSIONS TO SEE BALANCE.
+                    </div>
+                  ):(
+                    <>
+                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>LAST 30 DAYS</div>
+                      {/* Push/Pull */}
+                      <div style={{marginBottom:14}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>PUSH vs PULL</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(ppStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{ppStatus}</div>
+                        </div>
+                        {[["PUSH",b?.push_volume_lbs||0,"var(--accent)"],["PULL",b?.pull_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
+                          <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${ppTotal>0?Math.round(vol/ppTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
+                          </div>
+                        ))}
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
+                          {b?.push_pull_ratio||1}:1 push to pull — {ppStatus}
+                        </div>
+                      </div>
+                      <div style={{height:1,background:"rgba(245,245,240,0.05)",marginBottom:14}}/>
+                      {/* Quad/Posterior */}
+                      <div style={{marginBottom:14}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>QUAD vs POSTERIOR</div>
+                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(qpStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{qpStatus}</div>
+                        </div>
+                        {[["QUAD",b?.quad_volume_lbs||0,"var(--accent)"],["POST",b?.posterior_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
+                          <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
+                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${qpTotal>0?Math.round(vol/qpTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
+                          </div>
+                        ))}
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
+                          {b?.quad_posterior_ratio||1}:1 quad to posterior — {qpStatus}
+                        </div>
+                      </div>
+                      {ppStatus==="balanced"&&qpStatus==="balanced"&&(
+                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#22c55e"}}>✓ Muscle balance is good. Keep it up.</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+            {(()=>{
+              const split=wPrefs?.splitType||'';
+              const optimal=split.includes('6')?1:split.includes('4')?3:4;
+              const diff=restDaysThisWeek-optimal;
+              const c=Math.abs(diff)<=1?"#22c55e":Math.abs(diff)===2?"#FEA020":"var(--accent)";
+              return(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Rest Days This Week</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:c,lineHeight:1,marginBottom:6}}>{restDaysThisWeek} <span style={{fontSize:14,color:"rgba(245,245,240,0.45)"}}>rest days</span></div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for {split||"your program"}: {optimal} rest day{optimal!==1?"s":""}</div>
+                </div>
+              );
+            })()}
+
+            <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,textAlign:"center"}}>
+              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Recovery Score</div>
+              <RecoveryGauge score={recoveryScore}/>
+            </div>
+
+            {healthSnap?.sleep!=null?(
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Avg Sleep This Week</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"var(--accent)",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for recovery: 7–9 hours</div>
+              </div>
+            ):(
+              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
+                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Sleep Data</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:6}}>CONNECT APPLE HEALTH.</div>
+                <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",marginBottom:12}}>Connect Apple Health to track sleep and recovery data automatically.</div>
+                <button onClick={()=>setShowHealthModal(true)} style={{background:"none",border:"1px solid rgba(245,245,240,0.2)",borderRadius:8,padding:"8px 14px",color:"rgba(245,245,240,0.65)",fontSize:12,cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",letterSpacing:"0.08em"}}>Connect Apple Health →</button>
+              </div>
+            )}
+          </>}
+
+          {/* ── RUNNING TAB ── */}
+          {activeTab==="running"&&(()=>{
+            const allRuns=(allActs||[]).filter(a=>(a.type||'').toLowerCase().includes('run')).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+            const recentRuns=allRuns.slice(0,12);
+            const hasRace=!!(profile?.run_race_date||wPrefs?.hyroxRaceDate||profile?.hyrox_race_date);
+            const mono="'DM Mono','SF Mono',monospace";
+            const cond="'Barlow Condensed',sans-serif";
+
+            return(
+              <>
+                {/* Weekly mileage card */}
+                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+                  <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week's Running</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{runActsThisWeek.length}</div>
+                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Runs</div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--accent)",lineHeight:1}}>{displayDistance(runDistKm,profile?.wUnit||'lbs')}</div>
+                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>{distanceLabel(profile?.wUnit||'lbs')}</div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#60a5fa",lineHeight:1}}>{runTimeMins>=60?`${Math.floor(runTimeMins/60)}h${Math.round(runTimeMins%60)}m`:`${runTimeMins}m`}</div>
+                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Time</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent runs list */}
+                {recentRuns.length>0?(
+                  <div style={{margin:"0 16px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16,overflow:"hidden"}}>
+                    <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",padding:"14px 16px 10px"}}>// Recent Runs</div>
+                    {recentRuns.map((run,i)=>{
+                      const d=new Date((run.date||run.start_date_local||'').split('T')[0]+'T12:00:00');
+                      const dateLabel=isNaN(d.getTime())?'—':d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+                      const distKm=parseFloat(run.distanceKm)||0;
+                      const distLabel=displayDistance(distKm,profile?.wUnit||'lbs');
+                      const dur=parseInt(run.durationMins)||0;
+                      const paceSecKm=distKm>0&&dur>0?Math.round(dur*60/distKm):null;
+                      const paceStr=paceSecKm?`${Math.floor(paceSecKm/60)}:${String(paceSecKm%60).padStart(2,'0')}/km`:'—';
+                      return(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:i>0?"1px solid rgba(245,245,240,0.05)":"none"}}>
+                          <div style={{width:34,height:34,borderRadius:10,background:"rgba(34,197,94,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>🏃</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:cond,fontWeight:700,fontSize:14,color:"#f5f5f0",lineHeight:1}}>{run.name||'Run'}</div>
+                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{dateLabel}</div>
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:700,fontSize:14,color:"#22c55e"}}>{distLabel}</div>
+                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{paceStr}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ):(
+                  <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
+                    <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",marginBottom:8}}>NO RUNS YET.</div>
+                    <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Log a run from the Train tab or sync Strava to see your running stats here.</div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+          <div style={{height:24}}/>
+        </div>
+      </div>
+    );
+});
+
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user,onProfileUpdate}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
   // planBuilt mirrors profiles.plan_built — owned as local state so markPlanBuilt can flip it
@@ -9184,1818 +11005,6 @@ Rules:
     );
   }
 
-  function BodyweightSection({logs,user:u,setLogs,wUnit}) {
-    const [bwModal,setBwModal]=useState(false);
-    const [bwInput,setBwInput]=useState("");
-    const [bwDate,setBwDate]=useState(()=>new Date().toISOString().split("T")[0]);
-    const [bwSaving,setBwSaving]=useState(false);
-
-    async function saveWeight(){
-      const w=parseFloat(bwInput);
-      if(!w||!u)return;
-      setBwSaving(true);
-      const entry={date:bwDate,weight:w};
-      await sb.from("bodyweight_logs").upsert({user_id:u.id,...entry},{onConflict:"user_id,date"});
-      setLogs(prev=>[...prev.filter(x=>x.date!==bwDate),entry].sort((a,b)=>a.date.localeCompare(b.date)));
-      setBwModal(false);setBwInput("");setBwSaving(false);
-    }
-
-    const chartData=(()=>{
-      if(logs.length<2)return null;
-      const vals=logs.map(x=>x.weight);
-      const minW=Math.min(...vals)-2,maxW=Math.max(...vals)+2;
-      const n=logs.length;
-      const W=300,H=80;
-      const px=(idx)=>Math.round((idx/(n-1))*W);
-      const py=(v)=>Math.round(H-((v-minW)/(maxW-minW))*H);
-      const line=logs.map((x,idx)=>`${idx===0?"M":"L"}${px(idx)},${py(x.weight)}`).join(" ");
-      const ma=logs.map((_,idx)=>{
-        const slice=logs.slice(Math.max(0,idx-3),idx+4);
-        return slice.reduce((s,x)=>s+x.weight,0)/slice.length;
-      });
-      const maLine=ma.map((v,idx)=>`${idx===0?"M":"L"}${px(idx)},${py(v)}`).join(" ");
-      const startW=Math.ceil(vals[0]/5)*5;
-      const milestones=[];
-      for(let m=startW;m<=maxW+5;m+=5)if(m>=minW)milestones.push(m);
-      return{line,maLine,W,H,vals,py,px,milestones,n};
-    })();
-
-    const latest=logs[logs.length-1];
-
-    return(
-      <div style={{margin:"0 16px 14px"}}>
-        <div style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.35)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>WEIGHT</div>
-        <div style={{background:"var(--navy-card)",border:"1px solid var(--white-border)",borderRadius:16,padding:"16px 18px"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-            <div>
-              {latest
-                ?<><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1}}>{latest.weight}<span style={{fontSize:14,fontWeight:400,color:"rgba(245,245,240,0.45)",marginLeft:4}}>{wUnit}</span></div>
-                  <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginTop:2}}>Last: {new Date(latest.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div></>
-                :<div style={{textAlign:"center",padding:"8px 0 4px"}}>
-                  <div style={{fontSize:28,marginBottom:6}}>⚖️</div>
-                  <div style={{fontSize:13,fontWeight:600,color:"rgba(245,245,240,0.65)"}}>No weight logged yet</div>
-                  <div style={{fontSize:11,color:"rgba(245,245,240,0.35)",marginTop:3}}>Log daily to see your trend</div>
-                </div>}
-            </div>
-            <button onClick={()=>setBwModal(true)} style={{padding:"8px 16px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.05em"}}>+ Log</button>
-          </div>
-          {chartData&&(
-            <svg viewBox={`0 0 ${chartData.W} ${chartData.H}`} style={{width:"100%",height:80,overflow:"visible",display:"block"}}>
-              {chartData.milestones.map(m=>(
-                <line key={m} x1={0} y1={chartData.py(m)} x2={chartData.W} y2={chartData.py(m)} stroke="rgba(245,245,240,0.06)" strokeWidth={1}/>
-              ))}
-              <path d={chartData.line} fill="none" stroke="rgba(var(--accent-rgb),0.4)" strokeWidth={1.5}/>
-              <path d={chartData.maLine} fill="none" stroke="var(--red)" strokeWidth={2} strokeLinecap="round"/>
-              {logs.map((x,idx)=>{
-                const isMilestone=chartData.milestones.some(m=>Math.abs(x.weight-m)<0.5);
-                if(!isMilestone&&idx!==logs.length-1)return null;
-                return<circle key={idx} cx={chartData.px(idx)} cy={chartData.py(x.weight)} r={isMilestone?4:3} fill={isMilestone?T.fat:"var(--red)"} stroke="var(--navy-card)" strokeWidth={2}/>;
-              })}
-            </svg>
-          )}
-          {chartData&&<div style={{display:"flex",gap:16,marginTop:8}}>
-            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
-              <div style={{width:16,height:2,background:"var(--red)",borderRadius:1}}/>7-day avg
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(245,245,240,0.4)"}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:T.fat}}/>5 {wUnit} milestone
-            </div>
-          </div>}
-        </div>
-        {bwModal&&(
-          <div onClick={()=>setBwModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-            <div onClick={e=>e.stopPropagation()} style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"20px 20px 0 0",padding:24,width:"100%",maxWidth:480,paddingBottom:"max(24px,env(safe-area-inset-bottom))"}}>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:"0.24em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",marginBottom:8}}>Weigh-in</div>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:24,color:"var(--cm-ink,#0A0A0A)",marginBottom:20,lineHeight:1}}>Log Weight</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-                <div>
-                  <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"'Archivo',sans-serif",fontWeight:700}}>Weight ({wUnit})</div>
-                  <input autoFocus value={bwInput} onChange={e=>setBwInput(e.target.value)} type="number" step="0.1" placeholder={wUnit==='kg'?"e.g. 80":"e.g. 175"} style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,padding:"12px 14px",color:"var(--cm-ink,#0A0A0A)",fontSize:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-                </div>
-                <div>
-                  <div style={{fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.4)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6,fontFamily:"'Archivo',sans-serif",fontWeight:700}}>Date</div>
-                  <input value={bwDate} onChange={e=>setBwDate(e.target.value)} type="date" style={{width:"100%",background:"var(--cm-paper,#FFFFFF)",border:"1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)",borderRadius:10,padding:"12px 14px",color:"var(--cm-ink,#0A0A0A)",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",colorScheme:"light"}}/>
-                </div>
-              </div>
-              <button onClick={saveWeight} disabled={!bwInput||bwSaving} style={{width:"100%",padding:"14px",background:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.08)":"var(--cm-red,#FF3B30)",color:!bwInput||bwSaving?"rgba(var(--cm-ink-rgb,10,10,10),0.3)":"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:!bwInput||bwSaving?"default":"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>
-                {bwSaving?"Saving...":"Save Weight"}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const MILESTONES=[
-    {id:'first_session',type:'session',threshold:1,title:'FIRST SESSION.',sub:"The hardest part is starting. You started.",icon:'S1'},
-    {id:'sessions_5',type:'session',threshold:5,title:'5 SESSIONS.',sub:"Five times you chose to show up.",icon:'S5'},
-    {id:'sessions_10',type:'session',threshold:10,title:'10 SESSIONS.',sub:"Double digits. This is becoming who you are.",icon:'S10'},
-    {id:'sessions_25',type:'session',threshold:25,title:'25 SESSIONS.',sub:"Most people quit by now. You're not most people.",icon:'S25'},
-    {id:'sessions_50',type:'session',threshold:50,title:'50 SESSIONS.',sub:"Fifty. The iron knows your name.",icon:'S50'},
-    {id:'sessions_100',type:'session',threshold:100,title:'100 SESSIONS.',sub:"This is just who you are now.",icon:'S100'},
-    {id:'streak_3',type:'streak',threshold:3,title:'3 DAY STREAK.',sub:"Momentum is a powerful thing.",icon:'3D'},
-    {id:'streak_7',type:'streak',threshold:7,title:'7 DAYS STRAIGHT.',sub:"One full week. Your body is adapting.",icon:'7D'},
-    {id:'streak_14',type:'streak',threshold:14,title:'14 DAYS.',sub:"Two weeks of choosing yourself every day.",icon:'14D'},
-    {id:'streak_30',type:'streak',threshold:30,title:'30 DAY STREAK.',sub:"A month straight. Legendary.",icon:'30D'},
-    {id:'meals_10',type:'meals',threshold:10,title:'10 MEALS LOGGED.',sub:"You know what's in your body. That's power.",icon:'M10'},
-    {id:'meals_50',type:'meals',threshold:50,title:'50 MEALS TRACKED.',sub:"Fifty meals of knowing exactly what you eat.",icon:'M50'},
-    {id:'meals_100',type:'meals',threshold:100,title:'100 MEALS.',sub:"Data is your edge now.",icon:'M100'},
-    {id:'volume_10k',type:'volume',threshold:10000,title:'10,000 LBS MOVED.',sub:"Ten thousand pounds of work done.",icon:'V10'},
-    {id:'volume_50k',type:'volume',threshold:50000,title:'50,000 LBS.',sub:"The iron remembers every rep.",icon:'V50'},
-    {id:'volume_100k',type:'volume',threshold:100000,title:'100K LBS LIFTED.',sub:"One hundred thousand pounds. Unstoppable.",icon:'V100'},
-    {id:'day_7',type:'membership',threshold:7,title:'ONE WEEK IN.',sub:"Seven days with Coach Macro. The journey has begun.",icon:'W1'},
-    {id:'day_30',type:'membership',threshold:30,title:'30 DAYS STRONG.',sub:"A month of showing up. Look how far you've come.",icon:'W4'},
-    {id:'day_90',type:'membership',threshold:90,title:'90 DAYS.',sub:"Three months. You're a different athlete now.",icon:'W12'},
-  ];
-
-  function ProgressSection() {
-    const sc = coachScore;
-    const activeTab = progressTab;
-    const setActiveTab = setProgressTab;
-    const userMode = getUserMode(profile, wPrefs);
-    const userTier = getUserTier(profile, wPrefs, userMode);
-    const progressTabs = getProgressTabs(userTier, userMode);
-    const scoreLabels = COACH_SCORE_LABELS[userMode] || COACH_SCORE_LABELS.strength;
-    const [progFoodLogs, setProgFoodLogs] = useState([]);
-
-    useEffect(()=>{
-      if(!user?.id)return;
-      const cutoff=new Date(Date.now()-30*864e5).toISOString().split('T')[0];
-      sb.from('food_logs').select('date,entries').eq('user_id',user.id)
-        .gte('date',cutoff).order('date',{ascending:false})
-        .then(({data})=>setProgFoodLogs(data||[]));
-    },[user?.id]);
-
-    const [expenditure, setExpenditure] = useState(null);
-    const [expenditureHistory, setExpenditureHistory] = useState([]);
-    const [dataDrift, setDataDrift] = useState(null);
-
-    useEffect(() => {
-      if (!user?.id || !profile) return;
-      const todayStr = new Date().toISOString().split('T')[0];
-      const rawResult = computeExpenditure(bodyweightLogs, progFoodLogs, profile);
-      const todayWorkouts = (workoutLogsRaw || []).filter(l => l.date === todayStr);
-      const todayActivities = (allActs || []).filter(a => {
-        const d = (a.date || '').split('T')[0];
-        return d === todayStr;
-      });
-      const burn = computeTodaysBurn(todayWorkouts, todayActivities, healthSnap, profile, rawResult.tef);
-      const rawWithBurn = { ...rawResult, todaysBurn: burn };
-
-      // Load adaptive factors, apply, then store
-      getAdaptiveFactors(user.id).then(factors => {
-        setAdaptiveFactors(factors);
-        const adjusted = applyAdaptiveFactors(rawWithBurn, factors);
-        setExpenditure(adjusted);
-        return storeExpenditure(user.id, adjusted, adjusted.todaysBurn);
-      }).then(() => getExpenditureHistory(user.id, 30))
-        .then(hist => {
-          setExpenditureHistory(hist);
-          setDataDrift(checkDataDrift(hist));
-          // Weekly adaptive recalibration (debounced to once/week inside the service)
-          recalibrateFactors(user.id, profile).catch(() => {});
-        })
-        .catch(() => {
-          // Fallback: use raw without factors
-          setExpenditure(rawWithBurn);
-        });
-    }, [user?.id, progFoodLogs, bodyweightLogs, healthSnap?.steps, workoutLogsRaw?.length]);
-
-    const [validationInsights, setValidationInsights] = useState([]);
-    const [insightLoading, setInsightLoading] = useState(false);
-    const [adaptiveFactors, setAdaptiveFactors] = useState(null);
-    const [coachRecall, setCoachRecall] = useState(null);
-
-    useEffect(() => {
-      if (!user?.id || !profile) return;
-      setInsightLoading(true);
-      runDailyValidationSuite(user.id, profile)
-        .then(insights => {
-          setValidationInsights(insights);
-          const top = insights[0];
-          if (top?.priority === 'severe') {
-            import('./services/notifications.js')
-              .then(({ scheduleValidationAlert }) => scheduleValidationAlert(top.message))
-              .catch(() => {});
-          }
-        })
-        .catch(() => {})
-        .finally(() => setInsightLoading(false));
-    }, [user?.id, profile?.goalCals]);
-
-    // Coach Memory — auto-record memories for high/severe insights + recall
-    useEffect(() => {
-      if (!user?.id || !validationInsights.length || insightLoading) return;
-      const severe = validationInsights.filter(i => i.priority === 'severe' || i.priority === 'high');
-      if (!severe.length) return;
-
-      const currentCtx = buildContextSnapshot({
-        weightLogs: bodyweightLogs,
-        foodLogs: progFoodLogs,
-        workoutLogs: workoutLogsRaw,
-        macros,
-        profile,
-        healthSnap,
-      });
-
-      // Auto-record top severe/high insight as a memory
-      const top = severe[0];
-      const memType = top.insight_type === 'weight_trend' ? 'plateau' : 'setback';
-      recordMemory(user.id, memType, currentCtx, top.message, top.recommendation, top.insight_type)
-        .catch(() => {});
-
-      // Only recall if user has been around 30+ days
-      const memberDays = profile?.created_at
-        ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 864e5)
-        : 0;
-      if (memberDays < 30) return;
-
-      recallApplicableLearnings(user.id, top.insight_type, currentCtx)
-        .then(recall => { if (recall?.similar_past?.length) setCoachRecall(recall); })
-        .catch(() => {});
-    }, [validationInsights, insightLoading, user?.id]);
-
-    const [connectionData,setConnectionData]=useState([]);
-    useEffect(()=>{
-      if(!user?.id)return;
-      getConnectionsData(user.id).then(data=>setConnectionData(data)).catch(()=>{});
-    },[user?.id]);
-
-    const [peerData,setPeerData]=useState(null);
-    useEffect(()=>{
-      if(!user?.id||!profile)return;
-      assignCohort(user.id,profile).catch(()=>{});
-      getPeerComparison(user.id,profile).then(d=>{if(d)setPeerData(d);}).catch(()=>{});
-    },[user?.id,profile?.goal,profile?.weight]);
-
-    const [totalMealsAllTime,setTotalMealsAllTime]=useState(0);
-    useEffect(()=>{
-      if(!user?.id)return;
-      sb.from('food_logs').select('entries').eq('user_id',user.id)
-        .then(({data})=>{
-          const total=(data||[]).reduce((s,l)=>s+(l.entries||[]).length,0);
-          setTotalMealsAllTime(total);
-        });
-    },[user?.id]);
-
-    useEffect(()=>{
-      if(!user?.id||!workoutLogsRaw)return;
-      const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
-      const totalSessions=workoutLogsRaw.length;
-      let streak=0;
-      for(let i=0;i<60;i++){
-        const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
-        if(workoutLogsRaw.some(l=>l.date===ds))streak++;else if(i>0)break;
-      }
-      const totalVolume=(workoutLogsRaw||[]).reduce((s,l)=>s+(l.volume_lbs||0),0);
-      const memberDays=profile?.created_at?Math.floor((Date.now()-new Date(profile.created_at).getTime())/864e5):0;
-      for(const m of MILESTONES){
-        if(earned.includes(m.id))continue;
-        let achieved=false;
-        if(m.type==='session')achieved=totalSessions>=m.threshold;
-        else if(m.type==='streak')achieved=streak>=m.threshold;
-        else if(m.type==='meals')achieved=totalMealsAllTime>=m.threshold;
-        else if(m.type==='volume')achieved=totalVolume>=m.threshold;
-        else if(m.type==='membership')achieved=memberDays>=m.threshold;
-        if(achieved){
-          earned.push(m.id);
-          localStorage.setItem('cm_earned_milestones',JSON.stringify(earned));
-          setPendingMilestone(m);
-          break;
-        }
-      }
-    },[workoutLogsRaw,totalMealsAllTime,user?.id]);
-
-    const _twStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.toISOString().split('T')[0];})();
-    const todayStr=new Date().toISOString().split('T')[0];
-
-    const dailyFoodMap=useMemo(()=>{
-      const m={};
-      progFoodLogs.forEach(l=>{
-        const cal=(l.entries||[]).reduce((s,e)=>s+(e.calories||0),0);
-        const prot=(l.entries||[]).reduce((s,e)=>s+(e.protein||0),0);
-        const carbs=(l.entries||[]).reduce((s,e)=>s+(e.carbs||0),0);
-        const fat=(l.entries||[]).reduce((s,e)=>s+(e.fat||0),0);
-        m[l.date]={cal,prot,carbs,fat,hasData:(l.entries||[]).length>0};
-      });
-      return m;
-    },[progFoodLogs]);
-
-    const workoutsThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).length,[workoutLogsRaw,_twStart]);
-    const calTarget=macros?.calories||2000;
-    const protTarget=macros?.protein||150;
-    const carbTarget=macros?.carbs||200;
-    const fatTarget=macros?.fat||60;
-    const calHitDays=useMemo(()=>Object.entries(dailyFoodMap).filter(([d,v])=>d>=_twStart&&v.cal>=calTarget*0.9).length,[dailyFoodMap,_twStart,calTarget]);
-    const protHitDays=useMemo(()=>Object.entries(dailyFoodMap).filter(([d,v])=>d>=_twStart&&v.prot>=protTarget*0.9).length,[dailyFoodMap,_twStart,protTarget]);
-    const currentStreak=useMemo(()=>{
-      let s=0;
-      for(let i=0;i<60;i++){
-        const ds=new Date(Date.now()-i*864e5).toISOString().split('T')[0];
-        if((workoutLogsRaw||[]).some(l=>l.date===ds)||dailyFoodMap[ds]?.hasData)s++;
-        else if(i>0)break;
-      }
-      return s;
-    },[workoutLogsRaw,dailyFoodMap]);
-
-    const personalRecords=useMemo(()=>{
-      if(dbPRs.length>0){
-        return dbPRs.slice(0,6).map(pr=>[pr.exercise_name,{weight:pr.weight,date:pr.date}]);
-      }
-      // Fallback: compute from JSONB for users with no personal_records rows yet
-      const prs={};
-      (workoutLogsRaw||[]).forEach(log=>{
-        (log.workout?.exercises||[]).forEach(ex=>{
-          if(!ex.name)return;
-          (ex.sets||[]).forEach(s=>{
-            const w=parseFloat(s.weight)||0;
-            if(w>0&&(!prs[ex.name]||w>prs[ex.name].weight))prs[ex.name]={weight:w,date:log.date};
-          });
-        });
-      });
-      return Object.entries(prs).sort((a,b)=>b[1].date.localeCompare(a[1].date)).slice(0,6);
-    },[dbPRs,workoutLogsRaw]);
-
-    const {volumeThisWeek,volumeLastWeek}=useMemo(()=>{
-      const lws=new Date(_twStart);lws.setDate(lws.getDate()-7);const lwStr=lws.toISOString().split('T')[0];
-      let tw=0,lw=0;
-      (workoutLogsRaw||[]).forEach(log=>{
-        // Use volume_lbs column if populated; fall back to JSONB computation
-        const vol=log.volume_lbs>0
-          ?log.volume_lbs
-          :(log.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).reduce((b,s)=>b+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0),0);
-        if(log.date>=_twStart)tw+=vol;else if(log.date>=lwStr)lw+=vol;
-      });
-      return{volumeThisWeek:Math.round(tw),volumeLastWeek:Math.round(lw)};
-    },[workoutLogsRaw,_twStart]);
-
-    const weeklyFreq=useMemo(()=>Array.from({length:8},(_,i)=>{
-      const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-(7-i)*7);ws.setHours(0,0,0,0);
-      const we=new Date(ws);we.setDate(we.getDate()+7);
-      const wsStr=ws.toISOString().split('T')[0];
-      const weStr=we.toISOString().split('T')[0];
-      const count=(workoutLogsRaw||[]).filter(l=>l.date>=wsStr&&l.date<weStr).length;
-      const isDeloadWk=(deloadWeeksHistory||[]).some(d=>d.week_start<=weStr&&d.week_end>=wsStr&&(d.status==="active"||d.status==="completed"));
-      return{week:i+1,count,isCurrent:i===7,isDeload:isDeloadWk};
-    }),[workoutLogsRaw,deloadWeeksHistory]);
-
-    const restDaysThisWeek=Math.max(0,(new Date().getDay()||7)-workoutsThisWeek);
-    const recoveryScore=useMemo(()=>{
-      const split=wPrefs?.splitType||'';
-      const optimal=split.includes('6')?1:split.includes('4')?3:4;
-      let score=100;
-      score-=Math.abs(restDaysThisWeek-optimal)*10;
-      if(healthSnap?.sleep!=null&&healthSnap.sleep<6)score-=15;
-      if(volumeLastWeek>0&&volumeThisWeek>volumeLastWeek*1.2)score-=10;
-      if(currentStreak>=14)score+=10;
-      return Math.max(0,Math.min(100,Math.round(score)));
-    },[restDaysThisWeek,healthSnap,volumeThisWeek,volumeLastWeek,currentStreak,wPrefs]);
-
-    const setsThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).reduce((total,log)=>
-      total+(log.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).filter(s=>s.done).length,0),0)
-    ,[workoutLogsRaw,_twStart]);
-
-    const timeThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).reduce((s,l)=>s+(l.session_duration_mins||0),0),[workoutLogsRaw,_twStart]);
-
-    const prsThisWeek=useMemo(()=>{
-      const list=(dbPRs||[]).filter(pr=>pr.date&&pr.date>=_twStart).map(pr=>({name:pr.exercise_name,weight:pr.weight,reps:pr.reps}));
-      return{count:list.length,list};
-    },[dbPRs,_twStart]);
-
-    const weekDays=useMemo(()=>{
-      const letters=['S','M','T','W','T','F','S'];
-      return Array.from({length:7},(_,i)=>{
-        const d=new Date(_twStart+'T12:00:00');d.setDate(d.getDate()+i);
-        const ds=d.toISOString().split('T')[0];
-        const log=(workoutLogsRaw||[]).find(l=>l.date===ds);
-        const t=log?.workout?.type||'';
-        const kind=log?(t==='run'||t==='cardio'?'run':'lift'):null;
-        return{letter:letters[i],date:ds,trained:!!log,kind};
-      });
-    },[workoutLogsRaw,_twStart]);
-
-    const _lastWeekStr=useMemo(()=>{const d=new Date(_twStart+'T12:00:00');d.setDate(d.getDate()-7);return d.toISOString().split('T')[0];},[_twStart]);
-    const trainingDaysThisWeek=useMemo(()=>new Set((workoutLogsRaw||[]).filter(l=>l.date>=_twStart).map(l=>l.date)).size,[workoutLogsRaw,_twStart]);
-    const lastWeekTrainingDays=useMemo(()=>new Set((workoutLogsRaw||[]).filter(l=>l.date>=_lastWeekStr&&l.date<_twStart).map(l=>l.date)).size,[workoutLogsRaw,_lastWeekStr,_twStart]);
-
-    const runActsThisWeek=useMemo(()=>(allActs||[]).filter(a=>{
-      const d=a.date||a.start_date_local;
-      return d&&d>=_twStart&&(a.type||'').toLowerCase().includes('run');
-    }),[allActs,_twStart]);
-    const runDistKm=runActsThisWeek.reduce((s,a)=>s+(parseFloat(a.distanceKm)||0),0);
-    const runTimeMins=runActsThisWeek.reduce((s,a)=>s+(parseInt(a.durationMins)||0),0);
-
-    const targetSessions=(()=>{
-      const split=wPrefs?.splitType||'';
-      if(split.includes('6'))return 6;
-      if(split.includes('5'))return 5;
-      if(split.includes('4'))return 4;
-      if(split.includes('3'))return 3;
-      return 4;
-    })();
-
-    const scoreStatus=sc.total>=90?'PEAKING':sc.total>=80?'PRIMED':sc.total>=70?'BUILDING':sc.total>=50?'RECOVERING':'RECHARGING';
-    const ringColor=sc.total>=90?'#FFD700':sc.total>=80?'#22c55e':sc.total>=70?'#60a5fa':sc.total>=50?'#FEA020':'var(--accent)';
-
-    const isHyroxMode=wPrefs?.isHyrox;
-    const isRunnerMode=!isHyroxMode&&(wPrefs?.isHybrid||(wPrefs?.splitType||'').toLowerCase().includes('run'));
-
-    const calDays=useMemo(()=>{
-      const days=[];
-      const today2=new Date();today2.setHours(0,0,0,0);
-      const startDay=new Date(today2);
-      startDay.setDate(startDay.getDate()-34-startDay.getDay());
-      for(let i=0;i<35;i++){
-        const d=new Date(startDay);d.setDate(startDay.getDate()+i);
-        const ds=d.toISOString().split('T')[0];
-        const hasWorkout=(workoutLogsRaw||[]).some(l=>l.date===ds);
-        const hasMacros=dailyFoodMap[ds]?.hasData||false;
-        const isFuture=d>today2;
-        const isToday2=ds===todayStr;
-        days.push({ds,hasWorkout,hasMacros,isFuture,isToday2});
-      }
-      return days;
-    },[workoutLogsRaw,dailyFoodMap,todayStr]);
-
-    const weightProjection=useMemo(()=>{
-      if(bodyweightLogs.length<5)return null;
-      const sorted=[...bodyweightLogs].sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);
-      const n=sorted.length;
-      if(n<3)return null;
-      const xs=sorted.map((_,i)=>i);
-      const ys=sorted.map(l=>parseFloat(l.weight));
-      const xMean=xs.reduce((s,x)=>s+x,0)/n;
-      const yMean=ys.reduce((s,y)=>s+y,0)/n;
-      const denom=xs.reduce((s,x)=>s+(x-xMean)**2,0);
-      if(!denom)return null;
-      const slope=xs.reduce((s,x,i)=>s+(x-xMean)*(ys[i]-yMean),0)/denom;
-      const intercept=yMean-slope*xMean;
-      return{slope,intercept,data:sorted,projectedDelta:slope*7};
-    },[bodyweightLogs]);
-
-    const doingWell=[];
-    if(sc.r>=75)doingWell.push("Recovery is strong — you're resting right.");
-    if(sc.n>=75)doingWell.push("Nutrition is dialed in. Macros on target.");
-    if(sc.t>=75)doingWell.push("Training consistency is high this week.");
-    if(sc.c>=75)doingWell.push(`${currentStreak}-day streak — momentum is building.`);
-    if(!doingWell.length&&sc.total>=60)doingWell.push("Overall performance is solid. Keep stacking.");
-
-    const focusTips=(sc.tips||[]).slice(0,3);
-
-    let twRings,twInsight;
-    if(isHyroxMode){
-      twRings=[
-        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Training\nDays",color:"var(--accent)"},
-        {pct:Math.min(100,setsThisWeek/50*100),value:setsThisWeek,label:"Sets\nDone",color:"#FEA020"},
-        {pct:Math.min(100,volumeThisWeek/20000*100),value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek),label:`Volume\n${profile?.wUnit||'lbs'}`,color:"#60a5fa"},
-      ];
-      twInsight=`${workoutsThisWeek} of ${targetSessions} sessions done. ${setsThisWeek} total sets this week.`;
-    } else if(isRunnerMode){
-      twRings=[
-        {pct:Math.min(100,runActsThisWeek.length/targetSessions*100),value:runActsThisWeek.length,label:"Runs",color:"var(--accent)"},
-        {pct:Math.min(100,runDistKm/50*100),value:displayDistance(runDistKm, profile?.wUnit||'lbs'),label:`${distanceLabel(profile?.wUnit||'lbs')} run`,color:"#22c55e"},
-        {pct:Math.min(100,runTimeMins/300*100),value:runTimeMins>=60?`${Math.floor(runTimeMins/60)}h`:`${runTimeMins}m`,label:"Time",color:"#60a5fa"},
-      ];
-      twInsight=runActsThisWeek.length>0?`${runActsThisWeek.length} run${runActsThisWeek.length>1?'s':''} · ${displayDistance(runDistKm, profile?.wUnit||'lbs')} · ${runTimeMins} min this week`:"No runs logged yet this week.";
-    } else {
-      twRings=[
-        {pct:Math.min(100,workoutsThisWeek/targetSessions*100),value:workoutsThisWeek,label:"Sessions",color:"var(--accent)"},
-        {pct:Math.min(100,setsThisWeek/40*100),value:setsThisWeek,label:"Sets",color:"#FEA020"},
-        {pct:Math.min(100,Math.min(volumeThisWeek,20000)/20000*100),value:volumeThisWeek>999?`${(volumeThisWeek/1000).toFixed(1)}k`:String(volumeThisWeek||0),label:`Volume\n${profile?.wUnit||'lbs'}`,color:"#60a5fa"},
-      ];
-      const pctDone=Math.round(workoutsThisWeek/Math.max(1,targetSessions)*100);
-      twInsight=workoutsThisWeek===0?"No sessions logged yet this week.":`${workoutsThisWeek} of ${targetSessions} sessions · ${pctDone}% weekly target`;
-    }
-    // Tier-adaptive: beginners see 2 rings (less overwhelming)
-    if (userTier === 'beginner') twRings = twRings.slice(0, 2);
-
-    function ExpenditureCard() {
-      const [showInfo, setShowInfo] = useState(false);
-      const exp = expenditure;
-
-      if (!exp) return null;
-
-      const _AF="'Archivo',sans-serif";
-      const _MO="'DM Mono',monospace";
-      const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-
-      // Core values — declared in dependency order (TDZ-safe)
-      const isBuilding=exp.confidence.level==='building';
-      const tdeeDisplay=isBuilding
-        ?exp.formulaTDEE.toLocaleString()
-        :exp.confidence.showRange
-          ?`${(exp.tdee-200).toLocaleString()}–${(exp.tdee+200).toLocaleString()}`
-          :exp.tdee.toLocaleString();
-
-      // Surplus/deficit: avg daily intake vs TDEE
-      const hasDelta=!isBuilding&&exp.avgCalories!=null;
-      const delta=hasDelta?Math.round(exp.avgCalories-exp.tdee):null;
-      const deltaAbs=delta!=null?Math.abs(delta):null;
-      const deltaSign=delta!=null&&delta>0?'+':'';
-      const deltaLabel=delta==null?'LOG FOOD':Math.abs(delta)<=50?'IN BALANCE':delta>0?'SURPLUS':'DEFICIT';
-      const deltaColor=delta==null?'var(--text-dim)':Math.abs(delta)<=50?'var(--cm-ink)':delta>0?'#f59e0b':'#22c55e';
-
-      const tiles=[
-        {l:'DAILY BURN', v:tdeeDisplay, u:'kcal', s:isBuilding?'formula est.':'14-day adaptive', c:'var(--cm-ink)'},
-        {l:deltaLabel, v:delta!=null?`${deltaSign}${delta}`:'—', u:delta!=null?'kcal':null, s:'vs TDEE avg', c:deltaColor},
-      ];
-
-      return (
-        <div style={{background:"var(--bg)"}}>
-
-          {/* Bento tiles */}
-          <div style={{display:"flex",gap:8,padding:"12px 20px 4px"}}>
-            {tiles.map(({l,v,u,s,c})=>(
-              <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
-                <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
-                  {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:2}}>{u}</span>}
-                </div>
-                {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{s}</div>}
-              </div>
-            ))}
-          </div>
-
-          {/* Info toggle */}
-          <div style={{padding:"6px 20px 0",display:"flex",justifyContent:"flex-end"}}>
-            <button onClick={()=>{setShowInfo(v=>!v);if(!showInfo)trackUserEvent(user?.id,'view_expenditure_detail').catch(()=>{});}}
-              style={{background:"none",border:"none",cursor:"pointer",fontFamily:_MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>
-              {showInfo?'Hide ↑':'What is TDEE? ↓'}
-            </button>
-          </div>
-
-          {/* Info panel — restyled */}
-          {showInfo&&(
-            <div style={{padding:"8px 20px 12px",display:"flex",flexDirection:"column",gap:6}}>
-              {[
-                ["TDEE","Total Daily Energy Expenditure — calories your body actually burned, derived from 14-day weight trend and food logs."],
-                ["BMR","Basal Metabolic Rate — calories burned at rest, just keeping organs running. Your metabolic floor."],
-                ["NEAT","Non-Exercise Activity Thermogenesis — calories from walking and daily movement, scaled by your step count."],
-                ["EAT","Exercise Activity Thermogenesis — calories from deliberate training. Strength uses mechanical work; cardio uses MET formulas."],
-                ["TEF","Thermic Effect of Food — energy cost of digestion. High-protein meals burn ~25% of their protein calories just to process."],
-              ].map(([term,def])=>(
-                <div key={term} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                  <div style={{fontFamily:_MO,fontSize:7,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.1em",paddingTop:1,minWidth:32}}>{term}</div>
-                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"var(--text-dim)",lineHeight:1.5}}>{def}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-        </div>
-      );
-    }
-
-    function ValidationInsightCard() {
-      const [expanded, setExpanded] = useState(false);
-      const [memExpanded, setMemExpanded] = useState(false);
-      const top = validationInsights[0];
-
-      const _MO="'DM Mono',monospace";
-
-      if (insightLoading && !top) {
-        return (
-          <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>TODAY'S INSIGHT</div>
-            <div style={{height:48,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{width:18,height:18,borderRadius:"50%",border:"2px solid var(--card-border)",borderTopColor:"var(--accent)",animation:"spin 0.9s linear infinite"}}/>
-            </div>
-          </div>
-        );
-      }
-
-      if (!top) return null;
-
-      // Personality adaptation — declared before use
-      const _persProfile = getProfileSync(user?.id);
-      const adaptedMessage = adaptMessageSync(top.message, _persProfile, { scenario: top.insight_type, addPrefix: false });
-
-      const priorityColor = { severe: '#ef4444', high: '#f59e0b', medium: '#60a5fa', low: 'var(--text-dim)' };
-      const priorityBg    = { severe: 'rgba(239,68,68,0.08)', high: 'rgba(245,158,11,0.08)', medium: 'rgba(96,165,250,0.08)', low: 'rgba(var(--accent-rgb),0.04)' };
-      const typeLabel     = { calorie_intake: 'NUTRITION', weight_trend: 'BODY WEIGHT', training_progress: 'TRAINING', recovery: 'RECOVERY' };
-      const pc = priorityColor[top.priority] || priorityColor.low;
-      const pb = priorityBg[top.priority] || priorityBg.low;
-
-      // Coach Memory data — absorbed from CoachInsightsCard
-      const _hasMemory = coachRecall && coachRecall.similar_past?.length;
-      const _memProfile = _hasMemory ? getProfileSync(user?.id) : null;
-      const _memSuggestion = _hasMemory ? adaptMessageSync(coachRecall.intelligent_suggestion, _memProfile, { addPrefix: false }) : null;
-      const _memTop = _hasMemory ? coachRecall.similar_past[0] : null;
-      const _memColor = _memTop?.still_applicable ? '#f59e0b' : '#60a5fa';
-
-      return (
-        <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
-
-          {/* ── TODAY'S INSIGHT section ── */}
-          <div style={{padding:"16px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>TODAY'S INSIGHT</div>
-                <div style={{background:pb,border:`1px solid ${pc}44`,borderRadius:4,padding:"1px 6px",fontFamily:_MO,fontSize:7,color:pc,textTransform:"uppercase",letterSpacing:"0.12em"}}>{top.priority}</div>
-              </div>
-              <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{typeLabel[top.insight_type] || top.insight_type}</div>
-            </div>
-
-            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.55,marginBottom:10}}>{adaptedMessage || top.message}</div>
-
-            {/* Confidence bar */}
-            <div style={{marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Confidence</span>
-                <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-dim)"}}>{top.confidence}%</span>
-              </div>
-              <div style={{height:3,background:"var(--card-border)",borderRadius:2}}>
-                <div style={{height:3,width:`${top.confidence}%`,background:pc,borderRadius:2,transition:"width 0.6s ease"}}/>
-              </div>
-            </div>
-
-            {/* Signals */}
-            {(top.signals_aligned||[]).length>0&&(
-              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
-                {(top.signals_aligned||[]).map((s,i)=>{
-                  const sc=s.direction==='good'?'#22c55e':s.direction==='severe'?'#ef4444':s.direction==='low'?'#f59e0b':'var(--text-dim)';
-                  return(
-                    <div key={i} style={{background:"var(--card-border)",borderRadius:6,padding:"4px 8px",display:"flex",alignItems:"center",gap:5}}>
-                      <div style={{width:4,height:4,borderRadius:"50%",background:sc,flexShrink:0}}/>
-                      <span style={{fontFamily:_MO,fontSize:8,color:"var(--text-dim)"}}>{s.signal}</span>
-                      <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:700,fontSize:11,color:sc}}>{String(s.value)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Expandable recommendation */}
-            {top.recommendation&&(
-              <button onClick={()=>{setExpanded(e=>!e);if(!expanded)trackUserEvent(user?.id,'expand_validation_insight',{insight_type:top.insight_type}).catch(()=>{});}}
-                style={{background:"none",border:"none",padding:0,cursor:"pointer",width:"100%",textAlign:"left",marginBottom:expanded?8:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
-                  <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{expanded?"hide":"recommendation"}</span>
-                  <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
-                </div>
-              </button>
-            )}
-            {expanded&&top.recommendation&&(
-              <div style={{background:"rgba(var(--accent-rgb),0.05)",borderLeft:"2px solid rgba(var(--accent-rgb),0.4)",borderRadius:"0 8px 8px 0",padding:"8px 12px",marginBottom:8}}>
-                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{top.recommendation}</div>
-              </div>
-            )}
-
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6}}>
-              <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>{top.data_days_used}d of data</span>
-              <button onClick={()=>{
-                dismissInsight(user?.id,top.insight_type).catch(()=>{});
-                trackUserEvent(user?.id,'dismiss_validation_insight',{insight_type:top.insight_type}).catch(()=>{});
-                setValidationInsights(prev=>prev.filter(i=>i.insight_type!==top.insight_type));
-              }} style={{background:"none",border:"none",padding:"2px 8px",cursor:"pointer",fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>dismiss</button>
-            </div>
-          </div>
-
-          {/* ── COACH MEMORY section — merged ── */}
-          {_hasMemory&&(
-            <>
-              <div style={{height:1,background:"var(--card-border)"}}/>
-              <div style={{padding:"14px 16px"}}>
-                <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>COACH MEMORY</div>
-                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.6,marginBottom:10}}>
-                  {_memSuggestion||coachRecall.intelligent_suggestion}
-                </div>
-                <div style={{background:"var(--card-border)",borderRadius:10,padding:"10px 12px",marginBottom:_memTop?0:0}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                    <div style={{fontFamily:_MO,fontSize:7,color:_memColor,textTransform:"uppercase",letterSpacing:"0.12em"}}>{_memTop?.date}</div>
-                    <div style={{background:`${_memColor}18`,border:`1px solid ${_memColor}44`,borderRadius:4,padding:"1px 7px",fontFamily:_MO,fontSize:7,color:_memColor}}>
-                      {_memTop?.still_applicable?'STILL RELEVANT':'DIFFERENT NOW'}
-                    </div>
-                  </div>
-                  <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.4,marginBottom:_memTop?.intervention?6:0}}>{_memTop?.description?.slice(0,140)}{_memTop?.description?.length>140?'…':''}</div>
-                  {_memTop?.intervention&&<div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginTop:2}}>Fix applied: {_memTop.intervention?.slice(0,80)}</div>}
-                </div>
-                {coachRecall.similar_past.length>0&&(
-                  <button onClick={()=>setMemExpanded(e=>!e)} style={{background:"none",border:"none",padding:"8px 0 0",cursor:"pointer",width:"100%",textAlign:"left"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
-                      <span style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{memExpanded?"hide details":"tell me more"}</span>
-                      <div style={{flex:1,height:1,background:"var(--card-border)"}}/>
-                    </div>
-                  </button>
-                )}
-                {memExpanded&&(
-                  <>
-                    {coachRecall.what_is_different?.length>0&&(
-                      <div style={{marginTop:10}}>
-                        <div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>What's different this time</div>
-                        {coachRecall.what_is_different.map((diff,i)=>(
-                          <div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
-                            <div style={{width:4,height:4,borderRadius:"50%",background:"#60a5fa",marginTop:5,flexShrink:0}}/>
-                            <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.4}}>{diff}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {coachRecall.similar_past.slice(1).map((mem,i)=>(
-                      <div key={i} style={{background:"var(--card-border)",borderRadius:8,padding:"8px 10px",marginTop:8}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                          <div style={{fontFamily:_MO,fontSize:7,color:mem.still_applicable?'#f59e0b':"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{mem.date}</div>
-                          {mem.effectiveness!=null&&<div style={{fontFamily:_MO,fontSize:7,color:"var(--text-faint)"}}>{mem.effectiveness}% effective</div>}
-                        </div>
-                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:11,color:"var(--text-dim)",lineHeight:1.4}}>{mem.description?.slice(0,100)}</div>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      );
-    }
-
-    function PH({eyebrow,headline,body}){
-      return(
-        <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>{eyebrow}</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"#fff",marginBottom:6}}>{headline}</div>
-          <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5}}>{body}</div>
-        </div>
-      );
-    }
-
-    return (
-      <div style={{background:"#000",minHeight:"100vh",position:"relative",overflow:"hidden"}} className="page-enter">
-        <style>{`@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
-        {/* Atmospheric red glows */}
-        <div style={{position:"absolute",top:-80,left:-100,width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.13) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
-        <div style={{position:"absolute",bottom:150,right:-120,width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
-
-        <div style={{position:"relative",zIndex:1}}>
-          {/* Header */}
-          <div className="screen-header" style={{paddingTop:12}}>
-            <div style={{flex:1,minWidth:0}}>
-              <div className="header-eyebrow">// Performance</div>
-              <div className="header-title">Progress</div>
-            </div>
-          </div>
-
-          {/* Tab nav — dynamic per tier + mode */}
-          <div style={{display:"flex",borderBottom:"1px solid rgba(245,245,240,0.07)",marginBottom:16,overflowX:"auto"}}>
-            {progressTabs.map(id=>(
-              <button key={id} onClick={()=>setActiveTab(id)} style={{
-                flex:1,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,letterSpacing:"0.12em",
-                padding:"10px 4px",color:activeTab===id?"var(--accent)":"rgba(245,245,240,0.35)",
-                border:"none",borderBottom:activeTab===id?"2px solid var(--accent)":"2px solid transparent",
-                background:"none",cursor:"pointer",whiteSpace:"nowrap"
-              }}>{id.toUpperCase()}</button>
-            ))}
-          </div>
-
-          {/* ── OVERVIEW ── */}
-          {activeTab==="overview"&&<>
-
-            {/* ── OVERVIEW DASHBOARD — Pass 1: weight band + bento ── */}
-            {(()=>{
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-              const _unit=profile?.wUnit||'lbs';
-
-              // ── Weight trend — sorted last 14 weigh-ins ──
-              const _wl=[...(bodyweightLogs||[])].sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);
-              const _curW=_wl.length>0?_wl[_wl.length-1].weight:null;
-              const _prvW=_wl.length>1?_wl[0].weight:null;
-              const _deltaN=(_curW!=null&&_prvW!=null)?parseFloat((_curW-_prvW).toFixed(1)):null;
-              const _goalK=(profile?.goal||'').toLowerCase();
-              const _goodDir=_deltaN==null?null:(['lose','cut'].includes(_goalK)?_deltaN<0:['gain','bulk'].includes(_goalK)?_deltaN>0:null);
-              const _deltaColor=_goodDir===true?'#22c55e':_goodDir===false?'var(--accent)':'var(--text-dim)';
-
-              // SVG chart geometry
-              const _svgH=130, _hasCh=_wl.length>=2;
-              let _pts=[],_ln='',_ar='';
-              if(_hasCh){
-                const _mn=Math.min(..._wl.map(l=>l.weight));
-                const _mx=Math.max(..._wl.map(l=>l.weight));
-                const _rng=Math.max(_mx-_mn,1.5);
-                const _pd=6;
-                _pts=_wl.map((l,i)=>({
-                  x:parseFloat(((i/(_wl.length-1))*320).toFixed(1)),
-                  y:parseFloat((_pd+(_svgH-2*_pd)*(1-(l.weight-_mn)/_rng)).toFixed(1))
-                }));
-                _ln=_pts.map((p,i)=>`${i===0?'M':'L'}${p.x} ${p.y}`).join(' ');
-                _ar=`${_ln} L${_pts[_pts.length-1].x} ${_svgH} L0 ${_svgH}Z`;
-              }
-              const _lastPt=_pts[_pts.length-1];
-
-              // ── Bento data ──
-              const _schedWk=WDAYS.filter(d=>schedule?.[d]&&schedule[d]!=='rest').length||4;
-
-              // % to goal — declared FIRST because _g2* (goal-date) reads _goalW
-              // Calc: if losing (startW>goalW): pct=(startW-curW)/(startW-goalW)*100
-              //       if gaining (goalW>startW): pct=(curW-startW)/(goalW-startW)*100
-              const _startW=parseFloat(profile?.startWeight)||parseFloat(profile?.weight)||null;
-              const _goalW=parseFloat(profile?.goalWeight)||null;
-              const _hasGoalW=_startW!=null&&_goalW!=null&&_curW!=null&&Math.abs(_goalW-_startW)>0.5;
-              let _goalPct=null;
-              if(_hasGoalW){
-                const _lossJ=_startW>_goalW;
-                _goalPct=Math.round(Math.max(0,Math.min(100,
-                  _lossJ?(_startW-_curW)/(_startW-_goalW)*100:(_curW-_startW)/(_goalW-_startW)*100
-                )));
-              }
-              const _g3v=_hasGoalW?`${_goalPct??0}`:`${workoutLogsRaw.length}`;
-              const _g3u=_hasGoalW?'%':null;
-              const _g3s=_hasGoalW?'to goal':'sessions';
-
-              // Projected goal date — reuses weightProjection regression (slope = lbs/day)
-              // _goalW declared above — no TDZ risk here
-              let _g2v='—',_g2u=null,_g2s='LOG WEIGHT',_g2c='var(--text-dim)';
-              if(weightProjection&&_goalW&&_curW){
-                const _sl=weightProjection.slope;
-                if(Math.abs(_sl)>=0.01){
-                  const _dl=(_goalW-_curW)/_sl;
-                  if(_dl<=0){_g2v='NOW';_g2s='GOAL REACHED';_g2c='#22c55e';}
-                  else if(_dl>730){_g2v='2+ YR';_g2s='EST. GOAL DATE';_g2c='var(--text-dim)';}
-                  else{
-                    const _pd=new Date(Date.now()+_dl*86400000);
-                    const _mo=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-                    _g2v=String(_pd.getDate()); _g2u=_mo[_pd.getMonth()];
-                    _g2s='EST. GOAL DATE'; _g2c='var(--cm-ink)';
-                  }
-                }else{_g2s='STABLE TREND';}
-              }else if(!_goalW){_g2s='SET A GOAL';}
-
-              return(
-                <>
-                  {/* WEIGHT TREND — full-bleed band */}
-                  <div style={{background:"var(--bg)"}}>
-
-                    <div style={{padding:"18px 20px 10px"}}>
-                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>WEIGHT TREND</div>
-                      {/* Number + delta — baseline-aligned inline (mock: "180 lb ▼ 5 lb · on track") */}
-                      <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap"}}>
-                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
-                          {_curW??'--'}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_unit==='lbs'?'lb':_unit}</span>
-                        </div>
-                        {_deltaN!=null&&(
-                          <div style={{fontFamily:_AF,fontWeight:700,fontSize:13,color:_deltaColor,letterSpacing:"-0.01em",display:"flex",alignItems:"center",gap:4,paddingBottom:3}}>
-                            <span>{_deltaN<0?'▼':'▲'}</span>
-                            <span>{Math.abs(_deltaN)}<span style={{fontFamily:_MO,fontSize:10,fontWeight:700,marginLeft:1}}>{_unit==='lbs'?'lb':_unit}</span></span>
-                            {_goodDir===true&&_goalW&&<span>{'· on track for '}{_goalW}</span>}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {_hasCh?(
-                      <svg viewBox={`0 0 320 ${_svgH}`} width="100%"
-                        style={{display:"block",overflow:"visible",marginTop:4}}>
-                        <defs>
-                          <linearGradient id="wt-fill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18"/>
-                            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
-                          </linearGradient>
-                          {!_isLight&&(
-                            <filter id="wt-glow" x="-10%" y="-120%" width="120%" height="340%">
-                              <feGaussianBlur stdDeviation="4" result="b1"/>
-                              <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b2"/>
-                              <feMerge>
-                                <feMergeNode in="b1"/>
-                                <feMergeNode in="b2"/>
-                                <feMergeNode in="SourceGraphic"/>
-                              </feMerge>
-                            </filter>
-                          )}
-                        </defs>
-                        <path d={_ar} fill="url(#wt-fill)"/>
-                        <path d={_ln} fill="none" stroke="var(--accent)" strokeWidth="2.5"
-                          strokeLinecap="round" strokeLinejoin="round"
-                          filter={!_isLight?"url(#wt-glow)":undefined}/>
-                        {_lastPt&&<circle cx={_lastPt.x} cy={_lastPt.y} r="4"
-                          fill="var(--accent)" filter={!_isLight?"url(#wt-glow)":undefined}/>}
-                      </svg>
-                    ):(
-                      <div style={{padding:"0 20px 16px"}}>
-                        <div style={{fontFamily:_MO,fontSize:10,color:"var(--text-faint)",lineHeight:1.65}}>
-                          {_curW?`${_curW} ${_unit} logged — add more to see your trend`:'Log your weight to start your trend'}
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{height:1,background:"var(--card-border)",margin:"12px 20px 0"}}/>
-                  </div>
-
-                  {/* BENTO CLUSTER */}
-                  <div style={{display:"flex",gap:8,padding:"12px 20px 4px",background:"var(--bg)"}}>
-                    {[
-                      // u = unit suffix (small bold, same color); s = word label (small dim, below)
-                      {l:'SESSIONS',v:`${workoutsThisWeek}`,u:null,  s:`/${_schedWk} wk`, c:'var(--cm-ink)'},
-                      {l:'GOAL DATE',v:_g2v,                 u:_g2u,  s:_g2s,               c:_g2c},
-                      {l:'TO GOAL', v:_g3v,                 u:_g3u,  s:_g3s,               c:'#22c55e'},
-                    ].map(({l,v,u,s,c})=>(
-                      <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
-                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
-                        {/* Number + compact bold unit suffix (lb / d / %) */}
-                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
-                          {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
-                        </div>
-                        {/* Dim word label below — secondary context */}
-                        {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{s}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
-
-            {/* ── THIS WEEK BAND — Pass 2A ── */}
-            {(()=>{
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-              const _dLabel=trainingDaysThisWeek===1?'day':'days';
-              return(
-                <div style={{background:"var(--bg)"}}>
-                  <div style={{padding:"18px 20px 14px"}}>
-                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>THIS WEEK</div>
-                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",marginBottom:16}}>
-                      {trainingDaysThisWeek}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:5}}>{_dLabel}</span>
-                    </div>
-                    <div style={{display:"flex",gap:8,marginBottom:16}}>
-                      {twRings.map(({pct,value,label,color},i)=>(
-                        <MiniRing key={label} pct={pct} value={value} label={label} color={color} index={i}/>
-                      ))}
-                    </div>
-                    <div style={{height:1,background:"var(--card-border)",marginBottom:12}}/>
-                    <div style={{display:"flex"}}>
-                      {[
-                        {l:"CAL HIT",v:`${calHitDays}d`},
-                        {l:"PROT HIT",v:`${protHitDays}d`},
-                        {l:"STREAK",v:`${currentStreak}d`},
-                      ].map(({l,v},i)=>(
-                        <div key={l} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid var(--card-border)":"none"}}>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.02em"}}>{v}</div>
-                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--text-faint)",marginTop:4,letterSpacing:"0.14em",textTransform:"uppercase"}}>{l}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-                </div>
-              );
-            })()}
-
-            {/* ── COACH SCORE BENTO ROW — Pass 2A ── */}
-            {(()=>{
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-              const _hasNutr=calHitDays>0||protHitDays>0;
-              const _nutrC=calHitDays>=5?'#22c55e':calHitDays>=3?'var(--cm-ink)':'var(--text-dim)';
-              const _tiles=[
-                {l:'COACH SCORE',v:`${sc.total}`,u:null,s:scoreStatus,c:ringColor},
-                {l:'STREAK',v:`${currentStreak}`,u:'d',s:'active streak',c:'var(--cm-ink)'},
-                ...(_hasNutr?[{l:'CAL IN RANGE',v:`${calHitDays}`,u:null,s:'/7d this week',c:_nutrC}]:[]),
-              ];
-              return(
-                <div style={{display:"flex",gap:8,padding:"12px 20px 4px",background:"var(--bg)"}}>
-                  {_tiles.map(({l,v,u,s,c})=>(
-                    <div key={l} style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:12,padding:"14px 10px",boxShadow:_isLight?"0 2px 12px rgba(0,0,0,0.06)":undefined}}>
-                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>{l}</div>
-                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:30,color:c,lineHeight:1,letterSpacing:"-0.02em"}}>
-                        {v}{u&&<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:c,marginLeft:1}}>{u}</span>}
-                      </div>
-                      {s&&<div style={{fontFamily:_MO,fontSize:8,fontWeight:400,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em",textTransform:"uppercase"}}>{s}</div>}
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {workoutLogsRaw.length>0&&<WeeklyReview
-              workoutLogsRaw={workoutLogsRaw}
-              workoutsThisWeek={workoutsThisWeek}
-              volumeThisWeek={volumeThisWeek}
-              volumeLastWeek={volumeLastWeek}
-              protHitDays={protHitDays}
-              calHitDays={calHitDays}
-              twStart={_twStart}
-              macros={macros}
-              user={user}
-              setsThisWeek={setsThisWeek}
-              timeThisWeek={timeThisWeek}
-              prsThisWeek={prsThisWeek}
-              weekDays={weekDays}
-              trainingDaysThisWeek={trainingDaysThisWeek}
-              lastWeekTrainingDays={lastWeekTrainingDays}
-              wUnit={profile?.wUnit||'lbs'}
-              onTap={()=>setShowWeeklyReviewModal(true)}
-            />}
-            {/* Empty state — fewer than 3 sessions */}
-            {workoutLogsRaw.length<3&&(
-              <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// PROGRESS UNLOCKS IN 3 SESSIONS</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
-                  YOUR DATA IS BUILDING<span style={{color:"var(--accent)"}}>.</span>
-                </div>
-                <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5,marginBottom:16}}>
-                  Complete {3-workoutLogsRaw.length} more session{3-workoutLogsRaw.length===1?"":"s"} to unlock your full progress dashboard. Coach Macro needs a baseline to start measuring your growth.
-                </div>
-                <div style={{marginBottom:16}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.12em"}}>Sessions completed</span>
-                    <span style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent)"}}>{workoutLogsRaw.length}/3</span>
-                  </div>
-                  <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${Math.round(workoutLogsRaw.length/3*100)}%`,background:"var(--accent)",borderRadius:3,transition:"width 0.6s ease"}}/>
-                  </div>
-                  <div style={{display:"flex",gap:8,marginTop:8}}>
-                    {[0,1,2].map(i=>(
-                      <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<workoutLogsRaw.length?"var(--accent)":"rgba(245,245,240,0.07)"}}/>
-                    ))}
-                  </div>
-                </div>
-                <button onClick={()=>setSection("train")} style={{width:"100%",padding:"13px 0",background:"var(--accent)",border:"none",borderRadius:12,fontFamily:"var(--mono)",fontWeight:700,fontSize:10,color:"#fff",letterSpacing:"0.16em",textTransform:"uppercase",cursor:"pointer"}}>
-                  START A SESSION →
-                </button>
-              </div>
-            )}
-            {/* Coach Score Card — removed in Pass 2A, re-housed as bento tile above */}
-
-            {/* ── EVENT COUNTDOWN BAND — Pass 2B (hyrox / running / strength unified) ── */}
-            {(()=>{
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-
-              const _isHyroxEvent=!!(wPrefs?.isHyrox&&(profile?.hyrox_race_date||wPrefs?.hyroxRaceDate));
-              const _isRunEvent=!!(profile?.run_race_date&&!wPrefs?.isHyrox);
-              const _isStrengthEvent=!!profile?.strength_comp_date;
-              if(!_isHyroxEvent&&!_isRunEvent&&!_isStrengthEvent)return null;
-
-              // ── Hyrox ──
-              if(_isHyroxEvent){
-                const raceDate=profile?.hyrox_race_date||wPrefs?.hyroxRaceDate;
-                const phase=getHyroxPhase(raceDate);
-                if(!phase)return null;
-                const hProf={
-                  hyrox_category:wPrefs?.hyroxCategory||profile?.hyrox_category||"open",
-                  hyrox_experience:wPrefs?.hyroxExp||profile?.hyrox_experience||"",
-                  hyrox_weak_stations:wPrefs?.hyroxWeakStations||profile?.hyrox_weak_stations||[],
-                  hyrox_target_time:wPrefs?.hyroxTargetTimeMin?`${wPrefs.hyroxTargetTimeMin}:${wPrefs.hyroxTargetTimeSec||"00"}`:profile?.hyrox_target_time,
-                  hyrox_previous_time:wPrefs?.hyroxPrevTimeMin?`${wPrefs.hyroxPrevTimeMin}:${wPrefs.hyroxPrevTimeSec||"00"}`:profile?.hyrox_previous_time,
-                };
-                const pred=getRaceTimePredictor(hProf,(workoutLogsRaw||[]).slice(0,30));
-                const _glow=!_isLight?`drop-shadow(0 0 18px ${phase.color}40)`:undefined;
-                return(
-                  <div style={{background:"var(--bg)"}}>
-                    <div style={{padding:"18px 20px 16px"}}>
-                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE COUNTDOWN · HYROX</div>
-                      <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
-                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
-                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
-                        </div>
-                        <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
-                        </div>
-                      </div>
-                      <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:8}}>{new Date(raceDate).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
-                      <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 6px 6px 0",padding:"8px 12px",marginBottom:16}}>
-                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{phase.description}</div>
-                      </div>
-                      <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
-                      <div style={{display:"flex",gap:8,marginBottom:pred.targetTime?10:0}}>
-                        <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentPrediction}</div>
-                        </div>
-                        {pred.targetTime&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTime}</div>
-                        </div>}
-                      </div>
-                      {pred.targetTime&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,marginBottom:pred.topPriorities?.length?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
-                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
-                        <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
-                      </div>}
-                      {pred.topPriorities?.length>0&&<>
-                        <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:8}}>PRIORITY STATIONS</div>
-                        {pred.topPriorities.map(s=>(
-                          <div key={s} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                            <div style={{width:4,height:4,borderRadius:1,background:phase.color,flexShrink:0}}/>
-                            <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)"}}>{s}</span>
-                          </div>
-                        ))}
-                      </>}
-                    </div>
-                    <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-                  </div>
-                );
-              }
-
-              // ── Running ──
-              if(_isRunEvent){
-                const phase=getRunningPhase(profile.run_race_date);
-                if(!phase)return null;
-                const pred=getRunTimePredictor(profile,(workoutLogsRaw||[]).filter(l=>l.workout?.avg_pace_secs_per_km).slice(0,20));
-                const raceTypeLabels={_5k:"5K","5k":"5K",_10k:"10K","10k":"10K",half_marathon:"HALF MARATHON",marathon:"MARATHON",ultra:"ULTRA",obstacle:"OBSTACLE / OCR"};
-                const raceLabel=raceTypeLabels[profile.run_race_type]||(profile.run_race_type||"").toUpperCase().replace(/_/g," ");
-                const _hasPred=!!(pred.currentPrediction||pred.previousTime);
-                const _glow=!_isLight?`drop-shadow(0 0 18px ${phase.color}40)`:undefined;
-                return(
-                  <div style={{background:"var(--bg)"}}>
-                    <div style={{padding:"18px 20px 16px"}}>
-                      <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>RACE DAY{raceLabel?` · ${raceLabel}`:''}</div>
-                      <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
-                        <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
-                          {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
-                        </div>
-                        <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
-                          <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
-                        </div>
-                      </div>
-                      <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:8}}>{new Date(profile.run_race_date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
-                      <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 6px 6px 0",padding:"8px 12px",marginBottom:_hasPred?16:0}}>
-                        <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{phase.description}</div>
-                      </div>
-                      {_hasPred&&<>
-                        <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
-                        <div style={{display:"flex",gap:8,marginBottom:pred.targetTime&&pred.gap?10:0}}>
-                          <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>PREDICTED</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentPrediction||pred.previousTime}</div>
-                          </div>
-                          {pred.targetTime&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTime}</div>
-                          </div>}
-                        </div>
-                        {pred.targetTime&&pred.gap&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
-                          <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"On track":"Gap to target"}</span>
-                          <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ "+pred.gap+" ahead":pred.gap+" behind"}</span>
-                        </div>}
-                      </>}
-                    </div>
-                    <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-                  </div>
-                );
-              }
-
-              // ── Strength ──
-              const phase=getStrengthPhase(profile.strength_comp_date);
-              if(!phase)return null;
-              const pred=getStrengthPredictor(profile);
-              const compTypeLabel=(profile.strength_comp_type||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
-              const federation=profile.strength_comp_federation;
-              const _wUnit=profile?.units==="metric"?"kg":"lbs";
-              const _glow=!_isLight?`drop-shadow(0 0 18px ${phase.color}40)`:undefined;
-              return(
-                <div style={{background:"var(--bg)"}}>
-                  <div style={{padding:"18px 20px 16px"}}>
-                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>COMPETITION{compTypeLabel?` · ${compTypeLabel.toUpperCase()}`:''}</div>
-                    <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:10}}>
-                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:_glow}}>
-                        {phase.weeksUntilRace}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>wks</span>
-                      </div>
-                      <div style={{background:`${phase.color}18`,border:`1px solid ${phase.color}50`,borderRadius:8,padding:"4px 10px",flexShrink:0}}>
-                        <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:phase.color,letterSpacing:"0.08em"}}>{phase.label}</div>
-                      </div>
-                    </div>
-                    <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginBottom:8}}>{compTypeLabel}{federation?` · ${federation}`:""}{` · `}{new Date(profile.strength_comp_date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
-                    <div style={{background:`${phase.color}08`,borderLeft:`2px solid ${phase.color}60`,borderRadius:"0 6px 6px 0",padding:"8px 12px",marginBottom:pred.currentTotal>0?16:0}}>
-                      <div style={{fontFamily:"'Barlow',sans-serif",fontSize:12,color:"var(--text-dim)",lineHeight:1.5}}>{phase.description}</div>
-                    </div>
-                    {pred.currentTotal>0&&<>
-                      <div style={{height:1,background:"var(--card-border)",marginBottom:14}}/>
-                      <div style={{display:"flex",gap:8,marginBottom:pred.targetTotal?10:0}}>
-                        <div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>CURRENT</div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:"var(--cm-ink)",lineHeight:1}}>{pred.currentTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:"var(--text-dim)",marginLeft:3}}>{_wUnit}</span></div>
-                        </div>
-                        {pred.targetTotal&&<div style={{flex:1,background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:10,padding:"12px",textAlign:"center"}}>
-                          <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:6}}>TARGET</div>
-                          <div style={{fontFamily:_AF,fontWeight:800,fontSize:26,color:pred.onTrack?"#22c55e":"var(--accent)",lineHeight:1}}>{pred.targetTotal.toLocaleString()}<span style={{fontFamily:_MO,fontSize:12,fontWeight:700,color:pred.onTrack?"#22c55e":"var(--accent)",marginLeft:3}}>{_wUnit}</span></div>
-                        </div>}
-                      </div>
-                      {pred.targetTotal&&pred.gapToTarget!==null&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,marginBottom:pred.topLiftToImprove?12:0,padding:"8px 12px",background:pred.onTrack?"rgba(34,197,94,0.06)":"rgba(var(--accent-rgb),0.04)",borderRadius:8}}>
-                        <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{pred.onTrack?"Target reached":"Gap to target"}</span>
-                        <span style={{fontFamily:_AF,fontWeight:800,fontSize:15,color:pred.onTrack?"#22c55e":"var(--accent)"}}>{pred.onTrack?"✓ On track":`${Math.abs(pred.gapToTarget)} to go`}</span>
-                      </div>}
-                      {pred.topLiftToImprove&&<div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:4,height:4,borderRadius:1,background:phase.color,flexShrink:0}}/>
-                        <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)"}}>Focus: {pred.topLiftToImprove} — most room to close the gap</span>
-                      </div>}
-                    </>}
-                  </div>
-                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-                </div>
-              );
-            })()}
-
-            {/* Today's Insight + Coach Memory merged — Pass 2D */}
-            <ValidationInsightCard/>
-
-            {/* ── INSIGHTS ENTRY CARD — Pass 2E (collapses Connections + Peer) ── */}
-            {(()=>{
-              const _MO="'DM Mono',monospace";
-              const _connCount=(connectionData||[]).length;
-              const _hasPeer=!!(peerData);
-              const _rows=[
-                {label:'Correlations',sub:_connCount>0?`${_connCount} signal${_connCount!==1?'s':''}`:null,onTap:()=>setShowConnectionsView(true)},
-                {label:'Peer Comparison',sub:_hasPeer?'view your cohort':null,onTap:()=>setShowPeerView(true)},
-              ];
-              return(
-                <div style={{margin:"0 16px 14px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,overflow:"hidden"}}>
-                  <div style={{padding:"14px 16px 6px"}}>
-                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase"}}>INSIGHTS</div>
-                  </div>
-                  {_rows.map(({label,sub,onTap},i)=>(
-                    <div key={label} onClick={onTap} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderTop:"1px solid var(--card-border)",cursor:"pointer"}}>
-                      <div>
-                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:14,color:"var(--cm-ink)",lineHeight:1}}>{label}</div>
-                        {sub&&<div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",marginTop:3,letterSpacing:"0.06em"}}>{sub}</div>}
-                      </div>
-                      <span style={{fontFamily:_MO,fontSize:9,color:"var(--text-faint)"}}>→</span>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {/* This Week Rings — removed in Pass 2A, re-housed as THIS WEEK band above */}
-
-            {/* Expenditure / TDEE Card */}
-            <ExpenditureCard/>
-
-            {/* ── PERFORMANCE CALENDAR BAND — Pass 2 refined ── */}
-            {(()=>{
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-              const _trainedDays=calDays.filter(d=>!d.isFuture&&d.hasWorkout).length;
-              const _loggedDays=calDays.filter(d=>!d.isFuture&&d.hasMacros).length;
-              return(
-                <div style={{background:"var(--bg)"}}>
-                  <div style={{padding:"18px 20px 14px"}}>
-                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>PERFORMANCE</div>
-                    <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
-                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em",filter:!_isLight?"drop-shadow(0 0 20px rgba(var(--accent-rgb),0.18))":undefined}}>
-                        {_trainedDays}
-                      </div>
-                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>days trained</span>
-                    </div>
-                    <div style={{fontFamily:_MO,fontSize:8,color:"var(--text-faint)",letterSpacing:"0.06em"}}>5-week window · {_loggedDays} meals logged</div>
-                  </div>
-                  {/* Full-bleed calendar — minimal side padding so cells are tappable-sized */}
-                  <div style={{padding:"0 6px 14px"}}>
-                    <PerformanceCalendarGrid calDays={calDays} isLight={_isLight}/>
-                  </div>
-                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-                </div>
-              );
-            })()}
-
-            {/* ── TRAINING DNA BAND — ghost radar locked state ── */}
-            <div data-tour="training-dna" style={{background:"var(--bg)"}}>
-              {workoutLogsRaw.length<10?(()=>{
-                const _AF="'Archivo',sans-serif";
-                const _MO="'DM Mono',monospace";
-                const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-                const _sess=workoutLogsRaw.length;
-                // Radar geometry — SAME 6-axis hexagon as unlocked drawDNARadar
-                // R=90 makes the radar a visual centrepiece in the 280×300 viewBox
-                const _R=90,_cx=140,_cy=148;
-                const _ang=i=>(i/6)*2*Math.PI-Math.PI/2;
-                const _ptX=(i,rr)=>(_cx+rr*Math.cos(_ang(i))).toFixed(1);
-                const _ptY=(i,rr)=>(_cy+rr*Math.sin(_ang(i))).toFixed(1);
-                const _hexPts=rr=>Array.from({length:6},(_,i)=>`${_ptX(i,rr)},${_ptY(i,rr)}`).join(' ');
-                // Data polygon grows from 0 → R across 10 sessions
-                const _fillR=_sess===0?0:Math.max(9,(_sess/10)*_R);
-                // Glow — dark-only, applied to data polygon + vertex dots
-                const _glow=!_isLight?"drop-shadow(0 0 8px rgba(var(--accent-rgb),0.55))":undefined;
-                const _AXLABELS=['STR','END','POW','CON','NUT','REC'];
-                return(
-                  <div style={{padding:"18px 20px 20px"}}>
-                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>ATHLETE DNA</div>
-                    <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:6}}>
-                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>
-                        {_sess}<span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)",marginLeft:4}}>/10</span>
-                      </div>
-                      <span style={{fontFamily:_MO,fontSize:13,fontWeight:700,color:"var(--text-dim)"}}>sessions</span>
-                    </div>
-                    <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5,marginBottom:12}}>
-                      {_sess===0
-                        ?"Log your first session — your fingerprint starts forming."
-                        :`${10-_sess} more session${10-_sess===1?'':'s'} until your Training DNA unlocks.`}
-                    </div>
-                    {/* Forming radar — REAL visible strength, same geometry as unlocked */}
-                    <svg viewBox="0 0 280 300" width="100%" style={{display:"block"}}>
-                      {/* Inner grid rings — 0.22 opacity, clearly visible skeleton */}
-                      {[0.25,0.5,0.75].map(f=>(
-                        <polygon key={f} points={_hexPts(_R*f)} fill="none"
-                          stroke="rgba(var(--accent-rgb),0.22)" strokeWidth={0.8}/>
-                      ))}
-                      {/* Outer boundary — 0.4 opacity, strong skeleton frame */}
-                      <polygon points={_hexPts(_R)} fill="none"
-                        stroke="rgba(var(--cm-ink-rgb,10,10,10),0.4)" strokeWidth={1.5}/>
-                      {/* Axis spokes */}
-                      {Array.from({length:6},(_,i)=>(
-                        <line key={i} x1={_cx} y1={_cy} x2={_ptX(i,_R)} y2={_ptY(i,_R)}
-                          stroke="rgba(var(--cm-ink-rgb,10,10,10),0.15)" strokeWidth={0.8}/>
-                      ))}
-                      {/* Growing data polygon — strong stroke, dashed = in-progress */}
-                      {_fillR>0&&(
-                        <polygon points={_hexPts(_fillR)}
-                          fill="rgba(var(--accent-rgb),0.15)"
-                          stroke="rgba(var(--accent-rgb),0.75)"
-                          strokeWidth={2}
-                          strokeDasharray="5 3"
-                          style={{filter:_glow}}/>
-                      )}
-                      {/* Vertex dots — r=5, clearly visible, glow dark-only */}
-                      {_sess>0&&Array.from({length:6},(_,i)=>(
-                        <circle key={i} cx={_ptX(i,_fillR)} cy={_ptY(i,_fillR)} r={5}
-                          fill="rgba(var(--accent-rgb),0.85)"
-                          style={{filter:_glow}}/>
-                      ))}
-                      {/* Axis labels — same as unlocked radar, at R+22 */}
-                      {_AXLABELS.map((label,i)=>(
-                        <text key={i} x={_ptX(i,_R+22)} y={_ptY(i,_R+22)}
-                          textAnchor={Math.abs(Math.cos(_ang(i)))<0.2?'middle':Math.cos(_ang(i))>0?'start':'end'}
-                          dominantBaseline="middle"
-                          fontFamily="'DM Mono',monospace" fontSize={8}
-                          fill="rgba(var(--cm-ink-rgb,10,10,10),0.35)"
-                          letterSpacing="0.06em">{label}</text>
-                      ))}
-                    </svg>
-                  </div>
-                );
-              })():(
-                <TrainingDNA profile={profile} wPrefs={wPrefs} user={user} isMobile={isMobile} schedule={schedule} prefetchedDnaData={prefetchedDNA} dnaPromise={dnaPromiseRef.current}/>
-              )}
-              <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-            </div>
-
-            {/* ── COACH TIPS — Pass 2D ── */}
-            <div style={{margin:"0 16px 14px",padding:"16px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:12}}>COACHING</div>
-              {doingWell.length>0&&(
-                <div style={{marginBottom:focusTips.length?14:0}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:700,color:"#22c55e",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>DOING WELL</div>
-                  {doingWell.map((t,i)=>(
-                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
-                      <span style={{color:"#22c55e",fontSize:11,marginTop:1,flexShrink:0}}>✓</span>
-                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{t}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {focusTips.length>0&&(
-                <div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:700,color:"var(--accent)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>FOCUS THIS WEEK</div>
-                  {focusTips.map((t,i)=>(
-                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<focusTips.length-1?6:0}}>
-                      <span style={{color:"var(--accent)",fontSize:11,marginTop:1,flexShrink:0}}>→</span>
-                      <span style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-dim)",lineHeight:1.5}}>{t}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!doingWell.length&&!focusTips.length&&(
-                <div style={{fontFamily:"'Barlow',sans-serif",fontSize:13,color:"var(--text-faint)",lineHeight:1.5}}>Log workouts and meals to see personalized coaching.</div>
-              )}
-            </div>
-
-            {/* ── MILESTONES — badge scroll ── */}
-            {(()=>{
-              const earned=JSON.parse(localStorage.getItem('cm_earned_milestones')||'[]');
-              const earnedSet=new Set(earned);
-              const _AF="'Archivo',sans-serif";
-              const _MO="'DM Mono',monospace";
-              const _isLight=(wPrefs?.theme?.bg||'black')==='white';
-              const _earnedCount=MILESTONES.filter(m=>earnedSet.has(m.id)).length;
-              return(
-                <div style={{background:"var(--bg)"}}>
-                  <div style={{padding:"18px 20px 14px"}}>
-                    <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--text-faint)",marginBottom:10}}>MILESTONES</div>
-                    <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:46,color:"var(--cm-ink)",lineHeight:1,letterSpacing:"-0.03em"}}>{_earnedCount}</div>
-                      <span style={{fontFamily:_MO,fontSize:15,fontWeight:700,color:"var(--text-dim)"}}>/{MILESTONES.length} earned</span>
-                    </div>
-                  </div>
-                  <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:18}}>
-                    <div style={{display:"flex",gap:10,padding:"4px 20px",width:"max-content"}}>
-                      {MILESTONES.map((m,mi)=>{
-                        const isEarned=earnedSet.has(m.id);
-                        return(
-                          <div key={m.id} style={{
-                            flexShrink:0,width:78,padding:"16px 6px 12px",
-                            background:isEarned?"rgba(var(--accent-rgb),0.1)":"transparent",
-                            border:`${isEarned?2:1}px solid ${isEarned?"rgba(var(--accent-rgb),0.5)":"var(--card-border)"}`,
-                            borderRadius:18,textAlign:"center",
-                            position:"relative",
-                            opacity:isEarned?1:0.32,
-                            filter:isEarned&&!_isLight?"drop-shadow(0 0 12px rgba(var(--accent-rgb),0.35))":undefined,
-                            animation:`cardIn 0.35s ease-out ${mi*18}ms both`,
-                          }}>
-                            {/* Earned checkmark badge */}
-                            {isEarned&&(
-                              <div style={{position:"absolute",top:-5,right:-5,width:16,height:16,borderRadius:"50%",background:"var(--accent)",border:"2px solid var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                <svg width={8} height={8} viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke="#fff" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              </div>
-                            )}
-                            <div style={{fontSize:30,lineHeight:1,marginBottom:8,filter:isEarned&&!_isLight?"drop-shadow(0 0 6px rgba(var(--accent-rgb),0.4))":undefined}}>{m.icon}</div>
-                            <div style={{fontFamily:_MO,fontSize:6.5,color:isEarned?"var(--accent)":"var(--text-faint)",letterSpacing:"0.08em",textTransform:"uppercase",lineHeight:1.35,wordBreak:"break-word"}}>{m.title.replace(/\.$/, '')}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div style={{height:1,background:"var(--card-border)",margin:"0 20px"}}/>
-                </div>
-              );
-            })()}
-          </>}
-
-          {/* ── STRENGTH ── */}
-          {activeTab==="strength"&&<>
-            <div data-tour="plateau-section" style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:activePlateaus.length>0?12:0}}>// ACTIVE PLATEAUS</div>
-              {activePlateaus.length>0?(
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {activePlateaus.map((p,i)=>(
-                    <div key={p.id||i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<activePlateaus.length-1?"1px solid rgba(245,245,240,0.05)":"none"}}>
-                      <div style={{flex:1,minWidth:0,marginRight:12}}>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.exercise_name}</div>
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>
-                          {p.plateau_type==="weight"?`Weight stuck at ${p.stalled_value} lbs × ${p.sessions_stalled} sessions`:`Volume flat × ${p.sessions_stalled} sessions`}
-                        </div>
-                      </div>
-                      {p.strategy_prescribed&&(
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.55)",textAlign:"right",flexShrink:0,maxWidth:110,lineHeight:1.3}}>{p.strategy_prescribed}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ):(
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#22c55e",marginTop:6}}>✓ All lifts progressing</div>
-              )}
-            </div>
-
-            <PRFeed dbPRs={dbPRs} wUnit={profile?.wUnit||"lbs"}/>
-
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 60ms both"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Volume This Week</div>
-              {volumeThisWeek>0?(
-                <>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:32,color:"#fff",lineHeight:1}}>{volumeThisWeek.toLocaleString()} <span style={{fontSize:16,color:"rgba(245,245,240,0.45)"}}>{profile?.wUnit||"lbs"}</span></div>
-                  {volumeLastWeek>0&&(
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10}}>
-                      {volumeThisWeek>=volumeLastWeek?(
-                        <><span style={{color:"#22c55e"}}>↑</span><span style={{color:"#22c55e"}}>{Math.round((volumeThisWeek/volumeLastWeek-1)*100)}% vs last week</span></>
-                      ):(
-                        <><span style={{color:"var(--accent)"}}>↓</span><span style={{color:"var(--accent)"}}>{Math.round((1-volumeThisWeek/volumeLastWeek)*100)}% vs last week</span></>
-                      )}
-                    </div>
-                  )}
-                </>
-              ):(
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"rgba(245,245,240,0.35)"}}>NO DATA YET.</div>
-              )}
-            </div>
-
-            <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Workout Frequency</div>
-              <WorkoutFreqBars weeklyFreq={weeklyFreq}/>
-            </div>
-
-            {(()=>{
-              const split=wPrefs?.splitType||"My Program";
-              const pct=Math.min(100,Math.round((programWeek/12)*100));
-              return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Mesocycle Progress</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:10}}>Week {programWeek} of 12 · {split}</div>
-                  <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,#e8341c,rgba(232,52,28,0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
-                  </div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.35)",marginTop:6}}>{pct}% complete</div>
-                </div>
-              );
-            })()}
-            {(()=>{
-              // RPE trend chart — only if user has RPE data on at least 5 sessions
-              const sixWeeksAgo=new Date(Date.now()-42*864e5).toISOString().split("T")[0];
-              const recentLogs=(workoutLogsRaw||[]).filter(l=>l.date>=sixWeeksAgo).sort((a,b)=>a.date>b.date?1:-1);
-
-              // Build per-exercise RPE history from raw logs
-              const exRPEMap={};
-              recentLogs.forEach(log=>{
-                (log.workout?.exercises||[]).forEach(ex=>{
-                  if(!exRPEMap[ex.name])exRPEMap[ex.name]=[];
-                  const doneSets=(ex.sets||[]).filter(s=>s.done&&s.rpe!=null);
-                  if(!doneSets.length)return;
-                  const avgRPE=doneSets.reduce((sum,s)=>sum+s.rpe,0)/doneSets.length;
-                  exRPEMap[ex.name].push({date:log.date,avgRPE:Math.round(avgRPE*10)/10});
-                });
-              });
-
-              // Sessions that have ANY RPE data
-              const sessionsWithRPE=new Set(recentLogs.filter(l=>(l.workout?.exercises||[]).some(ex=>(ex.sets||[]).some(s=>s.done&&s.rpe!=null))).map(l=>l.date));
-              if(sessionsWithRPE.size<5)return null;
-
-              // Pick top 2 exercises with most RPE data
-              const topExercises=Object.entries(exRPEMap)
-                .filter(([,h])=>h.length>=3)
-                .sort((a,b)=>b[1].length-a[1].length)
-                .slice(0,2);
-              if(topExercises.length===0)return null;
-
-              return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(245,245,240,0.06)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// RPE TREND</div>
-                  {topExercises.map(([exName,exHistory])=>{
-                    const points=exHistory.slice(-8);
-                    if(points.length<2)return null;
-                    const trend=points[points.length-1].avgRPE-points[0].avgRPE;
-                    const trendColor=trend>0.5?'#e8341c':trend>0?'#FEA020':'#22c55e';
-                    const trendLabel=trend>0.5?"↑ RPE rising":trend>0?"→ RPE stable (slight rise)":"→ RPE stable";
-                    return <RPELineChart key={exName} points={points} exName={exName} trendColor={trendColor} trendLabel={trendLabel}/>;
-                  })}
-                  <div style={{display:"flex",gap:12,marginTop:4}}>
-                    {[["≤7","#22c55e","Easy"],["8","#FEA020","Hard"],["≥9","var(--accent)","Very Hard"]].map(([label,color,desc])=>(
-                      <div key={label} style={{display:"flex",alignItems:"center",gap:4}}>
-                        <div style={{width:6,height:6,borderRadius:"50%",background:color,flexShrink:0}}/>
-                        <span style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:7,color:"rgba(245,245,240,0.3)"}}>{label} {desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-          </>}
-
-          {/* ── NUTRITION ── */}
-          {activeTab==="nutrition"&&<>
-            {(()=>{
-              const twDays=Object.entries(dailyFoodMap).filter(([d])=>d>=_twStart&&dailyFoodMap[d].hasData);
-              if(twDays.length===0)return<PH eyebrow="// This Week's Averages" headline="NO LOGS YET." body="Log meals this week to see your daily average calories and macros."/>;
-              const n=twDays.length;
-              const avg=(key)=>Math.round(twDays.reduce((s,[,v])=>s+v[key],0)/n);
-              const avgCal=avg('cal'),avgProt=avg('prot'),avgCarbs=avg('carbs'),avgFat=avg('fat');
-              function chipColor(actual,target){if(actual>=target*0.9&&actual<=target*1.1)return"#22c55e";if(actual>=target*0.75&&actual<=target*1.25)return"#FEA020";return"var(--accent)";}
-              return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// This Week's Averages</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    {[{l:"Calories",v:avgCal,t:calTarget,u:"kcal"},{l:"Protein",v:avgProt,t:protTarget,u:"g"},{l:"Carbs",v:avgCarbs,t:carbTarget,u:"g"},{l:"Fat",v:avgFat,t:fatTarget,u:"g"}].map(({l,v,t,u})=>(
-                      <div key={l} style={{padding:"10px 12px",background:"rgba(245,245,240,0.03)",borderRadius:10,border:`1px solid ${chipColor(v,t)}30`}}>
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.35)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>{l}</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:chipColor(v,t),lineHeight:1}}>{v} <span style={{fontSize:11,fontWeight:400,color:"rgba(245,245,240,0.35)"}}>/ {t}{u}</span></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {(()=>{
-              const days14=Array.from({length:14},(_,i)=>{
-                const d=new Date(Date.now()-(13-i)*864e5);
-                const ds=d.toISOString().split('T')[0];
-                const fd=dailyFoodMap[ds];
-                return{ds,fd,dow:d.toLocaleDateString('en-US',{weekday:'short'}).slice(0,1)};
-              });
-              const hitCount=days14.filter(({fd})=>fd?.hasData&&fd.prot>=protTarget*0.9).length;
-              return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Protein Consistency</div>
-                  <ProteinGrid days14={days14} hitCount={hitCount} protTarget={protTarget}/>
-                </div>
-              );
-            })()}
-
-            {(()=>{
-              const days14=Array.from({length:14},(_,i)=>{
-                const ds=new Date(Date.now()-(13-i)*864e5).toISOString().split('T')[0];
-                const fd=dailyFoodMap[ds];
-                return{ds,cal:fd?.cal||0,hasData:fd?.hasData||false};
-              });
-              const daysWithData=days14.filter(d=>d.hasData).length;
-              if(daysWithData<3)return<PH eyebrow="// Calorie Trend" headline="KEEP LOGGING." body="Log 3 days of meals to see your calorie trend."/>;
-              return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Calorie Trend</div>
-                  <CalorieTrendChart days14={days14} calTarget={calTarget}/>
-                </div>
-              );
-            })()}
-
-            <BodyweightSection logs={bodyweightLogs} user={user} setLogs={setBodyweightLogs} wUnit={profile?.wUnit||'lbs'}/>
-            {weightProjection?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Weight Projection</div>
-                <WeightChart
-                  weightProjection={weightProjection}
-                  goalW={profile?.goalWeight?parseFloat(profile.goalWeight):null}
-                  profile={profile}
-                />
-              </div>
-            ):(
-              <PH eyebrow="// Weight Projection" headline="LOG YOUR WEIGHT." body="Log your weight for 5+ days to see trend projection and forecast."/>
-            )}
-            {(profile?.wHistory||profile?.wTrend)&&(()=>{
-              const histLabel={yes:"Previously significantly heavier",no:"Weight stable long-term",notsure:"Weight history unclear"}[profile.wHistory]||null;
-              const trendLabel={losing:"Losing",gaining:"Gaining",stable:"Stable",notsure:"Trend unclear"}[profile.wTrend]||null;
-              if(!histLabel&&!trendLabel)return null;
-              return(
-                <div style={{margin:"0 16px 14px",padding:"10px 14px",background:"rgba(245,245,240,0.03)",border:"1px solid rgba(245,245,240,0.08)",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap",animation:"cardIn 0.4s ease-out both"}}>
-                  {histLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{histLabel}</span>}
-                  {trendLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,color:"rgba(245,245,240,0.45)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Trend: {trendLabel}</span>}
-                </div>
-              );
-            })()}
-          </>}
-
-          {/* ── RECOVERY ── */}
-          {activeTab==="recovery"&&<>
-            <div style={{margin:"0 16px 14px"}}>
-              <MuscleRecovery userId={user?.id} recoveryData={prefetchedRecovery} optimizationData={prefetchedOptim} recoveryPromise={recoveryPromiseRef.current}/>
-            </div>
-
-            {/* Muscle Balance */}
-            {(()=>{
-              const b=latestBalance;
-              const noData=!b||(b.push_volume_lbs===0&&b.pull_volume_lbs===0&&b.quad_volume_lbs===0&&b.posterior_volume_lbs===0);
-              const ppStatus=b?.push_pull_status||"balanced";
-              const qpStatus=b?.quad_posterior_status||"balanced";
-              const statusColor=s=>s==="risk"?"var(--accent)":s==="warning"?"#FEA020":"#22c55e";
-              const ppTotal=(b?.push_volume_lbs||0)+(b?.pull_volume_lbs||0);
-              const qpTotal=(b?.quad_volume_lbs||0)+(b?.posterior_volume_lbs||0);
-              return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Muscle Balance</div>
-                  {noData?(
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"rgba(245,245,240,0.35)"}}>
-                      COMPLETE MORE SESSIONS TO SEE BALANCE.
-                    </div>
-                  ):(
-                    <>
-                      <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>LAST 30 DAYS</div>
-                      {/* Push/Pull */}
-                      <div style={{marginBottom:14}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>PUSH vs PULL</div>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(ppStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{ppStatus}</div>
-                        </div>
-                        {[["PUSH",b?.push_volume_lbs||0,"var(--accent)"],["PULL",b?.pull_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
-                          <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
-                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
-                              <div style={{height:"100%",width:`${ppTotal>0?Math.round(vol/ppTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
-                            </div>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
-                          </div>
-                        ))}
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
-                          {b?.push_pull_ratio||1}:1 push to pull — {ppStatus}
-                        </div>
-                      </div>
-                      <div style={{height:1,background:"rgba(245,245,240,0.05)",marginBottom:14}}/>
-                      {/* Quad/Posterior */}
-                      <div style={{marginBottom:14}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.5)"}}>QUAD vs POSTERIOR</div>
-                          <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"#000",background:statusColor(qpStatus),borderRadius:4,padding:"2px 7px",textTransform:"uppercase"}}>{qpStatus}</div>
-                        </div>
-                        {[["QUAD",b?.quad_volume_lbs||0,"var(--accent)"],["POST",b?.posterior_volume_lbs||0,"#60a5fa"]].map(([label,vol,color])=>(
-                          <div key={label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.5)",width:30,flexShrink:0}}>{label}</div>
-                            <div style={{flex:1,height:4,background:"rgba(245,245,240,0.06)",borderRadius:2,overflow:"hidden"}}>
-                              <div style={{height:"100%",width:`${qpTotal>0?Math.round(vol/qpTotal*100):50}%`,background:color,borderRadius:2,transition:"width 0.5s"}}/>
-                            </div>
-                            <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:8,color:"rgba(245,245,240,0.4)",minWidth:60,textAlign:"right",flexShrink:0}}>{(vol/1000).toFixed(1)}k lbs</div>
-                          </div>
-                        ))}
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"rgba(245,245,240,0.4)",marginTop:4}}>
-                          {b?.quad_posterior_ratio||1}:1 quad to posterior — {qpStatus}
-                        </div>
-                      </div>
-                      {ppStatus==="balanced"&&qpStatus==="balanced"&&(
-                        <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"#22c55e"}}>✓ Muscle balance is good. Keep it up.</div>
-                      )}
-                    </>
-                  )}
-                </div>
-              );
-            })()}
-
-            {(()=>{
-              const split=wPrefs?.splitType||'';
-              const optimal=split.includes('6')?1:split.includes('4')?3:4;
-              const diff=restDaysThisWeek-optimal;
-              const c=Math.abs(diff)<=1?"#22c55e":Math.abs(diff)===2?"#FEA020":"var(--accent)";
-              return(
-                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Rest Days This Week</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:c,lineHeight:1,marginBottom:6}}>{restDaysThisWeek} <span style={{fontSize:14,color:"rgba(245,245,240,0.45)"}}>rest days</span></div>
-                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for {split||"your program"}: {optimal} rest day{optimal!==1?"s":""}</div>
-                </div>
-              );
-            })()}
-
-            <div style={{margin:"0 16px 14px",padding:"20px 18px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,textAlign:"center"}}>
-              <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:12}}>// Recovery Score</div>
-              <RecoveryGauge score={recoveryScore}/>
-            </div>
-
-            {healthSnap?.sleep!=null?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// Avg Sleep This Week</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"var(--accent)",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"rgba(245,245,240,0.45)"}}>Optimal for recovery: 7–9 hours</div>
-              </div>
-            ):(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:12}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:8}}>// Sleep Data</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff",marginBottom:6}}>CONNECT APPLE HEALTH.</div>
-                <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",marginBottom:12}}>Connect Apple Health to track sleep and recovery data automatically.</div>
-                <button onClick={()=>setShowHealthModal(true)} style={{background:"none",border:"1px solid rgba(245,245,240,0.2)",borderRadius:8,padding:"8px 14px",color:"rgba(245,245,240,0.65)",fontSize:12,cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",letterSpacing:"0.08em"}}>Connect Apple Health →</button>
-              </div>
-            )}
-          </>}
-
-          {/* ── RUNNING TAB ── */}
-          {activeTab==="running"&&(()=>{
-            const allRuns=(allActs||[]).filter(a=>(a.type||'').toLowerCase().includes('run')).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-            const recentRuns=allRuns.slice(0,12);
-            const hasRace=!!(profile?.run_race_date||wPrefs?.hyroxRaceDate||profile?.hyrox_race_date);
-            const mono="'DM Mono','SF Mono',monospace";
-            const cond="'Barlow Condensed',sans-serif";
-
-            return(
-              <>
-                {/* Weekly mileage card */}
-                <div style={{margin:"0 16px 14px",padding:"16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
-                  <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:14}}>// This Week's Running</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-                    <div style={{textAlign:"center"}}>
-                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#22c55e",lineHeight:1}}>{runActsThisWeek.length}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Runs</div>
-                    </div>
-                    <div style={{textAlign:"center"}}>
-                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"var(--accent)",lineHeight:1}}>{displayDistance(runDistKm,profile?.wUnit||'lbs')}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>{distanceLabel(profile?.wUnit||'lbs')}</div>
-                    </div>
-                    <div style={{textAlign:"center"}}>
-                      <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:28,color:"#60a5fa",lineHeight:1}}>{runTimeMins>=60?`${Math.floor(runTimeMins/60)}h${Math.round(runTimeMins%60)}m`:`${runTimeMins}m`}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginTop:4}}>Time</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent runs list */}
-                {recentRuns.length>0?(
-                  <div style={{margin:"0 16px 14px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16,overflow:"hidden"}}>
-                    <div style={{fontFamily:mono,fontSize:9,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",padding:"14px 16px 10px"}}>// Recent Runs</div>
-                    {recentRuns.map((run,i)=>{
-                      const d=new Date((run.date||run.start_date_local||'').split('T')[0]+'T12:00:00');
-                      const dateLabel=isNaN(d.getTime())?'—':d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
-                      const distKm=parseFloat(run.distanceKm)||0;
-                      const distLabel=displayDistance(distKm,profile?.wUnit||'lbs');
-                      const dur=parseInt(run.durationMins)||0;
-                      const paceSecKm=distKm>0&&dur>0?Math.round(dur*60/distKm):null;
-                      const paceStr=paceSecKm?`${Math.floor(paceSecKm/60)}:${String(paceSecKm%60).padStart(2,'0')}/km`:'—';
-                      return(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderTop:i>0?"1px solid rgba(245,245,240,0.05)":"none"}}>
-                          <div style={{width:34,height:34,borderRadius:10,background:"rgba(34,197,94,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>🏃</div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontFamily:cond,fontWeight:700,fontSize:14,color:"#f5f5f0",lineHeight:1}}>{run.name||'Run'}</div>
-                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{dateLabel}</div>
-                          </div>
-                          <div style={{textAlign:"right",flexShrink:0}}>
-                            <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:700,fontSize:14,color:"#22c55e"}}>{distLabel}</div>
-                            <div style={{fontFamily:mono,fontSize:8,color:"rgba(245,245,240,0.4)",marginTop:2}}>{paceStr}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ):(
-                  <div style={{margin:"0 16px 14px",padding:"20px 16px",background:"#0d0d0d",border:"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:16}}>
-                    <div style={{fontFamily:cond,fontStyle:"italic",fontWeight:900,fontSize:20,color:"#f5f5f0",textTransform:"uppercase",marginBottom:8}}>NO RUNS YET.</div>
-                    <div style={{fontSize:13,color:"rgba(245,245,240,0.5)",lineHeight:1.5}}>Log a run from the Train tab or sync Strava to see your running stats here.</div>
-                  </div>
-                )}
-              </>
-            );
-          })()}
-
-          <div style={{height:24}}/>
-        </div>
-      </div>
-    );
-  }
 
 
   return (
@@ -11084,7 +11093,39 @@ Rules:
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
-        {section==="progress"&&<ErrorBoundary><ProgressSection/></ErrorBoundary>}
+        {section==="progress"&&<ErrorBoundary><ProgressSection
+          coachScore={coachScore}
+          progressTab={progressTab}
+          setProgressTab={setProgressTab}
+          profile={profile}
+          wPrefs={wPrefs}
+          user={user}
+          macros={macros}
+          isMobile={isMobile}
+          workoutLogsRaw={workoutLogsRaw}
+          allActs={allActs}
+          healthSnap={healthSnap}
+          bodyweightLogs={bodyweightLogs}
+          dbPRs={dbPRs}
+          schedule={schedule}
+          deloadWeeksHistory={deloadWeeksHistory}
+          prefetchedDNA={prefetchedDNA}
+          prefetchedRecovery={prefetchedRecovery}
+          prefetchedOptim={prefetchedOptim}
+          latestBalance={latestBalance}
+          pendingMilestone={pendingMilestone}
+          activePlateaus={activePlateaus}
+          programCurrentWeek={programCurrentWeek}
+          dnaPromiseRef={dnaPromiseRef}
+          recoveryPromiseRef={recoveryPromiseRef}
+          setSection={setSection}
+          setPendingMilestone={setPendingMilestone}
+          setBodyweightLogs={setBodyweightLogs}
+          setShowWeeklyReviewModal={setShowWeeklyReviewModal}
+          setShowConnectionsView={setShowConnectionsView}
+          setShowPeerView={setShowPeerView}
+          setShowHealthModal={setShowHealthModal}
+        /></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)} onProfileUpdate={onProfileUpdate}/></ErrorBoundary>}
       </div>
 
