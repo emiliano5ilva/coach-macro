@@ -5779,7 +5779,9 @@ const ProgressSection = React.memo(function ProgressSection({
               const _prvW=_wl.length>1?_wl[0].weight:null;
               const _deltaN=(_curW!=null&&_prvW!=null)?parseFloat((_curW-_prvW).toFixed(1)):null;
               const _goalK=(profile?.goal||'').toLowerCase();
-              const _goodDir=_deltaN==null?null:(['lose','cut'].includes(_goalK)?_deltaN<0:['gain','bulk'].includes(_goalK)?_deltaN>0:null);
+              const _isLoseGoal=_goalK.includes('lose')||_goalK.includes('cut');
+              const _isGainGoal=_goalK.includes('gain')||_goalK.includes('bulk')||_goalK.includes('muscle');
+              const _goodDir=_deltaN==null?null:(_isLoseGoal?_deltaN<0:_isGainGoal?_deltaN>0:null);
               const _deltaColor=_goodDir===true?'#22c55e':_goodDir===false?'var(--accent)':'var(--text-dim)';
 
               // SVG chart geometry
