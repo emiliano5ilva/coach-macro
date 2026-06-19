@@ -7,7 +7,7 @@ const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
 const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
-  Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex, PaperCard,
+  Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex, StackPicker, PaperCard,
   SectionCard, Spinner, Logo, CC, BodyFigure, InfoTip, ErrorBoundary,
   DashboardSkeleton, ScoreSkeleton, CardSkeleton, ProgressSkeleton, CalendarSkeleton,
   calcTDEE, autoFocus, useCountUp, lookupBarcode,
@@ -985,7 +985,7 @@ function MiniRing({pct, value, label, color, index=0}) {
           )}
         </svg>
         <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-          <div style={{...cnd,fontSize:13,color:"#f5f5f0",lineHeight:1}}>{display}</div>
+          <div style={{...cnd,fontSize:13,color:"var(--cm-ink)",lineHeight:1}}>{display}</div>
         </div>
       </div>
       <div style={{...mno,fontSize:8,color:rc,textTransform:"uppercase",letterSpacing:"0.1em",textAlign:"center",lineHeight:1.3,whiteSpace:"pre-line"}}>{label}</div>
@@ -1342,10 +1342,10 @@ function CalorieTrendChart({days14,calTarget,isLight}) {
           </linearGradient>
         </defs>
         {[H*0.25,H*0.5,H*0.75].map((y,i)=>(
-          <line key={i} x1={0} y1={y} x2={W} y2={y} stroke="rgba(245,245,240,0.06)" strokeWidth="1"/>
+          <line key={i} x1={0} y1={y} x2={W} y2={y} stroke="var(--card-border)" strokeWidth="1"/>
         ))}
-        <line x1="0" y1={targetY} x2={W} y2={targetY} stroke="rgba(245,245,240,0.4)" strokeWidth="1" strokeDasharray="4 4"/>
-        <text x={W-4} y={targetY-4} fontSize="8" fontFamily="'DM Mono',monospace" fill="rgba(245,245,240,0.4)" textAnchor="end" letterSpacing="1">TARGET</text>
+        <line x1="0" y1={targetY} x2={W} y2={targetY} stroke="var(--text-faint)" strokeWidth="1" strokeDasharray="4 4"/>
+        <text x={W-4} y={targetY-4} fontSize="8" fontFamily="'DM Mono',monospace" style={{fill:"var(--text-faint)"}} textAnchor="end" letterSpacing="1">TARGET</text>
         <path d={areaD} fill="url(#calTrendAreaGrad)" style={{animation:"calAreaFill 0.4s ease-out 0.3s both"}}/>
         <path d={pathD} fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           style={{stroke:"var(--accent)",strokeDasharray:2000,strokeDashoffset:0,animation:"calLineDraw 1s ease-out both"}}/>
@@ -5144,12 +5144,12 @@ function BodyweightSection({logs,user:u,setLogs,wUnit}) {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
           <div>
             {latest
-              ?<><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1}}>{latest.weight}<span style={{fontSize:14,fontWeight:400,color:"rgba(245,245,240,0.45)",marginLeft:4}}>{wUnit}</span></div>
-                <div style={{fontSize:10,color:"rgba(245,245,240,0.4)",fontFamily:"var(--mono)",marginTop:2}}>Last: {new Date(latest.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div></>
+              ?<><div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:36,lineHeight:1}}>{latest.weight}<span style={{fontSize:14,fontWeight:400,color:"var(--text-faint)",marginLeft:4}}>{wUnit}</span></div>
+                <div style={{fontSize:10,color:"var(--text-faint)",fontFamily:"var(--mono)",marginTop:2}}>Last: {new Date(latest.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div></>
               :<div style={{textAlign:"center",padding:"8px 0 4px"}}>
                 <div style={{fontSize:28,marginBottom:6}}>⚖️</div>
-                <div style={{fontSize:13,fontWeight:600,color:"rgba(245,245,240,0.65)"}}>No weight logged yet</div>
-                <div style={{fontSize:11,color:"rgba(245,245,240,0.35)",marginTop:3}}>Log daily to see your trend</div>
+                <div style={{fontSize:13,fontWeight:600,color:"var(--text-dim)"}}>No weight logged yet</div>
+                <div style={{fontSize:11,color:"var(--text-faint)",marginTop:3}}>Log daily to see your trend</div>
               </div>}
           </div>
           <button onClick={()=>setBwModal(true)} style={{padding:"8px 16px",background:"var(--red)",color:"#fff",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.05em"}}>+ Log</button>
@@ -5220,6 +5220,8 @@ const ProgressSection = React.memo(function ProgressSection({
     const scoreLabels = COACH_SCORE_LABELS[userMode] || COACH_SCORE_LABELS.strength;
     const [progFoodLogs, setProgFoodLogs] = useState([]);
     const [rolodexOpen, setRolodexOpen] = useState(false);
+    const [wordPos, setWordPos] = useState(null);
+    const wordRef = useRef(null);
 
     useEffect(()=>{
       if(!user?.id)return;
@@ -5826,7 +5828,7 @@ const ProgressSection = React.memo(function ProgressSection({
     }
 
     return (
-      <div style={{background:"#000",minHeight:"100vh",position:"relative",overflow:"hidden"}} className="page-enter">
+      <div style={{background:"var(--bg)",minHeight:"100vh",position:"relative",overflow:"hidden"}} className="page-enter">
         <style>{`@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
         {/* Atmospheric red glows */}
         <div style={{position:"absolute",top:-80,left:-100,width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle, rgba(var(--accent-rgb),0.13) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
@@ -5836,51 +5838,36 @@ const ProgressSection = React.memo(function ProgressSection({
           {/* Header */}
           <div className="screen-header" style={{paddingTop:12}}>
             <div style={{flex:1,minWidth:0}}>
-              <div className="header-eyebrow">// Performance</div>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div className="header-title">Progress</div>
-                <button onClick={()=>setRolodexOpen(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:5,background:"none",border:"1px solid var(--card-border)",borderRadius:20,padding:"3px 10px",cursor:"pointer",fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.14em",textTransform:"uppercase",WebkitTapHighlightColor:"transparent"}}>
-                  {activeTab}<span style={{fontSize:7,opacity:0.5,marginLeft:1}}>▾</span>
-                </button>
-              </div>
+              <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,letterSpacing:"0.16em",color:"var(--text-faint)",textTransform:"uppercase",marginBottom:8}}>Progress</div>
+              <button ref={wordRef} onClick={()=>{const r=wordRef.current?.getBoundingClientRect();if(r)setWordPos(r);setRolodexOpen(v=>!v);}} style={{display:"inline-flex",alignItems:"center",gap:6,background:"none",border:"none",padding:0,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:40,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:0.92,letterSpacing:"-0.01em"}}>{activeTab.toUpperCase()}</span>
+                <span style={{color:"var(--text-faint)",fontSize:18,lineHeight:1,marginLeft:4}}>▾</span>
+              </button>
             </div>
           </div>
 
-          {/* Rolodex tab overlay */}
-          {rolodexOpen&&ReactDOM.createPortal(
-            <div style={{position:"fixed",inset:0,zIndex:8000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end"}}>
-              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.25)"}}/>
-              <div style={{position:"relative",width:"100%",maxWidth:480,background:"var(--card-bg)",borderRadius:"20px 20px 0 0",padding:"20px 24px 48px",border:"1px solid var(--card-border)"}}>
-                <div style={{width:36,height:4,borderRadius:2,background:"var(--card-border)",margin:"0 auto 18px"}}/>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Progress View</div>
-                <Rolodex
-                  items={progressTabs}
-                  sel={activeTab}
-                  onChange={(v)=>{setActiveTab(v);setRolodexOpen(false);}}
-                  onScrub={(v)=>setActiveTab(v)}
-                  onTick={_hL}
-                  bgColor="var(--bg)"
-                  selectedColor="var(--cm-ink)"
-                  adjacentColor="var(--text-dim)"
-                  farColor="rgba(0,0,0,0.08)"
-                  itemH={52}
-                />
-              </div>
-            </div>,
-            document.body
-          )}
-
-          {/* Tab nav — dynamic per tier + mode */}
-          <div style={{display:"flex",borderBottom:"1px solid rgba(245,245,240,0.07)",marginBottom:16,overflowX:"auto"}}>
-            {progressTabs.map(id=>(
-              <button key={id} onClick={()=>setActiveTab(id)} style={{
-                flex:1,fontFamily:"'DM Mono','SF Mono',monospace",fontSize:9,letterSpacing:"0.12em",
-                padding:"10px 4px",color:activeTab===id?"var(--accent)":"rgba(245,245,240,0.35)",
-                border:"none",borderBottom:activeTab===id?"2px solid var(--accent)":"2px solid transparent",
-                background:"none",cursor:"pointer",whiteSpace:"nowrap"
-              }}>{id.toUpperCase()}</button>
-            ))}
-          </div>
+          {/* StackPicker overlay — top-anchored, selection row sits where the word was */}
+          {rolodexOpen&&wordPos&&(()=>{
+            const stackTop=Math.max(0,Math.round(wordPos.top));
+            const stackH=64*4;
+            const _isLight=(wPrefs?.theme?.bg||'black')==='white';
+            return(
+              <>
+                {/* Frosted backdrop — static blur behind entire screen, tap to cancel */}
+                <div onClick={()=>setRolodexOpen(false)} style={{position:"fixed",inset:0,zIndex:998,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",background:_isLight?"rgba(255,255,255,0.35)":"rgba(0,0,0,0.25)"}}/>
+                <div style={{position:"fixed",top:stackTop,left:wordPos.left,right:0,height:stackH,zIndex:1000}}>
+                  <StackPicker
+                    items={progressTabs}
+                    sel={activeTab}
+                    onChange={(v)=>{setActiveTab(v);setRolodexOpen(false);}}
+                    onTick={_hL}
+                    selectedColor="var(--cm-ink)"
+                    itemH={64}
+                  />
+                </div>
+              </>
+            );
+          })()}
 
           {/* ── OVERVIEW ── */}
           {activeTab==="overview"&&<>
@@ -6128,15 +6115,15 @@ const ProgressSection = React.memo(function ProgressSection({
             {workoutLogsRaw.length<3&&(
               <div style={{margin:"0 16px 16px",padding:"20px 16px",background:"rgba(245,245,240,0.03)",backgroundImage:"radial-gradient(circle at top, rgba(245,245,240,0.05) 0%, transparent 60%)",boxShadow:"0 2px 8px rgba(0,0,0,0.50), inset 0 0 0 1px rgba(245,245,240,0.08), inset 0 1px 0 0 rgba(245,245,240,0.12)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>// PROGRESS UNLOCKS IN 3 SESSIONS</div>
-                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"#f5f5f0",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
+                <div style={{fontFamily:"var(--condensed)",fontStyle:"italic",fontWeight:900,fontSize:22,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1,marginBottom:8}}>
                   YOUR DATA IS BUILDING<span style={{color:"var(--accent)"}}>.</span>
                 </div>
-                <div style={{fontSize:13,color:"rgba(245,245,240,0.55)",lineHeight:1.5,marginBottom:16}}>
+                <div style={{fontSize:13,color:"var(--text-dim)",lineHeight:1.5,marginBottom:16}}>
                   Complete {3-workoutLogsRaw.length} more session{3-workoutLogsRaw.length===1?"":"s"} to unlock your full progress dashboard. Coach Macro needs a baseline to start measuring your growth.
                 </div>
                 <div style={{marginBottom:16}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <span style={{fontFamily:"var(--mono)",fontSize:9,color:"rgba(245,245,240,0.4)",textTransform:"uppercase",letterSpacing:"0.12em"}}>Sessions completed</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:"0.12em"}}>Sessions completed</span>
                     <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)"}}>{workoutLogsRaw.length}/3</span>
                   </div>
                   <div style={{height:6,background:"rgba(245,245,240,0.07)",borderRadius:3,overflow:"hidden"}}>

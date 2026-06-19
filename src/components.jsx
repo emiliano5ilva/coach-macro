@@ -966,7 +966,7 @@ export function UnitToggle({opts,val,onChange}) {
   );
 }
 
-export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjacentColor,farColor,onTick,onScrub}) {
+export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjacentColor,farColor,onTick,scale}) {
   const _bg=bgColor||T.bg;
   const _sel=selectedColor||T.white;
   const _adj=adjacentColor||"rgba(245,245,240,0.25)";
@@ -975,30 +975,96 @@ export function Rolodex({items,sel,onChange,itemH=56,bgColor,selectedColor,adjac
   const ref=useRef(null),timer=useRef(null),inited=useRef(false);
   const [li,setLi]=useState(Math.max(0,items.indexOf(String(sel))));
   const lastLiRef=useRef(li);
-  useEffect(()=>{ if(!ref.current||inited.current)return; ref.current.scrollTop=li*itemH; inited.current=true; },[]);
+  useEffect(()=>{
+    if(!ref.current||inited.current)return;
+    inited.current=true;
+    const el=ref.current;
+    el.style.scrollSnapType='none';
+    el.scrollTop=li*itemH;
+    requestAnimationFrame(()=>{ if(ref.current) ref.current.style.scrollSnapType='y mandatory'; });
+  },[]);
   const onScr=()=>{
     if(!ref.current)return;
     const ni=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH)));
     setLi(ni);
-    if(ni!==lastLiRef.current){lastLiRef.current=ni;_tick();if(onScrub)onScrub(items[ni]);}
+    if(ni!==lastLiRef.current){lastLiRef.current=ni;_tick();}
     clearTimeout(timer.current);
     timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH))); if(items[fi]!==String(sel)){onChange(items[fi]);} },70);
   };
   return (
     <div style={{position:"relative",height:itemH*3,overflow:"hidden",flex:1,minWidth:52}}>
-      <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none"}}>
+      <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch"}}>
         <div style={{height:itemH}}/>
         {items.map((item,i)=>{ const d=Math.abs(i-li); return(
           <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});_tick();}}
             style={{height:itemH,display:"flex",alignItems:"center",justifyContent:"center",scrollSnapAlign:"center",
-              fontSize:i===li?22:d===1?17:13,fontWeight:i===li?800:400,
-              color:i===li?_sel:d===1?_adj:_far,transition:"all 0.08s",fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
+              ...(scale?{scrollSnapStop:"always"}:{}),
+              fontSize:scale?20:(i===li?22:d===1?17:13),fontWeight:i===li?800:(scale?500:400),
+              color:scale?_sel:(i===li?_sel:d===1?_adj:_far),
+              ...(scale?{opacity:i===li?1:d===1?0.5:0.15,transform:i===li?"scale(1)":d===1?"scale(0.78)":"scale(0.58)"}:{}),
+              transition:scale?"transform 0.12s, opacity 0.12s":"all 0.08s",
+              fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
             {item}
           </div>
         );})}<div style={{height:itemH}}/>
       </div>
       <div style={{position:"absolute",inset:0,background:`linear-gradient(${_bg} 12%,transparent 36%,transparent 64%,${_bg} 88%)`,pointerEvents:"none",zIndex:2}}/>
-      <div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(var(--accent-rgb),0.35)`,borderBottom:`1px solid rgba(var(--accent-rgb),0.35)`,pointerEvents:"none",zIndex:1}}/>
+      {scale
+        ?<div style={{position:"absolute",top:itemH,left:0,right:0,height:itemH,background:"rgba(var(--accent-rgb),0.08)",borderRadius:8,pointerEvents:"none",zIndex:1}}/>
+        :<div style={{position:"absolute",top:itemH,left:4,right:4,height:itemH,borderTop:`1px solid rgba(var(--accent-rgb),0.35)`,borderBottom:`1px solid rgba(var(--accent-rgb),0.35)`,pointerEvents:"none",zIndex:1}}/>
+      }
+    </div>
+  );
+}
+
+export function StackPicker({items,sel,onChange,onTick,itemH=56,bgColor,selectedColor}) {
+  const _bg=bgColor||T.bg;
+  const _sel=selectedColor||T.white;
+  const _tick=onTick||hap;
+  const ref=useRef(null),timer=useRef(null),inited=useRef(false);
+  const [li,setLi]=useState(Math.max(0,items.indexOf(String(sel))));
+  const lastLiRef=useRef(li);
+  useEffect(()=>{
+    if(!ref.current||inited.current)return;
+    inited.current=true;
+    const el=ref.current;
+    el.style.scrollSnapType='none';
+    el.scrollTop=li*itemH;
+    requestAnimationFrame(()=>{ if(ref.current) ref.current.style.scrollSnapType='y mandatory'; });
+  },[]);
+  const onScr=()=>{
+    if(!ref.current)return;
+    const ni=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH)));
+    setLi(ni);
+    if(ni!==lastLiRef.current){lastLiRef.current=ni;_tick();}
+    clearTimeout(timer.current);
+    timer.current=setTimeout(()=>{ if(!ref.current)return; const fi=Math.max(0,Math.min(items.length-1,Math.round(ref.current.scrollTop/itemH))); if(items[fi]!==String(sel)){onChange(items[fi]);} },70);
+  };
+  const winH=itemH*4;
+  return(
+    <div style={{position:"relative",height:winH,overflow:"hidden"}}>
+      {/* Top highlight strip — marks the selection row (flush at top) */}
+      <div style={{position:"absolute",top:0,left:0,right:0,height:itemH,background:"rgba(var(--accent-rgb),0.08)",borderRadius:8,pointerEvents:"none",zIndex:1}}/>
+      <div ref={ref} onScroll={onScr} className="rolodex-scroll" style={{position:"relative",zIndex:2,height:"100%",overflowY:"scroll",scrollSnapType:"y mandatory",scrollbarWidth:"none",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch"}}>
+        {items.map((item,i)=>{
+          const d=i-li; // positive = below selection, negative = above (scrolled off top)
+          const op=d<0?0:d===0?1:d===1?0.7:d===2?0.45:d===3?0.25:0.1;
+          const scl=d<=0?"scale(1)":d===1?"scale(0.85)":d===2?"scale(0.72)":d===3?"scale(0.60)":"scale(0.50)";
+          return(
+            <div key={i} onClick={()=>{onChange(item);ref.current?.scrollTo({top:i*itemH,behavior:"smooth"});_tick();}}
+              style={{height:itemH,display:"flex",alignItems:"center",scrollSnapAlign:"start",scrollSnapStop:"always",
+                fontSize:20,fontWeight:d===0?800:500,color:_sel,opacity:op,
+                transform:scl,transformOrigin:"left center",
+                transition:"transform 0.12s, opacity 0.12s",
+                fontVariantNumeric:"tabular-nums",cursor:"pointer",fontFamily:"'DM Mono',monospace",
+                userSelect:"none",WebkitUserSelect:"none"}}>
+              {item.toUpperCase()}
+            </div>
+          );
+        })}
+        <div style={{height:itemH*3}}/>{/* bottom spacer — lets last item reach the top row */}
+      </div>
+      {/* Items fade naturally via opacity tiers — no painted fade band needed */}
     </div>
   );
 }
