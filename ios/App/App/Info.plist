@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Coach Macro</string>
+	<string>Coach Macro</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,10 +18,56 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.coachmacro.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>coachmacro</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>supabase.co</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSThirdPartyExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSThirdPartyExceptionRequiresForwardSecrecy</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSCalendarUsageDescription</key>
+	<string>Coach Macro reads your calendar to detect travel, high-stress weeks, and busy days so it can automatically adjust your training schedule and nutrition targets around your real life.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Coach Macro uses your camera to scan barcodes on food packaging so you can quickly log meals without typing.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Coach Macro reads your sleep, steps, heart rate, and HRV data to score your daily recovery and personalize your training intensity and nutrition targets.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Coach Macro saves your completed workouts and active calorie burns to Apple Health to keep your activity records in sync.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Coach Macro uses your microphone to let you log meals and workouts by speaking, so you can track hands-free.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Coach Macro lets you attach progress photos to your check-ins to visually track your body composition over time.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Coach Macro uses speech recognition to convert your voice into food and workout entries so logging is fast and effortless.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Coach Macro sends rest-timer alerts between sets, your daily morning brief, and reminders to hit your nutrition targets.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -45,51 +91,5 @@
 	<string>Dark</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Coach Macro reads your sleep, steps, heart rate, and HRV data to score your daily recovery and personalize your training intensity and nutrition targets.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Coach Macro saves your completed workouts and active calorie burns to Apple Health to keep your activity records in sync.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Coach Macro uses your camera to scan barcodes on food packaging so you can quickly log meals without typing.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Coach Macro uses your microphone to let you log meals and workouts by speaking, so you can track hands-free.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Coach Macro uses speech recognition to convert your voice into food and workout entries so logging is fast and effortless.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Coach Macro lets you attach progress photos to your check-ins to visually track your body composition over time.</string>
-	<key>NSCalendarUsageDescription</key>
-	<string>Coach Macro reads your calendar to detect travel, high-stress weeks, and busy days so it can automatically adjust your training schedule and nutrition targets around your real life.</string>
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>Coach Macro sends rest-timer alerts between sets, your daily morning brief, and reminders to hit your nutrition targets.</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>supabase.co</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.2</string>
-				<key>NSThirdPartyExceptionRequiresForwardSecrecy</key>
-				<false/>
-				<key>NSThirdPartyExceptionMinimumTLSVersion</key>
-				<string>TLSv1.2</string>
-			</dict>
-		</dict>
-	</dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.coachmacro.app</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>coachmacro</string>
-			</array>
-		</dict>
-	</array>
 </dict>
 </plist>

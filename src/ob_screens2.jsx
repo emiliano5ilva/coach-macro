@@ -1948,7 +1948,7 @@ function AppleHealthModal({onConnect, onDismiss}) {
   const [timedOut, setTimedOut] = useState(false);
   async function handleConnect() {
     setConnecting(true);setPermDenied(false);setTimedOut(false);
-    const timeout=new Promise(res=>setTimeout(()=>res('timeout'),10000));
+    const timeout=new Promise(res=>setTimeout(()=>res('timeout'),60000));
     const result=await Promise.race([initAppleHealth().then(ok=>ok),timeout]);
     setConnecting(false);
     if(result==='timeout'){setTimedOut(true);}
@@ -7200,11 +7200,21 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
     const isNative=typeof window!=="undefined"&&window.Capacitor?.isNativePlatform?.()===true;
     async function loadHealth(){
       if(!isNative) return; // Apple Health is iOS only — never prompt on web
+      // Fast path: if a previous session confirmed authorization, show connected
+      // immediately without waiting for the async plugin call.
+      if(localStorage.getItem('cm_health_auth')==='1'){
+        setHealthConnected(true);
+        const snap=await getDailyHealthSnapshot();
+        setHealthSnap(snap);
+        return;
+      }
+      // Slow path: ask the native plugin (requires dynamic import to load).
       const authorized=await checkAppleHealthAuthorized();
       if(!authorized){
         if(healthDismissCount.current<3)setShowHealthModal(true);
         return;
       }
+      localStorage.setItem('cm_health_auth','1');
       setHealthConnected(true);
       const snap=await getDailyHealthSnapshot();
       setHealthSnap(snap);
@@ -7215,6 +7225,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   async function handleHealthConnect(authorized){
     setShowHealthModal(false);
     if(authorized){
+      localStorage.setItem('cm_health_auth','1'); // persist so mount check is instant next load
       setHealthConnected(true);
       const snap=await getDailyHealthSnapshot();
       setHealthSnap(snap);

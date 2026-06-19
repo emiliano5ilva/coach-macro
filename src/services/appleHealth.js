@@ -33,7 +33,12 @@ export async function initAppleHealth() {
   const kit = await hk();
   if (!kit) return false;
   try {
-    await kit.isAvailable(); // resolves = available; rejects = not available
+    // 8s timeout on isAvailable — synchronous device check, should never hang
+    await Promise.race([
+      kit.isAvailable(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('isAvailable timeout')), 8000)),
+    ]);
+    // No timeout on requestAuthorization — user is interacting with the native sheet
     await kit.requestAuthorization({ all: [], read: READ_TYPES, write: WRITE_TYPES });
     return true;
   } catch {
