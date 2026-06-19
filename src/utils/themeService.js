@@ -129,6 +129,14 @@ export function applyTheme(accentId, bgId) {
   set('--white-faint',   textFaint);
   set('--white-border',  `rgba(${accent.rgb},0.08)`);
 
+  // Tab bar background — translucent blur bar, adapts to theme
+  const tabBarBg = light ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
+  set('--tab-bar-bg', tabBarBg);
+
+  // Body background — set directly so html/body/#root safe-area zones follow the theme.
+  // applyTheme() sets vars on .goclub (not :root), so ancestors need an explicit set.
+  document.body.style.background = bg.hex;
+
   // ── Bridge to --cm-* namespace (the redesigned red/white system) ──
   // Paper is white on white-bg, near-black (#0A0A0A) on dark-bg — pure black (#000000) is too harsh on red canvas.
   const isLight = bg.id === 'white';
