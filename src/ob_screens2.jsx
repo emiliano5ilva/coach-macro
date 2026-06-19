@@ -5209,7 +5209,7 @@ const ProgressSection = React.memo(function ProgressSection({
   latestBalance,pendingMilestone,activePlateaus,programCurrentWeek,
   dnaPromiseRef,recoveryPromiseRef,setSection,setPendingMilestone,
   setBodyweightLogs,setShowWeeklyReviewModal,setShowConnectionsView,
-  setShowPeerView,setShowHealthModal
+  setShowPeerView,setShowHealthModal,healthConnected
 }) {
     const sc = coachScore;
     const activeTab = progressTab;
@@ -6836,12 +6836,20 @@ const ProgressSection = React.memo(function ProgressSection({
               <RecoveryGauge score={recoveryScore} isLight={(wPrefs?.theme?.bg||'black')==='white'}/>
             </div>
 
-            {healthSnap?.sleep!=null?(
-              <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Avg Sleep This Week</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"var(--accent)",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
-                <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"var(--text-faint)"}}>Optimal for recovery: 7–9 hours</div>
-              </div>
+            {healthConnected?(
+              healthSnap?.sleep!=null?(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Avg Sleep This Week</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:28,color:healthSnap.sleep>=7?"#22c55e":healthSnap.sleep>=6?"#FEA020":"var(--accent)",lineHeight:1,marginBottom:6}}>{Math.floor(healthSnap.sleep)}h {Math.round((healthSnap.sleep%1)*60)}m</div>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:10,color:"var(--text-faint)"}}>Optimal for recovery: 7–9 hours</div>
+                </div>
+              ):(
+                <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
+                  <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Sleep Data</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:16,color:"var(--cm-ink)",marginBottom:6}}>CONNECTED — NO SLEEP DATA.</div>
+                  <div style={{fontSize:13,color:"var(--text-dim)"}}>Apple Health is connected. No sleep was recorded for last night — wear your Apple Watch to bed to track sleep.</div>
+                </div>
+              )
             ):(
               <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out both"}}>
                 <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>Sleep Data</div>
@@ -11251,6 +11259,7 @@ Rules:
           setShowConnectionsView={setShowConnectionsView}
           setShowPeerView={setShowPeerView}
           setShowHealthModal={setShowHealthModal}
+          healthConnected={healthConnected}
         /></ErrorBoundary>}
         {section==="me"&&<ErrorBoundary><SettingsSection profile={profile} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} todayKey={todayKey} isMobile={isMobile} onSignOut={onSignOut} user={user} onPreviewBrief={previewMorningBrief} calendarConnected={calendarConnected} onCalendarConnect={handleConnectCalendar} onCalendarDisconnect={handleDisconnectCalendar} onLogInjury={()=>setShowPainLogModal(true)} onProfileUpdate={onProfileUpdate}/></ErrorBoundary>}
       </div>

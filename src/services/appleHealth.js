@@ -50,7 +50,10 @@ export async function checkAppleHealthAuthorized() {
   const kit = await hk();
   if (!kit) return false;
   try {
-    await kit.isAvailable();
+    // isEditionAuthorized checks actual write-sharing authorization (.sharingAuthorized),
+    // unlike isAvailable() which only checks device support.
+    // workoutType is in our write set, so this returns true only if the user granted access.
+    await kit.isEditionAuthorized({ sampleName: "workoutType" });
     return true;
   } catch {
     return false;
