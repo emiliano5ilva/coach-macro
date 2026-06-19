@@ -6511,7 +6511,7 @@ const ProgressSection = React.memo(function ProgressSection({
                         const isEarned=earnedSet.has(m.id);
                         return(
                           <div key={m.id} style={{
-                            flexShrink:0,width:78,padding:"16px 6px 12px",
+                            flexShrink:0,width:90,padding:"16px 8px 12px",
                             background:isEarned?"rgba(var(--accent-rgb),0.1)":"transparent",
                             border:`${isEarned?2:1}px solid ${isEarned?"rgba(var(--accent-rgb),0.5)":"var(--card-border)"}`,
                             borderRadius:18,textAlign:"center",
