@@ -11,24 +11,29 @@ async function hk() {
   }
 }
 
+// Keys must match getTypes() in the native plugin (v1.3.2).
+// "activity" covers both sleepAnalysis + workoutType.
+// "calories" covers activeEnergyBurned + basalEnergyBurned.
+// HRV (heartRateVariabilitySDNN) has no mapping in getTypes() v1.3.2 — cannot be
+// listed in the permission sheet, but HRV queries still work after general auth.
 const READ_TYPES = [
   "steps",
-  "sleepAnalysis",
+  "activity",        // sleepAnalysis + workoutType
   "restingHeartRate",
-  "heartRateVariabilitySDNN",
-  "activeEnergyBurned",
+  "calories",        // activeEnergyBurned + basalEnergyBurned
   "weight",
-  "workoutType",
 ];
 
-const WRITE_TYPES = ["workoutType", "activeEnergyBurned"];
+const WRITE_TYPES = [
+  "activity",  // workoutType
+  "calories",  // activeEnergyBurned
+];
 
 export async function initAppleHealth() {
   const kit = await hk();
   if (!kit) return false;
   try {
-    const avail = await kit.isAvailable();
-    if (!avail.value) return false;
+    await kit.isAvailable(); // resolves = available; rejects = not available
     await kit.requestAuthorization({ all: [], read: READ_TYPES, write: WRITE_TYPES });
     return true;
   } catch {
@@ -40,8 +45,8 @@ export async function checkAppleHealthAuthorized() {
   const kit = await hk();
   if (!kit) return false;
   try {
-    const avail = await kit.isAvailable();
-    return !!avail.value;
+    await kit.isAvailable();
+    return true;
   } catch {
     return false;
   }
