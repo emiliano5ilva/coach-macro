@@ -51,7 +51,7 @@ import { getSlotsForFreq, getSlotTargets, getLoggedSlots, getSlotLabel, normalis
 import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
 import { InjuryHistorySection, InjuryRiskModal, PainLogModal } from "./InjuryPrevention.jsx";
-import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus } from "./services/appleHealth.js";
+import { initAppleHealth, checkAppleHealthAuthorized, getDailyHealthSnapshot, getMorningAdjustment, stepsToCalorieBonus, AH_PERMS_VERSION } from "./services/appleHealth.js";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { MuscleVolumeChart } from "./MuscleVolumeChart.jsx";
 import { FluxRangeChart, PeakPerformanceChart } from "./PerformanceCharts.jsx";
@@ -7214,6 +7214,15 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         setHealthConnected(true);
         const snap=await getDailyHealthSnapshot();
         setHealthSnap(snap);
+        // One-time re-sync: if the granted permissions version is older than the
+        // current type set, call requestAuthorization in the background so iOS
+        // registers any new types (e.g. HRV added in v2). Non-blocking, additive only.
+        const grantedV=parseInt(localStorage.getItem('cm_health_perms_v')||'0',10);
+        if(grantedV<AH_PERMS_VERSION){
+          initAppleHealth().then(ok=>{
+            if(ok) localStorage.setItem('cm_health_perms_v',String(AH_PERMS_VERSION));
+          }).catch(()=>{});
+        }
         return;
       }
       // Slow path: ask the native plugin (requires dynamic import to load).
@@ -7223,6 +7232,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
         return;
       }
       localStorage.setItem('cm_health_auth','1');
+      localStorage.setItem('cm_health_perms_v',String(AH_PERMS_VERSION));
       setHealthConnected(true);
       const snap=await getDailyHealthSnapshot();
       setHealthSnap(snap);
@@ -7233,7 +7243,8 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   async function handleHealthConnect(authorized){
     setShowHealthModal(false);
     if(authorized){
-      localStorage.setItem('cm_health_auth','1'); // persist so mount check is instant next load
+      localStorage.setItem('cm_health_auth','1');
+      localStorage.setItem('cm_health_perms_v',String(AH_PERMS_VERSION));
       setHealthConnected(true);
       const snap=await getDailyHealthSnapshot();
       setHealthSnap(snap);

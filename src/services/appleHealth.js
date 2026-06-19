@@ -11,16 +11,21 @@ async function hk() {
   }
 }
 
-// Keys must match getTypes() in the native plugin (v1.3.2).
+// Bump whenever the requested type set changes so existing users get a one-time
+// re-sync that asks iOS to authorize the new types.
+// v1 → initial set (steps, activity, restingHeartRate, calories, weight)
+// v2 → added heartRateVariabilitySDNN (patched into plugin getTypes() via patches/)
+export const AH_PERMS_VERSION = 2;
+
+// Keys must match getTypes() in the native plugin (v1.3.2 + patch).
 // "activity" covers both sleepAnalysis + workoutType.
 // "calories" covers activeEnergyBurned + basalEnergyBurned.
-// HRV (heartRateVariabilitySDNN) has no mapping in getTypes() v1.3.2 — cannot be
-// listed in the permission sheet, but HRV queries still work after general auth.
 const READ_TYPES = [
   "steps",
-  "activity",        // sleepAnalysis + workoutType
+  "activity",              // sleepAnalysis + workoutType
   "restingHeartRate",
-  "calories",        // activeEnergyBurned + basalEnergyBurned
+  "heartRateVariabilitySDNN",
+  "calories",              // activeEnergyBurned + basalEnergyBurned
   "weight",
 ];
 

@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:sim": "node scripts/check-env.mjs && vite build --mode development",
     "preview": "vite preview",
-    "check-env": "node scripts/check-env.mjs"
+    "check-env": "node scripts/check-env.mjs",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^5.0.0-beta.1",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
+    "patch-package": "^8.0.1",
     "vite": "^4.4.0"
   }
 }
