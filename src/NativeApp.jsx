@@ -510,6 +510,10 @@ export default function NativeApp() {
   useEffect(() => { applyDefaultTheme(); }, []);
   const [phase,setPhase]=useState("splash");
   const ujInitialized = useRef(false);
+  // Dedupes handleAuth: cold start can call it twice (manual localStorage read
+  // + onAuthStateChange INITIAL_SESSION) for the same user. Keyed by uid so a
+  // later account switch / re-login still proceeds; reset on sign-out.
+  const authedUserIdRef = useRef(null);
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [schedule,setSchedule]=useState({Mon:"training",Tue:"rest",Wed:"training",Thu:"cardio",Fri:"training",Sat:"rest",Sun:"rest"});
@@ -657,6 +661,10 @@ export default function NativeApp() {
   }
 
   async function handleAuth(authUser,name=""){
+    // Already authed this user (e.g. second cold-start trigger) — skip the
+    // duplicate profile load + one-time side effects (push reg, trial notif).
+    if(authedUserIdRef.current===authUser.id)return;
+    authedUserIdRef.current=authUser.id;
     setPhase("loading");setUser(authUser);
     if(name)setSignupName(name);
     if (Capacitor.isNativePlatform()) {
@@ -831,6 +839,7 @@ export default function NativeApp() {
     track(EVENTS.USER_LOGOUT,{},user?.id);
     await sb.auth.signOut();
     if(window.uj)window.uj.identify(null);
+    authedUserIdRef.current=null;
     setUser(null);setProfile(null);setPhase("welcome-screen");
   }
 
@@ -863,25 +872,33 @@ export default function NativeApp() {
       return true;
     }
 
+    // supabase-js v2 persists the session under 'sb-<project-ref>-auth-token'
+    // with the session fields (access_token, refresh_token, expires_at, user)
+    // at the TOP LEVEL — not nested under a v1-style { currentSession } wrapper.
+    const SB_STORAGE_KEY = 'sb-oxxihlwqukbakmnnavuy-auth-token';
     try {
-      const raw = localStorage.getItem('supabase.auth.token');
-      const cached = raw ? JSON.parse(raw) : null;
-      const sess   = cached?.currentSession ?? cached;
-      const user   = sess?.user ?? null;
-      const expiry = sess?.expires_at ?? 0;
-      const valid  = user && (expiry > Math.floor(Date.now() / 1000) + 30);
+      const raw    = localStorage.getItem(SB_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      const user   = parsed?.user ?? null;
+      const expiry = parsed?.expires_at ?? 0;
+      const expired = expiry > 0 && expiry <= Math.floor(Date.now() / 1000) + 30;
+      const valid   = user && !expired;
       if (valid) {
         handleAuth(user, null);
       } else {
-        // Expired or absent — wipe local storage so next getSession returns null fast
-        try { localStorage.removeItem('supabase.auth.token'); } catch {}
+        // Only clear when the token is genuinely expired. On a parse miss /
+        // absent token, leave storage untouched (non-destructive) so the
+        // supabase client + onAuthStateChange can still restore the session.
+        if (expired) { try { localStorage.removeItem(SB_STORAGE_KEY); } catch {} }
         if (!_tryDevBypass()) setTimeout(()=>setPhase("welcome-screen"), 400);
       }
     } catch {
       if (!_tryDevBypass()) setTimeout(()=>setPhase("welcome-screen"), 400);
     }
     const{data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
-      if(event==="SIGNED_IN"&&session?.user)handleAuth(session.user,null);
+      // INITIAL_SESSION/TOKEN_REFRESHED let a restored (cold-start) session
+      // drive app state, not just a fresh interactive SIGNED_IN.
+      if((event==="SIGNED_IN"||event==="INITIAL_SESSION"||event==="TOKEN_REFRESHED")&&session?.user)handleAuth(session.user,null);
       if(event==="PASSWORD_RECOVERY")setPhase("reset-password");
     });
     const onSubRequired=()=>{

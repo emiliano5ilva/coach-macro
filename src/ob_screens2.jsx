@@ -7277,6 +7277,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [workoutStartTime,setWorkoutStartTime]=useState(null);
   const [workoutSummary,setWorkoutSummary]=useState(null);
   const [completedWorkout,setCompletedWorkout]=useState(null);
+  const [workoutSaveDebug,setWorkoutSaveDebug]=useState(''); // TEMP: surface DB error on-screen — remove after diagnosing
   const notifTimeoutRef=useRef(null);
   const [middayDismissed,setMiddayDismissed]=useState(()=>{try{const d=localStorage.getItem('midday_dismissed');return d&&(Date.now()-parseInt(d))<7200000;}catch{return false;}});
   const [firstWeekCardDismissed,setFirstWeekCardDismissed]=useState(()=>{try{return!!localStorage.getItem('cm_1week_dismissed');}catch{return false;}});
@@ -8347,11 +8348,12 @@ Rules:
         try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn});}catch{}
       }
 
+      let workoutSaveFailed=false;
       if(user){
         try{
           const feedbackData=activeWorkout.exercises.filter(ex=>ex.feedback).map(ex=>({name:ex.name,feedback:ex.feedback}));
           const today=new Date().toISOString().split("T")[0];
-          await sb.from("workout_logs").insert({
+          const {error:saveErr}=await sb.from("workout_logs").insert({
             user_id:user.id,
             date:today,
             workout:{focus:normFocus(todayFocus),exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData},
@@ -8361,7 +8363,13 @@ Rules:
             session_duration_mins:duration,
             pr_count:prs.length,
           });
-          if(prs.length>0){
+          if(saveErr){
+            console.error("[finishWorkout] workout_logs insert failed:",saveErr);
+            workoutSaveFailed=true;
+            // TEMP: surface exact error on-screen — remove after diagnosing root cause
+            setWorkoutSaveDebug('SAVE ERR: '+saveErr.message+' (code:'+saveErr.code+')');
+          }
+          if(!saveErr&&prs.length>0){
             await sb.from("personal_records").upsert(
               prs.map(pr=>({user_id:user.id,exercise_name:pr.name,weight:parseFloat(pr.weight)||0,reps:parseInt(pr.reps)||1,date:today})),
               {onConflict:"user_id,exercise_name"}
@@ -8370,17 +8378,21 @@ Rules:
               else if(data)setDbPRs(p=>{const m={};p.forEach(r=>m[r.exercise_name]=r);(data||[]).forEach(r=>m[r.exercise_name]=r);return Object.values(m);});
             });
           }
-          try{await recordWorkoutRecovery(user.id, setsLogged);}catch(recErr){console.warn('[finishWorkout] recordWorkoutRecovery failed',recErr);}
-          const pwWindow=getPostWorkoutWindow(activeWorkout);
-          if(pwWindow)setPostWorkoutPrompt(pwWindow);
-          window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
+          if(!saveErr){
+            try{await recordWorkoutRecovery(user.id, setsLogged);}catch(recErr){console.warn('[finishWorkout] recordWorkoutRecovery failed',recErr);}
+            const pwWindow=getPostWorkoutWindow(activeWorkout);
+            if(pwWindow)setPostWorkoutPrompt(pwWindow);
+            window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
+          }
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
 
       skipRest();
       try { localStorage.removeItem("cm_active_workout"); } catch {}
       const totalSetsLogged = setsLogged.reduce((a,e)=>a+e.sets.length,0);
-      if(prs.length>0){
+      if(workoutSaveFailed){
+        showToast("Couldn't save workout — check connection and try again","error",{duration:8000});
+      } else if(prs.length>0){
         hapPR();
         showToast(`🔥 ${prs.length} new PR${prs.length>1?"s":""} this session!`, "pr", {duration:5000});
       } else {
@@ -11171,6 +11183,8 @@ Rules:
       </div>
 
       {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal}/>}
+      {/* TEMP: workout save error debug — remove after diagnosing root cause */}
+      {workoutSaveDebug?<div style={{position:'fixed',top:60,left:0,right:0,zIndex:9999,background:'rgba(239,68,68,0.92)',padding:'10px 14px',fontFamily:'monospace',fontSize:11,color:'#fff',lineHeight:1.5,wordBreak:'break-all'}}>{workoutSaveDebug}</div>:null}
       {bioScreen&&<BioAlgorithmScreen user={user} profile={profile} onClose={()=>setBioScreen(false)}/>}
       {showInjuryRiskModal&&acwrRisks[showInjuryRiskModal]&&(
         <InjuryRiskModal
