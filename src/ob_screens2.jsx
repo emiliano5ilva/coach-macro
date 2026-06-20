@@ -8687,7 +8687,7 @@ Rules:
 
     getProgramCurrentWeek(user.id).then(data=>{
       if(data?.program_current_week) setProgramCurrentWeek(data.program_current_week);
-    }).catch(()=>{});
+    }).catch(e => console.warn('[programCurrentWeek] load failed, falling back to weekNum:', e));
 
     analyseRPETrends(user.id).then(trends=>{
       if(trends&&(trends.overallFatigue==="high"||trends.overallFatigue==="medium")){

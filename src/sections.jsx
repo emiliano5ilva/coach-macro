@@ -42,7 +42,7 @@ import WarmupScreen from "./components/WarmupScreen.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
-import { resolveProgram } from "./utils/programResolver.js";
+import { resolveProgram, resolveDisplayWeek } from "./utils/programResolver.js";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import BodyMap from "./components/BodyMap.jsx";
@@ -2523,14 +2523,15 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const daysSinceStart=Math.max(0,Math.floor((new Date()-startDate)/86400000));
   const weekNum=Math.floor(daysSinceStart/7)+1;
   const dayIndex=daysSinceStart%(daysPerWeek||1);
-  const isLifting=!wPrefs.isHyrox&&!wPrefs.isHybrid&&!profile?.run_race_type;
+  // Canonical mode from the single resolver (drift-proof): _libraryId wins, then
+  // explicit isHyrox/isHybrid flags, then name/run_race_type fallback — so a
+  // switched-to-lifting account no longer gets forced into run mode by a stale
+  // run_race_type. Maps 1:1 onto the old prescType values; conditioning routes as
+  // lifting (today's behavior). isGVTWeek + all downstream consumers are unchanged.
+  const _programMode = resolveProgram(wPrefs, profile).mode;
+  const prescType = _programMode === 'conditioning' ? 'lifting' : _programMode;
+  const isLifting = prescType === 'lifting';
   const isGVTWeek=isLifting&&(wPrefs?.gvt===true||(wPrefs?.gvt!==false&&weekNum%4===0))&&todayType==="training";
-
-  let prescType="lifting";
-  if(wPrefs.isHyrox&&wPrefs.isHybrid)prescType="hybrid-hyrox";
-  else if(wPrefs.isHyrox)prescType="hyrox";
-  else if(wPrefs.isHybrid)prescType="hybrid";
-  else if(profile?.run_race_type)prescType="running";
 
   // Full generated week for run-focused accounts; drives WeekStrip labels + week card
   const runWeek = prescType === "running"
@@ -3607,7 +3608,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         const _ciMO="'DM Mono',monospace";
         const _ciBC="'Barlow Condensed',sans-serif";
         const _ciAF="'Barlow',sans-serif";
-        const _dispWk=programCurrentWeek||weekNum;
+        const _dispWk=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
         // shared pill style builders (no T.* tokens)
         const _pillSel={background:"var(--cm-red)",color:"#fff",border:"1.5px solid var(--cm-red)"};
         const _pillOff={background:"rgba(var(--cm-ink-rgb),.05)",color:"var(--cm-ink)",border:"1.5px solid rgba(var(--cm-ink-rgb),.12)"};
@@ -3915,7 +3916,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           const _schedThisWeek=WDAYS.filter(d=>schedule[d]&&schedule[d]!=='rest').length;
           const _progInfo2=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs.splitType||p.name===wPrefs.splitType)||null;
           const _totalWks=_progInfo2?.weeks||null;
-          const _dispWk=programCurrentWeek||weekNum;
+          const _dispWk=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
           const _wkPct=_totalWks?Math.min(1,(_dispWk-1)/Math.max(1,_totalWks-1)):null;
           const _r=16;
           const _donePct=_schedThisWeek>0?_doneThisWeek/_schedThisWeek:0;
@@ -3944,11 +3945,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               {/* ══ RED HERO ═══════════════════════════════════════════════════ */}
               <div style={{paddingLeft:20,paddingRight:20,paddingTop:0,paddingBottom:160}}>
                 {/* Eyebrow: program */}
-                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:_phase?16:10}}>
+                  <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:(_phase&&prescType!=="lifting")?16:10}}>
                     <span>{progLabel}</span>
                   </div>
-                  {/* ── RACE COUNTDOWN ── */}
-                  {_phase&&(()=>{
+                  {/* ── RACE COUNTDOWN ── only for race-bearing modes; a stale run_race_date
+                       on a switched-to-lifting account must NOT resurrect the countdown ── */}
+                  {_phase&&prescType!=="lifting"&&(()=>{
                     const _msDay=86400000;
                     const _p=String(_raceDate).slice(0,10).split('-');
                     let _days=null;
@@ -4332,7 +4334,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     wPrefs.isHybrid?(_raceLabel2?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel2}`:(wPrefs.hybridTemplate||"Hybrid")):
                     prescType==="running"?(_raceLabel2||wPrefs.runPlan||"Running"):
                     progInfo?.name||(wPrefs.splitType||"Custom Plan");
-                  const displayWeek=programCurrentWeek||weekNum;
+                  const displayWeek=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
                   const liftExp=(wPrefs?.liftExp||profile?.liftExp||"intermediate");
                   const expLabel=liftExp.charAt(0).toUpperCase()+liftExp.slice(1);
                   const cStyle={minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",background:"rgba(10,10,10,0.04)",border:"1px solid rgba(10,10,10,0.08)",borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",justifyContent:"space-between",height:110,cursor:"pointer",position:"relative",boxSizing:"border-box"};
@@ -4940,7 +4942,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             wPrefs.isHybrid?(_rl?`${wPrefs.hybridTemplate||"Hybrid"} · ${_rl}`:(wPrefs.hybridTemplate||"Hybrid")):
             prescType==="running"?(_rl||wPrefs.runPlan||"Running"):
             _progInfo?.name||(wPrefs.splitType||"Custom Plan");
-          const displayWeek=programCurrentWeek||weekNum;
+          const displayWeek=resolveDisplayWeek(programCurrentWeek,weekNum,wPrefs,profile);
           const _liftExp=wPrefs?.liftExp||profile?.liftExp||"intermediate";
           const expLabel=_liftExp.charAt(0).toUpperCase()+_liftExp.slice(1);
           const _modeDesc=
