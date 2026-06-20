@@ -8220,7 +8220,7 @@ Rules:
       console.error("[startStructured] AI error — falling back to hardcoded program:",e);
       try{
         const daysPerWeek=Object.values(schedule).filter(v=>v==="training").length||3;
-        const startD=new Date(profile?.startDate||Date.now());
+        const startD=new Date(profile?.program_start_date||profile?.startDate||Date.now());
         const dayIdx=Math.floor((new Date()-startD)/(24*60*60*1000))%(daysPerWeek||1);
         const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym");
         const appliedExs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
@@ -10647,7 +10647,7 @@ Rules:
                 (()=>{
                   let hSess=null;
                   try{
-                    const _wk=Math.floor(Math.max(0,Math.floor((Date.now()-(profile?.startDate?new Date(profile.startDate):new Date()).getTime())/86400000))/7)+1;
+                    const _wk=Math.floor(Math.max(0,Math.floor((Date.now()-((profile?.program_start_date||profile?.startDate)?new Date(profile.program_start_date||profile.startDate):new Date()).getTime())/86400000))/7)+1;
                     hSess=getTodayHyroxWorkout(wPrefs?.hyroxProgram||"12-Week Race Prep",_wk,todayKey);
                   }catch{}
                   const hType=(hSess?.type||"Training").toUpperCase();

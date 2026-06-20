@@ -720,10 +720,13 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         const profileUpdate = {
           id: me.id,
           wprefs: newWPrefs,
-          startDate: newStartDate,
+          // program_start_date is the PROGRAM anchor (loadProfile maps this column);
+          // it resets on every switch so date-derived week/day indices restart at the
+          // new program. profile_data.startDate stays the JOIN date (tenure/bio).
+          program_start_date: newStartDate,
           schedule: act.schedule,
           run_race_type: act.run_race_type,
-          program_current_week: null, // reset; date-based weekNum=1 takes over via startDate
+          program_current_week: null, // reset; date-based weekNum=1 takes over via program_start_date
         };
         if (calc.delta !== 0) {
           profileUpdate.calorie_target = calc.goalCals;
@@ -735,6 +738,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         setSchedule?.(act.schedule);
         onProfileUpdate?.({
           run_race_type: act.run_race_type,
+          program_start_date: newStartDate, // live-update the program anchor (no reload)
           program_current_week: null, // App intercepts this to reset programCurrentWeek state
           ...(calc.delta !== 0 ? { goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false } : {}),
         });
