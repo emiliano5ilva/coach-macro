@@ -2387,7 +2387,6 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
   const _lwStart = new Date(twStart+'T12:00:00'); _lwStart.setDate(_lwStart.getDate()-7);
   const _lwStr = _lwStart.toISOString().split('T')[0];
   const logsThisWeek = (workoutLogsRaw||[]).filter(l=>l.date>=twStart);
-  const workoutsThisWeek = logsThisWeek.length;
   const setsThisWeek = logsThisWeek.reduce((t,l)=>t+(l.workout?.exercises||[]).reduce((a,ex)=>a+(ex.sets||[]).filter(s=>s.done).length,0),0);
   const timeThisWeek = logsThisWeek.reduce((s,l)=>s+(l.session_duration_mins||0),0);
   const trainingDaysThisWeek = new Set(logsThisWeek.map(l=>l.date)).size;
@@ -2513,7 +2512,7 @@ function WeeklyReviewModal({userId, profile, macros, workoutLogsRaw, twStart, on
         <div style={{..._card,overflow:'hidden'}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr'}}>
             {[
-              {label:'SESSIONS',value:workoutsThisWeek},
+              {label:'SESSIONS',value:trainingDaysThisWeek}, // distinct days (brick = 1), matches ProgressSection tile + CONSISTENCY line above
               {label:'SETS',value:setsThisWeek},
               {label:'TIME',value:timeStr},
               {label:'PRs',value:prsThisWeek.count,green:true},
@@ -2687,8 +2686,8 @@ function buildReviewData({food, bw, insights, prs, workoutLogsRaw, macros, profi
   const calHit    = dailyCals.filter(c => c >= calTarget*0.9).length;
   const protHit   = dailyProt.filter(p => p >= protTarget*0.9).length;
 
-  const sessions    = workThisWeek.length;
-  const volumeTotal = workThisWeek.reduce((s,l)=>s+(l.volume_lbs||0),0);
+  const sessions    = new Set(workThisWeek.map(l=>l.date)).size; // distinct training days (brick = 1 session, not 2 rows)
+  const volumeTotal = workThisWeek.reduce((s,l)=>s+(l.volume_lbs||0),0); // per-row volume sum — intentionally counts all rows
   const prCount     = (prs||[]).length;
 
   // Weight trend
@@ -5386,7 +5385,13 @@ const ProgressSection = React.memo(function ProgressSection({
       return m;
     },[progFoodLogs]);
 
-    const workoutsThisWeek=useMemo(()=>(workoutLogsRaw||[]).filter(l=>l.date>=_twStart).length,[workoutLogsRaw,_twStart]);
+    // Distinct training DAYS this week, not row count. A brick (bike+run back-to-back,
+    // or lift+run) is ONE session but writes multiple same-day workout_logs rows —
+    // possibly via different finish paths (finishWorkout + finishGPSRun/finishManualRun) —
+    // so row-count would inflate every brick day. Collapsing by date counts a brick as 1.
+    // Trade-off: a true AM/PM two-a-day also reads as 1 (smaller, rarer error than
+    // double-counting bricks). Proper two-a-day support = a session_id grouping later.
+    const workoutsThisWeek=useMemo(()=>new Set((workoutLogsRaw||[]).filter(l=>l.date>=_twStart).map(l=>l.date)).size,[workoutLogsRaw,_twStart]);
     const calTarget=macros?.calories||2000;
     const protTarget=macros?.protein||150;
     const carbTarget=macros?.carbs||200;
