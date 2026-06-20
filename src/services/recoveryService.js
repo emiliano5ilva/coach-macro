@@ -16,9 +16,11 @@ export const GROUP_TO_SVG = {
 // Maps EXERCISE_MUSCLE_GROUP values → the 6 tracked groups
 const NORMALIZE_GROUP = {
   chest: 'chest', back: 'back', shoulders: 'shoulders',
-  arms: 'arms', core: 'core',
+  arms: 'arms', biceps: 'arms', triceps: 'arms', core: 'core',
   legs: 'legs', glutes: 'legs', calves: 'legs',
   cardio: null,
+  // full_body intentionally absent — falls through to exercise_cache fallback
+  // which fans out to multiple real muscle groups from DB data.
 };
 
 const ALL_GROUPS = ['chest', 'back', 'shoulders', 'arms', 'core', 'legs'];
