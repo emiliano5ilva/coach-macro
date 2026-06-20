@@ -148,7 +148,34 @@ export function resolveProgram(wprefs, profile) {
     };
   }
 
-  // (b) Fallback — reverse-resolve a single entry from splitType / runPlan.
+  // (b) No canonical id → honor explicit mode FLAGS first. isHyrox/isHybrid are
+  //     the app's authoritative discriminators today (sections.jsx:2529-2532), and
+  //     they take precedence over splitType/run_race_type. This keeps a flagged
+  //     hybrid/hyrox row classified identically to today even when splitType names
+  //     a lifting program (e.g. a hybrid user whose lift-day split is 'Push/Pull/Legs').
+  //     Order MUST match the live ladder: hyrox&&hybrid → hyrox → hybrid.
+  const fHyrox = !!wp.isHyrox;
+  const fHybrid = !!wp.isHybrid;
+  if (fHyrox || fHybrid) {
+    const mode =
+      fHyrox && fHybrid ? "hybrid-hyrox"
+      : fHyrox ? "hyrox"
+      : "hybrid";
+    const displayName =
+      mode === "hybrid-hyrox" ? (wp.hybridTemplate || "Hyrox Hybrid")
+      : mode === "hyrox" ? (wp.hyroxProgram || wp.splitType || "Hyrox")
+      : (wp.hybridTemplate || wp.splitType || "Hybrid");
+    return {
+      libraryId: null,
+      mode,
+      displayName,
+      splitType: wp.splitType ?? null,
+      runRaceType: profile?.run_race_type ?? null,
+      source: "flags",
+    };
+  }
+
+  // (c) No flags — reverse-resolve a single entry from splitType / runPlan.
   //     Expose its id as the INFERRED libraryId (not yet persisted).
   const inferred = inferEntryFromFields(wp);
   if (inferred) {
@@ -163,7 +190,7 @@ export function resolveProgram(wprefs, profile) {
     };
   }
 
-  // (c) Degraded — derive from raw fields the way the UI does today, but PREFER
+  // (d) Degraded — derive from raw fields the way the UI does today, but PREFER
   //     splitType over run_race_type. run_race_type is the stale-sticky field
   //     that causes the "shows Marathon after switching to PPL" bug, so a
   //     splitType that clearly names a lifting program wins and we drop the
@@ -225,4 +252,30 @@ export function resolveProgram(wprefs, profile) {
     runRaceType: null,
     source: "empty",
   };
+}
+
+/**
+ * Single source of truth for "what program week to display". Prefers the real
+ * program_current_week column; the program's total length is resolved from the
+ * canonical program (same chain as resolveProgram) so callers don't re-derive it.
+ *
+ * Honesty rules:
+ *  - program_current_week present → use it (clamped to [1, total]).
+ *  - It's absent and the fallback weekNum OVERFLOWS the program length (the stale
+ *    startDate-not-reset-on-switch case, Stage 5) → use the column if any, else
+ *    week 1 — NEVER a misleading "complete" (e.g. 12/12) for a just-switched program.
+ *  - No known total → just floor at 1.
+ *
+ * @param {number|null} programCurrentWeek  the program_current_week column value
+ * @param {number} weekNum                  date-derived fallback (can be stale)
+ * @param {object} wprefs
+ * @param {object} profile
+ * @returns {number} the week to display
+ */
+export function resolveDisplayWeek(programCurrentWeek, weekNum, wprefs, profile) {
+  const raw = programCurrentWeek || weekNum || 1;
+  const totalWks = programFromId(resolveProgram(wprefs, profile).libraryId)?.weeks || null;
+  if (!totalWks) return Math.max(1, raw);
+  const wk = raw > totalWks ? (programCurrentWeek || 1) : raw;
+  return Math.max(1, Math.min(wk, totalWks));
 }
