@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { processLock } from "@supabase/auth-js";
 
 // Retries on "Load failed / status 0" network errors that occur in iOS
 // WKWebView when QUIC connections drop. CapacitorHttp (enabled in
@@ -35,6 +36,18 @@ export const sb = createClient(
       autoRefreshToken: false,
       persistSession: true,
       detectSessionInUrl: false,
+      // WKWebView auth-lock fix. supabase-js defaults to navigatorLock, whose acquire
+      // timeout is enforced via AbortController.signal — which CapacitorHttp/WKWebView
+      // does NOT honour (same reason retryFetch above uses a Promise.race timer, not
+      // AbortController). Result: a stalled auth op holding the lock made EVERY later
+      // authenticated request (e.g. the workout_logs insert's getSession) wait forever —
+      // the 5s timeout could never fire. processLock is auth-js's in-memory promise-chain
+      // lock (no navigator.locks) whose acquire timeout uses setTimeout, which DOES fire
+      // in WKWebView — so a stuck holder surfaces as a catchable ProcessLockAcquireTimeout
+      // error instead of an infinite deadlock. Single-webview app → no cross-tab exclusion
+      // needed. lockAcquireTimeout is the default (5s); set explicitly to document intent.
+      lock: processLock,
+      lockAcquireTimeout: 5000,
     },
   }
 );
