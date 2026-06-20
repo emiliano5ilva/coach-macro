@@ -212,21 +212,30 @@ export async function getWeightFromHealth() {
 }
 
 export async function saveWorkoutToHealth({ durationMinutes, activeCalories, workoutType = "traditionalStrengthTraining" }) {
-  const kit = await hk();
-  if (!kit) return false;
+  // Timeout-guard the ENTIRE native sequence (hk() + saveWorkout). A hung native
+  // HealthKit promise in WKWebView never settles, so a bare try/catch can't rescue
+  // it — Promise.race forces a rejection so callers never park forever. Same defense
+  // as initAppleHealth(). This is a best-effort write; failing/timing out is fine.
   try {
-    const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - durationMinutes * 60_000);
-    await kit.saveWorkout({
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      durationFactor: 1,
-      energyBurned: activeCalories,
-      energyBurnedUnit: "kilocalorie",
-      distance: 0,
-      distanceUnit: "meter",
-    });
-    return true;
+    return await Promise.race([
+      (async () => {
+        const kit = await hk();
+        if (!kit) return false;
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - durationMinutes * 60_000);
+        await kit.saveWorkout({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          durationFactor: 1,
+          energyBurned: activeCalories,
+          energyBurnedUnit: "kilocalorie",
+          distance: 0,
+          distanceUnit: "meter",
+        });
+        return true;
+      })(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('saveWorkout timeout')), 4000)),
+    ]);
   } catch {
     return false;
   }

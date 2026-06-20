@@ -8343,11 +8343,9 @@ Rules:
       const burn=todayType==="training"?Math.round(duration*6):Math.round(duration*11);
       if(onEarnedCals)onEarnedCals(burn);
 
-      // Save to Apple Health if connected
-      if(healthConnected){
-        try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn});}catch{}
-      }
-
+      // CRITICAL DB SAVE FIRST. Must never be gated by the best-effort HealthKit
+      // write below: a hung native saveWorkoutToHealth() promise was parking this
+      // async fn before the insert ever ran (root cause of workouts not saving).
       let workoutSaveFailed=false;
       if(user){
         try{
@@ -8385,6 +8383,13 @@ Rules:
             window.dispatchEvent(new CustomEvent('workoutCompleted', { detail: { userId: user.id } }));
           }
         }catch(e){console.error("[finishWorkout] save error:",e);}
+      }
+
+      // Best-effort Apple Health write LAST — runs only after the DB save is done, so
+      // even a slow/hung native call can't block it. saveWorkoutToHealth is now
+      // internally timeout-guarded (Promise.race, 4s) as a second line of defense.
+      if(healthConnected){
+        try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn});}catch{}
       }
 
       skipRest();
