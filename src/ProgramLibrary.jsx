@@ -6,7 +6,7 @@ import { getProgramImage } from "./data/programImages.js";
 import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
 import RunProgramSetup from "./RunProgramSetup.jsx";
-import { PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
+import { deriveProgramFields } from "./utils/programResolver.js";
 
 const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 
@@ -15,37 +15,40 @@ const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 // Mirrors PlanOnboarding's logic for: schedule day types, run_race_type, mode flags.
 // Returns { run_race_type, schedule, wPrefsUpdate } — caller merges and upserts.
 export function activateProgramMode({ prog, wPrefs, schedule }) {
-  const isRun    = !!prog.isRun;
-  const isHyrox  = !!prog.isHyrox;
-  const isHybrid = !!prog.isHybrid;
+  // Field derivation (splitType / run_race_type / mode flags) comes from the SINGLE
+  // shared core deriveProgramFields() in programResolver.js — the same function
+  // resolveProgram() uses on read — so the write path and read path derive identically.
+  // Only side-effect-specific logic lives here: the schedule rebuild and the
+  // branch-specific identity fields (runPlan / hybridTemplate / isRunFocus / isLifting).
+  const d = deriveProgramFields(prog);
+  const { isRun, isHyrox, isHybrid } = d;
 
-  // run_race_type: from program name via the same PLAN_TO_RACE_TYPE map PlanOnboarding uses.
-  // Only set for pure-run programs; hybrid/hyrox/lifting clear it so prescType routing is clean.
-  const run_race_type = isRun ? (PLAN_TO_RACE_TYPE[prog.name] || 'general') : null;
+  const run_race_type = d.runRaceType;
 
   // Schedule: preserve which days are non-rest; change their TYPE to match the new mode.
   // Mirrors: focus==="run"?"run":focus==="hyrox"?"hyrox":"training" in PlanOnboarding.buildSchedule.
   const dayType = isRun ? 'run' : isHyrox ? 'hyrox' : 'training';
   const newSchedule = {};
-  WDAYS.forEach(d => {
-    const cur = schedule[d] || 'rest';
-    newSchedule[d] = cur === 'rest' ? 'rest' : dayType;
+  WDAYS.forEach(day => {
+    const cur = schedule[day] || 'rest';
+    newSchedule[day] = cur === 'rest' ? 'rest' : dayType;
   });
 
-  // wPrefs flags — matches doActualSwitch's existing mode-flag logic, extended with run identity fields.
-  const wPrefsUpdate = { _libraryId: prog.id, isHybrid, isHyrox };
+  // wPrefs flags. splitType comes from the shared core (null for run, name for
+  // hyrox/hybrid, splitKey||name for lifting/conditioning) — identical to the prior
+  // inline logic. Branch-specific identity fields are assembled below.
+  const wPrefsUpdate = { _libraryId: prog.id, isHybrid, isHyrox, splitType: d.splitType };
   if (isRun) {
-    // Run-only: clear splitType/dayPlan to prevent stale lifting/hybrid state leaking into routing.
-    Object.assign(wPrefsUpdate, { splitType: null, runPlan: prog.name, isRunFocus: true, isLifting: false });
-  } else if (isHyrox && isHybrid) {
-    Object.assign(wPrefsUpdate, { splitType: prog.name });
+    // Run-only: splitType already null; clear dayPlan (caller) + set run identity so
+    // stale lifting/hybrid state can't leak into routing.
+    Object.assign(wPrefsUpdate, { runPlan: prog.name, isRunFocus: true, isLifting: false });
   } else if (isHyrox) {
-    Object.assign(wPrefsUpdate, { splitType: prog.name });
+    // hyrox and hybrid-hyrox: splitType only (already set above).
   } else if (isHybrid) {
-    Object.assign(wPrefsUpdate, { splitType: prog.name, hybridTemplate: prog.name });
+    Object.assign(wPrefsUpdate, { hybridTemplate: prog.name });
   } else {
-    // Lifting: restore identity fields so a previous run focus doesn't bleed through.
-    Object.assign(wPrefsUpdate, { splitType: prog.splitKey || prog.name, isRunFocus: false, isLifting: true });
+    // Lifting/conditioning: restore identity fields so a previous run focus doesn't bleed through.
+    Object.assign(wPrefsUpdate, { isRunFocus: false, isLifting: true });
   }
 
   return { run_race_type, schedule: newSchedule, wPrefsUpdate };
