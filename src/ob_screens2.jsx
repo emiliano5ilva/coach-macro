@@ -8409,7 +8409,14 @@ Rules:
       // even a slow/hung native call can't block it. saveWorkoutToHealth is now
       // internally timeout-guarded (Promise.race, 4s) as a second line of defense.
       if(healthConnected){
-        try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn});}catch{}
+        // Map the canonical session mode (resolveProgram) → HealthKit activity type so the
+        // workout is labeled correctly instead of always defaulting to strength. Strings must
+        // match the native saveWorkout switch exactly or they silently fall to the default.
+        const _hkType =
+          (todayIsRunDay || activeWorkout?.runType || todayType==='run' || todayType==='cardio') ? "running"
+          : (todayIsHyrox || _todayMode==='hyrox' || _todayMode==='hybrid-hyrox' || _todayMode==='conditioning' || todayType==='hyrox') ? "highIntensityIntervalTraining"
+          : "traditionalStrengthTraining";
+        try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn,workoutType:_hkType,userId:user?.id});}catch{}
       }
 
       skipRest();

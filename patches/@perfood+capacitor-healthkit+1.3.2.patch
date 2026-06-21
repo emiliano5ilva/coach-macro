@@ -1,5 +1,17 @@
+diff --git a/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.m b/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.m
+index 9c49184..46fde1d 100644
+--- a/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.m
++++ b/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.m
+@@ -5,6 +5,7 @@
+ // each method the plugin supports using the CAP_PLUGIN_METHOD macro.
+ CAP_PLUGIN(CapacitorHealthkitPlugin, "CapacitorHealthkit",
+            CAP_PLUGIN_METHOD(requestAuthorization, CAPPluginReturnPromise);
++           CAP_PLUGIN_METHOD(saveWorkout, CAPPluginReturnPromise);
+            CAP_PLUGIN_METHOD(queryHKitSampleType, CAPPluginReturnPromise);
+            CAP_PLUGIN_METHOD(isAvailable, CAPPluginReturnPromise);
+            CAP_PLUGIN_METHOD(multipleQueryHKitSampleType, CAPPluginReturnPromise);
 diff --git a/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.swift b/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.swift
-index 0c5d95c..9cf80c4 100644
+index 0c5d95c..7f690e5 100644
 --- a/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.swift
 +++ b/node_modules/@perfood/capacitor-healthkit/ios/Plugin/CapacitorHealthkitPlugin.swift
 @@ -76,6 +76,8 @@ public class CapacitorHealthkitPlugin: CAPPlugin {
@@ -30,3 +42,68 @@ index 0c5d95c..9cf80c4 100644
                  } else if sample.quantityType.is(compatibleWith: HKUnit.meter()) {
                      unit = HKUnit.meter()
                      unitName = "meter"
+@@ -528,6 +535,64 @@ public class CapacitorHealthkitPlugin: CAPPlugin {
+             call.resolve()
+         }
+     }
++    @objc func saveWorkout(_ call: CAPPluginCall) {
++        guard let startDateString = call.options["startDate"] as? String else {
++            return call.reject("Must provide startDate")
++        }
++        guard let endDateString = call.options["endDate"] as? String else {
++            return call.reject("Must provide endDate")
++        }
++        let startDate = getDateFromString(inputDate: startDateString)
++        let endDate = getDateFromString(inputDate: endDateString)
++
++        let energyBurned = call.options["energyBurned"] as? Double ?? 0
++        let distance = call.options["distance"] as? Double ?? 0
++        let workoutTypeString = call.options["workoutType"] as? String ?? "traditionalStrengthTraining"
++
++        let activityType: HKWorkoutActivityType
++        switch workoutTypeString {
++        case "running":
++            activityType = .running
++        case "cycling":
++            activityType = .cycling
++        case "walking":
++            activityType = .walking
++        case "highIntensityIntervalTraining":
++            activityType = .highIntensityIntervalTraining
++        case "functionalStrengthTraining":
++            activityType = .functionalStrengthTraining
++        case "traditionalStrengthTraining":
++            activityType = .traditionalStrengthTraining
++        default:
++            activityType = .traditionalStrengthTraining
++        }
++
++        let energyQuantity = HKQuantity(unit: HKUnit.kilocalorie(), doubleValue: energyBurned)
++        // Only attach distance for distance-based workouts; nil keeps strength workouts clean.
++        let totalDistance: HKQuantity? = distance > 0
++            ? HKQuantity(unit: HKUnit.meter(), doubleValue: distance)
++            : nil
++
++        // HKWorkout(...) init is deprecated on iOS 17+ but still functional; acceptable here
++        // and consistent with the plugin's existing deprecation warnings.
++        let workout = HKWorkout(
++            activityType: activityType,
++            start: startDate,
++            end: endDate,
++            duration: endDate.timeIntervalSince(startDate),
++            totalEnergyBurned: energyQuantity,
++            totalDistance: totalDistance,
++            metadata: nil
++        )
++
++        healthStore.save(workout) { (success, error) in
++            if success {
++                call.resolve()
++            } else {
++                call.reject(error?.localizedDescription ?? "Failed to save workout")
++            }
++        }
++    }
+     @objc func queryHKitSampleType(_ call: CAPPluginCall) {
+         guard let _sampleName = call.options["sampleName"] as? String else {
+             return call.reject("Must provide sampleName")

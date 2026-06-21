@@ -293,7 +293,7 @@ export async function getWeightFromHealth() {
   }
 }
 
-export async function saveWorkoutToHealth({ durationMinutes, activeCalories, workoutType = "traditionalStrengthTraining" }) {
+export async function saveWorkoutToHealth({ durationMinutes, activeCalories, workoutType = "traditionalStrengthTraining", userId }) {
   // Timeout-guard the ENTIRE native sequence (hk() + saveWorkout). A hung native
   // HealthKit promise in WKWebView never settles, so a bare try/catch can't rescue
   // it — Promise.race forces a rejection so callers never park forever. Same defense
@@ -301,10 +301,11 @@ export async function saveWorkoutToHealth({ durationMinutes, activeCalories, wor
   try {
     return await Promise.race([
       (async () => {
-        const { kit } = await hk();
+        const { kit } = await hk(userId);
         if (!kit) return false;
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - durationMinutes * 60_000);
+        logStep(userId, "savework_start", { workoutType, energyBurned: activeCalories, durationMinutes });
         await kit.saveWorkout({
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
@@ -313,12 +314,17 @@ export async function saveWorkoutToHealth({ durationMinutes, activeCalories, wor
           energyBurnedUnit: "kilocalorie",
           distance: 0,
           distanceUnit: "meter",
+          workoutType,
         });
+        logStep(userId, "savework_ok", { workoutType });
         return true;
       })(),
       new Promise((_, rej) => setTimeout(() => rej(new Error('saveWorkout timeout')), 4000)),
     ]);
-  } catch {
+  } catch (e) {
+    // savework_error is the key one — healthStore.save rejecting (e.g. auth) surfaces here.
+    if (e?.message === 'saveWorkout timeout') logStep(userId, "savework_timeout", { workoutType, message: e.message, name: e.name });
+    else logStep(userId, "savework_error", { workoutType, message: e?.message, name: e?.name });
     return false;
   }
 }
