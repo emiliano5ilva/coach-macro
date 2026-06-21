@@ -15,16 +15,27 @@ import { computeLoadMetrics } from './trainingLoadService.js';
 import { predictSoreness } from './domsLearningService.js';
 import { getCycleAdjustment } from './cyclePatternService.js';
 import { getWeatherPaceAdjustment } from './weatherService.js';
+import { resolveProgram } from '../utils/programResolver.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
     .from('profiles')
-    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule')
+    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date')
     .eq('id', userId)
     .maybeSingle();
 
   const p = row?.profile_data || {};
   const wp = row?.wprefs || {};
+  // Canonical program mode — SAME source the Today card (ob_screens2) and Train tab
+  // (sections.jsx) use, so the brief describes the program identically and can't be
+  // driven by the stale-sticky run_race_type. run_race_type/run_race_date are COLUMNS
+  // (not in profile_data), so fold them into the profile arg resolveProgram reads.
+  const _profileForResolve = { ...p, run_race_type: row?.run_race_type ?? null, run_race_date: row?.run_race_date ?? null };
+  const _resolved = resolveProgram(wp, _profileForResolve);
+  const _mode = _resolved.mode;
+  const _progName = (((_mode === 'lifting' || _mode === 'conditioning')
+    && _resolved.displayName && _resolved.displayName !== 'No program set')
+    ? _resolved.displayName : null) || wp.splitType || 'PPL';
   // Prefer dedicated columns over JSONB fallbacks
   const firstName = row?.first_name || p.name || 'Athlete';
   const goalVal   = row?.goal || (p.goal || '').toLowerCase() || 'build_muscle';
@@ -78,11 +89,11 @@ export async function gatherBriefContext(userId) {
 
   const goalNames = { build_muscle:'Build Muscle', get_stronger:'Get Stronger', lose_fat:'Lose Fat', recomp:'Body Recomposition', train_for_race:'Train for a Race', get_faster:'Get Faster' };
 
-  const isHyrox = !!(wp.isHyrox || row?.hyrox_race_date);
+  const isHyrox = (_mode === 'hyrox' || _mode === 'hybrid-hyrox');
   const hyroxRaceDate = wp.hyroxRaceDate || row?.hyrox_race_date || null;
   const hyroxPhase = hyroxRaceDate ? getHyroxPhase(hyroxRaceDate) : null;
   const runRaceDate = row?.run_race_date || wp.runRaceDate || null;
-  const runPhase = runRaceDate ? getRunningPhase(runRaceDate) : null;
+  const runPhase = (_mode === 'running' && runRaceDate) ? getRunningPhase(runRaceDate) : null;
   const strengthCompDate = row?.strength_comp_date || wp.strengthCompDate || null;
   const strengthPhase = strengthCompDate ? getStrengthPhase(strengthCompDate) : null;
 
@@ -122,7 +133,7 @@ export async function gatherBriefContext(userId) {
     primaryGoal: goalNames[p.primaryGoal || goal] || (p.primaryGoal || goal),
     todayFocus,
     todayType,
-    splitType: wp.splitType || 'PPL',
+    splitType: _progName,
     weekNum: Math.floor(Math.max(0, (new Date() - startD) / 86400000) / 7) + 1,
     lastSession: lastWorkout
       ? `${lastWorkout.workout?.focus || 'Workout'} on ${new Date(lastWorkout.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })}`

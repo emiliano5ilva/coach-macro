@@ -29,6 +29,7 @@ import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget 
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
 import { displayDistance, distanceLabel } from "./utils/units.js";
 import { minSecToInterval, PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
+import { resolveProgram } from "./utils/programResolver.js";
 import { getTodayRunWorkout, getTodayHyroxWorkout } from "./running_programs.js";
 import { getPacesFromTime, resolvePaceTokens } from "./utils/runningPaces.js";
 import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
@@ -7838,11 +7839,16 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const todayFocus=dayFocus[todayKey]||"Rest";
   const cfg=DAY_CFG[todayType]||DAY_CFG.rest;
 
-  // Run / hyrox focus detection — mirrors TrainSection prescType logic
-  const _prescIsRun  = !!(profile?.run_race_type) && !wPrefs?.isHybrid && !wPrefs?.isHyrox;
+  // Run / hyrox focus detection — canonical mode via resolveProgram, the SAME source
+  // TrainSection uses (sections.jsx:2531), so Today and Train classify identically and
+  // can't diverge on the stale-sticky profile.run_race_type field.
+  const _todayMode = resolveProgram(wPrefs, profile).mode;
+  const _prescIsRun = (_todayMode === 'running');
   const _hybridRunDayHome = wPrefs?.isHybrid && !!(wPrefs?.dayPlan?.[todayKey]?.run) && !wPrefs?.dayPlan?.[todayKey]?.lift;
   const todayIsRunDay = _prescIsRun || _hybridRunDayHome;
-  const todayIsHyrox  = !!wPrefs?.isHyrox && !wPrefs?.isHybrid; // hyrox-focused account
+  // hybrid-hyrox stays off the pure-hyrox branch (it has no hybrid-hyrox branch here),
+  // matching prior behavior (isHyrox&&isHybrid → false) and the hybrid run-day/lift-day path.
+  const todayIsHyrox  = (_todayMode === 'hyrox') || (_todayMode === 'hybrid-hyrox' ? false : (!!wPrefs?.isHyrox && !wPrefs?.isHybrid));
 
   // Today's engine run session — same function TrainSection uses; tokens resolved inline
   const todayRunSession = useMemo(()=>{
@@ -7856,7 +7862,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
       return raw;
     }catch(e){ return null; }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[todayKey,profile?.run_race_type,wPrefs?.isHybrid,wPrefs?.dayPlan,wPrefs?.runPlanStartDate,wPrefs?.current5KTime,schedule]);
+  },[todayKey,wPrefs,profile,schedule]);
 
   const allActs=[
     ...stravaActs.map(a=>({id:`st-${a.id}`,type:a.sport_type||"Workout",icon:{Run:"🏃",Ride:"🚴",Swim:"🏊",Walk:"🚶",WeightTraining:"💪",CrossFit:"🏋️"}[a.sport_type]||"💪",date:a.start_date_local,durationMin:Math.round((a.moving_time||0)/60),distanceKm:((a.distance||0)/1000).toFixed(2),calories:Math.round(a.calories||0),title:a.name,avgHR:a.average_heartrate||"",source:"Strava",sourceIcon:"🟠"})),
