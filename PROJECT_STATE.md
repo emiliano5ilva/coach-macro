@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-21 (branch `goclub-redesign`)._
+_Last updated: 2026-06-21 — strength write verified on device (branch `goclub-redesign`)._
 
 ---
 
@@ -39,8 +39,9 @@ _Last updated: 2026-06-21 (branch `goclub-redesign`)._
   - **HRV** added via `patch-package` (`patches/@perfood+capacitor-healthkit+1.3.2.patch`): native
     `getTypes` + `getSampleType` + `generateOutput`(→ms) cases. All 5 snapshot reads return `_ok`.
   - **Write path:** native `saveWorkout` (`@objc` method + `.m` registration, in the same patch),
-    activity-type mapped from resolved program mode; `ah_savework_*` breadcrumbs. Compiles clean
-    (native verified via generic-destination build). **On-device write test still pending** (see NEXT).
+    activity-type mapped from resolved program mode; `ah_savework_*` breadcrumbs. **Strength write
+    VERIFIED end-to-end on device** (2026-06-21): `ah_savework_start`→`ah_savework_ok`, `workoutType`
+    correctly `traditionalStrengthTraining`, entry confirmed in Apple Health. (Running branch still to verify — see NEXT.)
   - Per-call timeouts (import 8s / isAvailable 8s / requestAuth 30s / getters 10s / saveWorkout 4s)
     and `ah_*` analytics_events breadcrumbs retained as hardening/observability.
 - **Program-drift resolver** — `resolveProgram(wPrefs, profile)` is the single canonical mode/displayName
@@ -52,19 +53,18 @@ _Last updated: 2026-06-21 (branch `goclub-redesign`)._
 ---
 
 ## IN PROGRESS / NEXT
-- **Apple Health on-device `saveWorkout` functional test** (resume checklist):
-  1. Confirm device `available (paired)` via `xcrun devicectl list devices`; unlock + keep awake.
-  2. Run the mandatory build chain (fresh `NativeApp-<hash>`).
-  3. Complete **a strength workout AND a run workout** in-app (so `finishWorkout` → best-effort `saveWorkout` fires both activity types).
-  4. Read back `ah_savework_*` from `analytics_events` (Supabase MCP):
-     `ah_savework_ok` = write landed; `ah_savework_error` + message = HealthKit rejected (most likely write-permission not granted).
-  5. Cross-check **Apple Health → Workouts** for the entries + correct activity type (Traditional Strength Training / Running).
+- **Verify the running write branch** (small) — confirm a completed run writes with
+  `workoutType: "running"` (`ah_savework_ok` + `running`, entry shows as Running in Apple Health).
+  Happens naturally on a real run day — no program switch needed. Strength branch already verified.
 
 ---
 
 ## DEFERRED
 - **Real distance for runs** — `saveWorkoutToHealth` currently sends `distance: 0` (understates, never mislabels). Wire actual run distance once the write path is proven.
 - **Breadcrumb keep-vs-gate** — decide whether to keep `ah_*` analytics breadcrumbs long-term or gate behind a debug flag before release.
+- **Active-energy estimate is crude** — `burn` is a flat `duration × 6` kcal/min (≈6 kcal/min), independent
+  of intensity/bodyweight, and this number now **writes into Apple Health**. Revisit with a better estimate
+  (HR-based or MET-based) before App Store release.
 - **Clinical-records / HealthKit entitlement cleanup** — review entitlements before App Store submission.
 
 ---
