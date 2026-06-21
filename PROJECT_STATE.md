@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-21 — merged open items from the (now-stale) Drive docs; this file is the single source of truth (branch `goclub-redesign`)._
+_Last updated: 2026-06-21 — Today-tab drift + Upper/Lower mismatch confirmed already-resolved (read-side migration + Stage 6); both → DONE (branch `goclub-redesign`)._
 
 ---
 
@@ -46,6 +46,17 @@ _Last updated: 2026-06-21 — merged open items from the (now-stale) Drive docs;
     degradation verified on-device (demo has null DOB → `tier:2`, `bmr:null`, never NaN/0); Tier 1 verified via parity (`bmr:1699`).
 - **Program-drift resolver Stages 1–4** — `resolveProgram()` / `selectDayKey()` canonical sources; Train tab migrated;
   race-countdown gate; week-counter sourced from profile load (commit **`1ce6c3f`**).
+- **Today-tab program-switch drift — RESOLVED** (was OPEN bug #1; commits **`bb274b9`**, **`0c5d52c`**, **`4782a36`**, **`11ca449`**).
+  The morning-brief service (`morningBriefService.js` → `resolveProgram` `_mode` + `selectDayKey`/`baseName` day label) and the
+  Today workout-for-the-day section (`ob_screens2.jsx` `_todayMode = resolveProgram(...).mode`; day label = `dayFocus[todayKey]`,
+  which `NativeApp` builds via `selectDayKey`+`baseName`) now read the **identical canonical sources Train uses** — Today, Train,
+  and the brief can't drift from each other. Verified consistent on drift account `d3d00001` (`_libraryId=hyrox_8w` → all three resolve to hyrox).
+- **Upper/Lower split-day title-vs-exercises mismatch — RESOLVED by Stage 6** (commit **`11ca449`**, 2026-06-20 21:51 — *after* the
+  Jun-20 screenshot). Both the day **title** (`dayFocus` → `selectDayKey`+`baseName`) and the day **exercises**
+  (`getWorkoutForDay`, which internally calls `selectDayKey(splitType, daysPerWeek, schedule, programStartDate, dayOffset)` when
+  schedule+anchor present) now derive "which split day" from **one** schedule-aware, `program_start_date`-anchored walk with matching
+  args (same `splitType`, `daysPerWeek`, `dayOffset 0` for today). Retired the `SPLIT_CYCLES` dual-vocabulary that caused the desync.
+  (No live Upper/Lower row in DB to spot-check; aligned by code analysis.)
 - **Session restore / workout-save** — v2 storage-key fix, `processLock` auth hardening, distinct-day session count —
   all shipped (supersedes the Jun 19 "workouts not saving" priority docs).
 - **Design system locked** — Me tab, Today/Train/Fuel reskins, weight logging, security/RLS.
@@ -53,14 +64,9 @@ _Last updated: 2026-06-21 — merged open items from the (now-stale) Drive docs;
 ---
 
 ## OPEN — correctness bugs (highest priority)
-1. **TODAY TAB program-switch drift** — Train tab was migrated to canonical sources but the Today tab's OWN surfaces
-   were NOT: the morning-brief narrative + the Today workout-for-the-day section still read stale sources
-   (`SPLIT_CYCLES` day label, `run_race_type`, `splitType` directly). On the drift account, Today can show the wrong day /
-   marathon framing / a program name disagreeing with Train. **FIX:** point both at `resolveProgram()` + `selectDayKey()` —
-   the identical functions Train now uses. (Immediate follow-up to the Train migration.)
-2. **UPPER/LOWER split-day mismatch** — header shows "LOWER" + leg muscles but the prescribed exercises are an Upper day
-   (bench/rows/OHP/pull-ups/curls); title/muscles vs exercises disagree. Screenshot Jun 20. May relate to week/day indexing.
-   **Trace:** how `todayFocus`/day-title derives vs how `getWorkoutForDay` picks exercises.
+- _None open._ Both previously-listed read-side bugs (Today-tab program-switch drift; Upper/Lower title-vs-exercises mismatch)
+  were resolved by the `resolveProgram`/`selectDayKey` migration + Stage 6 — see DONE & VERIFIED. The remaining *data* drift on
+  `d3d00001` (fields disagree at rest) is a **Stage 5** (write-side + DB reconciliation) item below, not a read-path bug.
 
 ---
 
@@ -84,6 +90,9 @@ _Last updated: 2026-06-21 — merged open items from the (now-stale) Drive docs;
   active-segment times instead.
 - **Apple Health endgame** — prefer Apple Watch `activeEnergyBurned` reading over our estimate when present.
 - **Breadcrumb keep-vs-gate** — decide keep-vs-gate for `ah_*` / `tier` / `bmr` breadcrumbs before release.
+- **Minor residual direct `splitType` reads** (optional cleanup, NOT drift-causing — not the Today narrative/day surfaces):
+  `morningBriefService.js:279` (weather-fetch gate `splitType.includes('run')`) and the AI workout-generation prompt
+  (`ob_screens2.jsx:8169/8172/8179`, tells the model the split via `wPrefs.splitType`). Could route through `resolveProgram().displayName`.
 
 ---
 
