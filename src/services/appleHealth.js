@@ -1,13 +1,44 @@
+import { sb } from "../client";
+
 const isNative = () =>
   typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.() === true;
 
-async function hk() {
-  if (!isNative()) return null;
+// Fire-and-forget breadcrumb to analytics_events (readable via MCP — we can't attach a
+// USB cable to read the device console). NEVER awaited and NEVER throws: logging must not
+// block or hang the native path. Skips silently when userId is absent.
+function logStep(userId, event, props = {}) {
+  if (!userId) return;
   try {
-    const mod = await import("@perfood/capacitor-healthkit");
-    return mod.CapacitorHealthkit;
-  } catch {
-    return null;
+    sb.from("analytics_events").insert({
+      user_id: userId,
+      event: "ah_" + event,
+      properties: { ...props, timestamp: new Date().toISOString() },
+      created_at: new Date().toISOString(),
+    }).then(() => {}, () => {});
+  } catch { /* never let logging throw into the de-stall path */ }
+}
+
+async function hk(userId) {
+  // Return a plain CONTAINER ({ kit }), never the bare plugin proxy. Capacitor's
+  // registerPlugin proxy answers `.then` with a function (its get-trap has no `then`
+  // guard), so an async function that resolves with the proxy gets thenable-unwrapped:
+  // the engine calls proxy.then(resolve) → a native bridge call to a nonexistent "then"
+  // method that never resolves → `await hk()` hangs forever. Wrapping in a non-thenable
+  // object defeats the unwrap. (This was the long-standing native-bridge stall.)
+  if (!isNative()) return { kit: null };
+  // Bound the dynamic import — a stalled plugin load would otherwise hang unbounded.
+  logStep(userId, "import_start", { call: "import" });
+  try {
+    const mod = await Promise.race([
+      import("@perfood/capacitor-healthkit"),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("import timeout")), 8000)),
+    ]);
+    logStep(userId, "import_ok", { call: "import" });
+    return { kit: mod.CapacitorHealthkit };
+  } catch (e) {
+    if (e?.message === "import timeout") logStep(userId, "import_timeout", { call: "import", message: e.message, name: e.name });
+    else logStep(userId, "import_error", { call: "import", message: e?.message, name: e?.name });
+    return { kit: null };
   }
 }
 
@@ -34,25 +65,43 @@ const WRITE_TYPES = [
   "calories",  // activeEnergyBurned
 ];
 
-export async function initAppleHealth() {
-  const kit = await hk();
+export async function initAppleHealth(userId) {
+  const { kit } = await hk(userId);
   if (!kit) return false;
+  // Tracks which bounded call we're in, so a non-timeout throw is labeled to the right
+  // stage instead of always falling through to requestauth_error.
+  let stage = 'isavailable';
   try {
     // 8s timeout on isAvailable — synchronous device check, should never hang
+    logStep(userId, "isavailable_start", { call: "isAvailable" });
     await Promise.race([
       kit.isAvailable(),
       new Promise((_, rej) => setTimeout(() => rej(new Error('isAvailable timeout')), 8000)),
     ]);
-    // No timeout on requestAuthorization — user is interacting with the native sheet
-    await kit.requestAuthorization({ all: [], read: READ_TYPES, write: WRITE_TYPES });
+    logStep(userId, "isavailable_ok", { call: "isAvailable" });
+    // 30s timeout on requestAuthorization — user interacts with the native sheet, but an
+    // unbounded await can park the whole flow if the sheet never resolves.
+    stage = 'requestauth';
+    logStep(userId, "requestauth_start", { call: "requestAuthorization" });
+    await Promise.race([
+      kit.requestAuthorization({ all: [], read: READ_TYPES, write: WRITE_TYPES }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('requestAuthorization timeout')), 30000)),
+    ]);
+    logStep(userId, "requestauth_ok", { call: "requestAuthorization" });
     return true;
-  } catch {
+  } catch (e) {
+    // Label the breadcrumb by which bounded call rejected, then preserve swallow-to-false.
+    const msg = e?.message || "";
+    if (msg === 'isAvailable timeout') logStep(userId, "isavailable_timeout", { call: "isAvailable", message: msg, name: e?.name });
+    else if (msg === 'requestAuthorization timeout') logStep(userId, "requestauth_timeout", { call: "requestAuthorization", message: msg, name: e?.name });
+    else if (stage === 'isavailable') logStep(userId, "isavailable_error", { call: "isAvailable", message: e?.message, name: e?.name });
+    else logStep(userId, "requestauth_error", { call: "requestAuthorization", message: e?.message, name: e?.name });
     return false;
   }
 }
 
-export async function checkAppleHealthAuthorized() {
-  const kit = await hk();
+export async function checkAppleHealthAuthorized(userId) {
+  const { kit } = await hk(userId);
   if (!kit) return false;
   try {
     // isEditionAuthorized checks actual write-sharing authorization (.sharingAuthorized),
@@ -82,17 +131,22 @@ function yesterdayNight() {
   return d.toISOString();
 }
 
-export async function getLastNightSleep() {
-  const kit = await hk();
+export async function getLastNightSleep(userId) {
+  const { kit } = await hk(userId);
   if (!kit) return null;
   try {
-    const result = await kit.querySampleType({
-      sampleName: "sleepAnalysis",
-      startDate: yesterdayNight(),
-      endDate: isoNow(),
-      limit: 100,
-      ascending: true,
-    });
+    logStep(userId, "sleep_start", { call: "sleep" });
+    const result = await Promise.race([
+      kit.queryHKitSampleType({
+        sampleName: "sleepAnalysis",
+        startDate: yesterdayNight(),
+        endDate: isoNow(),
+        limit: 100,
+        ascending: true,
+      }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("sleep timeout")), 10000)),
+    ]);
+    logStep(userId, "sleep_ok", { call: "sleep" });
     const samples = result?.output ?? [];
     // Sum durations where value = 1 (CORE/ASLEEP), 2 (DEEP), 3 (REM)
     let sleepMs = 0;
@@ -105,97 +159,125 @@ export async function getLastNightSleep() {
     }
     const hours = sleepMs / 3_600_000;
     return hours > 0 ? Math.round(hours * 10) / 10 : null;
-  } catch {
+  } catch (e) {
+    if (e?.message === "sleep timeout") logStep(userId, "sleep_timeout", { call: "sleep", message: e.message, name: e.name });
+    else logStep(userId, "sleep_error", { call: "sleep", message: e?.message, name: e?.name });
     return null;
   }
 }
 
-export async function getTodaySteps() {
-  const kit = await hk();
+export async function getTodaySteps(userId) {
+  const { kit } = await hk(userId);
   if (!kit) return null;
   try {
-    const result = await kit.querySampleType({
-      sampleName: "steps",
-      startDate: isoToday(),
-      endDate: isoNow(),
-      limit: 1000,
-      ascending: true,
-    });
+    logStep(userId, "steps_start", { call: "steps" });
+    const result = await Promise.race([
+      kit.queryHKitSampleType({
+        sampleName: "stepCount",
+        startDate: isoToday(),
+        endDate: isoNow(),
+        limit: 1000,
+        ascending: true,
+      }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("steps timeout")), 10000)),
+    ]);
+    logStep(userId, "steps_ok", { call: "steps" });
     const samples = result?.output ?? [];
     const total = samples.reduce((sum, s) => sum + (Number(s.value) || 0), 0);
     return total > 0 ? Math.round(total) : null;
-  } catch {
+  } catch (e) {
+    if (e?.message === "steps timeout") logStep(userId, "steps_timeout", { call: "steps", message: e.message, name: e.name });
+    else logStep(userId, "steps_error", { call: "steps", message: e?.message, name: e?.name });
     return null;
   }
 }
 
-export async function getRestingHeartRate() {
-  const kit = await hk();
+export async function getRestingHeartRate(userId) {
+  const { kit } = await hk(userId);
   if (!kit) return null;
   try {
-    const result = await kit.querySampleType({
-      sampleName: "restingHeartRate",
-      startDate: isoToday(),
-      endDate: isoNow(),
-      limit: 5,
-      ascending: false,
-    });
+    logStep(userId, "rhr_start", { call: "rhr" });
+    const result = await Promise.race([
+      kit.queryHKitSampleType({
+        sampleName: "restingHeartRate",
+        startDate: isoToday(),
+        endDate: isoNow(),
+        limit: 5,
+        ascending: false,
+      }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("rhr timeout")), 10000)),
+    ]);
+    logStep(userId, "rhr_ok", { call: "rhr" });
     const samples = result?.output ?? [];
     if (!samples.length) return null;
     return Math.round(Number(samples[0].value));
-  } catch {
+  } catch (e) {
+    if (e?.message === "rhr timeout") logStep(userId, "rhr_timeout", { call: "rhr", message: e.message, name: e.name });
+    else logStep(userId, "rhr_error", { call: "rhr", message: e?.message, name: e?.name });
     return null;
   }
 }
 
-export async function getHRV() {
-  const kit = await hk();
+export async function getHRV(userId) {
+  const { kit } = await hk(userId);
   if (!kit) return null;
   try {
-    const result = await kit.querySampleType({
-      sampleName: "heartRateVariabilitySDNN",
-      startDate: yesterdayNight(),
-      endDate: isoNow(),
-      limit: 5,
-      ascending: false,
-    });
+    logStep(userId, "hrv_start", { call: "hrv" });
+    const result = await Promise.race([
+      kit.queryHKitSampleType({
+        sampleName: "heartRateVariabilitySDNN",
+        startDate: yesterdayNight(),
+        endDate: isoNow(),
+        limit: 5,
+        ascending: false,
+      }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("hrv timeout")), 10000)),
+    ]);
+    logStep(userId, "hrv_ok", { call: "hrv" });
     const samples = result?.output ?? [];
     if (!samples.length) return null;
-    // HealthKit returns HRV in seconds; convert to ms
-    const raw = Number(samples[0].value);
-    const ms = raw < 1 ? Math.round(raw * 1000) : Math.round(raw);
-    return ms;
-  } catch {
+    // Patched plugin returns heartRateVariabilitySDNN already in ms (unitName "ms").
+    return Math.round(Number(samples[0].value));
+  } catch (e) {
+    if (e?.message === "hrv timeout") logStep(userId, "hrv_timeout", { call: "hrv", message: e.message, name: e.name });
+    else logStep(userId, "hrv_error", { call: "hrv", message: e?.message, name: e?.name });
     return null;
   }
 }
 
-export async function getActiveCaloriesToday() {
-  const kit = await hk();
+export async function getActiveCaloriesToday(userId) {
+  const { kit } = await hk(userId);
   if (!kit) return null;
   try {
-    const result = await kit.querySampleType({
-      sampleName: "activeEnergyBurned",
-      startDate: isoToday(),
-      endDate: isoNow(),
-      limit: 1000,
-      ascending: true,
-    });
+    logStep(userId, "calories_start", { call: "calories" });
+    const result = await Promise.race([
+      kit.queryHKitSampleType({
+        sampleName: "activeEnergyBurned",
+        startDate: isoToday(),
+        endDate: isoNow(),
+        limit: 1000,
+        ascending: true,
+      }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("calories timeout")), 10000)),
+    ]);
+    logStep(userId, "calories_ok", { call: "calories" });
     const samples = result?.output ?? [];
     const total = samples.reduce((sum, s) => sum + (Number(s.value) || 0), 0);
     return total > 0 ? Math.round(total) : null;
-  } catch {
+  } catch (e) {
+    if (e?.message === "calories timeout") logStep(userId, "calories_timeout", { call: "calories", message: e.message, name: e.name });
+    else logStep(userId, "calories_error", { call: "calories", message: e?.message, name: e?.name });
     return null;
   }
 }
 
 export async function getWeightFromHealth() {
-  const kit = await hk();
+  const { kit } = await hk();
   if (!kit) return null;
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const result = await kit.querySampleType({
+    const result = await kit.queryHKitSampleType({
       sampleName: "weight",
       startDate: thirtyDaysAgo.toISOString(),
       endDate: isoNow(),
@@ -219,7 +301,7 @@ export async function saveWorkoutToHealth({ durationMinutes, activeCalories, wor
   try {
     return await Promise.race([
       (async () => {
-        const kit = await hk();
+        const { kit } = await hk();
         if (!kit) return false;
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - durationMinutes * 60_000);
@@ -242,12 +324,12 @@ export async function saveWorkoutToHealth({ durationMinutes, activeCalories, wor
 }
 
 export async function getHRVBaseline(days = 30) {
-  const kit = await hk();
+  const { kit } = await hk();
   if (!kit) return null;
   try {
     const since = new Date();
     since.setDate(since.getDate() - days);
-    const result = await kit.querySampleType({
+    const result = await kit.queryHKitSampleType({
       sampleName: "heartRateVariabilitySDNN",
       startDate: since.toISOString(),
       endDate: isoNow(),
@@ -267,13 +349,13 @@ export async function getHRVBaseline(days = 30) {
   }
 }
 
-export async function getDailyHealthSnapshot() {
+export async function getDailyHealthSnapshot(userId) {
   const [sleep, steps, rhr, hrv, calories] = await Promise.all([
-    getLastNightSleep(),
-    getTodaySteps(),
-    getRestingHeartRate(),
-    getHRV(),
-    getActiveCaloriesToday(),
+    getLastNightSleep(userId),
+    getTodaySteps(userId),
+    getRestingHeartRate(userId),
+    getHRV(userId),
+    getActiveCaloriesToday(userId),
   ]);
   return { sleep, steps, rhr, hrv, calories };
 }

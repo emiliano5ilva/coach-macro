@@ -1943,14 +1943,14 @@ function InjuryRiskReport({risks, muscleSetCounts}) {
   );
 }
 
-function AppleHealthModal({onConnect, onDismiss}) {
+function AppleHealthModal({onConnect, onDismiss, userId}) {
   const [connecting, setConnecting] = useState(false);
   const [permDenied, setPermDenied] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   async function handleConnect() {
     setConnecting(true);setPermDenied(false);setTimedOut(false);
     const timeout=new Promise(res=>setTimeout(()=>res('timeout'),60000));
-    const result=await Promise.race([initAppleHealth().then(ok=>ok),timeout]);
+    const result=await Promise.race([initAppleHealth(userId).then(ok=>ok),timeout]);
     setConnecting(false);
     if(result==='timeout'){setTimedOut(true);}
     else if(result){onConnect(true);}
@@ -7227,21 +7227,21 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       // immediately without waiting for the async plugin call.
       if(localStorage.getItem('cm_health_auth')==='1'){
         setHealthConnected(true);
-        const snap=await getDailyHealthSnapshot();
+        const snap=await getDailyHealthSnapshot(user?.id);
         setHealthSnap(snap);
         // One-time re-sync: if the granted permissions version is older than the
         // current type set, call requestAuthorization in the background so iOS
         // registers any new types (e.g. HRV added in v2). Non-blocking, additive only.
         const grantedV=parseInt(localStorage.getItem('cm_health_perms_v')||'0',10);
         if(grantedV<AH_PERMS_VERSION){
-          initAppleHealth().then(ok=>{
+          initAppleHealth(user?.id).then(ok=>{
             if(ok) localStorage.setItem('cm_health_perms_v',String(AH_PERMS_VERSION));
           }).catch(()=>{});
         }
         return;
       }
       // Slow path: ask the native plugin (requires dynamic import to load).
-      const authorized=await checkAppleHealthAuthorized();
+      const authorized=await checkAppleHealthAuthorized(user?.id);
       if(!authorized){
         if(healthDismissCount.current<3)setShowHealthModal(true);
         return;
@@ -7249,7 +7249,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       localStorage.setItem('cm_health_auth','1');
       localStorage.setItem('cm_health_perms_v',String(AH_PERMS_VERSION));
       setHealthConnected(true);
-      const snap=await getDailyHealthSnapshot();
+      const snap=await getDailyHealthSnapshot(user?.id);
       setHealthSnap(snap);
     }
     loadHealth();
@@ -7261,7 +7261,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
       localStorage.setItem('cm_health_auth','1');
       localStorage.setItem('cm_health_perms_v',String(AH_PERMS_VERSION));
       setHealthConnected(true);
-      const snap=await getDailyHealthSnapshot();
+      const snap=await getDailyHealthSnapshot(user?.id);
       setHealthSnap(snap);
     }
   }
@@ -11203,7 +11203,7 @@ Rules:
         ))}
       </div>
 
-      {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal}/>}
+      {showHealthModal&&<AppleHealthModal onConnect={handleHealthConnect} onDismiss={dismissHealthModal} userId={user?.id}/>}
       {/* TEMP: workout save error debug — remove after diagnosing root cause */}
       {workoutSaveDebug?<div style={{position:'fixed',top:60,left:0,right:0,zIndex:9999,background:'rgba(239,68,68,0.92)',padding:'10px 14px',fontFamily:'monospace',fontSize:11,color:'#fff',lineHeight:1.5,wordBreak:'break-all'}}>{workoutSaveDebug}</div>:null}
       {bioScreen&&<BioAlgorithmScreen user={user} profile={profile} onClose={()=>setBioScreen(false)}/>}
