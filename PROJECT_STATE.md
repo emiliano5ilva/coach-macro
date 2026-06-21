@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-21 — unified biometric active-energy across lifting/run/HYROX (branch `goclub-redesign`)._
+_Last updated: 2026-06-21 — merged open items from the (now-stale) Drive docs; this file is the single source of truth (branch `goclub-redesign`)._
 
 ---
 
@@ -31,52 +31,67 @@ _Last updated: 2026-06-21 — unified biometric active-energy across lifting/run
 
 ---
 
-## DONE / SHIPPED
-- **Apple Health — reads + HRV + write path** (commits **`bbe5cb8`** reads, **`7ef0ae2`** write; both pushed):
-  - Fixed the native-bridge **stall**: `hk()` returned the Capacitor plugin proxy from an `async` fn;
-    the proxy is thenable (no `then` guard) → `await hk()` hung forever. Fixed via non-thenable `{ kit }` container.
-  - Corrected method name `querySampleType` → **`queryHKitSampleType`**, and query keys (`stepCount`, HRV).
-  - **HRV** added via `patch-package` (`patches/@perfood+capacitor-healthkit+1.3.2.patch`): native
-    `getTypes` + `getSampleType` + `generateOutput`(→ms) cases. All 5 snapshot reads return `_ok`.
-  - **Write path:** native `saveWorkout` (`@objc` method + `.m` registration, in the same patch),
-    activity-type mapped from resolved program mode; `ah_savework_*` breadcrumbs (with `tier`/`bmr`).
-  - Per-call timeouts (import 8s / isAvailable 8s / requestAuth 30s / getters 10s / saveWorkout 4s)
-    and `ah_*` analytics_events breadcrumbs retained as hardening/observability.
-- **Unified biometric active-energy** — shared `src/utils/calorieEstimate.js` → `estimateActiveKcal({hkType,durationMin,profile})`:
-  Mifflin-St Jeor, **active-only `(MET−1)`**, two-tier (Tier 1 biometric BMR/1440 when age+sex+height present;
-  Tier 2 weight-only fallback). One model now feeds **lifting / run / HYROX** (was: lifting biometric, run flat
-  8.5/min, hyrox none) plus the in-app ring + DB `calories_burned` + the Apple Health write.
-  - **Verified on-device (2026-06-21):** lifting + HYROX `ah_savework_ok` with correct labels
-    (`traditionalStrengthTraining` / `highIntensityIntervalTraining`); hyrox `calories_burned` now populated (was null).
-  - **Tier-2 graceful degradation verified on-device** (demo account has null DOB → `tier:2`, `bmr:null`, never NaN/0).
-  - **Tier 1 verified via parity table** (helper-computed; e.g. 30yo/75kg/175cm/M strength 30m → 124 kcal, `bmr:1699`) —
-    numbers identical to the pre-extraction lifting logic (no regression).
-  - **Run distance wired** — GPS + manual runs pass real `distanceMeters` to `saveWorkoutToHealth`.
-- **Program-drift resolver** — `resolveProgram(wPrefs, profile)` is the single canonical mode/displayName
-  source. Today card, Train tab, and morning brief all route through it (no more stale `run_race_type`).
-- **Week counter** (commit **`1ce6c3f`**) — `program_current_week`/`program_total_weeks` sourced from the
-  profile load (removed fragile auth-gated call); dynamic `Week N of <total>` denominator.
-- **Design system** — locked.
+## DONE & VERIFIED (recent)
+- **Apple Health: reads + HRV + workout-WRITE all working end-to-end on device** (commits **`bbe5cb8`**, **`7ef0ae2`**, **`234e360`**).
+  HRV reads confirmed (`ah_hrv_ok`) — supersedes the older "HRV pending device verification" note. Technical detail:
+  - Native-bridge **stall** fixed — `hk()` returned the Capacitor plugin proxy from an `async` fn; the proxy is
+    thenable (no `then` guard) → `await hk()` hung forever. Fixed via non-thenable `{ kit }` container.
+  - Method name `querySampleType` → **`queryHKitSampleType`**; query keys `stepCount`, HRV.
+  - HRV via `patch-package` (`patches/@perfood+capacitor-healthkit+1.3.2.patch`): native `getTypes` + `getSampleType`
+    + `generateOutput`(→ms); plus the `saveWorkout` `@objc` method + `.m` registration in the same patch.
+  - Per-call timeouts (import/isAvailable 8s, requestAuth 30s, getters 10s, saveWorkout 4s) + `ah_*` breadcrumbs (with `tier`/`bmr`).
+  - **Biometric active-energy** (Mifflin-St Jeor, **active-only `(MET−1)`**, two-tier) unified across **lifting/run/HYROX**
+    via shared `src/utils/calorieEstimate.js` → `estimateActiveKcal`; feeds in-app ring + DB `calories_burned` + HK write.
+    **Run distance wired** (GPS + manual → real `distanceMeters`). Lifting + HYROX writes verified on-device; Tier-2 graceful
+    degradation verified on-device (demo has null DOB → `tier:2`, `bmr:null`, never NaN/0); Tier 1 verified via parity (`bmr:1699`).
+- **Program-drift resolver Stages 1–4** — `resolveProgram()` / `selectDayKey()` canonical sources; Train tab migrated;
+  race-countdown gate; week-counter sourced from profile load (commit **`1ce6c3f`**).
+- **Session restore / workout-save** — v2 storage-key fix, `processLock` auth hardening, distinct-day session count —
+  all shipped (supersedes the Jun 19 "workouts not saving" priority docs).
+- **Design system locked** — Me tab, Today/Train/Fuel reskins, weight logging, security/RLS.
 
 ---
 
-## IN PROGRESS / NEXT
-- **Confirm run path on the next real run** (natural-course, no setup) — expect `ah_savework_ok` +
-  `workoutType:"running"` + non-zero distance on the Apple Health entry.
-- **One real-length session on a DOB-present account** — to see a meaningful kcal magnitude (short test
-  sessions floor to 1) and `tier:1` on-device (the demo account is DOB-less → Tier 2; Tier 1 already proven by parity).
+## OPEN — correctness bugs (highest priority)
+1. **TODAY TAB program-switch drift** — Train tab was migrated to canonical sources but the Today tab's OWN surfaces
+   were NOT: the morning-brief narrative + the Today workout-for-the-day section still read stale sources
+   (`SPLIT_CYCLES` day label, `run_race_type`, `splitType` directly). On the drift account, Today can show the wrong day /
+   marathon framing / a program name disagreeing with Train. **FIX:** point both at `resolveProgram()` + `selectDayKey()` —
+   the identical functions Train now uses. (Immediate follow-up to the Train migration.)
+2. **UPPER/LOWER split-day mismatch** — header shows "LOWER" + leg muscles but the prescribed exercises are an Upper day
+   (bench/rows/OHP/pull-ups/curls); title/muscles vs exercises disagree. Screenshot Jun 20. May relate to week/day indexing.
+   **Trace:** how `todayFocus`/day-title derives vs how `getWorkoutForDay` picks exercises.
 
 ---
 
-## DEFERRED
-- **HYROX `totalSec` is wall-clock** — includes inter-station rest/transitions (`hyroxTotalElapsed` runs
-  continuously start→finish), so MET 8 across the whole span slightly overcounts active energy. Refine to
-  sum active-segment times instead of total.
-- **Endgame: prefer Apple Watch active-energy when present** — our MET/Mifflin estimate is the fallback;
-  read real `activeEnergyBurned` from HealthKit when a Watch is logging, rather than writing our own estimate.
-- **Breadcrumb keep-vs-gate** — decide whether to keep `ah_*` / `tier` / `bmr` analytics breadcrumbs
-  long-term or gate them behind a debug flag before App Store release.
-- **Clinical-records / HealthKit entitlement cleanup** — review entitlements before App Store submission.
+## OPEN — program-drift Stage 5 (write-side + DB)
+- **Backfill `_libraryId` on WRITE** — onboarding/PlanOnboarding + `saveProfile` don't set it.
+- **Program switches must CLEAR opposite-mode fields** — lift switch → `runPlan=null` + `run_race_type=null`; run switch → `splitType=null`.
+- **Reset `startDate` on program switch** — currently `profile_data.startDate` stays at the onboarding date → `weekNum` wrong
+  post-switch. OR drive week purely from `program_current_week`.
+- **One-time DB reconciliation** of drifted rows (demo `d3d00001` is the four-way-drift test case).
+
+---
+
+## OPEN — pre-release / polish
+- **Runna-style font pass** — Train tab control labels (HIDE ↑, SEE EXERCISES ↓) are too-heavy Archivo; match Runna
+  discipline (9px floor / 11px eyebrows / spaced-caps, no `//` prefixes). User: "not now, keep on list."
+- **Clinical-records / provisioning entitlement cleanup** before App Store submission — verify portal App ID + provisioning
+  profile carry only what's used (binary entitlements currently clean).
+- **HRV full device verification** — reads work (`ah_hrv_ok`); for the Settings-permission-sheet + real HRV data, needs an
+  Apple Watch wearer + cleanest is delete/reinstall so HRV is in the initial grant.
+- **HYROX calorie refinement** — `totalSec` is wall-clock incl. inter-station rest → MET 8 slightly overcounts; sum
+  active-segment times instead.
+- **Apple Health endgame** — prefer Apple Watch `activeEnergyBurned` reading over our estimate when present.
+- **Breadcrumb keep-vs-gate** — decide keep-vs-gate for `ah_*` / `tier` / `bmr` breadcrumbs before release.
+
+---
+
+## OPEN — big feature (was "next up" pre-Apple-Health)
+- **PROGRESS TAB redesign** — the "rolodex" section-selector interaction (tap section name → swipe scrubs sections live,
+  prefetch-backed). Reskin 5 sub-tabs / ~30 cards / 14+ charts from the old dark theme (`#000`, `var(--accent)`, DM Mono
+  `//` eyebrows) to the red/white `--cm-*` system, sub-tab by sub-tab. Target: `ProgressSection` (`ob_screens2.jsx` ~9180).
+  Foundation (getUserMode 5-tabs, weight logging, prefetch) already done.
 
 ---
 
