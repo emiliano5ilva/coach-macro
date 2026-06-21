@@ -16,11 +16,12 @@ import { predictSoreness } from './domsLearningService.js';
 import { getCycleAdjustment } from './cyclePatternService.js';
 import { getWeatherPaceAdjustment } from './weatherService.js';
 import { resolveProgram } from '../utils/programResolver.js';
+import { selectDayKey, baseName } from '../programs.js';
 
 export async function gatherBriefContext(userId) {
   const { data: row } = await sb
     .from('profiles')
-    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date')
+    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date, program_start_date')
     .eq('id', userId)
     .maybeSingle();
 
@@ -46,7 +47,19 @@ export async function gatherBriefContext(userId) {
   const schedule = row?.schedule || wp.schedule || {};
   const dayFocus = wp.dayFocus || {};
   const todayType = schedule[todayKey] || 'rest';
-  const todayFocus = dayFocus[todayKey] || (todayType === 'rest' ? 'Rest' : 'Training');
+  let todayFocus = dayFocus[todayKey] || (todayType === 'rest' ? 'Rest' : 'Training');
+  // For lifting/conditioning, name the actual split day ("Lower") via the SAME selector
+  // the Today card/WeekStrip use (selectDayKey), so the brief agrees with the card.
+  // _WDAYS + the training-day count mirror NativeApp.jsx:932 exactly to guarantee the
+  // same daysPerWeek → same selectDayKey result (Object.values(schedule) would diverge
+  // on any non-weekday key). dayOffset 0 = today, matching the card's WeekStrip.
+  if ((_mode === 'lifting' || _mode === 'conditioning') && todayType === 'training') {
+    const _WDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const _dpw = _WDAYS.filter(d => schedule[d] === 'training').length || 4;
+    const _psd = row?.program_start_date || p?.startDate || null;
+    const _dk = selectDayKey(wp.splitType, _dpw, schedule, _psd, 0);
+    if (_dk) todayFocus = baseName(_dk);
+  }
 
   const [{ data: lastWorkout }, { data: foodLogs }] = await Promise.all([
     sb.from('workout_logs')
