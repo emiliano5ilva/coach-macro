@@ -29,7 +29,7 @@ import { getDayType, getDayTypeNutrition, getWeekNutrition, getDailyWaterTarget 
 import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./services/foodDatabase.js";
 import { displayDistance, distanceLabel } from "./utils/units.js";
 import { minSecToInterval, PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
-import { resolveProgram } from "./utils/programResolver.js";
+import { resolveProgram, inferEntryFromFields } from "./utils/programResolver.js";
 import { estimateActiveKcal } from "./utils/calorieEstimate.js";
 import { getTodayRunWorkout, getTodayHyroxWorkout } from "./running_programs.js";
 import { getPacesFromTime, resolvePaceTokens } from "./utils/runningPaces.js";
@@ -4280,8 +4280,19 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
     const startedAt=Date.now();
     try{
       const newSchedule=buildSchedule();
+      // Backfill the canonical _libraryId from the selection via the SAME inference
+      // resolveProgram uses on read. Only strength (splitType) and run (runPlan) have a
+      // splitType/runPlan that genuinely names a catalog entry; hyrox/hybrid set a generic
+      // lifting splitType ("Full Body") that would mis-infer, so leave null there (the
+      // isHyrox/isHybrid flags drive resolveProgram for those). Set unconditionally so a
+      // stale carried _libraryId from a prior program is overwritten (or cleared to null).
+      const _inferredLibId =
+        focus==="strength" ? (inferEntryFromFields({splitType})?.id ?? null)
+        : focus==="run"    ? (inferEntryFromFields({runPlan})?.id ?? null)
+        : null;
       const newWPrefs={
         ...wPrefs,
+        _libraryId:_inferredLibId,
         isHybrid:focus==="hybrid",
         isHyrox:focus==="hyrox",
         // Clean run-focus identity — prevents stale lifting/hybrid state from leaking into routing.

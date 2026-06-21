@@ -99,7 +99,7 @@ export function deriveProgramFields(prog) {
  * @param {object} wp wprefs
  * @returns {object|null} a single library entry, or null
  */
-function inferEntryFromFields(wp) {
+export function inferEntryFromFields(wp) {
   const st = wp.splitType;
   const rp = wp.runPlan;
 
