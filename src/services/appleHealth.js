@@ -293,7 +293,7 @@ export async function getWeightFromHealth() {
   }
 }
 
-export async function saveWorkoutToHealth({ durationMinutes, activeCalories, workoutType = "traditionalStrengthTraining", userId }) {
+export async function saveWorkoutToHealth({ durationMinutes, activeCalories, workoutType = "traditionalStrengthTraining", userId, tier = null, bmr = null, distanceMeters = 0 }) {
   // Timeout-guard the ENTIRE native sequence (hk() + saveWorkout). A hung native
   // HealthKit promise in WKWebView never settles, so a bare try/catch can't rescue
   // it — Promise.race forces a rejection so callers never park forever. Same defense
@@ -305,14 +305,14 @@ export async function saveWorkoutToHealth({ durationMinutes, activeCalories, wor
         if (!kit) return false;
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - durationMinutes * 60_000);
-        logStep(userId, "savework_start", { workoutType, energyBurned: activeCalories, durationMinutes });
+        logStep(userId, "savework_start", { workoutType, energyBurned: activeCalories, durationMinutes, tier, bmr });
         await kit.saveWorkout({
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
           durationFactor: 1,
           energyBurned: activeCalories,
           energyBurnedUnit: "kilocalorie",
-          distance: 0,
+          distance: distanceMeters,
           distanceUnit: "meter",
           workoutType,
         });

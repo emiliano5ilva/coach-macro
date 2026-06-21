@@ -43,6 +43,7 @@ import FeatureStrip from "./components/FeatureStrip.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
 import { resolveProgram, resolveDisplayWeek } from "./utils/programResolver.js";
+import { estimateActiveKcal } from "./utils/calorieEstimate.js";
 import { CalendarSettingsPanel } from "./LifeAwareTraining.jsx";
 import MuscleRecovery from "./components/MuscleRecovery.jsx";
 import BodyMap from "./components/BodyMap.jsx";
@@ -2873,7 +2874,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const elapsed=runElapsed;
     const dist=runDistance;
     const avgPace=fmtPace(dist,elapsed);
-    const cals=Math.round(elapsed/60*8.5);
+    const _durMin=Math.round(elapsed/60);
+    const {kcal:cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"running",durationMin:_durMin,profile});
     setRunSummary({mode:'gps',elapsed,distance:dist,avgPace,calories:cals,laps:runLaps,gpsError:runGpsError});
     setSessionMode('run-summary');
     if(user){
@@ -2881,9 +2883,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         user_id:user.id,
         date:new Date().toISOString().split('T')[0],
         source:'coach_macro',
-        session_duration_mins:Math.round(elapsed/60),
+        session_duration_mins:_durMin,
         workout:{focus:todayFocus,type:'run',mode:'gps',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,calories_burned:cals,laps:runLaps,coords:runCoords.filter((_,i)=>i%5===0)}
       }).then(({error})=>{if(error){console.error('[finishGPSRun]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishGPSRun]',e));
+      // Best-effort Apple Health write (active-only kcal + real GPS distance).
+      (async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:cals,workoutType:"running",userId:user.id,tier:_tier,bmr:_bmr,distanceMeters:Math.round((dist||0)*1000)});}catch{}})();
     }
   }
 
@@ -2894,7 +2898,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const _entered=parseFloat(runManualDist)||0;
     const dist=_imperial?_entered*1.60934:_entered;
     const avgPace=fmtPace(dist,elapsed);
-    const cals=Math.round(elapsed/60*8.5);
+    const _durMin=Math.round(elapsed/60);
+    const {kcal:cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"running",durationMin:_durMin,profile});
     setRunSummary({mode:'manual',elapsed,distance:dist,avgPace,calories:cals,effort:runEffort,laps:[]});
     setSessionMode('run-summary');
     if(user&&elapsed>0){
@@ -2902,9 +2907,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         user_id:user.id,
         date:new Date().toISOString().split('T')[0],
         source:'coach_macro',
-        session_duration_mins:Math.round(elapsed/60),
+        session_duration_mins:_durMin,
         workout:{focus:todayFocus,type:'run',mode:'manual',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,calories_burned:cals,effort:runEffort}
       }).then(({error})=>{if(error){console.error('[finishManualRun]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishManualRun]',e));
+      // Best-effort Apple Health write (active-only kcal + entered distance).
+      (async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:cals,workoutType:"running",userId:user.id,tier:_tier,bmr:_bmr,distanceMeters:Math.round((dist||0)*1000)});}catch{}})();
     }
   }
 
@@ -3009,17 +3016,22 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
       const key=seg.type==='run'?`Run${(seg.index||0)+1}`:(seg.name||HYROX_STATIONS[seg.index]?.name||`Station${(seg.index||0)+1}`);
       station_times[key]=seg.elapsed;
     });
+    const _durMin=Math.round(totalSec/60);
+    const {kcal:_cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"highIntensityIntervalTraining",durationMin:_durMin,profile});
     sb.from('workout_logs').insert({
       user_id:user.id,
       date:new Date().toISOString().split('T')[0],
       source:'coach_macro',
-      session_duration_mins:Math.round(totalSec/60),
+      session_duration_mins:_durMin,
       workout:{
         focus:todayFocus,type:'hyrox',session_mode:mode,
         station_times,total_time:totalSec,
-        stations_completed:segments.filter(s=>s.type==='station').length
+        stations_completed:segments.filter(s=>s.type==='station').length,
+        calories_burned:_cals
       }
     }).then(({error})=>{if(error){console.error('[saveHyroxSession]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[saveHyroxSession]',e));
+    // Best-effort Apple Health write — hyrox → HIIT. (totalSec is wall-clock; see deferred note.)
+    (async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:_cals,workoutType:"highIntensityIntervalTraining",userId:user.id,tier:_tier,bmr:_bmr});}catch{}})();
   }
 
   function renderRunPicker(){
@@ -3073,7 +3085,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:28}}>
-          {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:Math.round(runElapsed/60*8.5)},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
+          {[{l:"AVG PACE",v:runAvgPace},{l:"CALORIES",v:estimateActiveKcal({hkType:"running",durationMin:Math.round(runElapsed/60),profile}).kcal},{l:"LAPS",v:runLaps.length}].map(({l,v})=>(
             <div key={l} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"11px 6px",textAlign:"center"}}>
               <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:5}}>{l}</div>
               <div style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:18,color:"#fff"}}>{v}</div>

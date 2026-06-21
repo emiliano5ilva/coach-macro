@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-21 — strength write verified on device (branch `goclub-redesign`)._
+_Last updated: 2026-06-21 — unified biometric active-energy across lifting/run/HYROX (branch `goclub-redesign`)._
 
 ---
 
@@ -39,11 +39,19 @@ _Last updated: 2026-06-21 — strength write verified on device (branch `goclub-
   - **HRV** added via `patch-package` (`patches/@perfood+capacitor-healthkit+1.3.2.patch`): native
     `getTypes` + `getSampleType` + `generateOutput`(→ms) cases. All 5 snapshot reads return `_ok`.
   - **Write path:** native `saveWorkout` (`@objc` method + `.m` registration, in the same patch),
-    activity-type mapped from resolved program mode; `ah_savework_*` breadcrumbs. **Strength write
-    VERIFIED end-to-end on device** (2026-06-21): `ah_savework_start`→`ah_savework_ok`, `workoutType`
-    correctly `traditionalStrengthTraining`, entry confirmed in Apple Health. (Running branch still to verify — see NEXT.)
+    activity-type mapped from resolved program mode; `ah_savework_*` breadcrumbs (with `tier`/`bmr`).
   - Per-call timeouts (import 8s / isAvailable 8s / requestAuth 30s / getters 10s / saveWorkout 4s)
     and `ah_*` analytics_events breadcrumbs retained as hardening/observability.
+- **Unified biometric active-energy** — shared `src/utils/calorieEstimate.js` → `estimateActiveKcal({hkType,durationMin,profile})`:
+  Mifflin-St Jeor, **active-only `(MET−1)`**, two-tier (Tier 1 biometric BMR/1440 when age+sex+height present;
+  Tier 2 weight-only fallback). One model now feeds **lifting / run / HYROX** (was: lifting biometric, run flat
+  8.5/min, hyrox none) plus the in-app ring + DB `calories_burned` + the Apple Health write.
+  - **Verified on-device (2026-06-21):** lifting + HYROX `ah_savework_ok` with correct labels
+    (`traditionalStrengthTraining` / `highIntensityIntervalTraining`); hyrox `calories_burned` now populated (was null).
+  - **Tier-2 graceful degradation verified on-device** (demo account has null DOB → `tier:2`, `bmr:null`, never NaN/0).
+  - **Tier 1 verified via parity table** (helper-computed; e.g. 30yo/75kg/175cm/M strength 30m → 124 kcal, `bmr:1699`) —
+    numbers identical to the pre-extraction lifting logic (no regression).
+  - **Run distance wired** — GPS + manual runs pass real `distanceMeters` to `saveWorkoutToHealth`.
 - **Program-drift resolver** — `resolveProgram(wPrefs, profile)` is the single canonical mode/displayName
   source. Today card, Train tab, and morning brief all route through it (no more stale `run_race_type`).
 - **Week counter** (commit **`1ce6c3f`**) — `program_current_week`/`program_total_weeks` sourced from the
@@ -53,18 +61,21 @@ _Last updated: 2026-06-21 — strength write verified on device (branch `goclub-
 ---
 
 ## IN PROGRESS / NEXT
-- **Verify the running write branch** (small) — confirm a completed run writes with
-  `workoutType: "running"` (`ah_savework_ok` + `running`, entry shows as Running in Apple Health).
-  Happens naturally on a real run day — no program switch needed. Strength branch already verified.
+- **Confirm run path on the next real run** (natural-course, no setup) — expect `ah_savework_ok` +
+  `workoutType:"running"` + non-zero distance on the Apple Health entry.
+- **One real-length session on a DOB-present account** — to see a meaningful kcal magnitude (short test
+  sessions floor to 1) and `tier:1` on-device (the demo account is DOB-less → Tier 2; Tier 1 already proven by parity).
 
 ---
 
 ## DEFERRED
-- **Real distance for runs** — `saveWorkoutToHealth` currently sends `distance: 0` (understates, never mislabels). Wire actual run distance once the write path is proven.
-- **Breadcrumb keep-vs-gate** — decide whether to keep `ah_*` analytics breadcrumbs long-term or gate behind a debug flag before release.
-- **Active-energy estimate is crude** — `burn` is a flat `duration × 6` kcal/min (≈6 kcal/min), independent
-  of intensity/bodyweight, and this number now **writes into Apple Health**. Revisit with a better estimate
-  (HR-based or MET-based) before App Store release.
+- **HYROX `totalSec` is wall-clock** — includes inter-station rest/transitions (`hyroxTotalElapsed` runs
+  continuously start→finish), so MET 8 across the whole span slightly overcounts active energy. Refine to
+  sum active-segment times instead of total.
+- **Endgame: prefer Apple Watch active-energy when present** — our MET/Mifflin estimate is the fallback;
+  read real `activeEnergyBurned` from HealthKit when a Watch is logging, rather than writing our own estimate.
+- **Breadcrumb keep-vs-gate** — decide whether to keep `ah_*` / `tier` / `bmr` analytics breadcrumbs
+  long-term or gate them behind a debug flag before App Store release.
 - **Clinical-records / HealthKit entitlement cleanup** — review entitlements before App Store submission.
 
 ---

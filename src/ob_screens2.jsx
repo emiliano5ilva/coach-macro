@@ -30,6 +30,7 @@ import { getWaterLogs, addWaterLog, deleteWaterLog, getWaterHistory } from "./se
 import { displayDistance, distanceLabel } from "./utils/units.js";
 import { minSecToInterval, PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
 import { resolveProgram } from "./utils/programResolver.js";
+import { estimateActiveKcal } from "./utils/calorieEstimate.js";
 import { getTodayRunWorkout, getTodayHyroxWorkout } from "./running_programs.js";
 import { getPacesFromTime, resolvePaceTokens } from "./utils/runningPaces.js";
 import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
@@ -8360,7 +8361,15 @@ Rules:
       try{localStorage.setItem('cm_last_session_time',Date.now().toString());}catch{}
 
       const duration=workoutStartTime?Math.max(1,Math.round((Date.now()-workoutStartTime)/60000)):45;
-      const burn=todayType==="training"?Math.round(duration*6):Math.round(duration*11);
+      // Activity type drives BOTH the calorie estimate and the Apple Health workout label —
+      // computed once here (was duplicated at the saveWorkout call). Mirrors the canonical
+      // resolveProgram mode + run/hyrox/day signals; strings match the native saveWorkout switch.
+      const _hkType =
+        (todayIsRunDay || activeWorkout?.runType || todayType==='run' || todayType==='cardio') ? "running"
+        : (todayIsHyrox || _todayMode==='hyrox' || _todayMode==='hybrid-hyrox' || _todayMode==='conditioning' || todayType==='hyrox') ? "highIntensityIntervalTraining"
+        : "traditionalStrengthTraining";
+      // Active-energy estimate via the shared helper (same model for lifting/run/hyrox).
+      const { kcal: burn, tier: _calTier, bmr: _calBmr } = estimateActiveKcal({ hkType: _hkType, durationMin: duration, profile });
       if(onEarnedCals)onEarnedCals(burn);
 
       // CRITICAL DB SAVE FIRST. Must never be gated by the best-effort HealthKit
@@ -8409,14 +8418,8 @@ Rules:
       // even a slow/hung native call can't block it. saveWorkoutToHealth is now
       // internally timeout-guarded (Promise.race, 4s) as a second line of defense.
       if(healthConnected){
-        // Map the canonical session mode (resolveProgram) → HealthKit activity type so the
-        // workout is labeled correctly instead of always defaulting to strength. Strings must
-        // match the native saveWorkout switch exactly or they silently fall to the default.
-        const _hkType =
-          (todayIsRunDay || activeWorkout?.runType || todayType==='run' || todayType==='cardio') ? "running"
-          : (todayIsHyrox || _todayMode==='hyrox' || _todayMode==='hybrid-hyrox' || _todayMode==='conditioning' || todayType==='hyrox') ? "highIntensityIntervalTraining"
-          : "traditionalStrengthTraining";
-        try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn,workoutType:_hkType,userId:user?.id});}catch{}
+        // _hkType computed above (single source for both the calorie estimate and this HK label).
+        try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn,workoutType:_hkType,userId:user?.id,tier:_calTier,bmr:_calBmr});}catch{}
       }
 
       skipRest();
