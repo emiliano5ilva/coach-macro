@@ -2519,12 +2519,15 @@ export const PROGRAM_LIBRARY = [
   { id:"lower_5",  name:"Lower Body Only 5-Day",          category:"Glute Focus", days:5, weeks:10, level:"Advanced",     bestFor:"Maximum lower body volume and frequency",     splitKey:"Lower Body Only 5-Day", equipment:["full","home_bar"], sessionMins:70 },
 ];
 
-export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel) {
-  const days = daysPerWeek || 4;
-  const program = PROGRAMS_BY_DAYS[days];
+// ─── Unified split-day selection ────────────────────────────────────────────
+// Single source for "which split day is this session" — used by BOTH the title
+// path (dayFocus/WeekStrip) and the exercise path (getWorkoutForDay), so the two
+// can never drift apart (the LOWER-title/UPPER-exercises bug).
+const _SD_WDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  // Find the split: first in the user's day-count slot, then across all day-count slots.
-  // This handles programs like Platz Volume (5-day) used on a 3- or 4-day schedule.
+// Resolve a split with the SAME cross-bucket fallback getWorkoutForDay uses.
+function _resolveSplit(days, splitType) {
+  const program = PROGRAMS_BY_DAYS[days];
   let split = program?.splits[splitType];
   if (!split) {
     for (const d of Object.keys(PROGRAMS_BY_DAYS)) {
@@ -2532,15 +2535,80 @@ export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, hi
       if (s) { split = s; break; }
     }
   }
-  // Last resort: recommended split for user's actual day count
   if (!split) split = program?.splits[program?.recommended];
+  return split || null;
+}
+
+// Schedule-aware session index: count scheduled TRAINING days in [anchor, target),
+// anchor = programStartDate (midnight), target = today + dayOffset (midnight).
+// Advances per training SESSION (rest days never bump it), anchored on the program
+// start. Closed form, O(7): fullWeeks * trainingDaysPerWeek + partial-week remainder.
+// Parse a 'YYYY-MM-DD' (or Date) as LOCAL midnight — avoids the UTC shift of
+// new Date('YYYY-MM-DD'), which would move the weekday by a day in non-UTC zones.
+function _sdLocalMidnight(v) {
+  if (!v) return null;
+  let d;
+  if (v instanceof Date) d = new Date(v);
+  else {
+    const p = String(v).slice(0, 10).split('-');
+    d = p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : new Date(v);
+  }
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function _sessionIndex(schedule, programStartDate, dayOffset = 0) {
+  if (!schedule) return 0;
+  const anchor = _sdLocalMidnight(programStartDate) || _sdLocalMidnight(new Date());
+  if (!anchor) return 0;
+  const target = new Date(); target.setHours(0, 0, 0, 0);
+  target.setDate(target.getDate() + (dayOffset || 0));
+  const N = Math.round((target.getTime() - anchor.getTime()) / 86400000); // days anchor→target
+  if (N <= 0) return 0;
+  const perWeek = _SD_WDAYS.filter(wd => schedule[wd] === "training").length;
+  if (perWeek === 0) return 0;
+  let count = Math.floor(N / 7) * perWeek;            // whole weeks contribute exactly perWeek each
+  const startWd = (anchor.getDay() + 6) % 7;          // 0 = Mon, matches _SD_WDAYS
+  for (let k = 0; k < N % 7; k++) {                   // remainder: days [anchor+fullWeeks*7, target)
+    if (schedule[_SD_WDAYS[(startWd + k) % 7]] === "training") count++;
+  }
+  return count;
+}
+
+// Strip a trailing variant suffix to get the focus base. "Lower A" → "Lower";
+// "Full Body C" → "Full Body"; "Push" → "Push"; "Squat Day" → "Squat Day"
+// (no focus match → generic muscle targeting, today's behavior).
+export function baseName(dayKey) {
+  if (!dayKey) return dayKey;
+  return dayKey.replace(/\s+[A-C]$/, "") || dayKey;
+}
+
+// THE single day-selector. Indexes dayKeys.length (NOT daysPerWeek — handles the
+// cross-bucket case) and advances per training session, anchored on programStartDate.
+export function selectDayKey(splitType, daysPerWeek, schedule, programStartDate, dayOffset = 0) {
+  const split = _resolveSplit(daysPerWeek || 4, splitType);
+  if (!split) return null;
+  const dayKeys = split.days.filter(d => split.workouts[d]);
+  if (dayKeys.length === 0) return null;
+  const idx = _sessionIndex(schedule, programStartDate, dayOffset);
+  return dayKeys[((idx % dayKeys.length) + dayKeys.length) % dayKeys.length];
+}
+
+export function getWorkoutForDay(daysPerWeek, splitType, dayIndex, equipment, history, skillLevel, schedule, programStartDate, dayOffset = 0) {
+  const days = daysPerWeek || 4;
+  const split = _resolveSplit(days, splitType);
   if (!split) return null;
 
   // Filter out days that have no workout defined (e.g. "Rest" entries in day arrays).
   // This prevents an empty prescription when the cycle includes a named rest day.
   const dayKeys = split.days.filter(d => split.workouts[d]);
   if (dayKeys.length === 0) return null;
-  const dayKey = dayKeys[dayIndex % dayKeys.length];
+  // Unified selection (same source as the title) when schedule + anchor are available;
+  // otherwise fall back to the legacy positional index for older callers.
+  const dayKey = ((schedule && programStartDate)
+    ? selectDayKey(splitType, days, schedule, programStartDate, dayOffset)
+    : null) || dayKeys[((dayIndex % dayKeys.length) + dayKeys.length) % dayKeys.length];
   const intermediate = split.workouts[dayKey] || [];
 
   // Resolve skill level → override key

@@ -8222,7 +8222,7 @@ Rules:
         const daysPerWeek=Object.values(schedule).filter(v=>v==="training").length||3;
         const startD=new Date(profile?.program_start_date||profile?.startDate||Date.now());
         const dayIdx=Math.floor((new Date()-startD)/(24*60*60*1000))%(daysPerWeek||1);
-        const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym");
+        const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,undefined,schedule,profile?.program_start_date||profile?.startDate,0);
         const appliedExs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
         if(appliedExs&&appliedExs.length){
           const fallbackExs=appliedExs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}));

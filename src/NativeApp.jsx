@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES,
   Logo, getDayMacros, getTodayKey, autoFocus,
   calcTDEE, FOCUS_MUSCLES } from "./components.jsx";
+import { selectDayKey, baseName } from "./programs.js";
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { Capacitor } from '@capacitor/core';
 import { Onboarding } from "./ob_screens.jsx";
@@ -924,12 +925,18 @@ export default function NativeApp() {
 
   useEffect(()=>{
     if(!profile)return;
-    const cycles=SPLIT_CYCLES[wPrefs.splitType]||["Full Body"];
     const lrd=wPrefs.longRunDay||null;
-    const f={};let i=0;
-    WDAYS.forEach(d=>{
-      if(schedule[d]==="training")f[d]=cycles[i++%cycles.length];
-      else if(["cardio","run","hyrox"].includes(schedule[d])){
+    // Title path now shares the SAME day selector as the prescribed exercises
+    // (selectDayKey), so each weekday's WeekStrip label matches what it will prescribe.
+    const _psd=profile?.program_start_date||profile?.startDate||null;
+    const _dpw=WDAYS.filter(wd=>schedule[wd]==="training").length||4;
+    const _todayIdx=(new Date().getDay()+6)%7; // 0=Mon, matches WDAYS order
+    const f={};
+    WDAYS.forEach((d,j)=>{
+      if(schedule[d]==="training"){
+        const _dk=selectDayKey(wPrefs.splitType,_dpw,schedule,_psd,j-_todayIdx);
+        f[d]=_dk?baseName(_dk):(SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body");
+      }else if(["cardio","run","hyrox"].includes(schedule[d])){
         f[d]=(lrd&&d===lrd&&(schedule[d]==='run'||schedule[d]==='cardio'))?"Long Run":(DAY_CFG[schedule[d]]||DAY_CFG.rest).label;
       }else f[d]="Rest";
     });
