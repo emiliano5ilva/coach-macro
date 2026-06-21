@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-21 — Today-tab drift + Upper/Lower mismatch confirmed already-resolved (read-side migration + Stage 6); both → DONE (branch `goclub-redesign`)._
+_Last updated: 2026-06-21 — Stage 5a (_libraryId backfill) DONE/verified on-device; new high-pri OPEN: handleConfirm atomic-write robustness (branch `goclub-redesign`)._
 
 ---
 
@@ -64,14 +64,22 @@ _Last updated: 2026-06-21 — Today-tab drift + Upper/Lower mismatch confirmed a
 ---
 
 ## OPEN — correctness bugs (highest priority)
-- _None open._ Both previously-listed read-side bugs (Today-tab program-switch drift; Upper/Lower title-vs-exercises mismatch)
-  were resolved by the `resolveProgram`/`selectDayKey` migration + Stage 6 — see DONE & VERIFIED. The remaining *data* drift on
-  `d3d00001` (fields disagree at rest) is a **Stage 5** (write-side + DB reconciliation) item below, not a read-path bug.
+- **handleConfirm onboarding-completion robustness** (NEXT — fix before Stage 5b) — `handleConfirm`
+  (`ob_screens2.jsx:4275`, the second-onboarding "Build my plan" path) makes **two separate, un-timeout-guarded
+  awaited writes**: the `profiles` wprefs **upsert** (`:4350`) then **`markPlanBuilt`** (`:4370` → `update({plan_built:true})`).
+  A connectivity drop *between* them wedges the user on "Building…" with a **half-applied state** — wprefs saved,
+  `plan_built` never flips, `setSection("today")` never runs (no navigation). Reproduced on-device during 5a verification
+  (upsert persisted `_libraryId=upper_lower`, but `plan_built` stayed false). **Real new-user onboarding-completion bug on
+  flaky connections.** Fix: fold `plan_built:true` into the single `:4350` upsert (one atomic write) so completion can't half-apply.
+- _Read-side drift bugs previously here (Today-tab program-switch; Upper/Lower title-vs-exercises) are RESOLVED — see DONE & VERIFIED._
 
 ---
 
 ## OPEN — program-drift Stage 5 (write-side + DB)
-- **Backfill `_libraryId` on WRITE** — onboarding/PlanOnboarding + `saveProfile` don't set it.
+- ✅ **Stage 5a — Backfill `_libraryId` on WRITE — DONE** (commit `2b31be5`; verified on-device): active PlanOnboarding
+  `handleConfirm` infers the catalog id via `inferEntryFromFields` (strength→splitType, run→runPlan; hyrox/hybrid→null to
+  avoid the `Full Body`→`full_body` misfire). Verified: `d3d00001` `_libraryId` `hyrox_8w → upper_lower`, `resolveProgram`
+  `source:"libraryId"`. (Legacy `saveProfile`/`handleTrainDone` path is dead under `NEW_ONBOARDING=true` — intentionally not patched.)
 - **Program switches must CLEAR opposite-mode fields** — lift switch → `runPlan=null` + `run_race_type=null`; run switch → `splitType=null`.
 - **Reset `startDate` on program switch** — currently `profile_data.startDate` stays at the onboarding date → `weekNum` wrong
   post-switch. OR drive week purely from `program_current_week`.
