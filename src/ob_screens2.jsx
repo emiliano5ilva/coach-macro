@@ -63,7 +63,7 @@ import PhotoFoodLogger from "./PhotoFoodLogger.jsx";
 import { checkDeloadNeeded, getActiveDeload, getDeloadHistory, skipDeload, activateUpcomingDeload, completeExpiredDeload } from "./services/deloadService.js";
 import { detectPlateaus, getActivePlateaus, checkPlateauResolved, getStrategyByName } from "./services/plateauService.js";
 import { calculateMuscleBalance, getBalanceCorrections, getLatestBalance } from "./services/muscleBalanceService.js";
-import { checkPeriodisationAdjustment, getRecentAdjustments, getProgramCurrentWeek } from "./services/periodisationService.js";
+import { checkPeriodisationAdjustment, getRecentAdjustments } from "./services/periodisationService.js";
 import { analyseRPETrends } from "./services/rpeTrendingService.js";
 import { getTodayNutritionProtocol } from "./services/nutritionPeriodisationService.js";
 import { getRunningPhase, getRunTimePredictor } from "./services/runningPeriodisationService.js";
@@ -6600,11 +6600,12 @@ const ProgressSection = React.memo(function ProgressSection({
             {(()=>{
               const split=wPrefs?.splitType||"My Program";
               const progWeek=programCurrentWeek||1;
-              const pct=Math.min(100,Math.round((progWeek/12)*100));
+              const totalWk=profile?.program_total_weeks||12;
+              const pct=Math.min(100,Math.round((progWeek/totalWk)*100));
               return(
                 <div style={{margin:"0 16px 14px",padding:"16px 18px",background:"var(--card-bg)",border:"1px solid var(--card-border)",borderRadius:16,animation:"cardIn 0.4s ease-out 120ms both"}}>
                   <div style={{fontFamily:"'DM Mono','SF Mono',monospace",fontSize:11,fontWeight:700,color:"var(--text-faint)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10}}>Mesocycle Progress</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:10}}>Week {progWeek} of 12 · {split}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:18,color:"var(--cm-ink)",marginBottom:10}}>Week {progWeek} of {totalWk} · {split}</div>
                   <div style={{height:6,background:"var(--card-border)",borderRadius:3,overflow:"hidden"}}>
                     <div style={{height:"100%",width:`${pct}%`,background:"linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),0.6))",borderRadius:3,transformOrigin:"left center",animation:"smBar 0.6s cubic-bezier(.2,.7,.3,1) both"}}/>
                   </div>
@@ -6998,7 +6999,15 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [balanceCorrections,setBalanceCorrections]=useState([]);
   const [latestBalance,setLatestBalance]=useState(null);
   const [balanceSnooze,setBalanceSnooze]=useState(()=>localStorage.getItem("balance_snooze")||null);
-  const [programCurrentWeek,setProgramCurrentWeek]=useState(null);
+  // Sourced from the profile load (loadProfile select=* → setProfile), not a separate
+  // gated query — the dedicated call was being skipped under the WKWebView auth-lock.
+  // Lazy-init from profile (already populated at App mount) so the week counter never
+  // flashes a date-derived fallback before a sync effect runs.
+  const [programCurrentWeek,setProgramCurrentWeek]=useState(()=>profile?.program_current_week ?? null);
+  // Keep it in sync when the profile load resolves or a Library switch patches it.
+  useEffect(()=>{
+    if(profile?.program_current_week!=null) setProgramCurrentWeek(profile.program_current_week);
+  },[profile?.program_current_week]);
   // Extended profile-update handler: intercepts program_current_week so a Library
   // program switch can reset the week counter in React state without a full reload.
   function handleProfileUpdate(patch) {
@@ -8690,10 +8699,6 @@ Rules:
         });
       }
     }).catch(()=>{});
-
-    getProgramCurrentWeek(user.id).then(data=>{
-      if(data?.program_current_week) setProgramCurrentWeek(data.program_current_week);
-    }).catch(e => console.warn('[programCurrentWeek] load failed, falling back to weekNum:', e));
 
     analyseRPETrends(user.id).then(trends=>{
       if(trends&&(trends.overallFatigue==="high"||trends.overallFatigue==="medium")){

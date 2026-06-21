@@ -560,6 +560,8 @@ export default function NativeApp() {
           ...(data.protein_g    && {protein_g:data.protein_g}),
           ...(data.current_program    && {current_program:data.current_program}),
           ...(data.program_start_date && {program_start_date:data.program_start_date}),
+          ...(data.program_current_week && {program_current_week:data.program_current_week}),
+          ...(data.program_total_weeks  && {program_total_weeks:data.program_total_weeks}),
           ...(data.recovery_capacity  && {recovery_capacity:data.recovery_capacity}),
           ...(data.run_race_type      && {run_race_type:data.run_race_type}),
           ...(data.run_race_date      && {run_race_date:data.run_race_date}),
