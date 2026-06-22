@@ -4166,7 +4166,7 @@ const _PLAN_DAY_MAP = {
 };
 const _PLAN_DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt,setSection,setPlanBuilt:_spb,onProfileUpdate,onProtocolRefetch}){
+function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,setPlanBuilt:_spb,onProfileUpdate,onProtocolRefetch}){
   const AF="'Archivo',sans-serif";
   const reducedMotion=typeof window!=="undefined"&&window.matchMedia?.("(prefers-reduced-motion:reduce)").matches;
 
@@ -6973,7 +6973,7 @@ const ProgressSection = React.memo(function ProgressSection({
 
 export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEarnedCals,onSignOut,user,onProfileUpdate}) {
   const [section,setSection]=useState("today"); // today | train | fuel | progress | me
-  // planBuilt mirrors profiles.plan_built — owned as local state so markPlanBuilt can flip it
+  // planBuilt mirrors profiles.plan_built — owned as local state so setPlanBuilt can flip it
   // without needing setProfile (App gets profile as a prop from NativeApp, not as owned state).
   const [planBuilt,setPlanBuilt]=useState(!!profile?.plan_built);
   const [isMobile,setIsMobile]=useState(window.innerWidth<769);
@@ -8945,14 +8945,8 @@ Rules:
     }
   }
 
-  // Wired by Phase 5B — called at the end of the second onboarding to unlock 5 tabs.
-  async function markPlanBuilt(){
-    if(!user) return;
-    try{
-      await sb.from("profiles").update({plan_built:true}).eq("id",user.id);
-      setPlanBuilt(true); // flips hasFullPlan → 3→5 nav expansion
-    }catch(e){console.error("[markPlanBuilt]",e);}
-  }
+  // (markPlanBuilt removed — the atomic-write fix persists plan_built in handleConfirm's single
+  //  upsert and flips the local mirror via setPlanBuilt directly; no separate function needed.)
 
   function handleTabPress(tabId){
     if(GOCLUB_REDESIGN && tabId==="plan"){
@@ -8998,7 +8992,7 @@ Rules:
 
   // ── REDESIGN NAV GATE ──────────────────────────────────────────────────────
   // hasPlan    — first onboarding done (goalCals written by handleProfileDone)
-  // hasFullPlan — second onboarding done (planBuilt local state, flipped by markPlanBuilt)
+  // hasFullPlan — second onboarding done (planBuilt local state, flipped by setPlanBuilt in handleConfirm)
   const hasPlan     = !!profile.goalCals;
   const hasFullPlan = planBuilt;
 
@@ -11310,7 +11304,7 @@ Rules:
       <div ref={appScreenRef} className="app-screen grid-bg" onScroll={onPullScroll} onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd} style={{paddingTop:!isOnline?"48px":undefined,pointerEvents:(showAppTour||showFeatureTour)?"none":undefined}}>
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
-        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} markPlanBuilt={markPlanBuilt} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
+        {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
         {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
