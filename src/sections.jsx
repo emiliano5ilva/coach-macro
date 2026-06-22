@@ -2224,10 +2224,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const _trainEyeRedMo=useReducedMotion();
   const [_switchProgIdx,_setSwitchProgIdx]=useState(0);
   useEffect(()=>{
-    if(_trainEyeRedMo)return;
+    // Pause off the main train screen — the rotator is only visible on "today", and leaving the
+    // 2.5s tick running re-renders all of TrainSection (incl. the RunProgramSetup time inputs in
+    // the library sub-screen), which dismisses the iOS soft keyboard. Perf win + unblocks entry.
+    if(_trainEyeRedMo || trainScreen!=='today')return;
     const _t=setInterval(()=>_setSwitchProgIdx(i=>(i+1)%7),2500);
     return()=>clearInterval(_t);
-  },[_trainEyeRedMo]);
+  },[_trainEyeRedMo,trainScreen]);
   useEffect(()=>{
     if(!GOCLUB_REDESIGN||!user?.id)return;
     getRecoveryData(user.id).then(d=>{

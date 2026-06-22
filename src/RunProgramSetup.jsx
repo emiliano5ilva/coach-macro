@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Rolodex } from './components.jsx';
 import {
   vdotFromRaceTime,
   projectRaceTime, projectAllRaceTimes,
@@ -127,22 +128,41 @@ function CTABtn({ onClick, disabled, loading, children }) {
   );
 }
 
+// Keyboard-free time entry via the Me-tab Rolodex wheel (ports the same component used in
+// ob_new.jsx). Replaces <input type="number">, whose soft keyboard was being dismissed by the
+// TrainSection re-render. The value contract is UNCHANGED: each wheel emits the same numeric
+// STRING into the same setter, so parseMMSS/parseHMS → identical total seconds → identical saved keys.
+const MM_ITEMS = Array.from({ length: 100 }, (_, i) => String(i));                 // "0".."99" (matches old max=99)
+const SS_ITEMS = Array.from({ length: 60 },  (_, i) => String(i).padStart(2, '0')); // "00".."59"
+const H_ITEMS  = Array.from({ length: 6 },   (_, i) => String(i));                 // "0".."5" (hyrox 1–~2.5h)
+
+// One labelled wheel column. `unset` (empty string / null) → dimmed + red-tinted label & border so
+// it reads as "needs input", never a real 0:00. The wheel does NOT fire onChange on mount, so state
+// stays "" and the disabled-until-entered CTA gate holds (parseInt("") → NaN → disabled).
+function WheelField({ label, items, sel, onChange }) {
+  const unset = sel === "" || sel == null;
+  return (
+    <div style={{ flex:1, maxWidth:96, opacity: unset ? 0.4 : 1, transition:"opacity .15s" }}>
+      <div style={{ ...MONO, fontSize:9, marginBottom:4, textAlign:"center",
+        color: unset ? "rgba(var(--cm-red-rgb),.8)" : "rgba(var(--cm-ink-rgb),.5)" }}>{label}</div>
+      <div style={{ borderRadius:10, overflow:"hidden", background:"var(--cm-paper)",
+        border:`1px solid ${unset ? "rgba(var(--cm-red-rgb),.3)" : "rgba(var(--cm-ink-rgb),.15)"}` }}>
+        <Rolodex items={items} sel={String(sel ?? '')} onChange={onChange} itemH={40}
+          bgColor="var(--cm-paper)" selectedColor="var(--cm-ink)"
+          adjacentColor="rgba(var(--cm-ink-rgb),.35)" farColor="rgba(var(--cm-ink-rgb),.12)" />
+      </div>
+    </div>
+  );
+}
+
 function TimeInputMMSS({ min, onMin, sec, onSec, label }) {
   return (
     <div style={{ marginTop:14 }}>
       {label && <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:8 }}>{label}</div>}
-      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-        <div style={{ flex:1 }}>
-          <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:4 }}>MM</div>
-          <input type="number" min={0} max={99} value={min} onChange={e=>onMin(e.target.value)} placeholder="28"
-            style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 8px", color:"var(--cm-ink)", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
-        </div>
-        <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:18 }}>:</div>
-        <div style={{ flex:1 }}>
-          <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:4 }}>SS</div>
-          <input type="number" min={0} max={59} value={sec} onChange={e=>onSec(e.target.value)} placeholder="15"
-            style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 8px", color:"var(--cm-ink)", fontSize:20, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
-        </div>
+      <div style={{ display:"flex", gap:8, alignItems:"flex-start", justifyContent:"center" }}>
+        <WheelField label="MM" items={MM_ITEMS} sel={min} onChange={onMin} />
+        <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:34 }}>:</div>
+        <WheelField label="SS" items={SS_ITEMS} sel={sec} onChange={onSec} />
       </div>
     </div>
   );
@@ -150,21 +170,12 @@ function TimeInputMMSS({ min, onMin, sec, onSec, label }) {
 
 function HMSInput({ hVal, mVal, sVal, onH, onM, onS }) {
   return (
-    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-      {[
-        { val:hVal, set:onH, label:"H",  ph:"1" },
-        { val:mVal, set:onM, label:"MM", ph:"10" },
-        { val:sVal, set:onS, label:"SS", ph:"00" },
-      ].map(({ val, set, label, ph }, i) => (
-        <React.Fragment key={label}>
-          {i > 0 && <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:18 }}>:</div>}
-          <div style={{ flex: i===0 ? 0.7 : 1 }}>
-            <div style={{ ...MONO, fontSize:9, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:4 }}>{label}</div>
-            <input type="number" min={0} value={val} onChange={e=>set(e.target.value)} placeholder={ph}
-              style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 8px", color:"var(--cm-ink)", fontSize:18, ...MONO, outline:"none", textAlign:"center", boxSizing:"border-box" }}/>
-          </div>
-        </React.Fragment>
-      ))}
+    <div style={{ display:"flex", gap:8, alignItems:"flex-start", justifyContent:"center" }}>
+      <WheelField label="H"  items={H_ITEMS}  sel={hVal} onChange={onH} />
+      <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:34 }}>:</div>
+      <WheelField label="MM" items={MM_ITEMS} sel={mVal} onChange={onM} />
+      <div style={{ fontSize:22, color:"rgba(var(--cm-ink-rgb),.3)", paddingTop:34 }}>:</div>
+      <WheelField label="SS" items={SS_ITEMS} sel={sVal} onChange={onS} />
     </div>
   );
 }
