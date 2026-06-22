@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-22 — RunProgramSetup keyboard-free rolodex time entry FIXED/verified on-device; `doActualSwitch` profile_data clobber FIXED/built (real cause of run/hybrid setup not persisting — not a dual client); 5b hop 3 PASS (run-detail preserve verified), hop 4 pending; BUG 2 (phantom 5K race on hybrid) OPEN with full recon (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** (resolver 1–2 · 5a · 5b · 5d-investigated-not-needed) + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex + `doActualSwitch` clobber FIXED; BUG 2 (phantom 5K race on hybrid) OPEN with breadcrumbs deployed, awaiting the dev-skip test (branch `goclub-redesign`)._
 
 ---
 
@@ -129,7 +129,10 @@ _Last updated: 2026-06-22 — RunProgramSetup keyboard-free rolodex time entry F
 
 ---
 
-## OPEN — program-drift Stage 5 (write-side + DB)
+## program-drift Stage 5 — ✅ COMPLETE (resolver 1–2 · 5a · 5b · 5d)
+_Whole drift arc done: read-time resolver (Stages 1–2), write-path prevention (5a onboarding `_libraryId` backfill + 5b
+opposite-mode field clearing on switch), and 5d (investigated — reconciliation unnecessary; residual stored-field drift is
+inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-4 remains (non-blocking)._
 - ✅ **Stage 5a — Backfill `_libraryId` on WRITE — DONE** (commit `2b31be5`; verified on-device): active PlanOnboarding
   `handleConfirm` infers the catalog id via `inferEntryFromFields` (strength→splitType, run→runPlan; hyrox/hybrid→null to
   avoid the `Full Body`→`full_body` misfire). Verified: `d3d00001` `_libraryId` `hyrox_8w → upper_lower`, `resolveProgram`
@@ -152,18 +155,26 @@ _Last updated: 2026-06-22 — RunProgramSetup keyboard-free rolodex time entry F
     `runPlan/hyroxProgram`), **run-detail PRESERVED** (`currentRunsPerWeek=4`/`longestRunMi=6`/`recoveryCapacity=normal`/`longRunDay=Sat`
     survived — the preserve test hop 2 couldn't do), shared byte-identical. (Surfaced BUG 2's phantom-5K framing + the
     `doActualSwitch` clobber, both tracked above.)
-  - **Hop 4 (return-trip → lifting) still PENDING** — next session; confirms run+hybrid fields all clear on switch back to a pure mode.
-- **Reset `startDate` on program switch** — currently `profile_data.startDate` stays at the onboarding date → `weekNum` wrong
-  post-switch. OR drive week purely from `program_current_week`.
-- **One-time DB reconciliation** of drifted rows (demo `d3d00001` is the four-way-drift test case).
-- **Catalog mode-flag correctness (7 entries mis-resolving to lifting)** — separate task, AFTER 5b ships:
-  - `metcon_foundations`, `metcon_performance`, `metcon_elite`, `metabolic`, `hiit_strength` → need `isConditioning:true`
-    (currently resolve as lifting → MET 4.5 UNDERCOUNT; conditioning mode already maps to MET 8, so the flag alone fixes
-    scheduling AND calories — no resolver/calorie code change).
-  - `hybrid_foundation`, `tactical_hybrid` → category 'Hybrid' but lack `isHybrid` → mis-resolve to lifting (wrong scheduling,
-    no run days, wrong calories). Need `isHybrid:true`.
-  One-line-per-entry catalog fix in `programs.js` `PROGRAM_LIBRARY`. Verify each against `deriveProgramFields` after flagging.
-  Quick, contained, own task.
+  - **Hop 4 (return-trip → lifting) — optional confirmatory, non-blocking** — would confirm run+hybrid fields all clear on a
+    switch back to a pure mode; 5b's clear-logic is already verified by hops 1–3, so this is belt-and-suspenders.
+- ✅ **Stage 5d — One-time DB reconciliation — INVESTIGATED, NOT NEEDED as originally designed.** Read-only survey of all
+  6 rows: **zero real rows in the safe-backfill bucket.** The 4 hybrid rows (`380ced37`/`71a77600`/`b23eefe5`/`be69c587`)
+  already resolve correctly as **hybrid** via the `isHybrid` flag TODAY; a naive `_libraryId` backfill would infer
+  `ppl_6→lifting` and **FLIP them hybrid→lifting** (harmful — violates "match what `resolveProgram` already returns").
+  `563271d4` is empty (`resolveProgram`: "No program set"); backfilling from the orphan `current_program=ppl_6` would invent an
+  interpretation. `d3d00001` is the disposable fixture. So historical drift is **already handled correctly by the resolver
+  (1–2) and prevented going forward (5a/5b)** — the stored-field inconsistency is **INERT** (no read path uses the conflicting
+  fields directly). **No reconciliation run.**
+  - **PRINCIPLE (future, if real drifted rows appear at scale):** reconcile ONLY where `_libraryId` is present and other fields
+    disagree — clear opposite-mode fields to match the canonical `_libraryId` (the `d3d00001` shape). **NEVER infer-and-backfill
+    `_libraryId` from ambiguous fields** — inference can contradict the flag-based resolution and silently change a user's
+    program. Survey → bucket → bulk-reconcile only the lib-present-but-conflicting rows.
+- ✅ **Catalog mode-flag correctness (7 entries) — DONE** (commit `552ea62`): `metcon_*` / `metabolic` / `hiit_strength` →
+  `isConditioning:true` (now conditioning → MET 4.5→8 calorie fix); `hybrid_foundation` / `tactical_hybrid` → `isHybrid:true`.
+  Verified via `deriveProgramFields` (5→conditioning, 2→hybrid, no precedence override).
+- **(Separate residual — NOT part of the drift arc) Reset `startDate`/week-counter on program switch** — `profile_data.startDate`
+  stays at the onboarding date → `weekNum` can be wrong post-switch; OR drive week purely from `program_current_week`. Independent
+  of drift resolution; moved here for tracking.
 
 ---
 
