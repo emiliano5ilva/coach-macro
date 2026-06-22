@@ -1460,7 +1460,7 @@ export function buildRunEngineInputs(profile, wPrefs, schedule, weekNum) {
       runPlanStart = new Date(raceDate.getTime() - planWeeks * 7 * 86400000);
   }
   if (!runPlanStart) {
-    const fallbackRaw = profile?.program_start_date || profile?.startDate || null;
+    const fallbackRaw = profile?.program_start_date || null; // [B] never the tenure startDate; (d) today-bootstrap below
     const fallback = fallbackRaw ? new Date(fallbackRaw) : null;
     runPlanStart = (fallback && !isNaN(fallback.getTime())) ? fallback : new Date();
   }

@@ -7912,7 +7912,7 @@ Be specific and practical. Empathetic tone. No fluff.`,
   const todayActs=allActs.filter(a=>isToday(a.date));
   const earnedCals=todayActs.reduce((s,a)=>s+a.calories,0)+stepsToCalorieBonus(healthSnap?.steps);
   // ── Nutrition Periodization ─────────────────────────────────────────────────
-  const _startD=profile?.startDate?new Date(profile.startDate):new Date();
+  const _startD=profile?.program_start_date?new Date(profile.program_start_date):new Date(); // [B] program anchor, today-bootstrap (never tenure startDate)
   const _daysSince=Math.max(0,Math.floor((new Date()-_startD)/86400000));
   const programWeek=programCurrentWeek||(Math.floor(_daysSince/7)+1);
   const cycleWeek=((programWeek-1)%8)+1;
@@ -8267,9 +8267,9 @@ Rules:
       console.error("[startStructured] AI error — falling back to hardcoded program:",e);
       try{
         const daysPerWeek=Object.values(schedule).filter(v=>v==="training").length||3;
-        const startD=new Date(profile?.program_start_date||profile?.startDate||Date.now());
+        const startD=new Date(profile?.program_start_date||Date.now()); // [B] today-bootstrap; never tenure startDate
         const dayIdx=Math.floor((new Date()-startD)/(24*60*60*1000))%(daysPerWeek||1);
-        const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,undefined,schedule,profile?.program_start_date||profile?.startDate,0);
+        const exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIdx,wPrefs.equipment||"Full Gym",undefined,undefined,schedule,profile?.program_start_date||null,0);
         const appliedExs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
         if(appliedExs&&appliedExs.length){
           const fallbackExs=appliedExs.map(ex=>({name:ex.name,notes:ex.notes||"",restSecs:120,sets:Array.from({length:Number(ex.sets)||3},()=>({reps:String(ex.reps||10),weight:"",done:false}))}));
@@ -10693,7 +10693,7 @@ Rules:
                 (()=>{
                   let hSess=null;
                   try{
-                    const _wk=Math.floor(Math.max(0,Math.floor((Date.now()-((profile?.program_start_date||profile?.startDate)?new Date(profile.program_start_date||profile.startDate):new Date()).getTime())/86400000))/7)+1;
+                    const _wk=Math.floor(Math.max(0,Math.floor((Date.now()-(profile?.program_start_date?new Date(profile.program_start_date):new Date()).getTime())/86400000))/7)+1; // [B] today-bootstrap; never tenure startDate
                     hSess=getTodayHyroxWorkout(wPrefs?.hyroxProgram||"12-Week Race Prep",_wk,todayKey);
                   }catch{}
                   const hType=(hSess?.type||"Training").toUpperCase();

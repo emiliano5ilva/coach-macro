@@ -733,6 +733,12 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       const { data: { user: me } } = await sb.auth.getUser();
       if (me) {
         const calc = recalculateNutritionForProgram(profile, prog);
+        // [A] Re-fetch fresh profile_data ONCE, up front + un-gated from delta — we need
+        // runProfile.raceDate (written by saveRunProfile moments ago) for the run_race_date
+        // column write on EVERY run/hybrid switch, and it also serves the calorie merge below.
+        const { data: _freshRow, error: _fErr } = await sb.from("profiles").select("profile_data").eq("id", me.id).single();
+        const _freshPD  = _fErr ? null : (_freshRow?.profile_data ?? {});
+        const _freshRun = _freshPD?.runProfile ?? null;
         const profileUpdate = {
           id: me.id,
           wprefs: newWPrefs,
@@ -747,21 +753,22 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           current_program: act.wPrefsUpdate.splitType ?? null,
           // run_race_type: derived on run; preserved on hybrid (omit); cleared (null) on lift/hyrox.
           ...(prog.isHybrid ? {} : { run_race_type: act.run_race_type }),
-          // race/recovery columns: preserved on run + hybrid (both can target a race); cleared on lift/hyrox.
-          ...((prog.isRun || prog.isHybrid) ? {} : { run_race_date: null, run_target_time: null, recovery_capacity: null }),
+          // [A] run_race_date: write the freshly-saved runProfile.raceDate on a run/hybrid target
+          // (null when no race → BUG 2 preserved). On fetch failure, OMIT (preserve existing) rather
+          // than null it. run_target_time/recovery_capacity still preserved (omit) on run/hybrid;
+          // lift/hyrox clears all three.
+          ...((prog.isRun || prog.isHybrid)
+              ? (_fErr ? {} : { run_race_date: _freshRun?.raceDate ?? null })
+              : { run_race_date: null, run_target_time: null, recovery_capacity: null }),
         };
         if (calc.delta !== 0) {
           profileUpdate.calorie_target = calc.goalCals;
-          // Merge the nutrition keys onto the CURRENT DB profile_data (re-fetched), NOT the stale React
-          // `profile` closure — which would clobber a runProfile/hyroxProfile that RunProgramSetup wrote
-          // moments earlier (it isn't reflected in the React prop yet). supabase-js .upsert can't do a
-          // SQL-side jsonb `||`, so read-then-merge (same pattern as profileService.mergeProfileData).
-          // On fetch failure, skip the profile_data write entirely (calorie_target column still updates)
-          // — never overwrite profile_data with a partial.
-          const { data: _freshRow, error: _fErr } = await sb.from("profiles").select("profile_data").eq("id", me.id).single();
+          // Merge nutrition keys onto the fresh DB profile_data (reuse the up-front fetch), NOT the stale
+          // React `profile` closure — avoids clobbering the runProfile/hyroxProfile saveRunProfile just
+          // wrote. Skip the profile_data write if the fetch failed (calorie_target column still updates).
           if (!_fErr) {
             profileUpdate.profile_data = {
-              ...(_freshRow?.profile_data ?? {}),
+              ..._freshPD,
               goalCals: calc.goalCals,
               calorie_target: calc.goalCals,
               manual_calorie_target: false,
@@ -778,7 +785,11 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           // Stage 5b: mirror the column writes into React state so in-session UI doesn't read stale values pre-reload.
           current_program: act.wPrefsUpdate.splitType ?? null,
           ...(prog.isHybrid ? {} : { run_race_type: act.run_race_type }),
-          ...((prog.isRun || prog.isHybrid) ? {} : { run_race_date: null, run_target_time: null, recovery_capacity: null }),
+          // [A] propagate run_race_date + the fresh runProfile into React so the countdown/paces
+          // refresh in-session (no relaunch). Same null-on-no-race + fetch-failure guards.
+          ...((prog.isRun || prog.isHybrid)
+              ? (_fErr ? {} : { run_race_date: _freshRun?.raceDate ?? null, runProfile: _freshRun })
+              : { run_race_date: null, run_target_time: null, recovery_capacity: null }),
           ...(calc.delta !== 0 ? { goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false } : {}),
         });
       }

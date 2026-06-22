@@ -930,7 +930,7 @@ export default function NativeApp() {
     const lrd=wPrefs.longRunDay||null;
     // Title path now shares the SAME day selector as the prescribed exercises
     // (selectDayKey), so each weekday's WeekStrip label matches what it will prescribe.
-    const _psd=profile?.program_start_date||profile?.startDate||null;
+    const _psd=profile?.program_start_date||null; // [B] never tenure startDate; selectDayKey bootstraps from null
     const _dpw=WDAYS.filter(wd=>schedule[wd]==="training").length||4;
     const _todayIdx=(new Date().getDay()+6)%7; // 0=Mon, matches WDAYS order
     const f={};

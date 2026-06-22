@@ -56,7 +56,7 @@ export async function gatherBriefContext(userId) {
   if ((_mode === 'lifting' || _mode === 'conditioning') && todayType === 'training') {
     const _WDAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const _dpw = _WDAYS.filter(d => schedule[d] === 'training').length || 4;
-    const _psd = row?.program_start_date || p?.startDate || null;
+    const _psd = row?.program_start_date || null; // [B] never tenure startDate; selectDayKey bootstraps from null
     const _dk = selectDayKey(wp.splitType, _dpw, schedule, _psd, 0);
     if (_dk) todayFocus = baseName(_dk);
   }
