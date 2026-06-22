@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) DONE & VERIFIED on-device** (race optional: "Training for a race?" toggle + no-race plan; committed); new lower-sev tracked item: in-session `runProfile` staleness (countdown stale until relaunch; fix = write `run_race_date` column + propagate in `doActualSwitch`) (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) DONE**; **A (in-session runProfile propagation) + B (program_start_date week/day anchor) DONE & verified** (commit `3f1b83c`); new OPEN bug: run/hybrid day selection ignored ("caps at 4" — `trainDays` never rebuilds the schedule) (branch `goclub-redesign`)._
 
 ---
 
@@ -125,14 +125,19 @@ _Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7
   race path persists `raceDate` and the countdown shows on load. (`runProfile.goalDistance`/`goalTime` confirmed write-only —
   zero readers; run engine derives distance from the `run_race_type` column null→`'5k'` zones, with a `'general'` path.)
   Breadcrumbs reverted across all 4 files.
-- **In-session `runProfile` staleness** (lower severity — recovers on relaunch, data persists correctly) — `saveRunProfile` writes
-  `profile_data.runProfile` to the DB only; `doActualSwitch`'s `onProfileUpdate` propagates program/calorie keys but **NOT
-  `runProfile`**, so `runProfile`-derived UI (race countdown, paces) is **stale until the next cold launch**. PRE-EXISTING
-  (surfaced by a fresh race setup; the earlier hybrid masked it via the fixture's pre-set `run_race_date` column). Confirmed
-  on-device: 10K race countdown absent immediately after setup, **appears on cold relaunch**. **FIX DIRECTION:** in
-  `doActualSwitch`, write `run_race_date` (+ keep `run_race_type`) to the **column** from the re-fetched `runProfile.raceDate` on a
-  run/hybrid race target, AND include it in the `onProfileUpdate` patch for in-session React. Closes the countdown AND feeds all
-  other `run_race_date`-column readers (morning brief, run-engine anchor, RacePredictor). Own task — recon→fix→device-test.
+- ✅ **In-session `runProfile` staleness — FIXED & VERIFIED on-device** (commit `3f1b83c`, the "A" fix). `doActualSwitch` now
+  re-fetches `profile_data` up front, writes `run_race_date` to the **column** from the freshly-saved `runProfile.raceDate` on a
+  run/hybrid target (null-safe → BUG 2 preserved; fetch-fail → preserve), and propagates `run_race_date` + `runProfile` into the
+  `onProfileUpdate` React patch. Race countdown/paces now refresh **in-session** (no relaunch); also feeds the other
+  `run_race_date`-column readers. Verified: in-session countdown on a race switch, no phantom on a no-race switch.
+- **BUG — run/hybrid day selection ignored (looks like "caps at 4")** — OPEN. User picks 5–6 training days; they persist to
+  `runProfile.trainDays` but **NEVER rebuild the schedule**. `doActualSwitch`/`activateProgramMode` **retypes the existing
+  (prior program's) schedule** (`schedule[day]==='rest' ? 'rest' : dayType`) and never reads `trainDays`. So routing uses the
+  stale ~4-day schedule; `trainDays` is write-only/display-only (Step-5 summary). Confirmed on-device + DB:
+  `trainDays=['Mon'..'Fri']` (5) vs a schedule with 4 `'training'` days. **FIX DIRECTION:** on a run/hybrid setup, rebuild
+  `act.schedule` from the selected `trainDays` (selected weekdays → mode day type, rest → `rest`) instead of retyping the stale
+  schedule. `doActualSwitch` already re-fetches `profile_data` (for the A fix), so it can read `runProfile.trainDays` there.
+  Own task — recon→fix→device-test.
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
