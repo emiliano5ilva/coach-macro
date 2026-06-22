@@ -451,7 +451,7 @@ export async function detectRecurringPatterns(userId) {
       context: pattern,
       description: pattern.description,
       tags: [pattern.tag],
-    }, { onConflict: 'user_id,memory_type,date_observed,linked_insight_type' }).catch(() => {});
+    }, { onConflict: 'user_id,memory_type,date_observed,linked_insight_type' }).then(() => {}, () => {});
   }
 }
 

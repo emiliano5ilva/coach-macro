@@ -746,7 +746,7 @@ export default function NativeApp() {
         sb.from("bodyweight_logs").upsert(
           {user_id:user.id,date:baseProf.startDate,weight:_startW},
           {onConflict:"user_id,date"}
-        ).catch(()=>{});
+        ).then(()=>{},()=>{});
       }
     }
   }

@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-22 — handleConfirm atomic-write fix DONE/verified on-device; new lower-pri OPEN: onboarding completion doesn't auto-nav in-session (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — onboarding-completion auto-nav bug FULLY FIXED & verified on-device (real cause: synchronous throw from `.catch()` misused on a Postgrest thenable in `onProtocolRefetch` — NOT the await/timer theory; +2 sibling sites swept, full 236-`.catch` audit clean); atomic-write + await-removal hardening retained (branch `goclub-redesign`)._
 
 ---
 
@@ -59,24 +59,31 @@ _Last updated: 2026-06-22 — handleConfirm atomic-write fix DONE/verified on-de
   (No live Upper/Lower row in DB to spot-check; aligned by code analysis.)
 - **Session restore / workout-save** — v2 storage-key fix, `processLock` auth hardening, distinct-day session count —
   all shipped (supersedes the Jun 19 "workouts not saving" priority docs).
-- **handleConfirm atomic-write fix — DONE** (verified on-device) — onboarding completion now writes `wprefs` + `schedule`
-  + `profile_data` + `plan_built` in **one timeout-guarded upsert** (`ob_screens2.jsx:4350`, `Promise.race` 15s), replacing
-  the old upsert + separate `markPlanBuilt`. Verified: `_libraryId=upper_lower` **and** `plan_built=true` landed together
-  (no half-apply); API logs confirm the new path (atomic `POST` upsert, no `markPlanBuilt` `PATCH`). Original
-  completion-blocker fixed; severity dropped from "can't complete" → "doesn't auto-nav in-session" (see OPEN below).
+- **Onboarding completion — FULLY FIXED & verified on-device** — breadcrumb-confirmed (`plan_confirm_write_ok` **+** `plan_confirm_pre_nav`,
+  no error this run); row `_libraryId=upper_lower` / `split=Upper/Lower` / `plan_built=true`; screen lands on **Today (5-tab) in-session**.
+  Three layers (instrumentation found the real cause — the await/timer theory was wrong):
+  - **Real root cause (the in-session no-nav bug):** `onProtocolRefetch` (`ob_screens2.jsx:11313`) chained `.catch()` directly onto a
+    `sb.from(...).delete().eq().eq()` **Postgrest thenable** — which has `.then` but **no `.catch`** → `catch is not a function` thrown
+    **synchronously** right after the write resolved, aborting `handleConfirm` *before* `_spb(true)` / `setSection("today")`. Fix:
+    `.catch(()=>{})` → **`.then(()=>{},()=>{})`**. Disproved the earlier await/timer-throttle hypothesis: breadcrumbs showed
+    `write_ok` fired, `pre_nav` never did, and `plan_confirm_error` named the exact line.
+  - **Sibling sweep (same misuse):** fixed 2 more **live** sites — `NativeApp.jsx` (bodyweight starter-log upsert) and
+    `services/coachMemoryService.js` (coach-memory upsert; was `await …catch` → also throws since `.catch` evaluates before `await`).
+    Audited all **236** `.catch(` in `src/`: no other live occurrences (5 remaining are in dead `src/_legacy/`, not imported/bundled — left as-is).
+  - **Hardening retained (correct, though NOT the cause):** (a) single **atomic timeout-guarded upsert** (`ob_screens2.jsx:4354`,
+    `Promise.race` 15s) writes `wprefs`+`schedule`+`profile_data`+`plan_built` together (no half-apply; replaced upsert + separate
+    `markPlanBuilt`); (b) **nav de-coupled from any awaited `setTimeout`** — `setSection("today")` + `setSaving/setBuilding(false)`
+    now fire synchronously after the write (dropped the cosmetic 1.5s "Building…" minimum so a throttled WKWebView timer can't wedge nav).
+  - **Instrumentation kept:** `plan_confirm_write_ok` / `plan_confirm_pre_nav` / `plan_confirm_error` breadcrumbs + the `_crumb`
+    helper (`ob_screens2.jsx:4279`) — **KEEP for now** (cheap observability on the critical onboarding path); gate/strip with the
+    `ah_*` diagnostic breadcrumbs pre-release.
 - **Design system locked** — Me tab, Today/Train/Fuel reskins, weight logging, security/RLS.
 
 ---
 
 ## OPEN — correctness bugs (highest priority)
-- **Onboarding completion doesn't auto-navigate in-session** (lower priority — NOT completion-blocking) —
-  with the atomic-write fix, completion now **persists correctly** (`plan_built=true`, relaunch lands in 5-tab),
-  but the screen doesn't visibly swap to Today in the *same* session — it stays on the stale "Building…" overlay.
-  Likely cause: the success path **never resets `saving`/`building`** (relies on `setSection` unmounting), and
-  `setSection('today')` doesn't visibly swap when `_spb(true)` flips 3→5 nav simultaneously. Likely fix: add
-  `setSaving(false)`/`setBuilding(false)` before `setSection` on success + investigate the nav-swap/unmount race.
-  Recon-first next session. (Severity: cosmetic-ish — data is saved; user just has to relaunch.)
-- _Read-side drift bugs previously here (Today-tab program-switch; Upper/Lower title-vs-exercises) are RESOLVED — see DONE & VERIFIED._
+- _No open correctness bugs. **Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
+  Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
 ---
 
@@ -102,7 +109,8 @@ _Last updated: 2026-06-22 — handleConfirm atomic-write fix DONE/verified on-de
 - **HYROX calorie refinement** — `totalSec` is wall-clock incl. inter-station rest → MET 8 slightly overcounts; sum
   active-segment times instead.
 - **Apple Health endgame** — prefer Apple Watch `activeEnergyBurned` reading over our estimate when present.
-- **Breadcrumb keep-vs-gate** — decide keep-vs-gate for `ah_*` / `tier` / `bmr` breadcrumbs before release.
+- **Breadcrumb keep-vs-gate** — decide keep-vs-gate for `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs before release.
+  Current decision: **KEEP through development** (cheap observability on Health + onboarding-completion paths); gate or strip before App Store.
 - **`markPlanBuilt` now unused** — after the atomic-write fix, the App-level `markPlanBuilt` fn + the `markPlanBuilt` prop
   on `PlanOnboarding` are dead (only caller removed). Remove as a small cleanup.
 - **Onboarding-completion user-facing error** — `handleConfirm`'s catch is still `console.error`-only; on
