@@ -752,7 +752,21 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         };
         if (calc.delta !== 0) {
           profileUpdate.calorie_target = calc.goalCals;
-          profileUpdate.profile_data = { ...profile, goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false };
+          // Merge the nutrition keys onto the CURRENT DB profile_data (re-fetched), NOT the stale React
+          // `profile` closure — which would clobber a runProfile/hyroxProfile that RunProgramSetup wrote
+          // moments earlier (it isn't reflected in the React prop yet). supabase-js .upsert can't do a
+          // SQL-side jsonb `||`, so read-then-merge (same pattern as profileService.mergeProfileData).
+          // On fetch failure, skip the profile_data write entirely (calorie_target column still updates)
+          // — never overwrite profile_data with a partial.
+          const { data: _freshRow, error: _fErr } = await sb.from("profiles").select("profile_data").eq("id", me.id).single();
+          if (!_fErr) {
+            profileUpdate.profile_data = {
+              ...(_freshRow?.profile_data ?? {}),
+              goalCals: calc.goalCals,
+              calorie_target: calc.goalCals,
+              manual_calorie_target: false,
+            };
+          }
         }
         await sb.from("profiles").upsert(profileUpdate, { onConflict: "id" });
 

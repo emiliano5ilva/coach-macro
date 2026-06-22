@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-22 — onboarding-completion auto-nav bug FULLY FIXED & verified on-device (real cause: synchronous throw from `.catch()` misused on a Postgrest thenable in `onProtocolRefetch` — NOT the await/timer theory; +2 sibling sites swept, full 236-`.catch` audit clean); atomic-write + await-removal hardening retained (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — RunProgramSetup keyboard-free rolodex time entry FIXED/verified on-device; `doActualSwitch` profile_data clobber FIXED/built (real cause of run/hybrid setup not persisting — not a dual client); 5b hop 3 PASS (run-detail preserve verified), hop 4 pending; BUG 2 (phantom 5K race on hybrid) OPEN with full recon (branch `goclub-redesign`)._
 
 ---
 
@@ -82,17 +82,48 @@ _Last updated: 2026-06-22 — onboarding-completion auto-nav bug FULLY FIXED & v
 ---
 
 ## OPEN — correctness bugs (highest priority)
-- **RunProgramSetup time inputs auto-dismiss keyboard (~2s) — blocks run onboarding time entry** (separate task, NOT 5b).
-  Every time-entry field in `RunProgramSetup` (mile time, race time, goal time, etc.): tapping opens the keyboard, which then
-  auto-dismisses after ~2s before the value can be entered. Real input bug — blocks run/hybrid onboarding.
-  **FIX DIRECTION:** port the **rolodex-style number/time picker built for the Me tab** into these fields (sidesteps the
-  misbehaving keyboard entirely + consistent polished pattern).
-  **RECON FIRST:** (1) locate the Me-tab rolodex input component + how it's structured/styled; (2) find every time-entry field
-  in `RunProgramSetup` (mile/race/goal time, etc.) and the value format each expects; (3) determine whether the 2s-dismiss is a
-  focus/blur or scroll/keyboard-resize issue specific to these fields vs a general WKWebView input problem. Own task, post-5b.
-  **Likely same root cause as a setup-persistence symptom:** during 5b hop 2 (10K switch), `profile_data.runProfile` was NOT
-  written (`has_runProfile=false`) — consistent with the time input failing to capture, so `RunProgramSetup.handleConfirm`'s
-  `saveRunProfile` ran with empty/invalid data (or short-circuited). Fixing the input likely fixes setup persistence too; verify together.
+- ✅ **RunProgramSetup time inputs auto-dismiss keyboard (~2s) — FIXED & verified keyboard-free on-device** (bundle `NativeApp-bc47f05d`).
+  Root cause found: the TrainSection eyebrow rotator (`sections.jsx:2225` `_switchProgIdx`, 2.5s `setInterval`) kept ticking with
+  no `trainScreen` guard → re-rendered all of TrainSection (incl. the library sub-screen's `RunProgramSetup` time `<input>`s) every
+  ~2.5s → dismissed the iOS soft keyboard. Two fixes applied:
+  - **FIX 1 (root cause):** gated the interval `if(_trainEyeRedMo || trainScreen!=='today')return;` + added `trainScreen` to deps
+    (`sections.jsx:2226`). `_switchProgIdx` is consumed at exactly one site (`sections.jsx:5002`, the eyebrow), so pausing it off
+    the main screen has no side effect.
+  - **FIX 2 (robust + polished):** ported the Me-tab `Rolodex` wheel (keyboard-free) into `TimeInputMMSS`/`HMSInput`
+    (`RunProgramSetup.jsx`) via a new `WheelField` wrapper. Value contract UNCHANGED — each wheel emits the same numeric string
+    into the same setter → `parseMMSS`/`parseHMS` → identical total seconds → identical saved keys (`baselineTime`/
+    `currentTotalTime`/`goalTime`/`goalTotalTime`). Empty run fields show a dimmed/red "needs input" treatment; CTA stays disabled
+    until set. `raceDate` (`type="date"`) left as-is.
+  - **Verified on-device:** scroll-wheel time entry works keyboard-free (no ~2s dismiss). The separate `runProfile` persistence
+    failure turned out NOT to be the keyboard — it was the `doActualSwitch` profile_data clobber (see BUG 1 below).
+  - **FOLLOW-UP (minor, tracked):** brief visual flicker on the wheels (cosmetic) — investigate later; not blocking.
+  - **FOLLOW-UP (separate, real users hit it):** the **running goal-time** field (`RunProgramSetup.jsx:637`, `TimeInputMMSS`) is
+    **MM:SS** and is shown for `half` and `full` goal distances — a half goal (~90–150 min) and a full (~180–360 min) both exceed
+    the MM cap of 99, so those runners can't enter a goal time. Pre-existing (old `<input max=99>` had the same ceiling). Fix: give
+    `half`/`full` goals an H:MM:SS field (use `HMSInput`). Not done here.
+- ✅ **`doActualSwitch` profile_data clobber — FIXED & built** (`ProgramLibrary.jsx`, bundle `NativeApp-bc47f05d`; runProfile-survives to be re-confirmed next session).
+  Library program switches with a calorie change (`calc.delta!==0`) overwrote `profile_data` with the **stale React `profile` closure**,
+  dropping the `runProfile`/`hyroxProfile` that `RunProgramSetup.saveRunProfile` had just written → run/hybrid setup data never
+  persisted (the real cause of `has_runProfile=false` — NOT the keyboard, and NOT a dual client: `client.js` just re-exports
+  `supabase.js`'s single `sb`). Fix: re-fetch current `profile_data` and merge only the nutrition keys onto it (read-then-merge, like
+  `mergeProfileData`), with a fetch-failure guard that skips the `profile_data` write rather than wiping. Ordering confirmed:
+  `await saveRunProfile` commits before `onConfirm → confirmSwitch → doActualSwitch` re-fetch.
+- **BUG 2 — phantom 5K race on hybrid setup (race should be OPTIONAL)** — OPEN. A Balanced Hybrid setup with NO race selected
+  still surfaces "5K / race-specific" framing. Full recon captured:
+  - **5K default sources:** `PROG_GOAL_DIST` (`RunProgramSetup.jsx:34`) has **no hybrid entries** → `goalDist = …||"5k"` (`:237`);
+    plus app-wide `run_race_type || '5k'` fallbacks (`sections.jsx:2619/2656`, `runningPeriodisationService.js:80`).
+  - **Race framing gates on `isHybrid` alone:** `sections.jsx:2266` (`wPrefs?.isHybrid||isHyrox||run_race_type`) → any hybrid gets
+    run/race framing regardless of whether a race was chosen.
+  - **The "9 weeks to race day" was a FIXTURE ARTIFACT** — `getRunningPhase(run_race_date)` (`sections.jsx:3957`) needs a non-null
+    `run_race_date`; that was the fixture's preserved `2026-08-28` (~9 wks out), which 5b preserves on hybrid by design. A fresh
+    no-race hybrid has `run_race_date=null` → no countdown. NOT a general bug.
+  - **Unpinned:** the DB `run_race_type` column flipping `NULL→"5k"` on the hybrid switch isn't explained by static reads
+    (`doActualSwitch` omits it on hybrid; `RunProgramSetup` writes only `profile_data`; `handleProfileUpdate` doesn't persist it).
+    **NEXT STEP: a one-shot breadcrumb to capture which write sets `run_race_type`**, then a fresh-no-race-hybrid test (throwaway
+    account, NOT `d3d00001`) to confirm the surface cleanly, then scope the fix.
+  - **Direction:** "don't default a race" — keep `run_race_type` null when no race chosen; gate race framing/countdown/pace on an
+    actual race being set (`run_race_date` + user-chosen type), not `isHybrid` alone; drop the `||'5k'` fallbacks. NOT "make race
+    mandatory" (many hybrid users train without a goal race).
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
@@ -117,8 +148,11 @@ _Last updated: 2026-06-22 — onboarding-completion auto-nav bug FULLY FIXED & v
     Both PASS on all four checks: **cleared / owned / shared byte-identical / bio intact** (wprefs 12 shared fields unchanged;
     `profile_data` bio fully intact — only `goalCals` recalc + stale program-mirror moved, which is the pre-existing
     `doActualSwitch:755` clobber, not a 5b leak).
-  - **Hops 3–4 (hybrid + return-trip) CONFIRMATORY, DEFERRED** pending the RunProgramSetup time-input fix — hop 3's
-    run-detail-PRESERVE check can't be cleanly verified while the input bug prevents valid run-detail from saving.
+  - **Hop 3 (→ Balanced Hybrid) PASS** — owned (`isHybrid`, `hybridTemplate`, `splitType`), cleared (`isLifting/isRunFocus/isHyrox`,
+    `runPlan/hyroxProgram`), **run-detail PRESERVED** (`currentRunsPerWeek=4`/`longestRunMi=6`/`recoveryCapacity=normal`/`longRunDay=Sat`
+    survived — the preserve test hop 2 couldn't do), shared byte-identical. (Surfaced BUG 2's phantom-5K framing + the
+    `doActualSwitch` clobber, both tracked above.)
+  - **Hop 4 (return-trip → lifting) still PENDING** — next session; confirms run+hybrid fields all clear on switch back to a pure mode.
 - **Reset `startDate` on program switch** — currently `profile_data.startDate` stays at the onboarding date → `weekNum` wrong
   post-switch. OR drive week purely from `program_current_week`.
 - **One-time DB reconciliation** of drifted rows (demo `d3d00001` is the four-way-drift test case).
