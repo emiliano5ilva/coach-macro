@@ -22,6 +22,7 @@ export function activateProgramMode({ prog, wPrefs, schedule }) {
   // branch-specific identity fields (runPlan / hybridTemplate / isRunFocus / isLifting).
   const d = deriveProgramFields(prog);
   const { isRun, isHyrox, isHybrid } = d;
+  const isLifting = !isRun && !isHyrox && !isHybrid;
 
   const run_race_type = d.runRaceType;
 
@@ -34,22 +35,38 @@ export function activateProgramMode({ prog, wPrefs, schedule }) {
     newSchedule[day] = cur === 'rest' ? 'rest' : dayType;
   });
 
-  // wPrefs flags. splitType comes from the shared core (null for run, name for
-  // hyrox/hybrid, splitKey||name for lifting/conditioning) — identical to the prior
-  // inline logic. Branch-specific identity fields are assembled below.
-  const wPrefsUpdate = { _libraryId: prog.id, isHybrid, isHyrox, splitType: d.splitType };
-  if (isRun) {
-    // Run-only: splitType already null; clear dayPlan (caller) + set run identity so
-    // stale lifting/hybrid state can't leak into routing.
-    Object.assign(wPrefsUpdate, { runPlan: prog.name, isRunFocus: true, isLifting: false });
-  } else if (isHyrox) {
-    // hyrox and hybrid-hyrox: splitType only (already set above).
-  } else if (isHybrid) {
-    Object.assign(wPrefsUpdate, { hybridTemplate: prog.name });
-  } else {
-    // Lifting/conditioning: restore identity fields so a previous run focus doesn't bleed through.
-    Object.assign(wPrefsUpdate, { isRunFocus: false, isLifting: true });
-  }
+  // ── Enumerated program-mode patch (Stage 5b) ──────────────────────────────────
+  // Every program-mode wPrefs key is named here: OWNED values for the target mode +
+  // explicit nulls for off-mode keys. NO other wPrefs key is referenced, so the caller's
+  // `{ ...wPrefs, ...wPrefsUpdate }` spread preserves ALL shared state (theme, units,
+  // equipment, favorites, nutrition prefs, gvt, bio). Guarantees a clean SINGLE-MODE row.
+  //   • run-detail + run-plan anchor + longRunDay are owned by run AND hybrid (both consume
+  //     buildRunEngineInputs) → PRESERVED on those targets by OMISSION; cleared on lift/hyrox.
+  //   • dayPlan (hybrid run/lift layout) → cleared when LEAVING hybrid; PRESERVED on a hybrid
+  //     target (sections.jsx:2543 gates hybridModality on it; there is no schedule re-derivation).
+  //   • prescType/splitLabel are dead stored fields (re-derived on read) → always cleared.
+  const _today = new Date().toISOString().split('T')[0];
+  const wPrefsUpdate = {
+    _libraryId: prog.id,
+    splitType: d.splitType,               // null(run) | name(hx/hb) | splitKey||name(lift)
+    isLifting,
+    isRunFocus: isRun,
+    isHyrox,
+    isHybrid,
+    runPlan:        isRun    ? prog.name : null,
+    hyroxProgram:   isHyrox  ? prog.name : null,
+    hybridTemplate: isHybrid ? prog.name : null,
+    prescType: null,
+    splitLabel: null,
+    // dayPlan: cleared off-hybrid; preserved on a hybrid target
+    ...(isHybrid ? {} : { dayPlan: null }),
+    // run-plan anchor: fresh on run; preserved on hybrid; cleared on lift/hyrox
+    ...(isRun ? { runPlanStartDate: _today } : isHybrid ? {} : { runPlanStartDate: null }),
+    // run-detail: preserved on run AND hybrid; cleared on lift/hyrox
+    ...((isRun || isHybrid) ? {} : { runFocus: null, currentRunsPerWeek: null, longestRunMi: null, planWeeks: null, recoveryCapacity: null }),
+    // longRunDay: owned by run AND hybrid; cleared on lift/hyrox
+    ...((isRun || isHybrid) ? {} : { longRunDay: null }),
+  };
 
   return { run_race_type, schedule: newSchedule, wPrefsUpdate };
 }
@@ -708,8 +725,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       // run_race_type, and wPrefs mode flags — mirroring PlanOnboarding's logic.
       const act = activateProgramMode({ prog, wPrefs, schedule });
       const newWPrefs = { ...wPrefs, ...act.wPrefsUpdate };
-      // Stale dayPlan from a prior hybrid session breaks run-day routing (see PlanOnboarding comment).
-      if (prog.isRun) delete newWPrefs.dayPlan;
+      // (dayPlan handled by the enumerated patch: cleared off-hybrid, preserved on hybrid — Stage 5b.)
 
       const newStartDate = new Date().toISOString().split("T")[0];
       setWPrefs(newWPrefs);
@@ -725,8 +741,14 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
           // new program. profile_data.startDate stays the JOIN date (tenure/bio).
           program_start_date: newStartDate,
           schedule: act.schedule,
-          run_race_type: act.run_race_type,
           program_current_week: null, // reset; date-based weekNum=1 takes over via program_start_date
+          // Stage 5b: keep the legacy current_program orphan in sync (running_programs.js:1390
+          // fallback) instead of stale; mirrors NativeApp's `wp.splitType || null`.
+          current_program: act.wPrefsUpdate.splitType ?? null,
+          // run_race_type: derived on run; preserved on hybrid (omit); cleared (null) on lift/hyrox.
+          ...(prog.isHybrid ? {} : { run_race_type: act.run_race_type }),
+          // race/recovery columns: preserved on run + hybrid (both can target a race); cleared on lift/hyrox.
+          ...((prog.isRun || prog.isHybrid) ? {} : { run_race_date: null, run_target_time: null, recovery_capacity: null }),
         };
         if (calc.delta !== 0) {
           profileUpdate.calorie_target = calc.goalCals;
@@ -737,9 +759,12 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
         // Live-update React state so the home surface reflects the new mode immediately.
         setSchedule?.(act.schedule);
         onProfileUpdate?.({
-          run_race_type: act.run_race_type,
           program_start_date: newStartDate, // live-update the program anchor (no reload)
           program_current_week: null, // App intercepts this to reset programCurrentWeek state
+          // Stage 5b: mirror the column writes into React state so in-session UI doesn't read stale values pre-reload.
+          current_program: act.wPrefsUpdate.splitType ?? null,
+          ...(prog.isHybrid ? {} : { run_race_type: act.run_race_type }),
+          ...((prog.isRun || prog.isHybrid) ? {} : { run_race_date: null, run_target_time: null, recovery_capacity: null }),
           ...(calc.delta !== 0 ? { goalCals: calc.goalCals, calorie_target: calc.goalCals, manual_calorie_target: false } : {}),
         });
       }

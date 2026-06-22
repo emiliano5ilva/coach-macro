@@ -82,7 +82,18 @@ _Last updated: 2026-06-22 — onboarding-completion auto-nav bug FULLY FIXED & v
 ---
 
 ## OPEN — correctness bugs (highest priority)
-- _No open correctness bugs. **Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
+- **RunProgramSetup time inputs auto-dismiss keyboard (~2s) — blocks run onboarding time entry** (separate task, NOT 5b).
+  Every time-entry field in `RunProgramSetup` (mile time, race time, goal time, etc.): tapping opens the keyboard, which then
+  auto-dismisses after ~2s before the value can be entered. Real input bug — blocks run/hybrid onboarding.
+  **FIX DIRECTION:** port the **rolodex-style number/time picker built for the Me tab** into these fields (sidesteps the
+  misbehaving keyboard entirely + consistent polished pattern).
+  **RECON FIRST:** (1) locate the Me-tab rolodex input component + how it's structured/styled; (2) find every time-entry field
+  in `RunProgramSetup` (mile/race/goal time, etc.) and the value format each expects; (3) determine whether the 2s-dismiss is a
+  focus/blur or scroll/keyboard-resize issue specific to these fields vs a general WKWebView input problem. Own task, post-5b.
+  **Likely same root cause as a setup-persistence symptom:** during 5b hop 2 (10K switch), `profile_data.runProfile` was NOT
+  written (`has_runProfile=false`) — consistent with the time input failing to capture, so `RunProgramSetup.handleConfirm`'s
+  `saveRunProfile` ran with empty/invalid data (or short-circuited). Fixing the input likely fixes setup persistence too; verify together.
+- _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
 ---
@@ -92,10 +103,33 @@ _Last updated: 2026-06-22 — onboarding-completion auto-nav bug FULLY FIXED & v
   `handleConfirm` infers the catalog id via `inferEntryFromFields` (strength→splitType, run→runPlan; hyrox/hybrid→null to
   avoid the `Full Body`→`full_body` misfire). Verified: `d3d00001` `_libraryId` `hyrox_8w → upper_lower`, `resolveProgram`
   `source:"libraryId"`. (Legacy `saveProfile`/`handleTrainDone` path is dead under `NEW_ONBOARDING=true` — intentionally not patched.)
-- **Program switches must CLEAR opposite-mode fields** — lift switch → `runPlan=null` + `run_race_type=null`; run switch → `splitType=null`.
+- ✅ **Stage 5b — Program switches CLEAR opposite-mode fields — core VERIFIED on-device** (commit `365c17f`).
+  `activateProgramMode`/`doActualSwitch` (`ProgramLibrary.jsx`) rewritten to an **enumerated program-mode patch**
+  (owned values + explicit off-mode nulls; only program-mode keys named, so the spread preserves all shared state). Run-detail
+  (`runFocus`/`currentRunsPerWeek`/`longestRunMi`/`planWeeks`/`recoveryCapacity`/`runPlanStartDate`/`longRunDay`) + run columns
+  (`run_race_date`/`run_target_time`/`recovery_capacity`/`run_race_type`) preserved on **run AND hybrid**, cleared on **lifting +
+  hyrox** (hybrid = combined run+lift; both consume `buildRunEngineInputs`). `dayPlan` cleared off-hybrid, **preserved on hybrid**
+  (recon proved nulling it disables hybrid run-routing — `sections.jsx:2543` gates `hybridModality` on it; no schedule re-derivation).
+  `current_program` orphan now synced to new `splitType`.
+  - **Verified on `d3d00001` (bundle `NativeApp-3d117a12`):** hop 1 (→ Upper/Lower) = the four-way-drift collapse
+    (`isHyrox+isLifting` both-true → clean lifting; stale `runPlan`/`hyroxProgram`/`hybridTemplate`/run-cols → null;
+    `current_program` `ppl_6`→`upper_lower` = `_libraryId`); hop 2 (→ 10K running) = run owned, lift/hyrox cleared.
+    Both PASS on all four checks: **cleared / owned / shared byte-identical / bio intact** (wprefs 12 shared fields unchanged;
+    `profile_data` bio fully intact — only `goalCals` recalc + stale program-mirror moved, which is the pre-existing
+    `doActualSwitch:755` clobber, not a 5b leak).
+  - **Hops 3–4 (hybrid + return-trip) CONFIRMATORY, DEFERRED** pending the RunProgramSetup time-input fix — hop 3's
+    run-detail-PRESERVE check can't be cleanly verified while the input bug prevents valid run-detail from saving.
 - **Reset `startDate` on program switch** — currently `profile_data.startDate` stays at the onboarding date → `weekNum` wrong
   post-switch. OR drive week purely from `program_current_week`.
 - **One-time DB reconciliation** of drifted rows (demo `d3d00001` is the four-way-drift test case).
+- **Catalog mode-flag correctness (7 entries mis-resolving to lifting)** — separate task, AFTER 5b ships:
+  - `metcon_foundations`, `metcon_performance`, `metcon_elite`, `metabolic`, `hiit_strength` → need `isConditioning:true`
+    (currently resolve as lifting → MET 4.5 UNDERCOUNT; conditioning mode already maps to MET 8, so the flag alone fixes
+    scheduling AND calories — no resolver/calorie code change).
+  - `hybrid_foundation`, `tactical_hybrid` → category 'Hybrid' but lack `isHybrid` → mis-resolve to lifting (wrong scheduling,
+    no run days, wrong calories). Need `isHybrid:true`.
+  One-line-per-entry catalog fix in `programs.js` `PROGRAM_LIBRARY`. Verify each against `deriveProgramFields` after flagging.
+  Quick, contained, own task.
 
 ---
 
