@@ -2,6 +2,11 @@
 
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
+>
+> **⚠️ Source of truth: THIS file.** The 3 Google Drive docs (Project State & Next Up · Design System ·
+> Growth Mechanics) are **STALE** — last real update **Jun 15**, predating the Apple Health, program-drift
+> Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
+> only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
 _Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** (resolver 1–2 · 5a · 5b · 5d-investigated-not-needed) + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex + `doActualSwitch` clobber FIXED; BUG 2 (phantom 5K race on hybrid) OPEN with breadcrumbs deployed, awaiting the dev-skip test (branch `goclub-redesign`)._
 
@@ -201,10 +206,17 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
 ---
 
 ## OPEN — big feature (was "next up" pre-Apple-Health)
-- **PROGRESS TAB redesign** — the "rolodex" section-selector interaction (tap section name → swipe scrubs sections live,
-  prefetch-backed). Reskin 5 sub-tabs / ~30 cards / 14+ charts from the old dark theme (`#000`, `var(--accent)`, DM Mono
-  `//` eyebrows) to the red/white `--cm-*` system, sub-tab by sub-tab. Target: `ProgressSection` (`ob_screens2.jsx` ~9180).
-  Foundation (getUserMode 5-tabs, weight logging, prefetch) already done.
+- **PROGRESS TAB redesign** — large **multi-session epic** (was "next up" pre-Apple-Health; merged in from the stale Drive doc
+  so this file is complete). Reskin the Progress tab from the OLD dark theme (`#000`, `var(--accent)`, DM Mono `//` eyebrows) to
+  the red/white `--cm-*` system, sub-tab by sub-tab, plus the approved **rolodex section-selector** interaction.
+  - **Target (be precise):** `ProgressSection` (`ob_screens2.jsx:~9180`), mounted at `{section==="progress"}` (~`:10684`).
+    **NOT** the `sections.jsx` `trainScreen==="progress"` block — that's a separate Train sub-screen, easy to confuse.
+  - **Inventory:** **5 sub-tabs** — overview / strength / nutrition / recovery / running — **~30 cards**, **14+ custom SVG/canvas
+    charts**, all still on the old dark theme.
+  - **Rolodex section-selector (approved interaction):** tap the section name → a wheel-scrub scrubs sub-tabs live
+    (prefetch-backed), reusing the **scroll-snap wheel picker** — same component family (`Rolodex`/`StackPicker`, `components.jsx`)
+    as the RunProgramSetup time-input wheels we just shipped.
+  - **Foundation already done:** `getUserMode` 5-tabs, weight logging, prefetch.
 
 ---
 
