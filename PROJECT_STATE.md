@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** (resolver 1–2 · 5a · 5b · 5d-investigated-not-needed) + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex + `doActualSwitch` clobber FIXED; BUG 2 (phantom 5K race on hybrid) OPEN with breadcrumbs deployed, awaiting the dev-skip test (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) DIAGNOSED — fix scoped input+render, NOT write-path** (breadcrumb test proved no `run_race_type` column writer; revert `rrt_*` at fix-build) (branch `goclub-redesign`)._
 
 ---
 
@@ -106,29 +106,31 @@ _Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** (resolver 1
     **MM:SS** and is shown for `half` and `full` goal distances — a half goal (~90–150 min) and a full (~180–360 min) both exceed
     the MM cap of 99, so those runners can't enter a goal time. Pre-existing (old `<input max=99>` had the same ceiling). Fix: give
     `half`/`full` goals an H:MM:SS field (use `HMSInput`). Not done here.
-- ✅ **`doActualSwitch` profile_data clobber — FIXED & built** (`ProgramLibrary.jsx`, bundle `NativeApp-bc47f05d`; runProfile-survives to be re-confirmed next session).
+- ✅ **`doActualSwitch` profile_data clobber — FIXED & VERIFIED ON-DEVICE** (`ProgramLibrary.jsx`). On a fresh Balanced Hybrid
+  setup (`d3d00001`), `profile_data.runProfile` **populated and survived the switch** — `baselineTime=660` (11:00 mile) /
+  `goalTime=1963` (32:43) stored as correct total-seconds, `has_runProfile=true`. The clobber no longer drops the runProfile.
   Library program switches with a calorie change (`calc.delta!==0`) overwrote `profile_data` with the **stale React `profile` closure**,
   dropping the `runProfile`/`hyroxProfile` that `RunProgramSetup.saveRunProfile` had just written → run/hybrid setup data never
   persisted (the real cause of `has_runProfile=false` — NOT the keyboard, and NOT a dual client: `client.js` just re-exports
   `supabase.js`'s single `sb`). Fix: re-fetch current `profile_data` and merge only the nutrition keys onto it (read-then-merge, like
   `mergeProfileData`), with a fetch-failure guard that skips the `profile_data` write rather than wiping. Ordering confirmed:
   `await saveRunProfile` commits before `onConfirm → confirmSwitch → doActualSwitch` re-fetch.
-- **BUG 2 — phantom 5K race on hybrid setup (race should be OPTIONAL)** — OPEN. A Balanced Hybrid setup with NO race selected
-  still surfaces "5K / race-specific" framing. Full recon captured:
-  - **5K default sources:** `PROG_GOAL_DIST` (`RunProgramSetup.jsx:34`) has **no hybrid entries** → `goalDist = …||"5k"` (`:237`);
-    plus app-wide `run_race_type || '5k'` fallbacks (`sections.jsx:2619/2656`, `runningPeriodisationService.js:80`).
-  - **Race framing gates on `isHybrid` alone:** `sections.jsx:2266` (`wPrefs?.isHybrid||isHyrox||run_race_type`) → any hybrid gets
-    run/race framing regardless of whether a race was chosen.
-  - **The "9 weeks to race day" was a FIXTURE ARTIFACT** — `getRunningPhase(run_race_date)` (`sections.jsx:3957`) needs a non-null
-    `run_race_date`; that was the fixture's preserved `2026-08-28` (~9 wks out), which 5b preserves on hybrid by design. A fresh
-    no-race hybrid has `run_race_date=null` → no countdown. NOT a general bug.
-  - **Unpinned:** the DB `run_race_type` column flipping `NULL→"5k"` on the hybrid switch isn't explained by static reads
-    (`doActualSwitch` omits it on hybrid; `RunProgramSetup` writes only `profile_data`; `handleProfileUpdate` doesn't persist it).
-    **NEXT STEP: a one-shot breadcrumb to capture which write sets `run_race_type`**, then a fresh-no-race-hybrid test (throwaway
-    account, NOT `d3d00001`) to confirm the surface cleanly, then scope the fix.
-  - **Direction:** "don't default a race" — keep `run_race_type` null when no race chosen; gate race framing/countdown/pace on an
-    actual race being set (`run_race_date` + user-chosen type), not `isHybrid` alone; drop the `||'5k'` fallbacks. NOT "make race
-    mandatory" (many hybrid users train without a goal race).
+- **BUG 2 — phantom 5K on hybrid — DIAGNOSED, fix scoped (input+render, NOT write-path).** OPEN (next session = implement).
+  Breadcrumb test (bundle `bbfd91d3`, on `d3d00001` with race pre-nulled + cold relaunch) **proved there is NO `run_race_type`
+  column writer**: `rrt_switch_before sent:"(omitted)"`, `rrt_switch_after colDb=null/mirrorDb=null`, no `rrt_write` fired, and the
+  column + mirror stayed **null** across the hybrid switch. Earlier `run_race_type="5k"` was the **pre-fix clobber + the fixture's
+  `run_race_date`** — does **NOT recur** after Bug 1's clobber fix + race-clear. The **"9 weeks" was the fixture `run_race_date`
+  artifact** (retired). The "5K" actually lives in `runProfile.goalDistance="5k"`, not `run_race_type`. **Two real roots:**
+  - **(a) INPUT** — RunProgramSetup's "what are you training for" step **forces a distance** (5K/10K/half/…) with **NO "no race /
+    general fitness" option** → `goalDistance` is always set (`PROG_GOAL_DIST||'5k'`, `RunProgramSetup.jsx:34/237`), implying a race.
+    The race **date** is correctly optional, but the **distance is mandatory**.
+  - **(b) RENDER** — race framing gates on `isHybrid` alone (`sections.jsx:2266`) + `profile?.run_race_type || '5k'` fallbacks
+    (`sections.jsx:2619/2656`, `runningPeriodisationService.js:80`) paper over a null race.
+  - **FIX (scoped):** *input* — add a "no race / general fitness" choice (or make distance optional) → on no-race, store no
+    `goalDistance`/`run_race_type` + a general flag; *render* — gate race framing/countdown/pace on an **actual race**
+    (`run_race_date` set OR a non-general goal), not `isHybrid` alone, and drop the `||'5k'` race implication.
+  - **Cleanup:** the `rrt_*` breadcrumbs (4 files: `ProgramLibrary`/`ob_screens2`/`NativeApp`/`sections`) did their job (proved
+    no column writer) — **revert them when the BUG 2 fix build happens.**
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
