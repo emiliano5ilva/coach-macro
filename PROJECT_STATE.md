@@ -3,7 +3,7 @@
 > Canonical "where we are" doc. **Claude Code reads this at the start of every session and
 > updates it at the end**, so a fresh session never starts cold. Keep it terse and current.
 
-_Last updated: 2026-06-21 — Stage 5a (_libraryId backfill) DONE/verified on-device; new high-pri OPEN: handleConfirm atomic-write robustness (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — handleConfirm atomic-write fix DONE/verified on-device; new lower-pri OPEN: onboarding completion doesn't auto-nav in-session (branch `goclub-redesign`)._
 
 ---
 
@@ -59,18 +59,23 @@ _Last updated: 2026-06-21 — Stage 5a (_libraryId backfill) DONE/verified on-de
   (No live Upper/Lower row in DB to spot-check; aligned by code analysis.)
 - **Session restore / workout-save** — v2 storage-key fix, `processLock` auth hardening, distinct-day session count —
   all shipped (supersedes the Jun 19 "workouts not saving" priority docs).
+- **handleConfirm atomic-write fix — DONE** (verified on-device) — onboarding completion now writes `wprefs` + `schedule`
+  + `profile_data` + `plan_built` in **one timeout-guarded upsert** (`ob_screens2.jsx:4350`, `Promise.race` 15s), replacing
+  the old upsert + separate `markPlanBuilt`. Verified: `_libraryId=upper_lower` **and** `plan_built=true` landed together
+  (no half-apply); API logs confirm the new path (atomic `POST` upsert, no `markPlanBuilt` `PATCH`). Original
+  completion-blocker fixed; severity dropped from "can't complete" → "doesn't auto-nav in-session" (see OPEN below).
 - **Design system locked** — Me tab, Today/Train/Fuel reskins, weight logging, security/RLS.
 
 ---
 
 ## OPEN — correctness bugs (highest priority)
-- **handleConfirm onboarding-completion robustness** (NEXT — fix before Stage 5b) — `handleConfirm`
-  (`ob_screens2.jsx:4275`, the second-onboarding "Build my plan" path) makes **two separate, un-timeout-guarded
-  awaited writes**: the `profiles` wprefs **upsert** (`:4350`) then **`markPlanBuilt`** (`:4370` → `update({plan_built:true})`).
-  A connectivity drop *between* them wedges the user on "Building…" with a **half-applied state** — wprefs saved,
-  `plan_built` never flips, `setSection("today")` never runs (no navigation). Reproduced on-device during 5a verification
-  (upsert persisted `_libraryId=upper_lower`, but `plan_built` stayed false). **Real new-user onboarding-completion bug on
-  flaky connections.** Fix: fold `plan_built:true` into the single `:4350` upsert (one atomic write) so completion can't half-apply.
+- **Onboarding completion doesn't auto-navigate in-session** (lower priority — NOT completion-blocking) —
+  with the atomic-write fix, completion now **persists correctly** (`plan_built=true`, relaunch lands in 5-tab),
+  but the screen doesn't visibly swap to Today in the *same* session — it stays on the stale "Building…" overlay.
+  Likely cause: the success path **never resets `saving`/`building`** (relies on `setSection` unmounting), and
+  `setSection('today')` doesn't visibly swap when `_spb(true)` flips 3→5 nav simultaneously. Likely fix: add
+  `setSaving(false)`/`setBuilding(false)` before `setSection` on success + investigate the nav-swap/unmount race.
+  Recon-first next session. (Severity: cosmetic-ish — data is saved; user just has to relaunch.)
 - _Read-side drift bugs previously here (Today-tab program-switch; Upper/Lower title-vs-exercises) are RESOLVED — see DONE & VERIFIED._
 
 ---
@@ -98,6 +103,10 @@ _Last updated: 2026-06-21 — Stage 5a (_libraryId backfill) DONE/verified on-de
   active-segment times instead.
 - **Apple Health endgame** — prefer Apple Watch `activeEnergyBurned` reading over our estimate when present.
 - **Breadcrumb keep-vs-gate** — decide keep-vs-gate for `ah_*` / `tier` / `bmr` breadcrumbs before release.
+- **`markPlanBuilt` now unused** — after the atomic-write fix, the App-level `markPlanBuilt` fn + the `markPlanBuilt` prop
+  on `PlanOnboarding` are dead (only caller removed). Remove as a small cleanup.
+- **Onboarding-completion user-facing error** — `handleConfirm`'s catch is still `console.error`-only; on
+  failure/timeout the button silently reverts. Add an honest inline/toast error ("Couldn't save — check connection, try again").
 - **Minor residual direct `splitType` reads** (optional cleanup, NOT drift-causing — not the Today narrative/day surfaces):
   `morningBriefService.js:279` (weather-fetch gate `splitType.includes('run')`) and the AI workout-generation prompt
   (`ob_screens2.jsx:8169/8172/8179`, tells the model the split via `wPrefs.splitType`). Could route through `resolveProgram().displayName`.

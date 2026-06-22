@@ -4347,27 +4347,37 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,markPlanBuilt
         : null;
       const _recoveryCapacity = _isRunFocus ? (newWPrefs.recoveryCapacity || 'normal') : null;
 
-      await sb.from("profiles").upsert({
-        id:user.id,
-        wprefs:newWPrefs,
-        schedule:newSchedule,
-        profile_data:updatedProfile,
-        updated_at:new Date().toISOString(),
-        // Dedicated columns for run/hybrid only
-        ...(_isRunFocus && {
-          run_race_type:    _runRaceType,
-          run_race_date:    _runRaceDate,
-          run_target_time:  _runTargetTime,
-          recovery_capacity:_recoveryCapacity,
-        }),
-      },{onConflict:"id"});
+      // Single ATOMIC write — wprefs + schedule + profile_data + plan_built land together, so a
+      // connectivity drop can't half-apply (was: this upsert + a separate markPlanBuilt). Timeout-
+      // guarded so a hung native fetch REJECTS (→ catch re-enables the button, retryable) instead
+      // of wedging the user on "Building…" forever. plan_built:true was markPlanBuilt's DB write.
+      await Promise.race([
+        sb.from("profiles").upsert({
+          id:user.id,
+          wprefs:newWPrefs,
+          schedule:newSchedule,
+          profile_data:updatedProfile,
+          plan_built:true,
+          updated_at:new Date().toISOString(),
+          // Dedicated columns for run/hybrid only
+          ...(_isRunFocus && {
+            run_race_type:    _runRaceType,
+            run_race_date:    _runRaceDate,
+            run_target_time:  _runTargetTime,
+            recovery_capacity:_recoveryCapacity,
+          }),
+        },{onConflict:"id"}),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('plan upsert timed out (15s)')),15000)),
+      ]);
       setWPrefs(newWPrefs);
       setSchedule(newSchedule);
       // Propagate dedicated-column values into React profile state so routing picks them up immediately.
       if(_isRunFocus && onProfileUpdate) onProfileUpdate({run_race_type:_runRaceType,run_race_date:_runRaceDate,recovery_capacity:_recoveryCapacity});
       // Invalidate stale protocol cache so Fuel card reflects the new schedule immediately.
       if(onProtocolRefetch) onProtocolRefetch();
-      await markPlanBuilt();
+      // plan_built was already persisted in the atomic upsert above; just flip the local mirror
+      // (markPlanBuilt's only non-DB side effect) to expand 3→5 nav. No second DB round-trip.
+      _spb(true);
       const elapsed=Date.now()-startedAt;
       if(elapsed<1500) await new Promise(r=>setTimeout(r,1500-elapsed));
       setSection("today");
