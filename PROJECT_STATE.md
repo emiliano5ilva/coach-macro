@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) FIX APPLIED — uncommitted, awaiting device test** (race made optional: RunProgramSetup "Training for a race?" toggle + no-race plan; breadcrumbs reverted; commit after device verify since it's UI) (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) DONE & VERIFIED on-device** (race optional: "Training for a race?" toggle + no-race plan; committed); new lower-sev tracked item: in-session `runProfile` staleness (countdown stale until relaunch; fix = write `run_race_date` column + propagate in `doActualSwitch`) (branch `goclub-redesign`)._
 
 ---
 
@@ -115,30 +115,24 @@ _Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7
   `supabase.js`'s single `sb`). Fix: re-fetch current `profile_data` and merge only the nutrition keys onto it (read-then-merge, like
   `mergeProfileData`), with a fetch-failure guard that skips the `profile_data` write rather than wiping. Ordering confirmed:
   `await saveRunProfile` commits before `onConfirm → confirmSwitch → doActualSwitch` re-fetch.
-- 🔧 **BUG 2 — phantom 5K on hybrid — FIX APPLIED to working tree, UNCOMMITTED, awaiting device verification.**
-  Root cause (proven, write-path ruled out): NOT a `run_race_type` column writer — the breadcrumb test showed `doActualSwitch`
-  omits it on hybrid and the column/mirror stayed null across the switch. The "5K" came from the **INPUT** forcing a distance
-  (`runProfile.goalDistance="5k"`, which is **write-only** — see Safety) + render `||'5k'` fallbacks. "9 weeks" was the fixture
-  `run_race_date` artifact (retired). **Race is now OPTIONAL.**
-  - **Files changed (uncommitted in working tree):**
-    - `RunProgramSetup.jsx` — "Training for a race?" **toggle** (default OFF for `program.isHybrid`, ON for pure-run); CTA relaxed
-      (no goal-time required when OFF); `proceedToConfirm` goal-validation gated on `raceGoal`; **no-race `saveRunProfile` branch**
-      (stores `currentVdot`/baseline/`paces`/`planWeeks:12`/`planStartDate`/`trainDays`/`longRunDay` + `raceGoal:false`, **omits**
-      `goalDistance`/`goalTime`/`raceDate`; never writes `run_race_type`/`run_race_date`); Step 5 summary shows
-      **"Focus · General fitness"** instead of "Goal 0:00".
-    - `sections.jsx` — red-hero progLabel shows **"… · General Fitness"** when `profile?.runProfile?.raceGoal===false` on a hybrid (guarded).
-  - **Breadcrumbs reverted** across all 4 files (`ProgramLibrary`/`ob_screens2`/`NativeApp`/`sections`) — they did their job
-    (proved no column writer). `git status` now shows ONLY `RunProgramSetup.jsx` + `sections.jsx`.
-  - **Safety (grepped):** `runProfile.goalDistance`/`goalTime` are **WRITE-ONLY (zero readers)** → omitting them on no-race is safe.
-    The run engine derives distance from the `run_race_type` **column** (null→`'5k'` pace zones; `runEngine.js` even has a `'general'`
-    path), not from `runProfile`; `runProfile.raceDate`/`.paces` are read only with `||`/`?? null` guards.
-  - **NOT committed deliberately** — the fix is inherently visual/UI, so **commit AFTER the device test**, not before.
-  - **Device-test checklist (build first):**
-    1. **PRIORITY** — a no-race hybrid **still shows run days + paces** (the fix removes the race *goal*, NOT the running).
-    2. Toggle defaults **OFF** on a hybrid → race block (distance/goal-time/date) hidden, CTA enabled without a goal time.
-    3. `runProfile` saves `raceGoal:false`, **no `goalDistance`**, `run_race_type`/`run_race_date` columns null (read DB).
-    4. Confirm screen = **"Focus · General fitness"**; red-hero = **"Balanced Hybrid · General Fitness"**; **no countdown / no 5K**.
-    5. Pure-run (e.g. 10K) toggle defaults **ON** → race flow unchanged.
+- ✅ **BUG 2 — phantom 5K on hybrid — DONE & VERIFIED on-device.** Race is now OPTIONAL.
+  Root cause (write-path ruled out by the breadcrumb test): the "5K" came from the **INPUT** forcing a distance
+  (`runProfile.goalDistance="5k"`, a write-only field) + render `||'5k'` fallbacks — NOT a `run_race_type` column writer.
+  Fix (`RunProgramSetup.jsx` + `sections.jsx`): "Training for a race?" **toggle** (default OFF for `program.isHybrid`, ON for
+  pure-run); CTA relaxed + `proceedToConfirm` goal-validation gated on `raceGoal`; **no-race `saveRunProfile` branch** stores
+  `raceGoal:false` and **omits** `goalDistance`/`goalTime`/`raceDate` (never writes `run_race_type`/`run_race_date`); Step 5 +
+  red-hero show **"General Fitness"**. Verified on-device: no-race hybrid still gets run days + paces, no phantom 5K/countdown;
+  race path persists `raceDate` and the countdown shows on load. (`runProfile.goalDistance`/`goalTime` confirmed write-only —
+  zero readers; run engine derives distance from the `run_race_type` column null→`'5k'` zones, with a `'general'` path.)
+  Breadcrumbs reverted across all 4 files.
+- **In-session `runProfile` staleness** (lower severity — recovers on relaunch, data persists correctly) — `saveRunProfile` writes
+  `profile_data.runProfile` to the DB only; `doActualSwitch`'s `onProfileUpdate` propagates program/calorie keys but **NOT
+  `runProfile`**, so `runProfile`-derived UI (race countdown, paces) is **stale until the next cold launch**. PRE-EXISTING
+  (surfaced by a fresh race setup; the earlier hybrid masked it via the fixture's pre-set `run_race_date` column). Confirmed
+  on-device: 10K race countdown absent immediately after setup, **appears on cold relaunch**. **FIX DIRECTION:** in
+  `doActualSwitch`, write `run_race_date` (+ keep `run_race_type`) to the **column** from the re-fetched `runProfile.raceDate` on a
+  run/hybrid race target, AND include it in the `onProfileUpdate` patch for in-session React. Closes the countdown AND feeds all
+  other `run_race_date`-column readers (morning brief, run-engine anchor, RacePredictor). Own task — recon→fix→device-test.
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 

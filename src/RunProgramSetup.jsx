@@ -235,6 +235,9 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
   // Step 4 — Goal
   const [goalDist, setGoalDist] = useState(PROG_GOAL_DIST[program.id] || "5k");
+  // BUG 2: race is OPTIONAL. Default OFF for hybrid (run is supplementary) / ON for pure-run
+  // (the program itself is a race plan). OFF → race block hidden, no goalDistance/run_race_type stored.
+  const [raceGoal, setRaceGoal] = useState(!program.isHybrid);
   const [gMin, setGMin] = useState("");
   const [gSec, setGSec] = useState("");
   const [goalH, setGoalH] = useState("1");
@@ -302,13 +305,15 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       setStep(5);
       return;
     }
-    const gs = parseMMSS(gMin, gSec);
-    if (gs < 30) { setGoalError("Enter a valid goal time"); return; }
-    const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
-    const { realistic, neededWeeks } = isGoalRealistic(vdot, goalVdot, 24);
-    if (!realistic && neededWeeks > 24) {
-      setGoalError(`This goal requires ~${neededWeeks}+ weeks. Try an intermediate milestone.`);
-      return;
+    if (raceGoal) {
+      const gs = parseMMSS(gMin, gSec);
+      if (gs < 30) { setGoalError("Enter a valid goal time"); return; }
+      const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
+      const { realistic, neededWeeks } = isGoalRealistic(vdot, goalVdot, 24);
+      if (!realistic && neededWeeks > 24) {
+        setGoalError(`This goal requires ~${neededWeeks}+ weeks. Try an intermediate milestone.`);
+        return;
+      }
     }
     setStep(5);
   }
@@ -331,24 +336,45 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
           longRunDay: longRunDay || null,
         });
       } else {
-        const gs = parseMMSS(gMin, gSec);
-        const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
         const today = new Date().toISOString().split("T")[0];
-        if (user?.id) await saveRunProfile(user.id, {
-          currentVdot: vdot,
-          baselineType: actualDist,
-          baselineTime: baselineSecs,
-          baselineDate: today,
-          goalDistance: goalDist,
-          goalTime: gs,
-          goalDate: null,
-          raceDate: raceDate || null,
-          planWeeks: recommendPlanWeeks(vdot, goalVdot),
-          planStartDate: today,
-          paces: trainingPaces(vdot),
-          trainDays,
-          longRunDay: longRunDay || null,
-        });
+        if (user?.id) {
+          if (raceGoal) {
+            const gs = parseMMSS(gMin, gSec);
+            const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
+            await saveRunProfile(user.id, {
+              currentVdot: vdot,
+              baselineType: actualDist,
+              baselineTime: baselineSecs,
+              baselineDate: today,
+              goalDistance: goalDist,
+              goalTime: gs,
+              goalDate: null,
+              raceDate: raceDate || null,
+              planWeeks: recommendPlanWeeks(vdot, goalVdot),
+              planStartDate: today,
+              paces: trainingPaces(vdot),
+              trainDays,
+              longRunDay: longRunDay || null,
+              raceGoal: true,
+            });
+          } else {
+            // No-race / general fitness: store fitness baseline + paces only; OMIT goalDistance/goalTime/
+            // raceDate. buildRunEngineInputs builds a consistency plan via its run_race_type(null→'5k' zones)
+            // / runFocus('consistency') / planWeeks fallbacks — running preserved, just no race goal.
+            await saveRunProfile(user.id, {
+              currentVdot: vdot,
+              baselineType: actualDist,
+              baselineTime: baselineSecs,
+              baselineDate: today,
+              planWeeks: 12,
+              planStartDate: today,
+              paces: trainingPaces(vdot),
+              trainDays,
+              longRunDay: longRunDay || null,
+              raceGoal: false,
+            });
+          }
+        }
       }
       onConfirm(program);
     } catch (e) {
@@ -639,6 +665,21 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <Eyebrow>// Goal</Eyebrow>
         <Heading>What are you<br/><span style={{color:AC}}>training for?</span></Heading>
 
+        {/* BUG 2: race is optional — toggle gates the whole race block (distance + goal time + date). */}
+        <div style={{ display:"flex", gap:8, marginTop:10, marginBottom:4, alignItems:"center" }}>
+          <div style={{ fontSize:13, color:"var(--cm-ink)", fontWeight:600, flex:1 }}>Training for a race?</div>
+          {[{v:false,l:"No"},{v:true,l:"Yes"}].map(({v,l})=>(
+            <button key={l} onClick={()=>setRaceGoal(v)} style={{ padding:"8px 18px", borderRadius:20,
+              border:`1.5px solid ${raceGoal===v?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.15)"}`,
+              background:raceGoal===v?"rgba(var(--cm-red-rgb),.08)":"rgba(var(--cm-ink-rgb),.04)",
+              color:raceGoal===v?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.7)", fontSize:13, fontWeight:700,
+              cursor:"pointer", fontFamily:"inherit" }}>{l}</button>
+          ))}
+        </div>
+        {!raceGoal && <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.5)", marginTop:8 }}>
+          We'll build a consistency-focused run plan around your current fitness — no goal race.</div>}
+
+        {raceGoal && (<>
         <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:10, marginTop:8 }}>Goal distance:</div>
         <DistSelector value={goalDist} onChange={d=>{setGoalDist(d); setRealisticSug(null);}} options={["5k","10k","half","full"]} />
 
@@ -671,9 +712,10 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
             style={{ width:"100%", background:"rgba(var(--cm-ink-rgb),.06)", border:"1px solid rgba(var(--cm-ink-rgb),.15)", borderRadius:10, padding:"12px 14px", color:"var(--cm-ink)", fontSize:15, ...MONO, outline:"none", boxSizing:"border-box", colorScheme:"light" }}
           />
         </div>
+        </>)}
 
         {goalError && <div style={{ color:"#F87171", fontSize:12, marginTop:10 }}>{goalError}</div>}
-        <CTABtn onClick={proceedToConfirm} disabled={!(parseInt(gMin)||parseInt(gSec))}>See My Plan →</CTABtn>
+        <CTABtn onClick={proceedToConfirm} disabled={raceGoal && !(parseInt(gMin)||parseInt(gSec))}>See My Plan →</CTABtn>
       </div>
     );
   }
@@ -708,7 +750,9 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
         <div style={{ background:"rgba(var(--cm-ink-rgb),.04)", border:"1px solid rgba(var(--cm-ink-rgb),.10)", borderRadius:16, padding:"20px", marginTop:20, marginBottom:20 }}>
           <SummaryRow label="Current" value={fmtSecs(baselineSecs)} sub={DIST_LABELS[actualDist]} />
-          <SummaryRow label="Goal" value={fmtSecs(gs)} sub={DIST_LABELS[goalDist]} accent />
+          {raceGoal
+            ? <SummaryRow label="Goal" value={fmtSecs(gs)} sub={DIST_LABELS[goalDist]} accent />
+            : <SummaryRow label="Focus" value="General fitness" sub="Consistency-based run plan" accent />}
           <SummaryRow label="Plan length" value={`${weeks} weeks`} />
           {trainDays.length > 0 && (
             <SummaryRow label="Training days" value={trainDays.join(" · ")} />

@@ -3945,7 +3945,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
           const progLabel=
             wPrefs.isHyrox&&wPrefs.isHybrid?(wPrefs.hybridTemplate||"Hyrox Hybrid"):
             wPrefs.isHyrox?(wPrefs.hyroxProgram||"Hyrox"):
-            wPrefs.isHybrid?(_raceLabel?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel}`:(wPrefs.hybridTemplate||"Hybrid")):
+            wPrefs.isHybrid?(_raceLabel?`${wPrefs.hybridTemplate||"Hybrid"} · ${_raceLabel}`:(profile?.runProfile?.raceGoal===false?`${wPrefs.hybridTemplate||"Hybrid"} · General Fitness`:(wPrefs.hybridTemplate||"Hybrid"))):
             prescType==="running"?(_raceLabel||wPrefs.runPlan||"Running"):
             wPrefs.splitType||"My Program";
           const muscleDesc=FOCUS_MUSCLES[todayFocus]||"Full body movement";
