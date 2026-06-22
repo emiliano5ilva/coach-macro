@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) DIAGNOSED — fix scoped input+render, NOT write-path** (breadcrumb test proved no `run_race_type` column writer; revert `rrt_*` at fix-build) (branch `goclub-redesign`)._
+_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) FIX APPLIED — uncommitted, awaiting device test** (race made optional: RunProgramSetup "Training for a race?" toggle + no-race plan; breadcrumbs reverted; commit after device verify since it's UI) (branch `goclub-redesign`)._
 
 ---
 
@@ -115,22 +115,30 @@ _Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7
   `supabase.js`'s single `sb`). Fix: re-fetch current `profile_data` and merge only the nutrition keys onto it (read-then-merge, like
   `mergeProfileData`), with a fetch-failure guard that skips the `profile_data` write rather than wiping. Ordering confirmed:
   `await saveRunProfile` commits before `onConfirm → confirmSwitch → doActualSwitch` re-fetch.
-- **BUG 2 — phantom 5K on hybrid — DIAGNOSED, fix scoped (input+render, NOT write-path).** OPEN (next session = implement).
-  Breadcrumb test (bundle `bbfd91d3`, on `d3d00001` with race pre-nulled + cold relaunch) **proved there is NO `run_race_type`
-  column writer**: `rrt_switch_before sent:"(omitted)"`, `rrt_switch_after colDb=null/mirrorDb=null`, no `rrt_write` fired, and the
-  column + mirror stayed **null** across the hybrid switch. Earlier `run_race_type="5k"` was the **pre-fix clobber + the fixture's
-  `run_race_date`** — does **NOT recur** after Bug 1's clobber fix + race-clear. The **"9 weeks" was the fixture `run_race_date`
-  artifact** (retired). The "5K" actually lives in `runProfile.goalDistance="5k"`, not `run_race_type`. **Two real roots:**
-  - **(a) INPUT** — RunProgramSetup's "what are you training for" step **forces a distance** (5K/10K/half/…) with **NO "no race /
-    general fitness" option** → `goalDistance` is always set (`PROG_GOAL_DIST||'5k'`, `RunProgramSetup.jsx:34/237`), implying a race.
-    The race **date** is correctly optional, but the **distance is mandatory**.
-  - **(b) RENDER** — race framing gates on `isHybrid` alone (`sections.jsx:2266`) + `profile?.run_race_type || '5k'` fallbacks
-    (`sections.jsx:2619/2656`, `runningPeriodisationService.js:80`) paper over a null race.
-  - **FIX (scoped):** *input* — add a "no race / general fitness" choice (or make distance optional) → on no-race, store no
-    `goalDistance`/`run_race_type` + a general flag; *render* — gate race framing/countdown/pace on an **actual race**
-    (`run_race_date` set OR a non-general goal), not `isHybrid` alone, and drop the `||'5k'` race implication.
-  - **Cleanup:** the `rrt_*` breadcrumbs (4 files: `ProgramLibrary`/`ob_screens2`/`NativeApp`/`sections`) did their job (proved
-    no column writer) — **revert them when the BUG 2 fix build happens.**
+- 🔧 **BUG 2 — phantom 5K on hybrid — FIX APPLIED to working tree, UNCOMMITTED, awaiting device verification.**
+  Root cause (proven, write-path ruled out): NOT a `run_race_type` column writer — the breadcrumb test showed `doActualSwitch`
+  omits it on hybrid and the column/mirror stayed null across the switch. The "5K" came from the **INPUT** forcing a distance
+  (`runProfile.goalDistance="5k"`, which is **write-only** — see Safety) + render `||'5k'` fallbacks. "9 weeks" was the fixture
+  `run_race_date` artifact (retired). **Race is now OPTIONAL.**
+  - **Files changed (uncommitted in working tree):**
+    - `RunProgramSetup.jsx` — "Training for a race?" **toggle** (default OFF for `program.isHybrid`, ON for pure-run); CTA relaxed
+      (no goal-time required when OFF); `proceedToConfirm` goal-validation gated on `raceGoal`; **no-race `saveRunProfile` branch**
+      (stores `currentVdot`/baseline/`paces`/`planWeeks:12`/`planStartDate`/`trainDays`/`longRunDay` + `raceGoal:false`, **omits**
+      `goalDistance`/`goalTime`/`raceDate`; never writes `run_race_type`/`run_race_date`); Step 5 summary shows
+      **"Focus · General fitness"** instead of "Goal 0:00".
+    - `sections.jsx` — red-hero progLabel shows **"… · General Fitness"** when `profile?.runProfile?.raceGoal===false` on a hybrid (guarded).
+  - **Breadcrumbs reverted** across all 4 files (`ProgramLibrary`/`ob_screens2`/`NativeApp`/`sections`) — they did their job
+    (proved no column writer). `git status` now shows ONLY `RunProgramSetup.jsx` + `sections.jsx`.
+  - **Safety (grepped):** `runProfile.goalDistance`/`goalTime` are **WRITE-ONLY (zero readers)** → omitting them on no-race is safe.
+    The run engine derives distance from the `run_race_type` **column** (null→`'5k'` pace zones; `runEngine.js` even has a `'general'`
+    path), not from `runProfile`; `runProfile.raceDate`/`.paces` are read only with `||`/`?? null` guards.
+  - **NOT committed deliberately** — the fix is inherently visual/UI, so **commit AFTER the device test**, not before.
+  - **Device-test checklist (build first):**
+    1. **PRIORITY** — a no-race hybrid **still shows run days + paces** (the fix removes the race *goal*, NOT the running).
+    2. Toggle defaults **OFF** on a hybrid → race block (distance/goal-time/date) hidden, CTA enabled without a goal time.
+    3. `runProfile` saves `raceGoal:false`, **no `goalDistance`**, `run_race_type`/`run_race_date` columns null (read DB).
+    4. Confirm screen = **"Focus · General fitness"**; red-hero = **"Balanced Hybrid · General Fitness"**; **no countdown / no 5K**.
+    5. Pure-run (e.g. 10K) toggle defaults **ON** → race flow unchanged.
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
