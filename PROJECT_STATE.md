@@ -156,8 +156,18 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
   assignment and builds no `dayPlan`; only onboarding does. So a hybrid set up via program-switch has **no `dayPlan`** →
   `deriveDayModality` Path 3 (degenerate: every training day = both run AND lift) AND `sections.jsx:2543` gates `hybridModality`
   on `dayPlan`, so the hybrid run-day UI doesn't compute. The day-COUNT fix (schedule-rebuild above) does NOT address this.
-  **NEEDS DESIGN:** how to assign which hybrid training days are runs vs lifts — template ratio / alternation / new per-day input.
-  Own task.
+  **DESIGN SETTLED (recon 06-23):** extract onboarding's existing inline generator (`_infPlan`, `ob_screens2.jsx`
+  `run_daymodality` step) into a shared `buildHybridDayPlan(trainDays, splitType)` in `running_programs.js` (reuses the
+  already-present `HEAVY_LOWER_CYCLES`/`HEAVY_LOWER_LABELS` — the onboarding `_CYCS`/`_HEAVY_LABELS` were verified
+  byte-identical dups). Wire into `activateProgramMode` (hybrid target + `trainDays` present → set `wPrefsUpdate.dayPlan`)
+  and refactor onboarding to call the shared fn. Heuristic VERBATIM (lifts = `min(cycle-len | floor(n/2) | 3, n−2)`, ≥1,
+  reserve ~2 runs). **Wrinkle:** on a switch `splitType` = hybrid template name (not a lift split) → no cycle match →
+  generic `"upper"` lift days (no `heavy_lower`); still closes the degenerate Path 3, just less precise than onboarding.
+  Draft ready; awaiting build approval.
+  - **ENHANCEMENT (future, not the fix):** template-specific run:lift ratio — differentiate strength-biased vs run-biased
+    hybrid templates (currently the ratio is a single generic `n−2` heuristic; no per-template ratio data exists).
+  - **ENHANCEMENT (future, not the fix):** `longRunDay` anchoring — force the long-run day to a run day in the generated
+    dayPlan (the current generator assigns run/lift positionally and ignores `longRunDay`).
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
@@ -248,6 +258,21 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     (prefetch-backed), reusing the **scroll-snap wheel picker** — same component family (`Rolodex`/`StackPicker`, `components.jsx`)
     as the RunProgramSetup time-input wheels we just shipped.
   - **Foundation already done:** `getUserMode` 5-tabs, weight logging, prefetch.
+
+- **PROGRAMMING ENGINE AUDIT — ensure every program is coach-grade optimized** — large, **foundational OWN PROJECT**
+  (post the hybrid dayPlan quick-fix). This is the _"we are the best / very detailed"_ differentiator. Scope:
+  - **MUSCLE COVERAGE:** every program hits all major groups across the week/mesocycle, down to **head-level**
+    (3 triceps heads, 3 delt heads, etc.) — no gaps.
+  - **VOLUME / SETS / REPS / REST:** correct per goal — hypertrophy (8–12 reps, 60–90s rest, higher volume),
+    strength (3–5 reps, 3–5min rest), endurance, etc. **Calculated, not arbitrary.**
+  - **GOAL-DRIVEN PARAMETERS:** an onboarding _"what's your goal"_ question (build muscle / strength / etc.) drives
+    sets/reps/rest adaptation per program. **Evidence-based defaults (decision: option 2).**
+  - **STYLE-AUTHENTIC PROGRAMS:** Golden Era / signature programs stay **FAITHFUL** to the original routines (the greats —
+    Arnold/Zane/etc.), **NOT** generic-ized into default hypertrophy. The audit respects program identity.
+  - **DOMS / RECOVERY-AWARE PLACEMENT:** day sequencing avoids stacking same-muscle stress back-to-back; recovery between
+    hard sessions; muscle-map-driven placement.
+  - **METHOD:** audit what exists first **(decision: option 3)** → define the standard → encode. Applies **system-wide**,
+    including re-touching the hybrid dayPlan generator built in the quick fix.
 
 ---
 
