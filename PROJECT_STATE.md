@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2 (phantom 5K), A (in-session runProfile propagation), B (program_start_date week/day anchor), **day-selection "caps at 4" (commit `572f811`)** all DONE & verified on-device; morning-brief "didn't load" investigated → NOT a defect (stale-cache blip). **Only open housekeeping: restore the `d3d00001` drift fixture (currently `c25k` from testing).** Tracked follow-ups remain: hybrid run/lift dayPlan split; catalog already shipped (branch `goclub-redesign`)._
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`)._
 
 ---
 
@@ -83,6 +83,18 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2 (phantom 5K), A (in-se
     helper (`ob_screens2.jsx:4279`) — **KEEP for now** (cheap observability on the critical onboarding path); gate/strip with the
     `ah_*` diagnostic breadcrumbs pre-release.
 - **Design system locked** — Me tab, Today/Train/Fuel reskins, weight logging, security/RLS.
+
+---
+
+## 🔴 PRE-SUBMISSION BLOCKERS (security — CANNOT SHIP with these present)
+- 🔴 **SECURITY — dev-skip is a PRODUCTION BACKDOOR.** `showDevSkip = import.meta.env.DEV || localStorage.devmode==='true'`;
+  the **5-tap-logo gesture** (`handleLogoTap`, `NativeApp.jsx:253-264`) sets `localStorage.devmode='true'` → in a **PROD build**
+  this exposes: (a) the dev-skip button + **autologin into hardcoded creds `testuser@coachm.dev` / `CoachTest123!` that SHIP IN
+  THE BUNDLE**, (b) `isDevAccount` **subscription bypass** (`:545`), (c) `devEmail` **paywall-skip** (`:908`). Anyone can tap the
+  logo 5× in the shipped app to **bypass auth AND payment**. ~10 sites: `showDevSkip:252`, `VITE_AUTO_DEVMODE:251`,
+  `handleLogoTap:253-264`, `handleDevSkip:267`, `handleOnboardingTest:306`, buttons `:422/425/484/487`, `isDevAccount:545`,
+  `devEmail:908`. **MUST be removed before submission.** Kept through dev (drives testuser/dev-skip testing); remove + on-device
+  welcome/signin glance at submission time. **BLOCKER — cannot ship with this present.**
 
 ---
 
@@ -201,6 +213,8 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
 ---
 
 ## OPEN — pre-release / polish
+- _**Decided AGAINST** (don't re-flag): import-path consolidation (`supabase.js` ↔ `client.js`) — they're the same singleton via
+  re-export, so it's 9 files of churn for zero behavior change. Not worth it._
 - **Runna-style font pass** — Train tab control labels (HIDE ↑, SEE EXERCISES ↓) are too-heavy Archivo; match Runna
   discipline (9px floor / 11px eyebrows / spaced-caps, no `//` prefixes). User: "not now, keep on list."
 - **Clinical-records / provisioning entitlement cleanup** before App Store submission — verify portal App ID + provisioning
