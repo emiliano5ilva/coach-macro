@@ -137,7 +137,15 @@ _Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7
   `trainDays=['Mon'..'Fri']` (5) vs a schedule with 4 `'training'` days. **FIX DIRECTION:** on a run/hybrid setup, rebuild
   `act.schedule` from the selected `trainDays` (selected weekdays → mode day type, rest → `rest`) instead of retyping the stale
   schedule. `doActualSwitch` already re-fetches `profile_data` (for the A fix), so it can read `runProfile.trainDays` there.
-  Own task — recon→fix→device-test.
+  Own task — recon→fix→device-test. **(Diff drafted, awaiting review: `activateProgramMode` takes `trainDays` and rebuilds
+  schedule when present+non-empty (exact selection, no cap), else retype-fallback; `doActualSwitch` threads `_freshRun.trainDays`
+  from the existing A re-fetch.)**
+- **BUG/GAP — hybrid run/lift day split not generated from `trainDays`** — OPEN. `RunProgramSetup` collects no per-day run/lift
+  assignment and builds no `dayPlan`; only onboarding does. So a hybrid set up via program-switch has **no `dayPlan`** →
+  `deriveDayModality` Path 3 (degenerate: every training day = both run AND lift) AND `sections.jsx:2543` gates `hybridModality`
+  on `dayPlan`, so the hybrid run-day UI doesn't compute. The day-COUNT fix (schedule-rebuild above) does NOT address this.
+  **NEEDS DESIGN:** how to assign which hybrid training days are runs vs lifts — template ratio / alternation / new per-day input.
+  Own task.
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
