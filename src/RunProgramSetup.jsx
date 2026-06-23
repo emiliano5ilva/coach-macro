@@ -134,7 +134,7 @@ function CTABtn({ onClick, disabled, loading, children }) {
 // STRING into the same setter, so parseMMSS/parseHMS → identical total seconds → identical saved keys.
 const MM_ITEMS = Array.from({ length: 100 }, (_, i) => String(i));                 // "0".."99" (matches old max=99)
 const SS_ITEMS = Array.from({ length: 60 },  (_, i) => String(i).padStart(2, '0')); // "00".."59"
-const H_ITEMS  = Array.from({ length: 6 },   (_, i) => String(i));                 // "0".."5" (hyrox 1–~2.5h)
+const H_ITEMS  = Array.from({ length: 8 },   (_, i) => String(i));                 // "0".."7" (hyrox 1–~2.5h; run half/full up to ~7h)
 
 // One labelled wheel column. `unset` (empty string / null) → dimmed + red-tinted label & border so
 // it reads as "needs input", never a real 0:00. The wheel does NOT fire onChange on mount, so state
@@ -240,6 +240,11 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   const [raceGoal, setRaceGoal] = useState(!program.isHybrid);
   const [gMin, setGMin] = useState("");
   const [gSec, setGSec] = useState("");
+  // Running goal in H:MM:SS for half/full (MM:SS caps at 99min); empty default → CTA stays disabled +
+  // wheels show the unset treatment (matches 5k/10k MM:SS). Separate from hyrox goalH/M/S (1:00:00 default).
+  const [rgH, setRgH] = useState("");
+  const [rgM, setRgM] = useState("");
+  const [rgS, setRgS] = useState("");
   const [goalH, setGoalH] = useState("1");
   const [goalM, setGoalM] = useState("00");
   const [goalS, setGoalS] = useState("00");
@@ -282,14 +287,24 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   }
 
   // ── Step 4: "What's realistic?" ─────────────────────────────────────────────
+  // Goal time is MM:SS for 5k/10k, H:MM:SS for half/full (a half/full goal exceeds the 99-min MM cap).
+  const _isLongGoal = goalDist === 'half' || goalDist === 'full';
+  const _runGoalSecs = () => _isLongGoal ? parseHMS(rgH, rgM, rgS) : parseMMSS(gMin, gSec);
+
   function computeRealistic() {
     if (!vdot) return;
     const weeksPer1VDOT = vdot < 35 ? 3.5 : vdot < 50 ? 5 : 8;
     const targetVdot = vdot + (12 / weeksPer1VDOT);
     const time = projectRaceTime(targetVdot, DIST_METERS[goalDist]);
     setRealisticSug({ time, vdot: targetVdot, weeks: 12 });
-    setGMin(String(Math.floor(time / 60)));
-    setGSec(String(time % 60).padStart(2, '0'));
+    if (_isLongGoal) {
+      setRgH(String(Math.floor(time / 3600)));
+      setRgM(String(Math.floor((time % 3600) / 60)).padStart(2, '0'));
+      setRgS(String(time % 60).padStart(2, '0'));
+    } else {
+      setGMin(String(Math.floor(time / 60)));
+      setGSec(String(time % 60).padStart(2, '0'));
+    }
   }
 
   // ── Step 4 → 5 ──────────────────────────────────────────────────────────────
@@ -306,7 +321,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
       return;
     }
     if (raceGoal) {
-      const gs = parseMMSS(gMin, gSec);
+      const gs = _runGoalSecs();
       if (gs < 30) { setGoalError("Enter a valid goal time"); return; }
       const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
       const { realistic, neededWeeks } = isGoalRealistic(vdot, goalVdot, 24);
@@ -339,7 +354,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         const today = new Date().toISOString().split("T")[0];
         if (user?.id) {
           if (raceGoal) {
-            const gs = parseMMSS(gMin, gSec);
+            const gs = _runGoalSecs();
             const goalVdot = vdotFromRaceTime(DIST_METERS[goalDist], gs / 60);
             await saveRunProfile(user.id, {
               currentVdot: vdot,
@@ -686,7 +701,9 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <div style={{ marginTop:16, marginBottom:8 }}>
           <div style={{ fontSize:12, color:"rgba(var(--cm-ink-rgb),.6)", marginBottom:4 }}>Your goal time for {DIST_LABELS[goalDist]}:</div>
         </div>
-        <TimeInputMMSS min={gMin} onMin={setGMin} sec={gSec} onSec={setGSec} />
+        {_isLongGoal
+          ? <HMSInput hVal={rgH} mVal={rgM} sVal={rgS} onH={setRgH} onM={setRgM} onS={setRgS} />
+          : <TimeInputMMSS min={gMin} onMin={setGMin} sec={gSec} onSec={setGSec} />}
 
         <button onClick={computeRealistic} style={{ width:"100%", marginTop:16, padding:"12px 16px", background:"rgba(var(--cm-ink-rgb),.04)", border:"1.5px solid rgba(var(--cm-ink-rgb),.12)", borderRadius:12, color:"rgba(var(--cm-ink-rgb),.75)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
           What's realistic for me?
@@ -715,7 +732,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         </>)}
 
         {goalError && <div style={{ color:"#F87171", fontSize:12, marginTop:10 }}>{goalError}</div>}
-        <CTABtn onClick={proceedToConfirm} disabled={raceGoal && !(parseInt(gMin)||parseInt(gSec))}>See My Plan →</CTABtn>
+        <CTABtn onClick={proceedToConfirm} disabled={raceGoal && !(_runGoalSecs() > 0)}>See My Plan →</CTABtn>
       </div>
     );
   }
@@ -738,7 +755,7 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
 
   // ── Step 5: Plan Confirmation ────────────────────────────────────────────────
   function Step5Running() {
-    const gs = parseMMSS(gMin, gSec);
+    const gs = _runGoalSecs();
     const goalVdot = gs > 0 && vdot ? vdotFromRaceTime(DIST_METERS[goalDist], gs / 60) : vdot;
     const weeks = (vdot && goalVdot) ? recommendPlanWeeks(vdot, goalVdot) : 12;
     const paces = vdot ? trainingPaces(vdot) : null;
