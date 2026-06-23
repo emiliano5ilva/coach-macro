@@ -276,6 +276,40 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
 
 ---
 
+## PRODUCT BACKLOG (future features — design-first, post-core)
+_Tracked, not scheduled. Each is design-before-build; several need competitor/market research before a model is chosen._
+
+- **SESSION TYPES (user opt-in, per-day/cadence placement)** — let users add advanced session types and place them
+  on specific days / cadences. **Design model TBD via market research.**
+  - _Endurance:_ brick workouts, two-a-days (AM/PM), time-trial / benchmark tests, fartlek/tempo as tagged types.
+  - _Strength:_ EMOM/AMRAP, drop sets / supersets, max-effort testing days, deload as a surfaced session type.
+  - **ASSIGNMENT MODEL:** per-day/cadence placement (user picks types + WHERE — e.g. brick Sat, two-a-days Tue/Thu,
+    benchmark every 4wk), **NOT** a global on/off. Design via competitor research first.
+
+- **ADAPT NOW (unified smart-adjust button)** — bring back as ONE button that absorbs all in-the-moment adjustments.
+  **Keep in mind during ALL core work** (design while building core so the engine can support it):
+  - travel → no-gym bodyweight swap; injury/tweak → _"what's bothering you?"_ → avoid loading it; low energy / poor sleep
+    → lighter, HRV-driven; time-crunch → condensed; equipment-unavailable → substitute.
+
+- **EXTRAS (tracked):** injury/niggle profiles (persistent); exercise swaps/preferences **[NOTE: partially EXISTS —
+  audit what's there first]**; equipment profiles; progressive overload + PR detection; session time estimates.
+
+- **COMPETITIVE INTELLIGENCE (2026 market research):**
+  - **RP Strength** = evidence-based hypertrophy gold standard, BUT: hypertrophy-only, dated UI, limited
+    analytics/customization, $25–35/mo, 2.8 Trustpilot. **Mesostrength / Alpha Progression** = cheaper challengers.
+  - **THE GAP (our wedge):** 2026 reviews say the biggest unmet need is **hybrid** — people want muscle AND
+    running/conditioning, but pure-hypertrophy apps _"treat cardio as an afterthought, program leg day without knowing
+    you ran 8km yesterday."_ That **IS** Coach Macro's thesis.
+  - **OUR DIFFERENTIATORS:** hybrid (lift+run+nutrition) engine; Design-Award UI (vs their dated look); objective +
+    subjective auto-regulation (HRV + feedback, vs their subjective-only); deep analytics / Progress redesign;
+    fatigue-aware cross-modal programming.
+  - **ADOPT (validated best-practices → feed the PROGRAMMING ENGINE AUDIT):** volume landmarks MEV→MRV across the
+    mesocycle w/ auto-deload; stimulus-to-fatigue-ratio exercise selection; frequency per experience level; muscle
+    emphasis / maintain / ignore (RP's _"Meso Builder"_); feedback-driven weekly volume adjustment.
+  - **Keep watching:** RP Strength, Mesostrength, Alpha Progression, Hevy (UX/social leader), Fitbod, STRNDR.
+
+---
+
 ## WORKING RULES
 - **Recon-first:** STEP 0 = quote the exact current code/state before any edit; confirm assumptions against the real files (don't act on a stale premise — surface mismatches).
 - **Small, targeted edits:** minimal `str_replace`-style changes; compile-check (`esbuild` for JS, generic-destination `xcodebuild` for native) before proposing a build.
