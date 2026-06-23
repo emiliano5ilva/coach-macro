@@ -14,7 +14,7 @@ const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 // Derives all cross-mode fields needed when switching to a library program.
 // Mirrors PlanOnboarding's logic for: schedule day types, run_race_type, mode flags.
 // Returns { run_race_type, schedule, wPrefsUpdate } — caller merges and upserts.
-export function activateProgramMode({ prog, wPrefs, schedule }) {
+export function activateProgramMode({ prog, wPrefs, schedule, trainDays }) {
   // Field derivation (splitType / run_race_type / mode flags) comes from the SINGLE
   // shared core deriveProgramFields() in programResolver.js — the same function
   // resolveProgram() uses on read — so the write path and read path derive identically.
@@ -26,13 +26,22 @@ export function activateProgramMode({ prog, wPrefs, schedule }) {
 
   const run_race_type = d.runRaceType;
 
-  // Schedule: preserve which days are non-rest; change their TYPE to match the new mode.
-  // Mirrors: focus==="run"?"run":focus==="hyrox"?"hyrox":"training" in PlanOnboarding.buildSchedule.
+  // Schedule day TYPE per mode — ONE computation, reused by both the rebuild and retype paths.
   const dayType = isRun ? 'run' : isHyrox ? 'hyrox' : 'training';
+  // Day-selection fix: when the setup provided an explicit trainDays selection (run/hyrox/hybrid via
+  // RunProgramSetup), rebuild the schedule from it EXACTLY — selected → dayType, all others → 'rest'.
+  // No cap/pad: trust the user's pick (already passed the picker's ">= minDays" gate). When trainDays is
+  // ABSENT / EMPTY / non-array (lifting switches skip RunProgramSetup; never zero-out from []), keep the
+  // EXISTING retype-preserve fallback (preserve which days are non-rest from the current schedule).
+  const _useTrainDays = Array.isArray(trainDays) && trainDays.length > 0;
   const newSchedule = {};
   WDAYS.forEach(day => {
-    const cur = schedule[day] || 'rest';
-    newSchedule[day] = cur === 'rest' ? 'rest' : dayType;
+    if (_useTrainDays) {
+      newSchedule[day] = trainDays.includes(day) ? dayType : 'rest';
+    } else {
+      const cur = schedule[day] || 'rest';
+      newSchedule[day] = cur === 'rest' ? 'rest' : dayType;   // unchanged retype-preserve
+    }
   });
 
   // ── Enumerated program-mode patch (Stage 5b) ──────────────────────────────────
@@ -721,24 +730,26 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
   async function doActualSwitch(prog) {
     setSwitching(true);
     try {
-      // activateProgramMode derives all cross-mode fields: schedule day types,
-      // run_race_type, and wPrefs mode flags — mirroring PlanOnboarding's logic.
-      const act = activateProgramMode({ prog, wPrefs, schedule });
+      // [A + day-fix] Get user + re-fetch fresh profile_data ONCE up front — one read serves
+      // runProfile.trainDays (schedule rebuild), runProfile.raceDate (run_race_date column), and
+      // the calorie merge below. (saveRunProfile committed before this switch, so it's fresh.)
+      const { data: { user: me } } = await sb.auth.getUser();
+      let _freshPD = null, _freshRun = null, _fErr = false;
+      if (me) {
+        const { data: _freshRow, error: _e } = await sb.from("profiles").select("profile_data").eq("id", me.id).single();
+        _fErr = !!_e; _freshPD = _fErr ? null : (_freshRow?.profile_data ?? {}); _freshRun = _freshPD?.runProfile ?? null;
+      }
+      // activateProgramMode derives schedule + run_race_type + wPrefs mode flags. Thread the fresh
+      // trainDays so it rebuilds the schedule from the user's selection (absent/empty → retype).
+      const act = activateProgramMode({ prog, wPrefs, schedule, trainDays: _freshRun?.trainDays });
       const newWPrefs = { ...wPrefs, ...act.wPrefsUpdate };
       // (dayPlan handled by the enumerated patch: cleared off-hybrid, preserved on hybrid — Stage 5b.)
 
       const newStartDate = new Date().toISOString().split("T")[0];
       setWPrefs(newWPrefs);
 
-      const { data: { user: me } } = await sb.auth.getUser();
       if (me) {
         const calc = recalculateNutritionForProgram(profile, prog);
-        // [A] Re-fetch fresh profile_data ONCE, up front + un-gated from delta — we need
-        // runProfile.raceDate (written by saveRunProfile moments ago) for the run_race_date
-        // column write on EVERY run/hybrid switch, and it also serves the calorie merge below.
-        const { data: _freshRow, error: _fErr } = await sb.from("profiles").select("profile_data").eq("id", me.id).single();
-        const _freshPD  = _fErr ? null : (_freshRow?.profile_data ?? {});
-        const _freshRun = _freshPD?.runProfile ?? null;
         const profileUpdate = {
           id: me.id,
           wprefs: newWPrefs,
