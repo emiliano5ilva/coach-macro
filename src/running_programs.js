@@ -1342,7 +1342,7 @@ const WDAYS_ORDER = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 // Cycles for programs that have deterministic heavy-lower days.
 // Only include programs where the leg/lower day can be inferred reliably from the cycle.
 // Missing keys return null → heavyLowerDays = [] (safe/cold-start DOMS fallback).
-const HEAVY_LOWER_CYCLES = {
+export const HEAVY_LOWER_CYCLES = {
   "Push/Pull/Legs":       ["Push","Pull","Legs"],
   "Push/Pull/Legs x2":   ["Push","Pull","Legs","Push","Pull","Legs"],
   "Dumbbell PPL":         ["Push","Pull","Legs"],
@@ -1355,6 +1355,58 @@ const HEAVY_LOWER_CYCLES = {
 };
 // Focus labels that map to a heavy-lower session.
 const HEAVY_LOWER_LABELS = new Set(["Legs","Lower"]);
+
+// Hybrid-template DISPLAY NAME → an existing HEAVY_LOWER_CYCLES key. A hybrid created via
+// program-switch carries splitType = the template name (e.g. "Strength-Biased Hybrid"), NOT a lift
+// split — so without this map buildHybridDayPlan would fall to the generic "upper"-only branch. Each
+// value MUST be a real HEAVY_LOWER_CYCLES key so the rotation covers groups with no duplicate focus
+// across the lift days. Bias is expressed via cycle LENGTH (the heuristic caps lifts at min(len, n-2)):
+// 3-cycle (PPL) → ~3 lift days @5d (strength-leaning); 2-cycle (U/L) → 2 lift days (run-leaning).
+// "Hyrox Hybrid" is intentionally absent — hyrox days aren't run/lift; the switch wiring gates on !isHyrox.
+const HYBRID_TEMPLATE_CYCLES = {
+  "Strength-Biased Hybrid": "Push/Pull/Legs",   // lifter base → 3 lift days (P/P/L), strength-leaning
+  "Run-Biased Hybrid":      "Upper/Lower",      // runner base → 2 lift days (U/L), more runs
+  "Balanced Hybrid":        "Upper/Lower",      // 2 lift / 3 run @5d (heuristic floors at 2 runs; strength owns 3/2)
+  "Hybrid Foundation":      "Upper/Lower",      // beginner base → 2 lift / 2 run @4d, even
+  "Tactical Hybrid":        "Push/Pull/Legs",   // operator → 3 lift days, full-body strength + running
+};
+
+// Hybrid run/lift dayPlan from selected training days + lift split. VERBATIM the heuristic onboarding's
+// run_daymodality step uses (first nLifts days = lifts w/ split-cycle focus, rest = runs; reserve ~2 runs),
+// extracted here so onboarding AND program-switch (doActualSwitch) share ONE generator. Two refinements:
+//   • splitType may be a hybrid template NAME (switch path) → resolved via HYBRID_TEMPLATE_CYCLES so the
+//     rotation is a real split (no generic "upper"-only fallback).
+//   • longRunDay (when among trainDays) is FORCED to a run day — placed last, which always lands in the
+//     run portion because nLifts ≤ n-2 guarantees ≥2 trailing runs.
+// Returns { [day]: {run,lift,liftFocus} } or null when trainDays is empty (caller keeps its own fallback).
+export function buildHybridDayPlan(trainDays, splitType, longRunDay) {
+  const td0 = Array.isArray(trainDays) ? trainDays.slice() : [];
+  if (td0.length === 0) return null;
+  // longRunDay anchor: move it to the end so the positional pass lands it in the run portion.
+  const td = (longRunDay && td0.includes(longRunDay))
+    ? [...td0.filter(d => d !== longRunDay), longRunDay]
+    : td0;
+  const cyc = HEAVY_LOWER_CYCLES[splitType]
+    || HEAVY_LOWER_CYCLES[HYBRID_TEMPLATE_CYCLES[splitType]]
+    || null;
+  const n = td.length;
+  const nLifts = cyc
+    ? Math.max(1, Math.min(cyc.length, n - 2))
+    : splitType === "Full Body"
+    ? Math.max(1, Math.min(3, n - 2))
+    : Math.max(1, Math.min(Math.floor(n / 2), n - 2));
+  const plan = {};
+  td.forEach((d, i) => {
+    if (i < nLifts) {
+      const lbl = cyc ? cyc[i % cyc.length] : (splitType === "Full Body" ? "Full Body" : null);
+      const lf = HEAVY_LOWER_LABELS.has(lbl) ? "heavy_lower" : lbl === "Full Body" ? "full" : "upper";
+      plan[d] = { run: false, lift: true, liftFocus: lf };
+    } else {
+      plan[d] = { run: true, lift: false, liftFocus: null };
+    }
+  });
+  return plan;
+}
 
 // Pure function: profile/wPrefs/schedule in → { runDays, liftDays, heavyLowerDays } out.
 // Resolution order:
@@ -1541,6 +1593,10 @@ export function getRunWeek(profile, wPrefs, schedule, weekNum) {
       projectedFinish:  null,
     };
   }
+  // wPrefs.longRunDay is threaded into the engine as a VETOABLE PREFERENCE (buildSessions places the
+  // long run on it FIRST, but only if it passes the DOMS/adjacency guards — a recovery-bad pick is
+  // moved by the safeguard). This replaces the old blind post-engine swap (which forced obedience and
+  // killed the veto). Transparent "we moved it because X" messaging is a tracked future feature.
   const week = generateRunWeek(
     inputs.currentAbility,
     inputs.goalRace,
@@ -1550,32 +1606,8 @@ export function getRunWeek(profile, wPrefs, schedule, weekNum) {
     inputs.experience,
     inputs.liftingLoad,
     inputs.emphasis,
+    wPrefs?.longRunDay ?? null,
   );
-
-  // Honor wPrefs.longRunDay — if the engine placed the long run on a different day,
-  // swap it with the user's preferred day (only if that day has an easy/maintenance session).
-  const preferredLongDay = wPrefs?.longRunDay;
-  if (preferredLongDay) {
-    const sessions  = week.sessions;
-    const engineLong = sessions.find(s => s.type === 'long');
-    if (engineLong && engineLong.day !== preferredLongDay) {
-      const targetIdx = sessions.findIndex(
-        s => s.day === preferredLongDay && (s.type === 'easy' || s.type === 'maintenance')
-      );
-      if (targetIdx !== -1) {
-        const engineIdx    = sessions.indexOf(engineLong);
-        const origTarget   = sessions[targetIdx];
-        sessions[targetIdx] = { ...engineLong, day: preferredLongDay };
-        sessions[engineIdx] = {
-          day:        engineLong.day,
-          type:       'easy',
-          distanceMi: origTarget.distanceMi,
-          pace:       '{easy}',
-          note:       'Easy effort. Zone 2. Conversational throughout.',
-        };
-      }
-    }
-  }
 
   return week;
 }

@@ -161,13 +161,26 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
   already-present `HEAVY_LOWER_CYCLES`/`HEAVY_LOWER_LABELS` — the onboarding `_CYCS`/`_HEAVY_LABELS` were verified
   byte-identical dups). Wire into `activateProgramMode` (hybrid target + `trainDays` present → set `wPrefsUpdate.dayPlan`)
   and refactor onboarding to call the shared fn. Heuristic VERBATIM (lifts = `min(cycle-len | floor(n/2) | 3, n−2)`, ≥1,
-  reserve ~2 runs). **Wrinkle:** on a switch `splitType` = hybrid template name (not a lift split) → no cycle match →
-  generic `"upper"` lift days (no `heavy_lower`); still closes the degenerate Path 3, just less precise than onboarding.
-  Draft ready; awaiting build approval.
-  - **ENHANCEMENT (future, not the fix):** template-specific run:lift ratio — differentiate strength-biased vs run-biased
-    hybrid templates (currently the ratio is a single generic `n−2` heuristic; no per-template ratio data exists).
-  - **ENHANCEMENT (future, not the fix):** `longRunDay` anchoring — force the long-run day to a run day in the generated
-    dayPlan (the current generator assigns run/lift positionally and ignores `longRunDay`).
+  reserve ~2 runs). **BUILT (Pass 2, `NativeApp-df7bb7ec.js`) — onboarding parity proven byte-identical; NOT yet
+  committed.** Pass 2 also resolved the original "generic upper" wrinkle via `HYBRID_TEMPLATE_CYCLES` (hybrid template
+  name → a real lift-split cycle: Strength-Biased→PPL, Run-Biased/Balanced/Foundation→Upper/Lower, Tactical→PPL; Hyrox
+  excluded) and folded in the `longRunDay` anchor (chosen day forced to a run day).
+  - 🔴 **BLOCKER — long-run source-of-truth split (must fix before committing Pass 2).** The switch writes the user's
+    `longRunDay` pick to `runProfile.longRunDay` (which the dayPlan honors), but the run-engine session-type
+    reconciliation (`getRunWeek` `running_programs.js:1607`) reads **`wPrefs.longRunDay`**, which the switch leaves
+    **stale** → chosen day becomes a run but gets an **easy** session, long run lands elsewhere. **FIX (decided: SYNC + PRESERVE VETO).** Sync-ONLY is insufficient: `generateRunWeek`/`buildSessions` never receive
+    the pick (they compute a DOMS-safe day themselves), and the post-engine reconciliation (`running_programs.js:1607`)
+    blindly overrides it — so syncing alone *forces obedience* and kills the safeguard. Agreed wiring = 3 coordinated
+    changes: **(A)** sync `wPrefsUpdate.longRunDay = longRunDay` on run/hybrid when fresh pick present
+    (`ProgramLibrary.jsx:83`); **(B)** thread `wPrefs.longRunDay` → `generateRunWeek` → `buildSessions` and make it the
+    FIRST entry in the placement preference loop (`runEngine.js:362`) under the SAME DOMS/adjacency guards
+    (`[preferredLongDay,'Sat','Sun'].filter(Boolean)`) → recovery-fine pick honored, recovery-bad pick fails the guard
+    and the engine moves it (veto intact); **(C)** delete the blind reconciliation (`running_programs.js:1607-1630`).
+    This ALSO dissolves the quality-day case (engine picks long day first; quality days exclude it via
+    `candidates = days.filter(d => d !== longRunDay)`) — no limitation to track. Transparent messaging = the Transparent
+    Recovery-Aware Long Run item below (NOT this fix). Diff confirmed; awaiting go to apply + build + re-test.
+  - **ENHANCEMENT (future):** template-specific run:lift ratio — differentiate strength-biased vs run-biased templates
+    (the generic `n−2` heuristic only varies bias by cycle length; no per-template ratio data exists). [audit's job]
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
   Read-side drift bugs (Today-tab program-switch; Upper/Lower title-vs-exercises) also RESOLVED._
 
@@ -274,9 +287,16 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
   - **METHOD:** audit what exists first **(decision: option 3)** → define the standard → encode. Applies **system-wide**,
     including re-touching the hybrid dayPlan generator built in the quick fix.
 
----
-
-## PRODUCT BACKLOG (future features — design-first, post-core)
+- **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
+  The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
+  never-adjacent-to-heavy-legs via `daysAdjacent`, personalized DOMS windows from `domsProfile.peakHours`,
+  `recoveryCapacity` modulation; post-Pass-2 it also reasons about hybrid heavy-lower days, fed from the dayPlan via
+  `deriveDayModality.heavyLowerDays` → `liftingLoad`). **What's MISSING is the transparent/collaborative UX layer:**
+  (1) when the user's `longRunDay` pick is recovery-suboptimal, **SHOW the engine's reasoning** (_"Wednesday puts your
+  long run the day after heavy legs — Saturday gives 48h recovery"_); (2) **RECOMMEND** the optimal day but let the user
+  keep their pick; (3) **re-flow** the week's recovery around whatever they choose. Today the user-pick reconciliation
+  (`getRunWeek` :1607) is a **blind conditional swap** with no DOMS reasoning and no messaging. = surface + wire the
+  existing engine reasoning + a messaging layer, **NOT** build the model. Belongs with the audit's recovery-placement work.
 _Tracked, not scheduled. Each is design-before-build; several need competitor/market research before a model is chosen._
 
 - **SESSION TYPES (user opt-in, per-day/cadence placement)** — let users add advanced session types and place them

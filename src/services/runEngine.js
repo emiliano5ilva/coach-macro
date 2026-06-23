@@ -348,7 +348,8 @@ function buildSessions(
   emphasis,          // 'endurance' | 'speed' | 'consistency' — only used when phase === 'general'
   isDownWeek,        // passed from generateRunWeek for maintenance-conversion guard
   longestRunMi,      // athlete's current longest comfortable run — anchors session distances
-  currentRunsPerWeek // athlete's current weekly run frequency — 0 = non-runner
+  currentRunsPerWeek,// athlete's current weekly run frequency — 0 = non-runner
+  preferredLongDay   // user's chosen long-run day — a PREFERENCE, honored only if recovery-safe (else vetoed)
 ) {
   const days      = [...daysAvailable].sort((a, b) => (DAY_ORDER[a] || 0) - (DAY_ORDER[b] || 0));
   const numDays   = days.length;
@@ -358,9 +359,11 @@ function buildSessions(
   // Item 7 — compute DOMS-blocked days
   const domsBlocked = getDOMSBlockedDays(heavyDays, domsProf, recoveryCapacity);
 
-  // Long run day: prefer Sat > Sun, skip DOMS-blocked and adj-to-heavy days
+  // Long run day: user's pick FIRST (vetoable), then Sat > Sun — all under the SAME guards
+  // (skip DOMS-blocked + adjacent-to-heavy). A recovery-bad user pick fails the guard and the
+  // engine falls through to a safe day → the DOMS safeguard retains its veto.
   let longRunDay = null;
-  for (const pref of ['Sat', 'Sun']) {
+  for (const pref of [preferredLongDay, 'Sat', 'Sun'].filter(Boolean)) {
     if (days.includes(pref) && !domsBlocked.has(pref) && !heavyDays.some(h => daysAdjacent(pref, h))) {
       longRunDay = pref;
       break;
@@ -567,6 +570,7 @@ export function generateRunWeek(
   experience,
   liftingLoad,
   emphasis,
+  preferredLongDay,   // user's chosen long-run day — threaded to buildSessions as a vetoable preference
 ) {
   const seconds5K          = currentAbility?.seconds5K || null;
   const currentRunsPerWeek = currentAbility?.currentRunsPerWeek ?? 2; // ?? preserves 0 (non-runner)
@@ -598,7 +602,7 @@ export function generateRunWeek(
   const sessions = buildSessions(
     phase, exp, days, weeklyVolume, goalDistance,
     liftLoad, weekInPlan, phases, recoveryCapacity, isRaceWeek, _emphasis, isDownWeek,
-    longestRunMi, currentRunsPerWeek
+    longestRunMi, currentRunsPerWeek, preferredLongDay
   );
 
   return {

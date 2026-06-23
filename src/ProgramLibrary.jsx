@@ -7,6 +7,7 @@ import { MUSCLE_GROUP_POOL } from "./exercise_database.js";
 import { showToast } from "./utils/toast.js";
 import RunProgramSetup from "./RunProgramSetup.jsx";
 import { deriveProgramFields } from "./utils/programResolver.js";
+import { buildHybridDayPlan } from "./running_programs.js";
 
 const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 
@@ -14,7 +15,7 @@ const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 // Derives all cross-mode fields needed when switching to a library program.
 // Mirrors PlanOnboarding's logic for: schedule day types, run_race_type, mode flags.
 // Returns { run_race_type, schedule, wPrefsUpdate } — caller merges and upserts.
-export function activateProgramMode({ prog, wPrefs, schedule, trainDays }) {
+export function activateProgramMode({ prog, wPrefs, schedule, trainDays, longRunDay }) {
   // Field derivation (splitType / run_race_type / mode flags) comes from the SINGLE
   // shared core deriveProgramFields() in programResolver.js — the same function
   // resolveProgram() uses on read — so the write path and read path derive identically.
@@ -67,14 +68,21 @@ export function activateProgramMode({ prog, wPrefs, schedule, trainDays }) {
     hybridTemplate: isHybrid ? prog.name : null,
     prescType: null,
     splitLabel: null,
-    // dayPlan: cleared off-hybrid; preserved on a hybrid target
-    ...(isHybrid ? {} : { dayPlan: null }),
+    // dayPlan: off-hybrid → cleared. Hybrid (non-hyrox) WITH a trainDays selection → GENERATE the
+    // run/lift layout from it (closes deriveDayModality Path 3 + the sections.jsx:2543 hybridModality
+    // gate; splitType=template name resolves to a real split via HYBRID_TEMPLATE_CYCLES; longRunDay
+    // anchors a run day). Hyrox-hybrid or no trainDays → preserve (omit).
+    ...((isHybrid && !isHyrox && Array.isArray(trainDays) && trainDays.length)
+        ? { dayPlan: buildHybridDayPlan(trainDays, d.splitType, longRunDay) }
+        : isHybrid ? {} : { dayPlan: null }),
     // run-plan anchor: fresh on run; preserved on hybrid; cleared on lift/hyrox
     ...(isRun ? { runPlanStartDate: _today } : isHybrid ? {} : { runPlanStartDate: null }),
     // run-detail: preserved on run AND hybrid; cleared on lift/hyrox
     ...((isRun || isHybrid) ? {} : { runFocus: null, currentRunsPerWeek: null, longestRunMi: null, planWeeks: null, recoveryCapacity: null }),
-    // longRunDay: owned by run AND hybrid; cleared on lift/hyrox
-    ...((isRun || isHybrid) ? {} : { longRunDay: null }),
+    // longRunDay: owned by run AND hybrid. SYNC the fresh pick into wPrefs (one source of truth with the
+    // dayPlan's runProfile.longRunDay) so getRunWeek feeds the engine the user's actual choice as a
+    // vetoable preference; no fresh pick → preserve (omit). Cleared on lift/hyrox.
+    ...((isRun || isHybrid) ? (longRunDay ? { longRunDay } : {}) : { longRunDay: null }),
   };
 
   return { run_race_type, schedule: newSchedule, wPrefsUpdate };
@@ -741,7 +749,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       }
       // activateProgramMode derives schedule + run_race_type + wPrefs mode flags. Thread the fresh
       // trainDays so it rebuilds the schedule from the user's selection (absent/empty → retype).
-      const act = activateProgramMode({ prog, wPrefs, schedule, trainDays: _freshRun?.trainDays });
+      const act = activateProgramMode({ prog, wPrefs, schedule, trainDays: _freshRun?.trainDays, longRunDay: _freshRun?.longRunDay });
       const newWPrefs = { ...wPrefs, ...act.wPrefsUpdate };
       // (dayPlan handled by the enumerated patch: cleared off-hybrid, preserved on hybrid — Stage 5b.)
 

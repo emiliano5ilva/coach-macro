@@ -31,7 +31,7 @@ import { displayDistance, distanceLabel } from "./utils/units.js";
 import { minSecToInterval, PLAN_TO_RACE_TYPE } from "./utils/runPlanUtils.js";
 import { resolveProgram, inferEntryFromFields } from "./utils/programResolver.js";
 import { estimateActiveKcal } from "./utils/calorieEstimate.js";
-import { getTodayRunWorkout, getTodayHyroxWorkout } from "./running_programs.js";
+import { getTodayRunWorkout, getTodayHyroxWorkout, buildHybridDayPlan, HEAVY_LOWER_CYCLES } from "./running_programs.js";
 import { getPacesFromTime, resolvePaceTokens } from "./utils/runningPaces.js";
 import { recordWorkoutBioData, getInsights, getDataPointCounts, calcPerformanceScore } from "./services/biologicalAlgorithm.js";
 import { calculatePRProbability, generateWeeklyForecast, calculateGoalTrajectories, calcNutritionAdherence7d, trackPredictionOutcome } from "./services/predictionEngine.js";
@@ -4741,40 +4741,12 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
       // ── RUN DAY-MODALITY (4b-7) — hybrid only — maps each selected day to run/lift/heavy ─
       case "run_daymodality": {
         const _td=_PLAN_DAYS.filter(d=>selDays.has(d));
-        // Canonical lift cycles — same keys as HEAVY_LOWER_CYCLES in deriveDayModality
-        const _CYCS={
-          "Push/Pull/Legs":       ["Push","Pull","Legs"],
-          "Push/Pull/Legs x2":   ["Push","Pull","Legs","Push","Pull","Legs"],
-          "Dumbbell PPL":         ["Push","Pull","Legs"],
-          "Upper/Lower":          ["Upper","Lower"],
-          "Upper Lower":          ["Upper","Lower"],
-          "Dumbbell Upper Lower": ["Upper","Lower"],
-          "Bro Split":            ["Chest","Back","Shoulders","Arms","Legs"],
-          "Arnold Split":         ["Chest & Back","Shoulders & Arms","Legs"],
-          "PHUL":                 ["Upper","Lower","Upper","Lower"],
-        };
-        const _HEAVY_LABELS=new Set(["Legs","Lower"]);
-        const _cyc=_CYCS[splitType]||null;
-        const _n=_td.length;
-        // nLifts: one cycle's worth of lift days, leaving at least 2 run days for hybrid
-        const _nLifts=_cyc
-          ? Math.max(1,Math.min(_cyc.length,_n-2))
-          : splitType==="Full Body"
-          ? Math.max(1,Math.min(3,_n-2))
-          : Math.max(1,Math.min(Math.floor(_n/2),_n-2));
-        // Build inferred plan: first _nLifts days = lifts, rest = runs
-        const _infPlan={};
-        _td.forEach((d,i)=>{
-          if(i<_nLifts){
-            const _lbl=_cyc?_cyc[i%_cyc.length]:(splitType==="Full Body"?"Full Body":null);
-            const _lf=_HEAVY_LABELS.has(_lbl)?"heavy_lower":_lbl==="Full Body"?"full":"upper";
-            _infPlan[d]={run:false,lift:true,liftFocus:_lf};
-          } else {
-            _infPlan[d]={run:true,lift:false,liftFocus:null};
-          }
-        });
+        // Inferred hybrid day-plan — SHARED generator (running_programs.js buildHybridDayPlan): first
+        // nLifts days = lifts (split-cycle focus), rest = runs, longRunDay forced to a run. Same logic
+        // this step shipped inline; extracted so program-switch (doActualSwitch) reuses it.
+        const _infPlan=buildHybridDayPlan(_td,splitType,longRunDay)||{};
         const _plan=dayPlan??_infPlan;
-        const _hasInf=!!_cyc||splitType==="Full Body";
+        const _hasInf=!!HEAVY_LOWER_CYCLES[splitType]||splitType==="Full Body";
         const _getDayType=d=>{
           const e=_plan[d];
           if(!e||e.run) return 'run';
