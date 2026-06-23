@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7-flag fix shipped; RunProgramSetup keyboard-free rolodex DONE; **`doActualSwitch` clobber FIXED & VERIFIED on-device** (runProfile survives the hybrid switch); **BUG 2 (phantom 5K) DONE**; **A (in-session runProfile propagation) + B (program_start_date week/day anchor) DONE & verified** (commit `3f1b83c`); new OPEN bug: run/hybrid day selection ignored ("caps at 4" — `trainDays` never rebuilds the schedule) (branch `goclub-redesign`)._
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2 (phantom 5K), A (in-session runProfile propagation), B (program_start_date week/day anchor), **day-selection "caps at 4" (commit `572f811`)** all DONE & verified on-device; morning-brief "didn't load" investigated → NOT a defect (stale-cache blip). **Only open housekeeping: restore the `d3d00001` drift fixture (currently `c25k` from testing).** Tracked follow-ups remain: hybrid run/lift dayPlan split; catalog already shipped (branch `goclub-redesign`)._
 
 ---
 
@@ -130,16 +130,16 @@ _Last updated: 2026-06-22 — **program-drift Stage 5 arc COMPLETE** + catalog 7
   run/hybrid target (null-safe → BUG 2 preserved; fetch-fail → preserve), and propagates `run_race_date` + `runProfile` into the
   `onProfileUpdate` React patch. Race countdown/paces now refresh **in-session** (no relaunch); also feeds the other
   `run_race_date`-column readers. Verified: in-session countdown on a race switch, no phantom on a no-race switch.
-- **BUG — run/hybrid day selection ignored (looks like "caps at 4")** — OPEN. User picks 5–6 training days; they persist to
-  `runProfile.trainDays` but **NEVER rebuild the schedule**. `doActualSwitch`/`activateProgramMode` **retypes the existing
-  (prior program's) schedule** (`schedule[day]==='rest' ? 'rest' : dayType`) and never reads `trainDays`. So routing uses the
-  stale ~4-day schedule; `trainDays` is write-only/display-only (Step-5 summary). Confirmed on-device + DB:
-  `trainDays=['Mon'..'Fri']` (5) vs a schedule with 4 `'training'` days. **FIX DIRECTION:** on a run/hybrid setup, rebuild
-  `act.schedule` from the selected `trainDays` (selected weekdays → mode day type, rest → `rest`) instead of retyping the stale
-  schedule. `doActualSwitch` already re-fetches `profile_data` (for the A fix), so it can read `runProfile.trainDays` there.
-  Own task — recon→fix→device-test. **(Diff drafted, awaiting review: `activateProgramMode` takes `trainDays` and rebuilds
-  schedule when present+non-empty (exact selection, no cap), else retype-fallback; `doActualSwitch` threads `_freshRun.trainDays`
-  from the existing A re-fetch.)**
+- ✅ **Run/hybrid day selection ignored ("caps at 4") — FIXED & VERIFIED on-device** (commit `572f811`). User-picked 5–6
+  training days persisted to `runProfile.trainDays` but never rebuilt the schedule — `activateProgramMode` retyped the prior
+  program's schedule, silently capping at the old day count. Now `activateProgramMode` takes `trainDays` and rebuilds the schedule
+  from it when present+non-empty (selected → `dayType`, rest → `'rest'`; **exact selection, no cap**), else the retype-preserve
+  fallback (lifting switches, which carry no `trainDays`); `doActualSwitch` threads `_freshRun.trainDays` from the existing A
+  re-fetch (one read). Verified on `d3d00001`: 5-day `c25k` pick → 5 run days, `trainDays == schedule`, no cap.
+- ✅ **Morning brief "didn't load" on run account — INVESTIGATED, NOT a defect.** Stale-cache/date-rollover blip (a `2026-06-22`
+  cached brief while the device rolled to `2026-06-23`); self-resolved on cache-clear + reload. The brief **regenerates correctly
+  for run/no-race** — verified via a fresh `morning_briefs` row (coherent `c25k` content) and **zero `brief_error` breadcrumbs**.
+  The static pass was right: no unguarded null-read on the run/no-race path. (Temporary `brief_error` breadcrumb reverted.)
 - **BUG/GAP — hybrid run/lift day split not generated from `trainDays`** — OPEN. `RunProgramSetup` collects no per-day run/lift
   assignment and builds no `dayPlan`; only onboarding does. So a hybrid set up via program-switch has **no `dayPlan`** →
   `deriveDayModality` Path 3 (degenerate: every training day = both run AND lift) AND `sections.jsx:2543` gates `hybridModality`
