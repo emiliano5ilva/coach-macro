@@ -165,7 +165,7 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
   committed.** Pass 2 also resolved the original "generic upper" wrinkle via `HYBRID_TEMPLATE_CYCLES` (hybrid template
   name → a real lift-split cycle: Strength-Biased→PPL, Run-Biased/Balanced/Foundation→Upper/Lower, Tactical→PPL; Hyrox
   excluded) and folded in the `longRunDay` anchor (chosen day forced to a run day).
-  - 🔴 **BLOCKER — long-run source-of-truth split (must fix before committing Pass 2).** The switch writes the user's
+  - ✅ **RESOLVED in Pass 2 (`43f6ae1`) — long-run source-of-truth split + vetoable preference.** The switch wrote the user's
     `longRunDay` pick to `runProfile.longRunDay` (which the dayPlan honors), but the run-engine session-type
     reconciliation (`getRunWeek` `running_programs.js:1607`) reads **`wPrefs.longRunDay`**, which the switch leaves
     **stale** → chosen day becomes a run but gets an **easy** session, long run lands elsewhere. **FIX (decided: SYNC + PRESERVE VETO).** Sync-ONLY is insufficient: `generateRunWeek`/`buildSessions` never receive
@@ -178,7 +178,23 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
     and the engine moves it (veto intact); **(C)** delete the blind reconciliation (`running_programs.js:1607-1630`).
     This ALSO dissolves the quality-day case (engine picks long day first; quality days exclude it via
     `candidates = days.filter(d => d !== longRunDay)`) — no limitation to track. Transparent messaging = the Transparent
-    Recovery-Aware Long Run item below (NOT this fix). Diff confirmed; awaiting go to apply + build + re-test.
+    Recovery-Aware Long Run item below (NOT this fix). APPLIED + committed in `43f6ae1`; engine harness (`getRunWeek`
+    end-to-end) proved honor/veto/fallthrough for SHORT names.
+  - 🟡 **Pass 2 DEVICE-VERIFICATION IN PROGRESS (resume next session) — do NOT push `43f6ae1`, do NOT revert the
+    breadcrumb, until all 3 resolve.** Engine harness proved the logic; on-device render verification is incomplete.
+    State: Pass 2 committed (`43f6ae1`) **NOT pushed**; temp `lr_decision` breadcrumb **uncommitted** (live as
+    `NativeApp-c78f2589.js`); `d3d00001` collapsed to this test setup (`strength_run`, 5-day). Three open threads:
+    1. **DB/screen mismatch — RESOLVE FIRST (diagnosis unreliable until DB == what was actually picked).** User
+       described picking **6 days (Mon–Thu, Sat, Sun) + long-run Sunday**, but DB shows `trainDays=[Mon,Tue,Wed,Sat,Sun]`
+       (**5 days**) + `longRunDay=Sat`. Either a pick didn't save or a prior setup is what persisted.
+    2. **Cycle-mapping gap — `HYBRID_TEMPLATE_CYCLES[splitType]` not resolving for Strength-Biased on the switch path.**
+       Generated dayPlan came out `upper/upper/heavy_lower` (Upper/Lower split) instead of the intended **Push/Pull/Legs**
+       (Strength-Biased→PPL). "lower,lower" dupe IS fixed (distinct focuses), but template-specific PPL isn't taking —
+       it's falling through to generic Upper/Lower. RECON why the template-name lookup misses (likely `splitType`
+       value/format at the switch call site ≠ the map key `"Strength-Biased Hybrid"`).
+    3. **`lr_decision` breadcrumb didn't fire (no rows) — `getRunWeek` not hit on the run-day view used.** Determine
+       where `getRunWeek` actually runs / why no log, so the honor/veto test CAN be verified. (Breadcrumb stays
+       uncommitted; keep it.)
   - **ENHANCEMENT (future):** template-specific run:lift ratio — differentiate strength-biased vs run-biased templates
     (the generic `n−2` heuristic only varies bias by cycle length; no per-template ratio data exists). [audit's job]
 - _**Onboarding-completion auto-nav** (was here) is RESOLVED — see DONE & VERIFIED.
