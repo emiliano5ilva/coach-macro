@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`)._
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.**_
 
 ---
 
@@ -326,6 +326,75 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     "byte-for-byte unchanged"). **FIX = the AUDIT's core job:** drive per-day lift content from the cycle/dayPlan
     (correct body part per picked day, no dropped muscle groups), unify the 3 representations to one source. **This is
     the audit's flagship concrete example.**
+
+  - **📋 PHASE 0 RECON MAP (2026-06-24) — the audit's factual foundation. Next session DESIGNS from this; do not re-derive.**
+    Read-only map of how content flows TODAY. Four parts:
+
+    **(1) CONTENT SOURCES — per program type.** Central dispatch: every day routes through `resolveProgram(wPrefs,
+    profile).mode` (`programResolver.js:132`; modes `hybrid-hyrox|hyrox|hybrid|running|conditioning|lifting`). Two
+    consumers read it: Train tab (`sections.jsx:2535`, per-day `if/else` chain `:2588–2676`) and Today tab
+    (`ob_screens2.jsx:7858`, mirrors Train).
+
+    | Type | Source | Entry point | Class | Keyed by |
+    |---|---|---|---|---|
+    | Pure lifting | `PROGRAMS_BY_DAYS[days].splits[splitType].workouts[dayKey]` | `getWorkoutForDay()` `programs.js:2598` (call `sections.jsx:2589`) | Static template + runtime overlay (progression/SKILL_OVERRIDES/GVT/soreness) | `splitType`→`selectDayKey()` `:2589`→`_sessionIndex()` `:2561` = cycle index anchored on `program_start_date` |
+    | Pure run | run engine `generateRunWeek()` `runEngine.js:564` | `getTodayRunWorkout()` `running_programs.js:1618`→`getRunWeek()` `:1581` (call `sections.jsx:2611`) | Generator | day name in generated week (`:1630`) |
+    | Hybrid lift days | `HYBRID_PROGRAMS[template].weekly_structure` | `getTodayHybridWorkout()` `running_programs.js:1658` (call `sections.jsx:2670`) | Static template | **DAY NAME hardcoded** (flagship defect) |
+    | Hybrid run days | run engine (same as pure run) | `getTodayRunWorkout()` (call `sections.jsx:2651`) | Generator | `deriveDayModality()` `running_programs.js:1417` + `dayPlan` |
+    | HYROX | `HYROX_PROGRAM[name].weeks_detail[].days[]` `running_programs.js:675` | `getTodayHyroxWorkout()` `:1651` (call `sections.jsx:2632`) | Static template (sparse) | (weekNumber, day name) |
+    | Conditioning/metcon | `PROGRAMS_BY_DAYS` conditioning split keys (e.g. `programs.js:471`) | `getWorkoutForDay()` — mode collapsed conditioning→lifting at `sections.jsx:2536` | Static template (lifting path) | same cycle-index walk |
+
+    Catalog→source: `PROGRAM_LIBRARY` (`programs.js:2455`) via flags in `deriveProgramFields` (`programResolver.js:57`):
+    no-flag→lifting; `isConditioning`→conditioning(→lifting); `isRun`→run engine; `isHyrox`→HYROX; `isHybrid`→
+    HYBRID_PROGRAMS+run engine; `isHybrid+isHyrox`→`getTodayHybridWorkout("Hyrox Hybrid")`. **Dead/orphaned content
+    (exported, zero daily-dispatch consumers):** `CONDITIONING_PROGRAMS` (`programs.js:2373`), `STRONGLIFTS_5x5` (`:2433`;
+    live SL5x5 is the in-`PROGRAMS_BY_DAYS` split), `GLUTE_PROGRAMS` (`:1543`; picker-UI only). **Catalog gap:**
+    `hybrid_foundation`/`tactical_hybrid` have NO matching `HYBRID_PROGRAMS` template (only 4 templates exist there).
+
+    **(2) MUSCLE COVERAGE — static lifting content is largely COACH-GRADE (so the audit is mostly "connect content to
+    dayPlan," NOT "rebuild content").** Core splits (6-day PPL×2, 5-day ULPPL, Bro Split, Arnold) hit all 3 delt heads
+    (lateral+face pull+rear-delt fly), triceps long/lateral, biceps long/short/brachialis, quads/hams/calves. Exercise
+    schema: `{name,sets,reps,notes,primary}`. Golden-Era/signature programs EXIST and are author-faithful: Arnold Split
+    (`programs.js:1336`), Platz Volume (`:995`), HIT/Mentzer (`:444`), Nubret/Weider/Reg Park/GVT (no "Zane"). Full
+    novice/advanced arrays via `SKILL_OVERRIDES`. **Two content-level gaps (not rebuilds):** (a) NO structured
+    `rest`/`tempo`/`RIR` field anywhere — rest only as prose in some `notes`; (b) THREE incompatible schemas —
+    `PROGRAMS_BY_DAYS`/`GLUTE_PROGRAMS` use `workouts{day:[...]}`, PREGNANCY/POSTPARTUM use flat `exercises[]`,
+    `HYBRID_PROGRAMS` (running file) stores lift days as **free-text `description` strings** ("Deadlift 4×3-5, Barbell
+    Row 4×4-6…"), not arrays. Minor selection gaps: standard PPL/Upper-Lower no direct hip-thrust; PHUL Power Upper +
+    2-day Full Body lack a dedicated rear-delt move.
+
+    **(3) GOOD vs BROKEN.** WORKS AS-IS: **Pure lifting definitively does NOT share the hybrid disconnect** — title +
+    content use the SAME `_sessionIndex` cycle-walk with matching args (content `getWorkoutForDay`/`selectDayKey`
+    `programs.js:2598/2589`; title `selectDayKey`+`baseName` `NativeApp.jsx:937–945`; brief `morningBriefService.js:60`);
+    pick any N days → cycle advances correctly, no dropped day (the Stage-6 unification). Pure run consistent (title +
+    content both from generated `runWeek`). Conditioning inherits lifting's correct path. Hybrid run days route through
+    the engine + respect dayPlan. BROKEN/GAPS: 🔴 hybrid lift-day content↔dayPlan disconnect (`getTodayHybridWorkout`
+    `running_programs.js:1658` matches by day name, ignores `dayPlan`); three disconnected hybrid lift-day reps disagree
+    (`liftFocus` enum `ob_screens2.jsx:4748`; WeekStrip `autoFocus`→`SPLIT_CYCLES` has no hybrid key→"Full Body"
+    `components.jsx:187/444`; static day-name content); **HYROX undefined-weeks gap** — `weeks_detail` defines only a few
+    weeks (12-week = 1,4,8,10,12), `getTodayHyroxWorkout` returns `null` otherwise → "No Program Selected"
+    (`sections.jsx:4207`) on real training days; hybrid/HYROX have NO week-to-week progression engine (same static
+    structure every week; overload text-only).
+
+    **(4) STANDARDS GAP (adopt-list vs today).**
+    | Standard | Status | Evidence |
+    |---|---|---|
+    | Volume landmarks MEV→MRV + auto-deload | PARTIAL | MEV/MAV/MRV are display-only analytics (`MuscleVolumeChart.jsx:49–89`), `OPTIMAL_SETS` zones (`recoveryService.js:27`); deload real but signal-based fixed 50% cut (`deloadService.js:17`), NOT a weekly ramp; not wired to generation |
+    | Stimulus-to-Fatigue-Ratio selection | GREENFIELD | zero hits; `exerciseMuscleMap.js` has only primary/secondary + prose, no SFR scores |
+    | Frequency per experience level | PARTIAL | per-SESSION sets/reps/rest/RPE by goal×level wired (`data/prescription.js:18`, `getPrescription` `:123`, used `sections.jsx:2713`)+`SKILL_OVERRIDES`; training age `progressionService.js:130`. Per-MUSCLE weekly frequency by level = greenfield |
+    | Emphasis / maintain / ignore | PARTIAL | `weakPoints` collected (`onboarding.jsx:1681`), used only to SORT priority exercises (`sections.jsx:2741`, `ait.js:109`); no extra sets/freq, no maintain/ignore tiers, no reallocation |
+    | Feedback-driven weekly volume adj. | PARTIAL | single GLOBAL LLM `volumeAdjustment` multiplier (`adaptiveAnalysisService.js:95`→`adaptiveSessionService.js:78`), not per-muscle set add/cut |
+
+    **WIRED BASELINE that already EXISTS (audit does NOT rebuild this) — app is a daily readiness/recovery
+    autoregulation system, not an RP mesocycle system:** multi-signal readiness modifier (`recoveryService.js:218`),
+    per-lift autoregulated progression + plateau detect (`progressionService.js:45/105`), personalized DOMS learning
+    (`domsLearningService.js`), session-spacing guards (`adaptiveSessionService.js:6`), run-engine DOMS-aware lift
+    placement (`runEngine.js:158`), strength-sport phase periodization (`strengthPeriodisationService.js`), on-the-fly
+    AI session adaptation (`sections.jsx:949`).
+
+    **⚠️ SETS/REPS TWO-SOURCE RECONCILIATION NOTE:** sets/reps have TWO sources — the static templates' own `sets/reps`
+    in `PROGRAMS_BY_DAYS`, AND the `getPrescription` goal×level scheme applied at `sections.jsx:2713`. How they interact
+    (override vs merge) must be confirmed when the audit defines the volume standard.
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
