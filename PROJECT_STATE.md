@@ -185,9 +185,11 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
     State: Pass 2 committed (`43f6ae1`) **NOT pushed**; temp `lr_decision` breadcrumb **uncommitted** (live as
     `NativeApp-c78f2589.js`); `d3d00001` collapsed to this test setup (`strength_run`, 5-day). Threads (#2 RESOLVED;
     **#1 and #3 remain — resolve #1 first**):
-    1. **DB/screen mismatch — RESOLVE FIRST (diagnosis unreliable until DB == what was actually picked).** User
-       described picking **6 days (Mon–Thu, Sat, Sun) + long-run Sunday**, but DB shows `trainDays=[Mon,Tue,Wed,Sat,Sun]`
-       (**5 days**) + `longRunDay=Sat`. Either a pick didn't save or a prior setup is what persisted.
+    1. ✅ **RESOLVED — NOT A BUG.** User clarified the pick was **Mon/Tue/Wed/Sat/Sun (5 days, no Thursday)** — exactly
+       what the DB shows (`trainDays=[Mon,Tue,Wed,Sat,Sun]`). Last session's "6 days + Thursday" was a description
+       misremember, not a save failure; the day-count save path is correct. (The "long-run Sunday" recollection vs
+       DB `longRunDay=Sat` is also explained by thread #3: user PICKED Sat, the safeguard MOVED the long run to Sun,
+       so the user saw Sunday and conflated it with the pick.)
     2. ✅ **RESOLVED — NOT A BUG (recon).** `HYBRID_TEMPLATE_CYCLES` resolves correctly: `d.splitType = prog.name =
        "Strength-Biased Hybrid"` (hyphen) matches the map key (hyphen) exactly → chain resolves to **Push/Pull/Legs**.
        The observed `[upper, upper, heavy_lower]` dayPlan **IS** PPL — it's the signature (`heavy_lower` on the **3rd**
