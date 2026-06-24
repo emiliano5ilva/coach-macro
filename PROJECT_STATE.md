@@ -396,6 +396,38 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     in `PROGRAMS_BY_DAYS`, AND the `getPrescription` goal×level scheme applied at `sections.jsx:2713`. How they interact
     (override vs merge) must be confirmed when the audit defines the volume standard.
 
+  - **✅ PHASE 1 DESIGN DECISION (SETTLED 2026-06-24) — designed from the Phase 0/1 recon above.**
+
+    **UNIFIED EXERCISE SCHEMA:** extend the existing 5-field lifting object `{name, sets, reps, notes, primary}` with
+    structured fields `{rest:Number(sec), tempo:String|null, rir:Number|null, secondary:[String]|null}`. Constraints
+    from recon: (1) `name` is the universal join key across ~15 consumers + DB — **NEVER reformatted**; (2) new fields
+    are generation/render-time only — **NOT persisted** (`finishWorkout` `ob_screens2.jsx:8334` stores only `name` +
+    per-set `{weight,reps,done}`), so **NON-BREAKING, no `workout_logs` migration**; (3) the prescription overlay
+    (`getPrescription` `data/prescription.js:123`) already populates sets/reps/rest and currently **DROPS `rpe`** — the
+    new `rir` field is where dropped `rpe` goes.
+
+    **SETS/REPS RECONCILIATION (Phase 2 — mostly already done in code):** the live behavior is
+    **prescription-overrides-static** (`sections.jsx:2712`, when `trainingGoal` set). Phase 2 shrinks to: document the
+    rule + stop dropping `rpe`→`rir`. **Not a rebuild.**
+
+    **HYBRID LIFT CONTENT (Option 3 — the flagship fix, CONFIRMED FEASIBLE):** hybrid lift days route to
+    `getWorkoutForDay` (pure-lifting path) indexed by dayPlan cycle position, **ABANDONING** the separate
+    `HYBRID_PROGRAMS` free-text lift content.
+    - **Mechanism:** stop DISCARDING the cycle label in `buildHybridDayPlan` (`running_programs.js:1396` — `cyc[i%len]`
+      is computed then collapsed to the enum); widen `dayPlan` to carry it (also serves the `liftFocus`-granularity flag
+      + head-level muscle work). Hybrid lift day's ordinal position `k` → `getWorkoutForDay(splitType =
+      HYBRID_TEMPLATE_CYCLES[template], dayIndex = k, omit schedule/startDate for positional indexing)`.
+    - **Coverage:** all 5 mapped templates have pure-lifting content (PPL exact `programs.js:63`, U/L positional
+      `programs.js:288`), **ZERO new authoring**. Hyrox Hybrid excluded (own path).
+    - **Blast radius:** `sections.jsx:2669-2670` only; run days untouched. `getSkillVariant` is **DEAD code** (never
+      called) so hybrid `skill_variants` are dead data — removal loses nothing rendered. `HYBRID_PROGRAMS` **NARROWS**
+      (keeps `nutritionBridge`, `raceSimulation`, run-day desc, Hyrox Hybrid); only the 5 templates' lift-day
+      `weekly_structure` becomes unused.
+    - **RESULT:** fixes flagship defect at root (no divorced hybrid content), hybrid inherits coach-grade coverage
+      automatically, unifies the 3 disconnected representations, collapses the schema question.
+    - **BUILD SEQUENCE:** 1a = Option 3 hybrid lift reroute (additive `cycleLabel` + branch swap), device-verify; THEN
+      1b = schema extension (rest/tempo/rir/secondary). 1a recon done; awaiting review before build.
+
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
   never-adjacent-to-heavy-legs via `daysAdjacent`, personalized DOMS windows from `domsProfile.peakHours`,
