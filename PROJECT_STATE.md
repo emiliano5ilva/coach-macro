@@ -313,6 +313,19 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     `=== 'heavy_lower'`; Push/Pull/Legs workout content comes from `splitType`+cycle, not `liftFocus`). BUT if the audit's
     **head-level muscle coverage** needs per-day push/pull/legs granularity encoded IN the dayPlan, the enum may need
     widening. Not a current bug — flagged for the audit.
+  - 🔴 **FLAGSHIP DEFECT — HYBRID LIFT CONTENT ↔ dayPlan DISCONNECT** (real defect, pre-existing, **NOT a Pass-2
+    regression**). Hybrid lift-day CONTENT comes from a **static template** (`getTodayHybridWorkout` →
+    `HYBRID_PROGRAMS[template].weekly_structure`, keyed by **DAY NAME**, lift days hardcoded e.g. Mon/Wed/Fri) and
+    **IGNORES the user's picked dayPlan entirely**. When picked lift days ≠ template's fixed days, content is wrong:
+    confirmed repro (picks Mon/Tue/Wed lift) → Mon=Push ✓, **Tue=Easy Run ✗** (run on a lift day), **Wed=Pull ✗** (Pull
+    on the Legs day), and **Legs (template Fri) NEVER delivered** (user didn't pick Fri) → a whole muscle group dropped.
+    **THREE disconnected representations** of each lift day: (1) dayPlan `liftFocus` [PPL cycle, read only as
+    `===heavy_lower` for DOMS], (2) WeekStrip label [`autoFocus`→`SPLIT_CYCLES`, no hybrid key → "Full Body" for all],
+    (3) content [static template by day name]. None driven by the user's picks; none agree. Pass 2 wired
+    dayPlan→run-placement+DOMS but lift CONTENT was left on the legacy static template (`sections.jsx:2667`
+    "byte-for-byte unchanged"). **FIX = the AUDIT's core job:** drive per-day lift content from the cycle/dayPlan
+    (correct body part per picked day, no dropped muscle groups), unify the 3 representations to one source. **This is
+    the audit's flagship concrete example.**
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
