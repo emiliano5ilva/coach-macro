@@ -21,7 +21,7 @@ import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
 import { getWorkoutForDay, GVT_OVERLAY, PROGRAMS_BY_DAYS, GLUTE_PROGRAMS, PROGRAM_LIBRARY } from "./programs.js";
-import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, getSkillVariant, HYROX_STATIONS } from "./running_programs.js";
+import { getProgramForUser, getTodayRunWorkout, buildRunEngineInputs, getRunWeek, RUN_SESSION_TITLE, deriveDayModality, getTodayHyroxWorkout, getTodayHybridWorkout, RUNNING_PROGRAMS, HYROX_PROGRAM, HYBRID_PROGRAMS, HYBRID_TEMPLATE_CYCLES, getSkillVariant, HYROX_STATIONS } from "./running_programs.js";
 import { getHyroxPhase } from "./services/hyroxPeriodisationService.js";
 import { getRunningPhase } from "./services/runningPeriodisationService.js";
 import { getStrengthPhase } from "./services/strengthPeriodisationService.js";
@@ -2583,10 +2583,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         }, {})
       : dayFocus;
 
-  let todayPrescription=null;
-  let todayProgObj=null;
-  if(prescType==="lifting"&&todayType==="training"){
-    let exs=getWorkoutForDay(daysPerWeek,wPrefs.splitType||"Full Body",dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,schedule,profile?.program_start_date||null,0);
+  // Shared lifting-content builder (Stage-1): getWorkoutForDay → equipment → permanentSwaps/
+  // favorites → GVT overlay → session-length cap → soreness reduction. Pure-lifting calls it with
+  // session-index walk (schedule+start anchor); hybrid lift days call it with {positional:true} so
+  // dayIndex is used directly (dayKeys[dayIndex]) to index the dayPlan cycle position.
+  const buildLiftingPrescription=(splitType,dayIndex,opts={})=>{
+    const _sched=opts.positional?null:schedule;
+    const _start=opts.positional?null:(profile?.program_start_date||null);
+    let exs=getWorkoutForDay(daysPerWeek,splitType,dayIndex,wPrefs.equipment||"Full Gym",undefined,wPrefs.liftExp||profile?.liftExp,_sched,_start,0);
     exs=applyEquipmentToWorkout(exs?.exercises||exs||[],wPrefs.equipment||"Full Gym");
     exs=exs.map(ex=>{const c=ex.originalName||ex.name;const sw=permanentSwaps[c];return{...ex,name:sw||ex.name,swappedFrom:sw?c:undefined,isFavorite:favorites.includes(c)};});
     if(showGVT&&isGVTWeek)exs=[...exs.slice(0,2).map(e=>({...e,sets:GVT_OVERLAY.sets,reps:GVT_OVERLAY.reps,notes:GVT_OVERLAY.note})),...exs.slice(2)];
@@ -2605,7 +2609,13 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         return{...ex,sets:_newSets,notes:(ex.notes?ex.notes+' — sets reduced for recovery':'Sets reduced for recovery')};
       });
     }
-    todayPrescription=exs;
+    return exs;
+  };
+
+  let todayPrescription=null;
+  let todayProgObj=null;
+  if(prescType==="lifting"&&todayType==="training"){
+    todayPrescription=buildLiftingPrescription(wPrefs.splitType||"Full Body",dayIndex,{});
   }else if(prescType==="running"){
     // ── Generative engine — Phase B ──────────────────────────────────────────
     todayPrescription = getTodayRunWorkout(profile, wPrefs, schedule, todayKey, weekNum);
@@ -2664,13 +2674,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
         if(weatherAdjustment?.note) todayPrescription = { ...todayPrescription, description: `⚠️ ${weatherAdjustment.note}\n` + (todayPrescription.description || "") };
       }
     } else {
-      // Lift day or no-dayPlan (backward compat) — existing hybrid template, byte-for-byte unchanged
+      // Lift day → pure-lifting content via the shared helper, indexed by the dayPlan cycle
+      // position (Option 3). No dayPlan / unmapped template → legacy static card (backward compat).
       const _hybridTemplate=wPrefs.hybridTemplate||"Balanced Hybrid";
       todayProgObj=HYBRID_PROGRAMS[_hybridTemplate];
-      todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
-      if(todayPrescription){
-        const _vdotPaces=profile?.runProfile?.paces??null;
-        if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+      const _liftSplit=HYBRID_TEMPLATE_CYCLES[_hybridTemplate];
+      const _k=hybridModality?.liftDays?.indexOf(todayKey)??-1;
+      if(_liftSplit&&_k>=0){
+        todayPrescription=buildLiftingPrescription(_liftSplit,_k,{positional:true});
+      }else{
+        todayPrescription=getTodayHybridWorkout(_hybridTemplate,todayKey,weekNum);
+        if(todayPrescription){
+          const _vdotPaces=profile?.runProfile?.paces??null;
+          if(_vdotPaces) todayPrescription={...todayPrescription,description:renderWithPaces(todayPrescription.description||"",_vdotPaces)};
+        }
       }
     }
   }
@@ -2683,7 +2700,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   }
 
   function startFromProgram(){
-    if(prescType==="lifting"&&Array.isArray(todayPrescription)&&!sessionReadiness){
+    if(Array.isArray(todayPrescription)&&!sessionReadiness){
       setRdAnswers({sleep:null,stress:null,energy:null});
       setShowReadiness(true);
       return;
@@ -2694,12 +2711,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function _doStartFromProgram(readiness){
     // Belt-and-suspenders: never launch into an empty lifting session.
     // getWorkoutForDay now filters rest days, but guard here catches any future edge case.
-    if(prescType==="lifting"&&Array.isArray(todayPrescription)&&todayPrescription.length===0){
+    if(Array.isArray(todayPrescription)&&todayPrescription.length===0){
       showToast("No exercises for today — check your schedule or program.","info");
       return;
     }
     let exercises;
-    if(prescType==="lifting"&&Array.isArray(todayPrescription)){
+    if(Array.isArray(todayPrescription)){
       const style=getCoachingStyle(wPrefs?.trainingAge);
       const baseSetCount=style.sets?.min||3;
       const weightMod=readiness?.config?.weightMod||1.0;

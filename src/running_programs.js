@@ -1363,7 +1363,7 @@ const HEAVY_LOWER_LABELS = new Set(["Legs","Lower"]);
 // across the lift days. Bias is expressed via cycle LENGTH (the heuristic caps lifts at min(len, n-2)):
 // 3-cycle (PPL) → ~3 lift days @5d (strength-leaning); 2-cycle (U/L) → 2 lift days (run-leaning).
 // "Hyrox Hybrid" is intentionally absent — hyrox days aren't run/lift; the switch wiring gates on !isHyrox.
-const HYBRID_TEMPLATE_CYCLES = {
+export const HYBRID_TEMPLATE_CYCLES = {
   "Strength-Biased Hybrid": "Push/Pull/Legs",   // lifter base → 3 lift days (P/P/L), strength-leaning
   "Run-Biased Hybrid":      "Upper/Lower",      // runner base → 2 lift days (U/L), more runs
   "Balanced Hybrid":        "Upper/Lower",      // 2 lift / 3 run @5d (heuristic floors at 2 runs; strength owns 3/2)
@@ -1400,9 +1400,9 @@ export function buildHybridDayPlan(trainDays, splitType, longRunDay) {
     if (i < nLifts) {
       const lbl = cyc ? cyc[i % cyc.length] : (splitType === "Full Body" ? "Full Body" : null);
       const lf = HEAVY_LOWER_LABELS.has(lbl) ? "heavy_lower" : lbl === "Full Body" ? "full" : "upper";
-      plan[d] = { run: false, lift: true, liftFocus: lf };
+      plan[d] = { run: false, lift: true, liftFocus: lf, cycleLabel: lbl };
     } else {
-      plan[d] = { run: true, lift: false, liftFocus: null };
+      plan[d] = { run: true, lift: false, liftFocus: null, cycleLabel: null };
     }
   });
   return plan;
