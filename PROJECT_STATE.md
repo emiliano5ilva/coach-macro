@@ -183,15 +183,19 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
   - 🟡 **Pass 2 DEVICE-VERIFICATION IN PROGRESS (resume next session) — do NOT push `43f6ae1`, do NOT revert the
     breadcrumb, until all 3 resolve.** Engine harness proved the logic; on-device render verification is incomplete.
     State: Pass 2 committed (`43f6ae1`) **NOT pushed**; temp `lr_decision` breadcrumb **uncommitted** (live as
-    `NativeApp-c78f2589.js`); `d3d00001` collapsed to this test setup (`strength_run`, 5-day). Three open threads:
+    `NativeApp-c78f2589.js`); `d3d00001` collapsed to this test setup (`strength_run`, 5-day). Threads (#2 RESOLVED;
+    **#1 and #3 remain — resolve #1 first**):
     1. **DB/screen mismatch — RESOLVE FIRST (diagnosis unreliable until DB == what was actually picked).** User
        described picking **6 days (Mon–Thu, Sat, Sun) + long-run Sunday**, but DB shows `trainDays=[Mon,Tue,Wed,Sat,Sun]`
        (**5 days**) + `longRunDay=Sat`. Either a pick didn't save or a prior setup is what persisted.
-    2. **Cycle-mapping gap — `HYBRID_TEMPLATE_CYCLES[splitType]` not resolving for Strength-Biased on the switch path.**
-       Generated dayPlan came out `upper/upper/heavy_lower` (Upper/Lower split) instead of the intended **Push/Pull/Legs**
-       (Strength-Biased→PPL). "lower,lower" dupe IS fixed (distinct focuses), but template-specific PPL isn't taking —
-       it's falling through to generic Upper/Lower. RECON why the template-name lookup misses (likely `splitType`
-       value/format at the switch call site ≠ the map key `"Strength-Biased Hybrid"`).
+    2. ✅ **RESOLVED — NOT A BUG (recon).** `HYBRID_TEMPLATE_CYCLES` resolves correctly: `d.splitType = prog.name =
+       "Strength-Biased Hybrid"` (hyphen) matches the map key (hyphen) exactly → chain resolves to **Push/Pull/Legs**.
+       The observed `[upper, upper, heavy_lower]` dayPlan **IS** PPL — it's the signature (`heavy_lower` on the **3rd**
+       lift day = Legs as PPL's 3rd entry; Upper/Lower would put it **2nd**, generic-null would have **none**). The
+       "looks like Upper/Lower" was a `liftFocus`-vocabulary misread: `liftFocus` is a 3-value enum
+       (`heavy_lower|full|upper`) so Push AND Pull both render `"upper"`. Every consumer reads `liftFocus` only as
+       `=== 'heavy_lower'` (`deriveDayModality:1433`, `ob_screens2:4753/4808`), so the Push/Pull distinction isn't lost
+       (workout content comes from `splitType`+cycle downstream, not `liftFocus`). No key to align.
     3. **`lr_decision` breadcrumb didn't fire (no rows) — `getRunWeek` not hit on the run-day view used.** Determine
        where `getRunWeek` actually runs / why no log, so the honor/veto test CAN be verified. (Breadcrumb stays
        uncommitted; keep it.)
@@ -302,6 +306,11 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     hard sessions; muscle-map-driven placement.
   - **METHOD:** audit what exists first **(decision: option 3)** → define the standard → encode. Applies **system-wide**,
     including re-touching the hybrid dayPlan generator built in the quick fix.
+  - **FLAG (from Pass 2 recon) — `liftFocus` enum granularity.** The dayPlan `liftFocus` is a 3-value enum
+    (`heavy_lower|full|upper`), so Push AND Pull both collapse to `"upper"`. Fine NOW (every consumer reads it only as
+    `=== 'heavy_lower'`; Push/Pull/Legs workout content comes from `splitType`+cycle, not `liftFocus`). BUT if the audit's
+    **head-level muscle coverage** needs per-day push/pull/legs granularity encoded IN the dayPlan, the enum may need
+    widening. Not a current bug — flagged for the audit.
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
