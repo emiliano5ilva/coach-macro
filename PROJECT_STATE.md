@@ -454,6 +454,32 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
   - **RELATED:** the long-run-day DOMS veto (long run moved Sat→Sun for hybrid) — revisit whether the long run should
     ANCHOR and the LIFT move instead, as part of this model + the hybrid interaction. (Cross-refs the TRANSPARENT
     RECOVERY-AWARE LONG RUN item below.)
+  - **📐 DESIGN SPEC (from Runna onboarding breakdown + support-doc mechanism, cross-verified):**
+
+    **INPUT MODEL (what onboarding must collect to drive volume):**
+    - **Running ABILITY = master volume input.** Tiers DEFINED BY SINGLE-RUN CAPABILITY (Runna's): Beginner = 5k
+      continuous <60min; Intermediate = regularly ≥5k unstructured; Advanced = regularly ≥10k + some structure; Elite =
+      regularly HM+. Ability → starting weekly mileage AND per-workout distances (NOT total-weekly — single-run capability).
+    - **BEGINNER GUARDRAIL (the 'beginner at 12mi' fix):** if user CAN'T run 5k continuous → route to run-walk intervals
+      plan (distinct type, 2-4 days), NOT a mileage plan. A true beginner gets intervals, not miles.
+    - **Goal** (race/distance/start/return/improve/general/functional/post-injury/post-race) → plan type + race-anchoring.
+    - **Injury history** (rarely / minor-past / frequent-recent) → volume conservatism + recovery.
+    - **DOB, gender** → physiological adjustment. **Estimated race time** → pace zones (HAVE: `vdotFromRaceTime`).
+    - **Days/week** (2-4 new, more experienced) → session split. **Days + long-run day** → placement. **Plan length**
+      (7-26wk/custom) → ramp slope + deload count. **Miles/km** → units.
+
+    **VOLUME MODEL (the 4 builds):**
+    1. ability → starting weekly mileage + max single-run distance (fixes beginner-at-12mi).
+    2. weekly mileage → distribute across run TYPES by distinct distance+pace, 80/20 easy/hard: easy = bulk of
+       volume/shorter/conversational, LONG = weekly distance PEAK, tempo/intervals = the 20% hard. NEVER same distance
+       (fixes long=easy bug).
+    3. weekly progression: long run + weekly volume ramp gradually, slope from plan length × ability.
+    4. deload every 3-5 weeks: drop weekly mileage (HAVE `deloadService` — signal-based; wire into the run calendar).
+
+    **HYBRID INTERACTION:** the run volume model must account for lift-day fatigue (the existing DOMS veto) — and revisit
+    whether long run anchors and the LIFT moves instead (cross-ref Transparent Recovery-Aware Long Run).
+    **Cross-verified:** Runna support 'Adjusting Your Running Ability' (ability underpins mileage + workout distances);
+    marketing (80/20, progressive long runs, deloads 3-5wk).
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
