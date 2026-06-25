@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.**_
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** (3 confirmed defects — no weekly mileage model / run types undifferentiated by distance / no progression+deloads; designed next from Emiliano's Runna onboarding breakdown)._
 
 ---
 
@@ -425,8 +425,35 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
       `weekly_structure` becomes unused.
     - **RESULT:** fixes flagship defect at root (no divorced hybrid content), hybrid inherits coach-grade coverage
       automatically, unifies the 3 disconnected representations, collapses the schema question.
-    - **BUILD SEQUENCE:** 1a = Option 3 hybrid lift reroute (additive `cycleLabel` + branch swap), device-verify; THEN
-      1b = schema extension (rest/tempo/rir/secondary). 1a recon done; awaiting review before build.
+    - **BUILD SEQUENCE:**
+      - ✅ **1a — Option 3 hybrid lift reroute — DONE & committed (`fc8f7a5`), VERIFIED on-device** (DB-confirmed:
+        `d3d00001` Wed→k=2→Legs→Barbell Squat, 5 exercises; Mon=Push/Tue=Pull deterministic). Adds `cycleLabel` to
+        dayPlan (additive), shared `buildLiftingPrescription` helper (pure-lifting byte-identical), widens 3 array guards.
+        Temp `hybrid_lift_route` breadcrumb added then reverted (clean tree hash-matched the pre-breadcrumb build).
+      - ✅ **1c — label-layer fix — committed (`11edcbc`), built & deployed (`NativeApp-ef2c6bec`); on-device label
+        verification pending.** `dayFocus` build (`NativeApp.jsx:937`) labels hybrid lift days from `cycleLabel`
+        (post-1a) or ordinal fallback (pre-1a dayPlans, same k + cycle map as content) → week strip PUSH/PULL/LEGS +
+        day-header descriptor match content. Additive + hybrid-gated; pure-lifting unchanged (byte-identical `selectDayKey`
+        path). Fixes the WeekStrip "UPPER" + the "balanced push/pull on a Legs day" header.
+      - ⬜ **1b — schema extension** (rest/tempo/rir/secondary) — NEXT; recon done (Phase 1 design decision above).
+
+- **RUN ENGINE VOLUME MODEL** — large, **foundational OWN PROJECT** (sibling to the Programming Engine Audit). The
+  run engine has sophisticated DOMS/recovery PLACEMENT (`runEngine.js` `generateRunWeek`) but **no volume model**. THREE
+  CONFIRMED DEFECTS (found on-device, hybrid 5-day, validated against Runna):
+  1. **No weekly mileage model** — a beginner's plan opens at ~12 mi (6+6) week 1, with no starting-volume calc from
+     fitness level and no week-over-week ramp. (Runna: starting weekly mileage set from fitness, builds gradually,
+     deloads every 3-5 weeks.)
+  2. **Run types not differentiated by distance** — long run AND easy run both 6 mi (should differ: easy = most of weekly
+     volume, conversational, shorter; long = the weekly distance peak; plus tempo/intervals as distinct hard sessions).
+     Runna: 80/20 easy/hard, 4 long-run subtypes, easy/hard/long distances tuned independently.
+  3. **No week-over-week progression or deloads** in the run plan (static distances every week).
+  - **MODEL TO BUILD (Runna-informed):** onboarding inputs → starting weekly mileage → distribute across run types by
+    distance+pace (80/20) → progress weekly → deload every 3-5 weeks.
+  - **SOURCE OF TRUTH:** Emiliano providing Runna's full onboarding breakdown (questions + answer choices) as the design
+    spec foundation — the input→volume mapping the public pages don't reveal. **Designed from the Runna breakdown next.**
+  - **RELATED:** the long-run-day DOMS veto (long run moved Sat→Sun for hybrid) — revisit whether the long run should
+    ANCHOR and the LIFT move instead, as part of this model + the hybrid interaction. (Cross-refs the TRANSPARENT
+    RECOVERY-AWARE LONG RUN item below.)
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
