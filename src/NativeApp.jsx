@@ -3,6 +3,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES,
   Logo, getDayMacros, getTodayKey, autoFocus,
   calcTDEE, FOCUS_MUSCLES } from "./components.jsx";
 import { selectDayKey, baseName } from "./programs.js";
+import { HEAVY_LOWER_CYCLES, HYBRID_TEMPLATE_CYCLES } from "./running_programs.js";
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { Capacitor } from '@capacitor/core';
 import { Onboarding } from "./ob_screens.jsx";
@@ -936,8 +937,22 @@ export default function NativeApp() {
     const f={};
     WDAYS.forEach((d,j)=>{
       if(schedule[d]==="training"){
-        const _dk=selectDayKey(wPrefs.splitType,_dpw,schedule,_psd,j-_todayIdx);
-        f[d]=_dk?baseName(_dk):(SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body");
+        // Hybrid lift day → label from the dayPlan cycle position so it matches 1a's content
+        // routing. cycleLabel (post-1a dayPlans) wins; else derive by ordinal — SAME k as content
+        // (WDAYS order == WDAYS_ORDER, same HEAVY_LOWER_CYCLES[HYBRID_TEMPLATE_CYCLES[template]]).
+        const _hlbl=(wPrefs.isHybrid&&wPrefs.dayPlan?.[d]?.lift)?(()=>{
+          const _cl=wPrefs.dayPlan[d].cycleLabel;
+          if(_cl)return _cl;
+          const _liftDays=WDAYS.filter(wd=>wPrefs.dayPlan?.[wd]?.lift);
+          const _k=_liftDays.indexOf(d);
+          const _cyc=HEAVY_LOWER_CYCLES[HYBRID_TEMPLATE_CYCLES[wPrefs.hybridTemplate]];
+          return (_cyc&&_k>=0)?_cyc[_k%_cyc.length]:null;
+        })():null;
+        if(_hlbl){f[d]=_hlbl;}
+        else{
+          const _dk=selectDayKey(wPrefs.splitType,_dpw,schedule,_psd,j-_todayIdx);
+          f[d]=_dk?baseName(_dk):(SPLIT_CYCLES[wPrefs.splitType]?.[0]||"Full Body");
+        }
       }else if(["cardio","run","hyrox"].includes(schedule[d])){
         f[d]=(lrd&&d===lrd&&(schedule[d]==='run'||schedule[d]==='cardio'))?"Long Run":(DAY_CFG[schedule[d]]||DAY_CFG.rest).label;
       }else f[d]="Rest";
