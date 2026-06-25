@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.**_
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.** RUN VOLUME fix (a) **Phase 1 BUILT** (`NativeApp-79d66381`, device-verify pending, NOT committed): engine `deriveRunAbility`+`:1538` repoint + onboarding collection (pure-run required + hybrid adds the 3 steps, gates widened to run||hybrid); temp `run_ability` breadcrumb live. **Phase 2 pending: switch path (RunProgramSetup) write/read reconciliation — switch-in users resolve intermediate until then.**_
 
 ---
 
@@ -508,6 +508,25 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
       To anchor long run + move the lift: either move DOMS-adjacency reasoning into `buildHybridDayPlan` (write-time) or
       add a reconciliation pass. Feasible, not a flag — own phase.
     - **Cross-verified:** Runna support 'Adjusting Running Ability' + Image-1 onboarding screenshot.
+  - **🔧 PHASE 1 — BUILT (`NativeApp-79d66381`), device-verify pending; NOT committed.**
+    - **Engine:** `deriveRunAbility({longestRunMi,currentRunsPerWeek,seconds5K})` (`runEngine.js`, beside
+      `getStartingVolume`) returns exactly `{beginner|intermediate|advanced}` (thresholds on real onboarding bucket
+      edges: beginner = `rpw===0` or `longestRunMi≤2`; advanced = `longestRunMi≥8` or `rpw≥3 && seconds5K≤1500`;
+      else intermediate). `:1538` repoint: `experience = wPrefs.runAbility || deriveRunAbility(...) || 'intermediate'`
+      (was `skill_level||liftExp||'intermediate'`). **Lifting path untouched** — only this one running consumer changed.
+    - **Onboarding collection:** pure-run made REQUIRED (removed `run_5k` skip + `run_longest` non-HM skip; `run_frequency`
+      was already required); **hybrid** now collects them too (`run_5k`/`run_frequency`/`run_longest` added to the hybrid
+      `_stepSeq` after `hyb_split`; full reuse of existing step components); the 3 write gates widened
+      `focus==="run"` → `(focus==="run"||focus==="hybrid")`. Lifting onboarding never sees these.
+    - **Temp breadcrumb (`run_ability`, UNCOMMITTED — revert after verify):** logs derivedAbility / longestRunMi /
+      currentRunsPerWeek / seconds5K / startVol(`weeklyVolumeMi`) / sessions`[{type,distanceMi}]`, fire-and-forget +
+      deduped (`sections.jsx`, module-level `_lastRunAbilityCrumb`).
+  - **🔜 PHASE 2 (PENDING): switch path (RunProgramSetup).** Collects only a 5K time, written to `profile_data.runProfile.*`
+    (`baselineTime`/`currentVdot`) — **NOT** the `wPrefs.*` fields the engine reads (`current5KTime`/`currentRunsPerWeek`/
+    `longestRunMi`); and it collects no frequency/longest. Needs those two inputs **plus** a write/read location
+    reconciliation (write to the engine-read fields, or extend `buildRunEngineInputs` to read `runProfile`/VDOT). **Until
+    Phase 2, switch-in users (and legacy null-data users) resolve `intermediate` regardless of actual ability** —
+    documented limitation (comment at `running_programs.js` repoint site).
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
