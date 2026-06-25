@@ -12,6 +12,27 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
 
 ---
 
+## 🧪 PENDING DEVICE VERIFICATION (batch)
+_Everything built-but-unverified, queued for one batch on-device test. Precise checklist below.
+**Current bundle: `NativeApp-79d66381`** (Phase 1 + the live `run_ability` breadcrumb)._
+
+- **RUN VOLUME Phase 1** — **4 files UNCOMMITTED** (`runEngine.js`, `running_programs.js`, `ob_screens2.jsx`,
+  `sections.jsx`); `run_ability` breadcrumb **LIVE** (keep for the batch test). Pieces:
+  - `deriveRunAbility` + `:1538` repoint (run experience decoupled from `liftExp`).
+  - pure-run REQUIRED (`run_5k` + `run_longest` skips removed; `run_frequency` already required).
+  - hybrid run-ability collection (3 steps added after `hyb_split` + write gates widened to `run||hybrid`).
+  - **TEST (via `run_ability` breadcrumb — read `analytics_events`):** beginner inputs (`longestRunMi≤2`/low
+    `currentRunsPerWeek`) → `derivedAbility:beginner`, `startVol`~12 not ~20, `easy ≠ long` distances; advanced inputs
+    (`longestRunMi≥8`) → tier swings up, bigger `startVol`. Hybrid-onboarding path now feeds the inputs (was always
+    intermediate). Switch-in hybrid still intermediate = expected (Phase 2).
+- **1c hybrid lift-day LABELS** (committed `11edcbc`, bundle since rebuilt) — week strip PUSH/PULL/LEGS + Wed header
+  descriptor on `d3d00001`. **Confirmed verbally earlier but the commit note still says "pending" — re-confirm in the
+  batch** and clear the note.
+
+_After batch verify: revert `run_ability` breadcrumb → clean-rebuild (hash-match) → commit Phase 1; clear the 1c note._
+
+---
+
 ## STACK & PATHS
 - **Stack:** Capacitor v5 + React 18 + Vite, running in **WKWebView** (native iOS shell).
 - **Repo:** `~/Developer/coach-macro` — working branch **`goclub-redesign`** (default branch is `main`).
