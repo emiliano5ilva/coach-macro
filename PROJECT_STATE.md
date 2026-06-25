@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** (3 confirmed defects — no weekly mileage model / run types undifferentiated by distance / no progression+deloads; designed next from Emiliano's Runna onboarding breakdown)._
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.**_
 
 ---
 
@@ -480,6 +480,34 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     whether long run anchors and the LIFT moves instead (cross-ref Transparent Recovery-Aware Long Run).
     **Cross-verified:** Runna support 'Adjusting Your Running Ability' (ability underpins mileage + workout distances);
     marketing (80/20, progressive long runs, deloads 3-5wk).
+  - **🔎 PHASE 0 RECON — MAJOR CORRECTION (2026-06-24): the volume model EXISTS and is wired** (`runEngine.js`:
+    `START_BANDS`, `getStartingVolume`, `buildVolumeProgression` w/ 10% ramp + down-weeks every 3-4 + taper, 80/20
+    distribution in `buildSessions` w/ long-run-longest invariant; `getRunWeek`→`generateRunWeek` is the live source for
+    pure-run AND hybrid run days). **The 3 "defects" are INPUT/WIRING/VISIBILITY, not a missing model.**
+    - **ROOT (Q4): NO running-specific ability tier.** `experience = profile.skill_level || wPrefs.liftExp ||
+      'intermediate'` (`buildRunEngineInputs:1535`), and `skill_level` is set FROM `liftExp` (`NativeApp.jsx:631`). So
+      **run ability = LIFTING experience** → a beginner runner classified 'intermediate' → `START_BANDS.intermediate`
+      (~20mi) not beginner (12) → the '12mi'/'6+6' symptom. The volume math is correct; it's fed the wrong ability.
+    - **THE FIXES (re-sized — much smaller than "build a volume model"):**
+      - **(a) RUNNING-SPECIFIC ABILITY INPUT** (core — root of #1 + most of #2): a run ability tier decoupled from
+        `liftExp`, derived like Runna from CURRENT single-run capability / current race time (Beginner=5k continuous
+        <60min, Intermediate=regularly ≥5k unstructured, Advanced=≥10k+structure, Elite=HM+). Image-1 screenshot =
+        Runna's 'current 5k/10k/HM/M time' input. Feed this to `getStartingVolume`'s `exp` instead of `liftExp`.
+      - **(b) 'long==easy' collapse:** caps+rounding at the inflated volume (`easyDist` hits beginner cap 6,
+        `longRunDist` rounds ~6, invariant raises long to match). Largely DISSOLVES once (a) feeds the correct lower
+        beginner volume; may need cap/fraction tuning in `buildSessions`.
+      - **(c) SURFACE WEEKLY MILEAGE** (Q6, pure display): `weeklyVolumeMi` is computed + returned, **ZERO UI
+        consumers**. Runna shows it prominently. Greenfield display only.
+      - **(d) TRUE-BEGINNER run-walk routing** (Runna guardrail): `isTrueBeginner` flag exists (`buildSessions`:
+        `currentRunsPerWeek===0 || longestRunMi≤1`) but only adds notes — no distinct run-walk plan. Route non-runners
+        to intervals, not a mileage plan.
+      - **(e) PROGRESSION 'looks static'** = visibility (UI shows today only) + possibly `weekInPlan` anchor
+        (`runPlanStart`) being off. Verify the anchor; surface the multi-week arc.
+    - **ARCHITECTURAL (separable, largest): long-run ANCHOR (#3/Q5)** — invert the lift-then-run placement (lifts
+      placed first to `dayPlan`, run engine reads `heavyLowerDays` as immutable; long run flexes around fixed lifts).
+      To anchor long run + move the lift: either move DOMS-adjacency reasoning into `buildHybridDayPlan` (write-time) or
+      add a reconciliation pass. Feasible, not a flag — own phase.
+    - **Cross-verified:** Runna support 'Adjusting Running Ability' + Image-1 onboarding screenshot.
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
