@@ -25,11 +25,19 @@ _Everything built-but-unverified, queued for one batch on-device test. Precise c
     `currentRunsPerWeek`) → `derivedAbility:beginner`, `startVol`~12 not ~20, `easy ≠ long` distances; advanced inputs
     (`longestRunMi≥8`) → tier swings up, bigger `startVol`. Hybrid-onboarding path now feeds the inputs (was always
     intermediate). Switch-in hybrid still intermediate = expected (Phase 2).
+- **RUN VOLUME Phase 2 (switch path)** — **NOT YET BUILT** (recon done 2026-06-25; design = Option X). RunProgramSetup
+  adds frequency+longest `TapCard` inputs + extends the `saveRunProfile` payload; `doActualSwitch` threads
+  `_freshRun.{currentRunsPerWeek,longestRunMi,baselineTime→seconds5K}` into `activateProgramMode`, which writes the 3
+  wPrefs ability fields (mirroring the `longRunDay` sync at `ProgramLibrary.jsx:85`). End state: switch writes the SAME
+  wPrefs fields onboarding does → no fourth path. **TEST (with Phase 1, via `run_ability` breadcrumb):** switch into a
+  hybrid with beginner inputs → `derivedAbility:beginner` (was: always intermediate on switch) → verifies the
+  reconciliation. Removes the Phase-1 "switch-in users resolve intermediate" limitation.
 - **1c hybrid lift-day LABELS** (committed `11edcbc`, bundle since rebuilt) — week strip PUSH/PULL/LEGS + Wed header
   descriptor on `d3d00001`. **Confirmed verbally earlier but the commit note still says "pending" — re-confirm in the
   batch** and clear the note.
 
-_After batch verify: revert `run_ability` breadcrumb → clean-rebuild (hash-match) → commit Phase 1; clear the 1c note._
+_After batch verify: revert `run_ability` breadcrumb → clean-rebuild (hash-match) → commit Phase 1 (+ Phase 2 once
+built); clear the 1c note._
 
 ---
 
