@@ -14,7 +14,7 @@ _Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "
 
 ## 🧪 PENDING DEVICE VERIFICATION (batch)
 _Everything built-but-unverified, queued for one batch on-device test. Precise checklist below.
-**Current bundle: `NativeApp-79d66381`** (Phase 1 + the live `run_ability` breadcrumb)._
+**Current bundle: `NativeApp-1f0c6a13`** (Phase 1 + Phase 2 + the live `run_ability` breadcrumb)._
 
 - **RUN VOLUME Phase 1** — **4 files UNCOMMITTED** (`runEngine.js`, `running_programs.js`, `ob_screens2.jsx`,
   `sections.jsx`); `run_ability` breadcrumb **LIVE** (keep for the batch test). Pieces:
@@ -25,7 +25,9 @@ _Everything built-but-unverified, queued for one batch on-device test. Precise c
     `currentRunsPerWeek`) → `derivedAbility:beginner`, `startVol`~12 not ~20, `easy ≠ long` distances; advanced inputs
     (`longestRunMi≥8`) → tier swings up, bigger `startVol`. Hybrid-onboarding path now feeds the inputs (was always
     intermediate). Switch-in hybrid still intermediate = expected (Phase 2).
-- **RUN VOLUME Phase 2 (switch path)** — **NOT YET BUILT** (recon done 2026-06-25; design = Option X). RunProgramSetup
+- **RUN VOLUME Phase 2 (switch path)** — **BUILT (in `NativeApp-1f0c6a13`), uncommitted; device-verify pending.**
+  (Recon 2026-06-25; design = Option X. Note: an earlier test hit the Phase-1-only bundle — Phase 2 wasn't deployed yet;
+  now stacked.) RunProgramSetup
   adds frequency+longest `TapCard` inputs + extends the `saveRunProfile` payload; `doActualSwitch` threads
   `_freshRun.{currentRunsPerWeek,longestRunMi,baselineTime→seconds5K}` into `activateProgramMode`, which writes the 3
   wPrefs ability fields (mirroring the `longRunDay` sync at `ProgramLibrary.jsx:85`). End state: switch writes the SAME
