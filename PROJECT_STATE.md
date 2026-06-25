@@ -8,38 +8,20 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.** RUN VOLUME fix (a) **Phase 1 BUILT** (`NativeApp-79d66381`, device-verify pending, NOT committed): engine `deriveRunAbility`+`:1538` repoint + onboarding collection (pure-run required + hybrid adds the 3 steps, gates widened to run||hybrid); temp `run_ability` breadcrumb live. **Phase 2 pending: switch path (RunProgramSetup) write/read reconciliation — switch-in users resolve intermediate until then.**_
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.** RUN VOLUME fix (a) **Phase 1 (`7a9595b`) + Phase 2 (`52a12ef`) DONE & VERIFIED on-device** (bundle `NativeApp-7f133c92`): running-specific `deriveRunAbility` replaces the liftExp borrow; ability inputs required in pure-run + hybrid onboarding AND collected on the switch path → all 3 entry points write the same engine-read wPrefs fields. Verified: switch-into-hybrid beginner inputs → `derivedAbility:beginner`/startVol 2.7. **NEXT: fix (b) — long==easy collapse at low volume (buildSessions cap/fraction tuning, small).**_
 
 ---
 
 ## 🧪 PENDING DEVICE VERIFICATION (batch)
-_Everything built-but-unverified, queued for one batch on-device test. Precise checklist below.
-**Current bundle: `NativeApp-1f0c6a13`** (Phase 1 + Phase 2 + the live `run_ability` breadcrumb)._
+_None pending. **Current committed bundle: `NativeApp-7f133c92`** (RUN VOLUME Phase 1 + Phase 2, breadcrumb-free)._
 
-- **RUN VOLUME Phase 1** — **4 files UNCOMMITTED** (`runEngine.js`, `running_programs.js`, `ob_screens2.jsx`,
-  `sections.jsx`); `run_ability` breadcrumb **LIVE** (keep for the batch test). Pieces:
-  - `deriveRunAbility` + `:1538` repoint (run experience decoupled from `liftExp`).
-  - pure-run REQUIRED (`run_5k` + `run_longest` skips removed; `run_frequency` already required).
-  - hybrid run-ability collection (3 steps added after `hyb_split` + write gates widened to `run||hybrid`).
-  - **TEST (via `run_ability` breadcrumb — read `analytics_events`):** beginner inputs (`longestRunMi≤2`/low
-    `currentRunsPerWeek`) → `derivedAbility:beginner`, `startVol`~12 not ~20, `easy ≠ long` distances; advanced inputs
-    (`longestRunMi≥8`) → tier swings up, bigger `startVol`. Hybrid-onboarding path now feeds the inputs (was always
-    intermediate). Switch-in hybrid still intermediate = expected (Phase 2).
-- **RUN VOLUME Phase 2 (switch path)** — **BUILT (in `NativeApp-1f0c6a13`), uncommitted; device-verify pending.**
-  (Recon 2026-06-25; design = Option X. Note: an earlier test hit the Phase-1-only bundle — Phase 2 wasn't deployed yet;
-  now stacked.) RunProgramSetup
-  adds frequency+longest `TapCard` inputs + extends the `saveRunProfile` payload; `doActualSwitch` threads
-  `_freshRun.{currentRunsPerWeek,longestRunMi,baselineTime→seconds5K}` into `activateProgramMode`, which writes the 3
-  wPrefs ability fields (mirroring the `longRunDay` sync at `ProgramLibrary.jsx:85`). End state: switch writes the SAME
-  wPrefs fields onboarding does → no fourth path. **TEST (with Phase 1, via `run_ability` breadcrumb):** switch into a
-  hybrid with beginner inputs → `derivedAbility:beginner` (was: always intermediate on switch) → verifies the
-  reconciliation. Removes the Phase-1 "switch-in users resolve intermediate" limitation.
-- **1c hybrid lift-day LABELS** (committed `11edcbc`, bundle since rebuilt) — week strip PUSH/PULL/LEGS + Wed header
-  descriptor on `d3d00001`. **Confirmed verbally earlier but the commit note still says "pending" — re-confirm in the
-  batch** and clear the note.
-
-_After batch verify: revert `run_ability` breadcrumb → clean-rebuild (hash-match) → commit Phase 1 (+ Phase 2 once
-built); clear the 1c note._
+- ✅ **RUN VOLUME Phase 1 + Phase 2 — VERIFIED on-device & committed** (`7a9595b` Phase 1, `52a12ef` Phase 2; batch row
+  23:39). Switch-into-hybrid with entered beginner values (`longestRunMi:1`/`currentRunsPerWeek:0`) →
+  `derivedAbility:"beginner"`, `startVol` 2.7 (beginner band) — vs the stale-fixture rows (`6/4 → intermediate/18`).
+  `run_ability` breadcrumb reverted; clean-rebuild deployed. **(Surfaced fix (b) — see RUN ENGINE VOLUME MODEL: at
+  beginner 2.7mi/wk easy AND long both round to 1.25; distribution-math tuning, separate + small.)**
+- ✅ **1c hybrid lift-day LABELS — RE-CONFIRMED on-device** (`d3d00001` shows PPL: PUSH/PULL/LEGS week strip + correct
+  Wed header). The earlier `11edcbc` "on-device label check pending" note is now cleared.
 
 ---
 
@@ -539,7 +521,7 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
       To anchor long run + move the lift: either move DOMS-adjacency reasoning into `buildHybridDayPlan` (write-time) or
       add a reconciliation pass. Feasible, not a flag — own phase.
     - **Cross-verified:** Runna support 'Adjusting Running Ability' + Image-1 onboarding screenshot.
-  - **🔧 PHASE 1 — BUILT (`NativeApp-79d66381`), device-verify pending; NOT committed.**
+  - ✅ **PHASE 1 — DONE & VERIFIED, committed `7a9595b`** (bundle `NativeApp-7f133c92`).
     - **Engine:** `deriveRunAbility({longestRunMi,currentRunsPerWeek,seconds5K})` (`runEngine.js`, beside
       `getStartingVolume`) returns exactly `{beginner|intermediate|advanced}` (thresholds on real onboarding bucket
       edges: beginner = `rpw===0` or `longestRunMi≤2`; advanced = `longestRunMi≥8` or `rpw≥3 && seconds5K≤1500`;
@@ -549,15 +531,20 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
       was already required); **hybrid** now collects them too (`run_5k`/`run_frequency`/`run_longest` added to the hybrid
       `_stepSeq` after `hyb_split`; full reuse of existing step components); the 3 write gates widened
       `focus==="run"` → `(focus==="run"||focus==="hybrid")`. Lifting onboarding never sees these.
-    - **Temp breadcrumb (`run_ability`, UNCOMMITTED — revert after verify):** logs derivedAbility / longestRunMi /
-      currentRunsPerWeek / seconds5K / startVol(`weeklyVolumeMi`) / sessions`[{type,distanceMi}]`, fire-and-forget +
-      deduped (`sections.jsx`, module-level `_lastRunAbilityCrumb`).
-  - **🔜 PHASE 2 (PENDING): switch path (RunProgramSetup).** Collects only a 5K time, written to `profile_data.runProfile.*`
-    (`baselineTime`/`currentVdot`) — **NOT** the `wPrefs.*` fields the engine reads (`current5KTime`/`currentRunsPerWeek`/
-    `longestRunMi`); and it collects no frequency/longest. Needs those two inputs **plus** a write/read location
-    reconciliation (write to the engine-read fields, or extend `buildRunEngineInputs` to read `runProfile`/VDOT). **Until
-    Phase 2, switch-in users (and legacy null-data users) resolve `intermediate` regardless of actual ability** —
-    documented limitation (comment at `running_programs.js` repoint site).
+    - _(Temp `run_ability` breadcrumb used for verification — reverted post-verify.)_
+  - ✅ **PHASE 2 — DONE & VERIFIED, committed `52a12ef`** (switch path, Option X). RunProgramSetup `Step3Running` collects
+    frequency+longest (`TapCard`, required) + reuses the existing baseline 5K (`actualDist==='5k' ? baselineSecs :
+    proj.fiveK`); both `saveRunProfile` payloads carry the 3 fields; `handleCantRun` writes beginner `0/1`. `doActualSwitch`
+    threads `_freshRun.{currentRunsPerWeek,longestRunMi,current5KTime}` into `activateProgramMode`, which syncs them to the
+    engine-read wPrefs fields (mirrors the `longRunDay` sync at `ProgramLibrary.jsx:85`). **All 3 entry points now write
+    the same wPrefs ability fields → no fourth path.** Verified on-device: switch-into-hybrid beginner inputs →
+    `derivedAbility:"beginner"`, `startVol` 2.7 (was always intermediate/18 on switch).
+    - 🧹 **STALE COMMENT (tiny follow-up):** the `running_programs.js` repoint comment still says "switch-in users resolve
+      intermediate until Phase 2" — now only true for **legacy null-data users who never re-switch**; update wording.
+  - 🔜 **fix (b) — long==easy collapse at LOW volume — NEXT (separate, small).** DB-confirmed: beginner 2.7 mi/wk → easy
+    1.25 **AND** long 1.25 (both equal). The 80/20 distribution + caps round both to the same value at very low weekly
+    volume. Needs cap/fraction tuning in `buildSessions` (`runEngine.js`) so easy < long even at low volume. Root-cause
+    ability fix is DONE (Phase 1/2); this is **distribution-math tuning only**.
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
