@@ -80,6 +80,26 @@ export function getVolumeCeiling(goalDistance, experience, liftDaysPerWeek, reco
   return Math.round(ceiling);
 }
 
+// ── Run ability tier (decoupled from lifting experience) ──────────────────────
+// Derives a RUNNING ability tier from current run data — NOT lifting experience.
+// Returns EXACTLY one of {beginner, intermediate, advanced} so START_BANDS always
+// hits a real key (never relies on the ?? fallback to mask a bad tier).
+// Thresholds land on real onboarding bucket edges:
+//   longestRunMi buckets 1,2,4,6,8,10,13 · currentRunsPerWeek 0–5 · seconds5K 2400/2100/1800/1500/1200
+//   beginner    : currentRunsPerWeek===0 OR longestRunMi ≤ 2  (buckets 1,2 = "under 2"/"can run a 5k or close")
+//   advanced    : longestRunMi ≥ 8 (buckets 8,10,13; elite 13+ → advanced for v1)
+//                 OR (currentRunsPerWeek ≥ 3 AND seconds5K ≤ 1500)  (frequent + sub-25:00 5k)
+//   intermediate: everything else (the safe middle — buckets longestRunMi 4,6)
+export function deriveRunAbility({ longestRunMi, currentRunsPerWeek, seconds5K }) {
+  const lr  = longestRunMi       != null ? Number(longestRunMi)       : null;
+  const rpw = currentRunsPerWeek != null ? Number(currentRunsPerWeek) : null;
+  const t5k = seconds5K          != null ? Number(seconds5K)          : null;
+
+  if (rpw === 0 || (lr != null && lr <= 2)) return 'beginner';
+  if ((lr != null && lr >= 8) || (rpw != null && rpw >= 3 && t5k != null && t5k <= 1500)) return 'advanced';
+  return 'intermediate';
+}
+
 // ── Starting volume (§5, §10.1) ───────────────────────────────────────────────
 
 export function getStartingVolume(currentRunsPerWeek, longestRunMi, goalDistance, experience) {

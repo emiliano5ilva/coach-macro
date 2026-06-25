@@ -4239,7 +4239,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
       if(runDistMode!=='general') seq.push("run_timeline");
       seq.push("run_frequency","run_longest","run_recovery");
     }
-    else if(focus==="hybrid") seq.push("hyb_base","hyb_split");
+    else if(focus==="hybrid") seq.push("hyb_base","hyb_split","run_5k","run_frequency","run_longest");
     else if(focus==="hyrox")  seq.push("hyx_exp");
     seq.push("days");
     if(focus==="hybrid") seq.push("run_daymodality"); // hybrid only — maps run vs lift days + heavy-lower
@@ -4305,8 +4305,8 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
         // Branch-specific fields — each has a live consumer in program generation
         ...(focus==="run"&&runPlan?{runPlan}:{}),
         ...(focus==="run"&&runFocus?{runFocus}:{}),
-        ...(focus==="run"&&runFrequency!=null?{currentRunsPerWeek:runFrequency}:{}),
-        ...(focus==="run"&&longestRunMi!=null?{longestRunMi}:{}),
+        ...((focus==="run"||focus==="hybrid")&&runFrequency!=null?{currentRunsPerWeek:runFrequency}:{}),
+        ...((focus==="run"||focus==="hybrid")&&longestRunMi!=null?{longestRunMi}:{}),
         // 4b-3: race timeline / plan length
         ...(focus==="run"&&hasRaceDate==='yes'&&raceDateStr?{runRaceDate:raceDateStr,runPlanStartDate:new Date().toISOString().split('T')[0]}:{}),
         ...(focus==="run"&&hasRaceDate==='no'&&planWeeks?{planWeeks}:{}),
@@ -4331,7 +4331,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
       const updatedProfile={
         ...profile,
         mealFreq,
-        ...(focus==="run"&&fiveKSecs?{current5KTime:fiveKSecs}:{}),
+        ...((focus==="run"||focus==="hybrid")&&fiveKSecs?{current5KTime:fiveKSecs}:{}),
         ...(isFemale&&lastPeriodDate?{lastPeriodDate}:{}),
         ...(isFemale&&lifeStage?{lifeStage}:{}),
       };
@@ -4602,7 +4602,6 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
               </motion.div>
             )}
           </AnimatePresence>
-          <button onClick={()=>advance(step)} style={{display:"block",width:"100%",marginTop:fiveKSecs?8:20,background:"none",border:"none",color:"rgba(255,255,255,0.35)",fontFamily:AF,fontSize:13,cursor:"pointer",padding:"8px 0",textAlign:"center"}}>Skip for now</button>
         </div>
       );
 
@@ -4628,7 +4627,7 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
       case "run_longest": {
         const _raceType = runDistMode==='general' ? 'general' : (PLAN_TO_RACE_TYPE[runPlan]||null);
         const _hardRequired = _raceType==='half_marathon' || _raceType==='marathon';
-        const _canContinue = longestRunMi!=null || !_hardRequired;
+        // Required for ALL run/hybrid goals (Phase 1 fix a): anchors starting weekly volume.
         return(
           <div>
             {eyebrow}
@@ -4649,15 +4648,12 @@ function PlanOnboarding({profile,wPrefs,user,setWPrefs,setSchedule,setSection,se
               {v:13,l:"13+ miles",    d:"Half marathon or longer"},
             ].map(o=>optPill(longestRunMi===o.v,()=>{setLongestRunMi(o.v);setP4Touched(true);},o.l,o.d))}
             <AnimatePresence>
-              {_canContinue&&(longestRunMi!=null||!_hardRequired)&&(
+              {longestRunMi!=null&&(
                 <motion.div key="rl-cont" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}} transition={{duration:0.22,ease:"easeOut"}} style={{marginTop:16}}>
                   <button onClick={()=>advance(step)} style={btn(true,false)}>Continue</button>
                 </motion.div>
               )}
             </AnimatePresence>
-            {!_hardRequired&&(
-              <button onClick={()=>advance(step)} style={{display:"block",width:"100%",marginTop:longestRunMi?8:16,background:"none",border:"none",color:"rgba(255,255,255,0.35)",fontFamily:AF,fontSize:13,cursor:"pointer",padding:"8px 0",textAlign:"center"}}>Not sure — skip</button>
-            )}
           </div>
         );
       }

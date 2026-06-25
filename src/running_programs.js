@@ -1326,7 +1326,7 @@ export function getSkillVariant(programData, skillLevel) {
   return programData;
 }
 
-import { generateRunWeek } from './services/runEngine.js';
+import { generateRunWeek, deriveRunAbility } from './services/runEngine.js';
 
 // Assemble generateRunWeek() inputs from live app state.
 // Safe defaults ensure this works before Phase C onboarding ships.
@@ -1531,9 +1531,17 @@ export function buildRunEngineInputs(profile, wPrefs, schedule, weekNum) {
   // Post-race: race date is in the past — do not feed out-of-range week to the engine.
   const isPostRace = weekInPlan > totalWeeks;
 
-  // Experience
-  const expRaw   = (profile?.skill_level || wPrefs?.liftExp || 'intermediate').toLowerCase();
-  const experience = ['beginner','intermediate','advanced'].includes(expRaw) ? expRaw : 'intermediate';
+  // RUNNING-specific ability tier (decoupled from lifting skill_level/liftExp). Explicit
+  // wPrefs.runAbility wins if present (forward-compat for the later Runna-style question — currently
+  // absent, so derivation runs); else derive from current run data; 'intermediate' is a belt-and-
+  // suspenders fallback (deriveRunAbility always returns a valid tier, so it never actually fires).
+  // LIMITATION (until Phase 2): legacy users + switch-in users (RunProgramSetup writes runProfile.*,
+  // not these wPrefs.* fields) lack longestRunMi/current5KTime, and currentRunsPerWeek defaults to 2
+  // ABOVE (:1468) before the helper sees it — so the rpw===0 beginner path can't fire from absence.
+  // Those users resolve 'intermediate' (the safe middle) until Phase 2 wires the switch path.
+  const experience = wPrefs?.runAbility
+    || deriveRunAbility({ longestRunMi, currentRunsPerWeek, seconds5K })
+    || 'intermediate';
 
   // Day-modality separation: run days, lift days, heavy-lower days
   const { runDays, liftDays, heavyLowerDays } = deriveDayModality(profile, wPrefs, schedule);
