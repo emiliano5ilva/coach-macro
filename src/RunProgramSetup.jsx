@@ -233,6 +233,12 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   const [longRunDay, setLongRunDay] = useState(null);
   const [stationDay, setStationDay] = useState(null);
 
+  // Step 3 — run ability (Phase 2): current frequency + longest run. Routed to the engine-read
+  // wPrefs.currentRunsPerWeek/longestRunMi/current5KTime via the switch (deriveRunAbility) — same
+  // fields onboarding writes, so switch-created run/hybrid plans derive real ability (not intermediate).
+  const [runFreq, setRunFreq] = useState(null);
+  const [longestMi, setLongestMi] = useState(null);
+
   // Step 4 — Goal
   const [goalDist, setGoalDist] = useState(PROG_GOAL_DIST[program.id] || "5k");
   // BUG 2: race is OPTIONAL. Default OFF for hybrid (run is supplementary) / ON for pure-run
@@ -371,6 +377,10 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
               trainDays,
               longRunDay: longRunDay || null,
               raceGoal: true,
+              // Phase 2 run-ability → promoted to wPrefs.* by activateProgramMode (deriveRunAbility).
+              currentRunsPerWeek: runFreq,
+              longestRunMi: longestMi,
+              current5KTime: actualDist === '5k' ? baselineSecs : (proj?.fiveK ?? null),
             });
           } else {
             // No-race / general fitness: store fitness baseline + paces only; OMIT goalDistance/goalTime/
@@ -387,6 +397,10 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
               trainDays,
               longRunDay: longRunDay || null,
               raceGoal: false,
+              // Phase 2 run-ability → promoted to wPrefs.* by activateProgramMode (deriveRunAbility).
+              currentRunsPerWeek: runFreq,
+              longestRunMi: longestMi,
+              current5KTime: actualDist === '5k' ? baselineSecs : (proj?.fiveK ?? null),
             });
           }
         }
@@ -402,9 +416,15 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
   }
 
   // ── Couch to Mile routing ───────────────────────────────────────────────────
-  function handleCantRun() {
+  async function handleCantRun() {
     const fallback = PROGRAM_LIBRARY.find(p => p.id === "couch_to_mile")
                   || PROGRAM_LIBRARY.find(p => p.id === "c25k");
+    // Phase 2: a can't-run-a-mile user IS a true beginner — write beginner ability so the switch
+    // derives 'beginner' (else nulls → currentRunsPerWeek defaults to 2 → intermediate). Bypasses
+    // the normal saveRunProfile path, so set it explicitly here.
+    if (user?.id) {
+      try { await saveRunProfile(user.id, { currentRunsPerWeek: 0, longestRunMi: 1 }); } catch {}
+    }
     showToast("We'll build your base first. Couch to 5K starts today.", "success");
     onConfirm(fallback || program);
   }
@@ -638,7 +658,31 @@ export default function RunProgramSetup({ program, user, onConfirm, onCancel }) 
         <div style={{ ...MONO, fontSize:11, color:"rgba(var(--cm-ink-rgb),.5)", marginBottom:24, lineHeight:1.6 }}>
           Daniels VDOT formula · Your fitness score: <span style={{color:AC}}>{vdot?.toFixed(1)}</span>
         </div>
-        <CTABtn onClick={() => setStep(4)}>Set Your Goal →</CTABtn>
+        {/* Phase 2: run ability inputs — anchor starting weekly volume (deriveRunAbility). */}
+        <div style={{ fontSize:13, fontWeight:700, color:"var(--cm-ink)", margin:"4px 0 8px" }}>How many days do you run now?</div>
+        {[
+          {v:0,l:"0 days",s:"I don't currently run"},
+          {v:1,l:"1 day",s:"Occasional"},
+          {v:2,l:"2 days",s:"A couple times a week"},
+          {v:3,l:"3 days",s:"Running regularly"},
+          {v:4,l:"4 days",s:"Frequent runner"},
+          {v:5,l:"5+ days",s:"Most days"},
+        ].map(o=>(
+          <TapCard key={o.v} icon="🏃" label={o.l} sub={o.s} selected={runFreq===o.v} onClick={()=>setRunFreq(o.v)} />
+        ))}
+        <div style={{ fontSize:13, fontWeight:700, color:"var(--cm-ink)", margin:"18px 0 8px" }}>Longest run you're comfortable with today?</div>
+        {[
+          {v:1, l:"Under 2 miles",s:"Just getting started"},
+          {v:2, l:"2–3 miles",   s:"Can run a 5K or close"},
+          {v:4, l:"4–5 miles",   s:"Comfortable with 5–8 km"},
+          {v:6, l:"6–7 miles",   s:"Running 10K distances"},
+          {v:8, l:"8–9 miles",   s:"Double-digit km is familiar"},
+          {v:10,l:"10–12 miles", s:"Half marathon territory"},
+          {v:13,l:"13+ miles",   s:"Half marathon or longer"},
+        ].map(o=>(
+          <TapCard key={o.v} icon="📏" label={o.l} sub={o.s} selected={longestMi===o.v} onClick={()=>setLongestMi(o.v)} />
+        ))}
+        <CTABtn onClick={() => setStep(4)} disabled={runFreq===null||longestMi===null}>Set Your Goal →</CTABtn>
       </div>
     );
   }

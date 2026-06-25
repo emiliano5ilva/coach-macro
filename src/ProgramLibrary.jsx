@@ -15,7 +15,7 @@ const SETUP_CATEGORIES = new Set(["Running", "Hyrox", "Hybrid"]);
 // Derives all cross-mode fields needed when switching to a library program.
 // Mirrors PlanOnboarding's logic for: schedule day types, run_race_type, mode flags.
 // Returns { run_race_type, schedule, wPrefsUpdate } — caller merges and upserts.
-export function activateProgramMode({ prog, wPrefs, schedule, trainDays, longRunDay }) {
+export function activateProgramMode({ prog, wPrefs, schedule, trainDays, longRunDay, currentRunsPerWeek, longestRunMi, current5KTime }) {
   // Field derivation (splitType / run_race_type / mode flags) comes from the SINGLE
   // shared core deriveProgramFields() in programResolver.js — the same function
   // resolveProgram() uses on read — so the write path and read path derive identically.
@@ -83,6 +83,13 @@ export function activateProgramMode({ prog, wPrefs, schedule, trainDays, longRun
     // dayPlan's runProfile.longRunDay) so getRunWeek feeds the engine the user's actual choice as a
     // vetoable preference; no fresh pick → preserve (omit). Cleared on lift/hyrox.
     ...((isRun || isHybrid) ? (longRunDay ? { longRunDay } : {}) : { longRunDay: null }),
+    // run ABILITY (Phase 2): sync the switch-collected values into the engine-read wPrefs fields so
+    // deriveRunAbility derives the same tier as onboarding (no fourth path). Fresh value present →
+    // set; absent → preserve (omit). Lift/hyrox already null currentRunsPerWeek/longestRunMi above;
+    // current5KTime is a profile baseline left intact (deriveRunAbility only runs for run/hybrid).
+    ...((isRun || isHybrid) && currentRunsPerWeek != null ? { currentRunsPerWeek } : {}),
+    ...((isRun || isHybrid) && longestRunMi != null ? { longestRunMi } : {}),
+    ...((isRun || isHybrid) && current5KTime != null ? { current5KTime } : {}),
   };
 
   return { run_race_type, schedule: newSchedule, wPrefsUpdate };
@@ -749,7 +756,7 @@ export function ProgramLibraryScreen({ wPrefs, setWPrefs, profile, setTrainScree
       }
       // activateProgramMode derives schedule + run_race_type + wPrefs mode flags. Thread the fresh
       // trainDays so it rebuilds the schedule from the user's selection (absent/empty → retype).
-      const act = activateProgramMode({ prog, wPrefs, schedule, trainDays: _freshRun?.trainDays, longRunDay: _freshRun?.longRunDay });
+      const act = activateProgramMode({ prog, wPrefs, schedule, trainDays: _freshRun?.trainDays, longRunDay: _freshRun?.longRunDay, currentRunsPerWeek: _freshRun?.currentRunsPerWeek, longestRunMi: _freshRun?.longestRunMi, current5KTime: _freshRun?.current5KTime });
       const newWPrefs = { ...wPrefs, ...act.wPrefsUpdate };
       // (dayPlan handled by the enumerated patch: cleared off-hybrid, preserved on hybrid — Stage 5b.)
 
