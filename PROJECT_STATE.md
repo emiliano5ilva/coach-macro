@@ -315,8 +315,14 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     swipe up returns Today. Resolves "5 destinations + center action = 6 slots" — the slot is either/or, never both.
   - **'+' SINGLE TAP:** expands a quick-log row = **Lift / Run / Food / Water** (MacroFactor pattern).
   - **ACTIVE HIGHLIGHT:** a **HORIZONTAL STADIUM PILL** (not a coin) — inactive tabs icon-only; active tab expands to
-    icon + label side-by-side, soft-red pill wraps both. **SIZE (v5, LOCKED):** pill height **56px**, active width
-    **~132px**, radius **28px**, label **14px/700**, icons **25px**, fill **`rgba(255,59,48,0.13)`**.
+    icon + label side-by-side, accent pill wraps both. **SIZE (v5, LOCKED):** pill height **56px**, active width
+    **~132px**, radius **28px**, label **14px/700**, icons **25px**. **FILL (Premium Pass, UPDATED from the earlier
+    soft-fill+red-text): SOLID `var(--cm-accent)` + WHITE content** (palette-aware — auto-matches the user's chosen
+    accent via `applyTheme`), with the in-system card shadow `0 2px 12px rgba(0,0,0,.08)` so the pill floats.
+    Tab icons = **emojicon pack** (`fluent-emoji-flat` via `<Icon>`, baked into `iconData.js`): today=`alarm-clock`,
+    train=`person-lifting-weights`, fuel=`fork-and-knife-with-plate`, progress=`chart-increasing`, me=`bust-in-silhouette`
+    (sensible defaults; Emiliano to tweak any on-device). Note: emojicons are full-color glyphs — the "white content"
+    applies to the label; the emoji keep their own colors on the pill.
   - **SLIDE:** highlight slides **+ resizes** between tabs, **SMOOTH** easing `cubic-bezier(.4,0,.2,1)` ~.28s (NOT springy).
   - **DISCOVERABILITY** (hidden swipe): **grabber handle** on the center slot + first-run **coach-mark**; **TAP always
     works** as fallback (tap Today→Today; when flipped, tap +→expand). Never trapped.
