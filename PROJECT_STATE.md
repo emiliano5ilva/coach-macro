@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.** RUN VOLUME fix (a) **Phase 1 (`7a9595b`) + Phase 2 (`52a12ef`) DONE & VERIFIED on-device** (bundle `NativeApp-7f133c92`): running-specific `deriveRunAbility` replaces the liftExp borrow; ability inputs required in pure-run + hybrid onboarding AND collected on the switch path → all 3 entry points write the same engine-read wPrefs fields. Verified: switch-into-hybrid beginner inputs → `derivedAbility:beginner`/startVol 2.7. **NEXT: fix (b) — long==easy collapse at low volume (buildSessions cap/fraction tuning, small).** Logged: **TAB BAR REDESIGN** (design phase, swap-slot center, gated on user swipe-feel check) + **EMOJICON SWAP** recon (RunProgramSetup TapCards; needs iconData.js bundle regen)._
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.** RUN VOLUME fix (a) **Phase 1 (`7a9595b`) + Phase 2 (`52a12ef`) DONE & VERIFIED on-device** (bundle `NativeApp-7f133c92`): running-specific `deriveRunAbility` replaces the liftExp borrow; ability inputs required in pure-run + hybrid onboarding AND collected on the switch path → all 3 entry points write the same engine-read wPrefs fields. Verified: switch-into-hybrid beginner inputs → `derivedAbility:beginner`/startVol 2.7. **NEXT: fix (b) — long==easy collapse at low volume (buildSessions cap/fraction tuning, small).** **TAB BAR REDESIGN design FINALIZED** (v5 mocks: swap-slot center + horizontal stadium-pill active highlight, sizes locked; build = recon real component → build → device-test, gated only on eventual swipe-feel check) + **EMOJICON SWAP** recon logged (RunProgramSetup TapCards; needs iconData.js bundle regen)._
 
 ---
 
@@ -309,19 +309,24 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
 ---
 
 ## OPEN — big feature (was "next up" pre-Apple-Health)
-- **TAB BAR REDESIGN** — **design phase, mock-before-code, NOT built.**
-  - **DECIDED:** 4 fixed destinations (**Train · Stats · Fuel · You**) + a swappable **CENTER SLOT** that flips between
-    **'Today'** (5th destination) and a red **'+'** action via **VERTICAL SWIPE** (swipe Today down → +; swipe + up →
-    Today). Resolves "5 destinations + center action = 6 slots" — the slot is either/or, never both. Single-tap **+** =
-    expand quick-log row (**Lift / Run / Food / Water**, MacroFactor pattern). Active highlight **SLIDES horizontally**
-    between tabs — **SMOOTH** easing (`cubic-bezier(.4,0,.2,1)`, ~.28s), NOT springy (user picked smooth).
-  - **DISCOVERABILITY** (mitigates the hidden swipe): small **grabber handle** on the center slot + one-time first-run
-    **coach-mark**; **TAP always works** as fallback (never trapped).
-  - **Tokens:** red canvas, white floating pill, Archivo, soft-red active tint.
-  - 🟡 **OPEN (gated on user device check):** does the swipe gesture **FEEL right in hand**? User hasn't tested the mock
-    yet — confirm before building the final mock + reconning the real tab-bar component. Mock: `coach-macro-tabbar-v3.html`
-    (smooth vs springy + swap slot).
-  - **NEXT when confirmed:** full-fidelity final mock → recon real tab-bar component → mock-before-code build.
+- **TAB BAR REDESIGN** — ✅ **DESIGN FINALIZED (mock-before-code complete, mocks v1→v5); NOT YET BUILT.**
+  - **STRUCTURE:** 4 fixed destinations (**Train · Stats · Fuel · You**) + 1 swappable **CENTER SLOT**.
+  - **CENTER SLOT:** shows **'Today'** (5th destination) by default; **vertical swipe DOWN** flips it to a red **'+'**;
+    swipe up returns Today. Resolves "5 destinations + center action = 6 slots" — the slot is either/or, never both.
+  - **'+' SINGLE TAP:** expands a quick-log row = **Lift / Run / Food / Water** (MacroFactor pattern).
+  - **ACTIVE HIGHLIGHT:** a **HORIZONTAL STADIUM PILL** (not a coin) — inactive tabs icon-only; active tab expands to
+    icon + label side-by-side, soft-red pill wraps both. **SIZE (v5, LOCKED):** pill height **56px**, active width
+    **~132px**, radius **28px**, label **14px/700**, icons **25px**, fill **`rgba(255,59,48,0.13)`**.
+  - **SLIDE:** highlight slides **+ resizes** between tabs, **SMOOTH** easing `cubic-bezier(.4,0,.2,1)` ~.28s (NOT springy).
+  - **DISCOVERABILITY** (hidden swipe): **grabber handle** on the center slot + first-run **coach-mark**; **TAP always
+    works** as fallback (tap Today→Today; when flipped, tap +→expand). Never trapped.
+  - **TOKENS:** red canvas, white floating pill, Archivo, soft-red active. **Reference mocks:**
+    `coach-macro-tabbar-pill-big.html` (v5, final pill size) + `coach-macro-tabbar-v3.html` (swap slot).
+  - 🟡 **OPEN (gated, non-blocking):** user to feel the actual **SWIPE on a touchscreen** eventually (Mac mocks confirmed
+    layout/slide/pill/size; swipe-feel is the one thing a trackpad can't validate).
+  - **NEXT (build phase, when ready):** recon the **REAL tab-bar component** (which file renders the current 5-tab bar,
+    how active state + navigation work, how to inject the slider element + swipe handler) → build per this spec →
+    device-test. **Real code change to live nav — own focused arc, recon-first.**
 
 - **PROGRESS TAB redesign** — large **multi-session epic** (was "next up" pre-Apple-Health; merged in from the stale Drive doc
   so this file is complete). Reskin the Progress tab from the OLD dark theme (`#000`, `var(--accent)`, DM Mono `//` eyebrows) to
