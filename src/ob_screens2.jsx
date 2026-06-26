@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { MN, SlotNumber, MotionArc, StaggerItem } from './motion-layer.jsx';
@@ -48,7 +48,17 @@ import { getMorningBrief } from "./services/morningBriefService.js";
 import { getHyroxPhase, getRaceTimePredictor } from "./services/hyroxPeriodisationService.js";
 import SorenessCheckIn, { SorenesSummary } from "./components/SorenessCheckIn.jsx";
 import { Icon } from "@iconify/react";
+import "./iconData.js"; // registers the offline fluent-emoji-flat collection (tab-bar emojicons don't depend on Fuel being mounted)
 import { trainedYesterday, alreadyLoggedToday, getTodaySoreness } from "./services/sorenessService.js";
+
+// Tab-bar emojicon ids (Premium Pass) — baked into iconData.js via scripts/extract-icons.js.
+const TAB_EMOJI = {
+  today:    "fluent-emoji-flat:alarm-clock",
+  train:    "fluent-emoji-flat:person-lifting-weights",
+  fuel:     "fluent-emoji-flat:fork-and-knife-with-plate",
+  progress: "fluent-emoji-flat:chart-increasing",
+  me:       "fluent-emoji-flat:bust-in-silhouette",
+};
 import { getSlotsForFreq, getSlotTargets, getLoggedSlots, getSlotLabel, normaliseSlotToNumber } from "./utils/mealSlots.js";
 import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
@@ -8971,10 +8981,11 @@ Rules:
     {id:"me",       label:"Me",        icon:"me"},
   ];
   // 5-tab: full expanded nav after second onboarding completes
+  // Order: Today CENTERED (index 2). Reorder only — handleTabPress(id) + section conditionals unchanged.
   const GOCLUB_NAV_5 = [
-    {id:"today",    label:"TODAY",    icon:"today",    tour:"today-tab"},
     {id:"train",    label:"TRAIN",    icon:"train"},
     {id:"fuel",     label:"FUEL",     icon:"fuel",     tour:"fuel-tab"},
+    {id:"today",    label:"TODAY",    icon:"today",    tour:"today-tab"},
     {id:"progress", label:"PROGRESS", icon:"progress", tour:"progress-tab"},
     {id:"me",       label:"ME",       icon:"me",       tour:"me-tab"},
   ];
@@ -8985,6 +8996,36 @@ Rules:
   const activeNav = GOCLUB_REDESIGN
     ? (hasFullPlan ? GOCLUB_NAV_5 : GOCLUB_NAV_3)
     : NAV_ITEMS;
+
+  // ── Tab slider (Sub-step 1): ONE sliding/resizing pill over the active tab (5-tab GoClub only).
+  // Presentation-only — nav logic (activeNav.map → handleTabPress, section) is untouched.
+  const _use5tab = GOCLUB_REDESIGN && hasFullPlan;
+  const tabBarRef = useRef(null);
+  const tabRefs = useRef({});
+  const [sliderPos, setSliderPos] = useState({ left: 0, width: 0 });
+  const [quickLogOpen, setQuickLogOpen] = useState(false); // Sub-step 3: + → quick-log panel
+  useLayoutEffect(() => {
+    if (!_use5tab) return;
+    const measure = () => {
+      const btn = tabRefs.current[section];
+      const bar = tabBarRef.current;
+      if (!btn || !bar) return;
+      const b = btn.getBoundingClientRect();
+      const c = bar.getBoundingClientRect();
+      // CENTER the fixed 50px slider on the tab's center (not left-edge align) — concentric with the
+      // icon regardless of tab width / padding / gaps. Slider width is fixed 50px in CSS.
+      const left = Math.round((b.left - c.left) + b.width / 2 - 27); // 27 = half the 54px pill → concentric
+      // Bail out when unchanged — returning prev makes React skip the re-render, so this can
+      // never drive an update loop even if the effect runs often.
+      setSliderPos(prev => (prev.left === left) ? prev : { left, width: 54 });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+    // NOTE: activeNav is a fresh array each render (GOCLUB_NAV_* defined in App) — must NOT be a
+    // dep (it would re-fire every render → setState loop). section drives which tab is active; the
+    // tab set only changes when _use5tab flips, which is already a dep.
+  }, [_use5tab, section]);
 
   function TabIcon({name, size=22}) {
     const paths = {
@@ -11356,21 +11397,50 @@ Rules:
       )}
 
 
-      <div className="app-tab-bar">
+      <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}>
+        {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false} animate={{x:sliderPos.left}} transition={{duration:0.28,ease:[0.4,0,0.2,1]}}/>}
         {activeNav.map(item=>(
-          <motion.button key={item.id} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}
+          <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
             transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
             style={GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined}>
+            {/* Sub-step 2a: raised notched + on the center (Today) slot. Absolute child (top:-16px),
+                un-clipped (bar has no overflow:hidden). Tap = no-op until sub-step 3 (quick-log). */}
+            {_use5tab&&item.id==="today"&&(
+              <span className="tab-plus" aria-label="Quick log" role="button"
+                style={{transform:`translateX(-50%) rotate(${quickLogOpen?135:0}deg)`}}
+                onClick={(e)=>{e.stopPropagation();setQuickLogOpen(o=>!o);}}>+</span>
+            )}
             <div className="tab-icon-wrap" style={{position:"relative"}}>
-              <TabIcon name={item.icon} size={22}/>
+              {_use5tab&&TAB_EMOJI[item.icon]
+                ? <Icon icon={TAB_EMOJI[item.icon]} width={25} height={25}/>
+                : <TabIcon name={item.icon} size={22}/>}
               {item.id==="train"&&deloadActive&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:T.fat,border:"2px solid var(--navy)"}}/>}
               {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,border:"2px solid var(--navy)"}}/>}
             </div>
-            <div className="tab-label-txt">{item.label}</div>
+            {!_use5tab&&<div className="tab-label-txt">{item.label}</div>}
           </motion.button>
         ))}
       </div>
+
+      {/* Sub-step 3: quick-log panel — rises above the bar when + is tapped. Backdrop (below the bar,
+          z:99) closes on outside tap; actions route via existing handlers + close. */}
+      {_use5tab&&quickLogOpen&&(<>
+        <div onClick={()=>setQuickLogOpen(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
+        <div className="quick-log-row">
+          {[
+            {k:"lift", icon:"fluent-emoji-flat:person-lifting-weights", label:"Lift",  on:()=>handleTabPress("train")},
+            {k:"run",  icon:"fluent-emoji-flat:running-shoe",           label:"Run",   on:()=>handleTabPress("train")}, /* FLAG: same as Lift (train tab) — distinguish run-start later */
+            {k:"food", icon:"fluent-emoji-flat:fork-and-knife-with-plate", label:"Food", on:()=>{setSection("fuel");setFuelScreen("home");}},
+            {k:"water",icon:"fluent-emoji-flat:droplet",                label:"Water", on:()=>{setSection("fuel");setFuelScreen("home");}}, /* FLAG: routes to Fuel — wire a direct water quick-add later */
+          ].map(a=>(
+            <button key={a.k} className="quick-log-btn" onClick={()=>{_hL&&_hL();a.on();setQuickLogOpen(false);}}>
+              <Icon icon={a.icon} width={26} height={26}/>
+              <span>{a.label}</span>
+            </button>
+          ))}
+        </div>
+      </>)}
 
       {/* App tour — fires once after onboarding */}
       {showAppTour&&(

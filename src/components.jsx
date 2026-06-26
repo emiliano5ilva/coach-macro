@@ -654,11 +654,13 @@ export const REDESIGN_CSS = `
     --mg-core-fill:      rgba(148,163,184,.2);  --mg-core-text:      #CBD5E1;
   }
 
-  /* Per-tab nav track colour */
-  .goclub.tab-today                              { --cm-nav-track: #F4F4F6; }
+  /* Per-tab nav track colour + --cm-screen-bg (the screen bg behind the floating bar — used as the
+     notched-+ border so the notch tracks each screen). NOTE: progress screen is still var(--bg)
+     (dark; redesign pending) — its notch reads red interim until the Progress redesign aligns it. */
+  .goclub.tab-today                              { --cm-nav-track: #F4F4F6; --cm-screen-bg: var(--cm-accent); }
   .goclub.tab-train,.goclub.tab-fuel,
   .goclub.tab-me,.goclub.tab-progress,
-  .goclub.tab-plan                               { --cm-nav-track: rgba(255,255,255,0.05); }
+  .goclub.tab-plan                               { --cm-nav-track: rgba(255,255,255,0.05); --cm-screen-bg: var(--cm-red); }
 
   /* Nav bar */
   .goclub .app-tab-bar {
@@ -688,6 +690,30 @@ export const REDESIGN_CSS = `
 
   /* Emphasized center Plan tab (3-tab onboarding state) */
   .goclub .app-tab--plan { background: var(--cm-accent); color: #ffffff; padding: 10px 20px; flex: 1.4; }
+
+  /* ── Sub-step 1: sliding stadium pill (5-tab GoClub only) ──
+     One soft-red pill (.tab-slider) slides+resizes to the active tab; the static per-tab
+     .active background is overridden off here. Horizontal, content-sized tabs (v5 locked sizes). */
+  /* OUTER WRAPPING PILL — one floating stadium container holding all 5 tabs, inset from screen
+     edges. NOTE: do NOT set position here — base .app-tab-bar is position:fixed (pins to bottom) and
+     fixed already establishes the containing block for the absolute .tab-slider. Setting
+     position:relative would override fixed and unpin the bar. left/right/bottom only INSET it.
+     Specificity .goclub .app-tab-bar--slide (0,2,0) beats .goclub .app-tab-bar so padding wins. */
+  /* OFF-WHITE container (revised 2a) — warm off-white floating pill, warm lift shadow (image-1). */
+  .goclub .app-tab-bar--slide      { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); padding: 7px 9px; gap: 6px; border-radius: 40px; align-items: center; justify-content: space-between; background: #F4F1EC; box-shadow: 0 12px 30px rgba(120,8,4,0.26), 0 3px 8px rgba(0,0,0,0.10); }
+  /* Active highlight = horizontal STADIUM pill, FIXED 54×46 (icons-only → translateX-only, never resizes). */
+  .tab-slider                      { position: absolute; left: 0; top: 9px; width: 54px; height: 46px; border-radius: 23px; background: var(--cm-accent); z-index: 0; pointer-events: none; }
+  /* Raised CLEAN + (FAB) — flat solid accent circle, soft drop shadow only (no ring/halo). Un-clipped. */
+  .tab-plus                        { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 52px; height: 52px; border-radius: 50%; background: var(--cm-accent); color: #fff; box-shadow: 0 8px 20px rgba(232,31,18,0.5); display: flex; align-items: center; justify-content: center; font-size: 30px; line-height: 1; z-index: 3; cursor: pointer; transition: transform 0.2s ease; }
+  /* Icons-only fixed 50px tabs (no label resize) — mid-grey inactive on light, white active. */
+  .goclub .app-tab-bar--slide .app-tab        { flex: 0 0 50px; width: 50px; height: 50px; border-radius: 25px; padding: 0; justify-content: center; z-index: 1; color: #A8A29B; }
+  .goclub .app-tab-bar--slide .app-tab.active { background: transparent; color: #ffffff; }
+  /* Icons-only: labels stay hidden even when active (no expand-on-active → no resize). */
+  .goclub .app-tab-bar--slide .tab-label-txt  { display: none; }
+  /* Quick-log panel (Sub-step 3) — row of action chips rising above the bar when + is tapped. */
+  .quick-log-row { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 101; display: flex; justify-content: center; gap: 10px; pointer-events: none; }
+  .quick-log-btn { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #F4F1EC; border: none; border-radius: 18px; padding: 12px 14px; min-width: 64px; box-shadow: 0 8px 20px rgba(120,8,4,0.22); cursor: pointer; font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 700; color: var(--cm-ink, #0A0A0A); animation: quicklog-rise 0.22s ease both; }
+  @keyframes quicklog-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
   /* Muted text */
   .cm-muted          { color: rgba(17,17,17,0.42); }
