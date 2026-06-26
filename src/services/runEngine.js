@@ -538,7 +538,10 @@ function buildSessions(
   const longSess = sessions.find(s => s.type === 'long');
   if (longSess) {
     const maxOther = Math.max(0, ...sessions.filter(s => s !== longSess).map(s => s.distanceMi));
-    if (longSess.distanceMi < maxOther) longSess.distanceMi = maxOther;
+    // fix (b): strictly-greater (was `< → =`). Fires ONLY on tie/inversion (low volume, where the
+    // lone easy day was clamped up to the rounded-down long → equal). At normal volumes long is
+    // already > maxOther so this never triggers. +0.25 step keeps long the longest; assertion holds.
+    if (longSess.distanceMi <= maxOther) longSess.distanceMi = roundDist(maxOther + 0.25);
     // Hard assertion: enforcement above must have resolved all violations.
     const maxAfter = Math.max(0, ...sessions.filter(s => s !== longSess).map(s => s.distanceMi));
     if (longSess.distanceMi < maxAfter) {
