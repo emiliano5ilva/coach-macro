@@ -59,6 +59,29 @@ const TAB_EMOJI = {
   progress: "fluent-emoji-flat:chart-increasing",
   me:       "fluent-emoji-flat:bust-in-silhouette",
 };
+
+// Bumped-pill background path. Built from the MEASURED bar width so the rounded ends + center hump
+// keep FIXED radii (no distortion); only the flat top segments stretch with width. Returns an SVG
+// path: stadium ends + flat bottom + a smooth bezier hump in the top edge that cradles the +.
+const TAB_HUMP_RISE = 30;  // hump height above flat top — crown sits ~at the + glyph top so it cradles cleanly
+const TAB_HUMP_HALF = 50;  // half-width of the hump
+function bumpedPillPath(w, h) {
+  const r = h / 2;                 // fully-rounded stadium ends
+  const top = TAB_HUMP_RISE;       // flat-top y (hump peaks at y=0)
+  const bot = TAB_HUMP_RISE + h;   // bottom y
+  const cx = w / 2, hw = TAB_HUMP_HALF, hl = cx - hw, hr = cx + hw;
+  return [
+    `M ${r},${top}`,
+    `L ${hl},${top}`,
+    `C ${hl + hw * 0.5},${top} ${cx - hw * 0.5},0 ${cx},0`,        // up into the hump (smooth)
+    `C ${cx + hw * 0.5},0 ${hr - hw * 0.5},${top} ${hr},${top}`,   // back down
+    `L ${w - r},${top}`,
+    `A ${r},${r} 0 0 1 ${w - r},${bot}`,                          // right stadium end
+    `L ${r},${bot}`,
+    `A ${r},${r} 0 0 1 ${r},${top}`,                              // left stadium end
+    'Z',
+  ].join(' ');
+}
 import { getSlotsForFreq, getSlotTargets, getLoggedSlots, getSlotLabel, normaliseSlotToNumber } from "./utils/mealSlots.js";
 import { trialExpiringSoon, trialDaysRemaining } from "./utils/subscription.js";
 import { calculateAllRisks, logInjury, getInjuryLogs, resolveInjury, getInjuryFreeDays, detectPatterns } from "./services/injuryRisk.js";
@@ -9003,7 +9026,9 @@ Rules:
   const tabBarRef = useRef(null);
   const tabRefs = useRef({});
   const [sliderPos, setSliderPos] = useState({ left: 0, width: 0 });
-  const [quickLogOpen, setQuickLogOpen] = useState(false); // Sub-step 3: + → quick-log panel
+  const [barDims, setBarDims] = useState({ w: 0, h: 0 }); // bar border-box → drives the SVG bumped-pill path
+  const [quickLogOpen, setQuickLogOpen] = useState(false); // + (and swipe) → quick-log panel
+  const [centerHintSeen, setCenterHintSeen] = useState(()=>{ try { return localStorage.getItem('cm_center_hint')==='1'; } catch { return true; } });
   useLayoutEffect(() => {
     if (!_use5tab) return;
     const measure = () => {
@@ -9012,6 +9037,9 @@ Rules:
       if (!btn || !bar) return;
       const b = btn.getBoundingClientRect();
       const c = bar.getBoundingClientRect();
+      // Bar dims drive the SVG bumped-pill (responsive — re-measures on resize so the hump never distorts).
+      const bw = Math.round(c.width), bh = Math.round(c.height);
+      setBarDims(prev => (prev.w === bw && prev.h === bh) ? prev : { w: bw, h: bh });
       // CENTER the fixed 50px slider on the tab's center (not left-edge align) — concentric with the
       // icon regardless of tab width / padding / gaps. Slider width is fixed 50px in CSS.
       const left = Math.round((b.left - c.left) + b.width / 2 - 27); // 27 = half the 54px pill → concentric
@@ -11398,18 +11426,29 @@ Rules:
 
 
       <div className={`app-tab-bar${_use5tab?" app-tab-bar--slide":""}`} ref={tabBarRef}>
+        {_use5tab&&barDims.w>0&&(
+          <svg className="tab-bar-svg" aria-hidden="true" width={barDims.w} height={barDims.h+TAB_HUMP_RISE}
+            viewBox={`0 0 ${barDims.w} ${barDims.h+TAB_HUMP_RISE}`} preserveAspectRatio="none">
+            <path d={bumpedPillPath(barDims.w, barDims.h)} fill="var(--cm-offwhite, #F4F1EC)"/>
+          </svg>
+        )}
         {_use5tab&&<motion.div className="tab-slider" aria-hidden="true" initial={false} animate={{x:sliderPos.left}} transition={{duration:0.28,ease:[0.4,0,0.2,1]}}/>}
-        {activeNav.map(item=>(
-          <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} {...(item.tour?{"data-tour":item.tour}:{})}
+        {activeNav.map(item=>{
+          const isCenter = _use5tab && item.id==="today";
+          const dismissHint = ()=>{ if(!centerHintSeen){ setCenterHintSeen(true); try{localStorage.setItem('cm_center_hint','1');}catch{} } };
+          // Vertical swipe on the center slot toggles the quick-log panel (up=open, down=close).
+          const onCenterPan = (e,info)=>{ dismissHint(); if(info.offset.y<-20) setQuickLogOpen(true); else if(info.offset.y>20) setQuickLogOpen(false); };
+          return (
+          <motion.button key={item.id} ref={el=>{tabRefs.current[item.id]=el;}} aria-label={item.label} aria-current={section===item.id?"page":undefined} className={`app-tab${section===item.id?" active":""}${isCenter?" app-tab--center":""}${item.emphasized?" app-tab--plan":""}`} onClick={()=>handleTabPress(item.id)} onPanEnd={isCenter?onCenterPan:undefined} {...(item.tour?{"data-tour":item.tour}:{})}
             whileTap={GOCLUB_REDESIGN?{scale:0.88}:undefined}
             transition={GOCLUB_REDESIGN?{type:'spring',stiffness:600,damping:20}:undefined}
             style={GOCLUB_REDESIGN?{touchAction:'manipulation'}:undefined}>
-            {/* Sub-step 2a: raised notched + on the center (Today) slot. Absolute child (top:-16px),
-                un-clipped (bar has no overflow:hidden). Tap = no-op until sub-step 3 (quick-log). */}
-            {_use5tab&&item.id==="today"&&(
-              <span className="tab-plus" aria-label="Quick log" role="button"
+            {/* Center: light red + glyph ABOVE the inline Today icon (reads as part of the bar, not a FAB).
+                Tap + → panel (stopPropagation so it doesn't navigate); tap the Today icon → navigate. */}
+            {isCenter&&(
+              <span className="tab-fab" role="button" aria-label="Quick log"
                 style={{transform:`translateX(-50%) rotate(${quickLogOpen?135:0}deg)`}}
-                onClick={(e)=>{e.stopPropagation();setQuickLogOpen(o=>!o);}}>+</span>
+                onClick={(e)=>{e.stopPropagation();dismissHint();setQuickLogOpen(o=>!o);}}>+</span>
             )}
             <div className="tab-icon-wrap" style={{position:"relative"}}>
               {_use5tab&&TAB_EMOJI[item.icon]
@@ -11419,8 +11458,9 @@ Rules:
               {item.id==="train"&&!deloadActive&&topRiskLevel&&<span style={{position:"absolute",top:-3,right:-4,width:8,height:8,borderRadius:"50%",background:topRiskLevel==="high"?"#EF4444":topRiskLevel==="moderate"?"#F97316":T.fat,border:"2px solid var(--navy)"}}/>}
             </div>
             {!_use5tab&&<div className="tab-label-txt">{item.label}</div>}
+            {isCenter&&!centerHintSeen&&<span className="tab-center-hint" aria-hidden="true">Tap + to log</span>}
           </motion.button>
-        ))}
+        );})}
       </div>
 
       {/* Sub-step 3: quick-log panel — rises above the bar when + is tapped. Backdrop (below the bar,
@@ -11429,10 +11469,9 @@ Rules:
         <div onClick={()=>setQuickLogOpen(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
         <div className="quick-log-row">
           {[
-            {k:"lift", icon:"fluent-emoji-flat:person-lifting-weights", label:"Lift",  on:()=>handleTabPress("train")},
-            {k:"run",  icon:"fluent-emoji-flat:running-shoe",           label:"Run",   on:()=>handleTabPress("train")}, /* FLAG: same as Lift (train tab) — distinguish run-start later */
-            {k:"food", icon:"fluent-emoji-flat:fork-and-knife-with-plate", label:"Food", on:()=>{setSection("fuel");setFuelScreen("home");}},
-            {k:"water",icon:"fluent-emoji-flat:droplet",                label:"Water", on:()=>{setSection("fuel");setFuelScreen("home");}}, /* FLAG: routes to Fuel — wire a direct water quick-add later */
+            {k:"water",  icon:"fluent-emoji-flat:droplet",                  label:"Log Water",  on:()=>{setSection("fuel");setFuelScreen("home");}}, /* FLAG: routes to Fuel — wire a direct water quick-add later */
+            {k:"food",   icon:"fluent-emoji-flat:fork-and-knife-with-plate",label:"Log Food",   on:()=>{setSection("fuel");setFuelScreen("home");}},
+            {k:"workout",icon:"fluent-emoji-flat:person-lifting-weights",   label:"Do Workout", on:()=>handleTabPress("train")}, /* goes to Train = today's scheduled session (lift/run/hybrid, whatever's planned) */
           ].map(a=>(
             <button key={a.k} className="quick-log-btn" onClick={()=>{_hL&&_hL();a.on();setQuickLogOpen(false);}}>
               <Icon icon={a.icon} width={26} height={26}/>
