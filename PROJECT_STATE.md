@@ -8,7 +8,7 @@
 > Stage 5, onboarding-completion, and RunProgramSetup input-fix work. Treat the Drive docs as **reference/archive
 > only**; reconcile anything still useful from them into this file, then trust this file going forward.
 
-_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.** RUN VOLUME fix (a) **Phase 1 (`7a9595b`) + Phase 2 (`52a12ef`) DONE & VERIFIED on-device** (bundle `NativeApp-7f133c92`): running-specific `deriveRunAbility` replaces the liftExp borrow; ability inputs required in pure-run + hybrid onboarding AND collected on the switch path → all 3 entry points write the same engine-read wPrefs fields. Verified: switch-into-hybrid beginner inputs → `derivedAbility:beginner`/startVol 2.7. **NEXT: fix (b) — long==easy collapse at low volume (buildSessions cap/fraction tuning, small).** **TAB BAR REDESIGN ✅ SHIPPED & verified** (`b00045b`, `NativeApp-721288d5`): off-white floating pill, sliding accent pill highlight (centered, no resize), reorder Train·Fuel·Today·Stats·You, icons-only emojicons, raised clean + with working quick-log panel. Follow-ups (non-blocking): Run/Water quick-log handlers; + height (-40 vs -30); swipe-swap (2b) DEFERRED/optional. Still tracked: EMOJICON SWAP, run-volume fixes (b)-(e) + long-run anchor, 1b schema._
+_Last updated: 2026-06-23 — Stage 5 arc COMPLETE; BUG 2, A, B, day-selection "caps at 4" all DONE & verified on-device; morning-brief "didn't load" → NOT a defect. **🔴 NEW PRE-SUBMISSION SECURITY BLOCKER logged: dev-skip is a production backdoor (5-tap logo → auth + paywall bypass; hardcoded creds in bundle) — must remove before App Store.** Open housekeeping: restore the `d3d00001` drift fixture (currently `c25k`). Follow-ups: hybrid run/lift dayPlan split (branch `goclub-redesign`). **Programming Engine Audit Phase 0 recon map appended (2026-06-24) — the audit's factual foundation; next session designs from it.** Hybrid lift fix 1a (`fc8f7a5`, verified) + 1c labels (`11edcbc`, on-device label check pending) shipped; **1b schema extension is next**. **NEW foundational project logged: RUN ENGINE VOLUME MODEL** + design spec + **Phase 0 recon MAJOR CORRECTION: the volume model already EXISTS & is wired — the "defects" are INPUT (run ability borrowed from liftExp, no running-specific tier) / VISIBILITY (weeklyVolumeMi computed but never shown) / cap-tuning, NOT a missing model. Re-sized: fixes (a)-(e) much smaller; long-run-anchor is the one architectural phase.** RUN VOLUME fix (a) **Phase 1 (`7a9595b`) + Phase 2 (`52a12ef`) DONE & VERIFIED on-device** (bundle `NativeApp-7f133c92`): running-specific `deriveRunAbility` replaces the liftExp borrow; ability inputs required in pure-run + hybrid onboarding AND collected on the switch path → all 3 entry points write the same engine-read wPrefs fields. Verified: switch-into-hybrid beginner inputs → `derivedAbility:beginner`/startVol 2.7. **NEXT: fix (b) — long==easy collapse at low volume (buildSessions cap/fraction tuning, small).** **TAB BAR REDESIGN ✅ SHIPPED — final design = BUMPED PILL** (`4cf1e6b`, supersedes `b00045b`): continuous off-white SVG pill with a smooth center hump cradling a bold flush red + (in-place spin to ×), Today centered below the +, 4 inline destinations + sliding accent pill highlight, tap + → quick-log (Water/Food/Workout). Iteration: off-white → dark-glass → bumped pill. **fix (b) ✅ SHIPPED & verified** (`2cca655`): low-volume long==easy collapse fixed (beginner 2.7mi → long 1.5 > easy 1.25). Open tab-bar follow-ups (non-blocking): quick-log Workout/Water handlers, color-swap polish; swipe-swap DROPPED. Still tracked: run-volume (c)/(d)/(e) + long-run anchor, 1b schema, EMOJICON SWAP._
 
 ---
 
@@ -309,27 +309,32 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
 ---
 
 ## OPEN — big feature (was "next up" pre-Apple-Health)
-- **TAB BAR REDESIGN — ✅ SHIPPED & VERIFIED on-device** (commit `b00045b`, bundle `NativeApp-721288d5`).
-  - **What shipped (5-tab GoClub bar, scoped via `_use5tab`; 3-tab/flag-off + base nav untouched):** off-white floating
-    wrapping pill (inset, warm lift shadow, `position:fixed` preserved, **no `overflow:hidden`** so the raised + isn't
-    clipped); **reorder Train·Fuel·Today·Stats(progress)·You(me)** (array only — `handleTabPress` + section conditionals
-    unchanged); **sliding accent PILL highlight** (fixed 54×46 stadium, translateX-only, **centered on the active icon, no
-    resize**; loop-safe `setSliderPos` bail-out + deps `[_use5tab, section]` — the fix that stopped the render-loop crash);
-    **icons-only** (labels removed for the slide bar) with **emojicon tab icons** (`fluent-emoji-flat` via `iconData.js`);
-    **raised clean +** (52px flat-accent FAB, soft drop shadow, `top:-40` clears the centered icon) → tap **opens the
-    quick-log panel** (+ spins to ×): **Lift / Run / Food / Water**. `iconData.js` regen'd (+running-shoe, +droplet, +4 tab icons).
-  - 🔧 **FOLLOW-UP 1 — quick-log Run/Water wiring** (tracked, non-blocking): Lift→Train + Food→Fuel are wired; **Run
-    currently routes to Train** (same as Lift) and **Water to Fuel** — both need finer handlers (run-start, direct water
-    quick-add). Flagged inline in `ob_screens2.jsx` at the quick-log panel.
-  - 🔧 **FOLLOW-UP 2 — `+` height** (tracked, non-blocking): built at `top:-40px` (clears the centered Today icon) vs the
-    `-30px` intent. If a lower + is wanted, **nudge the Today icon down** within its slot instead of lowering the + (which
-    would re-overlap the centered icon).
-  - 💤 **DEFERRED (optional) — swipe-swap (2b):** the original spec had the center slot **vertical-swipe** to flip
-    Today⇄+. The **resting design shipped WITHOUT it** (the + is always raised; tap-to-expand works). Revisit only if the
-    swipe-swap interaction is still wanted; the shipped tap model is fully functional without it.
-  - _Superseded notes: the v5 "stadium pill expands to icon+label / soft-fill→solid-accent" evolved on-device to the
-    shipped **icons-only + fixed pill + off-white container + clean raised +**. Mocks `coach-macro-tabbar-pill-big.html`
-    (v5) / `-notched-plus.html` / `-v3.html` were the design path._
+- **TAB BAR REDESIGN — ✅ SHIPPED & VERIFIED on-device. FINAL DESIGN = BUMPED PILL** (commit `4cf1e6b`, **supersedes**
+  the earlier `b00045b`).
+  - **FINAL SHIPPED SPEC (5-tab GoClub bar, scoped via `_use5tab`; 3-tab/flag-off + base nav untouched):**
+    - **Continuous off-white SVG pill** — the bar background is an inline `<svg>` (`.tab-bar-svg`) with rounded stadium
+      ends + flat bottom + a **smooth center hump** that cradles the +. Path is **generated from the measured bar width**
+      (`barDims` via `getBoundingClientRect`, re-measured on resize) so the ends/hump keep FIXED radii (`TAB_HUMP_RISE=30`,
+      `TAB_HUMP_HALF=50`) and only the flat segments stretch → **no hump distortion at any width**. Fill
+      `var(--cm-offwhite,#F4F1EC)`; warm float via SVG `drop-shadow(0 12px 26px rgba(120,8,4,.24)) …`. The bar `<div>` is a
+      transparent flex container. **No `overflow:hidden`** anywhere (hump rises above, un-clipped); `position:fixed` preserved.
+    - **Flush red + glyph in the hump** — bold (`font-weight:700`, 32px, `var(--cm-accent)`), raised (`top:-38`), square
+      flex box + `transform-origin:center` so it **spins to × IN PLACE** (open = `translateX(-50%) rotate(135deg)`, no drift).
+    - **Today centered BELOW the +** (inline tab, keeps its ref → slider highlight + `handleTabPress('today')`); the 4 fixed
+      destinations **Train·Fuel·[Today/+]·Stats·You** sit inline around the center.
+    - **Sliding accent pill highlight** — fixed 54×46 stadium, translateX-only (**centered on the active icon, no resize**);
+      `var(--cm-accent)` (palette-aware); loop-safe `setSliderPos` bail-out + deps `[_use5tab, section]` (stopped the render-loop crash).
+    - **Tap + → quick-log panel** (rises above the bar, + spins to ×): **Log Water / Log Food / Do Workout**. Emojicon
+      icons (`fluent-emoji-flat` via `iconData.js`: droplet / fork-and-knife / person-lifting-weights).
+  - **Iteration path (history):** off-white floating pill (`b00045b`) → dark-glass blur variant → **bumped pill** (final,
+    `4cf1e6b`). Earlier v5 mocks (`-pill-big`/`-notched-plus`/`-v3`/`-bumped-pill.html`) were the design path.
+  - 🔧 **OPEN follow-ups (tracked, non-blocking):**
+    - **Quick-log handlers** — **Do Workout** → currently `handleTabPress('train')`; refine to today's scheduled session
+      (lift/run/hybrid, no assumption). **Log Water** → currently routes to Fuel; wire a **direct water quick-add**. (Log Food → Fuel is fine.)
+    - **Color-swap polish** — the warm red-tinted hump shadow + (legacy) notch-border assume a red palette; eyeball on
+      non-red accents (blue/pink/etc.) once. Non-blocking.
+  - 💤 **DROPPED — swipe-swap (2b):** the + is now **always visible** in the hump (with Today inline below), so the
+    Today⇄+ swap no longer applies. (A vertical swipe on the center still toggles the quick-log panel.)
 
 - **PROGRESS TAB redesign** — large **multi-session epic** (was "next up" pre-Apple-Health; merged in from the stale Drive doc
   so this file is complete). Reskin the Progress tab from the OLD dark theme (`#000`, `var(--accent)`, DM Mono `//` eyebrows) to
@@ -577,10 +582,10 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
     `derivedAbility:"beginner"`, `startVol` 2.7 (was always intermediate/18 on switch).
     - 🧹 **STALE COMMENT (tiny follow-up):** the `running_programs.js` repoint comment still says "switch-in users resolve
       intermediate until Phase 2" — now only true for **legacy null-data users who never re-switch**; update wording.
-  - 🔜 **fix (b) — long==easy collapse at LOW volume — NEXT (separate, small).** DB-confirmed: beginner 2.7 mi/wk → easy
-    1.25 **AND** long 1.25 (both equal). The 80/20 distribution + caps round both to the same value at very low weekly
-    volume. Needs cap/fraction tuning in `buildSessions` (`runEngine.js`) so easy < long even at low volume. Root-cause
-    ability fix is DONE (Phase 1/2); this is **distribution-math tuning only**.
+  - ✅ **fix (b) — long==easy collapse at LOW volume — SHIPPED & VERIFIED** (commit `2cca655`). Long-run-longest invariant
+    `< → <=` with `roundDist(maxOther+0.25)` (`runEngine.js`) so long stays strictly > easy at low volume. **DB-confirmed:**
+    beginner 2.7 mi/wk now **long 1.5 > easy 1.25** (was 1.25 = 1.25), three consistent `run_ability` breadcrumb fires.
+    Fires only on tie/inversion (low volume); zero distortion at normal volumes.
 
 - **TRANSPARENT RECOVERY-AWARE LONG RUN** (feeds the Programming Engine Audit's DOMS/recovery-placement work).
   The DOMS/recovery model already **EXISTS and is sophisticated** (`runEngine.js` `generateRunWeek`: Sat>Sun preference,
