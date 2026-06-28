@@ -271,6 +271,8 @@ export async function detectPrimaryPersonality(userId) {
 
 // ─── Message templates ────────────────────────────────────────────────────────
 
+const _lc = s => (s || 'training').toLowerCase();
+
 const T = {
   calorie_increase: {
     analyzer:      d => `TDEE: ${d.tdee||'~2,400'} kcal. ${d.days||14}-day deficit detected (${d.deficit||'~8'}%). Recommended: +${d.amount||200} kcal/day. Predicted stabilization: ${d.stabilize||5} days.`,
@@ -327,6 +329,47 @@ const T = {
     perfectionist: _d => `You haven't done anything wrong. Plateaus happen to everyone who trains seriously. Stay the course — the formula works.`,
     coaster:       _d => `Scale stalled because intake isn't consistent. Seven days of hitting your number will break it.`,
     craftsman:     d => `${d.days||14}-day plateau + deficit cycling. This is disrupting leptin adaptation. Standardize for a week, then reassess.`,
+  },
+  // train → fuel: voices today's macro target as a consequence of today's training.
+  // data: {session, carbDelta, kcalDelta, proteinHeld, underTarget}. carbDelta null = no
+  // baseline derivable; carbDelta<=0 = rest/recovery day. Branches on underTarget for the 2-state.
+  train_to_fuel: {
+    analyzer: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta==null) return d.underTarget?`Today's a bigger day than rest, and you're still under on carbs. Keep eating.`:`Today's numbers match your ${s}. You're on target.`;
+      if(d.carbDelta<=0) return `Rest day: carbs down${d.kcalDelta?`, about ${Math.abs(d.kcalDelta)} fewer calories than a training day`:''}, protein steady${d.proteinG?` at ${d.proteinG}g`:''}.`;
+      return `${S} adds up: +${d.carbDelta}g carbs, +${d.kcalDelta} calories vs a rest day.${d.proteinG?` Protein stays at ${d.proteinG}g.`:''}${d.underTarget?` You're still under on carbs.`:` You've hit your carb target.`}`;
+    },
+    believer: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day — let your body rebuild. Protein stays steady, and that's exactly what recovery needs.`;
+      if(d.carbDelta==null) return d.underTarget?`${S} takes a lot out of you — keep eating, you've still got more to give.`:`You fueled ${s} just right today. Love to see it.`;
+      return d.underTarget?`You crushed ${s} today, so I bumped your carbs ${d.carbDelta}g. Go fuel that comeback — you've still got room.`:`You crushed ${s} and fueled it right — a full ${d.carbDelta}g more carbs. That's how progress is built. Nailed it.`;
+    },
+    skeptic: d => {
+      const s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Lower demand today, so carbs come down a bit and protein holds. That's the reasoning — adjust if it doesn't feel right.`;
+      if(d.carbDelta==null) return `Your ${s} likely needs more fuel than a rest day. ${d.underTarget?'Keep eating to hit it.':'Looks covered.'} Adjust if your recovery lags.`;
+      return `Your ${s} burns more carbs, so today's target is up ${d.carbDelta}g${d.kcalDelta?` (${d.kcalDelta} more calories)`:''}. It's an estimate — adjust if you're not recovering.${d.underTarget?` You're under it right now.`:` You've reached it.`}`;
+    },
+    perfectionist: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day, so carbs ease back — and that's exactly right, not a step back. Protein stays steady. You're doing this well.`;
+      if(d.carbDelta==null) return d.underTarget?`${S} asks a little more of you — fuel it when you can. The overall week matters most.`:`You matched your ${s} nicely. Right on track.`;
+      return d.underTarget?`${S}, so carbs are up ${d.carbDelta}g. This is the plan working — hit it when you can, the week is what matters.`:`${S}, so carbs are up ${d.carbDelta}g, and you've hit it. Consistency like this is what counts.`;
+    },
+    coaster: d => {
+      const S=d.session||'Training day';
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day. Carbs come down a bit, protein stays the same. Eat to your number.`;
+      if(d.carbDelta==null) return d.underTarget?`${S}. You're under on carbs — keep eating to hit today's target.`:`${S}. Carbs are hit. Done.`;
+      return d.underTarget?`${S}. Eat ${d.carbDelta}g more carbs today — that's the fuel the work needs. Not there yet.`:`${S}. ${d.carbDelta}g more carbs today, and you've already hit it. Done.`;
+    },
+    craftsman: d => {
+      const S=d.session||'Training day',s=_lc(d.session);
+      if(d.carbDelta!=null&&d.carbDelta<=0) return `Rest day: carbs down${d.kcalDelta?`, ${Math.abs(d.kcalDelta)} fewer calories`:''}, protein held${d.proteinG?` at ${d.proteinG}g`:''} so you keep muscle while you recover.`;
+      if(d.carbDelta==null) return `Your ${s} needs more fuel than a rest day.${d.underTarget?' Still short — keep eating.':' Looks covered.'} Watch how recovery goes.`;
+      return `${S}: +${d.carbDelta}g carbs, +${d.kcalDelta} calories vs rest${d.proteinG?`, protein held at ${d.proteinG}g to keep muscle`:''}.${d.underTarget?` Still some carbs to go — watch how your next session feels.`:` You've hit it — watch how your next session feels.`}`;
+    },
   },
 };
 
