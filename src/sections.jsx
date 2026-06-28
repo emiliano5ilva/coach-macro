@@ -1897,7 +1897,7 @@ function MuscleChips({ name, sets, reps, sugg, history: h, muscleGroup, primaryM
 }
 
 // ─── WEEK STRIP ───────────────────────────────────────────────────────────────
-export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType, lightSurface = false }) {
+export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayType, lightSurface = false, weeklyMi = null }) {
   const todayIdx = WDAYS.indexOf(todayKey);
   const firstUpNextIdx = WDAYS.findIndex((day,idx) => idx > todayIdx && schedule[day] && schedule[day] !== "rest");
 
@@ -1957,6 +1957,12 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
           );
         })}
       </div>
+      {weeklyMi!=null&&(
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 10px 2px",marginTop:2,borderTop:lightSurface?"1px solid rgba(10,10,10,0.10)":"1px solid rgba(245,245,240,0.10)"}}>
+          <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:lightSurface?"rgba(var(--cm-ink-rgb),0.55)":"rgba(245,245,240,0.45)"}}>WEEKLY</span>
+          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontWeight:800,fontSize:14,color:lightSurface?"#FF3B30":"var(--accent)"}}>{Math.round(weeklyMi)} MI</span>
+        </div>
+      )}
       {sessionCount===0&&todayIdx>1&&todayType==="training"&&(
         <div style={{marginTop:12,background:lightSurface?"rgba(255,59,48,0.06)":"rgba(var(--accent-rgb),0.04)",border:lightSurface?"1px solid rgba(255,59,48,0.15)":"1px solid rgba(var(--accent-rgb),0.08)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{fontFamily:"var(--mono)",fontSize:9,color:"#FF3B30",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>CONSISTENCY BUILDS CHAMPIONS.</div>
@@ -4185,7 +4191,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                       </div>
                       {todayPrescription.description&&<div style={{fontSize:12,color:"var(--cm-ink)",lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
-                      {runPaces&&(wPrefs.current5KTime||profile?.current5KTime)&&<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
+                      {runPaces&&<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
                         <div style={{fontSize:9,color:"#FF3B30",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
                         <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
                           {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
@@ -4414,7 +4420,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
               {/* ══ PAPER CARD 3 — WEEK & RECOVERY ════════════════════════════ */}
               <PaperCard reveal revealDelay={60} style={{margin:"12px 12px 80px",padding:"22px 18px"}}>
-                <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType} lightSurface/>
+                <WeekStrip todayKey={todayKey} schedule={schedule} dayFocus={resolvedDayFocus} sessionCount={sessionCount} todayType={todayType} lightSurface weeklyMi={(runWeek||hybridRunWeek)?.weeklyVolumeMi ?? null}/>
                 <div style={{marginTop:16}}>
                   <MuscleRecovery userId={user?.id}/>
                 </div>
