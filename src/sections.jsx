@@ -1907,7 +1907,7 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
       : {background:GOCLUB_REDESIGN?"rgba(255,255,255,0.04)":T.s1,border:GOCLUB_REDESIGN?"1px solid rgba(255,255,255,0.08)":`1px solid ${T.bd}`,borderRadius:16,padding:"14px 16px"}
     }>
       {!lightSurface&&<div className="header-eyebrow" style={{marginBottom:10,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":undefined,fontStyle:GOCLUB_REDESIGN?"normal":undefined}}>// This Week</div>}
-      {lightSurface&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)",marginBottom:14}}>THIS WEEK</div>}
+      {lightSurface&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),0.55)",marginBottom:14}}>THIS WEEK</div>}
       <div style={{display:"flex",flexDirection:"column"}}>
         {WDAYS.map((day,idx)=>{
           const t = schedule[day];
@@ -1944,13 +1944,13 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
               background:rowBg,
               borderBottom: idx < 6 ? `1px solid ${dividerColor}` : "none",
             }}>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
+              <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?11:9,fontWeight:GOCLUB_REDESIGN?600:700,letterSpacing:GOCLUB_REDESIGN?"0.04em":"0.12em",textTransform:"uppercase",color:dayCol,width:30,flexShrink:0}}>
                 {day.toUpperCase()}
               </div>
-              <div style={{flex:1,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?14:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
+              <div style={{flex:1,fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontStyle:GOCLUB_REDESIGN?"normal":"italic",fontWeight:GOCLUB_REDESIGN?700:900,fontSize:GOCLUB_REDESIGN?13:16,textTransform:"uppercase",color:labelCol,lineHeight:1}}>
                 {label}
               </div>
-              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:statusCol,flexShrink:0,minWidth:44,textAlign:"right"}}>
+              <div style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?11:9,fontWeight:GOCLUB_REDESIGN?600:undefined,letterSpacing:GOCLUB_REDESIGN?"0.04em":"0.1em",textTransform:"uppercase",color:statusCol,flexShrink:0,minWidth:44,textAlign:"right"}}>
                 {statusText}
               </div>
             </div>
@@ -1959,8 +1959,8 @@ export function WeekStrip({ todayKey, schedule, dayFocus, sessionCount, todayTyp
       </div>
       {weeklyMi!=null&&(
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 10px 2px",marginTop:2,borderTop:lightSurface?"1px solid rgba(10,10,10,0.10)":"1px solid rgba(245,245,240,0.10)"}}>
-          <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:lightSurface?"rgba(var(--cm-ink-rgb),0.55)":"rgba(245,245,240,0.45)"}}>WEEKLY</span>
-          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontWeight:800,fontSize:14,color:lightSurface?"#FF3B30":"var(--accent)"}}>{Math.round(weeklyMi)} MI</span>
+          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--mono)",fontSize:GOCLUB_REDESIGN?10:9,fontWeight:700,letterSpacing:GOCLUB_REDESIGN?"0.14em":"0.16em",textTransform:"uppercase",color:lightSurface?"rgba(var(--cm-ink-rgb),0.55)":"rgba(245,245,240,0.45)"}}>WEEKLY</span>
+          <span style={{fontFamily:GOCLUB_REDESIGN?"'Archivo',sans-serif":"var(--condensed)",fontWeight:800,fontSize:13,color:lightSurface?"#FF3B30":"var(--accent)"}}>{Math.round(weeklyMi)} MI</span>
         </div>
       )}
       {sessionCount===0&&todayIdx>1&&todayType==="training"&&(
@@ -4182,35 +4182,35 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   const macroAdj=todayPrescription.macroAdjustment;
                   return(
                     <div style={{background:"rgba(10,10,10,0.04)",borderRadius:12,padding:"14px 16px",border:"1px solid rgba(10,10,10,0.08)",marginBottom:14}}>
-                      <div style={{fontWeight:700,fontSize:14,marginBottom:8,color:"var(--cm-ink)"}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
+                      <div style={{fontFamily:_AF,fontWeight:800,fontSize:18,letterSpacing:"-0.01em",textTransform:"capitalize",marginBottom:8,color:"var(--cm-ink)"}}>{todayPrescription.label||todayPrescription.type||"Today's Run"}</div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                        {todayPrescription.type&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",background:"rgba(255,59,48,0.10)",color:"#FF3B30",padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
-                        {todayPrescription.duration&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
-                        {todayPrescription.distance&&<span style={{fontSize:10,fontWeight:700,background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
-                        {todayPrescription.zone&&<span style={{fontSize:10,fontWeight:700,background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
-                        {macroAdj&&<span style={{fontSize:10,fontWeight:700,background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
+                        {todayPrescription.type&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase",background:"rgba(255,59,48,0.10)",color:"#FF3B30",padding:"3px 8px",borderRadius:6}}>{todayPrescription.type}</span>}
+                        {todayPrescription.duration&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.carb}18`,color:T.carb,padding:"3px 8px",borderRadius:6}}>{todayPrescription.duration} min</span>}
+                        {todayPrescription.distance&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.fat}18`,color:T.fat,padding:"3px 8px",borderRadius:6}}>{todayPrescription.distance} km</span>}
+                        {todayPrescription.zone&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${ZONE_COLOR[todayPrescription.zone]}25`,color:ZONE_COLOR[todayPrescription.zone],padding:"3px 8px",borderRadius:6}}>{ZONE_LABEL[todayPrescription.zone]||`Zone ${todayPrescription.zone}`}</span>}
+                        {macroAdj&&<span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em",background:`${T.carb}15`,color:T.carb,padding:"3px 8px",borderRadius:6}}>+{macroAdj} carbs</span>}
                       </div>
-                      {todayPrescription.description&&<div style={{fontSize:12,color:"var(--cm-ink)",lineHeight:1.7,marginBottom:8}}>{todayPrescription.description}</div>}
+                      {todayPrescription.description&&<div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6,marginBottom:8}}>{todayPrescription.description}</div>}
                       {runPaces&&<div style={{background:"rgba(255,59,48,0.06)",border:"1px solid rgba(255,59,48,0.12)",borderRadius:9,padding:"10px 12px",marginBottom:8}}>
-                        <div style={{fontSize:9,color:"#FF3B30",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>YOUR PACES TODAY</div>
                         <div style={{display:"flex",flexWrap:"wrap",gap:"6px 14px"}}>
                           {[["Easy",runPaces.easy.display],["Tempo",runPaces.tempo.display],["Long Run",runPaces.longRun.display],["Intervals",runPaces.interval5K.display]].map(([l,v])=>(
-                            <div key={l} style={{fontSize:11}}><span style={{color:"var(--cm-ink)"}}>{l}: </span><span style={{color:"var(--cm-ink)",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
+                            <div key={l} style={{fontSize:13,lineHeight:1.6}}><span style={{color:"rgba(var(--cm-ink-rgb),0.8)"}}>{l}: </span><span style={{color:"var(--cm-ink)",fontWeight:700,fontFamily:"monospace"}}>{v}</span></div>
                           ))}
                         </div>
                       </div>}
                       {preFuel&&<div style={{background:"rgba(245,158,11,.06)",border:"1px solid rgba(245,158,11,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                        <div style={{fontSize:9,color:"var(--amber)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
-                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{preFuel}</div>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>PRE-RUN FUEL</div>
+                        <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{preFuel}</div>
                       </div>}
                       {postFuel&&<div style={{background:"rgba(52,211,153,.06)",border:"1px solid rgba(52,211,153,.2)",borderRadius:9,padding:"9px 12px",marginBottom:6}}>
-                        <div style={{fontSize:9,color:T.green,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
-                        <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{postFuel}</div>
+                        <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:3}}>RECOVERY FUEL</div>
+                        <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{postFuel}</div>
                       </div>}
                       {!preFuel&&!postFuel&&todayProgObj?.nutritionNote&&(
                         <div style={{background:"rgba(255,59,48,0.05)",borderRadius:9,padding:"10px 12px",border:"1px solid rgba(255,59,48,0.12)"}}>
-                          <div style={{fontSize:9,color:"#FF3B30",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
-                          <div style={{fontSize:11,color:"var(--cm-ink)",lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
+                          <div style={{fontFamily:_AF,fontSize:10,color:"rgba(var(--cm-ink-rgb),0.55)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>NUTRITION BRIDGE</div>
+                          <div style={{fontSize:13,color:"rgba(var(--cm-ink-rgb),0.8)",lineHeight:1.6}}>{todayProgObj.nutritionNote}</div>
                         </div>
                       )}
                     </div>
