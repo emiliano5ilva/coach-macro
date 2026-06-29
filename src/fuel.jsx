@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
+import { getRunWeek } from './running_programs.js';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
 const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
 import FoodIcon from "./FoodIcon.jsx";
@@ -1512,6 +1513,28 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   const todayIdx=WDAYS_ORDER.indexOf(todayKey);
   const yesterdayKey=WDAYS_ORDER[(todayIdx+6)%7];
   const todayWeekEntry=weekMacros?.find(d=>d.day===todayKey);
+  // Per-day run mileage for the WHOLE week (run engine), keyed by day abbrev — for session labels.
+  const _runMiByDay=useMemo(()=>{
+    try{const w=getRunWeek(profile,wPrefs,schedule,1);const m={};(w?.sessions||[]).forEach(s=>{m[s.day]=s.distanceMi;});return m;}
+    catch{return {};}
+  },[profile,wPrefs,schedule]);
+  const _runMi=day=>{const mi=_runMiByDay[day];return(mi!=null&&mi>0)?Math.round(mi*10)/10:null;}; // matches run-card rounding (1 decimal, drops .0)
+  // Real per-day session label. Lifting → "{split} Day"; running → "{mi} Mile Run"; rest → "Rest".
+  const _sessFull=(day,st)=>{
+    if(!st||st==='rest')return 'Rest';
+    if(st==='run'||st==='cardio'){const r=_runMi(day);return r!=null?`${r} Mile Run`:'Run';}
+    const f=wPrefs?.dayFocus?.[day];
+    if(f&&f!=='training')return /day$/i.test(f)?f:`${f} Day`;
+    return 'Training';
+  };
+  // Compact variant for the tight setup-form day chips.
+  const _sessShort=(day,st)=>{
+    if(!st||st==='rest')return 'REST';
+    if(st==='run'||st==='cardio'){const r=_runMi(day);return r!=null?`${r} MI`:'RUN';}
+    const f=wPrefs?.dayFocus?.[day];
+    if(f&&f!=='training')return f.toUpperCase();
+    return 'TRAIN';
+  };
   const yesterdayEntry=weekMacros?.find(d=>d.day===yesterdayKey);
   const calDelta=todayWeekEntry&&yesterdayEntry?todayWeekEntry.calories-yesterdayEntry.calories:null;
 
@@ -3356,7 +3379,7 @@ Reply with ONLY a valid JSON object, no markdown:
               const totalMeals=days.reduce((s,d)=>s+(d.meals||[]).filter(m=>!m.unfillable&&m.name).length,0);
               const restBase=weekMacros?.find(x=>x.dayType==='rest');
               const sessColor=(st)=>st==='rest'?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':(st==='run'||st==='cardio')?'#60a5fa':(st==='hyrox'||st==='hybrid')?'#FEA020':'var(--cm-red,#FF3B30)';
-              const sessLabel=(d)=>{const f=wPrefs?.dayFocus?.[d.day];if(f)return f;const st=d.sessionType;return st==='rest'?'Rest':(st==='run'||st==='cardio')?'Run':st==='hyrox'?'Hyrox':st==='hybrid'?'Hybrid':'Train';};
+              const sessLabel=(d)=>_sessFull(d.day,d.sessionType);
               return(
                 <div style={{marginBottom:18,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.18)',borderRadius:20,padding:'24px 22px',boxShadow:'0 4px 18px rgba(0,0,0,.10)'}}>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>Your week, fueled for training</div>
@@ -3604,8 +3627,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     {WDAYS_ORDER.map(day=>{
                       const sessionType=schedule?.[day]||'rest';
                       const isTraining=sessionType==='training'||sessionType==='cardio'||sessionType==='run'||sessionType==='hyrox';
-                      const focus=(wPrefs?.dayFocus?.[day])||sessionType;
-                      const focusLabel=focus==='training'?'TRAIN':focus.toUpperCase().slice(0,5);
+                      const focusLabel=_sessShort(day,sessionType);
                       const selected=mealPrepPrefs.selectedDays.includes(day);
                       return(
                         <motion.button key={day} whileTap={{scale:0.88}} onPointerDown={()=>_hL()}
