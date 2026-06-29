@@ -7821,7 +7821,10 @@ Be specific and practical. Empathetic tone. No fluff.`,
   // ── Morning Brief ───────────────────────────────────────────────────────────
   useEffect(()=>{
     if(!user||wPrefs.morningBriefEnabled===false)return;
-    if(briefTrigger===0&&briefDismissed)return;
+    // Generation is now a free/instant local template (no AI) — ALWAYS generate + cache on load.
+    // A dismissed brief should still generate (and stay previewable); visibility is gated
+    // separately at render via !briefDismissed (see the Today/Fuel brief cards), so we don't
+    // short-circuit generation here anymore. (Old AI brief gated this because it was expensive.)
     setMorningBriefLoading(true);setMorningBriefError(null);
     getMorningBrief(user.id)
       .then(content=>{

@@ -18,12 +18,24 @@ import { getWeatherPaceAdjustment } from './weatherService.js';
 import { resolveProgram } from '../utils/programResolver.js';
 import { selectDayKey, baseName } from '../programs.js';
 
+// Race a promise against a timeout so a hanging network call (geolocation/weather/DB) degrades to
+// a fallback instead of stalling brief generation forever. Never rejects (a rejection → fallback too).
+function withTimeout(promise, ms, fallback, label) {
+  let t;
+  const timeout = new Promise(resolve => { t = setTimeout(() => { console.warn('[brief] timeout:', label); resolve(fallback); }, ms); });
+  return Promise.race([
+    Promise.resolve(promise).then(v => v, () => fallback),
+    timeout,
+  ]).finally(() => clearTimeout(t));
+}
+
 export async function gatherBriefContext(userId) {
-  const { data: row } = await sb
-    .from('profiles')
-    .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date, program_start_date')
-    .eq('id', userId)
-    .maybeSingle();
+  const { data: row } = await withTimeout(
+    sb.from('profiles')
+      .select('profile_data, wprefs, first_name, goal, skill_level, hyrox_race_date, hyrox_category, hyrox_experience, hyrox_weak_stations, schedule, run_race_type, run_race_date, program_start_date')
+      .eq('id', userId)
+      .maybeSingle(),
+    6000, { data: null }, 'profiles');
 
   const p = row?.profile_data || {};
   const wp = row?.wprefs || {};
@@ -62,17 +74,17 @@ export async function gatherBriefContext(userId) {
   }
 
   const [{ data: lastWorkout }, { data: foodLogs }] = await Promise.all([
-    sb.from('workout_logs')
+    withTimeout(sb.from('workout_logs')
       .select('date, workout')
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .limit(1)
-      .maybeSingle(),
-    sb.from('food_logs')
+      .maybeSingle(), 5000, { data: null }, 'lastWorkout'),
+    withTimeout(sb.from('food_logs')
       .select('date, entries')
       .eq('user_id', userId)
       .gte('date', (() => { const d = new Date(); d.setDate(d.getDate() - 14); return d.toISOString().split('T')[0]; })())
-      .order('date', { ascending: false }),
+      .order('date', { ascending: false }), 5000, { data: [] }, 'foodLogs'),
   ]);
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -110,18 +122,20 @@ export async function gatherBriefContext(userId) {
   const strengthCompDate = row?.strength_comp_date || wp.strengthCompDate || null;
   const strengthPhase = strengthCompDate ? getStrengthPhase(strengthCompDate) : null;
 
+  // Each enrichment is timeout-guarded → a hanging/slow service degrades to its fallback instead
+  // of stalling the whole gather (every ctx field has a template fallback, so absence is safe).
   const [activeDeload, upcomingDeload, plateaus, latestBalance, recentAdjs, rpeTrends, nutritionProtocol, todayCheckinRow, adaptiveProfileRow, rawValidationInsights, yWorkoutRow] = await Promise.all([
-    getActiveDeload(userId).catch(() => null),
-    getUpcomingDeload(userId).catch(() => null),
-    getActivePlateaus(userId).catch(() => []),
-    getLatestBalance(userId).catch(() => null),
-    getRecentAdjustments(userId).catch(() => []),
-    analyseRPETrends(userId).catch(() => null),
-    getTodayNutritionProtocol(userId).catch(() => null),
-    sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null),
-    sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null),
-    getTodayInsights(userId).catch(() => []),  // cached daily — fast SELECT
-    sb.from('workout_logs').select('date,workout,pr_count,volume_lbs,session_duration_mins').eq('user_id', userId).eq('date', yesterdayStr).maybeSingle().then(r=>r.data).catch(()=>null),
+    withTimeout(getActiveDeload(userId).catch(() => null), 4000, null, 'activeDeload'),
+    withTimeout(getUpcomingDeload(userId).catch(() => null), 4000, null, 'upcomingDeload'),
+    withTimeout(getActivePlateaus(userId).catch(() => []), 4000, [], 'plateaus'),
+    withTimeout(getLatestBalance(userId).catch(() => null), 4000, null, 'latestBalance'),
+    withTimeout(getRecentAdjustments(userId).catch(() => []), 4000, [], 'recentAdjs'),
+    withTimeout(analyseRPETrends(userId).catch(() => null), 4000, null, 'rpeTrends'),
+    withTimeout(getTodayNutritionProtocol(userId).catch(() => null), 4000, null, 'nutritionProtocol'),
+    withTimeout(sb.from('morning_checkins').select('*').eq('user_id', userId).eq('date', todayStr).maybeSingle().then(r=>r.data).catch(()=>null), 4000, null, 'morningCheckin'),
+    withTimeout(sb.from('profiles').select('adaptive_profile').eq('id', userId).maybeSingle().then(r=>r.data?.adaptive_profile).catch(()=>null), 4000, null, 'adaptiveProfile'),
+    withTimeout(getTodayInsights(userId).catch(() => []), 4000, [], 'todayInsights'),
+    withTimeout(sb.from('workout_logs').select('date,workout,pr_count,volume_lbs,session_duration_mins').eq('user_id', userId).eq('date', yesterdayStr).maybeSingle().then(r=>r.data).catch(()=>null), 4000, null, 'yWorkout'),
   ]);
   const balanceCorrections = latestBalance ? getBalanceCorrections(latestBalance) : [];
 
@@ -239,7 +253,7 @@ export async function gatherBriefContext(userId) {
 
   // Protein distribution — food_logs has calories/protein inside entries JSONB, not top-level
   try {
-    const { data: recentFoodRows } = await sb.from('food_logs').select('date,entries').eq('user_id', userId).order('date', { ascending: false }).limit(7);
+    const { data: recentFoodRows } = await withTimeout(sb.from('food_logs').select('date,entries').eq('user_id', userId).order('date', { ascending: false }).limit(7), 4000, { data: [] }, 'proteinHistory');
     const foodHistoryRows = (recentFoodRows || []).map(r => ({
       date: r.date,
       calories: (r.entries||[]).reduce((s,e)=>s+(e.calories||0),0),
@@ -251,7 +265,7 @@ export async function gatherBriefContext(userId) {
 
   // DOMS predictions
   try {
-    const { data: recentLogsForDoms } = await sb.from('workout_logs').select('date,workout').eq('user_id', userId).order('date', { ascending: false }).limit(30);
+    const { data: recentLogsForDoms } = await withTimeout(sb.from('workout_logs').select('date,workout').eq('user_id', userId).order('date', { ascending: false }).limit(30), 4000, { data: [] }, 'domsLogs');
     const domsProfile = adaptiveProfileRow?.domsProfile ?? null;
     const domsPreds = predictSoreness(recentLogsForDoms ?? [], domsProfile, 1);
     ctx.domsPredictions = Object.entries(domsPreds)
@@ -277,16 +291,18 @@ export async function gatherBriefContext(userId) {
     const tomorrowTypeW = (row?.schedule || wp.schedule || {})[tomorrowKeyW] || 'rest';
     const isRunDay = tomorrowTypeW === 'training' || todayType === 'training';
     if (isRunDay && (wp.isHybrid || wp.isHyrox || (wp.splitType||'').toLowerCase().includes('run'))) {
-      const coords = await new Promise(resolve => {
+      // getCurrentPosition's `timeout` does NOT run while a WKWebView permission prompt is pending,
+      // so it can hang forever — race it against a hard outer timeout that resolves to null.
+      const coords = await withTimeout(new Promise(resolve => {
         if (!navigator?.geolocation) { resolve(null); return; }
         navigator.geolocation.getCurrentPosition(
           pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
           () => resolve(null),
           { timeout: 4000, maximumAge: 3600000 }
         );
-      });
+      }), 4500, null, 'geolocation');
       if (coords) {
-        const weather = await getWeatherPaceAdjustment(coords.lat, coords.lon).catch(() => null);
+        const weather = await withTimeout(getWeatherPaceAdjustment(coords.lat, coords.lon).catch(() => null), 4000, null, 'weather');
         ctx.weatherNote = weather?.note ?? null;
       }
     }
@@ -487,24 +503,40 @@ export async function generateBriefContent(ctx) {
 }
 
 export async function getMorningBrief(userId) {
+  console.log('[brief] getMorningBrief called for', userId);
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const { data: cached } = await sb
-    .from('morning_briefs')
-    .select('content')
-    .eq('user_id', userId)
-    .eq('brief_date', todayStr)
-    .maybeSingle();
+  const { data: cached } = await withTimeout(
+    sb.from('morning_briefs').select('content').eq('user_id', userId).eq('brief_date', todayStr).maybeSingle(),
+    5000, { data: null }, 'cacheRead');
 
-  if (cached?.content) return cached.content;
+  if (cached?.content) { console.log('[brief] cache hit'); return cached.content; }
 
+  console.log('[brief] no cache — gathering context…');
   const ctx = await gatherBriefContext(userId).catch(e => { console.error('[brief] gatherBriefContext threw:',e?.message,e); throw e; });
-  const content = await generateBriefContent(ctx, userId).catch(e => { console.error('[brief] generateBriefContent threw:',e?.message,e); throw e; });
+  console.log('[brief] gather done');
 
-  await sb.from('morning_briefs').upsert(
-    { user_id: userId, brief_date: todayStr, content, generated_at: new Date().toISOString() },
-    { onConflict: 'user_id,brief_date' }
-  );
+  // Template build — log any throw (a real-ctx null a variant didn't guard) so it's visible.
+  let content;
+  try {
+    content = buildBriefFromTemplate(ctx);
+  } catch (e) {
+    console.error('[brief] buildBriefFromTemplate threw:', e?.message, e);
+    throw e;
+  }
+  console.log('[brief] template done');
+
+  // Cache write — surface (don't swallow) a write failure; still return the brief either way.
+  try {
+    const { error: upErr } = await withTimeout(sb.from('morning_briefs').upsert(
+      { user_id: userId, brief_date: todayStr, content, generated_at: new Date().toISOString() },
+      { onConflict: 'user_id,brief_date' }
+    ), 6000, { error: { message: 'upsert timeout' } }, 'cacheWrite');
+    if (upErr) console.error('[brief] morning_briefs upsert error:', upErr.message, upErr);
+    else console.log('[brief] cached');
+  } catch (e) {
+    console.error('[brief] morning_briefs upsert threw:', e?.message, e);
+  }
 
   return content;
 }
