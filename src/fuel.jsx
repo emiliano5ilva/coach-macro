@@ -1011,6 +1011,11 @@ const DIET_PRESETS=[
   {id:'low-carb',    label:'Low Carb',     badge:null,       color:null},
   {id:'pescatarian', label:'Pescatarian',  badge:null,       color:null},
 ];
+const DIET_DESC={
+  'balanced':'A bit of everything','high-protein':'Protein-forward meals','mediterranean':'Fish, olive oil & veg',
+  'keto':'Very low carb, high fat','paleo':'Whole foods, no grains','vegetarian':'No meat or fish',
+  'vegan':'Fully plant-based','carnivore':'Animal foods only','low-carb':'Reduced carbs','pescatarian':'Veggie + seafood',
+};
 
 // safeParseJSON — used by non-meal-prep AI paths (restaurant, quick suggestions).
 // Meal prep uses aiWithTools (forced tool use) and never calls this.
@@ -1836,6 +1841,8 @@ Reply with ONLY a valid JSON object, no markdown:
   const [dietExpanded,setDietExpanded]=useState(false); // setup: show all 10 diet styles vs the 2 popular
   const [activeMealDetail,setActiveMealDetail]=useState(null); // {day, meal, dayIndex, mealIndex}
   const [showGroceryList,setShowGroceryList]=useState(false);
+  const [groceryFrom,setGroceryFrom]=useState('plan'); // where grocery was opened from → where the X returns
+  const closeGrocery=()=>{setShowGroceryList(false);if(groceryFrom==='kitchen')setFuelScreen('kitchen');};
   const [checkedGroceryItems,setCheckedGroceryItems]=useState(()=>{try{const s=localStorage.getItem('mp_checked');return s?new Set(JSON.parse(s)):new Set();}catch{return new Set();}});
   // Grocery check-off, keyed by plan (resets on regenerate via plan generatedAt key): {planKey:[itemKeys]}
   const [groceryGathered,setGroceryGathered]=useState(()=>{try{const s=localStorage.getItem('cm_grocery_gathered_v1');return s?JSON.parse(s):{};}catch{return {};}});
@@ -3575,7 +3582,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   )}
                   <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
                     <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');}} style={{..._pill,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff'}}>View plan</button>
-                    <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');setShowGroceryList(true);}} style={{..._pill,background:'transparent',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',color:'var(--cm-red,#FF3B30)'}}>Grocery</button>
+                    <button onClick={()=>{setGroceryFrom('kitchen');setMealPrepScreen('plan');setFuelScreen('mealprep');setShowGroceryList(true);}} style={{..._pill,background:'transparent',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',color:'var(--cm-red,#FF3B30)'}}>Grocery</button>
                     <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{..._pill,background:'transparent',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',color:'var(--cm-red,#FF3B30)'}}>Regenerate</button>
                   </div>
                 </div>
@@ -3840,28 +3847,30 @@ Reply with ONLY a valid JSON object, no markdown:
                 <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:0.19}}
                   style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>Diet style</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr',gap:10}}>
                     {(dietExpanded?DIET_PRESETS:DIET_PRESETS.filter(d=>['balanced','high-protein'].includes(d.id)||d.id===mealPrepPrefs.dietPreset)).map((d,di)=>{
                       const sel=mealPrepPrefs.dietPreset===d.id;
                       return(
-                        <motion.button key={d.id} whileTap={{scale:0.94}} onPointerDown={()=>_hL()}
+                        <motion.button key={d.id} whileTap={{scale:0.98}} onPointerDown={()=>_hL()}
                           initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:0.21+di*0.035}}
                           onClick={()=>{
                             _hM();
                             setMealPrepPrefs(p=>({...p,dietPreset:d.id}));
                             try{if(typeof saveFlexPrefs==='function')saveFlexPrefs({...(wPrefs||{}),mealPrepDiet:d.id});}catch{}
                           }}
-                          style={{background:sel?'rgba(var(--cm-red-rgb,255,59,48),0.14)':'var(--cm-paper,#FFFFFF)',border:sel?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:14,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:'0 2px 12px rgba(0,0,0,.08)',transition:'box-shadow 0.15s'}}>
-                          {/* 16:9 image slot */}
-                          <div style={{width:'100%',aspectRatio:'16/9',background:`linear-gradient(135deg,rgba(${sel?'255,59,48':'30,10,10'},${sel?'0.22':'0.12'}),rgba(0,0,0,0.8))`,position:'relative',overflow:'hidden'}}>
-                            <img src={`/diet-images/${d.id}.jpg`} alt={d.label} style={{width:'100%',height:'100%',objectFit:'cover',position:'absolute',inset:0}} onError={e=>{e.target.style.display='none';}}/>
-                            {d.badge&&<span style={{position:'absolute',top:6,right:6,fontFamily:"'Archivo',sans-serif",fontSize:8,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',padding:'2px 8px',borderRadius:999,background:d.badge==='NEW'?'rgba(34,197,94,0.92)':d.badge==='TRENDING'?'rgba(254,160,32,0.92)':'rgba(var(--cm-red-rgb,255,59,48),0.92)',color:'#fff'}}>{d.badge}</span>}
-                            {sel&&<div style={{position:'absolute',inset:0,border:'2px solid rgba(var(--cm-red-rgb,255,59,48),0.4)',borderRadius:'inherit',pointerEvents:'none'}}/>}
-                          </div>
-                          {/* Label row */}
-                          <div style={{padding:'9px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                            <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:15,letterSpacing:'-0.01em',color:'var(--cm-red,#FF3B30)',textTransform:'uppercase'}}>{d.label}</span>
-                            {sel&&<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="rgba(var(--cm-red-rgb,255,59,48),0.15)" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.5"/><path d="M5 8l2.5 2.5 4-4" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          style={{position:'relative',display:'block',width:'100%',aspectRatio:'16/10',background:`linear-gradient(135deg,rgba(${sel?'255,59,48':'30,10,10'},${sel?'0.32':'0.18'}),rgba(0,0,0,0.85))`,border:sel?'2px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:16,cursor:'pointer',outline:'none',textAlign:'left',overflow:'hidden',padding:0,boxShadow:sel?'0 4px 18px rgba(var(--cm-red-rgb,255,59,48),0.22)':'0 2px 12px rgba(0,0,0,.10)',transition:'box-shadow 0.15s'}}>
+                          {/* full-bleed photo (gradient fallback behind until images exist) */}
+                          <img src={`/diet-images/${d.id}.jpg`} alt={d.label} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';}}/>
+                          {/* legibility scrim */}
+                          <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.30) 42%,rgba(0,0,0,0) 72%)'}}/>
+                          {/* badge top-left */}
+                          {d.badge&&<span style={{position:'absolute',top:10,left:10,fontFamily:"'Archivo',sans-serif",fontSize:8,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',padding:'3px 9px',borderRadius:999,background:d.badge==='NEW'?'rgba(34,197,94,0.95)':d.badge==='TRENDING'?'rgba(254,160,32,0.95)':'rgba(var(--cm-red-rgb,255,59,48),0.95)',color:'#fff'}}>{d.badge}</span>}
+                          {/* selected check top-right */}
+                          {sel&&<div style={{position:'absolute',top:10,right:10,width:27,height:27,borderRadius:999,background:'var(--cm-red,#FF3B30)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 8px rgba(0,0,0,.35)'}}><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M4 8.2l2.6 2.6 5-5.6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></div>}
+                          {/* white plate behind text — dark-on-white, legible over any photo */}
+                          <div style={{position:'absolute',left:12,bottom:12,maxWidth:'calc(100% - 24px)',background:'var(--cm-paper,#FFFFFF)',borderRadius:12,padding:'9px 13px',boxShadow:'0 2px 10px rgba(0,0,0,0.28)'}}>
+                            <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',textTransform:'uppercase',lineHeight:1}}>{d.label}</div>
+                            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.55)',marginTop:3,lineHeight:1.3}}>{DIET_DESC[d.id]||''}</div>
                           </div>
                         </motion.button>
                       );
@@ -4124,7 +4133,7 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* ── BOTTOM ACTION BAR (plan screen only) ── */}
             {mealPrepScreen==='plan'&&mealPrepPlan&&(
               <div style={{position:'fixed',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.97)',backdropFilter:'blur(16px)',borderTop:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',padding:'14px 20px',paddingBottom:'max(14px, env(safe-area-inset-bottom))',display:'flex',gap:10,zIndex:200}}>
-                <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hL()} onClick={()=>{_hM();setShowGroceryList(true);}}
+                <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hL()} onClick={()=>{_hM();setGroceryFrom('plan');setShowGroceryList(true);}}
                   style={{flex:1,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.22)',borderRadius:13,padding:14,...mno,fontWeight:700,fontSize:10,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.13em',textTransform:'uppercase',cursor:'pointer',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
                   🛒 GROCERY
                 </motion.button>
@@ -4363,7 +4372,7 @@ Reply with ONLY a valid JSON object, no markdown:
               };
               const labelEb={fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase'};
               return(
-                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:490}} onClick={()=>{_hL();setShowGroceryList(false);}}>
+                <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:490}} onClick={()=>{_hL();closeGrocery();}}>
                   <motion.div
                     initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
                     transition={{type:'spring',damping:28,stiffness:300}}
@@ -4378,7 +4387,7 @@ Reply with ONLY a valid JSON object, no markdown:
                         <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:26,letterSpacing:'-0.01em',color:'#fff',lineHeight:1}}>Grocery List</div>
                         <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.7)',marginTop:6,textTransform:'capitalize'}}>{totalMeals} meals{prepLabel?` · ${prepLabel}`:''} · {diet}</div>
                       </div>
-                      <button onPointerDown={()=>_hL()} onClick={()=>setShowGroceryList(false)} style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:9,width:32,height:32,color:'#fff',fontSize:15,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginLeft:12}}>✕</button>
+                      <button onPointerDown={()=>_hL()} onClick={()=>closeGrocery()} style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:9,width:32,height:32,color:'#fff',fontSize:15,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginLeft:12}}>✕</button>
                     </div>
                     {/* Progress */}
                     <div style={{padding:'0 20px',marginBottom:18}}>
@@ -4435,7 +4444,7 @@ Reply with ONLY a valid JSON object, no markdown:
                     </div>
                     {/* Done */}
                     <div style={{padding:'10px 20px 4px'}}>
-                      <button onPointerDown={()=>_hL()} onClick={()=>setShowGroceryList(false)} style={{width:'100%',background:'#fff',border:'none',borderRadius:14,padding:'15px',fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,letterSpacing:'0.04em',color:'var(--cm-red,#FF3B30)',cursor:'pointer'}}>Done</button>
+                      <button onPointerDown={()=>_hL()} onClick={()=>closeGrocery()} style={{width:'100%',background:'#fff',border:'none',borderRadius:14,padding:'15px',fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,letterSpacing:'0.04em',color:'var(--cm-red,#FF3B30)',cursor:'pointer'}}>Done</button>
                     </div>
                   </motion.div>
                 </div>
