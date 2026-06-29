@@ -1535,6 +1535,20 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     if(f&&f!=='training')return f.toUpperCase();
     return 'TRAIN';
   };
+  // Signature of the TRAINING inputs a meal-prep plan was built from. If the live
+  // signature differs from the one stamped on the plan, the plan is stale (catches
+  // program switch, schedule/day-focus edits, mesocycle/phase change, meals-per-day).
+  const _trainingSig=()=>{
+    try{
+      const sched=JSON.stringify(schedule||{});
+      const focus=JSON.stringify(wPrefs?.dayFocus||{});
+      const meals=mealPrepPrefs?.mealsPerDay||0;
+      const prog=[wPrefs?.splitType,wPrefs?.runPlan,wPrefs?.hyroxProgram,wPrefs?.hybridTemplate,profile?._libraryId,wPrefs?._libraryId].filter(Boolean).join("|");
+      // weekMacros per-day targets fold in mesocycle/phase shifts (calories+carbs change with the block).
+      const targets=(weekMacros||[]).map(d=>`${d.day}:${Math.round(d.calories||0)}/${Math.round(d.carbs||0)}`).join(",");
+      return `${sched}#${focus}#${meals}#${prog}#${targets}`;
+    }catch{return "";}
+  };
   const yesterdayEntry=weekMacros?.find(d=>d.day===yesterdayKey);
   const calDelta=todayWeekEntry&&yesterdayEntry?todayWeekEntry.calories-yesterdayEntry.calories:null;
 
@@ -1737,6 +1751,15 @@ Reply with ONLY a valid JSON object, no markdown:
   const [showRegenerateBanner,setShowRegenerateBanner]=useState(()=>localStorage.getItem('__mp_regen_needed')==='1');
   useEffect(()=>{if(mealPrepPlan?.days?.length>0){localStorage.setItem('__mp_exists','1');}else{localStorage.removeItem('__mp_exists');}},[mealPrepPlan]);
   useEffect(()=>{function onClear(){setMealPrepPlan(null);setShowRegenerateBanner(true);localStorage.setItem('__mp_regen_needed','1');localStorage.removeItem('__mp_exists');}window.addEventListener('cm_clear_meal_prep',onClear);return()=>window.removeEventListener('cm_clear_meal_prep',onClear);},[]);
+  // P0 — training-signature staleness. If the live training inputs no longer match the
+  // signature stamped on the plan, flag it stale. One mechanism for ALL cases: schedule/
+  // day-focus edits, mesocycle/phase shifts (folded into weekMacros), AND meals-per-day
+  // changes — not just the program switch the cm_clear_meal_prep event covers. Unlike that
+  // event we DON'T null the plan: keep it viewable and let the user regenerate or dismiss.
+  useEffect(()=>{
+    if(mealPrepPlan&&mealPrepPlan.trainingSig&&mealPrepPlan.trainingSig!==_trainingSig())setShowRegenerateBanner(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[mealPrepPlan,schedule,wPrefs,mealPrepPrefs?.mealsPerDay,weekMacros]);
 
   // normalizeDay/normalizeMeal: compact schema keys → verbose keys the renderer expects.
   function normalizeDay(day){
@@ -1767,7 +1790,18 @@ Reply with ONLY a valid JSON object, no markdown:
     setMealPrepError(null);setMealPrepWarning(null);
     setMealPrepScreen('generating');
     try{
-      const sel=mealPrepPrefs.selectedDays;
+      // P0 — BUILD FORWARD FROM TODAY. Was a fixed Mon–Sun template regardless of
+      // generate day (the "Wednesday problem": past weekdays shown as "to prep").
+      // Now: a rolling 7-day window starting today, intersected with the user's
+      // chosen prep days, preserving forward (today-first) order. Each day still
+      // resolves its real weekday session/target via schedule[day]/weekMacros[day]
+      // (the schedule repeats weekly). NOTE: days that wrap past Sunday are next
+      // week's same weekday; per-DATE mesocycle/phase lookahead is not yet applied
+      // (weekMacros is the current block) — tracked for the periodization pass.
+      const _fwd=Array.from({length:7},(_,i)=>WDAYS_ORDER[((todayIdx<0?0:todayIdx)+i)%7]);
+      const _chosen=mealPrepPrefs.selectedDays||[];
+      const selFwd=_fwd.filter(d=>_chosen.includes(d));
+      const sel=selFwd.length?selFwd:_fwd;
       const nMeals=mealPrepPrefs.mealsPerDay||3;
       const diet=mealPrepPrefs.dietPreset||'balanced';
       const allergenTags=(mealPrepPrefs.dietaryPrefs||[]).map(c=>ALLERGEN_CHIP_TO_TAG[c]).filter(Boolean);
@@ -1790,7 +1824,8 @@ Reply with ONLY a valid JSON object, no markdown:
 
       // Convert to plan shape the renderer expects
       const days=sel.map((dayName,i)=>fitterDayToShape(weekResult[i],dayName,schedule?.[dayName]||'rest'));
-      const plan={days,groceryList:null};
+      // P0/P1 — stamp the training signature (staleness) + generatedAt (freshness).
+      const plan={days,groceryList:null,trainingSig:_trainingSig(),generatedAt:new Date().toISOString()};
 
       setMealPrepPlan(plan);
       setMealPrepScreen('plan');
@@ -3356,7 +3391,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,color:"var(--cm-red,#FF3B30)",lineHeight:1.5,marginBottom:10}}>Your training changed. Regenerate your meal plan.</div>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#000",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>REGENERATE →</button>
-                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);}} style={{background:"transparent",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>DISMISS</button>
+                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);/* keep-this-plan: re-stamp the live signature so it won't re-flag until training changes AGAIN */if(mealPrepPlan)setMealPrepPlan(p=>p?{...p,trainingSig:_trainingSig()}:p);}} style={{background:"transparent",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>DISMISS</button>
                   </div>
                 </div>
               </div>
