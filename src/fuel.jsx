@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
-import { getRunWeek } from './running_programs.js';
+import { getRunWeek, HEAVY_LOWER_CYCLES, HYBRID_TEMPLATE_CYCLES } from './running_programs.js';
 const _hL=()=>{try{Haptics.impact({style:ImpactStyle.Light});}catch{}};
 const _hM=()=>{try{Haptics.impact({style:ImpactStyle.Medium});}catch{}};
 import FoodIcon from "./FoodIcon.jsx";
 import { getFoodIcon } from "./iconMap.js";
+import { Icon } from "@iconify/react";
 import { adaptMessageSync, getProfileSync } from "./services/personalityService.js";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import BarcodeScanner from "./BarcodeScanner.jsx";
@@ -1065,6 +1066,89 @@ function fmtIngAmt(qty, unit) {
   return `${Math.round(qty*10)/10} ${unit}`;
 }
 
+// ── Grocery aisle classification + quantity merging (no category data in recipes) ──────
+const GROCERY_AISLE_ORDER = ['Produce','Meat & Seafood','Dairy & Eggs','Pantry','Frozen'];
+// First match wins; Frozen is checked before everything so "frozen broccoli" → Frozen.
+const _AISLE_RULES = [
+  ['Frozen', /\bfrozen\b/],
+  ['Meat & Seafood', /chicken|beef|steak|pork|turkey|lamb|bacon|sausage|\bham\b|mince|ground (beef|turkey|pork|chicken)|veal|bison|venison|shrimp|prawn|salmon|tuna|\bcod\b|halibut|tilapia|\bfish\b|sardine|mackerel|trout|crab|lobster|scallop|anchovy|\bduck\b|\bsole\b/],
+  ['Dairy & Eggs', /\begg|milk|cheese|yogurt|yoghurt|cream|butter|cottage|kefir|ricotta|mozzarella|cheddar|parmesan|feta|\bghee\b/],
+  ['Produce', /lettuce|spinach|kale|arugula|broccoli|cauliflower|tomato|onion|garlic|carrot|cucumber|bell pepper|pepper, ?bell|avocado|banana|apple|berr|strawber|blueber|raspber|orange|lemon|lime|grape|melon|mango|pineapple|zucchini|squash|mushroom|potato|asparagus|celery|cabbage|green bean|\bpea(s)?\b|\bcorn\b|beet|radish|cilantro|parsley|basil|\bmint\b|ginger|scallion|leek|eggplant|sprout|chard|romaine|spring onion|bok choy|\bherb/],
+];
+function aisleForIngredient(name){
+  const n=(name||'').toLowerCase();
+  for(const [aisle,re] of _AISLE_RULES){ if(re.test(n)) return aisle; }
+  return 'Pantry';
+}
+// Parse a fmtIngAmt string ("200g" / "30ml" / "3" / "1.5 cups") back to {n,unit} — fallback
+// for plans generated before fitterDayToShape carried numeric qty/unit.
+function parseGroceryAmt(amount){
+  if(amount==null) return {n:null,unit:null};
+  const m=String(amount).trim().match(/^([\d.]+)\s*([a-zA-Z]*)/);
+  if(!m) return {n:null,unit:null};
+  return {n:parseFloat(m[1]), unit:(m[2]||'').toLowerCase()||null};
+}
+// Format a merged total for the shopping line: g→kg, ml→L at scale; whole/blank → bare count.
+function fmtGroceryQty(qty, unit){
+  if(qty==null||!isFinite(qty)||qty<=0) return '';
+  const u=(unit||'').toLowerCase();
+  if(u==='g')  return qty>=1000 ? `${(qty/1000).toFixed(qty%1000?1:0)} kg` : `${Math.round(qty)} g`;
+  if(u==='ml') return qty>=1000 ? `${(qty/1000).toFixed(qty%1000?1:0)} L`  : `${Math.round(qty)} ml`;
+  if(u==='whole'||!u){ const q=Math.round(qty*10)/10; return `${q}`; }
+  return `${Math.round(qty*10)/10} ${unit}`;
+}
+// Clean weight/volume fallback for the shopping list (not raw "403 g").
+function shopWeight(g, metric){
+  if(g==null||!isFinite(g)||g<=0) return '';
+  if(metric) return g>=1000 ? `${(g/1000).toFixed(g%1000?1:0)} kg` : `${Math.max(50,Math.round(g/50)*50)} g`;
+  const lb=g/453.592;
+  if(lb>=1){ const r=Math.round(lb*2)/2; return `${Number.isInteger(r)?r:r.toFixed(1)} lb`; }
+  return `${Math.max(1,Math.round(g/28.35))} oz`;
+}
+// Translate a summed ingredient quantity → how you'd actually BUY it at a store.
+// Countable→count/dozen/bunch, package items→bags/cans/cartons, weight→shopping weight (lb/kg).
+// Returns null for pantry staples (salt/spices) so the line shows with no quantity.
+function toShoppingQty(name, qty, unit, metric){
+  const n=(name||'').toLowerCase();
+  const g = unit==='g' ? qty : null;
+  const ml = unit==='ml' ? qty : null;
+  const whole = (unit==='whole'||unit==='slice'||!unit) ? qty : null;
+  const pl=(c,s,p)=>{const k=Math.max(1,Math.round(c));return `${k} ${k>1?p:s}`;};
+  if(/\bsalt\b|pepper, ground|black pepper|cumin|paprika|cinnamon|seasoning|oregano|\bbasil\b|thyme|chili powder|garlic powder|onion powder|turmeric|curry powder|nutmeg|cayenne|\bspice/.test(n)) return null; // staple
+  if(/olive oil|sesame oil|coconut oil|avocado oil|vegetable oil|canola|\boil\b|soy sauce|fish sauce|vinegar|sriracha|hot sauce|worcestershire|lemon juice|lime juice|honey|maple|syrup|mustard|ketchup/.test(n)) return '1 bottle';
+  if(/canned|coconut milk|tomato products|tomato paste|tomato sauce|\bbroth\b|\bstock\b|chickpea|kidney beans|black beans|\bbeans\b/.test(n)){ const b=g??ml; return pl(b!=null?b/400:1,'can','cans'); }
+  if(/\begg/.test(n)){ const c=whole??(g!=null?g/50:3); return c>=12?pl(c/12,'dozen','dozen'):pl(c,'egg','eggs'); }
+  if(/chicken breast|breast.*chicken/.test(n)&&g!=null) return pl(g/220,'breast','breasts');
+  if(/salmon|\bcod\b|halibut|tilapia|trout|mahi|fillet/.test(n)&&g!=null) return pl(g/180,'fillet','fillets');
+  if(/bacon/.test(n)) return '1 pack';
+  if(/ground (beef|turkey|pork|chicken)|\bbeef\b|steak|sirloin|\bpork\b|\blamb\b|chicken|turkey|shrimp|prawn/.test(n)&&g!=null) return shopWeight(g,metric);
+  if(/spinach|mixed greens|spring mix|arugula|\bkale\b|lettuce|salad greens|baby greens/.test(n)&&g!=null) return pl(g/140,'bag','bags');
+  if(/\brice\b|quinoa|pasta|spaghetti|noodle|\boats?\b|oatmeal|flour|couscous|barley|lentil|farro/.test(n)) return '1 bag';
+  if(/almond butter|peanut butter|nut butter|tahini/.test(n)) return '1 jar';
+  if(/chia|flax|\bseeds\b|almond|walnut|cashew|pecan|peanut|\bnuts\b/.test(n)) return '1 bag';
+  if(/cheese/.test(n)) return /feta|shredded|cottage|cream cheese|ricotta/.test(n)?'1 tub':'1 block';
+  if(/\bmilk\b|heavy cream|half and half|buttermilk/.test(n)) return '1 carton';
+  if(/yogurt|yoghurt|kefir/.test(n)) return '1 tub';
+  if(/butter/.test(n)&&g!=null) return pl(g/113,'stick','sticks');
+  if(/\bbread\b|toast|bagel|tortilla|\bbun/.test(n)) return '1 pack';
+  if(/berr/.test(n)) return '1 pack';
+  if(/garlic/.test(n)) return '1 head';
+  if(/ginger/.test(n)) return '1 knob';
+  if(/banana/.test(n)){ const c=whole??(g!=null?g/120:1); return c>=4?'1 bunch':pl(c,'banana','bananas'); }
+  const COUNT_PRODUCE=[
+    [/sweet potato/,130,'sweet potato','sweet potatoes'],[/\bpotato/,170,'potato','potatoes'],
+    [/avocado/,150,'avocado','avocados'],[/onion/,110,'onion','onions'],[/\btomato/,120,'tomato','tomatoes'],
+    [/cucumber/,200,'cucumber','cucumbers'],[/bell pepper|peppers, raw|bell peppers/,120,'bell pepper','bell peppers'],
+    [/zucchini/,200,'zucchini','zucchini'],[/carrot/,60,'carrot','carrots'],[/\blemon/,60,'lemon','lemons'],
+    [/\blime/,50,'lime','limes'],[/\bapple/,180,'apple','apples'],[/orange|tangerine/,130,'orange','oranges'],
+  ];
+  for(const [re,w,s,p] of COUNT_PRODUCE){ if(re.test(n)){ const c=whole??(g!=null?g/w:null); if(c!=null) return pl(c,s,p); } }
+  if(g!=null) return shopWeight(g,metric);
+  if(ml!=null) return metric?(ml>=1000?`${(ml/1000).toFixed(1)} L`:`${Math.max(10,Math.round(ml/10)*10)} ml`):(ml>=950?pl(ml/950,'qt','qt'):`${Math.max(10,Math.round(ml/10)*10)} ml`);
+  if(whole!=null) return `${Math.max(1,Math.round(whole))}`;
+  return '';
+}
+
 // Load eligible recipe pool from Supabase (pre-filtered; fitter re-checks allergens).
 async function loadMealPool(diet, allergenTags) {
   let q = sb
@@ -1099,6 +1183,8 @@ function fitterDayToShape(fDay, dayName, sessionType) {
       ingredients: (recipe.ingredients || []).map(ing => ({
         item:   ing.item,
         amount: fmtIngAmt((ing.qty || 0) * servings, ing.unit),
+        qty:    Math.round((ing.qty || 0) * servings * 10) / 10, // numeric scaled qty for grocery merging
+        unit:   ing.unit || null,
       })),
       instructions: recipe.instructions || null,
       slot: slot.slot,
@@ -1519,8 +1605,23 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
     catch{return {};}
   },[profile,wPrefs,schedule]);
   const _runMi=day=>{const mi=_runMiByDay[day];return(mi!=null&&mi>0)?Math.round(mi*10)/10:null;}; // matches run-card rounding (1 decimal, drops .0)
-  // Real per-day session label. Lifting → "{split} Day"; running → "{mi} Mile Run"; rest → "Rest".
+  // Hybrid lift-day split name. dayPlan[day].cycleLabel wins; else derive by lift-day ordinal
+  // from HEAVY_LOWER_CYCLES[HYBRID_TEMPLATE_CYCLES[template]] — mirrors TrainSection (NativeApp.jsx).
+  const _hybridLiftLabel=(day)=>{
+    const dp=wPrefs?.dayPlan; if(!dp) return null;
+    const cl=dp[day]?.cycleLabel; if(cl) return cl;
+    const cyc=HEAVY_LOWER_CYCLES[HYBRID_TEMPLATE_CYCLES[wPrefs?.hybridTemplate]];
+    if(!cyc) return null;
+    const liftDays=WDAYS_ORDER.filter(d=>dp[d]?.lift); const k=liftDays.indexOf(day);
+    return k>=0?cyc[k%cyc.length]:null;
+  };
+  // Real per-day session label. For HYBRID the schedule stores 'training' for BOTH run and lift days
+  // (and dayFocus is often null) — the real modality + split live in wPrefs.dayPlan[day], so consult
+  // it first; otherwise fall back to schedule sessionType + dayFocus (split programs).
   const _sessFull=(day,st)=>{
+    const dp=wPrefs?.dayPlan?.[day];
+    if(dp?.run){const r=_runMi(day);return r!=null?`${r} Mile Run`:'Run';}
+    if(dp?.lift){const cl=_hybridLiftLabel(day);return cl?(/day$/i.test(cl)?cl:`${cl} Day`):'Strength';}
     if(!st||st==='rest')return 'Rest';
     if(st==='run'||st==='cardio'){const r=_runMi(day);return r!=null?`${r} Mile Run`:'Run';}
     const f=wPrefs?.dayFocus?.[day];
@@ -1529,6 +1630,9 @@ export function FuelSection({log,macros,consumed,remaining,cfg,todayType,todayFo
   };
   // Compact variant for the tight setup-form day chips.
   const _sessShort=(day,st)=>{
+    const dp=wPrefs?.dayPlan?.[day];
+    if(dp?.run){const r=_runMi(day);return r!=null?`${r} MI`:'RUN';}
+    if(dp?.lift){const cl=_hybridLiftLabel(day);return cl?cl.toUpperCase():'LIFT';}
     if(!st||st==='rest')return 'REST';
     if(st==='run'||st==='cardio'){const r=_runMi(day);return r!=null?`${r} MI`:'RUN';}
     const f=wPrefs?.dayFocus?.[day];
@@ -1733,6 +1837,9 @@ Reply with ONLY a valid JSON object, no markdown:
   const [activeMealDetail,setActiveMealDetail]=useState(null); // {day, meal, dayIndex, mealIndex}
   const [showGroceryList,setShowGroceryList]=useState(false);
   const [checkedGroceryItems,setCheckedGroceryItems]=useState(()=>{try{const s=localStorage.getItem('mp_checked');return s?new Set(JSON.parse(s)):new Set();}catch{return new Set();}});
+  // Grocery check-off, keyed by plan (resets on regenerate via plan generatedAt key): {planKey:[itemKeys]}
+  const [groceryGathered,setGroceryGathered]=useState(()=>{try{const s=localStorage.getItem('cm_grocery_gathered_v1');return s?JSON.parse(s):{};}catch{return {};}});
+  const [groceryCollapsed,setGroceryCollapsed]=useState({}); // aisle → collapsed bool (session-only)
   const [regeneratingMeal,setRegeneratingMeal]=useState(null);
   const [regeneratingDay,setRegeneratingDay]=useState(null);
   const [swappingSlot,setSwappingSlot]=useState(null); // slot number being re-fitted for planned card
@@ -1744,6 +1851,7 @@ Reply with ONLY a valid JSON object, no markdown:
   const [mpStatusIdx,setMpStatusIdx]=useState(0);
   const MP_STATUSES=['Loading your recipe library...','Matching macros to your targets...','Selecting meals for each day...','Almost done...'];
   useEffect(()=>{try{localStorage.setItem('mp_checked',JSON.stringify([...checkedGroceryItems]));}catch{}},[checkedGroceryItems]);
+  useEffect(()=>{try{localStorage.setItem('cm_grocery_gathered_v1',JSON.stringify(groceryGathered));}catch{}},[groceryGathered]);
   // Persist new-flow plan across app sessions
   useEffect(()=>{try{if(mealPrepPlan)localStorage.setItem('cm_mp_plan_v2',JSON.stringify(mealPrepPlan));else localStorage.removeItem('cm_mp_plan_v2');}catch{}},[mealPrepPlan]);
   useEffect(()=>{if(fuelScreen!=='mealprep'){setMealPrepScreen('setup');setShowGroceryList(false);setMpSaveConfirm(false);setMealPrepError(null);setMealPrepWarning(null);}},[fuelScreen]);
@@ -3417,7 +3525,12 @@ Reply with ONLY a valid JSON object, no markdown:
               const days=mealPrepPlan.days||[];
               const totalMeals=days.reduce((s,d)=>s+(d.meals||[]).filter(m=>!m.unfillable&&m.name).length,0);
               const restBase=weekMacros?.find(x=>x.dayType==='rest');
-              const sessColor=(st)=>st==='rest'?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':(st==='run'||st==='cardio')?'#60a5fa':(st==='hyrox'||st==='hybrid')?'#FEA020':'var(--cm-red,#FF3B30)';
+              const sessColor=(d)=>{
+                const dp=wPrefs?.dayPlan?.[d.day];
+                if(dp?.run)return '#60a5fa'; if(dp?.lift)return 'var(--cm-red,#FF3B30)';
+                const st=d.sessionType;
+                return st==='rest'?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':(st==='run'||st==='cardio')?'#60a5fa':(st==='hyrox'||st==='hybrid')?'#FEA020':'var(--cm-red,#FF3B30)';
+              };
               const sessLabel=(d)=>_sessFull(d.day,d.sessionType);
               // P1 — freshness. generatedAt stamped at build time (P0); legacy sig-less plans have none → no age line.
               const _ageDays=mealPrepPlan?.generatedAt?Math.floor((Date.now()-new Date(mealPrepPlan.generatedAt).getTime())/86400000):null;
@@ -3438,9 +3551,9 @@ Reply with ONLY a valid JSON object, no markdown:
                     {days.map(d=>{
                       const wm=weekMacros?.find(x=>x.day===d.day);
                       const isToday=d.day.slice(0,3)===todayKey;
-                      const col=sessColor(d.sessionType);
+                      const col=sessColor(d);
                       const meals=(d.meals||[]).filter(m=>!m.unfillable&&m.name);
-                      const mealsLine=meals.length?meals.slice(0,2).map(m=>m.name).join(' · ')+(meals.length>2?` +${meals.length-2}`:''):'No meals planned';
+                      const mealsLine=meals.length?meals.map(m=>m.name).join(' · '):'No meals planned';
                       const carbDelta=(wm&&restBase)?Math.round(wm.carbs-restBase.carbs):null;
                       const why=(carbDelta==null||d.sessionType==='rest')?'':carbDelta>8?`+${carbDelta}g carbs`:carbDelta<-8?'eased':'steady';
                       return(
@@ -3452,7 +3565,7 @@ Reply with ONLY a valid JSON object, no markdown:
                               <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:col,textTransform:'uppercase',letterSpacing:'0.04em'}}>{sessLabel(d)}</span>
                               {why&&<span style={{marginLeft:'auto',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>{why}</span>}
                             </div>
-                            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{mealsLine}</div>
+                            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.35,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{mealsLine}</div>
                             {isToday&&<button onClick={()=>setFuelScreen('home')} style={{..._pill,marginTop:8,padding:'7px 14px',fontSize:11,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff'}}>Log today's meals →</button>}
                           </div>
                         </div>
@@ -4206,71 +4319,124 @@ Reply with ONLY a valid JSON object, no markdown:
             })()}
             </AnimatePresence>
 
-            {/* ── GROCERY LIST BOTTOM SHEET ── */}
+            {/* ── GROCERY LIST BOTTOM SHEET (aisle-grouped · merged qty · check-off) ── */}
             {showGroceryList&&mealPrepPlan&&(()=>{
-              // Build grocery list: prefer AI-generated list, else aggregate from meal ingredients
-              let groceryCats=mealPrepPlan.groceryList||{};
-              const hasData=Object.values(groceryCats).some(a=>a?.length>0);
-              if(!hasData){
-                // Aggregate all ingredients from meals
-                const allIngs=[];
-                for(const d of(mealPrepPlan.days||[])){
-                  for(const m of(d.meals||[])){
-                    for(const ing of(m.ingredients||m.ing||[])){
-                      if(!ing)continue;
-                      // Structured {item,amount} from tool use, or legacy string
-                      if(typeof ing==='object'&&ing.item){
-                        allIngs.push(ing.amount?`${ing.item} — ${ing.amount}`:ing.item);
-                      }else{
-                        allIngs.push(String(ing));
-                      }
-                    }
-                  }
-                }
-                // Dedupe by ingredient name (strip amounts for key comparison)
-                const seen=new Set();
-                const deduped=allIngs.filter(i=>{const k=i.toLowerCase().replace(/\s*—.*$/,'').replace(/^\d+[a-z]*\s*/,'').trim();if(seen.has(k))return false;seen.add(k);return true;});
-                groceryCats={ingredients:deduped};
-              }
+              const days=mealPrepPlan.days||[];
+              const planKey=mealPrepPlan.generatedAt||'plan';
+              const useMetric=profile?.wUnit==='kg';
+              // Aggregate every meal ingredient → merge by item name, summing qty per unit.
+              const agg=new Map();
+              for(const d of days){ for(const m of (d.meals||[])){ if(!m||m.unfillable) continue; for(const ing of (m.ingredients||m.ing||[])){
+                if(!ing) continue;
+                const name=(typeof ing==='object')?ing.item:String(ing);
+                if(!name) continue;
+                const key=name.toLowerCase().trim();
+                let n=(typeof ing==='object'&&typeof ing.qty==='number')?ing.qty:null;
+                let u=(typeof ing==='object'&&ing.unit)?ing.unit:null;
+                if(n==null&&typeof ing==='object'){ const p=parseGroceryAmt(ing.amount); n=p.n; if(!u)u=p.unit; } // legacy plan fallback
+                const e=agg.get(key)||{item:name,unit:u,qty:0,count:0,summable:true};
+                e.count+=1;
+                if(n!=null){ if(e.unit==null)e.unit=u; if(u===e.unit)e.qty+=n; else e.summable=false; }
+                agg.set(key,e);
+              }}}
+              const allItems=[...agg.values()];
+              const byAisle={};
+              for(const e of allItems){ const a=aisleForIngredient(e.item); (byAisle[a]=byAisle[a]||[]).push(e); }
+              for(const a in byAisle) byAisle[a].sort((x,y)=>x.item.localeCompare(y.item));
+              const aisles=GROCERY_AISLE_ORDER.filter(a=>byAisle[a]?.length);
+              const totalItems=allItems.length;
+              const gatheredSet=new Set(groceryGathered[planKey]||[]);
+              const gatheredCount=allItems.filter(e=>gatheredSet.has(e.item.toLowerCase().trim())).length;
+              const pct=totalItems?Math.round(gatheredCount/totalItems*100):0;
+              const totalMeals=days.reduce((s,d)=>s+(d.meals||[]).filter(m=>!m.unfillable&&m.name).length,0);
+              const prepLabel=({'30min':'~30m prep','1hr':'~1h prep','2hr':'~2h prep','3hr':'~3h prep'})[mealPrepPrefs.prepTime]||null;
+              const diet=mealPrepPrefs.dietPreset||'balanced';
+              const toggle=(k)=>{_hL();setGroceryGathered(prev=>{const cur=new Set(prev[planKey]||[]);if(cur.has(k))cur.delete(k);else cur.add(k);return{...prev,[planKey]:[...cur]};});};
+              const cleanName=(s)=>{const n=String(s||'').replace(/,\s*(raw|cooked|atlantic|pacific|boneless|skinless|ground|whole|fresh|dried|chopped|sliced|diced)\b/gi,'').replace(/\s+/g,' ').trim();return n?n.charAt(0).toUpperCase()+n.slice(1):s;};
+              // Aisle icons from the app's bundled fluent-emoji-flat pack (src/iconData.js).
+              const AISLE_ICON={
+                'Produce':'fluent-emoji-flat:green-salad',
+                'Meat & Seafood':'fluent-emoji-flat:poultry-leg',
+                'Dairy & Eggs':'fluent-emoji-flat:egg',
+                'Pantry':'fluent-emoji-flat:sheaf-of-rice',
+                'Frozen':'fluent-emoji-flat:ice-cream',
+              };
+              const labelEb={fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase'};
               return(
                 <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:490}} onClick={()=>{_hL();setShowGroceryList(false);}}>
                   <motion.div
                     initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
                     transition={{type:'spring',damping:28,stiffness:300}}
-                    style={{position:'fixed',bottom:0,left:0,right:0,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:'20px 20px 0 0',maxHeight:'82vh',overflowY:'auto',zIndex:500,paddingBottom:'max(32px,env(safe-area-inset-bottom,20px))',WebkitOverflowScrolling:'touch',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}
+                    style={{position:'fixed',bottom:0,left:0,right:0,background:'var(--cm-red,#FF3B30)',borderRadius:'22px 22px 0 0',maxHeight:'90vh',overflowY:'auto',zIndex:500,paddingBottom:'max(28px,env(safe-area-inset-bottom,20px))',WebkitOverflowScrolling:'touch'}}
                     onClick={e=>e.stopPropagation()}
                   >
-                    <div style={{width:36,height:4,background:'rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:2,margin:'16px auto 18px'}}/>
-                    <div style={{padding:'0 20px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                      <div>
-                        <div style={{...mno,fontSize:8,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:3}}>// SHOPPING LIST</div>
-                        <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:26,color:'var(--cm-red,#FF3B30)',textTransform:'uppercase',lineHeight:1}}>GROCERY LIST</div>
+                    <div style={{width:38,height:4,background:'rgba(255,255,255,0.35)',borderRadius:2,margin:'14px auto 16px'}}/>
+                    {/* Header */}
+                    <div style={{padding:'0 20px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{...labelEb,fontSize:10,color:'rgba(255,255,255,0.7)',marginBottom:4}}>Cook once · this week</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:26,letterSpacing:'-0.01em',color:'#fff',lineHeight:1}}>Grocery List</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.7)',marginTop:6,textTransform:'capitalize'}}>{totalMeals} meals{prepLabel?` · ${prepLabel}`:''} · {diet}</div>
                       </div>
-                      <button onPointerDown={()=>_hL()} onClick={()=>setShowGroceryList(false)} style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.06)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',borderRadius:8,width:32,height:32,color:'rgba(var(--cm-red-rgb,255,59,48),0.5)',fontSize:16,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                      <button onPointerDown={()=>_hL()} onClick={()=>setShowGroceryList(false)} style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:9,width:32,height:32,color:'#fff',fontSize:15,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginLeft:12}}>✕</button>
                     </div>
-                    {Object.entries(groceryCats).map(([category,items])=>{
-                      if(!items||items.length===0)return null;
-                      return(
-                        <div key={category}>
-                          <div style={{padding:'0 20px',...mno,fontSize:8,color:'rgba(var(--cm-red-rgb,255,59,48),0.4)',letterSpacing:'0.18em',textTransform:'uppercase',marginTop:18,marginBottom:8}}>{category.toUpperCase()}</div>
-                          {items.map((item,idx)=>{
-                            const itemId=`${category}_${idx}`;
-                            const checked=checkedGroceryItems.has(itemId);
-                            return(
-                              <div key={itemId}
-                                onPointerDown={()=>_hL()}
-                                onClick={()=>setCheckedGroceryItems(prev=>{const next=new Set(prev);if(next.has(itemId))next.delete(itemId);else next.add(itemId);return next;})}
-                                style={{padding:'13px 20px',display:'flex',alignItems:'center',gap:14,borderBottom:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.04)',cursor:'pointer'}}>
-                                <div style={{width:22,height:22,borderRadius:6,border:checked?'none':'1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.28)',background:checked?'var(--cm-red,#FF3B30)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.15s'}}>
-                                  {checked&&<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                </div>
-                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:17,color:checked?'rgba(var(--cm-red-rgb,255,59,48),0.25)':'var(--cm-red,#FF3B30)',textDecoration:checked?'line-through':'none',lineHeight:1.2,textTransform:'capitalize'}}>{item}</div>
+                    {/* Progress */}
+                    <div style={{padding:'0 20px',marginBottom:18}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:7}}>
+                        <span style={{...labelEb,fontSize:11,color:'#fff'}}>{gatheredCount} of {totalItems} gathered</span>
+                        <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.7)'}}>{pct}%</span>
+                      </div>
+                      <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,0.22)',overflow:'hidden'}}>
+                        <motion.div animate={{width:`${pct}%`}} transition={{type:'spring',damping:26,stiffness:240}} style={{height:'100%',borderRadius:3,background:'#fff'}}/>
+                      </div>
+                    </div>
+                    {/* Aisle cards */}
+                    <div style={{padding:'0 14px'}}>
+                      {aisles.map(aisle=>{
+                        const list=byAisle[aisle];
+                        const aGathered=list.filter(e=>gatheredSet.has(e.item.toLowerCase().trim())).length;
+                        const allDone=aGathered===list.length;
+                        const collapsed=groceryCollapsed[aisle]??(list.length>7); // long aisles default-collapsed
+                        return(
+                          <div key={aisle} style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:16,marginBottom:12,overflow:'hidden',boxShadow:'0 2px 12px rgba(0,0,0,.10)'}}>
+                            <button onPointerDown={()=>_hL()} onClick={()=>setGroceryCollapsed(p=>({...p,[aisle]:!collapsed}))} style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'none',border:'none',cursor:'pointer',textAlign:'left'}}>
+                              <div style={{width:34,height:34,borderRadius:9,background:'rgba(var(--cm-ink-rgb,10,10,10),0.05)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,opacity:allDone?0.45:1}}>
+                                <Icon icon={AISLE_ICON[aisle]} width={22} height={22}/>
                               </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{...labelEb,fontSize:11,color:'var(--cm-ink,#0A0A0A)'}}>{aisle}</div>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:allDone?'#16a34a':'rgba(var(--cm-ink-rgb,10,10,10),0.4)',marginTop:2}}>{allDone?'✓ all gathered':`${aGathered}/${list.length} gathered`}</div>
+                              </div>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,transform:collapsed?'rotate(0deg)':'rotate(180deg)',transition:'transform .2s'}}><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            {!collapsed&&<div style={{borderTop:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)'}}>
+                              {list.map(e=>{
+                                const k=e.item.toLowerCase().trim();
+                                const checked=gatheredSet.has(k);
+                                const qtyStr=e.summable?toShoppingQty(e.item,e.qty,e.unit,useMetric):'';
+                                return(
+                                  <div key={k} onPointerDown={()=>_hL()} onClick={()=>toggle(k)} style={{display:'flex',alignItems:'center',gap:13,padding:'12px 16px',borderBottom:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.05)',cursor:'pointer'}}>
+                                    <div style={{width:22,height:22,borderRadius:6,border:checked?'none':'1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.22)',background:checked?'var(--cm-red,#FF3B30)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all .15s'}}>
+                                      {checked&&<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                    </div>
+                                    <div style={{flex:1,minWidth:0}}>
+                                      <div style={{fontFamily:"'Archivo',sans-serif",fontSize:15,fontWeight:checked?500:600,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.3)':'var(--cm-ink,#0A0A0A)',textDecoration:checked?'line-through':'none',lineHeight:1.25}}>{cleanName(e.item)}</div>
+                                      {e.count>1&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.38)',marginTop:1}}>across {e.count} meals</div>}
+                                    </div>
+                                    {qtyStr&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.3)':'var(--cm-red,#FF3B30)',flexShrink:0,whiteSpace:'nowrap',marginLeft:8,fontVariantNumeric:'tabular-nums'}}>{qtyStr}</div>}
+                                  </div>
+                                );
+                              })}
+                            </div>}
+                          </div>
+                        );
+                      })}
+                      {totalItems===0&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'rgba(255,255,255,0.8)',textAlign:'center',padding:'24px 0'}}>No ingredients in this plan yet.</div>}
+                    </div>
+                    {/* Done */}
+                    <div style={{padding:'10px 20px 4px'}}>
+                      <button onPointerDown={()=>_hL()} onClick={()=>setShowGroceryList(false)} style={{width:'100%',background:'#fff',border:'none',borderRadius:14,padding:'15px',fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,letterSpacing:'0.04em',color:'var(--cm-red,#FF3B30)',cursor:'pointer'}}>Done</button>
+                    </div>
                   </motion.div>
                 </div>
               );
