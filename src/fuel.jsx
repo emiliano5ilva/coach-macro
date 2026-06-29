@@ -2669,6 +2669,10 @@ Reply with ONLY a valid JSON object, no markdown:
                       </div>
                     </div>
                   </div>
+                  {/* P1 — today-not-covered: quiet hint only when a plan exists but doesn't include today */}
+                  {mealPrepPlan?.days?.length>0&&!todayPlanDay&&(
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',marginTop:-6,marginBottom:12}}>No prepped meals planned for today</div>
+                  )}
                   <div>
                     {mealSlots.map((slot,si)=>{
                       const isSkipped=(skippedSlots||[]).includes(slot);
@@ -3415,10 +3419,21 @@ Reply with ONLY a valid JSON object, no markdown:
               const restBase=weekMacros?.find(x=>x.dayType==='rest');
               const sessColor=(st)=>st==='rest'?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':(st==='run'||st==='cardio')?'#60a5fa':(st==='hyrox'||st==='hybrid')?'#FEA020':'var(--cm-red,#FF3B30)';
               const sessLabel=(d)=>_sessFull(d.day,d.sessionType);
+              // P1 — freshness. generatedAt stamped at build time (P0); legacy sig-less plans have none → no age line.
+              const _ageDays=mealPrepPlan?.generatedAt?Math.floor((Date.now()-new Date(mealPrepPlan.generatedAt).getTime())/86400000):null;
+              const _ageLabel=_ageDays==null?null:(_ageDays<=0?'Planned today':_ageDays===1?'Planned yesterday':`Planned ${_ageDays} days ago`);
+              const _planElapsed=_ageDays!=null&&_ageDays>=7; // rolling 7-day window fully elapsed → time to plan next week
               return(
                 <div style={{marginBottom:18,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.18)',borderRadius:20,padding:'24px 22px',boxShadow:'0 4px 18px rgba(0,0,0,.10)'}}>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>Your week, fueled for training</div>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',textTransform:'capitalize',marginBottom:14}}>{mealPrepPrefs.dietPreset||'balanced'} · {totalMeals} meals prepped</div>
+                  {_ageLabel&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginTop:-10,marginBottom:14}}>{_ageLabel}</div>}
+                  {_planElapsed?(
+                    <div style={{padding:'6px 2px 4px'}}>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.5,marginBottom:14}}>This week's plan has ended.</div>
+                      <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{..._pill,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff',padding:'13px 24px',fontSize:12}}>Plan next week →</button>
+                    </div>
+                  ):(
                   <div>
                     {days.map(d=>{
                       const wm=weekMacros?.find(x=>x.day===d.day);
@@ -3444,6 +3459,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       );
                     })}
                   </div>
+                  )}
                   <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
                     <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');}} style={{..._pill,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff'}}>View plan</button>
                     <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');setShowGroceryList(true);}} style={{..._pill,background:'transparent',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',color:'var(--cm-red,#FF3B30)'}}>Grocery</button>
