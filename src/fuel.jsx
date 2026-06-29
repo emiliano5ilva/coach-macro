@@ -3338,20 +3338,71 @@ Reply with ONLY a valid JSON object, no markdown:
               </div>
             )}
 
-            {/* Kitchen carousel */}
-            {/* Meal Prep — plain card (Restaurant AI moved to the log sheet) */}
-            <div onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{marginBottom:18,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.22)',borderRadius:18,padding:'28px 24px',boxSizing:'border-box',cursor:'pointer',position:'relative',boxShadow:'0 4px 18px rgba(0,0,0,.10)'}}>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>Weekly Prep</div>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'var(--cm-red,#FF3B30)',textTransform:'uppercase',lineHeight:1,marginBottom:8}}>Meal Prep.</div>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'rgba(var(--cm-red-rgb,255,59,48),0.55)',lineHeight:1.5}}>Cook once, eat all week</div>
-              <div style={{position:'absolute',bottom:24,right:22,color:'var(--cm-red,#FF3B30)',fontSize:20,lineHeight:1,fontWeight:700}}>→</div>
-            </div>
+            {/* MEAL PREP — training-spine week (active plan) OR generate-your-week (empty) */}
+            {(()=>{
+              const _pill={fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase",borderRadius:999,padding:"9px 16px",cursor:"pointer",WebkitTapHighlightColor:"transparent"};
+              if(!mealPrepPlan){
+                return(
+                  <div style={{marginBottom:18,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.22)',borderRadius:20,padding:'28px 24px',boxShadow:'0 4px 18px rgba(0,0,0,.10)'}}>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:8}}>Meal Prep</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:28,letterSpacing:'-0.01em',color:'var(--cm-red,#FF3B30)',lineHeight:1.05,marginBottom:8}}>Generate your week</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'rgba(var(--cm-red-rgb,255,59,48),0.55)',lineHeight:1.5,marginBottom:18}}>Pick your diet, meals per day & restrictions — AI builds a training-aware weekly plan with a grocery list.</div>
+                    <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{..._pill,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff',padding:'13px 26px',fontSize:12}}>Set up my week →</button>
+                  </div>
+                );
+              }
+              const days=mealPrepPlan.days||[];
+              const totalMeals=days.reduce((s,d)=>s+(d.meals||[]).filter(m=>!m.unfillable&&m.name).length,0);
+              const restBase=weekMacros?.find(x=>x.dayType==='rest');
+              const sessColor=(st)=>st==='rest'?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':(st==='run'||st==='cardio')?'#60a5fa':(st==='hyrox'||st==='hybrid')?'#FEA020':'var(--cm-red,#FF3B30)';
+              const sessLabel=(d)=>{const f=wPrefs?.dayFocus?.[d.day];if(f)return f;const st=d.sessionType;return st==='rest'?'Rest':(st==='run'||st==='cardio')?'Run':st==='hyrox'?'Hyrox':st==='hybrid'?'Hybrid':'Train';};
+              return(
+                <div style={{marginBottom:18,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.18)',borderRadius:20,padding:'24px 22px',boxShadow:'0 4px 18px rgba(0,0,0,.10)'}}>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>Your week, fueled for training</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',textTransform:'capitalize',marginBottom:14}}>{mealPrepPrefs.dietPreset||'balanced'} · {totalMeals} meals prepped</div>
+                  <div>
+                    {days.map(d=>{
+                      const wm=weekMacros?.find(x=>x.day===d.day);
+                      const isToday=d.day.slice(0,3)===todayKey;
+                      const col=sessColor(d.sessionType);
+                      const meals=(d.meals||[]).filter(m=>!m.unfillable&&m.name);
+                      const mealsLine=meals.length?meals.slice(0,2).map(m=>m.name).join(' · ')+(meals.length>2?` +${meals.length-2}`:''):'No meals planned';
+                      const carbDelta=(wm&&restBase)?Math.round(wm.carbs-restBase.carbs):null;
+                      const why=(carbDelta==null||d.sessionType==='rest')?'':carbDelta>8?`+${carbDelta}g carbs`:carbDelta<-8?'eased':'steady';
+                      return(
+                        <div key={d.day} style={{display:'flex',gap:12,alignItems:'stretch',padding:'10px 10px',borderRadius:12,background:isToday?'rgba(var(--cm-red-rgb,255,59,48),0.07)':'transparent',marginBottom:2}}>
+                          <div style={{width:4,borderRadius:2,background:col,flexShrink:0}}/>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
+                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:isToday?800:700,color:'var(--cm-ink,#0A0A0A)',letterSpacing:'0.02em'}}>{d.day.slice(0,3).toUpperCase()}</span>
+                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:col,textTransform:'uppercase',letterSpacing:'0.04em'}}>{sessLabel(d)}</span>
+                              {why&&<span style={{marginLeft:'auto',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>{why}</span>}
+                            </div>
+                            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{mealsLine}</div>
+                            {isToday&&<button onClick={()=>setFuelScreen('home')} style={{..._pill,marginTop:8,padding:'7px 14px',fontSize:11,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff'}}>Log today's meals →</button>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
+                    <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');}} style={{..._pill,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff'}}>View plan</button>
+                    <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');setShowGroceryList(true);}} style={{..._pill,background:'transparent',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',color:'var(--cm-red,#FF3B30)'}}>Grocery</button>
+                    <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{..._pill,background:'transparent',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',color:'var(--cm-red,#FF3B30)'}}>Regenerate</button>
+                  </div>
+                </div>
+              );
+            })()}
 
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:32,fontWeight:900,color:'var(--cm-red,#FF3B30)'}}>MY RECIPES</div>
-              <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"10px 18px",background:T.prot,color:"#fff",border:"none",borderRadius:20,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
+            {/* Recipes — demoted secondary section below the meal-prep week */}
+            <div style={{borderTop:"1px solid rgba(255,255,255,0.15)",marginTop:24,paddingTop:22}}>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Recipes</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:20,fontWeight:800,letterSpacing:"-0.01em",color:'var(--cm-paper,#FFFFFF)'}}>My Recipes</div>
+                <button onClick={()=>{setRecipeEditing(null);setShowRecipeBuilder(true);}} style={{padding:"8px 16px",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",borderRadius:999,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"'Archivo',sans-serif",letterSpacing:"0.04em",textTransform:"uppercase",flexShrink:0}}>+ New</button>
+              </div>
+              <p style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:"rgba(255,255,255,0.5)",marginBottom:16}}>Save multi-ingredient meals · log in one tap</p>
             </div>
-            <p style={{fontSize:13,color:T.mu,marginBottom:16}}>Save multi-ingredient recipes · log as a single tap</p>
 
             {/* AI recipe ideas button */}
             <button onClick={fetchRecipes} style={{width:"100%",padding:"18px 18px",background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.22)",borderRadius:18,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:14,marginBottom:16,boxShadow:"0 2px 10px rgba(0,0,0,.05)"}}>
@@ -3484,35 +3535,6 @@ Reply with ONLY a valid JSON object, no markdown:
               </>
             )}
 
-            {/* ── MEAL PREP section inside Kitchen — routes to new flow ── */}
-            <div ref={mealPrepRef} style={{borderTop:`1px solid ${T.bd}`,marginTop:32,paddingTop:28}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:4}}>
-              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:32,fontWeight:900,color:'var(--cm-red,#FF3B30)'}}>MEAL PREP</div>
-              {mealPrepPlan&&(
-                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{fontSize:11,color:"var(--cm-red,#FF3B30)",background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>↺ Regenerate</button>
-              )}
-            </div>
-            <p style={{fontSize:13,color:T.mu,marginBottom:20}}>Cook once, eat all week · based on your training schedule</p>
-
-            {!mealPrepPlan&&(
-              <div style={{textAlign:"center",padding:"48px 20px",border:`1px dashed ${T.bd}`,borderRadius:16}}>
-                <div style={{fontSize:18,fontWeight:700,marginBottom:8,color:'var(--cm-red,#FF3B30)'}}>Generate Your Week</div>
-                <div style={{fontSize:12,color:T.mu,marginBottom:24,lineHeight:1.65,maxWidth:300,margin:"0 auto 24px"}}>Choose your diet style, meals per day, and restrictions — AI builds a fully personalised weekly plan with grocery list</div>
-                <button onClick={()=>{setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{padding:"14px 32px",background:"var(--cm-red,#FF3B30)",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"'DM Mono',monospace",letterSpacing:"1.8px",textTransform:"uppercase"}}>SET UP MY WEEK →</button>
-              </div>
-            )}
-
-            {mealPrepPlan&&(
-              <div style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.15)',borderRadius:16,padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-                <div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(var(--cm-red-rgb,255,59,48),0.5)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>ACTIVE PLAN</div>
-                  <div style={{fontSize:14,fontWeight:700,color:'var(--cm-red,#FF3B30)',marginBottom:2}}>{(mealPrepPlan.days||[]).length} days · {(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).length,0)} meals</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(var(--cm-red-rgb,255,59,48),0.4)'}}>{mealPrepPrefs.dietPreset||'balanced'} · {mealPrepPrefs.mealsPerDay} meals/day</div>
-                </div>
-                <button onClick={()=>{setMealPrepScreen('plan');setFuelScreen('mealprep');}} style={{background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:10,padding:'10px 16px',fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:'#fff',letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',flexShrink:0}}>VIEW PLAN →</button>
-              </div>
-            )}
-            </div>{/* end meal prep section */}
           </div>
         )}
 
