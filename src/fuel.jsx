@@ -1156,19 +1156,27 @@ function toShoppingQty(name, qty, unit, metric){
 
 // Load eligible recipe pool from Supabase (pre-filtered; fitter re-checks allergens).
 async function loadMealPool(diet, allergenTags) {
-  let q = sb
-    .from('recipes')
-    .select('id,name,meal_slot,diet_tags,allergen_tags,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,servings_count,ingredients,use_count,last_used')
-    .is('user_id', null);
+  const COLS = 'id,name,meal_slot,diet_tags,allergen_tags,primary_diet,calories_per_serving,protein_per_serving,carbs_per_serving,fat_per_serving,servings_count,ingredients,instructions,recipe_kind,use_count,last_used';
+  const allergenGate = (q) => allergenTags.length > 0 ? q.not('allergen_tags', 'ov', `{${allergenTags.join(',')}}`) : q;
+  let q = sb.from('recipes').select(COLS).is('user_id', null);
   if (diet && diet !== 'balanced') {
     const allowed = DIET_INCLUDES[diet] || [diet];
     q = q.overlaps('diet_tags', allowed);
   }
-  // ALLERGEN GATE (DB layer): NOT (allergen_tags && ARRAY[allergens])
-  if (allergenTags.length > 0) q = q.not('allergen_tags', 'ov', `{${allergenTags.join(',')}}`);
+  q = allergenGate(q);
   const { data, error } = await q;
   if (error) throw new Error(`Recipe pool load failed: ${error.message}`);
-  return data || [];
+  let pool = data || [];
+  // Mediterranean has no genuine snack recipes (diet-tag quality pass) → add pescatarian/vegetarian
+  // SNACK recipes so snack slots can fill; meetsDiet gates these to the snack slot only.
+  if (diet === 'mediterranean') {
+    const { data: snacks } = await allergenGate(
+      sb.from('recipes').select(COLS).is('user_id', null).eq('meal_slot', 'snack').overlaps('diet_tags', ['pescatarian', 'vegetarian'])
+    );
+    const seen = new Set(pool.map(r => r.id));
+    pool = [...pool, ...(snacks || []).filter(r => !seen.has(r.id))];
+  }
+  return pool;
 }
 
 // Convert a single fitDay result + metadata → the shape one plan day expects.
@@ -1191,7 +1199,10 @@ function fitterDayToShape(fDay, dayName, sessionType) {
         qty:    Math.round((ing.qty || 0) * servings * 10) / 10, // numeric scaled qty for grocery merging
         unit:   ing.unit || null,
       })),
-      instructions: recipe.instructions || null,
+      instructions: recipe.instructions || null,   // authored cooking guide (jsonb) or null
+      recipe_kind: recipe.recipe_kind || null,
+      dietTags: recipe.diet_tags || [],
+      allergenTags: recipe.allergen_tags || [],
       slot: slot.slot,
       servings,
       _recipeId: recipe.id,
@@ -1840,6 +1851,9 @@ Reply with ONLY a valid JSON object, no markdown:
   const [mealPrepWarning,setMealPrepWarning]=useState(null);
   const [dietExpanded,setDietExpanded]=useState(false); // setup: show all 10 diet styles vs the 2 popular
   const [activeMealDetail,setActiveMealDetail]=useState(null); // {day, meal, dayIndex, mealIndex}
+  const [detailFrom,setDetailFrom]=useState('plan'); // where the meal detail was opened from → where Close returns
+  const [mealIngChecked,setMealIngChecked]=useState(new Set()); // per-open ingredient check-off (reset on open)
+  const closeMealDetail=()=>{setActiveMealDetail(null);if(detailFrom==='kitchen')setFuelScreen('kitchen');};
   const [showGroceryList,setShowGroceryList]=useState(false);
   const [groceryFrom,setGroceryFrom]=useState('plan'); // where grocery was opened from → where the X returns
   const closeGrocery=()=>{setShowGroceryList(false);if(groceryFrom==='kitchen')setFuelScreen('kitchen');};
@@ -3555,12 +3569,11 @@ Reply with ONLY a valid JSON object, no markdown:
                     </div>
                   ):(
                   <div>
-                    {days.map(d=>{
+                    {days.map((d,dayIndex)=>{
                       const wm=weekMacros?.find(x=>x.day===d.day);
                       const isToday=d.day.slice(0,3)===todayKey;
                       const col=sessColor(d);
                       const meals=(d.meals||[]).filter(m=>!m.unfillable&&m.name);
-                      const mealsLine=meals.length?meals.map(m=>m.name).join(' · '):'No meals planned';
                       const carbDelta=(wm&&restBase)?Math.round(wm.carbs-restBase.carbs):null;
                       const why=(carbDelta==null||d.sessionType==='rest')?'':carbDelta>8?`+${carbDelta}g carbs`:carbDelta<-8?'eased':'steady';
                       return(
@@ -3572,7 +3585,19 @@ Reply with ONLY a valid JSON object, no markdown:
                               <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:col,textTransform:'uppercase',letterSpacing:'0.04em'}}>{sessLabel(d)}</span>
                               {why&&<span style={{marginLeft:'auto',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>{why}</span>}
                             </div>
-                            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.35,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{mealsLine}</div>
+                            {meals.length?(
+                              <div style={{lineHeight:1.4}}>
+                                {meals.map((m,mi)=>(
+                                  <span key={mi}>
+                                    <span onClick={()=>{_hM();setDetailFrom('kitchen');setMealIngChecked(new Set());setActiveMealDetail({day:d,meal:m,dayIndex,mealIndex:(d.meals||[]).indexOf(m)});setMealPrepScreen('plan');setFuelScreen('mealprep');}}
+                                      style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:600,color:'var(--cm-red,#FF3B30)',cursor:'pointer'}}>{m.name}</span>
+                                    {mi<meals.length-1&&<span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.3)'}}> · </span>}
+                                  </span>
+                                ))}
+                              </div>
+                            ):(
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)'}}>No meals planned</div>
+                            )}
                             {isToday&&<button onClick={()=>setFuelScreen('home')} style={{..._pill,marginTop:8,padding:'7px 14px',fontSize:11,background:'var(--cm-red,#FF3B30)',border:'none',color:'#fff'}}>Log today's meals →</button>}
                           </div>
                         </div>
@@ -3988,34 +4013,34 @@ Reply with ONLY a valid JSON object, no markdown:
               const prepM=totalPrepMins%60;
               const groceryCount=Object.values(mealPrepPlan.groceryList||{}).reduce((s,arr)=>s+(arr?.length||0),0);
               return(
-                <div>
+                <div style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 184px)'}}>
                   <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes mpBarAnim{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}`}</style>
 
-                  {/* Allergen warning/notice */}
-                  {mealPrepWarning&&<motion.div initial={{opacity:0,y:-6}} animate={{opacity:1,y:0}} style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.3)',borderRadius:12,padding:'10px 14px',marginBottom:16}}>
-                    <div style={{...mno,fontSize:8,color:'rgba(255,255,255,0.7)',letterSpacing:'0.14em',marginBottom:4}}>// ALLERGEN NOTICE</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:'rgba(255,255,255,0.75)',lineHeight:1.6}}>{mealPrepWarning}</div>
+                  {/* Allergen notice — muted Archivo */}
+                  {mealPrepWarning&&<motion.div initial={{opacity:0,y:-6}} animate={{opacity:1,y:0}} style={{background:'rgba(255,255,255,0.10)',border:'1px solid rgba(255,255,255,0.18)',borderRadius:12,padding:'10px 14px',marginBottom:16}}>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.75)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>Allergen notice</div>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.8)',lineHeight:1.5}}>{mealPrepWarning}</div>
                   </motion.div>}
-                  {mealPrepPrefs.dietaryPrefs.length>0&&!mealPrepWarning&&<div style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.04)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:10,padding:'6px 14px',marginBottom:14}}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(255,255,255,0.45)',lineHeight:1.5}}>Allergy filters applied. Always verify ingredients — not medical advice.</div>
+                  {mealPrepPrefs.dietaryPrefs.length>0&&!mealPrepWarning&&<div style={{marginBottom:14}}>
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:500,color:'rgba(255,255,255,0.5)',lineHeight:1.5}}>Allergy filters applied. Always verify ingredients — not medical advice.</div>
                   </div>}
 
                   {/* Header */}
-                  <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} style={{display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
-                    <button onPointerDown={()=>_hL()} onClick={()=>setMealPrepScreen('setup')} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',fontSize:20,cursor:'pointer',padding:'0 4px 0 0',lineHeight:1,flexShrink:0}}>←</button>
-                    <div style={{flex:1}}>
-                      <div style={{...mno,fontSize:9,color:'rgba(255,255,255,0.65)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:4}}>// MEAL PREP PLAN</div>
-                      <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:42,color:'#FFFFFF',lineHeight:0.9,textTransform:'uppercase'}}>YOUR WEEK.</div>
+                  <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} style={{display:'flex',alignItems:'center',gap:14,marginBottom:18}}>
+                    <button onPointerDown={()=>_hL()} onClick={()=>setMealPrepScreen('setup')} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',fontSize:22,cursor:'pointer',padding:'0 4px 0 0',lineHeight:1,flexShrink:0}}>←</button>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.65)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>Your week · Ready</div>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:26,letterSpacing:'-0.01em',color:'#FFFFFF',lineHeight:1}}>Your week</div>
                     </div>
-                    <button onPointerDown={()=>_hL()} onClick={()=>setMpSaveConfirm(true)} style={{background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.25)',borderRadius:10,padding:'8px 14px',...mno,fontSize:8,fontWeight:700,color:'#FFFFFF',letterSpacing:'0.12em',cursor:'pointer',textTransform:'uppercase',flexShrink:0}}>SAVE</button>
+                    <button onPointerDown={()=>_hL()} onClick={()=>setMpSaveConfirm(true)} style={{background:'#fff',border:'none',borderRadius:999,padding:'9px 18px',fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.02em',cursor:'pointer',flexShrink:0}}>Save</button>
                   </motion.div>
 
-                  {/* Summary strip */}
-                  <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.06}} style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:14,padding:'14px 16px',marginBottom:22,display:'flex',justifyContent:'space-around',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                    {[[String(totalMeals)+' MEALS','GENERATED'],[prepH>0?`${prepH}H ${prepM}M`:`${prepM}M`,'EST PREP'],[String(groceryCount)+' ITEMS','GROCERY']].map(([val,lbl])=>(
+                  {/* Summary strip — clean Archivo stat chips */}
+                  <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.06}} style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'16px',marginBottom:22,display:'flex',justifyContent:'space-around',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
+                    {[[String(totalMeals),'meals'],[prepH>0?`${prepH}h ${prepM}m`:`${prepM}m`,'est prep'],[String(groceryCount),'grocery']].map(([val,lbl])=>(
                       <div key={lbl} style={{textAlign:'center'}}>
-                        <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:24,color:'var(--cm-red,#FF3B30)',lineHeight:1}}>{val}</div>
-                        <div style={{...mno,fontSize:7,color:'rgba(var(--cm-red-rgb,255,59,48),0.5)',letterSpacing:'0.14em',marginTop:3,textTransform:'uppercase'}}>{lbl}</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:22,letterSpacing:'-0.01em',color:'var(--cm-red,#FF3B30)',lineHeight:1}}>{val}</div>
+                        <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',marginTop:4,textTransform:'uppercase'}}>{lbl}</div>
                       </div>
                     ))}
                   </motion.div>
@@ -4023,29 +4048,30 @@ Reply with ONLY a valid JSON object, no markdown:
                   {/* Day sections */}
                   {(mealPrepPlan.days||[]).map((day,dayIndex)=>{
                     const isRegDay=regeneratingDay===dayIndex;
-                    const isTrainingDay=day.macroProtocol==='training_high'||day.sessionType!=='rest';
-                    const sessionLabel=(day.sessionType||'rest').toUpperCase();
+                    const _dp=wPrefs?.dayPlan?.[day.day];
+                    const isTrainingDay=!!(_dp?.run||_dp?.lift||(day.sessionType&&day.sessionType!=='rest'&&day.sessionType!=='Rest'));
+                    const sessFull=_sessFull(day.day,day.sessionType); // dayPlan-first: "Upper Day" / "5 Mile Run" / "Rest"
+                    const sessCol=_dp?.run?'#60a5fa':_dp?.lift?'#fff':(day.sessionType==='run'||day.sessionType==='cardio')?'#60a5fa':(day.sessionType==='rest')?'rgba(255,255,255,0.55)':'#fff';
                     return(
-                      <motion.div key={dayIndex} initial={{opacity:0,y:18}} animate={{opacity:1,y:0}} transition={{delay:0.08+dayIndex*0.06}} style={{marginBottom:20}}>
+                      <motion.div key={dayIndex} initial={{opacity:0,y:18}} animate={{opacity:1,y:0}} transition={{delay:0.08+dayIndex*0.06}} style={{marginBottom:18}}>
                         {/* Day header row */}
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,paddingLeft:2}}>
-                          <div>
-                            <div style={{...mno,fontSize:8,color:'rgba(255,255,255,0.65)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:3}}>// {day.day?.toUpperCase()} · {sessionLabel} DAY</div>
-                            <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:28,color:'#FFFFFF',textTransform:'uppercase',lineHeight:1}}>{day.day}</div>
-                            <div style={{display:'flex',gap:10,marginTop:4,flexWrap:'wrap'}}>
-                              <span style={{...mno,fontSize:8,color:'rgba(255,255,255,0.7)',letterSpacing:'0.08em'}}>{(day.totalCalories||0).toLocaleString()} kcal</span>
-                              <span style={{...mno,fontSize:8,color:'#22c55e'}}>{day.totalProtein||0}P</span>
-                              <span style={{...mno,fontSize:8,color:'#60a5fa'}}>{day.totalCarbs||0}C</span>
-                              <span style={{...mno,fontSize:8,color:'#FEA020'}}>{day.totalFat||0}F</span>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,paddingLeft:2,gap:10}}>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:800,letterSpacing:'0.02em',textTransform:'uppercase',color:'#fff',lineHeight:1}}>
+                              {day.day?.slice(0,3)} <span style={{opacity:0.5}}>·</span> <span style={{color:sessCol,fontWeight:700}}>{sessFull}</span>
+                            </div>
+                            <div style={{display:'flex',gap:9,marginTop:6,flexWrap:'wrap'}}>
+                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:'rgba(255,255,255,0.7)'}}>{(day.totalCalories||0).toLocaleString()} kcal</span>
+                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:'rgba(255,255,255,0.55)'}}>{day.totalProtein||0}P · {day.totalCarbs||0}C · {day.totalFat||0}F</span>
                             </div>
                           </div>
                           <button onPointerDown={()=>_hL()} onClick={()=>!isRegDay&&regenerateDay(dayIndex)}
-                            style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.07)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.18)',borderRadius:10,padding:'8px 11px',display:'flex',alignItems:'center',gap:5,cursor:'pointer',flexShrink:0,opacity:isRegDay?0.45:1,outline:'none'}}>
+                            style={{background:'rgba(255,255,255,0.14)',border:'none',borderRadius:999,padding:'8px 14px',display:'flex',alignItems:'center',gap:6,cursor:'pointer',flexShrink:0,opacity:isRegDay?0.45:1,outline:'none'}}>
                             {isRegDay
-                              ?<div style={{width:13,height:13,border:'1.5px solid var(--cm-red,#FF3B30)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
-                              :<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 8A6 6 0 002.5 4"/><path d="M2 8A6 6 0 0013.5 12"/><polyline points="2,1 2,4 5,4"/><polyline points="14,12 14,15 11,15"/></svg>
+                              ?<div style={{width:13,height:13,border:'1.5px solid #fff',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+                              :<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 8A6 6 0 002.5 4"/><path d="M2 8A6 6 0 0013.5 12"/><polyline points="2,1 2,4 5,4"/><polyline points="14,12 14,15 11,15"/></svg>
                             }
-                            <span style={{...mno,fontSize:7,color:'rgba(255,255,255,0.7)',letterSpacing:'0.1em',textTransform:'uppercase'}}>Redo</span>
+                            <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:'#fff',letterSpacing:'0.04em'}}>Redo</span>
                           </button>
                         </div>
 
@@ -4066,10 +4092,10 @@ Reply with ONLY a valid JSON object, no markdown:
                               }}>
                                 <div style={{fontSize:26,flexShrink:0,lineHeight:1}}>🍽️</div>
                                 <div style={{flex:1,minWidth:0}}>
-                                  <div style={{...mno,fontSize:7,color:'#FEA020',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>
-                                    MEAL {mealIndex+1} · {(meal.slot||'').toUpperCase()} · THIN POOL
+                                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'#d97706',letterSpacing:'0.12em',marginBottom:3,textTransform:'uppercase'}}>
+                                    Meal {mealIndex+1} · {(meal.slot||'')} · thin pool
                                   </div>
-                                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,color:'rgba(var(--cm-red-rgb,255,59,48),0.42)',lineHeight:1.3}}>
+                                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',lineHeight:1.3}}>
                                     Not enough {mealPrepPrefs.dietPreset||'matching'} {meal.slot} recipes for your current restrictions
                                   </div>
                                 </div>
@@ -4084,7 +4110,7 @@ Reply with ONLY a valid JSON object, no markdown:
                               transition={{delay:0.1+dayIndex*0.06+mealIndex*0.04}}
                               whileTap={{scale:0.97}}
                               onPointerDown={()=>_hL()}
-                              onClick={()=>{if(!isRegMeal){_hM();setActiveMealDetail({day,meal,dayIndex,mealIndex});}}}
+                              onClick={()=>{if(!isRegMeal){_hM();setDetailFrom('plan');setMealIngChecked(new Set());setActiveMealDetail({day,meal,dayIndex,mealIndex});}}}
                               style={{
                                 background:'var(--cm-paper,#FFFFFF)',
                                 border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.14)',
@@ -4101,45 +4127,46 @@ Reply with ONLY a valid JSON object, no markdown:
                             >
                               <FoodIcon name={meal.name} size={44} userId={user?.id} />
                               <div style={{flex:1,minWidth:0}}>
-                                <div style={{...mno,fontSize:7,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>MEAL {mealIndex+1}</div>
-                                <div style={{fontFamily:"'Archivo',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:18,color:'var(--cm-red,#FF3B30)',textTransform:'uppercase',lineHeight:1.05,marginBottom:7,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{meal.name}</div>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-red-rgb,255,59,48),0.55)',letterSpacing:'0.12em',marginBottom:3,textTransform:'uppercase'}}>Meal {mealIndex+1}</div>
+                                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:16,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1.15,marginBottom:7,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{meal.name}</div>
                                 <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-                                  <span style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'rgba(var(--cm-red-rgb,255,59,48),0.8)',letterSpacing:'0.08em'}}>{meal.calories} kcal</span>
-                                  <span style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'#22c55e',letterSpacing:'0.08em'}}>{meal.protein}P</span>
-                                  <span style={{background:'rgba(96,165,250,0.1)',border:'1px solid rgba(96,165,250,0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'#60a5fa',letterSpacing:'0.08em'}}>{meal.carbs}C</span>
-                                  <span style={{background:'rgba(254,160,32,0.1)',border:'1px solid rgba(254,160,32,0.2)',borderRadius:20,padding:'2px 8px',...mno,fontSize:7,color:'#FEA020',letterSpacing:'0.08em'}}>{meal.fat}F</span>
+                                  <span style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:20,padding:'3px 9px',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)'}}>{meal.calories} kcal</span>
+                                  <span style={{background:'rgba(34,197,94,0.1)',borderRadius:20,padding:'3px 9px',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'#16a34a'}}>{meal.protein}P</span>
+                                  <span style={{background:'rgba(96,165,250,0.12)',borderRadius:20,padding:'3px 9px',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'#3b82f6'}}>{meal.carbs}C</span>
+                                  <span style={{background:'rgba(254,160,32,0.12)',borderRadius:20,padding:'3px 9px',fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'#d97706'}}>{meal.fat}F</span>
                                 </div>
                               </div>
+                              {/* per-meal swap (⇄) — stops propagation so it doesn't open the detail sheet */}
                               {isRegMeal
-                                ?<div style={{width:14,height:14,border:'1.5px solid var(--cm-red,#FF3B30)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite',flexShrink:0}}/>
-                                :<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(var(--cm-red-rgb,255,59,48),0.45)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M6 4l4 4-4 4"/></svg>
+                                ?<div style={{width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><div style={{width:14,height:14,border:'1.5px solid var(--cm-red,#FF3B30)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/></div>
+                                :<button onPointerDown={e=>{e.stopPropagation();_hL();}} onClick={e=>{e.stopPropagation();_hM();regenerateMeal(dayIndex,mealIndex);}} aria-label="Swap meal" style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.18)',borderRadius:10,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,cursor:'pointer',padding:0}}>
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                                  </button>
                               }
                             </motion.div>
                           );
                         })}
                         {isTrainingDay&&(
-                          <div style={{...mno,fontSize:7,color:'rgba(255,255,255,0.35)',letterSpacing:'0.1em',paddingLeft:4,paddingBottom:4,textTransform:'uppercase'}}>↑ Carbs elevated for {sessionLabel} performance</div>
+                          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:500,color:'rgba(255,255,255,0.45)',paddingLeft:4,paddingTop:2}}>Carbs elevated to fuel {sessFull.toLowerCase()}.</div>
                         )}
                       </motion.div>
                     );
                   })}
-
-                  {/* Spacer for fixed bottom bar */}
-                  <div style={{height:100}}/>
                 </div>
               );
             })()}
 
             {/* ── BOTTOM ACTION BAR (plan screen only) ── */}
             {mealPrepScreen==='plan'&&mealPrepPlan&&(
-              <div style={{position:'fixed',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.97)',backdropFilter:'blur(16px)',borderTop:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)',padding:'14px 20px',paddingBottom:'max(14px, env(safe-area-inset-bottom))',display:'flex',gap:10,zIndex:200}}>
+              // Floats ABOVE the GoClub tab bar (which sits at bottom safe-area+10, ~64px tall).
+              <div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 90px)',left:14,right:14,display:'flex',gap:10,zIndex:200}}>
                 <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hL()} onClick={()=>{_hM();setGroceryFrom('plan');setShowGroceryList(true);}}
-                  style={{flex:1,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.22)',borderRadius:13,padding:14,...mno,fontWeight:700,fontSize:10,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.13em',textTransform:'uppercase',cursor:'pointer',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                  🛒 GROCERY
+                  style={{flex:1,background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:999,padding:'14px',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.02em',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.22)'}}>
+                  Grocery
                 </motion.button>
                 <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hM()} onClick={()=>generateMealPrepPlan()}
-                  style={{flex:1.3,background:'var(--cm-red,#FF3B30)',border:'none',borderRadius:13,padding:14,...mno,fontWeight:700,fontSize:10,color:'#fff',letterSpacing:'0.13em',textTransform:'uppercase',cursor:'pointer',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                  ↺ REGENERATE
+                  style={{flex:1.3,background:'var(--cm-red,#FF3B30)',border:'1.5px solid rgba(255,255,255,0.5)',borderRadius:999,padding:'14px',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'#fff',letterSpacing:'0.02em',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.28)'}}>
+                  Regenerate
                 </motion.button>
               </div>
             )}
@@ -4147,179 +4174,127 @@ Reply with ONLY a valid JSON object, no markdown:
             {/* ── MEAL DETAIL SHEET ── */}
             <AnimatePresence>
             {activeMealDetail&&(()=>{
-              const {day,meal}=activeMealDetail;
-              const mno2={fontFamily:"'DM Mono',monospace"};
-              const cal=meal?.calories||0;
-              const pro=meal?.protein||0;
-              const carb=meal?.carbs||0;
-              const fat=meal?.fat||0;
+              const {meal,day}=activeMealDetail;
+              const cal=meal?.calories||0, pro=meal?.protein||0, carb=meal?.carbs||0, fat=meal?.fat||0;
               const ings=meal?.ingredients||meal?.ing||[];
-              const totalMacroCal=pro*4+carb*4+fat*9||1;
+              const inst=meal?.instructions||null;
+              const dietTags=(meal?.dietTags||[]).filter(t=>t&&t!=='none');
+              const allergenTags=(meal?.allergenTags||[]);
               const maxMacro=Math.max(pro,carb,fat)||1;
-              // SVG donut
-              const R=52,SW=11,CX=68,CY=68;
-              const C=2*Math.PI*R;
-              const pLen=Math.max(2,(pro*4/totalMacroCal)*C-4);
-              const cLen=Math.max(2,(carb*4/totalMacroCal)*C-4);
-              const fLen=Math.max(2,(fat*9/totalMacroCal)*C-4);
-              const pOff=-(C*0.25);
-              const cOff=-(C*0.25+(pro*4/totalMacroCal)*C);
-              const fOff=-(C*0.25+(pro*4/totalMacroCal)*C+(carb*4/totalMacroCal)*C);
+              const sessFull=day?_sessFull(day.day,day.sessionType):'';
+              const fmtMin=(m)=>{m=Math.round(m||0);return m>=60?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:''}`:`${m}m`;};
+              const MB=[{label:'Protein',value:pro,color:'var(--cm-red,#FF3B30)'},{label:'Carbs',value:carb,color:'#60a5fa'},{label:'Fat',value:fat,color:'#FEA020'}];
+              const stepMeta=(s)=>[s.type,s.duration_min?fmtMin(s.duration_min):null,s.appliance,s.temp?`${s.temp.value}°${s.temp.unit}`:null].filter(Boolean).join(' · ');
+              const card={background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'16px',marginBottom:14,boxShadow:'0 2px 12px rgba(0,0,0,.10)'};
+              const eyebrow={fontFamily:"'Archivo',sans-serif",fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase'};
+              const chip={fontFamily:"'Archivo',sans-serif",fontSize:10.5,fontWeight:600,color:'rgba(255,255,255,0.92)',background:'rgba(255,255,255,0.14)',borderRadius:999,padding:'5px 11px',textTransform:'capitalize'};
               return(
-                <motion.div key="meal-detail-overlay"
-                  initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-                  transition={{duration:0.18}}
-                  style={{position:'fixed',inset:0,zIndex:500,background:'radial-gradient(ellipse at 50% -10%,rgba(90,0,0,0.85) 0%,rgba(0,0,0,0.98) 55%)'}}
-                  onClick={()=>{_hL();setActiveMealDetail(null);}}
-                >
-                  <motion.div
-                    initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
-                    transition={{type:'spring',damping:28,stiffness:290}}
-                    style={{position:'absolute',top:0,bottom:0,left:0,right:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}}
-                    onClick={e=>e.stopPropagation()}
-                  >
-                    <div style={{padding:'max(52px,env(safe-area-inset-top,48px)) 22px max(32px,env(safe-area-inset-bottom,28px))'}}>
-                      {/* Close button */}
-                      <button onPointerDown={()=>_hL()} onClick={()=>{_hM();setActiveMealDetail(null);}}
-                        style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:10,padding:'8px 16px',display:'flex',alignItems:'center',gap:6,cursor:'pointer',marginBottom:24,outline:'none',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--cm-red,#FF3B30)" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
-                        <span style={{...mno2,fontSize:9,color:'rgba(var(--cm-red-rgb,255,59,48),0.65)',letterSpacing:'0.12em',textTransform:'uppercase'}}>CLOSE</span>
+                <motion.div key="meal-detail-overlay" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18}}
+                  style={{position:'fixed',inset:0,zIndex:500,background:'var(--cm-red,#FF3B30)'}} onClick={()=>{_hL();closeMealDetail();}}>
+                  <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}} transition={{type:'spring',damping:28,stiffness:290}}
+                    style={{position:'absolute',inset:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}} onClick={e=>e.stopPropagation()}>
+                    <div style={{padding:'max(52px,env(safe-area-inset-top,48px)) 18px max(40px,env(safe-area-inset-bottom,28px))'}}>
+                      {/* Close */}
+                      <button onPointerDown={()=>_hL()} onClick={()=>{_hM();closeMealDetail();}}
+                        style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:999,padding:'8px 16px',display:'flex',alignItems:'center',gap:7,cursor:'pointer',marginBottom:22}}>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+                        <span style={{...eyebrow,fontSize:10,color:'#fff'}}>Close</span>
                       </button>
-                      {/* Context eyebrow */}
-                      <div style={{...mno2,fontSize:8,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:6}}>
-                        {day?.day?.toUpperCase()} · {(day?.sessionType||'rest').toUpperCase()} DAY
-                      </div>
-                      {/* Meal name */}
-                      <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.1}}
-                        style={{fontFamily:"'Archivo',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:44,color:'var(--cm-red,#FF3B30)',textTransform:'uppercase',lineHeight:0.92,marginBottom:28}}>
-                        {meal?.name}
-                      </motion.div>
+                      {/* Title + session */}
+                      {day&&<div style={{...eyebrow,fontSize:10,color:'rgba(255,255,255,0.7)',marginBottom:6}}>{day.day?.slice(0,3)} · {sessFull}</div>}
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,marginBottom:18}}>{meal?.name}</div>
 
-                      {/* Macro breakdown — SVG donut + bars */}
-                      <motion.div initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}} transition={{delay:0.15}}
-                        style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.14)',borderRadius:16,padding:'20px 18px',marginBottom:24,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                        <div style={{...mno2,fontSize:8,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:16}}>// MACRO BREAKDOWN</div>
-                        <div style={{display:'flex',alignItems:'center',gap:20}}>
-                          {/* Donut ring */}
-                          <div style={{flexShrink:0}}>
-                            <svg width="136" height="136" viewBox="0 0 136 136">
-                              {/* Background track */}
-                              <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={SW}/>
-                              {/* Protein arc */}
-                              <motion.circle cx={CX} cy={CY} r={R} fill="none" stroke="#22c55e" strokeWidth={SW} strokeLinecap="butt"
-                                style={{strokeDashoffset:pOff}}
-                                strokeDasharray={`${pLen} ${C}`}
-                                initial={{strokeDasharray:`0 ${C}`}}
-                                animate={{strokeDasharray:`${pLen} ${C}`}}
-                                transition={{duration:0.8,ease:'easeOut',delay:0.2}}
-                              />
-                              {/* Carbs arc */}
-                              <motion.circle cx={CX} cy={CY} r={R} fill="none" stroke="#60a5fa" strokeWidth={SW} strokeLinecap="butt"
-                                style={{strokeDashoffset:cOff}}
-                                strokeDasharray={`${cLen} ${C}`}
-                                initial={{strokeDasharray:`0 ${C}`}}
-                                animate={{strokeDasharray:`${cLen} ${C}`}}
-                                transition={{duration:0.8,ease:'easeOut',delay:0.32}}
-                              />
-                              {/* Fat arc */}
-                              <motion.circle cx={CX} cy={CY} r={R} fill="none" stroke="#FEA020" strokeWidth={SW} strokeLinecap="butt"
-                                style={{strokeDashoffset:fOff}}
-                                strokeDasharray={`${fLen} ${C}`}
-                                initial={{strokeDasharray:`0 ${C}`}}
-                                animate={{strokeDasharray:`${fLen} ${C}`}}
-                                transition={{duration:0.8,ease:'easeOut',delay:0.44}}
-                              />
-                              {/* Center calorie number */}
-                              <text x={CX} y={CY-9} textAnchor="middle" fill="var(--cm-red,#FF3B30)" fontFamily="Archivo,sans-serif" fontStyle="italic" fontWeight="900" fontSize="26">{cal}</text>
-                              <text x={CX} y={CY+8} textAnchor="middle" fill="rgba(var(--cm-red-rgb,255,59,48),0.35)" fontFamily="DM Mono,monospace" fontSize="7" letterSpacing="2">KCAL</text>
-                            </svg>
-                          </div>
-                          {/* Macro bars */}
-                          <div style={{flex:1}}>
-                            {[
-                              {label:'PROTEIN',value:pro,unit:'g',color:'#22c55e'},
-                              {label:'CARBS',value:carb,unit:'g',color:'#60a5fa'},
-                              {label:'FAT',value:fat,unit:'g',color:'#FEA020'},
-                            ].map(({label,value,unit,color},bi)=>(
-                              <div key={label} style={{marginBottom:12}}>
-                                <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
-                                  <span style={{...mno2,fontSize:7,color:'rgba(var(--cm-red-rgb,255,59,48),0.4)',letterSpacing:'0.12em',textTransform:'uppercase'}}>{label}</span>
-                                  <span style={{...mno2,fontSize:10,color,fontWeight:700}}>{value}{unit}</span>
-                                </div>
-                                <div style={{height:5,background:'rgba(255,255,255,0.06)',borderRadius:3,overflow:'hidden'}}>
-                                  <motion.div
-                                    style={{height:'100%',background:color,borderRadius:3}}
-                                    initial={{width:0}}
-                                    animate={{width:`${(value/maxMacro)*100}%`}}
-                                    transition={{duration:0.75,ease:'easeOut',delay:0.18+bi*0.08}}
-                                  />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                      {/* Macros */}
+                      <div style={card}>
+                        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14}}>
+                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:30,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{cal}</span>
+                          <span style={{...eyebrow,fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)'}}>kcal</span>
                         </div>
-                      </motion.div>
+                        {MB.map(({label,value,color})=>(
+                          <div key={label} style={{marginBottom:10}}>
+                            <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)',letterSpacing:'0.04em'}}>{label}</span>
+                              <span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color}}>{value}g</span>
+                            </div>
+                            <div style={{height:6,background:'rgba(var(--cm-ink-rgb,10,10,10),0.07)',borderRadius:3,overflow:'hidden'}}>
+                              <motion.div style={{height:'100%',background:color,borderRadius:3}} initial={{width:0}} animate={{width:`${(value/maxMacro)*100}%`}} transition={{duration:0.7,ease:'easeOut'}}/>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
 
-                      {/* Ingredients — structured {item, amount} from tool use; legacy strings also handled */}
+                      {/* Time · servings · tags */}
+                      {(inst||dietTags.length>0||allergenTags.length>0||meal?.servings)&&(
+                        <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:16}}>
+                          {inst?.total_time_min!=null&&<span style={chip}>{fmtMin(inst.total_time_min)} total</span>}
+                          {(inst?.yield_servings||meal?.servings)&&<span style={chip}>serves {inst?.yield_servings||meal?.servings}</span>}
+                          {meal?.recipe_kind&&<span style={chip}>{meal.recipe_kind}</span>}
+                          {dietTags.map(t=><span key={'d'+t} style={chip}>{String(t).replace(/[_-]/g,' ')}</span>)}
+                          {allergenTags.map(t=><span key={'a'+t} style={chip}>contains {String(t).replace(/[_-]/g,' ')}</span>)}
+                        </div>
+                      )}
+
+                      {/* Ingredients — scaled, checkable */}
                       {ings.length>0&&(
-                        <div style={{marginBottom:24}}>
-                          <div style={{...mno2,fontSize:8,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:12}}>// WHAT'S IN THE BOWL</div>
+                        <div style={card}>
+                          <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:10}}>Ingredients</div>
                           {ings.map((ing,i)=>{
-                            const ingName=typeof ing==='object'?(ing?.item||''):(()=>{const s=String(ing||'');const m=s.match(/^[\d\/\.\s]*[a-z]*\s+(.+)$/i);return m?m[1].trim():s;})();
-                            const ingAmt=typeof ing==='object'?(ing?.amount||''):(()=>{const s=String(ing||'');const m=s.match(/^([\d\/\.\s]*[a-z]+)\s/i);return m?m[1].trim():'';})();
+                            const nm=typeof ing==='object'?(ing?.item||''):String(ing);
+                            const amt=typeof ing==='object'?(ing?.amount||''):'';
+                            const checked=mealIngChecked.has(i);
                             return(
-                              <motion.div key={i}
-                                initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}}
-                                transition={{delay:0.2+i*0.05}}
-                                style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,marginBottom:6,background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.08)',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                                <FoodIcon name={ingName||String(ing)} size={32} userId={user?.id} />
-                                <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:16,color:'var(--cm-red,#FF3B30)',textTransform:'capitalize',lineHeight:1.1}}>{ingName||String(ing)}</div>
+                              <div key={i} onClick={()=>setMealIngChecked(prev=>{const n=new Set(prev);if(n.has(i))n.delete(i);else n.add(i);return n;})}
+                                style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:i<ings.length-1?'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.06)':'none',cursor:'pointer'}}>
+                                <div style={{width:20,height:20,borderRadius:6,flexShrink:0,border:checked?'none':'1.5px solid rgba(var(--cm-ink-rgb,10,10,10),0.2)',background:checked?'var(--cm-red,#FF3B30)':'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                  {checked&&<svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                                 </div>
-                                {ingAmt&&<div style={{...mno2,fontSize:11,color:'rgba(var(--cm-red-rgb,255,59,48),0.55)',fontWeight:700,flexShrink:0}}>{ingAmt}</div>}
-                              </motion.div>
+                                <FoodIcon name={nm||String(ing)} size={28} userId={user?.id}/>
+                                <div style={{flex:1,minWidth:0,fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:14,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.35)':'var(--cm-ink,#0A0A0A)',textDecoration:checked?'line-through':'none',textTransform:'capitalize',lineHeight:1.15,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{nm||String(ing)}</div>
+                                {amt&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:checked?'rgba(var(--cm-ink-rgb,10,10,10),0.3)':'rgba(var(--cm-ink-rgb,10,10,10),0.55)',flexShrink:0}}>{amt}</div>}
+                              </div>
                             );
                           })}
                         </div>
                       )}
 
-                      {/* Instructions — HOW TO MAKE IT */}
-                      {meal?.instructions&&(
-                        <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:0.3}} style={{marginBottom:24}}>
-                          <div style={{...mno2,fontSize:8,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:12}}>// HOW TO MAKE IT</div>
-                          <div style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.08)',borderRadius:14,padding:'14px 16px',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                            {meal.instructions.split(/\n|(?<=\.)\s+(?=\d+\.)/).filter(Boolean).map((step,si)=>{
-                              const trimmed=step.trim();
-                              if(!trimmed)return null;
-                              const isNumbered=/^\d+[.)]\s/.test(trimmed);
-                              return(
-                                <div key={si} style={{display:'flex',gap:10,marginBottom:si<meal.instructions.split(/\n|(?<=\.)\s+(?=\d+\.)/).filter(Boolean).length-1?10:0}}>
-                                  {isNumbered&&<div style={{...mno2,fontSize:9,color:'var(--cm-red,#FF3B30)',fontWeight:700,flexShrink:0,marginTop:1}}>{trimmed.match(/^(\d+)/)?.[1]}.</div>}
-                                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(var(--cm-red-rgb,255,59,48),0.72)',lineHeight:1.65,flex:1}}>{isNumbered?trimmed.replace(/^\d+[.)]\s*/,''):trimmed}</div>
+                      {/* Steps — only when authored */}
+                      {inst?.sections?.length>0&&(
+                        <div style={card}>
+                          <div style={{...eyebrow,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:12}}>Steps</div>
+                          {inst.sections.map((sec,si)=>(
+                            <div key={si} style={{marginBottom:si<inst.sections.length-1?16:0}}>
+                              {inst.sections.length>1&&sec.title&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:9}}>{sec.title}</div>}
+                              {(sec.steps||[]).map((st,sti)=>(
+                                <div key={sti} style={{display:'flex',gap:11,marginBottom:11}}>
+                                  <div style={{width:23,height:23,flexShrink:0,borderRadius:999,background:'rgba(var(--cm-red-rgb,255,59,48),0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:800,color:'var(--cm-red,#FF3B30)',marginTop:1}}>{st.n}</div>
+                                  <div style={{flex:1,minWidth:0}}>
+                                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'var(--cm-ink,#0A0A0A)',lineHeight:1.5}}>{st.text}</div>
+                                    {stepMeta(st)&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.04em',textTransform:'uppercase',marginTop:3}}>{stepMeta(st)}</div>}
+                                  </div>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Prep time */}
-                      {(meal?.prepTime||meal?.pt)&&(
-                        <div style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.08)',borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:10,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-red-rgb,255,59,48),0.4)" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-                          <span style={{...mno2,fontSize:10,color:'rgba(var(--cm-red-rgb,255,59,48),0.55)',letterSpacing:'0.1em',textTransform:'uppercase'}}>Prep time: {meal.prepTime||meal.pt} min</span>
+                              ))}
+                            </div>
+                          ))}
                         </div>
                       )}
 
-                      {/* Swap this meal button */}
+                      {/* Make ahead / storage / reheat */}
+                      {inst&&(inst.make_ahead||inst.storage||inst.reheat)&&(
+                        <div style={card}>
+                          {[['Make ahead',inst.make_ahead],['Storage',inst.storage],['Reheat',inst.reheat]].filter(([,v])=>v).map(([k,v],ri,arr)=>(
+                            <div key={k} style={{marginBottom:ri<arr.length-1?12:0}}>
+                              <div style={{...eyebrow,fontSize:9,color:'var(--cm-red,#FF3B30)',marginBottom:3}}>{k}</div>
+                              <div style={{fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.7)',lineHeight:1.5}}>{v}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Swap */}
                       <motion.button whileTap={{scale:0.97}} onPointerDown={()=>_hL()}
-                        onClick={()=>{
-                          _hM();
-                          setActiveMealDetail(null);
-                          regenerateMeal(activeMealDetail.dayIndex,activeMealDetail.mealIndex);
-                        }}
-                        style={{width:'100%',background:'rgba(var(--cm-red-rgb,255,59,48),0.08)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)',borderRadius:14,padding:15,...mno2,fontWeight:700,fontSize:10,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer',marginBottom:8}}>
-                        ↺ SWAP THIS MEAL
+                        onClick={()=>{_hM();const from=detailFrom;const di=activeMealDetail.dayIndex,mi=activeMealDetail.mealIndex;setActiveMealDetail(null);if(from==='kitchen')setFuelScreen('kitchen');regenerateMeal(di,mi);}}
+                        style={{width:'100%',background:'rgba(255,255,255,0.14)',border:'none',borderRadius:14,padding:15,fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'#fff',letterSpacing:'0.02em',cursor:'pointer',marginTop:4}}>
+                        Swap this meal
                       </motion.button>
                     </div>
                   </motion.div>

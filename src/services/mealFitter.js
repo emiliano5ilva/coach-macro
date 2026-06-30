@@ -105,8 +105,16 @@ const _DIET_INCLUDES = {
  */
 export function meetsDiet(recipe, diet) {
   if (!diet || diet === 'balanced') return true;
+  const tags = recipe.diet_tags || [];
+  // Mediterranean has no genuine snack recipes → allow pescatarian/vegetarian recipes for the
+  // SNACK slot only (breakfast/lunch/dinner stay strictly mediterranean). Tags stay honest.
+  if (diet === 'mediterranean') {
+    if (tags.includes('mediterranean')) return true;
+    if (recipe.meal_slot === 'snack' && tags.some(t => t === 'pescatarian' || t === 'vegetarian')) return true;
+    return false;
+  }
   const allowed = _DIET_INCLUDES[diet] || [diet];
-  return (recipe.diet_tags || []).some(t => allowed.includes(t));
+  return tags.some(t => allowed.includes(t));
 }
 
 /**
@@ -199,7 +207,7 @@ function recencyPenalty(recipe, nowMs) {
  * The allergen gate is enforced at `filterPool` level — this function
  * receives only pre-filtered recipes and adds no new allergen logic.
  */
-function pickForSlot(eligible, mealSlot, target, usedKeys, rand, nowMs) {
+function pickForSlot(eligible, mealSlot, target, usedKeys, rand, nowMs, diet) {
   const available = eligible.filter(r => !usedKeys.has(recipeKey(r)));
 
   if (available.length === 0) {
@@ -213,14 +221,17 @@ function pickForSlot(eligible, mealSlot, target, usedKeys, rand, nowMs) {
   const slotMatched = available.filter(r => r.meal_slot === mealSlot);
   const candidates  = slotMatched.length > 0 ? slotMatched : available;
 
-  // Score every candidate
+  // Score every candidate (lower = better)
   const scored = candidates.map(recipe => {
     const servings    = optimalServings(recipe, target.cal);
     const scaled      = scaleMacros(recipe, servings);
     const dist        = macroDist(scaled, target);
     const penalty     = recencyPenalty(recipe, nowMs);
     const jitter      = rand() * 0.001;           // deterministic tie-break
-    return { recipe, servings, scaledMacros: scaled, score: dist + penalty + jitter };
+    // Variety preference (NOT a hard filter): nudge recipes whose single best-fit identity
+    // matches the chosen diet ahead of secondary-tag matches when macros are otherwise close.
+    const primPref    = (diet && diet !== 'balanced' && recipe.primary_diet === diet) ? -0.05 : 0;
+    return { recipe, servings, scaledMacros: scaled, score: dist + penalty + jitter + primPref };
   });
 
   scored.sort((a, b) => a.score - b.score);
@@ -269,7 +280,7 @@ export function fitDay({
   const usedKeys = new Set();
 
   for (const s of slots) {
-    const result = pickForSlot(eligible, s.mealSlot, s, usedKeys, rand, nowMs);
+    const result = pickForSlot(eligible, s.mealSlot, s, usedKeys, rand, nowMs, diet);
     if (!result.unfillable) {
       usedKeys.add(recipeKey(result.recipe));
     }
