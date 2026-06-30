@@ -4007,11 +4007,14 @@ Reply with ONLY a valid JSON object, no markdown:
 
             {/* ── PLAN SCREEN ── */}
             {mealPrepScreen==='plan'&&mealPrepPlan&&(()=>{
-              const totalMeals=(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).filter(m=>!m.unfillable).length,0);
-              const totalPrepMins=(mealPrepPlan.days||[]).reduce((s,d)=>(d.meals||[]).reduce((ms,m)=>ms+(m.prepTime||0),s),0);
-              const prepH=Math.floor(totalPrepMins/60);
-              const prepM=totalPrepMins%60;
-              const groceryCount=Object.values(mealPrepPlan.groceryList||{}).reduce((s,arr)=>s+(arr?.length||0),0);
+              const totalMeals=(mealPrepPlan.days||[]).reduce((s,d)=>s+(d.meals||[]).filter(m=>!m.unfillable&&m.name).length,0);
+              // EST PREP — the user's chosen prep-time window (fitter meals carry no per-meal prepTime).
+              const prepDisplay=({'30min':'30 min','1hr':'1 hr','2hr+':'2+ hrs'})[mealPrepPrefs.prepTime]||'1 hr';
+              // GROCERY — merged unique-ingredient count, keyed exactly like the grocery sheet (by item name);
+              // mealPrepPlan.groceryList is null (the list is built lazily when the sheet opens).
+              const _grocSet=new Set();
+              for(const d of (mealPrepPlan.days||[])) for(const m of (d.meals||[])){ if(!m||m.unfillable) continue; for(const ing of (m.ingredients||m.ing||[])){ const nm=(typeof ing==='object')?ing?.item:String(ing); if(nm) _grocSet.add(String(nm).toLowerCase().trim()); } }
+              const groceryCount=_grocSet.size;
               return(
                 <div style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 184px)'}}>
                   <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes mpBarAnim{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}`}</style>
@@ -4037,7 +4040,7 @@ Reply with ONLY a valid JSON object, no markdown:
 
                   {/* Summary strip — clean Archivo stat chips */}
                   <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.06}} style={{background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'16px',marginBottom:22,display:'flex',justifyContent:'space-around',boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
-                    {[[String(totalMeals),'meals'],[prepH>0?`${prepH}h ${prepM}m`:`${prepM}m`,'est prep'],[String(groceryCount),'grocery']].map(([val,lbl])=>(
+                    {[[String(totalMeals),'meals'],[prepDisplay,'est prep'],[String(groceryCount),'grocery']].map(([val,lbl])=>(
                       <div key={lbl} style={{textAlign:'center'}}>
                         <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:22,letterSpacing:'-0.01em',color:'var(--cm-red,#FF3B30)',lineHeight:1}}>{val}</div>
                         <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',letterSpacing:'0.1em',marginTop:4,textTransform:'uppercase'}}>{lbl}</div>
