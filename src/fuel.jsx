@@ -2140,6 +2140,8 @@ Reply with ONLY a valid JSON object, no markdown:
   }
   const [contextMenu,setContextMenu]=useState(null); // {item, slot}
   const longPressRef=useRef(null);
+  const lpFiredRef=useRef(false); // true once a long-press opened the context menu → suppress the tap
+  const [foodDetail,setFoodDetail]=useState(null); // {item, slot} tapped logged entry → nutrition detail
   const [mealTemplates,setMealTemplates]=useState([]);
 
   useEffect(()=>{
@@ -2436,6 +2438,82 @@ Reply with ONLY a valid JSON object, no markdown:
           onClose={()=>setContextMenu(null)}
         />
       )}
+      {/* ── NUTRITION DETAIL (tapped food-log entry) ── */}
+      {foodDetail&&(()=>{
+        const it=foodDetail.item||{};
+        const cal=Math.round(it.calories||0), p=Math.round(it.protein||0), c=Math.round(it.carbs||0), fat=Math.round(it.fat||0);
+        const pc=p*4, cc=c*4, fc=fat*9, tot=(pc+cc+fc)||1;
+        // macro ring geometry (split by calorie contribution)
+        const R=46, SW=13, CX=62, CY=62, CIRC=2*Math.PI*R;
+        const segs=[['var(--cm-red,#FF3B30)',pc],['#60a5fa',cc],['#FEA020',fc]];
+        let _cum=0; // segments laid clockwise from 12 o'clock (the group is rotated -90)
+        const arcs=segs.map(([col,val])=>{const len=(val/tot)*CIRC; const a={col,dash:`${Math.max(0,len-2)} ${CIRC}`,offset:-_cum}; _cum+=len; return a;});
+        const tgt={cal:macros.calories||0,p:macros.protein||0,c:macros.carbs||0,f:macros.fat||0};
+        const rows=[['Protein','var(--cm-red,#FF3B30)',p,tgt.p],['Carbs','#60a5fa',c,tgt.c],['Fat','#FEA020',fat,tgt.f]];
+        const card={background:'var(--cm-paper,#FFFFFF)',borderRadius:16,padding:'18px',marginBottom:14,boxShadow:'0 2px 12px rgba(0,0,0,.10)'};
+        const eb={fontFamily:"'Archivo',sans-serif",fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase'};
+        return(
+          <motion.div key="food-detail" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18}}
+            style={{position:'fixed',inset:0,zIndex:500,background:'var(--cm-red,#FF3B30)'}} onClick={()=>{_hL?.();setFoodDetail(null);}}>
+            <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}} transition={{type:'spring',damping:28,stiffness:290}}
+              style={{position:'absolute',inset:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}} onClick={e=>e.stopPropagation()}>
+              <div style={{padding:'max(52px,env(safe-area-inset-top,48px)) 18px max(40px,env(safe-area-inset-bottom,28px))'}}>
+                <button onClick={()=>{hap?.();setFoodDetail(null);}} style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:999,padding:'8px 16px',display:'flex',alignItems:'center',gap:7,cursor:'pointer',marginBottom:20}}>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+                  <span style={{...eb,fontSize:10,color:'#fff'}}>Close</span>
+                </button>
+                <div style={{...eb,fontSize:10,color:'rgba(255,255,255,0.7)',marginBottom:6}}>{getSlotLabel?getSlotLabel(foodDetail.slot):'Logged'}</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:28,letterSpacing:'-0.01em',color:'#fff',lineHeight:1.05,textTransform:'capitalize',marginBottom:18}}>{it.food||it.name||'Food'}</div>
+
+                {/* Ring + nutrition label */}
+                <div style={{...card,display:'flex',alignItems:'center',gap:18}}>
+                  <div style={{flexShrink:0,position:'relative',width:124,height:124}}>
+                    <svg width="124" height="124" viewBox="0 0 124 124">
+                      <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.07)" strokeWidth={SW}/>
+                      {arcs.map((a,i)=><circle key={i} cx={CX} cy={CY} r={R} fill="none" stroke={a.col} strokeWidth={SW} strokeLinecap="butt" strokeDasharray={a.dash} strokeDashoffset={a.offset} transform={`rotate(-90 ${CX} ${CY})`}/>)}
+                    </svg>
+                    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:24,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',lineHeight:1}}>{cal}</div>
+                      <div style={{...eb,fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),0.4)',marginTop:2}}>kcal</div>
+                    </div>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{...eb,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',paddingBottom:7,marginBottom:9,borderBottom:'2px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)'}}>Nutrition</div>
+                    {rows.map(([label,col,val])=>(
+                      <div key={label} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                        <span style={{width:9,height:9,borderRadius:3,background:col,flexShrink:0}}/>
+                        <span style={{flex:1,fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:600,color:'var(--cm-ink,#0A0A0A)'}}>{label}</span>
+                        <span style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:700,color:'var(--cm-ink,#0A0A0A)'}}>{val}g</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Share of today's target */}
+                <div style={card}>
+                  <div style={{...eb,fontSize:10,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginBottom:14}}>Share of today's target</div>
+                  {[['Calories','var(--cm-ink,#0A0A0A)',cal,tgt.cal,'kcal'],...rows.map(r=>[r[0],r[1],r[2],r[3],'g'])].map(([label,col,val,target,unit])=>{
+                    const pctRaw=target>0?(val/target)*100:0; const pct=Math.round(pctRaw);
+                    return(
+                      <div key={label} style={{marginBottom:12}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:5}}>
+                          <span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',letterSpacing:'0.02em'}}>{label}</span>
+                          <span style={{fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:600,color:'rgba(var(--cm-ink-rgb,10,10,10),0.5)'}}>{val}{unit==='g'?'g':''} / {target}{unit==='g'?'g':''} {unit==='kcal'?'kcal':''} · {pct}%</span>
+                        </div>
+                        <div style={{height:7,borderRadius:4,background:'rgba(var(--cm-ink-rgb,10,10,10),0.08)',overflow:'hidden'}}>
+                          <motion.div initial={{width:0}} animate={{width:`${Math.min(100,Math.max(0,pctRaw))}%`}} transition={{duration:0.6,ease:'easeOut'}} style={{height:'100%',borderRadius:4,background:col==='var(--cm-ink,#0A0A0A)'?'var(--cm-red,#FF3B30)':col}}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button onClick={()=>{hap?.();setFoodDetail(null);}} style={{width:'100%',background:'#fff',border:'none',borderRadius:14,padding:'15px',fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:700,letterSpacing:'0.02em',color:'var(--cm-red,#FF3B30)',cursor:'pointer'}}>Done</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        );
+      })()}
       {/* Recipe Builder */}
       {showRecipeBuilder&&(
         <RecipeBuilderScreen
@@ -2913,9 +2991,10 @@ Reply with ONLY a valid JSON object, no markdown:
                             >
                               <div
                                 className="card-press"
-                                onPointerDown={isLocked?undefined:()=>{longPressRef.current=setTimeout(()=>{hap();setContextMenu({item,slot});},500);}}
+                                onPointerDown={isLocked?undefined:()=>{lpFiredRef.current=false;longPressRef.current=setTimeout(()=>{hap();lpFiredRef.current=true;setContextMenu({item,slot});},500);}}
                                 onPointerUp={isLocked?undefined:()=>clearTimeout(longPressRef.current)}
                                 onPointerLeave={isLocked?undefined:()=>clearTimeout(longPressRef.current)}
+                                onClick={isLocked?undefined:()=>{if(lpFiredRef.current){lpFiredRef.current=false;return;}hap();setFoodDetail({item,slot});}}
                                 style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0"}}
                               >
                                 <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
@@ -3520,11 +3599,11 @@ Reply with ONLY a valid JSON object, no markdown:
               <div style={{background:"var(--cm-paper,#FFFFFF)",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.12)",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"flex-start",gap:12,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
                 <span style={{color:"var(--cm-red,#FF3B30)",fontSize:16,flexShrink:0,lineHeight:1.3}}>!</span>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>// MEAL PLAN OUTDATED</div>
-                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,color:"var(--cm-red,#FF3B30)",lineHeight:1.5,marginBottom:10}}>Your training changed. Regenerate your meal plan.</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:"var(--cm-red,#FF3B30)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:4}}>Meal plan outdated</div>
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.5,marginBottom:12}}>Your training changed. Regenerate your meal plan to match.</div>
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,color:"#000",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer"}}>REGENERATE →</button>
-                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);/* keep-this-plan: re-stamp the live signature so it won't re-flag until training changes AGAIN */if(mealPrepPlan)setMealPrepPlan(p=>p?{...p,trainingSig:_trainingSig()}:p);}} style={{background:"transparent",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)",borderRadius:8,padding:"8px 14px",fontFamily:"'DM Mono',monospace",fontSize:9,color:"rgba(var(--cm-red-rgb,255,59,48),0.5)",letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer"}}>DISMISS</button>
+                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);setMealPrepScreen('setup');setFuelScreen('mealprep');}} style={{background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:999,padding:"9px 16px",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:"#fff",letterSpacing:"0.02em",cursor:"pointer"}}>Regenerate →</button>
+                    <button onClick={()=>{localStorage.removeItem('__mp_regen_needed');setShowRegenerateBanner(false);/* keep-this-plan: re-stamp the live signature so it won't re-flag until training changes AGAIN */if(mealPrepPlan)setMealPrepPlan(p=>p?{...p,trainingSig:_trainingSig()}:p);}} style={{background:"transparent",border:"1px solid rgba(var(--cm-red-rgb,255,59,48),0.25)",borderRadius:999,padding:"9px 16px",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:"rgba(var(--cm-red-rgb,255,59,48),0.6)",letterSpacing:"0.02em",cursor:"pointer"}}>Dismiss</button>
                   </div>
                 </div>
               </div>

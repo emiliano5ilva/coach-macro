@@ -49,6 +49,8 @@ import { getHyroxPhase, getRaceTimePredictor } from "./services/hyroxPeriodisati
 import SorenessCheckIn, { SorenesSummary } from "./components/SorenessCheckIn.jsx";
 import { Icon } from "@iconify/react";
 import "./iconData.js"; // registers the offline fluent-emoji-flat collection (tab-bar emojicons don't depend on Fuel being mounted)
+import { getFoodIcon } from "./iconMap.js";
+import NutritionDetail from "./NutritionDetail.jsx";
 import { trainedYesterday, alreadyLoggedToday, getTodaySoreness } from "./services/sorenessService.js";
 
 // Tab-bar emojicon ids (Premium Pass) — baked into iconData.js via scripts/extract-icons.js.
@@ -6991,6 +6993,7 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   },[wPrefs?.theme?.accent,wPrefs?.theme?.bg]);
 
   const [log,setLog]=useState([]);
+  const [nutDetail,setNutDetail]=useState(null); // {slotLabel, foods[]} → NutritionDetail sheet (tapped entry or meal header)
   const [skippedSlots,setSkippedSlots]=useState([]);
   const [slotOverages,setSlotOverages]=useState({});
   const [lockedSlots,setLockedSlots]=useState([]);
@@ -10831,10 +10834,12 @@ Rules:
                   }
                   return(
                     <div key={sn} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.03)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:"16px 16px",marginBottom:10}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                      {/* meal header — tappable → combined meal nutrition detail */}
+                      <div onClick={()=>{_hL&&_hL();setNutDetail({slotLabel:getSlotLabel(sn),foods:items});}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,cursor:"pointer"}}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
                           {isLocked&&<svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.7)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
                           <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:isLocked?"#22c55e":"rgba(var(--cm-ink-rgb,10,10,10),0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                          <svg width={13} height={13} viewBox="0 0 16 16" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.3)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4"/></svg>
                         </div>
                         <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)"}}>
                           <MN value={Math.round(sCalTotal)} format={{useGrouping:true}}/> kcal
@@ -10842,7 +10847,8 @@ Rules:
                         </div>
                       </div>
                       {items.map((e,i)=>(
-                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)"}}>
+                        <div key={i} onClick={()=>{_hL&&_hL();setNutDetail({slotLabel:getSlotLabel(sn),foods:[e]});}} style={{display:"flex",alignItems:"center",gap:11,paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)",cursor:"pointer"}}>
+                          <Icon icon={getFoodIcon(e.food||e.name||"")} width={26} height={26}/>
                           <div style={{fontFamily:AF,fontSize:15,color:"var(--cm-ink,#0A0A0A)",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",flexShrink:0,textAlign:"right"}}>
                             <MN value={Math.round(e.calories||0)} format={{useGrouping:true}}/> kcal
@@ -10855,6 +10861,18 @@ Rules:
                 });
               })()}
             </StaggerItem>
+
+            {/* Nutrition detail (tapped entry or meal header) — single shared sheet for both today + past-day logs */}
+            {nutDetail&&(
+              <NutritionDetail
+                slotLabel={nutDetail.slotLabel}
+                foods={nutDetail.foods}
+                dayTarget={{calories:macros?.calories||0,protein:macros?.protein||0,carbs:macros?.carbs||0,fat:macros?.fat||0}}
+                onClose={()=>setNutDetail(null)}
+                onFoodTap={(f)=>setNutDetail({slotLabel:nutDetail.slotLabel,foods:[f]})}
+                hap={_hL}
+              />
+            )}
 
             {/* ── TODAY: HYDRATION HERO — full-width SVG wave, blue scoped here only ── */}
             <StaggerItem i={3} style={{marginBottom:22,position:"relative"}}>
@@ -11053,15 +11071,19 @@ Rules:
                     const sProtTotal=items.reduce((s,e)=>s+(e.protein||0),0);
                     return(
                       <div key={sn} style={{background:"rgba(var(--cm-ink-rgb,10,10,10),0.03)",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.07)",borderRadius:14,padding:"16px 16px",marginBottom:14}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                          <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                        <div onClick={()=>{_hL&&_hL();setNutDetail({slotLabel:getSlotLabel(sn),foods:items});}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,cursor:"pointer"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <div style={{fontFamily:AF,fontWeight:700,fontSize:13,color:"rgba(var(--cm-ink-rgb,10,10,10),0.55)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{getSlotLabel(sn)}</div>
+                            <svg width={13} height={13} viewBox="0 0 16 16" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),0.3)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+                          </div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.40)"}}>
                             <MN value={Math.round(sCalTotal)} format={{useGrouping:true}}/> kcal
                             {sProtTotal>0&&<span style={{color:T.prot}}> · <MN value={Math.round(sProtTotal)}/>g P</span>}
                           </div>
                         </div>
                         {items.map((e,i)=>(
-                          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)"}}>
+                          <div key={i} onClick={()=>{_hL&&_hL();setNutDetail({slotLabel:getSlotLabel(sn),foods:[e]});}} style={{display:"flex",alignItems:"center",gap:11,paddingTop:12,paddingBottom:12,borderTop:"1px solid rgba(0,0,0,0.06)",cursor:"pointer"}}>
+                            <Icon icon={getFoodIcon(e.food||e.name||"")} width={26} height={26}/>
                             <div style={{fontFamily:AF,fontSize:15,color:"var(--cm-ink,#0A0A0A)",fontWeight:400,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:14}}>{e.food||e.name||"Item"}</div>
                             <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),0.38)",flexShrink:0,textAlign:"right"}}>
                               <MN value={Math.round(e.calories||0)} format={{useGrouping:true}}/> kcal
