@@ -46,13 +46,18 @@
 --   all 89 keto-tagged recipes, not the few whose best-fit is keto. Mediterranean
 --   snack slot falls back to pescatarian/vegetarian (Med has 0 snack recipes).
 --
--- KNOWN REFINEMENT TODO: the legume keyword 'beans' also matches 'black beans'
---   in some dishes that aren't really Mediterranean — tighten the med legume
---   signal (require chickpea/lentil/white-bean, not any 'beans').
+-- MEDITERRANEAN CUISINE DISQUALIFIERS: the positive rule (olive oil + fish/legume, no red meat)
+--   still let Indian/Mexican/Tex-Mex dishes through (olive oil + chickpea/veg + tomato). Med uses
+--   oregano/basil/dill/lemon — cumin + coconut milk is the tell it's NOT Med. A recipe is
+--   DISQUALIFIED from 'mediterranean' if ANY of these are present:
+--     ingredient: cumin | salsa | tortilla | coconut milk | soy sauce | curry (powder/paste)
+--     name:       taco | enchilada | burrito | chili | curry | masala | tikka
+--   (removed 29 mis-tagged dishes: 88 → 59; e.g. Tofu Tikka Masala, Cod Taco Bowl,
+--    Black Bean Enchilada Bowl, Coconut Chickpea Curry, Tofu Veggie Breakfast Wrap.)
 -- ============================================================================
 
 with base as (
-  select r.id,
+  select r.id, lower(r.name) name_l,
     r.calories_per_serving cal, coalesce(r.protein_per_serving,0) pro,
     coalesce(r.carbs_per_serving,0) carb, coalesce(r.fat_per_serving,0) fat,
     coalesce((select string_agg(lower(i->>'item'),'|') from jsonb_array_elements(r.ingredients) i),'') items
@@ -82,7 +87,9 @@ c as (select id,
     (cal>0 and carb<=15 and (fat*9.0/cal)>=0.55) is_keto,
     (carb<=25) is_lowcarb,
     (pro>=30) is_hp,
-    (ho and (hf or hl) and items !~ '(beef|\ypork|bacon|lamb|sausage)') is_med,
+    (ho and (hf or hl) and items !~ '(beef|\ypork|bacon|lamb|sausage)'
+       and items  !~ '(cumin|salsa|tortilla|coconut milk|soy sauce|curry)'
+       and name_l !~ '(taco|enchilada|burrito|chili|curry|masala|tikka)') is_med,
     (cal>0 and (pro*4.0/cal) between 0.20 and 0.42 and (carb*4.0/cal) between 0.28 and 0.55 and (fat*9.0/cal) between 0.18 and 0.42) is_bal
   from f),
 n as (select id,
