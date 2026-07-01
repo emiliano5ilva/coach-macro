@@ -31,6 +31,12 @@ const RACE_TYPE_LABEL = {
   general: "Running",
 };
 
+// Residual ceiling when a program's length is unknown from BOTH the library
+// entry and profile.program_total_weeks — prevents an unbounded calendar-derived
+// week (e.g. a 63-day-old start_date rendering "week 10+") on drifted rows.
+// 24 = 2x the app's pervasive 12-week default; longer than any library program.
+const MAX_REASONABLE_WEEK = 24;
+
 /**
  * Look up a PROGRAM_LIBRARY entry by its id.
  * @param {string} id
@@ -274,8 +280,41 @@ export function resolveProgram(wprefs, profile) {
  */
 export function resolveDisplayWeek(programCurrentWeek, weekNum, wprefs, profile) {
   const raw = programCurrentWeek || weekNum || 1;
-  const totalWks = programFromId(resolveProgram(wprefs, profile).libraryId)?.weeks || null;
-  if (!totalWks) return Math.max(1, raw);
+  // Ceiling: canonical library length first; fall back to the stored
+  // program_total_weeks column when the program is library-unresolvable
+  // (drifted rows) so the length column your data trusts is honored.
+  const totalWks =
+    programFromId(resolveProgram(wprefs, profile).libraryId)?.weeks
+    || profile?.program_total_weeks
+    || null;
+  // No length known from either source → still cap, never unbounded.
+  if (!totalWks) return Math.max(1, Math.min(raw, MAX_REASONABLE_WEEK));
+  // Stored week is source of truth by design (periodisation hold-backs win).
+  // A date-derived overflow (stale start_date after a switch) falls back to the
+  // stored column, else week 1 — never a misleading "complete" on a fresh switch.
   const wk = raw > totalWks ? (programCurrentWeek || 1) : raw;
   return Math.max(1, Math.min(wk, totalWks));
+}
+
+/**
+ * Whether the program has genuinely run past its end. Keyed on the PERSISTED
+ * program_current_week only — never the calendar-derived week — so a stale
+ * program_start_date on a just-switched program can't false-positive. Returns
+ * false when the length is unknown or the column is unset.
+ *
+ * NOT wired into any UI yet; exposed for a future "program complete" badge.
+ *
+ * @param {number|null} programCurrentWeek  the program_current_week column value
+ * @param {object} wprefs
+ * @param {object} profile
+ * @returns {boolean}
+ */
+export function isProgramComplete(programCurrentWeek, wprefs, profile) {
+  if (!programCurrentWeek) return false;
+  const totalWks =
+    programFromId(resolveProgram(wprefs, profile).libraryId)?.weeks
+    || profile?.program_total_weeks
+    || null;
+  if (!totalWks) return false;
+  return programCurrentWeek > totalWks;
 }

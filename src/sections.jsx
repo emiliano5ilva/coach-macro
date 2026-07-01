@@ -5206,7 +5206,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>
                 <div style={{background:`${T.fat}15`,border:`1px solid ${T.fat}30`,borderRadius:14,padding:"12px 18px",textAlign:"center",flexShrink:0}}>
                   <div style={{fontFamily:"var(--condensed)",fontSize:32,fontWeight:900,color:T.fat,lineHeight:1}}>
-                    {Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12)}
+                    {Math.max(1,Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12))}
                   </div>
                   <div style={{fontSize:9,color:T.mu,marginTop:2}}>of 12 weeks</div>
                 </div>
@@ -5215,11 +5215,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                   <div style={{fontSize:11,color:T.mu}}>Program progress</div>
                   <div style={{fontSize:11,color:T.fat,fontWeight:700}}>
-                    {Math.round(Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12)/12*100)}%
+                    {Math.round(Math.max(1,Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12))/12*100)}%
                   </div>
                 </div>
                 <div style={{height:8,background:T.s3,borderRadius:4,overflow:"hidden",marginBottom:6}}>
-                  <div style={{height:"100%",background:`linear-gradient(90deg,${T.prot},${T.fat})`,borderRadius:4,width:`${Math.round(Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12)/12*100)}%`,transition:"width 1s ease"}}/>
+                  <div style={{height:"100%",background:`linear-gradient(90deg,${T.prot},${T.fat})`,borderRadius:4,width:`${Math.round(Math.max(1,Math.min(Math.floor((new Date()-new Date(profile?.program_start_date||Date.now()))/(7*24*60*60*1000))+1,12))/12*100)}%`,transition:"width 1s ease"}}/>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.dim}}>
                   <span>Week 1</span><span>Week 6</span><span>Week 12</span>
