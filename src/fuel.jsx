@@ -4006,6 +4006,17 @@ Reply with ONLY a valid JSON object, no markdown:
                   style={{background:'var(--cm-paper,#FFFFFF)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:16,padding:'16px 16px 14px',marginBottom:16,boxShadow:'0 2px 12px rgba(0,0,0,.08)'}}>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:12}}>Restrictions &amp; allergies</div>
                   <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
+                    {/* "None" = no restrictions == empty dietaryPrefs. Mutually exclusive with the
+                        allergy chips by construction: selecting None clears all; selecting any real
+                        allergy makes the array non-empty so None deselects itself. Stored value is
+                        the empty array — the filter's existing "no restrictions" state, never a tag. */}
+                    {(()=>{const active=mealPrepPrefs.dietaryPrefs.length===0;return(
+                      <motion.button key="None" whileTap={{scale:0.9}} onPointerDown={()=>_hL()}
+                        onClick={()=>{_hM();setMealPrepPrefs(p=>({...p,dietaryPrefs:[]}));}}
+                        style={{background:active?'var(--cm-red,#FF3B30)':'var(--cm-paper,#FFFFFF)',border:active?'1.5px solid var(--cm-red,#FF3B30)':'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.12)',borderRadius:999,padding:'9px 18px',fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,letterSpacing:'0.02em',color:active?'#FFFFFF':'var(--cm-ink,#0A0A0A)',cursor:'pointer',outline:'none',transition:'all 0.15s'}}>
+                        None
+                      </motion.button>
+                    );})()}
                     {['No Dairy','No Gluten','No Pork','No Shellfish','No Eggs','No Nuts'].map(chip=>{
                       const active=mealPrepPrefs.dietaryPrefs.includes(chip);
                       return(
@@ -4095,7 +4106,7 @@ Reply with ONLY a valid JSON object, no markdown:
               for(const d of (mealPrepPlan.days||[])) for(const m of (d.meals||[])){ if(!m||m.unfillable) continue; for(const ing of (m.ingredients||m.ing||[])){ const nm=(typeof ing==='object')?ing?.item:String(ing); if(nm) _grocSet.add(String(nm).toLowerCase().trim()); } }
               const groceryCount=_grocSet.size;
               return(
-                <div style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 184px)'}}>
+                <div style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 96px)'}}>
                   <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes mpBarAnim{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}`}</style>
 
                   {/* Allergen notice — muted Archivo */}
@@ -4114,7 +4125,7 @@ Reply with ONLY a valid JSON object, no markdown:
                       <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.65)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>Your week · Ready</div>
                       <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:26,letterSpacing:'-0.01em',color:'#FFFFFF',lineHeight:1}}>Your week</div>
                     </div>
-                    <button onPointerDown={()=>_hL()} onClick={()=>setMpSaveConfirm(true)} style={{background:'#fff',border:'none',borderRadius:999,padding:'9px 18px',fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.02em',cursor:'pointer',flexShrink:0}}>Save</button>
+                    <button onPointerDown={()=>_hM()} onClick={()=>generateMealPrepPlan()} style={{background:'rgba(255,255,255,0.16)',border:'none',borderRadius:999,padding:'9px 16px',fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:700,color:'#fff',letterSpacing:'0.02em',cursor:'pointer',flexShrink:0}}>Regenerate</button>
                   </motion.div>
 
                   {/* Summary strip — clean Archivo stat chips */}
@@ -4234,24 +4245,20 @@ Reply with ONLY a valid JSON object, no markdown:
                       </motion.div>
                     );
                   })}
+                  {/* ── ACTION BAR — in normal flow at the end of the list; scrolls with content, sits above the tab bar (cleared by the container's paddingBottom). ── */}
+                  <div style={{display:'flex',gap:10,marginTop:12}}>
+                    <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hL()} onClick={()=>{_hM();setGroceryFrom('plan');setShowGroceryList(true);}}
+                      style={{flex:1,background:'rgba(255,255,255,0.16)',border:'none',borderRadius:999,padding:'14px',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'#fff',letterSpacing:'0.02em',cursor:'pointer'}}>
+                      Grocery
+                    </motion.button>
+                    <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hL()} onClick={()=>setMpSaveConfirm(true)}
+                      style={{flex:1.3,background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:999,padding:'14px',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.02em',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.28)'}}>
+                      Save
+                    </motion.button>
+                  </div>
                 </div>
               );
             })()}
-
-            {/* ── BOTTOM ACTION BAR (plan screen only) ── */}
-            {mealPrepScreen==='plan'&&mealPrepPlan&&(
-              // Floats ABOVE the GoClub tab bar (which sits at bottom safe-area+10, ~64px tall).
-              <div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 90px)',left:14,right:14,display:'flex',gap:10,zIndex:200}}>
-                <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hL()} onClick={()=>{_hM();setGroceryFrom('plan');setShowGroceryList(true);}}
-                  style={{flex:1,background:'var(--cm-paper,#FFFFFF)',border:'none',borderRadius:999,padding:'14px',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.02em',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.22)'}}>
-                  Grocery
-                </motion.button>
-                <motion.button whileTap={{scale:0.96}} onPointerDown={()=>_hM()} onClick={()=>generateMealPrepPlan()}
-                  style={{flex:1.3,background:'var(--cm-red,#FF3B30)',border:'1.5px solid rgba(255,255,255,0.5)',borderRadius:999,padding:'14px',fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:13,color:'#fff',letterSpacing:'0.02em',cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,.28)'}}>
-                  Regenerate
-                </motion.button>
-              </div>
-            )}
 
             {/* ── MEAL DETAIL SHEET ── */}
             <AnimatePresence>
