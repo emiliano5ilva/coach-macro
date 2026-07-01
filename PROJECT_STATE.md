@@ -406,6 +406,17 @@ inert). The catalog flag-fix also shipped. Only an optional confirmatory 5b hop-
 ---
 
 ## OPEN — big feature (was "next up" pre-Apple-Health)
+- **🟡 v2 — RECIPE LIBRARY BROWSER (Kitchen "Recipes" repurpose).** Turn the Kitchen "Recipes" section into a
+  **browsable / searchable / diet-filterable library of the 299 curated cooking-guide recipes** (`recipes WHERE
+  user_id IS NULL`) — currently those 299 (all with authored `instructions` cooking guides, verified renderer-clean)
+  are **only reachable inside a generated meal plan**, never browsable. Tap a recipe → the **existing meal-detail
+  cooking-guide sheet** (already renders all shapes: multi-section headers, continuous step numbering, temp chips,
+  make-ahead/storage/reheat footer — see `fuel.jsx` meal-detail overlay ~4262). Fold the current **personal "My
+  Recipes"** (`recipes WHERE user_id = <you>`, via `getUserRecipes`) in as a **"Mine" filter tab**; **retire or
+  demote the AI-ideas generator** (`fetchRecipes` → free-text LLM, lower-fidelity than the curated library).
+  Companion to **cook-mode / batch-prep**. Recon done this session: My Recipes + AI-ideas are functional (CRUD +
+  search + one-tap logging), reachable only on the Kitchen tab, and **disjoint** from the 299 presets (same table,
+  `user_id`-scoped rows). Left as-is for now per decision.
 - **TAB BAR REDESIGN — ✅ SHIPPED & VERIFIED on-device. FINAL DESIGN = BUMPED PILL** (commit `4cf1e6b`, **supersedes**
   the earlier `b00045b`).
   - **FINAL SHIPPED SPEC (5-tab GoClub bar, scoped via `_use5tab`; 3-tab/flag-off + base nav untouched):**
