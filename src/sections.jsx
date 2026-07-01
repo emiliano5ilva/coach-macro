@@ -3190,6 +3190,12 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const fastestLap=lapTimes.length?Math.min(...lapTimes):0;
     const slowestLap=lapTimes.length?Math.max(...lapTimes):0;
     const lapRange=Math.max(1,slowestLap-fastestLap);
+    // ── NEXT UP (tomorrow) — this block was copied from SummaryPortal without its deps,
+    //    causing "Can't find variable: tomorrowFullDay". Same chain, scoped to this render. ──
+    const tomorrowKey=WDAYS[(WDAYS.indexOf(todayKey)+1)%7];
+    const tomorrowType=schedule?.[tomorrowKey]||'rest';
+    const tomorrowFocus=tomorrowType==='rest'?'REST DAY':(dayFocus?.[tomorrowKey]||tomorrowType.toUpperCase())+' DAY';
+    const tomorrowFullDay=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][(new Date().getDay()+1)%7];
     return(
       <div style={{margin:"0 -18px"}}>
         {/* ── RED HERO BAND ─────────────────────────────────────────────────── */}
