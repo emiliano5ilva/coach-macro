@@ -13,7 +13,24 @@ _Last updated: 2026-06-30 — **NUTRITION DETAIL + TODAY-TAB FOOD-LOG PARITY ✅
 ---
 
 ## 🧪 PENDING DEVICE VERIFICATION (batch)
-_**Current committed bundle: `NativeApp-0843cb18`** (nutrition detail + Today-tab parity, commit `a0830a3`)._
+_**Current committed bundle: `NativeApp-403b5e65`** (run-logging milestone + run-summary redesign, commit `5d3da65`)._
+
+- ✅ **RUN-LOGGING MILESTONE + RUN-SUMMARY REDESIGN — SHIPPED & VERIFIED on-device** (`5d3da65`, bundle
+  `NativeApp-403b5e65`). One commit folding: **Tier 1** location usage string; **Tier 2** duration wheels + honest
+  run summary (Reached = distance actually run vs Projected = extrapolated, on real 5.0/10.0km thresholds);
+  **Edit-dedup** (manual-finish reopen UPDATEs the row, not insert); **AdaptiveBanner** migrated to `--cm-*` tokens;
+  **type/spacing pass** (strict mono-numbers / sans-words); **run-summary redesign** — `renderRunSummary()`
+  restructured to floating white cards on a red-gradient canvas (hero on red, big stat trio, honest race card,
+  quiet calories, splits, **CardGlyph** coach cards using `fluent-emoji-flat` fork-and-knife-with-plate +
+  sleeping-face, in-flow Edit/Save). New **`--cm-accent-deep`/`--cm-accent-deep-rgb`** theme tokens (per-theme
+  darkened accent via `deepColorRgb`, mirrors `liftColor`, no `color-mix` dependency); `sleeping-face` bundled into
+  `iconData.js` via `extract-icons.js`. Verified on-device: clean mono numerals, no double-scroll, floating cards +
+  font hierarchy land, AdaptiveBanner tinted, wheels work.
+  - 🔵 **TIER 3 (next, not built):** migrate run GPS to **native `@capacitor/geolocation`** — one move carries BOTH
+    (a) **background GPS** (track runs with the app backgrounded / screen off) AND (b) the **localhost→"Coach Macro"
+    permission-prompt fix** (the WKWebView `navigator.geolocation` prompt names the requesting origin "localhost";
+    native geolocation prompts as "Coach Macro"). Also retires the hanging-`getCurrentPosition`-behind-a-prompt class
+    of bug (see the morning-brief `withTimeout` note above) at the source rather than by timeout-wrapping.
 
 - ✅ **NUTRITION DETAIL + TODAY-TAB FOOD-LOG PARITY — SHIPPED** (`a0830a3`, bundle `NativeApp-0843cb18`).
   Shared `NutritionDetail.jsx` (ring + Nutrition label + share-of-target bars). Fuel-tab: tappable entries +
