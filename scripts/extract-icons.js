@@ -177,6 +177,10 @@ FLUENT_NAMES.push(
   "running-shoe",            // quick-log Run
   "droplet"                  // quick-log Water
 );
+// Run-summary coach card glyphs. Fuel=fork-and-knife-with-plate already pushed above.
+FLUENT_NAMES.push(
+  "sleeping-face"            // rest/recovery card (flat-set equivalent of the 😴 rest-day glyph)
+);
 
 const TWEMOJI_NAMES = collectNames(TWEMOJI_FALLBACK_MAP, "twemoji");
 

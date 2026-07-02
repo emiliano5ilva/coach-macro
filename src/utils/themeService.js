@@ -67,6 +67,14 @@ function liftColor(rgb, amount) {
   return `#${[r, g, b].map(lift).map(v => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
+// Darken toward black by `amount` (0..1). Mirror of liftColor — used for --cm-accent-deep
+// (canvas gradient floor + accent-on-white text like tags / phase pill / Save button).
+function deepColorRgb(rgb, amount) {
+  const [r, g, b] = rgb.split(',').map(Number);
+  const deep = (c) => Math.max(0, Math.round(c * (1 - amount)));
+  return [r, g, b].map(deep);
+}
+
 // ── Apply theme to :root CSS variables ───────────────────────────────────────
 
 export function applyTheme(accentId, bgId) {
@@ -144,10 +152,13 @@ export function applyTheme(accentId, bgId) {
   const cmPaperRgb = isLight ? '255,255,255' : '10,10,10';
   const cmInkHex   = isLight ? '#0A0A0A' : '#FFFFFF';
   const cmInkRgb   = isLight ? '10,10,10' : '255,255,255';
+  const cmDeepRgb = deepColorRgb(accent.rgb, 0.18); // ~82% toward black — per-theme deep accent
   set('--cm-red',        accent.hex);
   set('--cm-red-rgb',    accent.rgb);
   set('--cm-accent',     accent.hex);
   set('--cm-accent-rgb', accent.rgb);
+  set('--cm-accent-deep',     `rgb(${cmDeepRgb.join(',')})`);
+  set('--cm-accent-deep-rgb', cmDeepRgb.join(','));
   set('--cm-paper',      cmPaperHex);
   set('--cm-paper-rgb',  cmPaperRgb);
   set('--cm-ink',        cmInkHex);

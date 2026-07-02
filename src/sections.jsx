@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import "./iconData.js"; // side-effect: registers fluent-emoji-flat + twemoji collections
+import { Icon } from "@iconify/react";
 import { CommunicationStyleSection, YourPatternsCard } from "./ob_screens2.jsx";
 import { motion, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -63,6 +65,19 @@ import { getOutreachPreferences, saveOutreachPreferences, TRIGGER_CATEGORIES, DE
 import { getOptIn, setOptIn as setPeerOptInSvc } from "./services/peerComparisonService.js";
 
 
+// ─── CARD GLYPH ───────────────────────────────────────────────────────────────
+// fluent-emoji-flat glyph in a uniform accent-tint chip (recolors across all 8 themes;
+// the multicolor flat glyph carries its own color). Used by the run-summary coach cards.
+function CardGlyph({ icon, size = 34 }) {
+  return (
+    <div style={{ width: size, height: size, flexShrink: 0, display: "flex",
+      alignItems: "center", justifyContent: "center", borderRadius: 10,
+      background: "rgba(var(--cm-accent-rgb,255,59,48), 0.12)" }}>
+      <Icon icon={icon} width={Math.round(size * 0.6)} height={Math.round(size * 0.6)} />
+    </div>
+  );
+}
+
 // ─── HYROX SESSION ENRICHER ───────────────────────────────────────────────────
 function enrichHyroxDesc(text, hyroxProfile) {
   if (!hyroxProfile?.stationTargets || !text) return text;
@@ -85,22 +100,22 @@ function AdaptiveBanner({ modifier, analysis }) {
   const icon=isRecovery?'🔄':'⬇️';
   const title=isRecovery?'Recovery session':'Reduced volume';
   return(
-    <div onClick={()=>setExpanded(e=>!e)} style={{background:'#1a1a1a',borderLeft:'3px solid #FF3B30',borderRadius:'4px 10px 10px 4px',padding:'12px 16px',marginTop:10,cursor:'pointer'}}>
+    <div onClick={()=>setExpanded(e=>!e)} style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.06)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.2)',borderLeft:'3px solid var(--cm-red,#FF3B30)',borderRadius:'4px 10px 10px 4px',padding:'12px 16px',marginTop:10,cursor:'pointer'}}>
       <div style={{display:'flex',alignItems:'center',gap:10}}>
         <span style={{fontSize:18,flexShrink:0}}>{icon}</span>
         <div style={{flex:1}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'#f5f5f0',textTransform:'uppercase'}}>{title}</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.65)',marginTop:2}}>{modifier.reasons?.join(' · ')}</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,fontSize:16,color:'var(--cm-red,#FF3B30)',textTransform:'uppercase'}}>{title}</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',marginTop:2}}>{modifier.reasons?.join(' · ')}</div>
         </div>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(245,245,240,0.35)'}}>{expanded?'▲':'▼'}</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:'rgba(var(--cm-ink-rgb,10,10,10),0.35)'}}>{expanded?'▲':'▼'}</span>
       </div>
       {expanded&&(
-        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.55)',lineHeight:1.6}}>
-            Volume target: <span style={{color:'#f5f5f0'}}>{Math.round(modifier.volumeMultiplier*100)}%</span> of normal.{' '}
-            Intensity: <span style={{color:'#f5f5f0'}}>{Math.round(modifier.intensityMultiplier*100)}%</span>.
+        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.08)'}}>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.6}}>
+            Volume target: <span style={{color:'var(--cm-ink,#0A0A0A)'}}>{Math.round(modifier.volumeMultiplier*100)}%</span> of normal.{' '}
+            Intensity: <span style={{color:'var(--cm-ink,#0A0A0A)'}}>{Math.round(modifier.intensityMultiplier*100)}%</span>.
           </div>
-          {analysis&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(245,245,240,0.45)',marginTop:6,lineHeight:1.55}}>Weekly insight: {analysis}</div>}
+          {analysis&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'rgba(var(--cm-ink-rgb,10,10,10),0.45)',marginTop:6,lineHeight:1.55}}>Weekly insight: {analysis}</div>}
         </div>
       )}
     </div>
@@ -2408,8 +2423,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [runCalories,setRunCalories]=useState(0);
   const [runGpsError,setRunGpsError]=useState(false);
   const [runManualDist,setRunManualDist]=useState('');
+  const [runManualMin,setRunManualMin]=useState('00');
+  const [runManualSec,setRunManualSec]=useState('00');
   const [runEffort,setRunEffort]=useState(null);
   const [runSummary,setRunSummary]=useState(null);
+  const [runLogId,setRunLogId]=useState(null);
   const runTimerRef=useRef(null);
   const gpsWatchRef=useRef(null);
   const [hyroxType,setHyroxType]=useState(null);
@@ -2851,6 +2869,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   function startGPSRun(){
     setSessionMode('run-gps');
+    setRunLogId(null);
     setRunElapsed(0);setRunDistance(0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
     runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
     if(navigator.geolocation){
@@ -2885,12 +2904,16 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   function startManualRun(){
     setSessionMode('run-manual');
+    setRunLogId(null);setRunManualMin('00');setRunManualSec('00');
     setRunElapsed(0);
     runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
   }
 
   function stopManualRunAndShowForm(){
     clearInterval(runTimerRef.current);
+    // Seed the MIN/SEC wheels from the live timer; the user can override with the real run time.
+    setRunManualMin(String(Math.min(600,Math.floor(runElapsed/60))).padStart(2,'0'));
+    setRunManualSec(String(runElapsed%60).padStart(2,'0'));
     setSessionMode('run-manual-finish');
   }
 
@@ -2919,7 +2942,11 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   function finishManualRun(){
     clearInterval(runTimerRef.current);
-    const elapsed=runElapsed;
+    // Honest duration from the bounded MIN/SEC wheels (fixes durationMinutes:0 AND the colon-less
+    // "2830"→2830min ambiguity). Defensive clamp mirrors the wheel bounds. All stats derive from `elapsed`.
+    const _min=Math.min(600,Math.max(0,parseInt(runManualMin,10)||0));
+    const _sec=Math.min(59,Math.max(0,parseInt(runManualSec,10)||0));
+    const elapsed=_min*60+_sec;
     const _imperial=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
     const _entered=parseFloat(runManualDist)||0;
     const dist=_imperial?_entered*1.60934:_entered;
@@ -2929,15 +2956,20 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     setRunSummary({mode:'manual',elapsed,distance:dist,avgPace,calories:cals,effort:runEffort,laps:[]});
     setSessionMode('run-summary');
     if(user&&elapsed>0){
-      sb.from('workout_logs').insert({
+      const _payload={
         user_id:user.id,
         date:new Date().toISOString().split('T')[0],
         source:'coach_macro',
         session_duration_mins:_durMin,
         workout:{focus:todayFocus,type:'run',mode:'manual',duration_sec:elapsed,distance_km:dist,avg_pace:avgPace,calories_burned:cals,effort:runEffort}
-      }).then(({error})=>{if(error){console.error('[finishManualRun]',error);return;}window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishManualRun]',e));
-      // Best-effort Apple Health write (active-only kcal + entered distance).
-      (async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:cals,workoutType:"running",userId:user.id,tier:_tier,bmr:_bmr,distanceMeters:Math.round((dist||0)*1000)});}catch{}})();
+      };
+      // Edit → re-save UPDATES the same row (no duplicate log); first save INSERTS. DB write stays before HealthKit.
+      const _q=runLogId
+        ?sb.from('workout_logs').update(_payload).eq('id',runLogId).eq('user_id',user.id).select('id').single()
+        :sb.from('workout_logs').insert(_payload).select('id').single();
+      _q.then(({data,error})=>{if(error){console.error('[finishManualRun]',error);return;}if(data?.id)setRunLogId(data.id);window.dispatchEvent(new CustomEvent('workoutCompleted',{detail:{userId:user.id}}));}).catch(e=>console.error('[finishManualRun]',e));
+      // Best-effort Apple Health write (active-only kcal + entered distance) — first save only, to avoid duplicate HealthKit workouts on edit.
+      if(!runLogId)(async()=>{try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:_durMin,activeCalories:cals,workoutType:"running",userId:user.id,tier:_tier,bmr:_bmr,distanceMeters:Math.round((dist||0)*1000)});}catch{}})();
     }
   }
 
@@ -3142,6 +3174,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function renderManualRunFinishScreen(){
     const _MO="'DM Mono',monospace";
     const _BC="'Barlow Condensed',sans-serif";
+    const _minItems=Array.from({length:601},(_,i)=>String(i).padStart(2,'0'));   // 00–600
+    const _secItems=Array.from({length:60},(_,i)=>String(i).padStart(2,'0'));     // 00–59
+    const _totalSec=(parseInt(runManualMin,10)||0)*60+(parseInt(runManualSec,10)||0);
     return(
       <div style={{paddingTop:20}}>
         <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:8}}>// LOG YOUR RUN</div>
@@ -3165,20 +3200,50 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             ))}
           </div>
         </div>
-        <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.45)",marginBottom:16,textAlign:"center"}}>Time: {fmtTime(runElapsed)}</div>
-        <button onClick={finishManualRun} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>SAVE RUN →</button>
+        <div style={{marginBottom:24}}>
+          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>DURATION</div>
+          {/* Bounded MIN/SEC wheels — no colon to type, seconds physically 0–59, minutes capped 600. */}
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:12,border:"1.5px solid rgba(var(--cm-red-rgb,255,59,48),0.4)",padding:"8px 8px 12px",display:"flex",alignItems:"center",justifyContent:"center",gap:0}}>
+            <Rolodex items={_minItems} sel={runManualMin} onChange={setRunManualMin} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
+            <span style={{fontFamily:_MO,fontWeight:700,fontSize:22,color:"var(--cm-ink,#0A0A0A)",flexShrink:0,padding:"0 2px"}}>:</span>
+            <Rolodex items={_secItems} sel={runManualSec} onChange={setRunManualSec} itemH={44} bgColor="var(--cm-paper,#FFFFFF)" selectedColor="var(--cm-ink,#0A0A0A)" adjacentColor="rgba(var(--cm-ink-rgb,10,10,10),0.35)" farColor="rgba(var(--cm-ink-rgb,10,10,10),0.12)"/>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 12px 0"}}>
+            <span style={{fontFamily:"'Archivo',sans-serif",fontSize:8.5,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase"}}>Minutes</span>
+            <span style={{fontFamily:"'Archivo',sans-serif",fontSize:8.5,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.12em",textTransform:"uppercase"}}>Seconds</span>
+          </div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.55)",marginTop:8,textAlign:"center"}}>Run time <span style={{fontFamily:_MO,fontWeight:700,color:"#fff"}}>{runManualMin}:{runManualSec}</span></div>
+        </div>
+        <button onClick={_totalSec>0?finishManualRun:undefined} disabled={_totalSec<=0} style={{width:"100%",padding:"16px",background:"var(--cm-paper,#FFFFFF)",border:"none",borderRadius:14,color:"var(--cm-red,#FF3B30)",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",cursor:_totalSec>0?"pointer":"not-allowed",opacity:_totalSec>0?1:0.5,WebkitTapHighlightColor:"transparent"}}>{_totalSec>0?"SAVE RUN →":"SET A DURATION"}</button>
       </div>
     );
   }
 
   function renderRunSummary(){
     if(!runSummary)return null;
-    const {elapsed,distance,calories,laps}=runSummary;
+    const {elapsed,distance,calories,laps,mode,effort}=runSummary;
+    const _isGps=mode==='gps';
+    const _effortLabel={1:"Easy",2:"Moderate",3:"Hard",4:"Max"}[effort]||"—";
     // ── unit helpers ──────────────────────────────────────────────────────────
     const _imperial=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
     const _distU=_imperial?'mi':'km';
     const _convD=(km)=>_imperial?km*0.621371:km;
     const _pace=(km,sec)=>{const d=_imperial?km*0.621371:km;if(d<0.01||sec<5)return'--:--';const s=sec/d;return`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;};
+    // ── race predictions — HONESTY RULE: "Reached" = distance ACTUALLY covered this run;
+    //    "projected" = extrapolated BEYOND it. Thresholds are the real race distances (5.0/10.0 km),
+    //    NOT the mile-rounded 3.1/6.2 (those are label text only). ──────────────────────────────
+    const _paceSecPerKm=(distance>0&&elapsed>5)?elapsed/distance:0;
+    const _predTime=(km)=>_paceSecPerKm>0?fmtTime(Math.round(_paceSecPerKm*km)):'--:--';
+    const _reached5k=distance>=5.0;
+    const _reached10k=distance>=10.0;
+    const _racePreds=[];
+    if(_paceSecPerKm>0){
+      if(_reached5k) _racePreds.push({label:"5K", time:_predTime(5),      tag:"Reached",  note:"actual, at mile 3.1"});
+      if(_reached10k)_racePreds.push({label:"10K",time:_predTime(10),     tag:"Reached",  note:"actual, at mile 6.2"});
+      if(_reached10k)     _racePreds.push({label:"HALF",time:_predTime(21.0975),tag:"projected",note:"extrapolated at this pace"});
+      else if(_reached5k) _racePreds.push({label:"10K", time:_predTime(10),     tag:"projected",note:"extrapolated at this pace"});
+      else                _racePreds.push({label:"5K",  time:_predTime(5),      tag:"projected",note:"extrapolated at this pace"});
+    }
     // ── race phase (same logic as Train hero) ─────────────────────────────────
     const _raceDate=profile?.runProfile?.raceDate||profile?.run_race_date||null;
     const _phase=getRunningPhase(_raceDate);
@@ -3197,54 +3262,91 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const tomorrowFocus=tomorrowType==='rest'?'REST DAY':(dayFocus?.[tomorrowKey]||tomorrowType.toUpperCase())+' DAY';
     const tomorrowFullDay=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][(new Date().getDay()+1)%7];
     return(
-      <div style={{margin:"0 -18px"}}>
-        {/* ── RED HERO BAND ─────────────────────────────────────────────────── */}
-        <div style={{background:"var(--cm-red,#FF3B30)",padding:"22px 20px 30px"}}>
-          {/* Eyebrow */}
-          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:14}}>
-            <span style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)"}}>RUN COMPLETE</span>
-            {_phase&&<>
-              <span style={{color:"rgba(255,255,255,0.30)"}}>·</span>
-              <span style={{display:"inline-flex",alignItems:"center",gap:5,fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",background:"rgba(255,255,255,0.16)",color:"#fff",padding:"3px 9px",borderRadius:6}}>
+      // RED CANVAS — subtle 178deg gradient; cards float on it with red gutters as intentional spacing.
+      // Recolors across all 8 themes (--cm-accent === accent.hex, --cm-accent-deep === darkened accent).
+      <div style={{margin:"0 -18px",minHeight:"100vh",background:"linear-gradient(178deg, var(--cm-accent,#FF3B30) 0%, var(--cm-accent-deep,#C2321F) 62%)",padding:"14px 16px max(env(safe-area-inset-bottom,20px),28px)"}}>
+
+        {/* ── HERO (no card — sits directly on red, white text) ─── */}
+        <div style={{padding:"10px 6px 2px"}}>
+          {/* Eyebrow + phase pill (white pill, accent-deep text) */}
+          <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap",marginBottom:14}}>
+            <span style={{fontFamily:_AF,fontSize:12.5,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(255,255,255,0.9)"}}>Run complete</span>
+            {_phase&&(
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,fontFamily:_AF,fontSize:10,fontWeight:800,letterSpacing:"0.10em",textTransform:"uppercase",background:"#fff",color:"var(--cm-accent-deep,#C2321F)",padding:"3px 9px",borderRadius:20}}>
                 <span style={{width:6,height:6,borderRadius:"50%",background:_phase.color,display:"inline-block",flexShrink:0}}/>
                 {_phase.label}
               </span>
-            </>}
+            )}
           </div>
-          {/* Hero distance */}
-          <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:6}}>
-            <div style={{fontFamily:_AF,fontWeight:800,fontSize:66,lineHeight:0.82,color:"#fff",letterSpacing:"-0.03em"}}>
+          {/* Distance — MONO numeral, sans unit baseline-aligned (not floating mid-height) */}
+          <div style={{display:"flex",alignItems:"baseline",gap:10,marginTop:14,marginBottom:8}}>
+            <div style={{fontFamily:_MO,fontWeight:700,fontSize:76,lineHeight:0.86,color:"#fff",letterSpacing:"-0.04em"}}>
               {distance>0?_convD(distance).toFixed(2):"—"}
             </div>
-            {distance>0&&<div style={{fontFamily:_AF,fontWeight:800,fontSize:24,lineHeight:1,color:"rgba(255,255,255,0.70)",textTransform:"uppercase",paddingBottom:6}}>{_distU}</div>}
+            {distance>0&&<div style={{fontFamily:_AF,fontWeight:800,fontSize:26,lineHeight:1,color:"rgba(255,255,255,0.9)"}}>{_distU}</div>}
           </div>
           {/* Sub-line */}
-          <div style={{fontFamily:_MO,fontSize:10,color:"rgba(255,255,255,0.60)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:20}}>
-            {(todayFocus||"Run").toUpperCase()} · {new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase()}
-          </div>
-          {/* Stat tiles */}
-          <div style={{display:"flex",gap:8}}>
-            {[
-              {l:"TIME",   v:fmtTime(elapsed),          suf:null},
-              {l:"AVG PACE",v:_pace(distance,elapsed),  suf:`/${_distU}`},
-              {l:"CALS",   v:String(calories),           suf:"kcal"},
-            ].map(({l,v,suf})=>(
-              <div key={l} style={{flex:1,background:"rgba(255,255,255,0.14)",borderRadius:12,padding:"11px 8px",textAlign:"center"}}>
-                <div style={{fontFamily:_MO,fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:5}}>{l}</div>
-                <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"#fff",lineHeight:1,display:"flex",alignItems:"baseline",justifyContent:"center",gap:2}}>
-                  {v}
-                  {suf&&<span style={{fontFamily:_MO,fontSize:9,fontWeight:400,color:"rgba(255,255,255,0.55)"}}>{suf}</span>}
-                </div>
-              </div>
-            ))}
+          <div style={{fontFamily:_AF,fontWeight:600,fontSize:13,color:"rgba(255,255,255,0.82)",letterSpacing:"0.02em"}}>
+            {(todayFocus||"Run")} · {new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})}
           </div>
         </div>
 
-        {/* ── PAPER SPLITS CARD ─────────────────────────────────────────────── */}
-        {lapTimes.length>0&&(
-          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:"18px 18px 0 0",marginTop:-10,padding:"18px 18px 20px",boxShadow:"0 2px 12px rgba(0,0,0,.08)"}}>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"var(--cm-ink,#0A0A0A)",marginBottom:16}}>SPLITS</div>
-            {lapTimes.map((lapTime,i)=>{
+        {/* ── BIG STAT TRIO (one white card, hairline dividers) ─── */}
+        <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:24,marginTop:22,padding:"22px 10px",display:"flex",boxShadow:"0 10px 30px rgba(120,30,10,.16)"}}>
+          {[
+            {l:"TIME",    v:fmtTime(elapsed),         suf:null,         mono:true},
+            {l:"AVG PACE",v:_pace(distance,elapsed),  suf:`/${_distU}`, mono:true},
+            // GPS has no effort input → show CALS (mono); manual → show entered EFFORT word (sans).
+            _isGps
+              ? {l:"CALS",  v:String(calories), suf:"kcal", mono:true}
+              : {l:"EFFORT",v:_effortLabel,     suf:null,   mono:false},
+          ].map(({l,v,suf,mono},i)=>(
+            <div key={l} style={{flex:1,textAlign:"center",borderLeft:i>0?"1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)":"none"}}>
+              <div style={{fontFamily:_AF,fontWeight:700,fontSize:11,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",letterSpacing:"0.1em",textTransform:"uppercase"}}>{l}</div>
+              <div style={{fontFamily:mono?_MO:_AF,fontWeight:mono?700:800,fontSize:mono?30:23,color:"var(--cm-ink,#0A0A0A)",lineHeight:1,letterSpacing:"-0.02em",marginTop:7,display:"flex",alignItems:"baseline",justifyContent:"center",gap:2}}>
+                {v}
+                {suf&&<span style={{fontFamily:_MO,fontSize:14,fontWeight:700,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)"}}>{suf}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── AT THIS PACE (race predictions — HONESTY RULE preserved: Reached = distance actually run,
+             Projected = extrapolated; real 5.0/10.0km thresholds in the preamble). ─── */}
+        {_racePreds.length>0&&(
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"18px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)"}}>
+            <div style={{fontFamily:_AF,fontSize:12,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:12}}>At this pace</div>
+            {_racePreds.map((p,i)=>{
+              const _rch=p.tag==="Reached";
+              return(
+                <div key={i} style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,paddingTop:i>0?14:0,marginTop:i>0?14:0,borderTop:i>0?"1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)":"none"}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontFamily:_AF,fontWeight:800,fontSize:22,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.01em",lineHeight:1}}>{p.label}</div>
+                    {/* Reached (accent-deep on accent-tint) vs Projected (muted) — distinction must stay obvious */}
+                    <span style={{display:"inline-block",fontFamily:_AF,fontSize:10,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",padding:"3px 8px",borderRadius:6,marginTop:7,background:_rch?"rgba(var(--cm-accent-rgb,255,59,48),0.12)":"rgba(var(--cm-ink-rgb,10,10,10),0.06)",color:_rch?"var(--cm-accent-deep,#C2321F)":"rgba(var(--cm-ink-rgb,10,10,10),0.45)"}}>{_rch?"Reached":"Projected"}</span>
+                    <div style={{fontFamily:_AF,fontWeight:500,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginTop:8}}>{p.note}</div>
+                  </div>
+                  <span style={{fontFamily:_MO,fontWeight:700,fontSize:30,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.02em",fontVariantNumeric:"tabular-nums",flexShrink:0}}>{p.time}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── CALORIES (quiet, manual only — GPS shows CALS in the stat trio, so no dupe) ─── */}
+        {!_isGps&&(
+          <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"16px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span style={{fontFamily:_AF,fontWeight:600,fontSize:14,color:"rgba(var(--cm-ink-rgb,10,10,10),.55)"}}>Calories (est.)</span>
+            <span style={{fontFamily:_MO,fontWeight:700,fontSize:19,color:"var(--cm-ink,#0A0A0A)",display:"flex",alignItems:"baseline",gap:4}}>{calories}<span style={{fontFamily:_AF,fontSize:11,fontWeight:600,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)"}}>kcal</span></span>
+          </div>
+        )}
+
+        {/* ── SPLITS (own card) — GPS: lap-based bars (real per-mile derivation from runCoords is a Tier-3 TODO);
+             MANUAL: dashed "Splits need GPS" prompt (NEVER fabricate splits from total dist+time). ─── */}
+        <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"18px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)"}}>
+          <div>
+            <div style={{fontFamily:_AF,fontSize:12,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:14}}>Splits</div>
+            {lapTimes.length>0?lapTimes.map((lapTime,i)=>{
               const isFastest=lapTime===fastestLap;
               const isSlowest=lapTime===slowestLap&&lapTimes.length>1;
               const barPct=70+30*((slowestLap-lapTime)/lapRange);
@@ -3261,29 +3363,46 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   </span>
                 </div>
               );
-            })}
+            }):(
+              <div style={{border:"1.5px dashed rgba(var(--cm-ink-rgb,10,10,10),.2)",borderRadius:16,padding:"18px 16px",textAlign:"center"}}>
+                <div style={{fontFamily:_AF,fontWeight:800,fontSize:14,color:"var(--cm-ink,#0A0A0A)",marginBottom:5}}>Splits need GPS</div>
+                <div style={{fontFamily:_AF,fontWeight:500,fontSize:12,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.5,maxWidth:250,marginLeft:"auto",marginRight:"auto"}}>A manual log has total distance &amp; time. Start a GPS run to see per-mile pace.</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── COACH (one card, two rows: Fuel + Next-up) — CardGlyph flat-emoji chips, hairline divider ─── */}
+        <div style={{background:"var(--cm-paper,#FFFFFF)",borderRadius:22,marginTop:14,padding:"18px 18px",boxShadow:"0 8px 24px rgba(120,30,10,.13)"}}>
+          {/* Fuel */}
+          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <CardGlyph icon="fluent-emoji-flat:fork-and-knife-with-plate" />
+            <div style={{minWidth:0}}>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.01em",lineHeight:1.2}}>{macros?`${Math.round((macros.protein||140)*0.3)}g protein · ${Math.round((macros.carbs||200)*0.35)}g carbs`:'30–40g protein · fast carbs'}</div>
+              <div style={{fontFamily:_AF,fontWeight:500,fontSize:12.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.45,marginTop:3}}>Refuel within 45 minutes — carbs refill glycogen, protein repairs.</div>
+            </div>
+          </div>
+          {/* Next up — sleeping-face glyph only when tomorrow is actually a rest day; else a training glyph */}
+          <div style={{display:"flex",gap:12,alignItems:"flex-start",marginTop:14,paddingTop:14,borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.07)"}}>
+            <CardGlyph icon={tomorrowType==='rest'?"fluent-emoji-flat:sleeping-face":"fluent-emoji-flat:person-lifting-weights"} />
+            <div style={{minWidth:0}}>
+              <div style={{fontFamily:_AF,fontWeight:800,fontSize:16,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"-0.01em",lineHeight:1.2}}>{tomorrowFullDay[0]+tomorrowFullDay.slice(1).toLowerCase()} · {tomorrowFocus[0]+tomorrowFocus.slice(1).toLowerCase()}</div>
+              <div style={{fontFamily:_AF,fontWeight:500,fontSize:12.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.45,marginTop:3}}>{tomorrowType==='rest'?'Rest tomorrow. Sleep and nutrition do the work now.':'Next session in ~24 hours. Recover well tonight.'}</div>
+            </div>
+          </div>
+        </div>
+        {/* ── ACTIONS — in-flow on the red canvas: Edit (translucent white, manual only) + Save & exit (white, accent-deep). ─── */}
+        <div style={{display:"flex",gap:12,marginTop:22,padding:"0 2px"}}>
+          {!_isGps&&(
+            <button onClick={()=>setSessionMode('run-manual-finish')} style={{flex:1,padding:"17px",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:16,color:"#fff",fontFamily:_AF,fontWeight:800,fontSize:15,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Edit</button>
+          )}
+          <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{flex:_isGps?1:1.5,padding:"17px",background:"#fff",border:"none",borderRadius:16,color:"var(--cm-accent-deep,#C2321F)",fontFamily:_AF,fontWeight:800,fontSize:15,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>Save &amp; exit →</button>
+        </div>
+        {user&&elapsed>0&&(
+          <div style={{display:"flex",gap:7,justifyContent:"center",alignItems:"center",marginTop:14,fontFamily:_AF,fontWeight:600,fontSize:11.5,color:"rgba(255,255,255,0.85)"}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:"#fff",display:"inline-block"}}/>Synced to Apple Health
           </div>
         )}
-
-        {/* ── PAPER CARDS: FUEL-UP + NEXT-UP ──────────────────────────────────── */}
-        <div style={{background:"var(--cm-paper,#FFFFFF)",padding:lapTimes.length>0?"0 18px":"18px 18px 0",borderRadius:lapTimes.length>0?"0":"18px 18px 0 0",marginTop:lapTimes.length>0?0:-10,boxShadow:lapTimes.length>0?"none":"0 2px 12px rgba(0,0,0,.08)"}}>
-          {/* Fuel up */}
-          <div style={{borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",paddingTop:18,marginBottom:18}}>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:10}}>FUEL UP</div>
-            <div style={{fontFamily:_AF,fontWeight:800,fontSize:19,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1.05,marginBottom:6}}>{macros?`${Math.round((macros.protein||140)*0.3)}G PROTEIN · ${Math.round((macros.carbs||200)*0.35)}G CARBS`:'30–40G PROTEIN · FAST CARBS'}</div>
-            <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",lineHeight:1.6}}>Refuel within 45 minutes — carbs to refill glycogen, protein to repair.</div>
-          </div>
-          {/* Next up */}
-          <div style={{borderTop:"1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)",paddingTop:18,paddingBottom:2}}>
-            <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.4)",marginBottom:10}}>NEXT UP</div>
-            <div style={{fontFamily:_AF,fontWeight:800,fontSize:22,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,marginBottom:6}}>{tomorrowFullDay} · {tomorrowFocus}</div>
-            <div style={{fontFamily:_MO,fontSize:10,color:"rgba(var(--cm-ink-rgb,10,10,10),.5)",lineHeight:1.5}}>{tomorrowType==='rest'?'Rest day tomorrow. Sleep and nutrition do the work now.':'Next session in ~24 hours. Recover well tonight.'}</div>
-          </div>
-        </div>
-        {/* ── SAVE & EXIT ───────────────────────────────────────────────────── */}
-        <div style={{padding:"0 0 4px",background:"var(--cm-paper,#FFFFFF)"}}>
-          <button onClick={()=>{setSessionMode(null);clearWorkoutSummary();}} style={{width:"100%",marginTop:20,padding:"16px",background:"var(--cm-red,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:_MO,fontWeight:700,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>SAVE & EXIT →</button>
-        </div>
       </div>
     );
   }

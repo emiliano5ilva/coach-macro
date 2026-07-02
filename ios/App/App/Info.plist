@@ -60,6 +60,8 @@
 	<string>Coach Macro reads your sleep, steps, heart rate, and HRV data to score your daily recovery and personalize your training intensity and nutrition targets.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Coach Macro saves your completed workouts and active calorie burns to Apple Health to keep your activity records in sync.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Coach Macro uses your location to track distance, pace, and route while you run.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Coach Macro uses your microphone to let you log meals and workouts by speaking, so you can track hands-free.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
