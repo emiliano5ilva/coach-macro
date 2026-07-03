@@ -2244,14 +2244,22 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const _trainEyeY=useRef(0);
   const _trainEyeRedMo=useReducedMotion();
   const [_switchProgIdx,_setSwitchProgIdx]=useState(0);
+  // Real switchable programs = the whole library MINUS the user's current program (matched the same
+  // way the library screen does: splitKey OR name === wPrefs.splitType). Feeds the living 2.5s cycle
+  // with honest names the user can actually switch TO (replaces a hardcoded 7-item decorative teaser).
+  const _switchNames=useMemo(()=>{
+    const _cur=PROGRAM_LIBRARY.find(p=>p.splitKey===wPrefs?.splitType||p.name===wPrefs?.splitType);
+    return PROGRAM_LIBRARY.filter(p=>p.id!==_cur?.id).map(p=>p.name);
+  },[wPrefs?.splitType]);
   useEffect(()=>{
     // Pause off the main train screen — the rotator is only visible on "today", and leaving the
     // 2.5s tick running re-renders all of TrainSection (incl. the RunProgramSetup time inputs in
     // the library sub-screen), which dismisses the iOS soft keyboard. Perf win + unblocks entry.
     if(_trainEyeRedMo || trainScreen!=='today')return;
-    const _t=setInterval(()=>_setSwitchProgIdx(i=>(i+1)%7),2500);
+    const _n=_switchNames.length||1;
+    const _t=setInterval(()=>_setSwitchProgIdx(i=>(i+1)%_n),2500);
     return()=>clearInterval(_t);
-  },[_trainEyeRedMo,trainScreen]);
+  },[_trainEyeRedMo,trainScreen,_switchNames.length]);
   useEffect(()=>{
     if(!GOCLUB_REDESIGN||!user?.id)return;
     getRecoveryData(user.id).then(d=>{
@@ -4516,13 +4524,18 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                           <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>Week {displayWeek} · {expLabel}</div>
                           <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
                         </div>
-                        <div onClick={()=>{_hL();setTrainScreen("library");}} style={cStyle}>
-                          <div>
-                            <div style={{fontFamily:_MO,fontSize:9,color:"#FF3B30",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:4}}>PROGRAMS</div>
-                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1}}>TRAINING PLANS</div>
+                        {/* TRAINING PLANS — Switch-Program-button treatment (both route to the library):
+                             carousel-slide-sized (keeps minWidth/snap/height) but paper card + icon chip + row layout. */}
+                        <div onClick={()=>{_hL();setTrainScreen("library");}} style={{minWidth:"100%",maxWidth:"100%",width:"100%",flexShrink:0,scrollSnapAlign:"start",boxSizing:"border-box",height:110,cursor:"pointer",display:"flex",alignItems:"center",gap:12,background:"var(--cm-paper,#fff)",border:"none",borderRadius:18,boxShadow:"0 4px 18px rgba(0,0,0,.12)",padding:"18px 16px"}}>
+                          <div style={{width:32,height:32,borderRadius:9,background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                           </div>
-                          <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)"}}>PPL, Arnold, Hyrox…</div>
-                          <div style={{position:"absolute",bottom:16,right:16,color:"#FF3B30",fontSize:18,lineHeight:1}}>→</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:2}}>PROGRAMS</div>
+                            <div style={{fontFamily:_AF,fontWeight:800,fontSize:20,color:"var(--cm-ink)",textTransform:"uppercase",lineHeight:1,marginBottom:3}}>TRAINING PLANS</div>
+                            <div style={{fontFamily:_MO,fontSize:9,color:"rgba(var(--cm-ink-rgb),0.75)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>PPL, Arnold, Hyrox…</div>
+                          </div>
+                          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
                         </div>
                         <div onClick={()=>{_hL();setShowExploreSheet(true);}} style={cStyle}>
                           <div>
@@ -5143,14 +5156,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 {/* Card header */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",marginBottom:14}}>
                   <div style={{fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"var(--cm-ink)"}}>THIS WEEK</div>
-                  {(()=>{const _names=["Push/Pull/Legs","Arnold Split","5/3/1","Tom Platz Volume","Half Marathon","Hyrox 12-Week","Upper/Lower"];return(
+                  {(()=>{const _nm=_switchNames.length?_switchNames[_switchProgIdx%_switchNames.length]:"Browse programs";return(
                     <div onClick={()=>{_hL();setTrainScreen("library");}} style={{display:"flex",alignItems:"center",gap:10,background:"var(--cm-paper,#fff)",borderRadius:18,boxShadow:"0 4px 18px rgba(0,0,0,.12)",padding:"10px 14px",cursor:"pointer",border:"none",marginTop:-4}}>
                       <div style={{width:32,height:32,borderRadius:9,background:"var(--cm-red,#FF3B30)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></svg>
                       </div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontFamily:_MO,fontSize:8,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:1}}>SWITCH PROGRAM</div>
-                        <div key={_switchProgIdx} className="prog-cycle-name" style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{_names[_switchProgIdx]}</div>
+                        <div key={_switchProgIdx} className="prog-cycle-name" style={{fontFamily:_BC,fontStyle:"italic",fontWeight:900,fontSize:14,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{_nm}</div>
                       </div>
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="rgba(var(--cm-ink-rgb,10,10,10),.35)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 18l6-6-6-6"/></svg>
                     </div>
