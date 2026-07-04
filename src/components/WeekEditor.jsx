@@ -16,13 +16,15 @@
 // On Save we dual-write schedule + dayFocus + dayPlan by slot (B model — a dragged session keeps its
 // identity; autoFocus never relabels it). Persistence is delegated to the parent via onSave.
 // ─────────────────────────────────────────────────────────────────────────────
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useMotionValue, animate, useReducedMotion } from "motion/react";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { WDAYS, DAY_CFG } from "../components.jsx";
 import WeekEditorButtons from "./WeekEditorButtons.jsx";
 import RecoveryRibbon from "./RecoveryRibbon.jsx";
+import WeekWarningModal from "./WeekWarningModal.jsx";
+import { evaluateWeek, suggestWeek, balanceNote } from "../utils/weekRecovery.js";
 
 const USE_BUTTON_FALLBACK = false; // flip to true to use the ▲/▼ button reorder instead of drag
 
@@ -102,13 +104,16 @@ function DayCard({ session, slotDay, editing, lifted }) {
   );
 }
 
-function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave }) {
+function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave, notify }) {
   const reduce = useReducedMotion();
   const [editing, setEditing] = useState(false);
   const [order, setOrder] = useState(() => buildOrder(schedule, dayFocus, wPrefs?.dayPlan));
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState(null);
   const [sheetMaxH, setSheetMaxH] = useState(0); // computed from REAL innerHeight, not 100vh
+  const [warnFlags, setWarnFlags] = useState(null); // rule flags → Save warning modal (null = hidden)
+  const [suggesting, setSuggesting] = useState(false); // "thinking" beat while the solver runs
+  const [healing, setHealing] = useState(false);       // gate Motion `layout` to the heal only
 
   const dragMV = useMotionValue(0);
   const listRef = useRef(null);
@@ -131,7 +136,7 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave 
     setSheetMaxH(Math.max(280, Math.round(window.innerHeight - (safeBottom + 108) - (safeTop + 16))));
     setEditing(true);
   };
-  const cancelEdit = () => { detach(); setDrag(null); dragMV.set(0); setOrder(_snapshot.current || buildOrder(schedule, dayFocus, wPrefs?.dayPlan)); setEditing(false); };
+  const cancelEdit = () => { detach(); setDrag(null); setWarnFlags(null); dragMV.set(0); setOrder(_snapshot.current || buildOrder(schedule, dayFocus, wPrefs?.dayPlan)); setEditing(false); };
 
   const onWinMove = useCallback((e) => {
     const st = g.current;
@@ -192,15 +197,58 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave 
     }, HOLD_MS);
   };
 
-  const save = async () => {
+  // Write the arranged week (B-model). `balanced` drives the parent's positive-vs-neutral toast.
+  const persist = async (balanced) => {
     const newSchedule = { ...(schedule || {}) };
     const newDayFocus = { ...(dayFocus || {}) };
     const hasHybrid = !!wPrefs?.dayPlan;
     const newDayPlan = hasHybrid ? { ...wPrefs.dayPlan } : null;
     order.forEach((sn, i) => { const d = WDAYS[i]; newSchedule[d] = sn.mod; newDayFocus[d] = sn.focus; if (hasHybrid) { if (sn.plan) newDayPlan[d] = sn.plan; else delete newDayPlan[d]; } });
     setSaving(true);
-    try { _justSaved.current = true; await onSave?.({ schedule: newSchedule, dayFocus: newDayFocus, dayPlan: hasHybrid ? newDayPlan : undefined }); _haptic(ImpactStyle.Medium); setEditing(false); }
+    try { _justSaved.current = true; await onSave?.({ schedule: newSchedule, dayFocus: newDayFocus, dayPlan: hasHybrid ? newDayPlan : undefined, balanced }); _haptic(ImpactStyle.Medium); setWarnFlags(null); setEditing(false); }
     catch (_) { _justSaved.current = false; } finally { setSaving(false); }
+  };
+
+  // Save runs the SAME rules the ribbon uses. Any trip → warn (don't persist); clean → save silently.
+  const save = () => {
+    const { flags } = evaluateWeek(order.map((s) => s.mod));
+    if (flags.length) { _haptic(ImpactStyle.Light); setWarnFlags(flags); return; }
+    persist(true);
+  };
+
+  // The solver's proposal for the current week (null when reordering can't help — e.g. pure R3).
+  const suggestion = useMemo(() => (warnFlags ? suggestWeek(order) : null), [warnFlags, order]);
+  const locked = suggesting || healing; // no drag / no Save-Cancel while the coach rearranges
+
+  // "Use Coach Macro's suggestion": brief coach-thinking beat → close modal → animate the heal
+  // (Motion `layout`) into the suggested order. NOT auto-saved — the user confirms, then Saves.
+  const applySuggestion = () => {
+    if (!suggestion) { setWarnFlags(null); return; }
+    const sug = suggestion;                               // capture BEFORE any state change (suggestion depends on warnFlags)
+    setSuggesting(true);                                  // brief "Thinking…" beat on the modal button
+
+    // PHASE 1 — after the beat, DISMISS the modal first. Do NOT start the heal yet.
+    setTimeout(() => {
+      setSuggesting(false);
+      setWarnFlags(null);                                 // modal card exit spring (~400ms) + backdrop fade begin
+
+      // PHASE 2 — wait for the modal to fully clear, THEN play the heal in the open, unblurred editor.
+      setTimeout(() => {
+        setHealing(true);                                 // lock editor + "✨ Rearranging…", enable Motion `layout`
+        requestAnimationFrame(() => {                     // reorder next frame so `layout` snapshots the old positions
+          setOrder(sug.order);
+          _haptic(ImpactStyle.Medium);
+        });
+
+        // PHASE 3 — after the staggered slide settles: unlock, then the honest toast in the clear.
+        setTimeout(() => {
+          setHealing(false);
+          _haptic(ImpactStyle.Light);
+          const note = balanceNote(sug.order);            // honest "best possible" when conflicts are unavoidable
+          if (note) notify?.(note);
+        }, 950);
+      }, 460);                                            // modal exit (~400ms spring) + a hair of clearance
+    }, 460);                                              // "Thinking…" beat
   };
 
   const start = nextCycleStart(profile?.program_start_date);
@@ -219,6 +267,8 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave 
         </div>
         {!editing ? (
           <button onClick={startEdit} style={{ fontFamily: _AF, fontWeight: 800, fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--cm-accent,#FF3B30)", background: "rgba(var(--cm-accent-rgb,255,59,48),.10)", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>Edit</button>
+        ) : locked ? (
+          <div style={{ fontFamily: _AF, fontWeight: 800, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--cm-accent,#FF3B30)", background: "rgba(var(--cm-accent-rgb,255,59,48),.10)", borderRadius: 10, padding: "8px 12px", whiteSpace: "nowrap" }}>✨ Rearranging…</div>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={cancelEdit} disabled={saving} style={{ fontFamily: _AF, fontWeight: 700, fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(var(--cm-ink-rgb,10,10,10),.55)", background: "transparent", border: "1px solid rgba(var(--cm-ink-rgb,10,10,10),.18)", borderRadius: 10, padding: "8px 12px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>Cancel</button>
@@ -237,10 +287,13 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave 
           return (
             <motion.div
               key={session.id}
-              onPointerDown={editing ? (e) => onRowPointerDown(e, i) : undefined}
-              style={{ position: "relative", marginBottom: ROW_GAP, zIndex: isDragged ? 30 : 1, touchAction: editing ? "none" : undefined, userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", cursor: editing ? "grab" : "default", ...(isDragged ? { y: dragMV } : {}) }}
-              animate={isDragged ? undefined : { y: off }}
-              transition={isDragged ? undefined : (reduce ? { duration: 0 } : { type: "spring", bounce: 0, duration: 0.26 })}
+              layout={healing}
+              onPointerDown={editing && !locked ? (e) => onRowPointerDown(e, i) : undefined}
+              style={{ position: "relative", marginBottom: ROW_GAP, zIndex: isDragged ? 30 : 1, touchAction: editing && !locked ? "none" : undefined, userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", cursor: editing && !locked ? "grab" : "default", ...(isDragged ? { y: dragMV } : {}) }}
+              // Only pin the manual y during an active drag; during the heal (drag idle) leave it to
+              // Motion `layout` so the cards physically slide into their new slots.
+              animate={drag && !isDragged ? { y: off } : (healing ? undefined : { y: 0 })}
+              transition={isDragged ? undefined : (reduce ? { duration: 0 } : (healing ? { type: "spring", bounce: 0.26, duration: 0.5, delay: i * 0.05 } : { type: "spring", bounce: 0, duration: 0.26 }))}
             >
               <DayCard session={session} slotDay={WDAYS[i]} editing={editing} lifted={!!isDragged} />
             </motion.div>
@@ -277,6 +330,7 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave 
         )}
       </AnimatePresence>,
       document.body)}
+      <WeekWarningModal flags={warnFlags} slotNames={WDAYS} saving={saving} suggesting={suggesting} hasSuggestion={!!suggestion} onSuggest={applySuggestion} onKeep={() => persist(false)} onAdjust={() => setWarnFlags(null)} />
     </>
   );
 }

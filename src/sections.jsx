@@ -5247,13 +5247,14 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   wPrefs={wPrefs}
                   profile={profile}
                   todayKey={todayKey}
-                  onSave={async ({schedule:ns,dayFocus:nf,dayPlan:np})=>{
+                  notify={(msg)=>showToast(msg,"info")}
+                  onSave={async ({schedule:ns,dayFocus:nf,dayPlan:np,balanced})=>{
                     setSchedule(ns);
                     const nw={...wPrefs,dayFocus:nf}; if(np!==undefined) nw.dayPlan=np; setWPrefs(nw);
                     if(user){
                       const {error}=await sb.from("profiles").upsert({id:user.id,schedule:ns,wprefs:nw},{onConflict:"id"});
                       if(error){console.error('[weekEditor persist]',error);showToast("Couldn't save — check your connection","error");throw error;}
-                      showToast("Week saved","success");
+                      showToast(balanced?"Nice — this week's well balanced":"Week saved","success");
                     }
                   }}
                 />
