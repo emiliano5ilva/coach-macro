@@ -163,6 +163,12 @@ export function applyTheme(accentId, bgId) {
   set('--cm-paper-rgb',  cmPaperRgb);
   set('--cm-ink',        cmInkHex);
   set('--cm-ink-rgb',    cmInkRgb);
+  // Recovery-load traffic-light tokens (Week Editor ribbon + flags). Theme-CONSTANT (semantic
+  // green/amber/red read the same across all 8 themes); exposed as tokens + -rgb triples so the
+  // ribbon can tint at low alpha. NOT accent-derived — status color must stay legible on any accent.
+  set('--cm-good',     '#2E9E6B'); set('--cm-good-rgb', '46,158,107');
+  set('--cm-warn',     '#E8A13A'); set('--cm-warn-rgb', '232,161,58');
+  set('--cm-bad',      '#E5533B'); set('--cm-bad-rgb',  '229,83,59');
 
   // Status bar tint only — body background intentionally NOT set here;
   // login/onboarding set their own hardcoded backgrounds, and .goclub sets the tab canvas.

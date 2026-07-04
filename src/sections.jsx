@@ -41,6 +41,7 @@ import { ExerciseDetailModal, COACHING_CUES } from "./ExerciseDetailModal.jsx";
 import { getThumbnailUrl } from "./services/exerciseMedia.js";
 import { COOL_DOWN, GENERAL_WARMUP, MOVEMENT_PREP } from "./utils/warmupProtocols.js";
 import WarmupScreen from "./components/WarmupScreen.jsx";
+import WeekEditor from "./components/WeekEditor.jsx";
 import FeatureStrip from "./components/FeatureStrip.jsx";
 import { getAIErrorMessage } from "./utils/errors.js";
 import { ProgramLibraryScreen, CustomRoutineBuilder } from "./ProgramLibrary.jsx";
@@ -2499,7 +2500,6 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [sessionDetailExpanded,setSessionDetailExpanded]=useState(false);
   // Plan screen: which non-today day is expanded (exact pills), and whether the schedule editor is open
   const [planExpandedDay,setPlanExpandedDay]=useState(null);
-  const [planShowAdjust,setPlanShowAdjust]=useState(false);
 
   // ── Adapt Now state ──────────────────────────────────────────────────────
   const [showAdapt,setShowAdapt]=useState(false);
@@ -5238,42 +5238,25 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                   })}
                 </div>
 
-                {/* ADJUST MY WEEK — collapsed schedule editor */}
-                <div style={{margin:"12px 16px 16px",borderTop:"1px solid rgba(var(--cm-ink-rgb),.08)",paddingTop:12}}>
-                  <button
-                    onClick={()=>{_hL();setPlanShowAdjust(v=>!v);}}
-                    style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:_MO,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb),.48)",minHeight:"auto",minWidth:"auto"}}
-                  >
-                    <span>Adjust my week</span>
-                    <span style={{display:"inline-block",transform:planShowAdjust?"rotate(90deg)":"rotate(0deg)",transition:"transform 0.2s",fontStyle:"normal"}}>›</span>
-                  </button>
-                  {planShowAdjust&&(
-                    <div style={{marginTop:12}}>
-                      {WDAYS.map(day=>{
-                        const isT=day===todayKey;
-                        const f=resolvedDayFocus[day];
-                        return(
-                          <div key={day} style={{padding:"9px 0",borderBottom:"1px solid rgba(var(--cm-ink-rgb),.06)"}}>
-                            {/* Day name + current focus */}
-                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-                              <span style={{fontFamily:_MO,fontWeight:700,fontSize:11,color:isT?"var(--cm-red)":"var(--cm-ink)",width:28,flexShrink:0}}>{day}</span>
-                              <span style={{fontFamily:_AF,fontSize:11,color:"rgba(var(--cm-ink-rgb),.55)"}}>{f}</span>
-                            </div>
-                            {/* Type pills — word labels, wrap naturally */}
-                            <div style={{display:"flex",flexWrap:"wrap",gap:5,paddingLeft:36}}>
-                              {[["training","Training"],["cardio","Cardio"],["run","Run"],["hyrox","Hyrox"],["rest","Rest"]].map(([tp,lbl])=>(
-                                <button key={tp}
-                                  onClick={()=>{const next={...schedule,[day]:tp};setSchedule(next);if(user)sb.from("profiles").upsert({id:user.id,schedule:next},{onConflict:"id"}).then(({error})=>{if(error)console.error('[schedule persist]',error);});}}
-                                  style={{fontFamily:_AF,fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:999,border:`1px solid ${schedule[day]===tp?"var(--cm-red)":"rgba(var(--cm-ink-rgb),.18)"}`,background:schedule[day]===tp?"var(--cm-red)":"transparent",color:schedule[day]===tp?"#fff":"rgba(var(--cm-ink-rgb),.50)",cursor:"pointer",minHeight:"auto",minWidth:"auto",lineHeight:1.3}}
-                                >{lbl}</button>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                {/* WEEK EDITOR — drag-to-rearrange next-cycle template (Phase 1: drag mechanics + feel).
+                     INTERIM persistence: live-writes schedule + wprefs(dayFocus/dayPlan). Next-cycle
+                     deferral + completed-day lock land in the persistence phase. */}
+                <WeekEditor
+                  schedule={schedule}
+                  dayFocus={resolvedDayFocus}
+                  wPrefs={wPrefs}
+                  profile={profile}
+                  todayKey={todayKey}
+                  onSave={async ({schedule:ns,dayFocus:nf,dayPlan:np})=>{
+                    setSchedule(ns);
+                    const nw={...wPrefs,dayFocus:nf}; if(np!==undefined) nw.dayPlan=np; setWPrefs(nw);
+                    if(user){
+                      const {error}=await sb.from("profiles").upsert({id:user.id,schedule:ns,wprefs:nw},{onConflict:"id"});
+                      if(error){console.error('[weekEditor persist]',error);showToast("Couldn't save — check your connection","error");throw error;}
+                      showToast("Week saved","success");
+                    }
+                  }}
+                />
               </PaperCard>
             </div>
           );
@@ -5301,19 +5284,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                 </div>))}
               </div>}
             </SectionCard>
-            <SectionCard title="Weekly Schedule">
-              {WDAYS.map(day=>{const t=schedule[day];const c=DAY_CFG[t]||DAY_CFG.rest;const isT=day===todayKey;const f=resolvedDayFocus[day];return(
-                <div key={day} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid rgba(245,245,240,0.05)`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontWeight:700,fontSize:13,color:isT?T.prot:"#fff",width:32}}>{day}</span>
-                    <span style={{background:c.bg,color:c.color,fontSize:9,fontWeight:700,letterSpacing:1,padding:"2px 8px",borderRadius:20,textTransform:"uppercase"}}>{f}</span>
-                  </div>
-                  <div style={{display:"flex",gap:4}}>
-                    {[["training","T"],["cardio","C"],["run","R"],["hyrox","H"],["rest","—"]].map(([tp,lbl])=>(<button key={tp} onClick={()=>{const next={...schedule,[day]:tp};setSchedule(next);if(user)sb.from("profiles").upsert({id:user.id,schedule:next},{onConflict:"id"}).then(({error})=>{if(error)console.error('[schedule persist]',error);});}} style={{fontSize:10,fontWeight:700,fontFamily:"var(--mono)",padding:"4px 7px",borderRadius:6,border:`1px solid ${schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.bd}`,background:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).bg:"none",color:schedule[day]===tp?(DAY_CFG[tp]||DAY_CFG.rest).color:T.mu,cursor:"pointer"}}>{lbl}</button>))}
-                  </div>
-                </div>
-              );})}
-            </SectionCard>
+            {/* Legacy single-letter "Weekly Schedule" pill editor removed — superseded by the
+                 WeekEditor (redesigned path). This !GOCLUB_REDESIGN branch is dead code (flag is
+                 always true); left the Training Mode card only. */}
           </div>
         )}
 
