@@ -24,7 +24,7 @@ import { T, GLOBAL_CSS, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVE
   hap, hapMed, hapSuccess, hapPR,
   PaperCard, Pill, MusclePills,
   InfoTip, WorkoutSkeleton, ExerciseSkeleton, CardSkeleton, EmptyState,
-  GOCLUB_REDESIGN } from "./components.jsx";
+  GOCLUB_REDESIGN, WhistleMark } from "./components.jsx";
 import { showToast } from "./utils/toast.js";
 import { sb, ai, streamAI } from "./client.js";
 import { track, EVENTS, trackError, setAnalyticsEnabled } from "./services/analytics.js";
@@ -2353,6 +2353,34 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   function openDetail(exerciseName,exerciseIdx,sugg){setDetailModal({exerciseName,exerciseIdx,sugg});}
   function startLongPress(exerciseName,exerciseIdx){longPressTimer.current=setTimeout(()=>openDetail(exerciseName,exerciseIdx),500);}
   function cancelLongPress(){if(longPressTimer.current){clearTimeout(longPressTimer.current);longPressTimer.current=null;}}
+
+  // ── Exercise coaching (exercise_coaching table) + gif/muscles (exercise_cache) ────────────────
+  // Batch-fetched ONCE per active workout, keyed by exercise_name at the user's skill level. The
+  // player reads key_cue/coaching from here (replaces the hardcoded COACHING_CUES surfaces). "View
+  // Coaching" is gated on a row existing (no row → no button, no error). gif_url drives "View Exercise".
+  const _skillLevel=(()=>{const e=(wPrefs?.liftExp||profile?.liftExp||'beginner').toLowerCase();return e.startsWith('adv')||e.includes('elite')||e.includes('compet')?'advanced':e.startsWith('inter')||e.includes('moder')?'intermediate':'beginner';})();
+  const [coachingMap,setCoachingMap]=useState({});     // { [exercise_name]: { key_cue, coaching } }
+  const [gifMap,setGifMap]=useState({});               // { [exercise_name]: { gif_url, target_muscles, secondary_muscles } }
+  const [coachingSheet,setCoachingSheet]=useState(null); // exercise_name whose sheet is open (null = closed)
+  const _activeExNames=(activeWorkout?.exercises||[]).map(e=>e.name).filter(Boolean);
+  const _exNamesKey=_activeExNames.join('|');
+  useEffect(()=>{
+    if(trainScreen!=="active"||!_activeExNames.length)return;
+    let cancelled=false;
+    (async()=>{
+      try{
+        const [{data:coach},{data:cache}]=await Promise.all([
+          sb.from('exercise_coaching').select('exercise_name,key_cue,coaching').in('exercise_name',_activeExNames).eq('level',_skillLevel),
+          sb.from('exercise_cache').select('exercise_name,gif_url,target_muscles,secondary_muscles').in('exercise_name',_activeExNames),
+        ]);
+        if(cancelled)return;
+        const cm={}; (coach||[]).forEach(r=>{cm[r.exercise_name]={key_cue:r.key_cue,coaching:r.coaching};});
+        const gm={}; (cache||[]).forEach(r=>{gm[r.exercise_name]={gif_url:r.gif_url,target_muscles:r.target_muscles,secondary_muscles:r.secondary_muscles};});
+        setCoachingMap(cm); setGifMap(gm);
+      }catch(_){/* best-effort — button simply won't show without data */}
+    })();
+    return()=>{cancelled=true;};
+  },[trainScreen,_exNamesKey,_skillLevel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Custom routine session handoff ──────────────────────────────────────
   useEffect(()=>{
@@ -4953,7 +4981,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                               );
                             })()}
                             <div style={{flex:1,cursor:"pointer",userSelect:"none",minWidth:0}} onPointerDown={()=>startLongPress(ex.name,ei)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress}>
-                              <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:'var(--cm-ink,#0A0A0A)',textTransform:"uppercase",lineHeight:1}}>{ex.name}</div>
+                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:22,color:'var(--cm-ink,#0A0A0A)',textTransform:"uppercase",lineHeight:1.05,wordBreak:"break-word"}}>{ex.name}</div>
                               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:2}}>
                                 {ex.tier&&<span style={{fontSize:9,fontWeight:700,background:ex.tier==="A"?`rgba(var(--accent-rgb),0.12)`:ex.tier==="B"?`${T.carb}20`:"rgba(var(--accent-rgb),0.08)",color:ex.tier==="A"?T.prot:ex.tier==="B"?T.carb:T.mu,borderRadius:4,padding:"1px 5px",letterSpacing:".06em"}}>{ex.tier}</span>}
                                 {ex.priority&&<span style={{fontSize:9,fontWeight:700,background:"rgba(249,115,22,.15)",color:"#F97316",borderRadius:4,padding:"1px 5px",letterSpacing:".06em",display:"inline-flex",alignItems:"center",gap:2}}><svg width={7} height={7} viewBox="0 0 24 24" fill="#F97316"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>PRIORITY</span>}
@@ -4991,28 +5019,25 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                         <div style={{height:"100%",width:`${totalSets>0?doneSets/totalSets*100:0}%`,background:allDone?"#22c55e":'var(--cm-red,#FF3B30)',borderRadius:2,transition:"background 0.4s, width .4s"}}/>
                       </div>
 
-                      {/* First-set coaching — auto-collapses after first logSet (doneSets becomes ≥1) */}
-                      {doneSets===0&&COACHING_CUES[ex.name]&&(
-                        <div style={{background:'rgba(var(--cm-ink-rgb,10,10,10),.04)',border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.08)',borderRadius:12,padding:"12px 14px",marginBottom:10}}>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:'rgba(var(--cm-ink-rgb,10,10,10),.45)',marginBottom:8}}>BEFORE YOU BEGIN</div>
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 12px"}}>
-                            {COACHING_CUES[ex.name].setup&&(<div><div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:2}}>📐 SETUP</div><div style={{fontSize:12,color:'rgba(var(--cm-ink-rgb,10,10,10),.72)',lineHeight:1.45}}>{COACHING_CUES[ex.name].setup}</div></div>)}
-                            {COACHING_CUES[ex.name].cue&&(<div><div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:2}}>🔑 KEY CUE</div><div style={{fontSize:12,color:'rgba(var(--cm-ink-rgb,10,10,10),.72)',lineHeight:1.45}}>{COACHING_CUES[ex.name].cue}</div></div>)}
-                            {COACHING_CUES[ex.name].common_mistake&&(<div><div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:2}}>⚠ AVOID</div><div style={{fontSize:12,color:'rgba(var(--cm-ink-rgb,10,10,10),.72)',lineHeight:1.45}}>{COACHING_CUES[ex.name].common_mistake}</div></div>)}
-                            {COACHING_CUES[ex.name].feel&&(<div><div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:'rgba(var(--cm-ink-rgb,10,10,10),.40)',letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:2}}>💪 FEEL</div><div style={{fontSize:12,color:'rgba(var(--cm-ink-rgb,10,10,10),.72)',lineHeight:1.45}}>{COACHING_CUES[ex.name].feel}</div></div>)}
-                          </div>
+                      {/* Coaching — data-driven (exercise_coaching, at the user's skill level). "View Coaching"
+                          opens the sheet; shown ONLY when a row exists (no row → no button, no error). */}
+                      {coachingMap[ex.name]&&(
+                        <div style={{display:"flex",alignItems:"center",gap:10,margin:"2px 0 8px"}}>
+                          <button onClick={()=>{_hL&&_hL();setCoachingSheet(ex.name);}} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(var(--cm-accent-rgb,255,59,48),.10)",border:"1px solid rgba(var(--cm-accent-rgb,255,59,48),.28)",borderRadius:10,padding:"8px 12px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                            <WhistleMark size={16} variant="glyph" style={{color:"var(--cm-accent,#FF3B30)"}}/>
+                            <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:11,letterSpacing:"0.06em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)"}}>View Coaching</span>
+                          </button>
+                        </div>
+                      )}
+                      {/* Beginner depth-adapt: key_cue shown INLINE by default (guidance without a tap). */}
+                      {_skillLevel==='beginner'&&coachingMap[ex.name]?.key_cue&&(
+                        <div style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",marginBottom:10,borderRadius:10,background:"rgba(var(--cm-accent-rgb,255,59,48),.06)",borderLeft:"3px solid var(--cm-accent,#FF3B30)"}}>
+                          <span style={{fontSize:12,flexShrink:0,lineHeight:1.4}}>🔑</span>
+                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.45}}>{coachingMap[ex.name].key_cue}</span>
                         </div>
                       )}
 
                       <PrevSessionRow exerciseName={ex.name} history={history} wUnit={profile?.wUnit||'lbs'}/>
-
-                      {/* Cue line — always-on, gated on COACHING_CUES entry */}
-                      {COACHING_CUES[ex.name]?.cue&&(
-                        <div style={{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 0 6px",borderTop:'1px solid rgba(var(--cm-ink-rgb,10,10,10),.06)',marginBottom:4}}>
-                          <span style={{fontSize:11,flexShrink:0,lineHeight:1.4}}>💡</span>
-                          <span style={{fontFamily:"'DM Mono',monospace",fontSize:10.5,color:'rgba(var(--cm-ink-rgb,10,10,10),.60)',lineHeight:1.4,fontStyle:"italic"}}>{COACHING_CUES[ex.name].cue}</span>
-                        </div>
-                      )}
 
                       {/* Set headers — SET / WEIGHT / REPS / DONE */}
                       <div style={{display:"grid",gridTemplateColumns:"44px 1fr 1fr 72px",gap:6,marginBottom:8}}>
@@ -5123,12 +5148,41 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             exerciseName={detailModal.exerciseName}
             user={user}
             sugg={detailModal.sugg}
+            focusVisual={detailModal.focusVisual}
             onClose={()=>setDetailModal(null)}
             onSwap={()=>{
               setDetailModal(null);
               setSwapModal({exerciseIdx:detailModal.exerciseIdx,exerciseName:detailModal.exerciseName,originalName:(activeWorkout?.exercises?.[detailModal.exerciseIdx]?.originalName)||detailModal.exerciseName});
             }}
           />
+        )}
+
+        {/* ── VIEW COACHING sheet — data-driven (exercise_coaching), portaled to .goclub (theme-safe) ── */}
+        {coachingSheet&&coachingMap[coachingSheet]&&ReactDOM.createPortal(
+          <div onClick={()=>setCoachingSheet(null)} style={{position:"fixed",inset:0,zIndex:10002,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",display:"flex",alignItems:"flex-end"}}>
+            <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:520,margin:"0 auto",background:"var(--cm-paper,#fff)",borderRadius:"24px 24px 0 0",padding:"20px 20px calc(24px + env(safe-area-inset-bottom))",boxShadow:"0 -10px 44px rgba(0,0,0,.34)",maxHeight:"82vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+              <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:14}}>
+                <WhistleMark size={20} variant="glyph" style={{color:"var(--cm-accent,#FF3B30)"}}/>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontStyle:"italic",fontWeight:900,fontSize:20,color:"var(--cm-ink,#0A0A0A)",textTransform:"uppercase",letterSpacing:"0.01em",flex:1}}>Coaching</div>
+                <button onClick={()=>setCoachingSheet(null)} aria-label="Close" style={{background:"none",border:"none",padding:6,cursor:"pointer",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",WebkitTapHighlightColor:"transparent",lineHeight:1}}>
+                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+              </div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",marginBottom:12}}>{coachingSheet}</div>
+              <div style={{background:"rgba(var(--cm-accent-rgb,255,59,48),.07)",borderLeft:"3px solid var(--cm-accent,#FF3B30)",borderRadius:"6px 12px 12px 6px",padding:"14px 16px",marginBottom:16}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)",marginBottom:6}}>🔑 Key Cue</div>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:16,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.4}}>{coachingMap[coachingSheet].key_cue}</div>
+              </div>
+              <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:400,fontSize:14.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.78)",lineHeight:1.62,marginBottom:20,whiteSpace:"pre-wrap"}}>{coachingMap[coachingSheet].coaching}</div>
+              {gifMap[coachingSheet]?.gif_url&&(
+                <button onClick={()=>{const _ei=(activeWorkout?.exercises||[]).findIndex(e=>e.name===coachingSheet);setDetailModal({exerciseName:coachingSheet,exerciseIdx:_ei>=0?_ei:0,sugg:null,focusVisual:true});setCoachingSheet(null);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"14px",background:"var(--cm-accent,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:14,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  View Exercise
+                </button>
+              )}
+            </div>
+          </div>,
+          themeRoot()
         )}
 
         {/* ── PLAN — redesigned paper view ── */}

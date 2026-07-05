@@ -248,7 +248,7 @@ function ExerciseImages({ url1, url2, exerciseName }) {
   );
 }
 
-export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap, sugg }) {
+export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap, sugg, focusVisual = false }) {
   const [exData,   setExData]   = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [wxHistory,setWxHistory]= useState([]);
@@ -372,8 +372,9 @@ export function ExerciseDetailModal({ exerciseName, user, onClose, onSwap, sugg 
             </div>
           )}
 
-          {/* Coaching cues */}
-          {cues && (
+          {/* Coaching cues — suppressed when opened as "View Exercise" (the new coaching sheet is the
+              coaching surface now; here we want a clean gif + how-to visual, not the old cues grid). */}
+          {!focusVisual && cues && (
             <div style={{marginBottom:20}}>
               <div style={{fontSize:9,color:"rgba(var(--cm-ink-rgb,10,10,10),.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>COACHING CUES</div>
               <div style={{background:`${T.carb}12`,border:`1px solid ${T.carb}28`,borderRadius:12,padding:"14px 16px",marginBottom:8}}>
