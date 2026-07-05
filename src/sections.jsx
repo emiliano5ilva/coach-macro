@@ -12,6 +12,10 @@ import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 // Native CLLocationManager → the permission prompt reads "Coach Macro", not "localhost".
 const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
+// Canonicalize an exercise name for coaching lookup: strip the trailing superset/program tag the
+// generator appends — "(A1)", "(B2)", "(BBB)", "(Wide)", "(under a table)". The base name is usually
+// canonical (e.g. "Barbell Bench Press (BBB)" → "Barbell Bench Press"), recovering ~49 names.
+const _canonName=(s)=>String(s||'').replace(/\s*\([^)]*\)\s*$/,'').trim();
 const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
@@ -2362,7 +2366,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [coachingMap,setCoachingMap]=useState({});     // { [exercise_name]: { key_cue, coaching } }
   const [gifMap,setGifMap]=useState({});               // { [exercise_name]: { gif_url, target_muscles, secondary_muscles } }
   const [coachingSheet,setCoachingSheet]=useState(null); // exercise_name whose sheet is open (null = closed)
-  const _activeExNames=(activeWorkout?.exercises||[]).map(e=>e.name).filter(Boolean);
+  const _activeExNames=[...new Set((activeWorkout?.exercises||[]).map(e=>_canonName(e.name)).filter(Boolean))];
   const _exNamesKey=_activeExNames.join('|');
   useEffect(()=>{
     if(trainScreen!=="active"||!_activeExNames.length)return;
@@ -5021,19 +5025,19 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
                       {/* Coaching — data-driven (exercise_coaching, at the user's skill level). "View Coaching"
                           opens the sheet; shown ONLY when a row exists (no row → no button, no error). */}
-                      {coachingMap[ex.name]&&(
+                      {coachingMap[_canonName(ex.name)]&&(
                         <div style={{display:"flex",alignItems:"center",gap:10,margin:"2px 0 8px"}}>
-                          <button onClick={()=>{_hL&&_hL();setCoachingSheet(ex.name);}} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(var(--cm-accent-rgb,255,59,48),.10)",border:"1px solid rgba(var(--cm-accent-rgb,255,59,48),.28)",borderRadius:10,padding:"8px 12px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                          <button onClick={()=>{_hL&&_hL();setCoachingSheet(_canonName(ex.name));}} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(var(--cm-accent-rgb,255,59,48),.10)",border:"1px solid rgba(var(--cm-accent-rgb,255,59,48),.28)",borderRadius:10,padding:"8px 12px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                             <WhistleMark size={16} variant="glyph" style={{color:"var(--cm-accent,#FF3B30)"}}/>
                             <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:11,letterSpacing:"0.06em",textTransform:"uppercase",color:"var(--cm-accent,#FF3B30)"}}>View Coaching</span>
                           </button>
                         </div>
                       )}
                       {/* Beginner depth-adapt: key_cue shown INLINE by default (guidance without a tap). */}
-                      {_skillLevel==='beginner'&&coachingMap[ex.name]?.key_cue&&(
+                      {_skillLevel==='beginner'&&coachingMap[_canonName(ex.name)]?.key_cue&&(
                         <div style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",marginBottom:10,borderRadius:10,background:"rgba(var(--cm-accent-rgb,255,59,48),.06)",borderLeft:"3px solid var(--cm-accent,#FF3B30)"}}>
                           <span style={{fontSize:12,flexShrink:0,lineHeight:1.4}}>🔑</span>
-                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.45}}>{coachingMap[ex.name].key_cue}</span>
+                          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:13,color:"var(--cm-ink,#0A0A0A)",lineHeight:1.45}}>{coachingMap[_canonName(ex.name)].key_cue}</span>
                         </div>
                       )}
 
@@ -5175,7 +5179,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </div>
               <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:400,fontSize:14.5,color:"rgba(var(--cm-ink-rgb,10,10,10),.78)",lineHeight:1.62,marginBottom:20,whiteSpace:"pre-wrap"}}>{coachingMap[coachingSheet].coaching}</div>
               {gifMap[coachingSheet]?.gif_url&&(
-                <button onClick={()=>{const _ei=(activeWorkout?.exercises||[]).findIndex(e=>e.name===coachingSheet);setDetailModal({exerciseName:coachingSheet,exerciseIdx:_ei>=0?_ei:0,sugg:null,focusVisual:true});setCoachingSheet(null);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"14px",background:"var(--cm-accent,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:14,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                <button onClick={()=>{const _ei=(activeWorkout?.exercises||[]).findIndex(e=>_canonName(e.name)===coachingSheet);setDetailModal({exerciseName:coachingSheet,exerciseIdx:_ei>=0?_ei:0,sugg:null,focusVisual:true});setCoachingSheet(null);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"14px",background:"var(--cm-accent,#FF3B30)",border:"none",borderRadius:14,color:"#fff",fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:14,letterSpacing:"0.02em",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   View Exercise
                 </button>
