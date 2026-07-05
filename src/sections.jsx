@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { registerPlugin } from '@capacitor/core';
 import { createGpsFilter } from './utils/gpsFilter.js';
+import { themeRoot } from './utils/portalRoot.js';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
 // Phase 0: native background-geolocation, FOREGROUND-only for now (no backgroundMessage → When-In-Use).
 // Native CLLocationManager → the permission prompt reads "Coach Macro", not "localhost".
@@ -4620,7 +4621,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
                     ))}
                   </div>
                 </div>,
-                document.body
+                themeRoot()
               )}
             </div>
           );
@@ -4814,7 +4815,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
               </button>
             </div>
           </div>,
-          document.body
+          themeRoot()
         )}
 
         {/* ── POST-WORKOUT SUMMARY ── */}
@@ -4832,7 +4833,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             imperial={(profile?.wUnit||wPrefs?.wUnit)==='lbs'}
             onRunDistanceChange={onRunDistanceChange}
           />,
-          document.body
+          themeRoot()
         )}
 
         {/* ── ACTIVE WORKOUT ── */}
@@ -5114,7 +5115,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             )}
           </div>
           </div>
-        , document.body)}
+        , themeRoot())}
 
         {/* ── Exercise detail modal ── */}
         {detailModal&&(
@@ -7290,7 +7291,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
           </div>
         </div>
       )}
-      {/* Plans modal portal — renders at document.body, accessible from 'account' sub-screen */}
+      {/* Plans modal portal — renders into .goclub (themed scope), accessible from 'account' sub-screen */}
       {showPlansModal&&ReactDOM.createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,display:"flex",alignItems:"flex-end"}} onClick={()=>setShowPlansModal(false)}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#0a0e1a",borderRadius:"18px 18px 0 0",padding:"24px 20px 44px",maxWidth:480,margin:"0 auto"}}>
@@ -7317,7 +7318,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             ))}
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── EDIT FIELD MODAL ── */}
@@ -7411,7 +7412,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── GOAL SELECTOR MODAL ── */}
@@ -7428,7 +7429,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── SKILL SELECTOR MODAL ── */}
@@ -7446,7 +7447,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── DIET PRESET MODAL ── */}
@@ -7473,7 +7474,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
               </div>
             </div>
           </div>,
-          document.body
+          themeRoot()
         )}
 
       {showDietPicker&&ReactDOM.createPortal(
@@ -7492,7 +7493,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── RECOVERY CAPACITY MODAL ── */}
@@ -7518,7 +7519,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── LONG RUN DAY MODAL ── */}
@@ -7583,7 +7584,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             })()}
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── RACE TYPE MODAL ── */}
@@ -7607,7 +7608,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── RACE DATE PICKER ── */}
@@ -7627,7 +7628,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             <button onClick={()=>setShowRaceDatePicker(false)} style={{width:"100%",padding:14,background:"transparent",border:"1px solid rgba(var(--cm-ink-rgb,10,10,10),0.1)",borderRadius:10,color:"rgba(var(--cm-ink-rgb,10,10,10),0.5)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
 
       {/* ── CALORIE TARGET PICKER ── */}
@@ -7664,7 +7665,7 @@ export function SettingsSection({profile,wPrefs,setWPrefs,schedule,setSchedule,d
             </div>
           </div>
         </div>,
-        document.body
+        themeRoot()
       )}
     </div>
   );

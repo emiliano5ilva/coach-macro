@@ -1,13 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // WEEK WARNING MODAL — coach-not-nag. Shown on Save when a recovery rule (R2/R3) trips.
 // Informs calmly, then RESPECTS the athlete's call: "Keep it my way" is always present and easy.
-// Portaled to document.body (like the edit sheet) so it escapes .cm-paper-card's containing block.
+// Portaled into .goclub (like the edit sheet) — escapes .cm-paper-card's containing block AND stays
+// inside the theme-token scope (a document.body portal would lose --cm-* and fall back to red).
 // All --cm-* tokens; recolors across themes.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useAnimationControls, useReducedMotion } from "motion/react";
 import { warningCopy } from "../utils/weekRecovery.js";
+import { themeRoot } from "../utils/portalRoot.js";
 
 const _AF = "'Archivo',sans-serif";
 
@@ -109,6 +111,6 @@ export default function WeekWarningModal({ flags, slotNames, saving, suggesting,
         </>
       )}
     </AnimatePresence>,
-    document.body
+    themeRoot()
   );
 }

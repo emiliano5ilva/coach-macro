@@ -13,6 +13,7 @@ import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYC
   calcTDEE, autoFocus, useCountUp, lookupBarcode,
   getDayMacros, getTodayKey, isToday, hap, hapPR, hapSuccess, pad2 } from "./components.jsx";
 import { showToast, subscribeToast } from "./utils/toast.js";
+import { themeRoot } from "./utils/portalRoot.js";
 import { TrainSection, ConnectSection, SettingsSection,
   WorkoutBuilder, LIFTING_SPLITS, RUN_PLANS_DETAIL, HYBRID_TEMPLATES,
   PROMOS, AthletePassport, TrainingDNA, PerformanceCalendar, RacePredictor,
@@ -11275,7 +11276,7 @@ Rules:
               </button>
             </div>
           </div>,
-          document.body
+          themeRoot()
         )}
       </div>
     );
@@ -11491,7 +11492,7 @@ Rules:
             </div>
           </div>
         </>,
-        document.body
+        themeRoot()
       )}
 
 

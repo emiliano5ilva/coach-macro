@@ -25,6 +25,7 @@ import WeekEditorButtons from "./WeekEditorButtons.jsx";
 import RecoveryRibbon from "./RecoveryRibbon.jsx";
 import WeekWarningModal from "./WeekWarningModal.jsx";
 import { evaluateWeek, suggestWeek, balanceNote } from "../utils/weekRecovery.js";
+import { themeRoot } from "../utils/portalRoot.js";
 
 const USE_BUTTON_FALLBACK = false; // flip to true to use the ▲/▼ button reorder instead of drag
 
@@ -337,8 +338,9 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
   return (
     <>
       {!editing && <div style={{ margin: "12px 16px 16px" }}>{bodyInner}</div>}
-      {/* Portal to document.body so the fixed sheet escapes .cm-paper-card's `will-change:transform`
-           containing block and anchors to the REAL viewport (else it resolves against the ~379px card). */}
+      {/* Portal into .goclub so the fixed sheet escapes .cm-paper-card's `will-change:transform`
+           containing block (that card is a DESCENDANT of .goclub) AND stays in the theme-token scope.
+           Anchors to the REAL viewport (.goclub has no transform); a document.body portal would lose --cm-*. */}
       {createPortal(
       <AnimatePresence>
         {editing && (
@@ -358,7 +360,7 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
           </motion.div>
         )}
       </AnimatePresence>,
-      document.body)}
+      themeRoot())}
       <WeekWarningModal flags={warnFlags} slotNames={WDAYS} saving={saving} suggesting={suggesting} hasSuggestion={!!suggestion} onSuggest={applySuggestion} onKeep={() => persist(false)} onAdjust={() => setWarnFlags(null)} />
     </>
   );
