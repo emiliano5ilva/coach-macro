@@ -12,6 +12,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "1.2.16",
     "@capacitor-community/barcode-scanner": "^5.0.0-beta.1",
     "@capacitor/app": "^5.0.8",
     "@capacitor/cli": "^5.7.8",

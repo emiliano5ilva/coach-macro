@@ -4,7 +4,12 @@ import { Icon } from "@iconify/react";
 import { CommunicationStyleSection, YourPatternsCard } from "./ob_screens2.jsx";
 import { motion, useReducedMotion } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { registerPlugin } from '@capacitor/core';
+import { createGpsFilter } from './utils/gpsFilter.js';
 import { MN, MotionArc, StaggerItem } from './motion-layer.jsx';
+// Phase 0: native background-geolocation, FOREGROUND-only for now (no backgroundMessage → When-In-Use).
+// Native CLLocationManager → the permission prompt reads "Coach Macro", not "localhost".
+const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
 const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import AthletePassportComponent from "./components/AthletePassport.jsx";
@@ -2453,7 +2458,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   const [runSummary,setRunSummary]=useState(null);
   const [runLogId,setRunLogId]=useState(null);
   const runTimerRef=useRef(null);
-  const gpsWatchRef=useRef(null);
+  const gpsWatchRef=useRef(null);      // native watcher id (string) from addWatcher
+  const gpsFilterRef=useRef(null);     // per-run accuracy filter instance
+  const gpsStoppedRef=useRef(false);   // guards the addWatcher-resolves-after-stop race
   const [hyroxType,setHyroxType]=useState(null);
   const [hyroxTotalElapsed,setHyroxTotalElapsed]=useState(0);
   const [hyroxSegElapsed,setHyroxSegElapsed]=useState(0);
@@ -2479,7 +2486,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
   useEffect(()=>{
     return()=>{
       clearInterval(runTimerRef.current);
-      if(gpsWatchRef.current!=null)navigator.geolocation.clearWatch(gpsWatchRef.current);
+      gpsStoppedRef.current=true;
+      if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
       clearInterval(hyroxTotalTimerRef.current);
       clearInterval(hyroxSegTimerRef.current);
     };
@@ -2895,34 +2903,31 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     setRunLogId(null);
     setRunElapsed(0);setRunDistance(0);setRunCoords([]);setRunLaps([]);setRunCurrentPace('--:--');setRunAvgPace('--:--');setRunCalories(0);setRunGpsError(false);
     runTimerRef.current=setInterval(()=>setRunElapsed(p=>p+1),1000);
-    if(navigator.geolocation){
-      gpsWatchRef.current=navigator.geolocation.watchPosition(
-        pos=>{
-          const {latitude:lat,longitude:lon,altitude}=pos.coords;
-          setRunCoords(prev=>{
-            if(prev.length>0){
-              const last=prev[prev.length-1];
-              const d=haversineKm(last.lat,last.lon,lat,lon);
-              if(d>0.003){
-                setRunDistance(pd=>{
-                  setRunElapsed(pe=>{
-                    setRunCurrentPace(fmtPace(pd+d>0.01?(pd+d):0.001,pe));
-                    setRunAvgPace(fmtPace(pd+d,pe));
-                    return pe;
-                  });
-                  return pd+d;
-                });
-              }
-            }
-            return [...prev,{lat,lon,alt:altitude||0,ts:Date.now()}];
-          });
-        },
-        _err=>{setRunGpsError(true);},
-        {enableHighAccuracy:true,maximumAge:1000,timeout:5000}
-      );
-    } else {
-      setRunGpsError(true);
-    }
+    // Native watcher, FOREGROUND mode (no backgroundMessage). Every raw fix runs through gpsFilter
+    // (accuracy floor / spike gate / EMA smoothing / min-distance) before it can move distance or pace.
+    const _gf=createGpsFilter(); gpsFilterRef.current=_gf;
+    gpsStoppedRef.current=false;
+    const _fmtSpk=(spk)=>(spk==null||!isFinite(spk))?'--:--':`${Math.floor(spk/60)}:${String(Math.round(spk%60)).padStart(2,'0')}`;
+    BackgroundGeolocation.addWatcher(
+      { requestPermissions:true, stale:false, distanceFilter:5 },   // NO backgroundMessage → foreground / When-In-Use
+      (location,error)=>{
+        if(error){ setRunGpsError(true); return; }
+        if(!location) return;
+        const r=_gf.push({ latitude:location.latitude, longitude:location.longitude, accuracy:location.accuracy, time:(typeof location.time==='number'?location.time:Date.now()) });
+        if(r.accepted){
+          setRunCoords(prev=>[...prev,{lat:location.latitude,lon:location.longitude,alt:location.altitude||0,ts:location.time||Date.now()}]);
+          if(r.reason!=='anchor'){
+            setRunDistance(r.totalKm);
+            setRunCurrentPace(_fmtSpk(r.currentPaceSecPerKm));
+            setRunAvgPace(_fmtSpk(r.avgPaceSecPerKm));
+          }
+        }
+      }
+    ).then(id=>{
+      // If finish fired before the watcher id resolved, remove it immediately (no leak).
+      if(gpsStoppedRef.current){ BackgroundGeolocation.removeWatcher({id}).catch(()=>{}); }
+      else gpsWatchRef.current=id;
+    }).catch(()=>setRunGpsError(true));
   }
 
   function startManualRun(){
@@ -2942,7 +2947,8 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
 
   function finishGPSRun(){
     clearInterval(runTimerRef.current);
-    if(gpsWatchRef.current!=null)navigator.geolocation.clearWatch(gpsWatchRef.current);
+    gpsStoppedRef.current=true;
+    if(gpsWatchRef.current!=null){ BackgroundGeolocation.removeWatcher({id:gpsWatchRef.current}).catch(()=>{}); gpsWatchRef.current=null; }
     const elapsed=runElapsed;
     const dist=runDistance;
     const avgPace=fmtPace(dist,elapsed);
