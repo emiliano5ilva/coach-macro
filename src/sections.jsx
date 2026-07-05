@@ -14,8 +14,11 @@ const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
 const _hL=()=>{Haptics.impact({style:ImpactStyle.Light}).catch(()=>{});};
 // Canonicalize an exercise name for coaching lookup: strip the trailing superset/program tag the
 // generator appends — "(A1)", "(B2)", "(BBB)", "(Wide)", "(under a table)". The base name is usually
-// canonical (e.g. "Barbell Bench Press (BBB)" → "Barbell Bench Press"), recovering ~49 names.
-const _canonName=(s)=>String(s||'').replace(/\s*\([^)]*\)\s*$/,'').trim();
+// canonical (e.g. "Barbell Bench Press (BBB)" → "Barbell Bench Press"), recovering ~49 names. Then map
+// a few equivalents onto an authored row ("Back Squat"/"Squat" ARE the barbell back squat; "Flye"
+// spelling → "Dumbbell Fly", which resolves once that row is seeded).
+const _COACH_ALIAS={ "Back Squat":"Barbell Squat", "Squat":"Barbell Squat", "Dumbbell Flye":"Dumbbell Fly" };
+const _canonName=(s)=>{ const b=String(s||'').replace(/\s*\([^)]*\)\s*$/,'').trim(); return _COACH_ALIAS[b]||b; };
 const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import AthletePassportComponent from "./components/AthletePassport.jsx";
 import ReactDOM from "react-dom";
