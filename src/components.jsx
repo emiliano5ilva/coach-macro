@@ -1314,63 +1314,51 @@ export function CardSkeleton({height=120}) {
 }
 
 // ─── LOGO ─────────────────────────────────────────────────────────────────────
-export function Logo({size=32, text=true, textColor="#fff"}) {
-  // Icon: 3 ascending bars — perfect golden ratio proportions
-  // Heights: 40%, 65%, 100% of total height
-  // Width: each bar = 28% of icon width, gap = 8%
-  // Corners: 3px radius — premium, not harsh
-  const h = size;
-  const bw = h * 0.28;       // bar width
-  const gap = h * 0.09;      // gap between bars
-  const r = h * 0.1;         // corner radius
-  const iw = bw*3 + gap*2;   // total icon width
+// ── Coach Macro whistle mark ──────────────────────────────────────────────────
+// Body (3 paths) + motion lines (3 paths), viewBox 512. Source: Claude Design whistle set.
+// The old 3-bar chart mark is retired; this whistle is the single brand mark app-wide.
+const WHISTLE_BODY = [
+  "M121.3 231.3 144.8 233.8 167.6 243.7 364.2 369.4 366.6 373.1 366.6 419.3 364.8 424.3 353.1 434.1 343.8 434.7 278.5 392.8 260 386.7 248.9 387.3 240.9 390.4 224.3 406.4 207 418.1 193.4 423.6 175 427.3 150.9 426.1 134.3 421.2 117.6 413.2 100.4 401.5 77.6 378 65.2 356.5 56.6 325.6 56.6 298.5 64 272.6 75.1 254.8 94.2 238.7 106.5 233.8Z",
+  "M184.2 158.6 216.9 161.1 232.3 166 250.1 174.6 353.7 238.7 453.5 303.5 456.6 308.4 456 350.9 454.2 355.2 382 410.7 379 411.3 377.7 368.8 375.9 364.5 253.2 283.7 253.8 280.7 260 275.7 318.6 235.7 317.9 231.3 258.2 194.4 248.9 198.7 244.6 221.5 209.5 226.4 189.7 243.1 152.1 224 130.6 219.6 112.1 220.3 101.6 222.7 77.6 235 94.8 207.9 120.7 183.3 150.3 166.6 167.6 161.1ZM444.9 327.5 387.6 370 388.2 387.9 445.5 344.8Z",
+  "M260.6 209.2 298.8 233.8 258.8 262.2 249.5 268.3 246.4 268.3 208.9 243.7 216.9 237.5 255.7 232.6 258.2 228.9Z",
+];
+const WHISTLE_LINES = [
+  "M161.9 88.8L167.7 128.9A9.6 9.6 0 0 0 186.8 126.1L181 86A9.6 9.6 0 0 0 161.9 88.8Z",
+  "M224.8 95.4L207.9 130.8A9.8 9.8 0 0 0 225.6 139.2L242.4 103.9A9.8 9.8 0 0 0 224.8 95.4Z",
+  "M145.2 135.4L119.9 103A9.9 9.9 0 0 0 104.2 115.2L129.6 147.7A9.9 9.9 0 0 0 145.2 135.4Z",
+];
 
-  // Bar heights — ascending left to right
-  const h1 = h * 0.42;   // protein bar — shortest
-  const h2 = h * 0.68;   // carbs bar — mid
-  const h3 = h * 1.00;   // fat/energy bar — tallest
+// Whistle mark. variant="lockup" → red rounded square + white whistle, FIXED brand colors
+// (#FF3B30 / #FFF) for pre-auth / brand surfaces that must not theme. variant="glyph" → whistle
+// only, fill=currentColor, transparent bg → a light inline accent that inherits/themes with the UI.
+// Body and motion lines are kept as separate <g> (whistle-body / whistle-lines) for later animation.
+export function WhistleMark({ size = 32, variant = "glyph", style }) {
+  const glyph = variant === "glyph";
+  return (
+    <svg width={size} height={size} viewBox="0 0 512 512" fillRule="evenodd"
+      fill={glyph ? "currentColor" : undefined} aria-hidden="true"
+      style={{ display: "block", flexShrink: 0, ...style }}>
+      {/* Brand tokens: --cm-logo-bg #FF3B30 (iOS system red) / --cm-logo-fg #FFFFFF (white whistle). */}
+      {!glyph && <rect width="512" height="512" rx="112" fill="#FF3B30" />}
+      <g className="whistle-body" fill={glyph ? undefined : "#FFFFFF"}>
+        {WHISTLE_BODY.map((d, i) => <path key={i} d={d} />)}
+      </g>
+      <g className="whistle-lines" fill={glyph ? undefined : "#FFFFFF"}>
+        {WHISTLE_LINES.map((d, i) => <path key={i} className="whistle-line" d={d} />)}
+      </g>
+    </svg>
+  );
+}
 
-  // Y positions (bars sit on bottom baseline)
-  const y1 = h - h1;
-  const y2 = h - h2;
-  const y3 = h - h3;
-
-  // Colors
-  const c1 = "var(--accent)";   // red — primary
-  const c2 = "#60a5fa";   // blue — carbs
-  const c3 = "#f59e0b";   // amber — fat/energy
-
+// Brand lockup: whistle mark + optional "COACH / MACRO" wordmark. Same signature as before so every
+// call-site keeps working; `variant` picks the mark treatment (default lockup — the brand default).
+export function Logo({size=32, text=true, textColor="#fff", variant="lockup"}) {
   const fontSize = size * 0.52;
   const letterSpacing = size * 0.06;
 
   return (
     <div style={{display:"flex",alignItems:"center",gap:size*0.28,flexShrink:0,userSelect:"none"}}>
-      {/* Icon */}
-      <svg width={iw} height={h} viewBox={`0 0 ${iw} ${h}`} style={{display:"block",flexShrink:0}}>
-        {/* Glow layers for premium depth */}
-        <defs>
-          <filter id="logo-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="1.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        {/* Bar 1 — Blue — protein */}
-        <rect x={0} y={y1} width={bw} height={h1} rx={r} ry={r} fill={c1} filter="url(#logo-glow)"/>
-        {/* Top cap — slightly lighter for 3D premium feel */}
-        <rect x={0} y={y1} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.18)"/>
-
-        {/* Bar 2 — Green — carbs */}
-        <rect x={bw+gap} y={y2} width={bw} height={h2} rx={r} ry={r} fill={c2} filter="url(#logo-glow)"/>
-        <rect x={bw+gap} y={y2} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.15)"/>
-
-        {/* Bar 3 — Gold — energy */}
-        <rect x={(bw+gap)*2} y={y3} width={bw} height={h3} rx={r} ry={r} fill={c3} filter="url(#logo-glow)"/>
-        <rect x={(bw+gap)*2} y={y3} width={bw} height={r*2} rx={r} ry={r} fill="rgba(255,255,255,0.12)"/>
-
-        {/* Connecting baseline — ultra thin, unifies the mark */}
-        <rect x={0} y={h-1.5} width={iw} height={1.5} rx={0.75} fill="rgba(255,255,255,0.12)"/>
-      </svg>
+      <WhistleMark size={size} variant={variant} />
 
       {/* Wordmark */}
       {text&&(

@@ -114,6 +114,8 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
   const [warnFlags, setWarnFlags] = useState(null); // rule flags → Save warning modal (null = hidden)
   const [suggesting, setSuggesting] = useState(false); // "thinking" beat while the solver runs
   const [healing, setHealing] = useState(false);       // gate Motion `layout` to the heal only
+  const [baselineConflicts, setBaselineConflicts] = useState(null); // conflict count at editor-open — the session baseline
+  const [denseNote, setDenseNote] = useState(false);   // one-time calm "dense week" explainer (this open)
 
   const dragMV = useMotionValue(0);
   const listRef = useRef(null);
@@ -130,13 +132,20 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
 
   const startEdit = () => {
     _snapshot.current = order;
+    // SESSION BASELINE: snapshot the conflict count the user is OPENING with. Warnings only fire for
+    // edits that push ABOVE this — a dense generated week (at its own unavoidable baseline) opens calm.
+    const base = evaluateWeek(order.map((s) => s.mod)).conflictCount;
+    setBaselineConflicts(base);
+    // One-time calm explainer, the first time ANY dense week (baseline conflicts they didn't create)
+    // is opened. Persisted so it never repeats.
+    if (base > 0) { try { if (!localStorage.getItem("cm_dense_week_note_seen")) { setDenseNote(true); localStorage.setItem("cm_dense_week_note_seen", "1"); } } catch (_) {} }
     // Cap the sheet to the REAL viewport (100vh over-reports in this WKWebView). Panel = space between
     // (safeTop + 16) from the top and (safeBottom + 108) from the bottom → top always positive.
     const { safeTop, safeBottom } = readSafeAreas();
     setSheetMaxH(Math.max(280, Math.round(window.innerHeight - (safeBottom + 108) - (safeTop + 16))));
     setEditing(true);
   };
-  const cancelEdit = () => { detach(); setDrag(null); setWarnFlags(null); dragMV.set(0); setOrder(_snapshot.current || buildOrder(schedule, dayFocus, wPrefs?.dayPlan)); setEditing(false); };
+  const cancelEdit = () => { detach(); setDrag(null); setWarnFlags(null); setDenseNote(false); dragMV.set(0); setOrder(_snapshot.current || buildOrder(schedule, dayFocus, wPrefs?.dayPlan)); setEditing(false); };
 
   const onWinMove = useCallback((e) => {
     const st = g.current;
@@ -205,19 +214,25 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
     const newDayPlan = hasHybrid ? { ...wPrefs.dayPlan } : null;
     order.forEach((sn, i) => { const d = WDAYS[i]; newSchedule[d] = sn.mod; newDayFocus[d] = sn.focus; if (hasHybrid) { if (sn.plan) newDayPlan[d] = sn.plan; else delete newDayPlan[d]; } });
     setSaving(true);
-    try { _justSaved.current = true; await onSave?.({ schedule: newSchedule, dayFocus: newDayFocus, dayPlan: hasHybrid ? newDayPlan : undefined, balanced }); _haptic(ImpactStyle.Medium); setWarnFlags(null); setEditing(false); }
+    try { _justSaved.current = true; await onSave?.({ schedule: newSchedule, dayFocus: newDayFocus, dayPlan: hasHybrid ? newDayPlan : undefined, balanced }); _haptic(ImpactStyle.Medium); setWarnFlags(null); setDenseNote(false); setEditing(false); }
     catch (_) { _justSaved.current = false; } finally { setSaving(false); }
   };
 
-  // Save runs the SAME rules the ribbon uses. Any trip → warn (don't persist); clean → save silently.
+  // Save measures against the SESSION BASELINE (not zero): warn only when the user's edits pushed
+  // conflicts ABOVE what they opened with — i.e. they created fixable worsening. At-or-below baseline
+  // (incl. a dense week at its unavoidable baseline) saves cleanly. `balanced` toast only when truly 0.
   const save = () => {
-    const { flags } = evaluateWeek(order.map((s) => s.mod));
-    if (flags.length) { _haptic(ImpactStyle.Light); setWarnFlags(flags); return; }
-    persist(true);
+    const { flags, conflictCount } = evaluateWeek(order.map((s) => s.mod));
+    if (baselineConflicts != null && conflictCount > baselineConflicts) { _haptic(ImpactStyle.Light); setWarnFlags(flags); return; }
+    persist(conflictCount === 0);
   };
 
-  // The solver's proposal for the current week (null when reordering can't help — e.g. pure R3).
-  const suggestion = useMemo(() => (warnFlags ? suggestWeek(order) : null), [warnFlags, order]);
+  // Structurally-locked slots the solver must not move — the long-run session (focus "Long Run",
+  // stamped by autoFocus, rides the session through drags). Derived; no explicit lock flag exists.
+  const fixedIdx = useMemo(() => order.reduce((a, s, i) => (s.focus === "Long Run" ? (a.push(i), a) : a), []), [order]);
+  // The solver's proposal for the current week (null when reordering can't legally help). Long-run
+  // day stays pinned so it never proposes a structurally-illegal week.
+  const suggestion = useMemo(() => (warnFlags ? suggestWeek(order, { fixed: fixedIdx }) : null), [warnFlags, order, fixedIdx]);
   const locked = suggesting || healing; // no drag / no Save-Cancel while the coach rearranges
 
   // "Use Coach Macro's suggestion": brief coach-thinking beat → close modal → animate the heal
@@ -277,8 +292,22 @@ function WeekEditorDrag({ schedule, dayFocus, wPrefs, profile, todayKey, onSave,
         )}
       </div>
 
-      {/* Recovery-load ribbon — recolors live as the week reorders (rules v1: R2 + R3). */}
-      <RecoveryRibbon mods={order.map((s) => s.mod)} />
+      {/* Recovery-load ribbon — calm at/below the session baseline; escalates to amber only when the
+          user's edits push conflicts ABOVE what they opened with. baseline=null (read-only) → always calm. */}
+      <RecoveryRibbon mods={order.map((s) => s.mod)} baseline={editing ? baselineConflicts : null} />
+
+      {/* One-time calm explainer for a dense week's unavoidable baseline conflicts (they didn't create). */}
+      {editing && denseNote && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: -4, marginBottom: 14, padding: "10px 12px", borderRadius: 12, background: "rgba(var(--cm-ink-rgb,10,10,10),.04)", flexShrink: 0 }}>
+          <span style={{ fontSize: 13, lineHeight: 1.3, flexShrink: 0 }}>💡</span>
+          <div style={{ fontFamily: _AF, fontWeight: 500, fontSize: 12, lineHeight: 1.45, color: "rgba(var(--cm-ink-rgb,10,10,10),.62)" }}>
+            This is a dense week — some back-to-back is expected at this volume.
+          </div>
+          <button onClick={() => setDenseNote(false)} aria-label="Dismiss" style={{ marginLeft: "auto", flexShrink: 0, background: "none", border: "none", padding: 2, cursor: "pointer", color: "rgba(var(--cm-ink-rgb,10,10,10),.4)", WebkitTapHighlightColor: "transparent", lineHeight: 1 }}>
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+      )}
 
       <div ref={listRef} style={{ position: "relative", ...(editing ? { minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", margin: "0 -4px", padding: "0 4px" } : {}) }}>
         {order.map((session, i) => {

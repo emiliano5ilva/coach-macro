@@ -14,7 +14,7 @@ import BarcodeScanner from "./BarcodeScanner.jsx";
 import { FlagBtn } from "./FlagBtn.jsx";
 import { MetabolicResetProgressCard } from "./MetabolicAdaptation.jsx";
 import { T, GLOBAL_CSS, WDAYS, DAY_CFG, FASTING_PROTOCOLS,
-  Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, FAQItem,
+  Ring, MacroRing, MacroBar, PrimaryBtn, SectionCard, Spinner, Logo, WhistleMark, FAQItem,
   FoodSearchSkeleton, AIContentSkeleton, EmptyState, hap, calcTDEE,
   GOCLUB_REDESIGN } from "./components.jsx";
 
@@ -2810,8 +2810,8 @@ Reply with ONLY a valid JSON object, no markdown:
                     return(
                       <div style={{marginTop:14,paddingTop:14,borderTop:'1px solid rgba(255,255,255,0.12)'}}>
                         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                          {/* logo slot — placeholder (current mark); new logo swaps in later */}
-                          <Logo size={16} text={false}/>
+                          {/* coach whistle mark — glyph, inherits the eyebrow's light color */}
+                          <WhistleMark size={16} variant="glyph" style={{color:"#fff"}}/>
                           <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,letterSpacing:'0.14em',color:'rgba(255,255,255,0.85)',textTransform:'uppercase'}}>{eyebrow}</div>
                         </div>
                         <div style={{fontFamily:"'Archivo',sans-serif",fontSize:16,fontWeight:500,color:'#FFFFFF',lineHeight:1.45}}>{line}</div>

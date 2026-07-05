@@ -70,16 +70,33 @@ function permute(arr, cb) {
   }
 }
 
-// Suggest a reordering of `sessions` (array of {id, mod, ...}) that MINIMIZES rule violations with
-// the LEAST disruption. Returns { order, moved:[slotIdx], score, wasScore } or null when reordering
-// can't improve (e.g. pure R3 — no rest day exists, which no permutation can fix).
-export function suggestWeek(sessions) {
+// Enumerate permutations that keep FIXED slots pinned. Structurally-locked days (the long-run day,
+// any other anchored session) must NOT be relocated by the solver — moving a fixed long run to shave
+// an R2 count produces a structurally-illegal week. Only the non-fixed session slots permute among
+// themselves; each fixed slot keeps its own session.
+function permuteConstrained(n, fixed, cb) {
+  const fixedSet = new Set(fixed || []);
+  const freeSlots = [];
+  for (let i = 0; i < n; i++) if (!fixedSet.has(i)) freeSlots.push(i);
+  permute(freeSlots.slice(), (fv) => {
+    const perm = new Array(n);
+    for (let i = 0; i < n; i++) if (fixedSet.has(i)) perm[i] = i;   // fixed session stays in its slot
+    for (let k = 0; k < freeSlots.length; k++) perm[freeSlots[k]] = fv[k];
+    cb(perm);
+  });
+}
+
+// Suggest a LEGAL reordering of `sessions` (array of {id, mod, ...}) that MINIMIZES rule violations
+// with the LEAST disruption. `opts.fixed` = slot indices that must stay put (e.g. the long-run day) —
+// the solver never moves them, so it only ever proposes structurally-legal weeks. Returns
+// { order, moved:[slotIdx], score, wasScore } or null when reordering can't legally improve.
+export function suggestWeek(sessions, opts = {}) {
   const n = sessions.length;
+  const fixed = opts.fixed || [];
   const baseScore = violationScore(sessions.map((s) => s.mod));
   if (baseScore === 0) return null; // already clean
-  const idx = sessions.map((_, i) => i);
   let bestPerm = null, bestScore = baseScore, bestDisruption = Infinity;
-  permute(idx, (perm) => {
+  permuteConstrained(n, fixed, (perm) => {
     const score = violationScore(perm.map((i) => sessions[i].mod));
     if (score > bestScore) return;
     let disruption = 0;
@@ -88,7 +105,7 @@ export function suggestWeek(sessions) {
       bestScore = score; bestDisruption = disruption; bestPerm = perm.slice();
     }
   });
-  if (!bestPerm || bestScore >= baseScore) return null; // no improvement possible
+  if (!bestPerm || bestScore >= baseScore) return null; // no legal improvement possible
   const order = bestPerm.map((i) => sessions[i]);
   const moved = [];
   for (let j = 0; j < n; j++) if (bestPerm[j] !== j) moved.push(j);

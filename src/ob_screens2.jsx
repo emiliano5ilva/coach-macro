@@ -8,7 +8,7 @@ const _hM=()=>{Haptics.impact({style:ImpactStyle.Medium}).catch(()=>{});};
 import { T, GLOBAL_CSS, REDESIGN_CSS, GOCLUB_REDESIGN, WDAYS, DAY_CFG, SPLIT_CYCLES, FOCUS_MUSCLES, MUSCLE_COVERAGE,
   RUN_PLANS, HYROX_STATIONS, FASTING_PROTOCOLS, BF_DATA, BF_VISUAL,
   Ring, MacroRing, MacroBar, Toggle, PrimaryBtn, UnitToggle, Rolodex, StackPicker, PaperCard,
-  SectionCard, Spinner, Logo, CC, BodyFigure, InfoTip, ErrorBoundary,
+  SectionCard, Spinner, Logo, WhistleMark, CC, BodyFigure, InfoTip, ErrorBoundary,
   DashboardSkeleton, ScoreSkeleton, CardSkeleton, ProgressSkeleton, CalendarSkeleton,
   calcTDEE, autoFocus, useCountUp, lookupBarcode,
   getDayMacros, getTodayKey, isToday, hap, hapPR, hapSuccess, pad2 } from "./components.jsx";
@@ -389,7 +389,7 @@ export function TDEEReveal({tdee,animTDEE,d,chatReply,setCR,next}) {
       </div>
       <div style={{background:"#070E1A",border:`1px solid ${T.bd}`,borderRadius:14,padding:"16px"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-          <Logo size={22} text={false}/>
+          <WhistleMark size={22} variant="glyph" style={{color:"#fff"}}/>
           <div style={{fontSize:13,color:"#ccc",lineHeight:1.6}}>{chatReply||`Here's your estimated daily expenditure — ${tdee.total.toLocaleString()} kcal to maintain your weight. What would you like to know?`}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:7}}>
@@ -10556,8 +10556,11 @@ Rules:
             {/* ── TODAY: morning brief ── */}
             {!briefDismissed&&(morningBriefLoading||morningBriefError||b?.coach_says||b?.today)&&(
               <StaggerItem i={0} style={{marginBottom:22}}>
-                <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:10}}>
-                  MORNING BRIEF
+                <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:10}}>
+                  <WhistleMark size={40} variant="glyph" style={{color:"var(--cm-accent,#FF3B30)"}}/>
+                  <div style={{fontFamily:AF,fontWeight:700,fontSize:9,color:"var(--cm-ink,#0A0A0A)",letterSpacing:"0.16em",textTransform:"uppercase"}}>
+                    MORNING BRIEF
+                  </div>
                 </div>
                 {morningBriefLoading ? (
                   // Loading skeleton — light-mode shimmer, doesn't flash fallback content
