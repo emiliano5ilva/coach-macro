@@ -305,7 +305,7 @@ export async function saveWorkoutToHealth({ durationMinutes, activeCalories, wor
         if (!kit) return false;
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - durationMinutes * 60_000);
-        logStep(userId, "savework_start", { workoutType, energyBurned: activeCalories, durationMinutes, tier, bmr });
+        logStep(userId, "savework_start", { workoutType, energyBurned: activeCalories, durationMinutes, tier, bmr, distanceMeters, distanceKm: Math.round((distanceMeters / 1000) * 100) / 100 });
         await kit.saveWorkout({
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),

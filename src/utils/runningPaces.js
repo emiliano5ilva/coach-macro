@@ -3,7 +3,7 @@
 
 import { vdotFromRaceTime, trainingPaces } from '../services/paceService.js';
 
-const KM_PER_MI = 1.60934;
+const KM_PER_MI = 1.609344;
 
 // Zone paces from a 5K time via the validated Daniels VDOT engine (paceService) — replaces the old
 // flat 5K-pace multipliers (which overshot the slow zones). Returns each zone as { secs(sec/mi),
@@ -91,7 +91,7 @@ export const updateRaceTime = (current5K, targetPaceSecs, actualPaceSecs, sessio
 // Derive goal pace (sec/mi) from a goal finish time + race distance.
 // Returns { secs, display } matching the paces object shape.
 // Falls back to tempo when goal time is missing or distance unknown.
-const RACE_DIST_MI = { '5k': 3.107, '10k': 6.214, 'half': 13.109, 'marathon': 26.219, 'general': null };
+const RACE_DIST_MI = { '5k': 3.106856, '10k': 6.213712, 'half': 13.109375, 'marathon': 26.21875, 'general': null };
 
 export const computeGoalPace = (goalTimeSecs, raceDistance, fallbackTempo) => {
   const distMi = RACE_DIST_MI[raceDistance];

@@ -1643,7 +1643,7 @@ function PRPredictionCard({ predictions, runActs, wPrefs, wUnit }) {
         avgPace,
         improving: olderPace - avgPace > 0.1,
         declining: avgPace - olderPace > 0.1,
-        races: [{name:"5K",km:5},{name:"10K",km:10},{name:"Half",km:21.1},{name:"Marathon",km:42.2}].map(r=>({name:r.name,mins:avgPace*Math.pow(r.km,1.06)}))
+        races: [{name:"5K",km:5},{name:"10K",km:10},{name:"Half",km:21.0975},{name:"Marathon",km:42.195}].map(r=>({name:r.name,mins:avgPace*Math.pow(r.km,1.06)}))
       };
     }
   }
@@ -7333,7 +7333,37 @@ export function App({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,onEa
   const [middayDismissed,setMiddayDismissed]=useState(()=>{try{const d=localStorage.getItem('midday_dismissed');return d&&(Date.now()-parseInt(d))<7200000;}catch{return false;}});
   const [firstWeekCardDismissed,setFirstWeekCardDismissed]=useState(()=>{try{return!!localStorage.getItem('cm_1week_dismissed');}catch{return false;}});
   const [pendingMilestone,setPendingMilestone]=useState(null);
+  // Deferred run-day HealthKit write: the structured player has no GPS/manual distance source, so
+  // for run days we hold the HK write until the summary captures ACTUAL distance. Flushed exactly
+  // once — on summary close OR app-hide — so the run NEVER loses its Health write (honest null if blank).
+  const _pendingRunHK=useRef(null);   // { durationMinutes, activeCalories, workoutType, userId, tier, bmr, logId, workoutObj } | null
+  const _enteredRunKm=useRef(0);      // latest distance typed on the run-day summary (km)
+  const _flushRef=useRef(null);       // always points at the latest flushRunHK (avoids stale-closure in the hide listener)
+  const [runDistancePrompt,setRunDistancePrompt]=useState(false); // drives the summary's "how far?" input
 
+  // Fire the deferred run-day HealthKit write EXACTLY once (any trigger — close/hide). km>0 also
+  // backfills the DB row's distance_km. DB row already wrote first; this preserves that ordering.
+  async function flushRunHK(distanceKm){
+    const p=_pendingRunHK.current;
+    if(!p)return;                     // nothing pending or already flushed → single-fire guard
+    _pendingRunHK.current=null;
+    setRunDistancePrompt(false);
+    const km=(typeof distanceKm==="number"&&isFinite(distanceKm)&&distanceKm>0)?distanceKm:0;
+    if(km>0&&p.logId&&p.userId){ try{ await sb.from("workout_logs").update({workout:{...p.workoutObj,distance_km:km}}).eq("id",p.logId).eq("user_id",p.userId); }catch{} }
+    if(!healthConnected)return;
+    try{ const{saveWorkoutToHealth}=await import("./services/appleHealth.js"); await saveWorkoutToHealth({durationMinutes:p.durationMinutes,activeCalories:p.activeCalories,workoutType:p.workoutType,userId:p.userId,tier:p.tier,bmr:p.bmr,distanceMeters:Math.round(km*1000)}); }catch{}
+  }
+  _flushRef.current=flushRunHK;
+
+  // Fallback: if the user backgrounds/force-quits with a pending run-day write, flush it on hide so
+  // it can never be orphaned (best-effort — pagehide/visibilitychange fire on webview teardown/background).
+  useEffect(()=>{
+    const flush=()=>{ if(_pendingRunHK.current)_flushRef.current?.(_enteredRunKm.current||0); };
+    const onVis=()=>{ if(document.hidden)flush(); };
+    document.addEventListener("visibilitychange",onVis);
+    window.addEventListener("pagehide",flush);
+    return ()=>{ document.removeEventListener("visibilitychange",onVis); window.removeEventListener("pagehide",flush); };
+  },[]);
 
   useEffect(()=>{
     if(activeWorkout&&!workoutStartTime)setWorkoutStartTime(Date.now());
@@ -8413,21 +8443,23 @@ Rules:
       // CRITICAL DB SAVE FIRST. Must never be gated by the best-effort HealthKit
       // write below: a hung native saveWorkoutToHealth() promise was parking this
       // async fn before the insert ever ran (root cause of workouts not saving).
-      let workoutSaveFailed=false;
+      let workoutSaveFailed=false,_wkObj=null,_runLogId=null;
       if(user){
         try{
           const feedbackData=activeWorkout.exercises.filter(ex=>ex.feedback).map(ex=>({name:ex.name,feedback:ex.feedback}));
           const today=new Date().toISOString().split("T")[0];
-          const {error:saveErr}=await sb.from("workout_logs").insert({
+          _wkObj={focus:normFocus(todayFocus),exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData};
+          const {data:_wkRow,error:saveErr}=await sb.from("workout_logs").insert({
             user_id:user.id,
             date:today,
-            workout:{focus:normFocus(todayFocus),exercises:setsLogged,calories_burned:burn,type:todayType,readinessTier:activeWorkout.readinessTier||null,exerciseFeedback:feedbackData},
+            workout:_wkObj,
             volume_lbs:Math.round(totalVolume),
             total_sets:setsLogged.reduce((a,e)=>a+e.sets.length,0),
             total_reps:setsLogged.reduce((a,e)=>a+e.sets.reduce((b,s)=>b+(parseInt(s.reps)||0),0),0),
             session_duration_mins:duration,
             pr_count:prs.length,
-          });
+          }).select("id").single();
+          _runLogId=_wkRow?.id||null;
           if(saveErr){
             console.error("[finishWorkout] workout_logs insert failed:",saveErr);
             workoutSaveFailed=true;
@@ -8452,11 +8484,18 @@ Rules:
         }catch(e){console.error("[finishWorkout] save error:",e);}
       }
 
-      // Best-effort Apple Health write LAST — runs only after the DB save is done, so
-      // even a slow/hung native call can't block it. saveWorkoutToHealth is now
-      // internally timeout-guarded (Promise.race, 4s) as a second line of defense.
-      if(healthConnected){
-        // _hkType computed above (single source for both the calorie estimate and this HK label).
+      // Apple Health write LAST — after the DB save (ordering preserved), so a slow/hung native call
+      // can never block the insert. saveWorkoutToHealth is timeout-guarded (Promise.race, 4s).
+      if(_hkType==="running"){
+        // RUN DAY: the structured player has no GPS/manual distance, so DEFER — the summary captures
+        // ACTUAL distance, then flushRunHK backfills distance_km + fires the (single) HK write. This
+        // runs even when Health is off, so the DB log still gets real distance. Flushed once on summary
+        // close OR app-hide (visibilitychange/pagehide) → the run is NEVER orphaned. Blank = honest null.
+        _enteredRunKm.current=0;
+        _pendingRunHK.current={durationMinutes:duration,activeCalories:burn,workoutType:_hkType,userId:user?.id,tier:_calTier,bmr:_calBmr,logId:_runLogId,workoutObj:_wkObj};
+        setRunDistancePrompt(true);
+      }else if(healthConnected){
+        // Strength / hyrox: immediate inline write (unchanged).
         try{const{saveWorkoutToHealth}=await import("./services/appleHealth.js");await saveWorkoutToHealth({durationMinutes:duration,activeCalories:burn,workoutType:_hkType,userId:user?.id,tier:_calTier,bmr:_calBmr});}catch{}
       }
 
@@ -8589,6 +8628,9 @@ Rules:
   }
 
   function clearWorkoutSummary(){
+    // Flush any deferred run-day HealthKit write on close (X or DONE) with whatever distance was
+    // entered — single-fire, so if the app-hide fallback already fired this is a no-op.
+    flushRunHK(_enteredRunKm.current||0);
     setWorkoutSummary(null);
     setCompletedWorkout(null);
     setActiveWorkout(null);
@@ -11370,7 +11412,7 @@ Rules:
         {isRefreshing&&<div style={{position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"center",paddingTop:4,pointerEvents:"none"}}><div style={{background:"rgba(var(--accent-rgb),0.15)",border:"1px solid rgba(var(--accent-rgb),0.3)",borderRadius:20,padding:"4px 14px",fontSize:12,color:"rgba(245,245,240,0.6)",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.08em",textTransform:"uppercase"}}>Refreshing…</div></div>}
         {section==="today"&&<ErrorBoundary>{GOCLUB_REDESIGN?<HomeSectionGoClub/>:<HomeSection/>}</ErrorBoundary>}
         {section==="plan"&&GOCLUB_REDESIGN&&<ErrorBoundary><PlanOnboarding profile={profile} wPrefs={wPrefs} user={user} setWPrefs={setWPrefs} setSchedule={setSchedule} setSection={setSection} setPlanBuilt={setPlanBuilt} onProfileUpdate={onProfileUpdate} onProtocolRefetch={()=>{const _d=new Date().toISOString().split("T")[0];sb.from("nutrition_protocols").delete().eq("user_id",user.id).eq("protocol_date",_d).then(()=>{},()=>{});getTodayNutritionProtocol(user.id).then(p=>setTodayProtocol(p||null)).catch(()=>{});}}/></ErrorBoundary>}
-        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary>}
+        {section==="train"&&<ErrorBoundary><TrainSection profile={profile} schedule={schedule} setSchedule={setSchedule} dayFocus={dayFocus} wPrefs={wPrefs} setWPrefs={setWPrefs} trainScreen={trainScreen} setTrainScreen={(s)=>{setTrainScreen(s);setActiveSessionOpen(s==="active");}} activeSessionOpen={activeSessionOpen} workout={workout} workoutLoading={workoutLoading} generateWorkout={generateWorkout} activeWorkout={activeWorkout} setActiveWorkout={setActiveWorkout} restActive={restActive} restTimer={restTimer} logSet={logSet} finishWorkout={finishWorkout} pauseWorkout={pauseWorkout} getSuggestion={getSuggestion} history={history} planMode={planMode} setPlanMode={setPlanMode} runPlan={runPlan} setRunPlan={setRunPlan} hybridMix={hybridMix} setHybridMix={setHybridMix} startStructured={startStructured} todayKey={todayKey} todayType={todayType} todayFocus={todayFocus} cfg={cfg} isMobile={isMobile} user={user} lastLoggedSet={lastLoggedSet} setFlash={setFlash} skipRest={skipRest} adjustRest={adjustRest} workoutSummary={workoutSummary} completedWorkout={completedWorkout} clearWorkoutSummary={clearWorkoutSummary} runDistancePrompt={runDistancePrompt} onRunDistanceChange={(km)=>{_enteredRunKm.current=km;}} workoutStartTime={workoutStartTime} sessionCount={workoutLogsRaw.length} workoutLogsRaw={workoutLogsRaw} sessionPrediction={sessionPrediction} onLogPain={handleLogPain} acwrHighRisks={acwrHighRisks} deloadActive={deloadActive} activePlateaus={activePlateaus} balanceCorrections={balanceCorrections} programCurrentWeek={programCurrentWeek} recentAdjustments={recentAdjustments} fatigueAlert={fatigueAlert} macros={macros} todayProtocol={todayProtocol} showLocalRest={showLocalRest} localRestSecs={localRestSecs} onStartLocalRest={(secs)=>{setLocalRestSecs(secs||90);setShowLocalRest(true);}} onSkipLocalRest={()=>{setShowLocalRest(false);setLocalRestSecs(90);}} onReduceLocalRest={()=>setLocalRestSecs(s=>Math.max(0,s-30))} onProfileUpdate={handleProfileUpdate}/></ErrorBoundary>}
         {section==="fuel"&&<ErrorBoundary><FuelSection log={log} setLog={setLog} macros={macros} consumed={consumed} remaining={remaining} cfg={cfg} todayType={todayType} todayFocus={todayFocus} earnedCals={earnedCals} todayActs={todayActs} fuelScreen={fuelScreen} setFuelScreen={setFuelScreen} foodInput={foodInput} setFoodInput={setFoodInput} logging={logging} logMsg={logMsg} aiLog={aiLog} logMode={logMode} setLogMode={setLogMode} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} barcodeResult={barcodeResult} barcodeLoading={barcodeLoading} scanBarcode={scanBarcode} addBarcode={addBarcode} quickFields={quickFields} setQF={setQF} addQuick={addQuick} removeLog={removeLog} recs={recs} recsLoading={recsLoading} fetchRecs={fetchRecs} recipes={recipes} recipesLoading={recipesLoading} fetchRecipes={fetchRecipes} fastProto={fastProto} setFastProto={setFastProto} fastActive={fastActive} setFastActive={setFastActive} fastStart={fastStart} setFastStart={setFastStart} fastCustomH={fastCustomH} setFastCustomH={setFastCustomH} fastHours={fastHours} city={city} setCity={setCity} isMobile={isMobile} user={user} wPrefs={wPrefs} setWPrefs={setWPrefs} schedule={schedule} setSchedule={setSchedule} todayKey={todayKey} periodizationInfo={wPrefs.nutritionPeriodization?periodizationInfo:null} logEntry={logEntry} profile={profile} dayNutrition={dayNutrition} weekMacros={weekMacros} waterTarget={waterTarget} waterLogs={waterLogs} onAddWater={handleAddWater} onDeleteWater={handleDeleteWater} metabolicProtocol={metabolicAdaptation?.status==="active"?{progress:getProtocolProgress(metabolicAdaptation),onComplete:handleCompleteAdaptation}:null} onOpenPhotoLogger={()=>setShowPhotoLogger(true)} skippedSlots={skippedSlots} onSkipSlots={saveSkippedSlots} slotOverages={slotOverages} onSlotOverage={saveSlotOverages} lockedSlots={lockedSlots} onLockSlots={saveLockedSlots} resetSignal={fuelResetSignal} todayProtocol={todayProtocol} pendingTodaySlot={pendingTodaySlot} onClearPendingTodaySlot={()=>setPendingTodaySlot(null)}/></ErrorBoundary>}
         {showPhotoLogger&&<PhotoFoodLogger user={user} profile={profile} onLog={handlePhotoLog} onClose={()=>setShowPhotoLogger(false)} log={log}/>}
         {section==="progress"&&<ErrorBoundary><ProgressSection

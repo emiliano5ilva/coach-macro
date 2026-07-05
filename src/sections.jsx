@@ -1995,8 +1995,11 @@ const _TRAIN_GOCLUB_CSS=`
 .goclub.tab-train .header-title{font-family:'Archivo',sans-serif!important;font-style:normal!important;font-weight:800!important;font-size:26px!important;line-height:1.1!important;text-transform:none!important;color:#ffffff!important}
 `;
 
-function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedule,dayFocus,sessionCount,macros}){
+function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedule,dayFocus,sessionCount,macros,isRun=false,imperial=false,onRunDistanceChange}){
   const _trainEyeRedMo=useReducedMotion();
+  // Run-day distance capture — the structured player has no GPS/manual source, so we ask here.
+  // Reuses the run-tracker input pattern (mi/km + mi→km). Reports km up; blank = no distance (honest).
+  const [runDistIn,setRunDistIn]=useState('');
   const parseReps=(r)=>{if(typeof r==='number')return r;if(typeof r==='string'){const p=r.split('-');return parseInt(p[0])||0;}return 0;};
   const srcExercises=completedWorkout?(completedWorkout.exercises||[]):(workoutSummary?.exercises||[]);
   const exercisesWorked=srcExercises.filter(ex=>(ex.sets||[]).some(s=>s.done));
@@ -2127,9 +2130,21 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
             SESSION<br/>COMPLETE
           </div>
           {workoutSummary?.title&&<div style={{...cnd,fontSize:28,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',marginBottom:10,letterSpacing:'0.01em'}}>{workoutSummary.title.toUpperCase()}</div>}
-          <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.5)',marginBottom:32,letterSpacing:'0.08em'}}>
+          <div style={{...mno,fontSize:10,color:'rgba(255,255,255,0.5)',marginBottom:isRun?20:32,letterSpacing:'0.08em'}}>
             {dateStr} · {durStr}
           </div>
+          {isRun&&(
+            <div style={{marginBottom:28,textAlign:'left'}}>
+              <div style={{...mno,fontSize:9,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:8}}>How far did you go? ({imperial?'mi':'km'})</div>
+              <input
+                type="number" inputMode="decimal" placeholder="0.00"
+                value={runDistIn}
+                onChange={e=>{setRunDistIn(e.target.value);const v=parseFloat(e.target.value);onRunDistanceChange?.(isFinite(v)&&v>0?(imperial?v*1.609344:v):0);}}
+                style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.12)',border:'1.5px solid rgba(255,255,255,0.3)',borderRadius:12,padding:'14px',color:'#fff',fontSize:22,fontFamily:"'Barlow Condensed',sans-serif",fontStyle:'italic',fontWeight:900,outline:'none',textAlign:'center'}}
+              />
+              <div style={{...mno,fontSize:8,color:'rgba(255,255,255,0.4)',marginTop:6,letterSpacing:'0.06em'}}>Optional — leave blank if you're not sure</div>
+            </div>
+          )}
         </div>
 
         {/* Stats row */}
@@ -2227,7 +2242,7 @@ function SummaryPortal({completedWorkout,workoutSummary,onClose,todayKey,schedul
   );
 }
 
-export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,workoutLogsRaw=[],planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
+export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWPrefs,trainScreen,setTrainScreen,activeSessionOpen,workout,workoutLoading,generateWorkout,activeWorkout,setActiveWorkout,restActive,restTimer,logSet,finishWorkout,pauseWorkout,getSuggestion,history,workoutLogsRaw=[],planMode,setPlanMode,runPlan,setRunPlan,hybridMix,setHybridMix,startStructured,todayKey,todayType,todayFocus,cfg,isMobile,user,lastLoggedSet,setFlash,skipRest,adjustRest,workoutSummary,completedWorkout=null,clearWorkoutSummary,runDistancePrompt=false,onRunDistanceChange,workoutStartTime,sessionCount,sessionPrediction,onLogPain,acwrHighRisks,deloadActive,activePlateaus,balanceCorrections,programCurrentWeek,recentAdjustments,fatigueAlert,macros=null,todayProtocol=null,showLocalRest=false,localRestSecs=90,onStartLocalRest,onSkipLocalRest,onReduceLocalRest,onProfileUpdate}) {
   const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,"0");
   const [progDetailsExpanded,setProgDetailsExpanded]=useState(false);
   const [exExpanded,setExExpanded]=useState(false);
@@ -2957,7 +2972,7 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
     const elapsed=_min*60+_sec;
     const _imperial=(profile?.wUnit||wPrefs?.wUnit)==='lbs';
     const _entered=parseFloat(runManualDist)||0;
-    const dist=_imperial?_entered*1.60934:_entered;
+    const dist=_imperial?_entered*1.609344:_entered;
     const avgPace=fmtPace(dist,elapsed);
     const _durMin=Math.round(elapsed/60);
     const {kcal:cals,tier:_tier,bmr:_bmr}=estimateActiveKcal({hkType:"running",durationMin:_durMin,profile});
@@ -4807,6 +4822,9 @@ export function TrainSection({profile,schedule,setSchedule,dayFocus,wPrefs,setWP
             dayFocus={dayFocus}
             sessionCount={sessionCount}
             macros={macros}
+            isRun={runDistancePrompt}
+            imperial={(profile?.wUnit||wPrefs?.wUnit)==='lbs'}
+            onRunDistanceChange={onRunDistanceChange}
           />,
           document.body
         )}
