@@ -86,14 +86,14 @@ export function PrivacyPolicy() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Privacy Policy</h1>
-        <div className="legal-updated">Last Updated: June 1, 2026</div>
+        <div className="legal-updated">Last Updated: July 6, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Information We Collect</h2>
           <p className="legal-p">We collect the following categories of information when you use Coach Macro:</p>
           <ul className="legal-ul">
             <li><strong>Account information:</strong> name, email address, password</li>
-            <li><strong>Profile data:</strong> age, height, weight, body composition, fitness goals, dietary preferences, health conditions relevant to training (e.g. thyroid conditions, metabolic conditions)</li>
+            <li><strong>Profile data:</strong> age, height, weight, body composition, fitness goals, dietary preferences, food allergies and dietary restrictions, health conditions relevant to training (e.g. thyroid conditions, metabolic conditions)</li>
             <li><strong>Health and fitness data:</strong> food logs, workout history, macro targets, body measurements</li>
             <li><strong>Usage data:</strong> app interactions, features used, session duration</li>
             <li><strong>Device information:</strong> device type, operating system, browser type</li>
@@ -107,7 +107,7 @@ export function PrivacyPolicy() {
             <li>To calculate your nutritional targets and workout recommendations</li>
             <li>To sync with connected fitness devices and apps (Strava, Apple Health)</li>
             <li>To send you account-related emails and service updates</li>
-            <li>To improve our AI recommendations over time</li>
+            <li>To personalize and improve the quality of the recommendations we show you (this does not involve training AI models on your data)</li>
           </ul>
           <div className="legal-highlight">
             <p><strong>We do NOT sell your personal information to third parties.</strong></p>
@@ -120,7 +120,7 @@ export function PrivacyPolicy() {
         <div className="legal-section">
           <h2 className="legal-h2">3. Data Storage and Security</h2>
           <ul className="legal-ul">
-            <li>Data stored securely using Supabase infrastructure</li>
+            <li>Data stored securely on Supabase infrastructure located in the United States (us-east-2 region)</li>
             <li>Encryption in transit (TLS) and at rest</li>
             <li>We retain your data for as long as your account is active</li>
             <li>You can request deletion of your data at any time</li>
@@ -134,11 +134,11 @@ export function PrivacyPolicy() {
             <li><strong>Supabase</strong> (database and authentication) — stores all user data</li>
             <li><strong>Anthropic Claude API</strong> (AI features) — processes prompts containing nutrition and training context. We do not send personally identifiable information to Anthropic beyond what is necessary for AI feature functionality.</li>
             <li><strong>RevenueCat</strong> (subscription management) — manages in-app purchases and subscription status</li>
-            <li><strong>Paddle</strong> (web payment processing) — processes web subscriptions</li>
             <li><strong>Resend</strong> (email delivery) — sends transactional emails</li>
             <li><strong>Apple Health</strong> (optional integration) — reads sleep, heart rate, HRV, and steps when user grants permission</li>
             <li><strong>Strava</strong> (activity data sync — only if you choose to connect your Strava account). We receive workout activity data including runs, rides, and training sessions. Strava's privacy policy applies to data processed by Strava: strava.com/legal/privacy</li>
             <li><strong>Vercel</strong> — application hosting, web infrastructure, and content delivery network</li>
+            <li><strong>Sentry</strong> (error monitoring and performance tracing) — receives error and diagnostic data, including stack traces, request URLs, and device context, to help us diagnose crashes and bugs. US-based.</li>
             <li><strong>ExerciseDB via RapidAPI</strong> — provides exercise demonstration data</li>
             <li><strong>Open Food Facts</strong> (food database) — open source food nutrition data</li>
             <li><strong>USDA FoodData Central</strong> — US government food nutrition database</li>
@@ -158,6 +158,7 @@ export function PrivacyPolicy() {
             <li>Meal planning and prep suggestions</li>
           </ul>
           <p className="legal-p">When you use AI features, relevant context about your fitness goals, current macros, training schedule, and food photographs (when using the photo logging feature) may be sent to Anthropic's API to generate personalized responses. We do not send your name, email, or other directly identifying information in AI prompts.</p>
+          <p className="legal-p">Data sent to Anthropic's API is used only to generate your response and is not used to train AI models. Anthropic's commercial API does not train its models on data submitted through the API.</p>
           <p className="legal-p">You can disable AI features in <strong>Settings → Preferences → AI Features</strong>. Disabling AI features will not affect core nutrition tracking or program access.</p>
         </div>
 
@@ -209,11 +210,11 @@ export function PrivacyPolicy() {
           <p className="legal-p">For users in the European Economic Area (EEA), we process your personal data under the following legal bases:</p>
           <ul className="legal-ul">
             <li><strong>Contract performance:</strong> processing necessary to deliver the Coach Macro service you signed up for (core tracking, macro targets, workout plans)</li>
-            <li><strong>Explicit consent:</strong> processing of health data including body metrics, nutrition data, and reproductive health information — provided during onboarding</li>
+            <li><strong>Explicit consent:</strong> processing of health data including body metrics, nutrition data, food allergy and dietary-restriction information, and reproductive health information — provided during onboarding</li>
             <li><strong>Legitimate interests:</strong> service security, fraud prevention, and service improvement</li>
           </ul>
           <p className="legal-p">Health data is special category data under GDPR Article 9. We rely on your explicit consent, provided at account creation, to process this data.</p>
-          <p className="legal-p"><strong>Data transfers to the United States:</strong> We transfer data to US-based processors (Supabase, Anthropic, RevenueCat) under Standard Contractual Clauses (SCCs) in accordance with GDPR Article 46.</p>
+          <p className="legal-p"><strong>Data transfers to the United States:</strong> We transfer data to US-based processors (Supabase, Anthropic, RevenueCat, Sentry, Resend, Vercel) under Standard Contractual Clauses (SCCs) in accordance with GDPR Article 46.</p>
           <p className="legal-p">To exercise your GDPR rights — including right to access, rectification, erasure, portability, objection, and restriction of processing — contact: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a>. We respond within 30 days.</p>
         </div>
 
