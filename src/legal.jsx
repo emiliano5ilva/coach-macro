@@ -516,6 +516,7 @@ export function TermsOfService() {
         <div className="legal-section">
           <h2 className="legal-h2">11. Disclaimer of Warranties</h2>
           <p className="legal-p" style={{textTransform:"uppercase",letterSpacing:"0.02em",fontSize:14}}>The service is provided "as is" and "as available" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. Coach Macro LLC does not warrant that the service will be uninterrupted, error-free, or free of harmful components.</p>
+          <p className="legal-p">This includes, without limitation, the allergen and dietary filtering features (see <a className="legal-email" href="/health-disclaimer">Health Disclaimer</a>).</p>
         </div>
 
         <div className="legal-section">
@@ -583,22 +584,27 @@ export function HealthDisclaimer() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">4. Exercise Information</h2>
+          <h2 className="legal-h2">4. Allergen and Dietary Filtering — Best Effort Only</h2>
+          <p className="legal-p">Coach Macro's allergy and dietary filtering is an automated, best-effort tool based on ingredient data from third-party sources (including Open Food Facts and USDA) and recipe tags, which may be incomplete, outdated, or incorrect. We do not guarantee that any recipe, meal plan, or ingredient identified by the app is free from any given allergen. The app cannot detect mislabeled ingredients, trace amounts, manufacturing cross-contamination, or ingredient substitutions. You are solely responsible for verifying every ingredient and product label before consuming any food. If you have a food allergy, intolerance, or medical dietary requirement, you must independently confirm each item's safety and consult a qualified medical professional. Coach Macro's filtering is not a substitute for medical allergy management and must not be relied upon as such. To the fullest extent permitted by law, we disclaim all liability for any allergic reaction or adverse health outcome arising from use of the meal-plan or filtering features.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">5. Exercise Information</h2>
           <p className="legal-p">Workout recommendations provided by Coach Macro are general fitness guidance. Improper exercise technique can cause injury. If you are new to exercise, consider working with a certified personal trainer to learn proper form.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">5. AI-Generated Content</h2>
+          <h2 className="legal-h2">6. AI-Generated Content</h2>
           <p className="legal-p">Coach Macro uses artificial intelligence to generate personalized recommendations. While we strive for accuracy, AI-generated content may occasionally contain errors. Always use your judgment and consult professionals when in doubt.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">6. Assumption of Risk</h2>
+          <h2 className="legal-h2">7. Assumption of Risk</h2>
           <p className="legal-p">By using Coach Macro you acknowledge that fitness and nutrition activities carry inherent risks. You assume full responsibility for your participation in any diet or exercise program.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">7. Emergency Situations</h2>
+          <h2 className="legal-h2">8. Emergency Situations</h2>
           <div className="legal-warning">
             <div className="legal-warning-title">Emergency Notice</div>
             <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 15 }}>Coach Macro is not designed for emergency use. If you are experiencing a medical emergency, call <strong>911</strong> immediately.</p>
@@ -606,7 +612,7 @@ export function HealthDisclaimer() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">8. Contact</h2>
+          <h2 className="legal-h2">9. Contact</h2>
           <p className="legal-p">For questions about this disclaimer, contact Coach Macro LLC at: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
         </div>
 

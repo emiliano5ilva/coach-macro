@@ -21,7 +21,7 @@ import { FuelOnboarding, TrainOnboarding } from "./onboarding.jsx";
 import { PromoScreen, Paywall, UpgradeScreen, ExpiredPaywall } from "./sections.jsx";
 import { isExpired } from "./utils/subscription.js";
 import { checkEntitlements } from "./services/purchaseService.js";
-import { PrivacyPolicy, TermsOfService } from "./legal.jsx";
+import { PrivacyPolicy, TermsOfService, HealthDisclaimer, HealthDataNotice } from "./legal.jsx";
 import { loadAndApplyTheme, applyDefaultTheme } from "./utils/themeService.js";
 
 // Synchronous default at module load — sets --cm-* on :root before React renders anything,
@@ -499,7 +499,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
           <svg width={16} height={16} viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
           Back
         </button>
-        {showLegalModal==="terms"?<TermsOfService/>:<PrivacyPolicy/>}
+        {showLegalModal==="terms"?<TermsOfService/>:showLegalModal==="health-disclaimer"?<HealthDisclaimer/>:showLegalModal==="health-data-notice"?<HealthDataNotice/>:<PrivacyPolicy/>}
       </div>
     )}
     </>

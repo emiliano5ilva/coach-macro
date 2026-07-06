@@ -47,6 +47,18 @@ import { buildUserContext, getRestaurantRecs, getMenuScanRecs } from './services
 import { geocodeCity, getNearbyRestaurants } from './services/locationService.js';
 import { getRecentMealsForSlot, getPerformanceCorrelations } from './services/macroMemoryService.js';
 
+// Persistent allergy/dietary safety note. Best-effort filtering is NOT a guarantee — this must stay
+// visible near the allergy filter and on the generated plan (not a dismissible toast). Reusable so it
+// reads identically everywhere. Design-system tokens (--cm-*), Archivo. [[coach-macro-project-state-doc]]
+function AllergyDisclaimer({ style }) {
+  return (
+    <div style={{ background:'rgba(var(--cm-ink-rgb,10,10,10),0.03)', border:'1px solid rgba(var(--cm-ink-rgb,10,10,10),0.10)', borderRadius:12, padding:'10px 14px', ...style }}>
+      <div style={{ fontFamily:"'Archivo',sans-serif", fontSize:9, fontWeight:700, color:'var(--cm-red,#FF3B30)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:4 }}>Allergy notice</div>
+      <div style={{ fontFamily:"'Archivo',sans-serif", fontSize:11, fontWeight:500, color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)', lineHeight:1.6 }}>Allergy filtering is best-effort. Always check ingredient labels yourself. The app can't catch mislabeled items, trace amounts, or cross-contamination.</div>
+    </div>
+  );
+}
+
 function PortionSheet({ food, mealSlots, activeSlotIdx, setActiveSlotIdx, onAdd, onClose }) {
   const smart = getSmartServings(food?.name || "");
   const [portionGrams, setPortionGrams] = useState(() => food?.usual_portion || (smart[0]?.grams ?? 100));
@@ -3641,6 +3653,7 @@ Reply with ONLY a valid JSON object, no markdown:
                   <div style={{fontFamily:"'Archivo',sans-serif",fontSize:10,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',textTransform:'uppercase',marginBottom:4}}>Your week, fueled for training</div>
                   <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,letterSpacing:'-0.01em',color:'var(--cm-ink,#0A0A0A)',textTransform:'capitalize',marginBottom:14}}>{mealPrepPrefs.dietPreset||'balanced'} · {totalMeals} meals prepped</div>
                   {_ageLabel&&<div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.42)',marginTop:-10,marginBottom:14}}>{_ageLabel}</div>}
+                  <AllergyDisclaimer style={{marginBottom:16}}/>
                   {_planElapsed?(
                     <div style={{padding:'6px 2px 4px'}}>
                       <div style={{fontFamily:"'Archivo',sans-serif",fontSize:14,fontWeight:500,color:'rgba(var(--cm-ink-rgb,10,10,10),0.6)',lineHeight:1.5,marginBottom:14}}>This week's plan has ended.</div>
@@ -4046,15 +4059,8 @@ Reply with ONLY a valid JSON object, no markdown:
                   })()}
                 </motion.div>
 
-                {/* Safety disclaimer */}
-                {mealPrepPrefs.dietaryPrefs.length>0&&(
-                  <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{background:'rgba(var(--cm-red-rgb,255,59,48),0.04)',border:'1px solid rgba(var(--cm-red-rgb,255,59,48),0.1)',borderRadius:12,padding:'10px 16px',marginBottom:20}}>
-                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:9,fontWeight:700,color:'var(--cm-red,#FF3B30)',letterSpacing:'0.14em',marginBottom:3,textTransform:'uppercase'}}>Allergy notice</div>
-                    <div style={{fontFamily:"'Archivo',sans-serif",fontSize:11,fontWeight:500,color:'rgba(var(--cm-red-rgb,255,59,48),0.5)',lineHeight:1.65}}>
-                      Recipes are tagged by ingredient. Always <span style={{color:'rgba(var(--cm-red-rgb,255,59,48),0.8)',fontWeight:700}}>verify all ingredients yourself</span> before consuming. Not medical advice.
-                    </div>
-                  </motion.div>
-                )}
+                {/* Safety disclaimer — PERSISTENT (always shown, not gated on having a restriction selected) */}
+                <AllergyDisclaimer style={{marginBottom:20}}/>
 
                 {/* Generate button */}
                 <motion.button
