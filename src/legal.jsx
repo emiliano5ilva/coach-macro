@@ -427,11 +427,11 @@ export function TermsOfService() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Terms of Service</h1>
-        <div className="legal-updated">Last Updated: June 1, 2026</div>
+        <div className="legal-updated">Last Updated: July 6, 2026</div>
 
         <div className="legal-section">
           <h2 className="legal-h2">1. Acceptance of Terms</h2>
-          <p className="legal-p">By using Coach Macro you agree to these Terms of Service. If you do not agree, do not use the service.</p>
+          <p className="legal-p">By using Coach Macro you agree to these Terms of Service. If you do not agree, do not use the Service.</p>
         </div>
 
         <div className="legal-section">
@@ -445,7 +445,7 @@ export function TermsOfService() {
 
         <div className="legal-section">
           <h2 className="legal-h2">3. Eligibility</h2>
-          <p className="legal-p">You must be at least 13 years old to use Coach Macro. Users between 13 and 17 years of age must have parental or guardian consent. By using the service you represent that you meet these age requirements.</p>
+          <p className="legal-p">You must be at least 13 years old to use Coach Macro. Users between 13 and 17 years of age must have parental or guardian consent. By using the Service you represent that you meet these age requirements.</p>
         </div>
 
         <div className="legal-section">
@@ -490,11 +490,11 @@ export function TermsOfService() {
           <h2 className="legal-h2">7. Acceptable Use</h2>
           <p className="legal-p">You agree not to:</p>
           <ul className="legal-ul">
-            <li>Use the service for any unlawful purpose</li>
+            <li>Use the Service for any unlawful purpose</li>
             <li>Share your account with others</li>
             <li>Attempt to reverse engineer the application</li>
             <li>Submit false or misleading health information</li>
-            <li>Use the service to harm others</li>
+            <li>Use the Service to harm others</li>
           </ul>
         </div>
 
@@ -510,32 +510,39 @@ export function TermsOfService() {
 
         <div className="legal-section">
           <h2 className="legal-h2">10. Limitation of Liability</h2>
-          <p className="legal-p">Coach Macro LLC is not liable for any indirect, incidental, or consequential damages arising from your use of the service. Our total liability shall not exceed the amount you paid in the 12 months preceding the claim.</p>
+          <p className="legal-p">Coach Macro LLC is not liable for any indirect, incidental, or consequential damages arising from your use of the Service. Our total liability shall not exceed the amount you paid in the 12 months preceding the claim.</p>
+          {/* ATTORNEY REVIEW: liability cap is fees-only (prior 12 months), no fixed floor. Consider adding an enforceability floor (e.g. greater of $X or fees) — jurisdiction/pricing call. */}
+          <p className="legal-p">Nothing in these Terms excludes or limits Coach Macro LLC's liability for death or personal injury caused by its negligence, for fraud or fraudulent misrepresentation, or for any other liability that cannot be excluded or limited under applicable law.</p>
         </div>
 
         <div className="legal-section">
           <h2 className="legal-h2">11. Disclaimer of Warranties</h2>
-          <p className="legal-p" style={{textTransform:"uppercase",letterSpacing:"0.02em",fontSize:14}}>The service is provided "as is" and "as available" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. Coach Macro LLC does not warrant that the service will be uninterrupted, error-free, or free of harmful components.</p>
+          <p className="legal-p" style={{textTransform:"uppercase",letterSpacing:"0.02em",fontSize:14}}>The service is provided "as is" and "as available" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. Coach Macro LLC does not warrant that the Service will be uninterrupted, error-free, or free of harmful components.</p>
           <p className="legal-p">This includes, without limitation, the allergen and dietary filtering features (see <a className="legal-email" href="/health-disclaimer">Health Disclaimer</a>).</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">12. Dispute Resolution</h2>
+          <h2 className="legal-h2">12. Indemnification</h2>
+          <p className="legal-p">You agree to indemnify, defend, and hold harmless Coach Macro LLC, its owner, officers, employees, and affiliates from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or related to your use of the Service, your violation of these Terms, or your violation of any rights of a third party.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">13. Dispute Resolution</h2>
           <p className="legal-p">Any dispute arising from these Terms or your use of Coach Macro shall be resolved through binding arbitration under the American Arbitration Association rules, not in court. You waive any right to participate in a class action lawsuit or class-wide arbitration. This section does not prevent either party from seeking injunctive relief in court for intellectual property violations.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">13. Termination</h2>
+          <h2 className="legal-h2">14. Termination</h2>
           <p className="legal-p">We may terminate your account for violation of these terms. You may cancel your account at any time through the app settings.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">14. Governing Law</h2>
+          <h2 className="legal-h2">15. Governing Law</h2>
           <p className="legal-p">These terms are governed by the laws of the State of Texas.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">15. Contact</h2>
+          <h2 className="legal-h2">16. Contact</h2>
           <p className="legal-p">Email: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
         </div>
 
@@ -554,7 +561,7 @@ export function HealthDisclaimer() {
         <LegalLogo />
         <div className="legal-tag">Legal</div>
         <h1 className="legal-title">Health Disclaimer</h1>
-        <div className="legal-updated">Last Updated: June 1, 2026</div>
+        <div className="legal-updated">Last Updated: July 6, 2026</div>
 
         <div className="legal-warning" style={{ marginBottom: 48 }}>
           <div className="legal-warning-title">Important — Please Read Carefully</div>
@@ -589,22 +596,28 @@ export function HealthDisclaimer() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">5. Exercise Information</h2>
+          <h2 className="legal-h2">5. Food Preparation and Safety</h2>
+          <p className="legal-p">You are solely responsible for safe food handling, storage, cooking temperatures, and hygiene when preparing any recipe provided through Coach Macro. Recipes are provided for informational purposes only. Coach Macro LLC does not verify and is not responsible for the safety of your food preparation, and disclaims all liability for any illness, injury, or adverse outcome arising from the preparation, handling, storage, or consumption of any food.</p>
+        </div>
+
+        <div className="legal-section">
+          <h2 className="legal-h2">6. Exercise Information</h2>
           <p className="legal-p">Workout recommendations provided by Coach Macro are general fitness guidance. Improper exercise technique can cause injury. If you are new to exercise, consider working with a certified personal trainer to learn proper form.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">6. AI-Generated Content</h2>
+          <h2 className="legal-h2">7. AI-Generated Content</h2>
           <p className="legal-p">Coach Macro uses artificial intelligence to generate personalized recommendations. While we strive for accuracy, AI-generated content may occasionally contain errors. Always use your judgment and consult professionals when in doubt.</p>
+          <p className="legal-p">This applies specifically to Coach Macro's automated meal-plan generation and its macro and calorie calculations. Generated meal plans, macro targets, and nutrition and calorie figures are automated statistical estimates, not measurements, and may be inaccurate, incomplete, or unsuitable for your individual circumstances. You should apply your own judgment and consult a qualified professional before relying on any generated plan or nutrition figure.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">7. Assumption of Risk</h2>
+          <h2 className="legal-h2">8. Assumption of Risk</h2>
           <p className="legal-p">By using Coach Macro you acknowledge that fitness and nutrition activities carry inherent risks. You assume full responsibility for your participation in any diet or exercise program.</p>
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">8. Emergency Situations</h2>
+          <h2 className="legal-h2">9. Emergency Situations</h2>
           <div className="legal-warning">
             <div className="legal-warning-title">Emergency Notice</div>
             <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 15 }}>Coach Macro is not designed for emergency use. If you are experiencing a medical emergency, call <strong>911</strong> immediately.</p>
@@ -612,7 +625,7 @@ export function HealthDisclaimer() {
         </div>
 
         <div className="legal-section">
-          <h2 className="legal-h2">9. Contact</h2>
+          <h2 className="legal-h2">10. Contact</h2>
           <p className="legal-p">For questions about this disclaimer, contact Coach Macro LLC at: <a className="legal-email" href="mailto:support@coach-macro.com">support@coach-macro.com</a></p>
         </div>
 
