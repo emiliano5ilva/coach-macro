@@ -249,41 +249,30 @@ function AuthScreen({onAuth, startView="welcome"}) {
 
   const [devLoading,setDevLoading]=useState(false);
   const [devError,setDevError]=useState("");
-  if(import.meta.env.VITE_AUTO_DEVMODE==="true") localStorage.setItem("devmode","true");
-  const showDevSkip=import.meta.env.DEV||localStorage.getItem("devmode")==="true";
-  const logoTapCount=useRef(0);
-  const logoTapTimer=useRef(null);
-  function handleLogoTap(){
-    logoTapCount.current+=1;
-    clearTimeout(logoTapTimer.current);
-    if(logoTapCount.current>=5){
-      localStorage.setItem("devmode","true");
-      window.location.reload();
-      return;
-    }
-    logoTapTimer.current=setTimeout(()=>{logoTapCount.current=0;},600);
-  }
+  // Dev-skip is a COMPILE-TIME constant off MODE (same reliable pattern _tryDevBypass uses): prod
+  // `vite build` → MODE="production" → false → terser folds every `{showDevSkip && …}` block to
+  // nothing and strips the handlers + any creds; `build:sim` → MODE="development" → true → dev-skip
+  // works. No runtime enable path (no localStorage flag, no 5-tap gesture) → shipped app has no bypass.
+  const showDevSkip=import.meta.env.MODE!=="production";
 
-  // Signs in as testuser AND upserts a complete profile → lands in the main app.
+  // DEV-ONLY: signs in as the dev account (creds from env, never hardcoded) + upserts its profile.
+  // Guarded on MODE so it.s a no-op AND terser-strippable in production.
   async function handleDevSkip(){
+    if(import.meta.env.MODE==="production")return;
+    const _de=import.meta.env.VITE_DEV_EMAIL,_dp=import.meta.env.VITE_DEV_PASSWORD;
     setDevLoading(true);setDevError("");
+    if(!_de||!_dp){setDevError("Dev creds not set (VITE_DEV_EMAIL/VITE_DEV_PASSWORD)");setDevLoading(false);return;}
     try{
       let userData=null;
-      const{data:signInData,error:signInErr}=await sb.auth.signInWithPassword({
-        email:"testuser@coachm.dev",password:"CoachTest123!",
-      });
+      const{data:signInData,error:signInErr}=await sb.auth.signInWithPassword({email:_de,password:_dp});
       if(!signInErr&&signInData?.user?.id){
         userData=signInData.user;
       }else{
-        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({
-          email:"testuser@coachm.dev",password:"CoachTest123!",
-        });
+        const{data:signUpData,error:signUpErr}=await sb.auth.signUp({email:_de,password:_dp});
         if(signUpErr)throw signUpErr;
         if(signUpData?.session){userData=signUpData.user;}
         else{
-          const{data:d2,error:e2}=await sb.auth.signInWithPassword({
-            email:"testuser@coachm.dev",password:"CoachTest123!",
-          });
+          const{data:d2,error:e2}=await sb.auth.signInWithPassword({email:_de,password:_dp});
           if(e2)throw e2;
           userData=d2?.user;
         }
@@ -291,7 +280,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
       if(!userData?.id)throw new Error("Could not get dev user");
       await sb.from("profiles").upsert({
         id:userData.id,
-        profile_data:{name:"Dev User",email:"testuser@coachm.dev",goal:"muscle_gain",liftExp:"intermediate",cardioExp:"intermediate",subscription_tier:"annual",startDate:new Date().toISOString().split("T")[0]},
+        profile_data:{name:"Dev User",email:_de,goal:"muscle_gain",liftExp:"intermediate",cardioExp:"intermediate",subscription_tier:"annual",startDate:new Date().toISOString().split("T")[0]},
         subscription_tier:"annual",subscription_started_at:new Date().toISOString(),is_pro:true,
       },{onConflict:"id"});
       onAuth(userData,null);
@@ -305,9 +294,10 @@ function AuthScreen({onAuth, startView="welcome"}) {
   // If the DB call itself fails due to network/RLS, the catch block in loadProfile
   // also sets phase="onboarding" — either path lands in onboarding.
   function handleOnboardingTest(){
+    if(import.meta.env.MODE==="production")return;
     const fakeUser={
       id:"85e58fe7-f2f3-4597-a4a9-9b0ea90121dc",
-      email:"testuser@coachm.dev",
+      email:import.meta.env.VITE_DEV_EMAIL,
     };
     onAuth(fakeUser,null);
   }
@@ -402,7 +392,7 @@ function AuthScreen({onAuth, startView="welcome"}) {
     <div style={{minHeight:"100vh",background:"#000000",display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px 52px",position:"relative",overflow:"hidden"}}>
       <style>{GLOBAL_CSS}</style>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:"18vh",width:"100%",maxWidth:420}}>
-        <div onClick={handleLogoTap} style={{cursor:"default"}}>
+        <div style={{cursor:"default"}}>
           <div style={{marginBottom:28,display:"flex",justifyContent:"center"}}><Logo size={36} text={false}/></div>
           <div style={{fontFamily:"var(--condensed)",fontWeight:900,fontSize:84,lineHeight:.84,color:"#f5f5f0",textAlign:"center",textTransform:"uppercase",letterSpacing:"-0.01em"}}>
             YOUR COACH.
@@ -542,9 +532,8 @@ export default function NativeApp() {
         const trialEnd=data.trial_ends_at||data.profile_data.trialEndsAt;
         // Derive subscription_tier from DB column; fall back to date-based check
         let tier=data.subscription_tier||'trial';
-        // Dev account bypass — never expire or paywall the test account
-        const isDevAccount=data.profile_data?.email==="testuser@coachm.dev";
-        if(!isDevAccount&&tier==='trial'&&trialEnd&&new Date(trialEnd)<=new Date())tier='expired';
+        // Trial expiry enforces for ALL accounts (the dev account carries a real subscription_tier).
+        if(tier==='trial'&&trialEnd&&new Date(trialEnd)<=new Date())tier='expired';
         setProfile({
           ...data.profile_data,
           // Dedicated columns override JSONB where they exist
@@ -906,8 +895,7 @@ export default function NativeApp() {
       if(event==="PASSWORD_RECOVERY")setPhase("reset-password");
     });
     const onSubRequired=()=>{
-      const devEmail=profile?.email==="testuser@coachm.dev"||user?.email==="testuser@coachm.dev";
-      if(!devEmail)setPhase("upgrade");
+      setPhase("upgrade");
     };
     window.addEventListener("cm:subscription-required",onSubRequired);
     const onDeepLink=(e)=>{

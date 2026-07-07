@@ -217,29 +217,34 @@ _**Current committed bundle: `NativeApp-403b5e65`** (run-logging milestone + run
 _Consolidated 2026-07-06. THIS is the single source of truth for "what must be resolved before submission" — nothing ships to the App Store (or web production) with an un-cleared 🔴 here. Detailed context for the 🟡 items also lives inline lower in this doc (line refs noted)._
 
 ### 🔴 BLOCKERS — cannot ship
-1. **Auth/payment PRODUCTION BACKDOOR (dev-skip).** `showDevSkip = import.meta.env.DEV || localStorage.devmode==='true'`;
-   the **5-tap-logo gesture** (`handleLogoTap`, `NativeApp.jsx:253-264`) sets `localStorage.devmode='true'` → in a **PROD build**
-   this exposes: (a) the dev-skip button + **autologin into hardcoded creds `testuser@coachm.dev` / `CoachTest123!` that SHIP IN
-   THE BUNDLE**, (b) `isDevAccount` **subscription bypass** (`:545`), (c) `devEmail` **paywall-skip** (`:908`). Anyone can tap the
-   logo 5× in the shipped app to **bypass auth AND payment**. ~10 sites: `showDevSkip:252`, `VITE_AUTO_DEVMODE:251`,
-   `handleLogoTap:253-264`, `handleDevSkip:267`, `handleOnboardingTest:306`, buttons `:422/425/484/487`, `isDevAccount:545`,
-   `devEmail:908`. **MUST be removed before submission.** Kept through dev (drives testuser/dev-skip testing); remove + on-device
-   welcome/signin glance at submission time.
-2. **Web deploy pipeline BROKEN — Vercel Hobby 12-function limit** (diagnosed 2026-07-06, not fixed). Every production/preview
-   deploy fails at step `patchBuild` with `errorCode: exceeded_serverless_functions_per_deployment` ("No more than 12 Serverless
-   Functions … on the Hobby plan"). The `api/` dir has **14 functions** (12 endpoints + `api/middleware/logger.js` + `rateLimit.js`,
-   which Vercel counts). The Vite build compiles fine — the deploy is rejected post-build. **Every deploy for weeks has failed**, so
-   the corrected privacy policy (Sentry disclosure etc.) has never reached production and Sentry is live-collecting under a stale policy.
-   **FIX:** upgrade the team to **Vercel Pro** (limit ~100), OR free interim = move the 2 `api/middleware/*` helpers out of `api/`
-   (→ 12, at the limit). **Production branch is `main`, not `goclub-redesign`** (goclub-redesign only makes previews). Legal fix is
-   staged: branch **`legal-hotfix-main`** (`0a54c82`, pushed) + PR-ready → merge to `main` only AFTER this is fixed.
+1. **Auth/payment PRODUCTION BACKDOOR (dev-skip) — ✅ FIXED on `goclub-redesign`** (2026-07-07). Removed the runtime enable
+   path: dropped `|| localStorage.devmode`, deleted the `VITE_AUTO_DEVMODE` feeder + the 5-tap `handleLogoTap` + the logo
+   `onClick`. `showDevSkip = import.meta.env.MODE!=="production"` is now a **compile-time constant** → dev-skip UI + `handleDevSkip`/
+   `handleOnboardingTest` + creds are terser-stripped from prod builds; `build:sim` retains dev-skip. The two handlers are MODE-gated
+   and now read `VITE_DEV_EMAIL`/`VITE_DEV_PASSWORD` env vars (no hardcoded creds in source). Removed the ungated email payment
+   bypasses (`isDevAccount` trial-expiry + `devEmail` paywall) → trial-expiry + paywall enforce for ALL accounts.
+   **VERIFIED:** production `vite build` bundle grep for `testuser@coachm.dev` / `CoachTest123` / `devmode` / `VITE_DEV_EMAIL` /
+   `handleDevSkip` = **ALL not-found**; sim build retains dev-skip. ⚠️ **Rotate the `testuser@coachm.dev` Supabase password**
+   (it's in public git history — code removal doesn't scrub it; owner handling separately).
+   🟡 **See tracked item below — `main`/web still carries the backdoor** (App Store build is from `goclub-redesign`, now clean;
+   coach-macro.com is served from `main`, still exposed).
+2. **Web deploy pipeline — ✅ UNBLOCKED (Vercel Pro, 2026-07-07).** Was failing every deploy at `patchBuild` with
+   `exceeded_serverless_functions_per_deployment` (14 `api/` functions vs the Hobby cap of 12; every deploy for weeks failed, so
+   the corrected privacy policy never reached prod). **Upgraded to Vercel Pro** (limit ~100) → the limit is lifted; deploys should
+   now succeed (confirm on next push). **Production branch is `main`**, not `goclub-redesign` (which only makes previews). Legal fix
+   staged on **`legal-hotfix-main`** (`0a54c82`, pushed), PR-ready → merge to `main` + deploy now that the pipeline's clear.
+3. **🔴 main/web BACKDOOR PORT — pending review + deploy (unblocked by the Pro upgrade).** `main:NativeApp.jsx` still carries the
+   SAME dev-skip auth/payment backdoor (12 hits), and coach-macro.com is served from `main` → the website is live-exposed (5-tap →
+   dev-skip → bundled creds + payment bypass). The `goclub-redesign` fix does NOT reach `main` (file diverged ~100 lines). **Ported
+   to branch `security-backdoor-main` (off `main`) — PR-ready, diff under review; do NOT merge until reviewed.** Merge + deploy to
+   web prod once reviewed (Vercel Pro now clears the pipeline). Rotate the testuser password applies to web too.
 
 ### 🟡 MUST-VERIFY / CLEANUP before submission (not security-critical)
-3. **Clinical-records / provisioning entitlement cleanup** — verify portal App ID + provisioning profile carry only what's used
+4. **Clinical-records / provisioning entitlement cleanup** — verify portal App ID + provisioning profile carry only what's used
    (binary entitlements currently clean). [detail ~"Clinical-records" bullet below]
-4. **HRV full device verification** — reads work (`ah_hrv_ok`); the Settings-permission-sheet + real HRV data needs an Apple Watch
+5. **HRV full device verification** — reads work (`ah_hrv_ok`); the Settings-permission-sheet + real HRV data needs an Apple Watch
    wearer, cleanest via delete/reinstall so HRV is in the initial grant. [detail ~"HRV full device verification" bullet below]
-5. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
+6. **Analytics breadcrumbs keep-vs-gate** — `ah_*` / `tier` / `bmr` / `plan_confirm_*` breadcrumbs kept through dev for cheap
    observability; **gate or strip before App Store**. [detail ~"Breadcrumb keep-vs-gate" bullet below]
 
 ---
