@@ -6497,8 +6497,9 @@ function AppearanceSection({ user, wPrefs, setWPrefs }) {
 
   useEffect(() => {
     if (!user?.id) return;
-    // Dev accounts always get max tier so the theme picker is visible for testing
-    if (user.email?.endsWith('@coachm.dev')) { setTier(4); return; }
+    // Dev accounts always get max tier so the theme picker is visible for testing.
+    // MODE-gated (same pattern as the dev-skip flow) → terser-strips from prod builds.
+    if (import.meta.env.MODE !== "production" && user.email?.endsWith('@coachm.dev')) { setTier(4); return; }
     sb.from('profiles').select('referral_tier').eq('id', user.id).maybeSingle()
       .then(({ data }) => setTier(data?.referral_tier || 0));
   }, [user?.id]);
